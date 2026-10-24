@@ -144,7 +144,7 @@ async function auditPlanCapDrift({ trim = false } = {}) {
                 { plan_id: sub.plan_id, lost_integrations: lostIntegrations, lost_beta_features: lostBeta, trimmed: trim },
                 sub.organization_id,
             );
-        } catch (_) { /* audit best-effort */ }
+        } catch (err) { log.debug('audit best-effort', err); }
 
         if (trim) {
             try {

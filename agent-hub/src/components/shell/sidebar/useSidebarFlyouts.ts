@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback , useLayoutEffect } from 'react';
 import type React from 'react';
 
     /* ─── Aim detection ───
@@ -65,9 +65,13 @@ export function useSidebarFlyouts(scrollRef: React.RefObject<HTMLElement | null>
     const [subFlyout, setSubFlyout] = useState<FlyoutPosition | null>(null); // { key, top, left } | null
     // Mirrors of both, for the hover/close paths that decide from inside a timer.
     const flyoutRef = useRef<FlyoutPosition | null>(null);
-    flyoutRef.current = flyout;
+    useLayoutEffect(() => {
+        flyoutRef.current = flyout;
+    });
     const subFlyoutRef = useRef<FlyoutPosition | null>(null);
-    subFlyoutRef.current = subFlyout;
+    useLayoutEffect(() => {
+        subFlyoutRef.current = subFlyout;
+    });
     const flyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const subFlyoutCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -220,7 +224,7 @@ export function useSidebarFlyouts(scrollRef: React.RefObject<HTMLElement | null>
             document.removeEventListener('keydown', onKey);
             scroller?.removeEventListener('scroll', closeFlyout);
         };
-    }, [flyout, closeFlyout]);
+    }, [flyout, closeFlyout, scrollRef]);
     // A closing level-1 panel can outlive its child by a frame (the two grace
     // timers are independent), so tie the sub-panel's life to its parent's.
     useEffect(() => { if (!flyout) closeSubFlyout(); }, [flyout, closeSubFlyout]);

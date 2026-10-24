@@ -166,21 +166,18 @@ const AgentChatView = ({
                                         <>
                                             <div className="fixed inset-0 z-40" onClick={() => setShowAgentMenu(false)} />
                                             <div
-                                                className="absolute top-full left-0 mt-1 w-44 rounded-lg border shadow-xl overflow-hidden z-50"
-                                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)' }}
+                                                className="absolute top-full left-0 mt-1 w-44 rounded-lg border shadow-xl overflow-hidden z-50 [background:var(--bg-primary)] [border-color:var(--border-subtle)]"
                                             >
                                                 <button
                                                     onClick={() => { setShowAgentMenu(false); handleNewChat(); }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left"
-                                                    style={{ color: 'var(--text-primary)' }}
+                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left [color:var(--text-primary)]!"
                                                 >
                                                     <PenLine className="w-4 h-4" />
                                                     {t('sidebar.new_chat', 'New Chat')}
                                                 </button>
                                                 <button
                                                     onClick={() => { handleToggleFavorite(selectedAgent.id); setShowAgentMenu(false); }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left"
-                                                    style={{ color: 'var(--text-primary)' }}
+                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left [color:var(--text-primary)]!"
                                                 >
                                                     {favorites.includes(selectedAgent.id) ? 'Remove from favorites' : 'Add to favorites'}
                                                 </button>
@@ -189,8 +186,7 @@ const AgentChatView = ({
                                                         {!isMobile && (
                                                         <button
                                                             onClick={() => { setShowAgentMenu(false); onNavigate(`agentDesigner:${selectedAgent.id}`); }}
-                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left"
-                                                            style={{ color: 'var(--text-primary)' }}
+                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left [color:var(--text-primary)]!"
                                                         >
                                                             <Pencil className="w-4 h-4" />
                                                             {t('agent.edit_agent', 'Edit Agent')}
@@ -198,8 +194,7 @@ const AgentChatView = ({
                                                         )}
                                                         <button
                                                             onClick={() => { handleUnpublishAgent(selectedAgent.id); setShowAgentMenu(false); }}
-                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left"
-                                                            style={{ color: 'var(--error, #ef4444)' }}
+                                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-secondary)] transition-colors text-left [color:var(--error,#ef4444)]!"
                                                         >
                                                             <EyeOff className="w-4 h-4" />
                                                             {t('agent.chat_menu_unpublish_agent', 'Unpublish Agent')}
@@ -268,7 +263,7 @@ const AgentChatView = ({
                         {/* Split Panes if Workspace Enabled */}
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
-                            <div className="flex-1 flex flex-col min-w-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <div className="flex-1 flex flex-col min-w-0 border-r [border-color:var(--border-subtle)]!">
                                 <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
                                     {messages.length === 0 ? (
                                         <EmptyChatState>

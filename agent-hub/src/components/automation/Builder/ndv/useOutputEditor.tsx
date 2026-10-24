@@ -9,6 +9,7 @@ import { isTruncatedOutput } from '../mapping/realOutputs';
 import { MAX_PINNED_BYTES, jsonByteLength, safeJsonText } from '../outputDrafts';
 import OutputEditorPanel from '../OutputEditorPanel';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
+import { logger } from '../../../../utils/logger';
 
 const isTruncated = isTruncatedOutput as (v: unknown) => boolean;
 
@@ -86,7 +87,7 @@ export default function useOutputEditor({
             await persistStepPatch({ pinnedOutput: null, pinnedAt: null, pinnedSource: undefined });
             setOpen(false);
             setError(null);
-        } catch { /* the save chip in the header reports it */ }
+        } catch (err) { logger.debug('the save chip in the header reports it', err); }
     };
 
     const editor = (

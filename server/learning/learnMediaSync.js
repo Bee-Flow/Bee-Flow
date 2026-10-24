@@ -26,6 +26,7 @@ const path = require('node:path');
 const log = require('../telemetry/log');
 const { learnMediaDir } = require('./learnMedia');
 const { syncFromPin } = require('./learnMediaInstall');
+const telemetryLog = require('../telemetry/log');
 
 const PIN_PATH = path.join(__dirname, 'learnMediaPack.json');
 const LOCK_NAME = '.learn-media-sync.lock';
@@ -52,13 +53,13 @@ function acquireLock(dir, { staleMs = LOCK_STALE_MS, now = Date.now, fsImpl = fs
         try {
             const fd = fsImpl.openSync(lock, 'wx');
             try { fsImpl.writeSync(fd, `${process.pid}\n`); } finally { fsImpl.closeSync(fd); }
-            return () => { try { fsImpl.unlinkSync(lock); } catch { /* already gone */ } };
+            return () => { try { fsImpl.unlinkSync(lock); } catch (err) { telemetryLog.debug('already gone', err); } };
         } catch (err) {
             if (err.code !== 'EEXIST') throw err;
             let age = 0;
             try { age = now() - fsImpl.statSync(lock).mtimeMs; } catch { continue; } // vanished: try again
             if (age < staleMs) return null;
-            try { fsImpl.unlinkSync(lock); } catch { /* someone else took it over */ }
+            try { fsImpl.unlinkSync(lock); } catch (err) { telemetryLog.debug('someone else took it over', err); }
         }
     }
     return null;

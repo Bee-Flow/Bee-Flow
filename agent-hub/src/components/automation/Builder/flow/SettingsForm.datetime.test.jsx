@@ -1,9 +1,9 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { dateInputPatch } from './datetimeTarget';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
-import { dateInputPatch } from './datetimeTarget';
 
 /**
  * Date & time over a whole column (BFSF-375).
@@ -25,7 +25,6 @@ const dtStep = (over = {}) => ({
 // found by what they DISPLAY — the same way SettingsForm.set.test.jsx does it.
 const worksOn = () => screen.getByDisplayValue(/^(One date|Each row of a list)$/);
 const queryWorksOn = () => screen.queryByDisplayValue(/^(One date|Each row of a list)$/);
-const dateInput = () => screen.getByPlaceholderText(/^(trigger\.output\.timestamp|item\.updated)$/);
 
 function renderForm(step, { onPatch = vi.fn(), groups = [] } = {}) {
     const utils = render(

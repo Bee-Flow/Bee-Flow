@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ok } from '@/test/http';
 import AuditTab from './AuditTab';
 import { authFetch } from '../../../../utils/helpers';
-import { ok } from '@/test/http';
 
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
@@ -25,9 +25,7 @@ describe('AuditTab', () => {
     });
 
     it('paginates with the cursor on "Load more"', async () => {
-        let page = 0;
         authFetch.mockImplementation((url) => {
-            page += 1;
             if (String(url).includes('cursor=')) return ok({ events: [{ id: 'e9', actor_kind: 'system', action: 'email_ingested', inbox_id: 'i1', payload: {}, created_at: '2026-06-29T08:00:00Z' }], nextCursor: null });
             return ok({ events: EVENTS, nextCursor: 'CUR1' });
         });

@@ -184,7 +184,7 @@ async function reconcileRowCount(table, meta, scopeKey) {
     try {
         // Mirrored into datatable_models by the engine itself (mirrorScopeSize).
         await datatableDbStore.sizeBytes(scopeKey, scopeKey);
-    } catch (_) { /* the quota reader tolerates a stale size */ }
+    } catch (err) { log.debug('the quota reader tolerates a stale size', err); }
 }
 
 /**

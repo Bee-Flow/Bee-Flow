@@ -5,6 +5,7 @@ import scopedStorage from '../utils/scopedStorage';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { ConversationRow } from './useConversationMeta';
 import type { AgentLike, IdRef } from './useAgentHubData';
+import { logger } from '../utils/logger';
 
 // The "All Chats" aggregation and the window-event listeners that steer the
 // hub from outside (Settings' chat-history-mode switch, NotificationCenter's
@@ -112,7 +113,7 @@ const useDirectChatEvents = ({
                         // result if the conversation can't be loaded.
                         if (conversationId) {
                             try { await selectConversation(agentId, conversationId); return; }
-                            catch (_) { /* fall through */ }
+                            catch (err) { logger.debug('fall through', err); }
                         }
                         const now = new Date().toISOString();
                         setCurrentConversation(null);

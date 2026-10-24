@@ -88,7 +88,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
     const renderPanel = (el: React.ReactElement) => (portal ? createPortal(el, document.body) : el);
 
     return (
-        <div ref={ref} style={{ position: 'relative', display: 'inline-block' }} data-testid="model-tier-selector">
+        <div ref={ref} className="[position:relative] [display:inline-block]" data-testid="model-tier-selector">
             {/* Compact pill trigger. Borderless on hover/open — looks like an
                 interactive pill rather than a form control. */}
             <button
@@ -206,7 +206,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                     }}
                                 >
                                     {meta.iconSrc ? (
-                                        <img src={meta.iconSrc} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+                                        <img src={meta.iconSrc} alt="" className="w-[16px] h-[16px] [object-fit:contain]" />
                                     ) : meta.Icon ? (
                                         <meta.Icon
                                             className="w-4 h-4"
@@ -216,39 +216,25 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
                                         <AppEmoji id={tierCatalogId(key)} default={meta.emoji} />
                                     )}
                                 </span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{
-                                        fontSize: '13px', fontWeight: 600,
-                                        color: 'var(--text-primary)',
-                                        lineHeight: 1.25,
-                                        display: 'flex', alignItems: 'center', gap: '6px',
-                                    }}>
+                                <div className="[flex:1] min-w-[0]">
+                                    <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)] [line-height:1.25] [display:flex] [align-items:center] [gap:6px]">
                                         <span>{t(`tier.${key}`, meta.label)}</span>
                                         {meta.beta && (
                                             <span
-                                                className="text-[9px] px-1 py-px rounded font-medium flex-shrink-0"
-                                                style={{
-                                                    background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
-                                                    color: 'var(--accent-primary)',
-                                                }}
+                                                className="text-[9px] px-1 py-px rounded font-medium flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]!"
                                             >
                                                 {t('chat.composer.beta_badge', 'beta')}
                                             </span>
                                         )}
                                     </div>
-                                    <div style={{
-                                        fontSize: '11.5px',
-                                        color: 'var(--text-muted)',
-                                        lineHeight: 1.3,
-                                        marginTop: '1px',
-                                    }}>
+                                    <div className="[font-size:11.5px] [color:var(--text-muted)] [line-height:1.3] [margin-top:1px]">
                                         {meta.desc}
                                     </div>
                                 </div>
                                 {isSelected && (
                                     <svg
                                         width="16" height="16" viewBox="0 0 16 16" fill="none"
-                                        style={{ flexShrink: 0, color: 'var(--accent-primary)' }}
+                                        className="[flex-shrink:0] [color:var(--accent-primary)]"
                                         aria-hidden="true"
                                     >
                                         <path d="M4 8L7 11L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

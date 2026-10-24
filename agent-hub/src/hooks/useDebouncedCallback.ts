@@ -11,7 +11,7 @@
 // The returned function exposes a `.cancel()` method to abort a pending
 // fire (useful in unmount-after-blur flows).
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useMemo, useCallback, useEffect, useRef } from 'react';
 
 export interface DebouncedFunction<F extends (...args: any[]) => void> {
     (...args: Parameters<F>): void;
@@ -50,17 +50,16 @@ export default function useDebouncedCallback<F extends (...args: any[]) => void>
 
     useEffect(() => cancel, [cancel]);
 
-    const debounced = useCallback((...args: Parameters<F>) => {
-        argsRef.current = args;
-        if (timerRef.current != null) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-            timerRef.current = null;
-            argsRef.current = null;
-            fnRef.current(...args);
-        }, ms);
-    }, [ms]) as DebouncedFunction<F>;
-
-    debounced.cancel = cancel;
-    debounced.flush = flush;
-    return debounced;
+    return useMemo(() => {
+        const call = (...args: Parameters<F>) => {
+            argsRef.current = args;
+            if (timerRef.current != null) clearTimeout(timerRef.current);
+            timerRef.current = setTimeout(() => {
+                timerRef.current = null;
+                argsRef.current = null;
+                fnRef.current(...args);
+            }, ms);
+        };
+        return Object.assign(call, { cancel, flush }) as DebouncedFunction<F>;
+    }, [ms, cancel, flush]);
 }

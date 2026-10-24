@@ -11,6 +11,7 @@
  * cached module objects (see integrationTools.notebooks.test.js).
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const assert = require('assert');
 
 const permissions = require('../../auth/permissions');

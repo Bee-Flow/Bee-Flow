@@ -219,7 +219,7 @@ async function applyApplyTemplate(draftWrap, args) {
             draftWrap.def = def;
             draftWrap.version = app.definitionVersion;
         }
-    } catch (_) { /* keep the current def — the route re-persists on the next mutation */ }
+    } catch (err) { log.debug('keep the current def — the route re-persists on the next mutation', err); }
     try {
         const studioAppDataStore = require('../../stores/studioAppDataStore');
         const dataMeta = await studioAppDataStore.getDataModel(draftWrap.appId, draftWrap.userId);
@@ -228,7 +228,7 @@ async function applyApplyTemplate(draftWrap, args) {
         draftWrap.rowCounts = rowCountsById(draftWrap.dataModel, dataMeta?.rowCounts);
         const datasetRows = await studioAppDataStore.listDatasets(draftWrap.appId, draftWrap.userId);
         draftWrap.datasetIds = (datasetRows || []).map((d) => ({ id: d.id, name: d.name }));
-    } catch (_) { /* data side is advisory for the emit; tools re-read it next turn */ }
+    } catch (err) { log.debug('data side is advisory for the emit; tools re-read it next turn', err); }
 
     return {
         ok: true,

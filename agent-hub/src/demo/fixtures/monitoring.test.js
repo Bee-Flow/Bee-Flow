@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { createState, ROUTES } from './monitoring';
 import { DEMO_CAPABILITIES } from './common';
+import { createState, ROUTES } from './monitoring';
 
 /**
  * The first version of this fixture returned `tokens` and `cost` while the

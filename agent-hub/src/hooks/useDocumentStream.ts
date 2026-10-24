@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { parseFrame, readFrames } from './useProjectStream';
+import { logger } from '../utils/logger';
 
 /** A number in [0, 1) for the reconnect jitter, from the platform's CSPRNG. */
 const unitRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
@@ -43,7 +44,7 @@ export default function useDocumentStream(documentId: string | null | undefined,
 
         const emit = (type: string, payload: unknown) => {
             for (const fn of Array.from(handlers.current.get(type) || [])) {
-                try { fn(payload); } catch { /* a listener's problem */ }
+                try { fn(payload); } catch (err) { logger.debug('a listener\'s problem', err); }
             }
         };
         const reconnect = () => {

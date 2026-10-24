@@ -1,9 +1,11 @@
 import React from 'react';
+import useNow from '../../../hooks/useNow';
 import useTranslation from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
 export default function ImageLightbox({ lightboxImage, setLightboxImage }: { lightboxImage: unknown; setLightboxImage: (img: null) => void }) {
     const { t } = useTranslation();
+    const stamp = useNow(60_000);
     if (!lightboxImage) return null;
     const close = () => setLightboxImage(null);
 
@@ -34,7 +36,7 @@ export default function ImageLightbox({ lightboxImage, setLightboxImage }: { lig
                     <div className="absolute top-3 right-3 flex items-center gap-2">
                         <a
                             href={lightboxImage as string}
-                            download={`ai-image-${Date.now()}.png`}
+                            download={`ai-image-${stamp}.png`}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-colors"
                         >
                             ⬇ {t('chat.download', 'Download')}

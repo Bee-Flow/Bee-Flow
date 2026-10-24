@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
 import type { TourStep } from './OnboardingTour.types';
+import { logger } from '../../utils/logger';
 
 interface StepInteractionDeps {
     active: boolean;
@@ -30,7 +31,7 @@ export function useTourStepInteraction({ active, step, stepIndex, finish, goNext
                     if (tgt && tgt.matches && tgt.matches(step.target as string) && String(tgt.value || '').trim().length >= minLen) {
                         advance();
                     }
-                } catch (err) { /* ignore */ }
+                } catch (err) { logger.debug('ignore', err); }
             };
             document.addEventListener('input', onInput, true);
             cleanups.push(() => document.removeEventListener('input', onInput, true));
@@ -64,9 +65,9 @@ export function useTourStepInteraction({ active, step, stepIndex, finish, goNext
     // ── Focus the card on each step (but not interactive steps) ─────────
     useEffect(() => {
         if (active && !step?.interactive) {
-            const id = setTimeout(() => { try { cardRef.current?.focus(); } catch (e) { /* ignore */ } }, 60);
+            const id = setTimeout(() => { try { cardRef.current?.focus(); } catch (e) { logger.debug('ignore', e); } }, 60);
             return () => clearTimeout(id);
         }
         return undefined;
-    }, [active, stepIndex, step]);
+    }, [active, stepIndex, step, cardRef]);
 }

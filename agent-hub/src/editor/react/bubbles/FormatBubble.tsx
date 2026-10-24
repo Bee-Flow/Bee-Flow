@@ -131,7 +131,7 @@ export default function FormatBubble({ view, editor, t, askAiEnabled, onAction, 
         </button>
       )}>
         {(setOpen) => (
-          <div className="p-2.5" style={{ minWidth: 208 }}>
+          <div className="p-2.5 min-w-[208px]">
             <MenuLabel>{tt('notebooks.text_color', 'Text color')}</MenuLabel>
             <div className="grid grid-cols-8 gap-1 mb-1.5">
               {PALETTE.map((c) => (
@@ -143,7 +143,7 @@ export default function FormatBubble({ view, editor, t, askAiEnabled, onAction, 
                 <input type="color" value={currentColor || '#000000'} onChange={(e) => chain().setColor(e.target.value).run()} className="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0" />
                 {tt('notebooks.custom', 'Custom')}
               </label>
-              <button onMouseDown={(e) => { e.preventDefault(); chain().unsetColor().run(); }} className="text-[10px]" style={{ color: 'var(--text-muted)' }}>✕ {tt('notebooks.reset', 'Reset')}</button>
+              <button onMouseDown={(e) => { e.preventDefault(); chain().unsetColor().run(); }} className="text-[10px] [color:var(--text-muted)]!">✕ {tt('notebooks.reset', 'Reset')}</button>
             </div>
             <MenuLabel>{tt('notebooks.highlight', 'Highlight')}</MenuLabel>
             <div className="grid grid-cols-8 gap-1 mb-1.5">
@@ -165,12 +165,12 @@ export default function FormatBubble({ view, editor, t, askAiEnabled, onAction, 
         <>
           <BubbleDivider />
           {([['rewrite', RefreshCw, tt('notebooks.ai_action_rewrite', 'Rewrite')], ['shorten', Scissors, tt('notebooks.ai_action_shorten', 'Shorten')], ['expand', Expand, tt('notebooks.ai_action_expand', 'Expand')]] as const).map(([k, Icon, label]) => (
-            <button key={k} onClick={() => onAction(k)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--text-secondary)' }}>
+            <button key={k} onClick={() => onAction(k)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] hover:bg-[var(--bg-tertiary)] [color:var(--text-secondary)]!">
               <Icon className="w-3 h-3" /> {label}
             </button>
           ))}
           <button onClick={() => onAsk({ top: rect.top, left: rect.left }, view.selectionFlat?.()?.from ?? 0, view.selectionFlat?.()?.to ?? 0, selectionText(view))}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px]" style={{ color: 'var(--accent-primary)' }}>
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] [color:var(--accent-primary)]!">
             <Wand2 className="w-3 h-3" /> {tt('notebooks.ask_ai', 'Ask AI')}
           </button>
         </>

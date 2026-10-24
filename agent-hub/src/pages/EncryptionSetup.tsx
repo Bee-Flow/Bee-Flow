@@ -168,15 +168,13 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
     // Recovery key confirmation screen
     if (recoveryKey) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4"
-                style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+            <div className="min-h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
                 <div className="w-full max-w-lg relative z-10">
                     <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                         <div className="text-center mb-6">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:linear-gradient(135deg,#10b981,#059669)]">
                                 <Key className="w-8 h-8 text-white" />
                             </div>
                             <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('encryption.save_recovery_title', 'Save Your Recovery Key')}</h1>
@@ -186,30 +184,26 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
                         </div>
 
                         {/* Warning */}
-                        <div className="mb-5 p-3 rounded-lg flex items-start gap-3 text-sm"
-                            style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b' }}>
+                        <div className="mb-5 p-3 rounded-lg flex items-start gap-3 text-sm [background:rgba(245,158,11,0.1)] [border:1px_solid_rgba(245,158,11,0.3)] [color:#f59e0b]!">
                             <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                             <span>{t('encryption.save_recovery_warning', 'If you lose this key and forget your PIN, your encrypted data will be permanently inaccessible.')}</span>
                         </div>
 
                         {/* Recovery key display */}
                         <div className="mb-6">
-                            <div className="p-4 rounded-xl font-mono text-sm text-center tracking-wider break-all select-all"
-                                data-testid="encryption-recovery-key"
-                                style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-default)', color: 'var(--text-primary)' }}>
+                            <div className="p-4 rounded-xl font-mono text-sm text-center tracking-wider break-all select-all [background:var(--bg-primary)] [border:2px_dashed_var(--border-default)] [color:var(--text-primary)]!"
+                                data-testid="encryption-recovery-key">
                                 {recoveryKey}
                             </div>
                             <button onClick={handleCopy}
-                                className="mt-3 w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all"
-                                style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}>
+                                className="mt-3 w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all [background:var(--bg-tertiary)] [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)]">
                                 {copied ? <><Check className="w-4 h-4" /> {t('encryption.copied', 'Copied!')}</> : <><Copy className="w-4 h-4" /> {t('encryption.copy_clipboard', 'Copy to clipboard')}</>}
                             </button>
                         </div>
 
                         <button onClick={onComplete}
                             data-testid="encryption-recovery-saved"
-                            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-                            style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
+                            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 [background:linear-gradient(135deg,#10b981,#059669)]">
                             {t('encryption.saved_continue', "I've saved my recovery key — Continue")}
                         </button>
                     </div>
@@ -221,16 +215,14 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
     // Recovery flow — forgot PIN
     if (showRecovery) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4"
-                style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+            <div className="min-h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
                 <div className="w-full max-w-md relative z-10">
                     <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                         {/* Header */}
                         <div className="text-center mb-6">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:linear-gradient(135deg,#f59e0b,#d97706)]">
                                 <Key className="w-8 h-8 text-white" />
                             </div>
                             <h1 className="text-xl font-bold text-[var(--text-primary)]">{t('encryption.recover_title', 'Recover Your Account')}</h1>
@@ -300,8 +292,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
                             <button
                                 onClick={handleRecover}
                                 disabled={isLoading}
-                                className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                                style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                                className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:linear-gradient(135deg,#f59e0b,#d97706)]">
                                 {isLoading ? t('encryption.recovering', 'Recovering…') : t('encryption.recover_set_new_pin', 'Recover & Set New PIN')}
                             </button>
 
@@ -319,16 +310,14 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4"
-            style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="min-h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
             <div className="w-full max-w-md relative z-10">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
 
                     {/* Header */}
                     <div className="text-center mb-6">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                            style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}>
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))]">
                             {isSetup ? <Shield className="w-8 h-8 text-white" /> : <Lock className="w-8 h-8 text-white" />}
                         </div>
                         <h1 className="text-xl font-bold text-[var(--text-primary)]">
@@ -398,8 +387,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
                             onClick={isSetup ? handleSetup : handleUnlock}
                             data-testid="encryption-submit"
                             disabled={isLoading}
-                            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                            style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }}>
+                            className="w-full py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50 [background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary))]">
                             {isLoading ? t('encryption.processing', 'Processing…') : isSetup ? t('encryption.setup_button', 'Set Up Encryption') : t('encryption.unlock_button', 'Unlock')}
                         </button>
 

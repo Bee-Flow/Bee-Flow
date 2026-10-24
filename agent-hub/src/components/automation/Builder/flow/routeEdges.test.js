@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { reconcileRouteEdges } from './routeEdges';
-import { mergeStepPatchIntoDefinition } from './switchCaseOps';
 import { readRoute, writeRoute } from './routeModel';
+import { mergeStepPatchIntoDefinition } from './switchCaseOps';
 
 const IF_STEP = { id: 'r1', type: 'condition', expr: 'a > 1' };
 

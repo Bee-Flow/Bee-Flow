@@ -9,10 +9,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import AppsPicker from './AppsPicker';
 import {
     APP_DEFS, buildAppCatalog, filterAvailableApps, seedTextForApp,
 } from './appCatalog';
+import AppsPicker from './AppsPicker';
 
 const GOOGLE = { isGoogleUser: true, isMicrosoftUser: false };
 

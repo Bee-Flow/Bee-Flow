@@ -10,8 +10,8 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(async () => ({ ok: true, json: async () => ({}) })) }));
 vi.mock('../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ hasFeature: () => true }) }));
-import LessonPlayer from './player/LessonPlayer';
 import { LESSONS } from './lessons';
+import LessonPlayer from './player/LessonPlayer';
 
 describe('generated lessons play in the real player', () => {
   const picks = ['chat-first-answer', 'automation-anatomy', 'shield-org-turn-on', 'apps-first-build', 'hive-master'];
@@ -19,7 +19,7 @@ describe('generated lessons play in the real player', () => {
     const l = LESSONS.find((x) => x.id === id);
     expect(l, `${id} missing from LESSONS`).toBeTruthy();
     expect(l.steps.length).toBeGreaterThanOrEqual(8);
-    const { unmount, container } = render(
+    const { unmount } = render(
       <LessonPlayer lessonId={id} courseId={null} user={{ id: 'u1', permissions: ['all'] }} onClose={() => {}} onComplete={async () => ({})} />,
     );
     // The player's chrome is portalled to document.body; the title must appear.

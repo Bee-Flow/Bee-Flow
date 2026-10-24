@@ -54,7 +54,7 @@ const MAX_BYTES_PER_CHAR = 4;
  */
 async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversizeHeader = false } = {}) {
     const byteBudget = charCap * MAX_BYTES_PER_CHAR;
-    const cancel = async () => { try { await resp.body?.cancel?.(); } catch { /* best effort */ } };
+    const cancel = async () => { try { await resp.body?.cancel?.(); } catch (err) { log.debug('best effort', err); } };
 
     // No body at all (HEAD, 204, 304): Content-Length describes the resource, not
     // anything we would read, so there is nothing to bound or to call oversize.
@@ -82,7 +82,7 @@ async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversi
         received += value.length;
         if (received > byteBudget) {
             overBudget = true;
-            try { await reader.cancel(); } catch { /* best effort */ }
+            try { await reader.cancel(); } catch (err) { log.debug('best effort', err); }
             break;
         }
         chunks.push(value);

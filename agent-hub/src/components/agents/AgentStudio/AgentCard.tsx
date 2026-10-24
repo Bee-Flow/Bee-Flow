@@ -120,9 +120,9 @@ export default function AgentCard<T extends AgentListRow>({
                 <span className="flex items-start gap-3 min-w-0">
                     <span style={tile} aria-hidden="true">
                         {isImageAvatar(avatar)
-                            ? <img src={resolveAvatarSrc(avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} />
+                            ? <img src={resolveAvatarSrc(avatar)} alt="" className="w-[100%] h-[100%] [object-fit:cover] [border-radius:inherit]" />
                             : avatar
-                                ? <span style={{ fontSize: 18, lineHeight: 1 }}>{avatar}</span>
+                                ? <span className="[font-size:18px] [line-height:1]">{avatar}</span>
                                 : <Bot style={glyph} />}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -281,12 +281,7 @@ function EditBadge({ t, verdict }: { t: TranslateFn; verdict: string }) {
     return (
         <span
             data-testid={verdict === EDIT.NO ? 'agent-card-view-only' : 'agent-card-edit-unknown'}
-            className="text-[9px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap"
-            style={{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-default)',
-                color: 'var(--text-tertiary)',
-            }}
+            className="text-[9px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-tertiary)]!"
         >
             {label}
         </span>

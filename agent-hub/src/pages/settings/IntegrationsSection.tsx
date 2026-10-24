@@ -17,6 +17,7 @@ import type { McpServerSource } from '../../components/apps/appCatalog';
 import type { UserSettingSaveResult } from '../../hooks/useUserSettingSave';
 import type { SettingsStatuses, SettingsUser } from './shell/settingsShellTypes';
 import type { GroupLabelProps, IntegrationRowProps, ApiKeyFieldProps, DisconnectButtonProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, VplanIntegrationProps, NMBRSIntegrationProps, GoogleWorkspaceIntegrationProps, LinkedInIntegrationProps, WithingsIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
+import { logger } from '../../utils/logger';
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
 // Pull translations from the hook directly so parents don't have to thread `t`
 // through. Historically callers forgot to pass t={t}, causing render-time
@@ -25,7 +26,7 @@ import type { GroupLabelProps, IntegrationRowProps, ApiKeyFieldProps, Disconnect
 const ConnectedBadge = () => {
     const { t } = useTranslation();
     return (
-        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(5,150,105,0.1)', color: '#059669' }}>
+        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 [background:rgba(5,150,105,0.1)] [color:#059669]!">
             {t('settings.connected')}
         </span>
     );
@@ -72,7 +73,7 @@ export const IntegrationRow = ({ icon, name, description, connected, badge, chil
             </button>
 
             {expanded && (
-                <div className="px-5 pb-4 pt-2 space-y-3" style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
+                <div className="px-5 pb-4 pt-2 space-y-3 [background:var(--bg-secondary)] [border-top:1px_solid_var(--border-subtle)]">
                     {children}
                 </div>
             )}
@@ -98,8 +99,7 @@ export const ApiKeyField = ({ placeholder, value, onChange, onSave, saving, hint
                     autoComplete="off"
                     data-1p-ignore
                     data-lpignore="true"
-                    className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                     onKeyDown={e => e.key === 'Enter' && (canSave ?? value.trim()) && onSave()}
                 />
                 <button
@@ -123,8 +123,7 @@ export const DisconnectButton = ({ onDisconnect, disconnecting }: DisconnectButt
             type="button"
             onClick={onDisconnect}
             disabled={disconnecting}
-            className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50"
-            style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
+            className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50 [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-default)]"
         >
             {disconnecting ? '…' : t('settings.disconnect', 'Disconnect')}
         </button>
@@ -145,7 +144,7 @@ const FirefliesIntegration = ({ hasFirefliesKey, onSaved, last }: FirefliesInteg
             connectedDescription={t('integ.fireflies_connected')}
             placeholder={t('settings.integrations.fireflies_key_placeholder', 'Enter your Fireflies.ai API key')}
             onSaved={onSaved}
-            icon={<svg viewBox="22 20 24 24" fill="none" style={{ width: '18px', height: '18px' }}><path d="M30.5749 22H24V28.5267H30.5749V22Z" fill="url(#ffs_g1)" /><path d="M38.3633 29.8789H31.7883V36.4056H38.3633V29.8789Z" fill="url(#ffs_g2)" /><path d="M38.3633 22H31.7883V28.5267H43.9998V27.594C43.9997 26.1104 43.4058 24.6875 42.3489 23.6384C41.2919 22.5894 39.8585 22 38.3638 22H38.3633Z" fill="url(#ffs_g3)" /><path d="M24 29.8789V36.4056C24.0002 37.8892 24.594 39.3121 25.6509 40.3612C26.7079 41.4103 28.1413 41.9996 29.636 41.9996H30.5749V29.8789H24Z" fill="url(#ffs_g4)" /><defs><linearGradient id="ffs_g1" x1="40.08" y1="38.51" x2="12.44" y2="9.47" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g2" x1="40.18" y1="38.42" x2="12.54" y2="9.38" gradientUnits="userSpaceOnUse"><stop stopColor="#FF3C82" /><stop offset="0.49" stopColor="#B251B2" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g3" x1="44.77" y1="34.05" x2="35.4" y2="0.12" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g4" x1="35.55" y1="42.82" x2="2.03" y2="32.61" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient></defs></svg>}
+            icon={<svg viewBox="22 20 24 24" fill="none" className="w-[18px] h-[18px]"><path d="M30.5749 22H24V28.5267H30.5749V22Z" fill="url(#ffs_g1)" /><path d="M38.3633 29.8789H31.7883V36.4056H38.3633V29.8789Z" fill="url(#ffs_g2)" /><path d="M38.3633 22H31.7883V28.5267H43.9998V27.594C43.9997 26.1104 43.4058 24.6875 42.3489 23.6384C41.2919 22.5894 39.8585 22 38.3638 22H38.3633Z" fill="url(#ffs_g3)" /><path d="M24 29.8789V36.4056C24.0002 37.8892 24.594 39.3121 25.6509 40.3612C26.7079 41.4103 28.1413 41.9996 29.636 41.9996H30.5749V29.8789H24Z" fill="url(#ffs_g4)" /><defs><linearGradient id="ffs_g1" x1="40.08" y1="38.51" x2="12.44" y2="9.47" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g2" x1="40.18" y1="38.42" x2="12.54" y2="9.38" gradientUnits="userSpaceOnUse"><stop stopColor="#FF3C82" /><stop offset="0.49" stopColor="#B251B2" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g3" x1="44.77" y1="34.05" x2="35.4" y2="0.12" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient><linearGradient id="ffs_g4" x1="35.55" y1="42.82" x2="2.03" y2="32.61" gradientUnits="userSpaceOnUse"><stop stopColor="#E82A73" /><stop offset="0.54" stopColor="#9B4AB0" /><stop offset="1" stopColor="#3B73FF" /></linearGradient></defs></svg>}
             hint={<>{t('settings.integrations.get_key_from', 'Get your key from')} <a href="https://app.fireflies.ai/integrations/custom/fireflies" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">app.fireflies.ai</a></>}
         />
     );
@@ -171,19 +170,18 @@ const YouTrackIntegration = ({ hasYouTrackConfig, onSaved, last }: YouTrackInteg
             connected={hasYouTrackConfig}
             name="YouTrack"
             description={hasYouTrackConfig ? t('integ.youtrack_connected') : t('integ.youtrack_desc')}
-            icon={<svg viewBox="0 0 70 70" fill="none" style={{ width: '22px', height: '22px' }}><defs><linearGradient id="yt_g1" x1="12" y1="58" x2="58" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#FC3791" /><stop offset="0.52" stopColor="#9B4AB0" /><stop offset="1" stopColor="#6166E8" /></linearGradient></defs><rect width="70" height="70" rx="14" fill="url(#yt_g1)" /><path d="M16 18h38v34H16z" fill="white" fillOpacity="0.9" /><path d="M20 25h20v3H20zM20 32h28v3H20zM20 39h14v3H20z" fill="url(#yt_g1)" /></svg>}
+            icon={<svg viewBox="0 0 70 70" fill="none" className="w-[22px] h-[22px]"><defs><linearGradient id="yt_g1" x1="12" y1="58" x2="58" y2="12" gradientUnits="userSpaceOnUse"><stop stopColor="#FC3791" /><stop offset="0.52" stopColor="#9B4AB0" /><stop offset="1" stopColor="#6166E8" /></linearGradient></defs><rect width="70" height="70" rx="14" fill="url(#yt_g1)" /><path d="M16 18h38v34H16z" fill="white" fillOpacity="0.9" /><path d="M20 25h20v3H20zM20 32h28v3H20zM20 39h14v3H20z" fill="url(#yt_g1)" /></svg>}
         >
             <div className="space-y-2">
                 <input type="text" value={url} onChange={e => setUrl(e.target.value)}
                     placeholder={hasYouTrackConfig ? '••••••••••••••••' : 'https://your-instance.youtrack.cloud'}
-                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
                 <ApiKeyField
                     placeholder={hasYouTrackConfig ? '••••••••••••••••' : t('connections.field_permanent_token', 'Permanent token')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     hint={<>{t('settings.integrations.token_from', 'Token from')} <a href="https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.youtrack_path', 'YouTrack → Profile → Authentication')}</a></>}
                 />
-                {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
                 {hasYouTrackConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
             </div>
         </IntegrationRow>
@@ -210,19 +208,18 @@ const SignRequestIntegration = ({ hasSignRequestConfig, onSaved, last }: SignReq
             connected={hasSignRequestConfig}
             name="SignRequest"
             description={hasSignRequestConfig ? t('integ.signrequest_connected') : t('integ.signrequest_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#sr_g)" /><path d="M7 14.5c0-1 .8-2 2.5-2 1.5 0 2.2.7 3 1.2.8.5 1.5 1.3 3 1.3 1.5 0 2.5-1 2.5-2" stroke="white" strokeWidth="1.8" strokeLinecap="round" fill="none" /><path d="M8 8h8M8 11h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" /><defs><linearGradient id="sr_g" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#22c55e" /><stop offset="1" stopColor="#16a34a" /></linearGradient></defs></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#sr_g)" /><path d="M7 14.5c0-1 .8-2 2.5-2 1.5 0 2.2.7 3 1.2.8.5 1.5 1.3 3 1.3 1.5 0 2.5-1 2.5-2" stroke="white" strokeWidth="1.8" strokeLinecap="round" fill="none" /><path d="M8 8h8M8 11h5" stroke="white" strokeWidth="1.5" strokeLinecap="round" /><defs><linearGradient id="sr_g" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#22c55e" /><stop offset="1" stopColor="#16a34a" /></linearGradient></defs></svg>}
         >
             <div className="space-y-2">
                 <input type="text" value={subdomain} onChange={e => setSubdomain(e.target.value)}
                     placeholder={hasSignRequestConfig ? '••••••••••••••••' : t('settings.integrations.signrequest_subdomain_placeholder', 'your-team (team subdomain)')}
-                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
                 <ApiKeyField
                     placeholder={hasSignRequestConfig ? '••••••••••••••••' : t('connections.field_api_token', 'API token')}
                     value={token} onChange={e => setToken(e.target.value)} onSave={handleSave} saving={saving}
                     hint={<>{t('settings.integrations.get_token_from', 'Get your token from')} <a href="https://signrequest.com/api/v1/api-docs/" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.signrequest_path', 'SignRequest → API Settings')}</a>{t('settings.integrations.signrequest_sandbox', '. Use your sandbox team subdomain for testing.')}</>}
                 />
-                {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
                 {hasSignRequestConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
             </div>
         </IntegrationRow>
@@ -242,7 +239,7 @@ const GammaIntegration = ({ hasGammaKey, onSaved, last }: GammaIntegrationProps)
             connectedDescription={t('integ.gamma_connected')}
             placeholder={t('settings.integrations.gamma_key_placeholder', 'Enter your Gamma API key')}
             onSaved={onSaved}
-            icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#gamma_g)" /><path d="M7 8h10v1.5H7zM7 12h8v1.5H7zM7 16h5v1.5H7z" fill="white" fillOpacity="0.9" /><defs><linearGradient id="gamma_g" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset="1" stopColor="#A855F7" /></linearGradient></defs></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#gamma_g)" /><path d="M7 8h10v1.5H7zM7 12h8v1.5H7zM7 16h5v1.5H7z" fill="white" fillOpacity="0.9" /><defs><linearGradient id="gamma_g" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#6366F1" /><stop offset="1" stopColor="#A855F7" /></linearGradient></defs></svg>}
             hint={<>{t('settings.integrations.get_key_from_short', 'Get key from')} <a href="https://gamma.app/settings" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">gamma.app/settings</a> {t('settings.integrations.gamma_api_tokens', '→ API Tokens')}</>}
         />
     );
@@ -285,7 +282,7 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }: AFASIntegrationProps)
             connected={hasAfasConfig}
             name="AFAS Profit"
             description={hasAfasConfig ? t('integ.afas_connected') : t('integ.afas_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#E30613" /><path d="M12 6.5L7 17.5h2.3l1-2.4h3.4l1 2.4H17L12 6.5zm0 4.1l1 2.5h-2l1-2.5z" fill="white" /></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="#E30613" /><path d="M12 6.5L7 17.5h2.3l1-2.4h3.4l1 2.4H17L12 6.5zm0 4.1l1 2.5h-2l1-2.5z" fill="white" /></svg>}
         >
             <div className="space-y-2">
                 <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
@@ -298,13 +295,11 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }: AFASIntegrationProps)
                         onChange={e => setMemberNumber(e.target.value.replace(/\D/g, ''))}
                         placeholder={hasAfasConfig ? '••••••' : t('integ.afas_member_placeholder')}
                         aria-label={t('integ.afas_member_label')}
-                        className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                        className="flex-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
                     <select value={envType}
                         onChange={e => { setEnvType(e.target.value); setEnvTouched(true); }}
                         aria-label={t('integ.afas_env_label')}
-                        className="px-3 py-2 rounded-lg border outline-none text-[13px]"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}>
+                        className="px-3 py-2 rounded-lg border outline-none text-[13px] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!">
                         <option value="production">{t('integ.afas_env_production')}</option>
                         <option value="test">{t('integ.afas_env_test')}</option>
                         <option value="accept">{t('integ.afas_env_accept')}</option>
@@ -316,7 +311,7 @@ const AFASIntegration = ({ hasAfasConfig, onSaved, last }: AFASIntegrationProps)
                     canSave={!!(token.trim() || memberNumber.trim() || envTouched)}
                     hint={<>{t('settings.integrations.afas_help', 'AFAS Help:')} <a href="https://help.afas.nl/help/NL/SE/App_Cnr_Rest_Token.htm" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.afas_link', 'Create an app connector & token')}</a></>}
                 />
-                {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
                 {hasAfasConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
             </div>
         </IntegrationRow>
@@ -353,7 +348,7 @@ const VplanIntegration = ({ hasVplanConfig, onSaved, last }: VplanIntegrationPro
             connected={hasVplanConfig}
             name="vPlan"
             description={hasVplanConfig ? t('integ.vplan_connected') : t('integ.vplan_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4ED8" /><rect x="6" y="7" width="11" height="2.4" rx="1.2" fill="white" /><rect x="8.5" y="10.8" width="9.5" height="2.4" rx="1.2" fill="white" fillOpacity="0.85" /><rect x="6" y="14.6" width="7" height="2.4" rx="1.2" fill="white" fillOpacity="0.7" /></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="#1D4ED8" /><rect x="6" y="7" width="11" height="2.4" rx="1.2" fill="white" /><rect x="8.5" y="10.8" width="9.5" height="2.4" rx="1.2" fill="white" fillOpacity="0.85" /><rect x="6" y="14.6" width="7" height="2.4" rx="1.2" fill="white" fillOpacity="0.7" /></svg>}
         >
             <div className="space-y-2">
                 <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
@@ -364,15 +359,14 @@ const VplanIntegration = ({ hasVplanConfig, onSaved, last }: VplanIntegrationPro
                 <input type="text" value={apiEnv} onChange={e => setApiEnv(e.target.value)}
                     placeholder={hasVplanConfig ? '••••••••' : t('integ.vplan_env_placeholder')}
                     aria-label={t('integ.vplan_env_label')}
-                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
+                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
                 <ApiKeyField
                     placeholder={hasVplanConfig ? '••••••••••••••••' : t('integ.vplan_key_placeholder')}
                     value={apiKey} onChange={e => setApiKey(e.target.value)} onSave={handleSave} saving={saving}
                     canSave={!!(apiKey.trim() || apiEnv.trim())}
                     hint={<>{t('settings.integrations.vplan_help', 'vPlan Help:')} <a href="https://support.vplan.com/en/articles/158922-api" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.vplan_link', 'create an API key')}</a> {t('settings.integrations.vplan_plan', '(available from the Basic plan)')}</>}
                 />
-                {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
                 {hasVplanConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
             </div>
         </IntegrationRow>
@@ -416,7 +410,7 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
             connected={hasNmbrsConfig}
             name="NMBRS"
             description={hasNmbrsConfig ? t('integ.nmbrs_connected') : t('integ.nmbrs_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#00C389" /><path d="M7 16.5v-9h1.9v1.1c.45-.8 1.3-1.3 2.4-1.3 1.05 0 1.85.42 2.3 1.2.5-.78 1.4-1.2 2.45-1.2 1.95 0 2.95 1.2 2.95 3.2v6H19v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55h-2v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55H7z" fill="white" /></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="#00C389" /><path d="M7 16.5v-9h1.9v1.1c.45-.8 1.3-1.3 2.4-1.3 1.05 0 1.85.42 2.3 1.2.5-.78 1.4-1.2 2.45-1.2 1.95 0 2.95 1.2 2.95 3.2v6H19v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55h-2v-5.6c0-1-.35-1.75-1.4-1.75-1 0-1.5.78-1.5 1.8v5.55H7z" fill="white" /></svg>}
         >
             <div className="space-y-2">
                 <ol className="list-decimal pl-4 space-y-1 text-[11px] text-[var(--text-muted)]">
@@ -454,7 +448,7 @@ const NMBRSIntegration = ({ hasNmbrsConfig, apiMode: initialMode, subdomain: ini
                     canSave={!!(token.trim() || subdomain.trim() || email.trim())}
                     hint={<>{t('settings.integrations.nmbrs_help', 'NMBRS Help:')} <a href="https://support.nmbrs.nl/hc/nl/articles/360010686800-Connect-Nmbrs-with-an-API-token" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('settings.integrations.nmbrs_link', 'Create an API token')}</a></>}
                 />
-                {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
                 {hasNmbrsConfig && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
             </div>
         </IntegrationRow>
@@ -537,7 +531,7 @@ const GoogleWorkspaceIntegration = ({ onSaved, last }: GoogleWorkspaceIntegratio
                     : needsReauth
                         ? t('integ.google_needs_reauth')
                         : t('integ.google_desc')}
-            icon={<svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" /><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" /><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" /><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" /></svg>}
+            icon={<svg viewBox="0 0 24 24" className="w-[20px] h-[20px]" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" /><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" /><path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" /><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" /></svg>}
         >
             {loading ? (
                 <p className="text-[12px] text-[var(--text-muted)]">…</p>
@@ -575,7 +569,7 @@ const GoogleWorkspaceIntegration = ({ onSaved, last }: GoogleWorkspaceIntegratio
                         : needsReauth ? t('integ.google_reconnect') : t('integ.google_connect')}
                 </button>
             )}
-            {error && <p className="text-[11px] mt-2" style={{ color: '#dc2626' }}>{error}</p>}
+            {error && <p className="text-[11px] mt-2 [color:#dc2626]!">{error}</p>}
         </IntegrationRow>
     );
 };
@@ -617,11 +611,11 @@ const LinkedInIntegration = ({ connected, linkedInName, hasLinkedInConfig, onSav
             connected={connected}
             name="LinkedIn"
             description={connected ? (linkedInName ? t('integ.linkedin_connected_as', { name: linkedInName }) : t('integ.linkedin_connected')) : t('integ.linkedin_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '20px', height: '20px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5.92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="none" className="w-[20px] h-[20px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5.92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>}
         >
             {!hasLinkedInConfig && <p className="text-[12px] text-[var(--text-muted)]">{t('integ.linkedin_not_configured')}</p>}
             {hasLinkedInConfig && !connected && (
-                <button onClick={handleConnect} disabled={connecting} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50" style={{ background: '#0A66C2' }}>
+                <button onClick={handleConnect} disabled={connecting} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-50 [background:#0A66C2]">
                     {connecting ? t('integ.linkedin_opening') : t('integ.linkedin_connect')}
                 </button>
             )}
@@ -727,7 +721,7 @@ const WithingsIntegration = ({ onSaved, last }: WithingsIntegrationProps) => {
                         : needsReauth ? t('integ.withings_reconnect') : t('integ.withings_connect')}
                 </button>
             )}
-            {error && <p className="text-[11px] mt-2" style={{ color: '#dc2626' }}>{error}</p>}
+            {error && <p className="text-[11px] mt-2 [color:#dc2626]!">{error}</p>}
         </IntegrationRow>
     );
 };
@@ -743,13 +737,13 @@ const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
     // shared hook. Error handling is unified to the visible `error` state (this
     // used to be an alert()).
     const { saving, disconnecting, error, save, disconnect } = useUserSettingSave(onSaved);
-    React.useEffect(() => { checkStatus(); }, []);
     const checkStatus = async () => {
         try {
             const res = await authFetch(`${API_BASE}/api/integrations/github/status`);
             if (res.ok) { const data = await res.json(); setConnected(data.connected); setUsername(data.username); }
-        } catch { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
+    React.useEffect(() => { checkStatus(); }, []);
     const handleSave = () => {
         if (!token.trim()) return;
         save({ token: token.trim() }, {
@@ -768,7 +762,7 @@ const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
             connected={connected}
             name="GitHub"
             description={connected ? t('integ.github_connected', { username: username || 'user' }) : t('integ.github_desc')}
-            icon={<svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '20px', height: '20px', color: 'var(--text-primary)' }}><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" /></svg>}
+            icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-[20px] h-[20px] [color:var(--text-primary)]"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" /></svg>}
         >
             {!connected ? (
                 <ApiKeyField
@@ -779,7 +773,7 @@ const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
             ) : (
                 <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />
             )}
-            {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+            {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
         </IntegrationRow>
     );
 };
@@ -818,7 +812,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                 connected
                 name="Nextcloud"
                 description={t('integ.nextcloud_connector', 'Connected via Bee Flow Nextcloud connector — files, calendar, mail and more work in chat without extra setup.')}
-                icon={<svg viewBox="0 0 32 32" fill="none" style={{ width: '20px', height: '20px' }}><circle cx="16" cy="16" r="16" fill="#0082C9" /><path d="M11.5 11.2c-2 0-3.7 1.4-4.2 3.3a3.5 3.5 0 1 0 0 3 4.4 4.4 0 0 0 7 1.7l1.5-1.4 1.6 1.4a4.4 4.4 0 0 0 7-1.7 3.5 3.5 0 1 0 0-3 4.4 4.4 0 0 0-7-1.7l-1.6 1.4-1.5-1.4a4.4 4.4 0 0 0-2.8-1.6zm0 2.2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8zm9 0a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z" fill="white" /></svg>}
+                icon={<svg viewBox="0 0 32 32" fill="none" className="w-[20px] h-[20px]"><circle cx="16" cy="16" r="16" fill="#0082C9" /><path d="M11.5 11.2c-2 0-3.7 1.4-4.2 3.3a3.5 3.5 0 1 0 0 3 4.4 4.4 0 0 0 7 1.7l1.5-1.4 1.6 1.4a4.4 4.4 0 0 0 7-1.7 3.5 3.5 0 1 0 0-3 4.4 4.4 0 0 0-7-1.7l-1.6 1.4-1.5-1.4a4.4 4.4 0 0 0-2.8-1.6zm0 2.2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8zm9 0a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z" fill="white" /></svg>}
             >
                 <NcScopeSection />
             </IntegrationRow>
@@ -862,7 +856,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
             description={hasNextcloudAppPassword
                 ? t('integ.nextcloud_connected', 'App password saved — files & WebDAV available to agents')
                 : t('integ.nextcloud_desc', 'Connect Nextcloud for file/WebDAV access in chat')}
-            icon={<svg viewBox="0 0 32 32" fill="none" style={{ width: '20px', height: '20px' }}><circle cx="16" cy="16" r="16" fill="#0082C9" /><path d="M11.5 11.2c-2 0-3.7 1.4-4.2 3.3a3.5 3.5 0 1 0 0 3 4.4 4.4 0 0 0 7 1.7l1.5-1.4 1.6 1.4a4.4 4.4 0 0 0 7-1.7 3.5 3.5 0 1 0 0-3 4.4 4.4 0 0 0-7-1.7l-1.6 1.4-1.5-1.4a4.4 4.4 0 0 0-2.8-1.6zm0 2.2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8zm9 0a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z" fill="white" /></svg>}
+            icon={<svg viewBox="0 0 32 32" fill="none" className="w-[20px] h-[20px]"><circle cx="16" cy="16" r="16" fill="#0082C9" /><path d="M11.5 11.2c-2 0-3.7 1.4-4.2 3.3a3.5 3.5 0 1 0 0 3 4.4 4.4 0 0 0 7 1.7l1.5-1.4 1.6 1.4a4.4 4.4 0 0 0 7-1.7 3.5 3.5 0 1 0 0-3 4.4 4.4 0 0 0-7-1.7l-1.6 1.4-1.5-1.4a4.4 4.4 0 0 0-2.8-1.6zm0 2.2a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8zm9 0a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z" fill="white" /></svg>}
         >
             <div className="space-y-2">
                 <input
@@ -872,8 +866,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                     placeholder={t('integ.nextcloud_url_placeholder', 'Nextcloud URL (e.g. https://cloud.example.com)')}
                     aria-label={t('integ.nextcloud_url_placeholder', 'Nextcloud URL (e.g. https://cloud.example.com)')}
                     autoComplete="off"
-                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                 />
                 <input
                     type="text"
@@ -882,8 +875,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                     placeholder={hasNextcloudAppPassword ? '••••••••' : t('integ.nextcloud_username_placeholder', 'Nextcloud username')}
                     aria-label={t('integ.nextcloud_username_placeholder', 'Nextcloud username')}
                     autoComplete="off"
-                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                 />
                 <ApiKeyField
                     placeholder={hasNextcloudAppPassword ? '••••••••••••••••' : t('integ.nextcloud_password_placeholder', 'App password')}
@@ -897,19 +889,18 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
                     <button
                         onClick={autoCreate}
                         disabled={autoCreating}
-                        className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50"
-                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}
+                        className="px-4 py-2 rounded-lg text-[13px] font-medium transition-opacity disabled:opacity-50 [background:var(--bg-primary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-default)]"
                     >
                         {autoCreating ? '…' : t('integ.nextcloud_autocreate', 'Auto-create from OAuth session (short-lived)')}
                     </button>
                 )}
-                {error && <p className="text-[11px]" style={{ color: '#dc2626' }}>{error}</p>}
+                {error && <p className="text-[11px] [color:#dc2626]!">{error}</p>}
                 {notice && (
                     <p className="text-[11px] text-[var(--text-muted)]">{notice}</p>
                 )}
                 {hasNextcloudAppPassword && <DisconnectButton onDisconnect={handleDisconnect} disconnecting={disconnecting} />}
                 {hasNextcloudAppPassword && (
-                    <div className="pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="pt-3 [border-top:1px_solid_var(--border-subtle)]">
                         <NcScopeSection />
                     </div>
                 )}
@@ -927,7 +918,7 @@ const useMcpCredentialServers = (enabled: boolean) => {
         try {
             const res = await authFetch(`${API_BASE}/ai/mcp-servers/user-credentials`);
             if (res.ok) { const data = await res.json(); setServers(data.servers || []); }
-        } catch { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     }, []);
     React.useEffect(() => { if (enabled) load(); }, [enabled, load]);
     return { servers: enabled ? servers : [], reload: load };
@@ -964,7 +955,7 @@ const McpCredentialRows = ({ servers, reload, onSaved, last }: McpCredentialRows
                     connected={server.allConfigured}
                     name={server.name}
                     description={server.allConfigured ? t('integ.mcp_connected', { toolCount: server.toolCount }) : t('integ.mcp_desc', { toolCount: server.toolCount })}
-                    icon={<svg viewBox="0 0 24 24" fill="none" style={{ width: '18px', height: '18px' }}><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#mcp_g)" /><path d="M8 12h8M12 8v8" stroke="white" strokeWidth="2" strokeLinecap="round" /><defs><linearGradient id="mcp_g" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#6366F1" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs></svg>}
+                    icon={<svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px]"><rect x="2" y="2" width="20" height="20" rx="4" fill="url(#mcp_g)" /><path d="M8 12h8M12 8v8" stroke="white" strokeWidth="2" strokeLinecap="round" /><defs><linearGradient id="mcp_g" x1="2" y1="2" x2="22" y2="22"><stop stopColor="#6366F1" /><stop offset="1" stopColor="#8B5CF6" /></linearGradient></defs></svg>}
                 >
                     <div className="space-y-2">
                         {server.credentials.map(cred => {

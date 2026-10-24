@@ -284,14 +284,14 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             durationSeconds: Math.round(totalDuration),
         };
     } finally {
-        try { fs.unlinkSync(tempInputPath); } catch (_) {}
-        try { audioCleanup(); } catch (_) {}
+        try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); }
+        try { audioCleanup(); } catch (_) { log.debug('audio cleanup already done', _); }
         try {
             if (rustfsKey) { const ss = require('../../stores/storageStore'); await ss.deleteFile(rustfsKey); log.info('[Transcription:AzureWhisper] Temp audio deleted from RustFS'); }
-        } catch (_) {}
+        } catch (_) { log.warn('temp audio could not be deleted from object storage', _); }
         try {
             if (transcriptionJobUrl && speechKey) await fetch(transcriptionJobUrl, { method: 'DELETE', headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
-        } catch (_) {}
+        } catch (_) { log.warn('Azure transcription job could not be deleted', _); }
     }
 }
 

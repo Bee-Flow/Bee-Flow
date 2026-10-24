@@ -2,8 +2,8 @@ import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import CanvasSouthBar from './CanvasSouthBar';
-import { describeToolCall } from '../chat/toolCallDisplay';
 import { nodeTypeLabel } from './nodeDefs';
+import { describeToolCall } from '../chat/toolCallDisplay';
 
 /**
  * The build banner: the south bar's second precedence slot, and the lock

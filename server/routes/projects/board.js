@@ -5,6 +5,7 @@ const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, conflict, notFound } = require('../../core/http/errors');
+const log = require('../../telemetry/log');
 const STATUSES = ['todo', 'doing', 'done'];
 const DEFAULT_COLUMNS = STATUSES.map(id => ({ id, title: '', status: id, wipLimit: null }));
 const Column = z.object({ id: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/), title: z.string().trim().max(80), status: z.enum(STATUSES), wipLimit: z.number().int().min(1).max(100).nullable() }).strict();
@@ -28,7 +29,7 @@ function makeBoardRouter(deps = {}) {
         return { project, box, seal, decode };
     };
     const emit = async (id, kind, actorId, targetId = id) => {
-        try { await (deps.emit || require('../../core/projectFeed').emitProjectEvent)(id, { kind, actorId, targetType: kind === 'task.board.updated' ? 'project' : 'project_task', targetId, payload: { taskId: targetId } }); } catch { /* query refetch recovers */ }
+        try { await (deps.emit || require('../../core/projectFeed').emitProjectEvent)(id, { kind, actorId, targetType: kind === 'task.board.updated' ? 'project' : 'project_task', targetId, payload: { taskId: targetId } }); } catch (err) { log.debug('query refetch recovers', err); }
     };
     router.get('/:id/board', requireRole('viewer'), async (req, res) => {
         const { decode } = await load(req);
@@ -65,7 +66,7 @@ function makeBoardRouter(deps = {}) {
             row.assignments[id] = column.id;
             return { id };
         });
-        try { await (deps.audit || require('../../stores/projectStore').logActivity)(req.params.id, req.session.user.id, 'task.created', { targetType: 'project_task', targetId: id }); } catch { /* activity must not turn a saved task into a failed create */ }
+        try { await (deps.audit || require('../../stores/projectStore').logActivity)(req.params.id, req.session.user.id, 'task.created', { targetType: 'project_task', targetId: id }); } catch (err) { log.debug('activity must not turn a saved task into a failed create', err); }
         await emit(req.params.id, 'task.created', req.session.user.id, id);
         res.status(201).json(result);
     });

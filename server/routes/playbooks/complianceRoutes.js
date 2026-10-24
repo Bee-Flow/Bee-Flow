@@ -170,7 +170,7 @@ function register(router, ctx) {
                 try {
                     const row = await d.automationStore.getAutomation(a.id);
                     if (row && row.userId === pb.userId) defs.set(a.id, row.definition || null);
-                } catch { /* one unreadable automation is not the end of the plan */ }
+                } catch (err) { log.debug('one unreadable automation is not the end of the plan', err); }
             }
 
             const out = await d.planResolve({

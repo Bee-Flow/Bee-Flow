@@ -46,8 +46,7 @@ class AtomErrorBoundary extends React.Component<BoundaryProps, BoundaryState> {
     if (this.state.error) {
       return (
         <span
-          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] select-none"
-          style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)', border: '1px dashed var(--border-default)' }}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] select-none [background:var(--bg-tertiary)] [color:var(--text-tertiary)]! [border:1px_dashed_var(--border-default)]"
           title={String((this.state.error as { message?: string } | null)?.message || this.state.error)}
         >
           {this.props.label}

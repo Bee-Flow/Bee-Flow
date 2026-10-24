@@ -213,7 +213,7 @@ const DirectChatView = ({
                         {/* Split Panes: Chat + Workspace */}
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
-                            <div className="flex-1 flex flex-col min-w-0 border-r" style={{ borderColor: 'var(--border-subtle)' }}>
+                            <div className="flex-1 flex flex-col min-w-0 border-r [border-color:var(--border-subtle)]!">
                                 <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
@@ -272,8 +272,7 @@ const DirectChatView = ({
                                 {messages.length > 0 && !isReadOnlySharedChat(currentDirectConversation) && (
                                     <div className="w-full flex flex-col shrink-0">
                                         {attachedWebpageSelection && sidePanelWebpageId && (
-                                            <div className="mx-4 mb-2 px-3 py-2 rounded-lg border flex items-start gap-2"
-                                                 style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                                            <div className="mx-4 mb-2 px-3 py-2 rounded-lg border flex items-start gap-2 [border-color:var(--border-subtle)] [background:var(--bg-secondary)]">
                                                 <div className="text-[11px] mt-0.5 text-[var(--accent-primary)]">↳</div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="text-[11px] font-medium mb-0.5 text-[var(--text-secondary)]">

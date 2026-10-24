@@ -13,8 +13,7 @@ export default function SupportMailboxBanner({ mailbox, disconnecting, onDisconn
     const { t } = useTranslation();
     return (
         <div
-            className="px-6 py-3 border-b flex items-center justify-between gap-4"
-            style={{ borderColor: 'var(--border-default)', background: 'rgba(245,158,11,0.08)' }}
+            className="px-6 py-3 border-b flex items-center justify-between gap-4 [border-color:var(--border-default)]! [background:rgba(245,158,11,0.08)]"
         >
             <div className="flex items-start gap-3 min-w-0">
                 <Mail className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#b45309' }} />
@@ -32,8 +31,7 @@ export default function SupportMailboxBanner({ mailbox, disconnecting, onDisconn
             <button
                 onClick={onDisconnect}
                 disabled={disconnecting}
-                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 shrink-0 disabled:opacity-60"
-                style={{ background: '#dc2626', color: 'white' }}
+                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 shrink-0 disabled:opacity-60 [background:#dc2626] [color:white]!"
             >
                 <Unlink className="w-3.5 h-3.5" />
                 {disconnecting ? 'Disconnecting…' : 'Disconnect mailbox'}

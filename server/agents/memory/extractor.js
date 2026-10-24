@@ -102,7 +102,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
             const a = await agentStore.getAgent(agentId);
             if (a?.config?.memoryEnabled === true) writeAgentId = agentId;
         }
-    } catch (_) { /* fall back to global */ }
+    } catch (err) { log.debug('fall back to global', err); }
 
     // Only analyze the LATEST user message (not last 5 - prevents blending)
     const userMessages = (Array.isArray(messages) ? messages : []).filter(m => m && m.role === 'user').slice(-1);
@@ -145,9 +145,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
         let responseFormat;
         try {
             responseFormat = MEMORY_SCHEMA;
-        } catch (e) {
-            // Fallback: provider doesn't support response_format
-        }
+        } catch (e) { log.debug('Fallback: provider doesn\'t support response_format', e); }
 
         const llmClient = require('../../core/llm/llmClient');
         // Thinking off + 1k cap (EXTRACTION_CHAT_OPTIONS): a reasoning model

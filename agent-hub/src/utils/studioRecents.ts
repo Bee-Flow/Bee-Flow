@@ -1,5 +1,6 @@
 import scopedStorage from './scopedStorage';
 import type { RecentItem } from './studioRecentSources.types';
+import { logger } from './logger';
 
 /**
  * Which Studio items this user was last working on, per section.
@@ -68,9 +69,7 @@ export function rememberStudioItem(section: string, id: string | null, now: numb
     );
     try {
         scopedStorage.setItem(KEY, JSON.stringify({ ...all, [section]: trimmed }));
-    } catch {
-        // A full quota is not worth failing a navigation over.
-    }
+    } catch (err) { logger.debug('A full quota is not worth failing a navigation over.', err); }
 }
 
 /**

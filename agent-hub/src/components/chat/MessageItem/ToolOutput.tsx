@@ -3,6 +3,7 @@ import { Terminal, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
 import useTranslation from '../../../hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
+import { logger } from '../../../utils/logger';
 
 interface ToolResultRow { title?: string; url?: string; content?: string }
 
@@ -20,9 +21,7 @@ export default function ToolOutput({ msg }: { msg: ChatMessage }) {
                 parsed = JSON.parse(content);
                 isJson = true;
             }
-        } catch (e) {
-            // Not JSON
-        }
+        } catch (e) { logger.debug('Not JSON', e); }
 
         return (
             <div className="flex flex-col gap-2 w-full">

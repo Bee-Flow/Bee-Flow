@@ -1,8 +1,7 @@
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import { firstOpenStudioSection, makeCanUse, resolveStudioNav, STUDIO_APPS, studioPermissionHeld } from './studioApps';
+import { firstOpenStudioSection, makeCanUse, resolveStudioNav, studioPermissionHeld } from './studioGates';
 import type { StudioGateCtx, StudioNavDescriptor } from './studioGates';
-import type { StudioAppDescriptor } from './studioRegistry';
-import { isStudioStart } from './studioStart';
+import { isStudioStart, STUDIO_SECTIONS, type StudioSectionDescriptor } from './studioSections';
 
 /** The user fields makeCanUse reads. */
 type CanUseUserFields = NonNullable<Parameters<typeof makeCanUse>[0]>;
@@ -145,10 +144,10 @@ export function canSeeStudio({ user, sections }: { user?: StudioNavUser | null; 
  * which they have a row for, and never a fallback they may not open (null).
  */
 export function studioLanding<T extends EntrySection>(args: { user?: StudioNavUser | null; sections?: Sections<T>; fallback: null }): T | null;
-export function studioLanding<T extends EntrySection>(args: { user?: StudioNavUser | null; sections?: Sections<T>; fallback?: StudioAppDescriptor }): T | StudioAppDescriptor | null;
+export function studioLanding<T extends EntrySection>(args: { user?: StudioNavUser | null; sections?: Sections<T>; fallback?: StudioSectionDescriptor }): T | StudioSectionDescriptor | null;
 export function studioLanding<T extends EntrySection>(
-    { user, sections, fallback = STUDIO_APPS[0] }: { user?: StudioNavUser | null; sections?: Sections<T>; fallback?: StudioAppDescriptor | null },
-): T | StudioAppDescriptor | null {
+    { user, sections, fallback = STUDIO_SECTIONS[0] }: { user?: StudioNavUser | null; sections?: Sections<T>; fallback?: StudioSectionDescriptor | null },
+): T | StudioSectionDescriptor | null {
     return isStudioBuilder(user)
         ? firstOpenStudioSection(sections, fallback)
         : firstOpenStudioSection(studioEntrySections(sections), null);
@@ -222,17 +221,17 @@ export function studioSectionLabel(app: StudioLabelled | null | undefined, t: Tr
  * de vraag waar de knop "Laat zien" heen gaat.
  *
  * Alleen de INGEBOUWDE secties: een runtime-module draagt vandaag geen `kind`,
- * en STUDIO_APPS is de lijst die op elke build hetzelfde is.
+ * en STUDIO_SECTIONS is de lijst die op elke build hetzelfde is.
  */
 const APP_BY_KIND = (() => {
-    const out: Record<string, StudioAppDescriptor> = {};
-    for (const app of STUDIO_APPS) {
+    const out: Record<string, StudioSectionDescriptor> = {};
+    for (const app of STUDIO_SECTIONS) {
         if (app?.kind && !out[app.kind]) out[app.kind] = app;
     }
     return out;
 })();
 
 /** Het registerrecord van een soort, of null. */
-export function studioAppForKind(kind: string | null | undefined): StudioAppDescriptor | null {
+export function studioAppForKind(kind: string | null | undefined): StudioSectionDescriptor | null {
     return (kind && APP_BY_KIND[kind]) || null;
 }

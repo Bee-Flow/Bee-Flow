@@ -14,6 +14,7 @@ import type { ConvLabel } from '../../../shell/sidebar/EditLabelInline';
 import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SupportThread, SupportMessage, TicketContext, DotProps, SupportStudioProps, EmptyStateProps, TicketDetailProps, MessageBubbleProps } from './index.types';
+import { logger } from '../../../../utils/logger';
 
 const NOT_SUPPORT_TAG = 'not-support';
 const STATUS_IDS = ['open', 'ai_responding', 'awaiting_user', 'awaiting_agent', 'resolved', 'closed'];
@@ -84,7 +85,7 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
         try {
             const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes`);
             if (res.ok) { const d = await res.json(); setInboxes(d.inboxes || []); }
-        } catch (_) {}
+        } catch (err) { logger.warn('support inboxes load failed', err); }
     }, []);
 
     const fetchThreads = useCallback(async () => {
@@ -97,7 +98,7 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
             params.set('limit', String(limit));
             const res = await authFetch(`${API_BASE}/api/support-inbox/threads?${params.toString()}`);
             if (res.ok) { const d = await res.json(); setThreads(d.threads || []); setCounts(d.counts || {}); }
-        } catch (_) {}
+        } catch (err) { logger.warn('support threads load failed', err); }
     }, [activeInbox, statusFilter, search, limit]);
 
     // Manual refresh — same fetch, but with a spinning indicator so the click
@@ -115,7 +116,7 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
 
     // Persist the chosen interval so it sticks across reloads.
     useEffect(() => {
-        try { window.localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(autoRefreshMs)); } catch (_) {}
+        try { window.localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(autoRefreshMs)); } catch (err) { logger.debug('storage unavailable', err); }
     }, [autoRefreshMs]);
 
     // Poll the ticket list on the chosen interval. This is the reliable fallback

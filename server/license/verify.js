@@ -73,7 +73,7 @@ async function _writeKnownKeys(map) {
             .sort((a, b) => Date.parse(b[1].lastUsedAt || 0) - Date.parse(a[1].lastUsedAt || 0))
             .slice(0, KNOWN_KEYS_MAX);
         await configStore().setConfig(KNOWN_KEYS_CONFIG_KEY, Object.fromEntries(entries));
-    } catch (_) { /* cache write is never load-bearing */ }
+    } catch (err) { log.debug('cache write is never load-bearing', err); }
 }
 
 /** Persist freshly-seen JWKS keys + apply the hub's revocation list. */
@@ -88,7 +88,7 @@ async function _persistKnownKeys(keysByKid, revokedKids) {
         }
         for (const kid of (revokedKids || [])) delete map[kid];
         await _writeKnownKeys(map);
-    } catch (_) { /* best effort */ }
+    } catch (err) { log.debug('best effort', err); }
 }
 
 /**
@@ -141,7 +141,7 @@ function loadPublicKey() {
             _cachedKeySource = 'bundled';
             return { key: _cachedKey, source: _cachedKeySource };
         }
-    } catch (e) { /* unreadable bundled key — treat as missing */ }
+    } catch (e) { log.debug('unreadable bundled key — treat as missing', e); }
 
     return { key: null, source: null };
 }
@@ -333,7 +333,7 @@ async function resolvePublicKeyByKid(kid) {
                     return entry.pem;
                 }
             }
-        } catch (_) { /* cache miss is fine */ }
+        } catch (err) { log.debug('cache miss is fine', err); }
         return bundled || null; // best effort — verify fails if key doesn't match
     }
     return bundled || null;

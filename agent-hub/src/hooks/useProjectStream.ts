@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { readSseFrames } from '../api/readEventStream';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 /**
  * Live subscription to a project's event feed.
@@ -172,7 +173,7 @@ export default function useProjectStream({
         const seenPolled = new Set<string>();
 
         const emit = (kind: string, data: unknown) => { if (!stopped) onEventRef.current?.(kind, data); };
-        const status = (s: ProjectStreamStatus) => { try { onStatusRef.current?.(s); } catch { /* caller's problem */ } };
+        const status = (s: ProjectStreamStatus) => { try { onStatusRef.current?.(s); } catch (err) { logger.debug('caller\'s problem', err); } };
         const clearTimers = () => {
             for (const t of [reconnectTimer, pollTimer, probeTimer]) if (t) clearTimeout(t);
             reconnectTimer = null; pollTimer = null; probeTimer = null;
@@ -199,8 +200,8 @@ export default function useProjectStream({
                 const data = await res.json();
                 const items: ActivityItem[] = Array.isArray(data?.items) ? data.items : [];
                 for (const [kind, event] of polledEvents(items, seenPolled)) emit(kind, event);
-                if (!stopped) { try { onPollRef.current?.(); } catch { /* caller's problem */ } }
-            } catch { /* keep polling */ }
+                if (!stopped) { try { onPollRef.current?.(); } catch (err) { logger.debug('caller\'s problem', err); } }
+            } catch (err) { logger.debug('keep polling', err); }
         };
         const pollTick = async () => {
             if (stopped || !polling) return;
@@ -255,7 +256,7 @@ export default function useProjectStream({
                         distributed: (payload as { distributed?: boolean })?.distributed,
                         reconnect: connections > 1,
                     });
-                } catch { /* caller's problem */ }
+                } catch (err) { logger.debug('caller\'s problem', err); }
                 return true;
             }
             if (kind === 'forbidden') {

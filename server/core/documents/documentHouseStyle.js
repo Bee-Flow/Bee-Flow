@@ -37,7 +37,7 @@
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 
-const CONFIG_KEY_PREFIX = 'org_document_style_';
+const { DOCUMENT_STYLE_CONFIG_KEY_PREFIX: CONFIG_KEY_PREFIX } = require('../../stores/lib/orgConfigKeyPrefixes');
 const CACHE_TTL_MS = 30_000;
 
 // A letterhead mark, not an image library. 256 KB is a generous PNG at print

@@ -14,9 +14,9 @@ export function GitHubRepoCard({ config, overview, onEdit, onDisconnect }: GitHu
     const { t } = useTranslation();
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
-            <div className="p-5 flex items-center justify-between" style={{ background: 'var(--brand-gradient-soft)' }}>
+            <div className="p-5 flex items-center justify-between [background:var(--brand-gradient-soft)]">
                 <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'var(--brand-gradient)' }}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center [background:var(--brand-gradient)]">
                         <GitBranch className="w-5 h-5 text-white" />
                     </div>
                     <div>

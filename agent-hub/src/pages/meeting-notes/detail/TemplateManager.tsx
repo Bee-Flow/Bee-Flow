@@ -53,7 +53,7 @@ export default function TemplateManager({
 
     return (
         <div>
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
                 {templates.length === 0 && (
                     <div className="px-4 py-6 text-center text-[13px] text-[var(--text-muted)]">
                         {emptyHint || t('meeting_notes.template_empty', 'No templates yet.')}
@@ -63,7 +63,7 @@ export default function TemplateManager({
                     const Icon = SCOPE_ICON[tpl.scope] || User;
                     return (
                         <div key={tpl.id}>
-                            {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)' }} />}
+                            {i > 0 && <div className="h-[1px] [background:var(--border-subtle)]" />}
                             <button
                                 type="button"
                                 onClick={() => openEdit(tpl)}

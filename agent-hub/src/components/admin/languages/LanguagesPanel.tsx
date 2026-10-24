@@ -133,7 +133,7 @@ const LanguagesPanel = () => {
     return (
         <div className="h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
             {error && (
-                <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
+                <div className="mx-4 mt-3 px-3 py-2 rounded-lg text-sm flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#ef4444]!">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
                     <button onClick={() => setError('')} className="ml-auto"><X className="w-3.5 h-3.5" /></button>

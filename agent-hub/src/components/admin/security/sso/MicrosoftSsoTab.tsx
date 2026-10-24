@@ -50,7 +50,7 @@ function TenantIdField({ sso }: { sso: SsoProvidersState }) {
                     border: `1px solid ${!tenantIdValid ? 'rgba(251, 146, 60, 0.5)' : 'var(--border-default)'}`,
                 }}
             />
-            <div className="mt-2 p-3 rounded-lg text-xs" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-default)' }}>
+            <div className="mt-2 p-3 rounded-lg text-xs [background:var(--bg-tertiary)] [border:1px_solid_var(--border-default)]">
                 <p className="text-secondary mb-1"><strong>{t('admin_security.sso_single_app', 'Single-tenant app')}</strong> {t('admin_security.sso_single_app_desc', 'paste your Directory (tenant) ID from Azure Portal → App Overview (e.g.')} <code className="text-muted">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</code>{t('admin_security.sso_single_app_desc2', '). Required if "Supported account types" is set to "Single tenant".')}</p>
                 <p className="text-secondary"><strong>{t('admin_security.sso_multi_app', 'Multi-tenant app')}</strong> {t('admin_security.sso_multi_app_use', 'use')} <code className="text-muted">common</code> {t('admin_security.sso_multi_app_any', '(any Microsoft account),')} <code className="text-muted">organizations</code> {t('admin_security.sso_multi_app_work', '(work/school only), or')} <code className="text-muted">consumers</code> {t('admin_security.sso_multi_app_personal', '(personal only).')}</p>
             </div>

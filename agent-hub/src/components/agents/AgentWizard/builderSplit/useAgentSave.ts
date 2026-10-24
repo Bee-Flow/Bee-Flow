@@ -9,12 +9,13 @@
  * lives here. The hooks below run in the order the component used to run
  * them, so the effects fire in the same order.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import { API_BASE } from '../../../../utils/helpers';
 import { saveAgent, adoptedPromptAfterSave } from '../state/agentSaveApi';
 import useAgentAutosave from '../state/useAgentAutosave';
 import { conflictHandlers, usePublishVersion, useSaveDraft } from './agentSaveFlows';
 import type { AgentSaveDeps, Conflict, EditorSnapshot, LimitWarning, Loose, Ref, SentRefs, Setter } from './agentSaveTypes';
+import { logger } from '../../../../utils/logger';
 
 export type { AgentSaveDeps, EditorSnapshot } from './agentSaveTypes';
 
@@ -100,7 +101,7 @@ function useSnapshot(stateRef: Ref<EditorSnapshot>, { sentPersonaRef, sentSystem
             config: { ...stateRef.current.config },
             persona: stateRef.current.persona,
         };
-    }, []);
+    }, [sentPersonaRef, sentSystemPromptRef, stateRef]);
 }
 
 /**
@@ -128,12 +129,12 @@ function useUnloadBeacon({ roRef, agentIdRef, dirtyRef, stateRef }: AgentSaveDep
                         `${API_BASE}/agents/${agentIdRef.current}`,
                         new Blob([JSON.stringify(snapshot)], { type: 'application/json' })
                     );
-                } catch { /* ignore */ }
+                } catch (err) { logger.debug('ignore', err); }
             }
         };
         window.addEventListener('beforeunload', onBeforeUnload);
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
-    }, []);
+    }, [agentIdRef, dirtyRef, roRef, stateRef]);
 }
 
 /** Autosave wired to the editor, its status mirrored into the save pill, and the public save helpers. */
@@ -150,11 +151,13 @@ function useEditorAutosave(d: AgentSaveDeps, getSnapshot: () => Loose, sent: Sen
 
     // Mirror the hook's save status into the pill state. The initial 'saved'
     // (for an already-persisted agent) survives until the hook transitions.
-    useEffect(() => {
+    const runDEffect = useEffectEvent(() => {
         if (autosaveStatus && autosaveStatus !== 'idle') d.setSavingState(autosaveStatus);
         d.setSaveErrorMsg(autosaveError || '');
-    }, [autosaveStatus, autosaveError]);
-    useEffect(() => { if (autosaveSavedAt) d.setSavedAt(autosaveSavedAt); }, [autosaveSavedAt]);
+    });
+    useEffect(() => { return runDEffect(); }, [autosaveStatus, autosaveError]);
+    const runDEffect158 = useEffectEvent(() => { if (autosaveSavedAt) d.setSavedAt(autosaveSavedAt); });
+    useEffect(() => { runDEffect158(); }, [autosaveSavedAt]);
 
     // Public save helpers used by the ~20 edit handlers. queueSave also
     // marks the local dirty flag for the parent's unsaved-changes guard.

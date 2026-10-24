@@ -72,7 +72,7 @@ const EVENTS = {
 // Best-effort: the counts endpoint caches 60 s per org; anything that changes
 // a number it shows drops the cache so the rail catches up on the next poll.
 function _invalidateCounts(orgId) {
-    try { require('./countsCache').invalidate(orgId); } catch { /* not mounted */ }
+    try { require('./countsCache').invalidate(orgId); } catch (err) { log.debug('not mounted', err); }
 }
 
 // Re-run one check; a FrameworkDisabledError (409) is a normal outcome here —

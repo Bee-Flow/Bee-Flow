@@ -61,7 +61,7 @@ function BuildingLine({ caption, startedAt }: { caption?: string | null; started
                 on the canvas, and before the first card exists the build is it. */}
             <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full rounded-full opacity-60 animate-ping motion-reduce:animate-none bg-[var(--accent)]" />
-                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: 'var(--accent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)' }} />
+                <span className="relative inline-flex h-2 w-2 rounded-full [background:var(--accent)] [box-shadow:0_0_0_3px_color-mix(in_srgb,var(--accent)_30%,transparent)]" />
             </span>
             <span className="min-w-0 truncate">
                 <b className="text-[var(--text-primary)]">{t('automations.canvas.build_live', 'Building')}</b>

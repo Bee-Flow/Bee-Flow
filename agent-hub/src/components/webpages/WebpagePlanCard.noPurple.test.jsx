@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
 import WebpagePlanCard from './WebpagePlanCard';
 
 // Hard project rule: no purple/violet/indigo anywhere. The pending plan tone

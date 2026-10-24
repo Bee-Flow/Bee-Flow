@@ -13,6 +13,7 @@ import useEmbedVisitorState from '../components/embed/useEmbedVisitorState';
 import type { EmbedAgent } from './embed/EmbedHeader';
 import type { ComposerAttachment } from '../components/chat/InputArea/useFileIntake';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
+import { logger } from '../utils/logger';
 
 const getInitialTheme = () => {
     // 1. Check URL param (?theme=light or ?theme=dark) — allows iframe embedder to control
@@ -128,7 +129,7 @@ const EmbedChat = ({ agentId }: EmbedChatProps) => {
                             const data = JSON.parse(dataStr);
 
                             assistantContent = applyEmbedStreamEvent(currentEvent, data, setMessages, msgId, assistantMsgId, assistantContent);
-                        } catch { }
+                        } catch (err) { logger.debug('partial or non-JSON stream line, skip', err); }
                     }
                 }
             }

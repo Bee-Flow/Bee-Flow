@@ -72,6 +72,7 @@ const { FILTER_OPS, AGG_FNS, PERCENTILE_FNS, DATE_BUCKETS, SYSTEM_COLUMNS, KEY_R
 const { newRecordId } = require('./dataModel/ids');
 const { resolveDialect } = require('./engineFlag');
 const { dateBucketSql } = require('./dateBuckets');
+const log = require('../../telemetry/log');
 
 // Hard ceiling on rows a single list/aggregate may return. The store applies
 // its own MAX_RESULT_ROWS too; this keeps the SQL LIMIT sane and predictable.
@@ -402,7 +403,7 @@ function decodeCursor(cursor) {
         if (o && o.v !== undefined && o.v !== null && o.i !== undefined && o.i !== null) {
             return { v: o.v, i: o.i };
         }
-    } catch { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     return null;
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import DirectChatConfig from './DirectChatConfig';
 import EmbeddingsConfig from './EmbeddingsConfig';
 import LimitsConfig from './LimitsConfig';
@@ -57,10 +57,14 @@ const AIConfigPanel = () => {
         fetchProviders();
     }, []);
 
-    useEffect(() => {
+    const loadModelsForTab = useEffectEvent(() => {
         if (providers.length > 0 && (activeTab === 'providers' || activeTab === 'chatModels' || activeTab === 'webSearchInference' || activeTab === 'embeddings')) {
             fetchAllModels();
         }
+    });
+
+    useEffect(() => {
+        loadModelsForTab();
     }, [activeTab, providers]);
 
     const fetchProviders = async () => {

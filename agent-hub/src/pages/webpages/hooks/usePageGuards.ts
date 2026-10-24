@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorMessage, isAbortError } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 /**
  * Page-scope guards of the open webpage editor. `mountedRef` is what makes a
@@ -21,7 +22,7 @@ export default function usePageGuards(pageId: string) {
         inflightAbortRef.current = (typeof AbortController !== 'undefined') ? new AbortController() : null;
         return () => {
             mountedRef.current = false;
-            try { inflightAbortRef.current?.abort(); } catch { /* ignore */ }
+            try { inflightAbortRef.current?.abort(); } catch (err) { logger.debug('ignore', err); }
         };
     }, []);
     const isStillCurrent = useCallback((targetId: string) => mountedRef.current && targetId === pageId, [pageId]);

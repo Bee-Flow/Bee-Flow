@@ -62,8 +62,7 @@ function OwnerMenu({ app, onOpen, onRename, onDelete }: OwnerMenuProps) {
             {open && (
                 <div
                     role="menu"
-                    className="absolute right-0 mt-1 w-36 py-1 rounded-lg border shadow-lg z-20"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                    className="absolute right-0 mt-1 w-36 py-1 rounded-lg border shadow-lg z-20 [border-color:var(--border-subtle)] [background:var(--bg-secondary)]"
                 >
                     {item(t('studio_apps_bi.list.open', 'Open'), FolderOpen, onOpen)}
                     {item(t('studio_apps_bi.list.rename', 'Rename'), Pencil, onRename)}

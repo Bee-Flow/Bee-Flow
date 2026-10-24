@@ -150,7 +150,7 @@ function renderLayout(layout: string, fields: LiveFields) {
     }
 
     // 'full' and any unknown layout — single iframe.
-    return <div style={{ width: '100%' }}>{renderSlot(code)}</div>;
+    return <div className="w-[100%]">{renderSlot(code)}</div>;
 }
 
 // CTA renderer — reads the nested Hero-style { enabled, label, link, style }
@@ -268,17 +268,7 @@ function LiveFrame({ code }: LiveFrameProps) {
             title="Live Component"
             sandbox="allow-scripts"
             scrolling="no"
-            style={{
-                width: '100%',
-                // Small starting height only — overwritten by the first
-                // lc-resize message. Never a fixed/min height, so tall
-                // content is never clipped.
-                height: 100,
-                border: 'none',
-                display: 'block',
-                overflow: 'hidden',
-                background: 'transparent',
-            }}
+            className="w-[100%] h-[100px] [border:none] [display:block] [overflow:hidden] [background:transparent]"
         />
     );
 }
@@ -286,19 +276,7 @@ function LiveFrame({ code }: LiveFrameProps) {
 function SlotPlaceholder() {
     return (
         <div
-            style={{
-                minHeight: 220,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '2rem',
-                border: '1px dashed rgba(15,23,42,0.18)',
-                borderRadius: 12,
-                color: 'var(--text-muted, #94A3B8)',
-                fontSize: '0.9rem',
-                textAlign: 'center',
-                lineHeight: 1.5,
-            }}
+            className="min-h-[220px] [display:flex] [align-items:center] [justify-content:center] [padding:2rem] [border:1px_dashed_rgba(15,23,42,0.18)] [border-radius:12px] [color:var(--text-muted,#94A3B8)] [font-size:0.9rem] [text-align:center] [line-height:1.5]"
         >
             Paste HTML / CSS / JS in the editor panel — it will render here in a sandboxed frame.
         </div>

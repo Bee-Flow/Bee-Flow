@@ -129,14 +129,13 @@ export const SectionCard = ({ title, description, children, onSave, saving, save
                     <button
                         onClick={onSave}
                         disabled={saving}
-                        className="px-4 py-2 rounded-lg text-[13px] font-medium text-white transition-all disabled:opacity-40 flex items-center gap-2"
-                        style={{ background: '#0078D4' }}
+                        className="px-4 py-2 rounded-lg text-[13px] font-medium text-white transition-all disabled:opacity-40 flex items-center gap-2 [background:#0078D4]"
                     >
                         {saving && <Loader2 size={14} className="animate-spin" />}
                         {saving ? t('azure.saving') : t('azure.save')}
                     </button>
                     {saved && (
-                        <span className="text-[12px] font-medium flex items-center gap-1" style={{ color: '#059669' }}>
+                        <span className="text-[12px] font-medium flex items-center gap-1 [color:#059669]!">
                             <Check size={14} /> {t('azure.saved')}
                         </span>
                     )}
@@ -209,8 +208,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
                 className="max-w-[480px]"
             >
                 <div
-                    className="rounded-2xl shadow-2xl flex flex-col"
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', width: '480px', maxHeight: '70vh' }}
+                    className="rounded-2xl shadow-2xl flex flex-col [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] w-[480px] max-h-[70vh]"
                 >
                     <div className="flex items-center justify-between px-5 pt-5 pb-3">
                         <div>
@@ -221,8 +219,7 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
                         </div>
                         <button
                             onClick={() => setOpen(false)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-lg transition-colors [color:var(--text-muted)]!"
                             onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                             onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = 'transparent'}
                         >×</button>
@@ -237,17 +234,15 @@ export const SearchableModelSelect = ({ value, label, models, onChange }: Search
                                 value={search}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                                 placeholder={t('azure.search_models')}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none text-sm"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             />
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-2 pb-4" style={{ maxHeight: '50vh' }}>
+                    <div className="flex-1 overflow-y-auto px-2 pb-4 max-h-[50vh]">
                         <button
                             onClick={() => { onChange(''); setOpen(false); }}
-                            className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors [color:var(--text-muted)]!"
                             onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = 'var(--bg-tertiary)'}
                             onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = 'transparent'}
                         >

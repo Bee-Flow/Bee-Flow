@@ -121,8 +121,7 @@ interface ScopeErrorProps {
 function ScopeError({ t, message, onBackToMine }: ScopeErrorProps) {
     return (
         <div
-            className="flex items-start gap-2 px-3 py-2 rounded-lg text-xs"
-            style={{ background: 'color-mix(in srgb, var(--error) 12%, transparent)', color: 'var(--error)' }}
+            className="flex items-start gap-2 px-3 py-2 rounded-lg text-xs [background:color-mix(in_srgb,var(--error)_12%,transparent)] [color:var(--error)]!"
             role="alert"
             data-testid="runs-scope-error"
         >

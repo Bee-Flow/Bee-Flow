@@ -6,6 +6,7 @@ import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * App Studio runtime — 'input_html'. Spec: server/appStudio/componentSpecs.js.
@@ -158,7 +159,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
             // ON, unlike the markdown editor: mail wants inline styles.
             document.execCommand('styleWithCSS', false, 'true');
             document.execCommand(cmd, false, arg);
-        } catch { /* an unsupported command leaves the text alone */ }
+        } catch (err) { logger.debug('an unsupported command leaves the text alone', err); }
         commit();
     };
 
@@ -211,8 +212,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
             // Mousedown, not click: by click time the selection is already gone,
             // so Bold would have nothing to embolden.
             onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-            className="inline-flex items-center justify-center w-7 h-7"
-            style={{ color: 'var(--text-secondary)', borderRadius: 'var(--app-radius)' }}
+            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)]"
         >
             <Icon className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
@@ -226,8 +226,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
             defaultValue=""
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => { const v = e.target.value; e.target.value = ''; if (v) onPick(v); }}
-            className="h-7 px-1 text-xs outline-none"
-            style={{ background: 'transparent', color: 'var(--text-secondary)', borderRadius: 'var(--app-radius)' }}
+            className="h-7 px-1 text-xs outline-none [background:transparent] [color:var(--text-secondary)]! [border-radius:var(--app-radius)]"
         >
             <option value="">{title}</option>
             {options.map(([labelText, v]) => <option key={v} value={v}>{labelText}</option>)}
@@ -241,8 +240,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                 style={{ borderColor: error ? 'var(--error)' : 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
                 <div
-                    className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b"
-                    style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)' }}
+                    className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)]"
                     role="toolbar"
                     aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
                 >
@@ -253,7 +251,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                     {btn('ol', ListOrdered, () => exec('insertOrderedList'), t('studio_apps_runtime.rich_text.numbered', 'Numbered list'))}
                     {btn('link', Link2, () => setLinking((v) => !v), t('studio_apps_runtime.rich_text.link', 'Link'))}
                     {allowImages ? btn('img', ImageIcon, () => fileRef.current?.click(), t('studio_apps_runtime.rich_text.image', 'Image')) : null}
-                    <span className="w-px h-4 mx-1" style={{ background: 'var(--border-default)' }} aria-hidden="true" />
+                    <span className="w-px h-4 mx-1 [background:var(--border-default)]" aria-hidden="true" />
                     {select('font', t('studio_apps_runtime.rich_text.font', 'Font'), FONTS.map((f) => [f, f]), (v) => exec('fontName', v))}
                     {select('size', t('studio_apps_runtime.rich_text.size', 'Size'), SIZES, (v) => exec('fontSize', v))}
                     {select('color', t('studio_apps_runtime.rich_text.color', 'Color'), COLORS, (v) => exec('foreColor', v))}
@@ -263,7 +261,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                     outright inside the Nextcloud embedding, where the button
                     would simply do nothing. */}
                 {linking ? (
-                    <div className="flex items-center gap-1.5 px-1.5 py-1 border-b" style={{ borderColor: 'var(--border-default)' }}>
+                    <div className="flex items-center gap-1.5 px-1.5 py-1 border-b [border-color:var(--border-default)]!">
                         <input
                             value={href}
                             autoFocus
@@ -276,18 +274,16 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                             }}
                             placeholder="https://…"
                             aria-label={t('studio_apps_runtime.rich_text.link_address', 'Link address')}
-                            className="min-w-0 flex-1 px-2 py-1 text-xs outline-none"
-                            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                            className="min-w-0 flex-1 px-2 py-1 text-xs outline-none [background:var(--bg-primary)] [color:var(--text-primary)]!"
                         />
                         <button
                             type="button"
                             onMouseDown={(e) => { e.preventDefault(); if (href) exec('createLink', href); setLinking(false); setHref(''); }}
-                            className="px-2 py-1 text-xs font-medium"
-                            style={{ color: 'var(--app-primary)' }}
+                            className="px-2 py-1 text-xs font-medium [color:var(--app-primary)]!"
                         >
                             {t('studio_apps_runtime.rich_text.add', 'Add')}
                         </button>
-                        <button type="button" onClick={() => { setLinking(false); setHref(''); }} aria-label={t('studio_apps_runtime.rich_text.cancel', 'Cancel')} className="p-1" style={{ color: 'var(--text-secondary)' }}>
+                        <button type="button" onClick={() => { setLinking(false); setHref(''); }} aria-label={t('studio_apps_runtime.rich_text.cancel', 'Cancel')} className="p-1 [color:var(--text-secondary)]">
                             <X className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                     </div>
@@ -324,7 +320,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                     />
                 ) : null}
                 {imageError ? (
-                    <p className="px-2.5 pb-2 text-xs" role="alert" style={{ color: 'var(--error)' }}>{imageError}</p>
+                    <p className="px-2.5 pb-2 text-xs [color:var(--error)]!" role="alert">{imageError}</p>
                 ) : null}
                 {/* The HTML is what the form submits; the box above is only how
                     it is typed. Hidden rather than absent so a plain form POST

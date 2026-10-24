@@ -250,7 +250,9 @@ test('automation: rows come from the shared final-output derivation, not run.out
 });
 
 test('automation: the default derivation is actionExecutor.deriveFinalOutput (shared, not re-implemented)', async () => {
-    const actionExecutor = require('./actionExecutor');
+    // The barrel re-exports automationBridge's function; the connector session
+    // requires it from there directly (the barrel would close an import cycle).
+    const actionExecutor = require('./actionExecutor/automationBridge');
     const real = actionExecutor.deriveFinalOutput;
     const seen = [];
     actionExecutor.deriveFinalOutput = async (run) => { seen.push(run.id); return [{ derived: true }]; };

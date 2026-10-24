@@ -140,8 +140,7 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
         >
             {icon ? (
                 <span
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md shrink-0 mt-0.5"
-                    style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md shrink-0 mt-0.5 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                 >
                     <AppIcon name={icon} className="w-4 h-4" />
                 </span>

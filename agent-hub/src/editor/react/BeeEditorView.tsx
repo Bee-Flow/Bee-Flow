@@ -65,7 +65,7 @@ export default function BeeEditorView({ s, props, sync, ix, tableView, uploadIma
   const headersHidden = tableInfo ? hiddenHeaders.has(tableInfo.ordinal) : false;
 
   return (
-    <div className="bf-editor flex flex-col h-full relative" style={{ background: 'var(--bg-primary)' }}>
+    <div className="bf-editor flex flex-col h-full relative [background:var(--bg-primary)]">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); e.target.value = ''; }} />
 

@@ -19,7 +19,7 @@ function ScoreRing({ score, passed }: { score: number | null; passed: boolean })
             <circle
                 cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
                 strokeDasharray={`${dash} ${c}`} transform="rotate(-90 32 32)"
-                style={{ transition: 'stroke-dasharray .5s ease' }}
+                className="[transition:stroke-dasharray_.5s_ease]"
             />
             <text x="32" y="37" textAnchor="middle" fontSize="16" fontWeight="700" fill="var(--text-primary)">
                 {typeof score === 'number' ? score : '—'}
@@ -96,8 +96,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
         <div>
             <div className="flex items-start gap-3 mb-2">
                 <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)]"
                     aria-hidden="true"
                 >
                     {step.icon || '🎯'}
@@ -127,8 +126,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
             />
 
             {hint && (
-                <div className="mt-2 px-3.5 py-2.5 rounded-lg text-[13px] flex items-start gap-2"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)', color: 'var(--text-secondary)' }}>
+                <div className="mt-2 px-3.5 py-2.5 rounded-lg text-[13px] flex items-start gap-2 [background:color-mix(in_srgb,var(--accent-primary)_10%,transparent)] [color:var(--text-secondary)]!">
                     <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--accent-primary)]" />
                     <span><span className="font-semibold text-[var(--text-primary)]">{t('learn.exercise.hint', 'Hint: ')}</span>{hint}</span>
                 </div>
@@ -140,8 +138,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                         type="button"
                         onClick={submit}
                         disabled={grading || text.trim().length < 3}
-                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-2 transition-opacity disabled:opacity-40"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}
+                        className="px-4 py-2 rounded-lg text-[13px] font-semibold inline-flex items-center gap-2 transition-opacity disabled:opacity-40 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!"
                     >
                         {grading
                             ? (<><Loader2 className="w-4 h-4 animate-spin" /> {t('learn.exercise.reviewing', 'Reviewing…')}</>)
@@ -153,8 +150,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                         type="button"
                         onClick={askHint}
                         disabled={hinting}
-                        className="px-3 py-2 rounded-lg text-[13px] font-medium inline-flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
+                        className="px-3 py-2 rounded-lg text-[13px] font-medium inline-flex items-center gap-1.5 border transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!"
                     >
                         {hinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lightbulb className="w-4 h-4" />}
                         {t('learn.exercise.get_hint', 'Get a hint')}
@@ -164,8 +160,7 @@ export default function ExerciseStep({ step, saved, modelTier = 'fast', onState 
                     <button
                         type="button"
                         onClick={skip}
-                        className="px-3 py-2 rounded-lg text-[12px] font-medium transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--text-tertiary)', background: 'transparent' }}
+                        className="px-3 py-2 rounded-lg text-[12px] font-medium transition-colors hover:bg-[var(--bg-tertiary)] [color:var(--text-tertiary)]! [background:transparent]!"
                     >
                         {t('learn.exercise.skip', 'Skip this one')}
                     </button>

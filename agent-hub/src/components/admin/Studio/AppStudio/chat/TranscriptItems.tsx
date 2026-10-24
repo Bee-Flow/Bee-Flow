@@ -59,20 +59,14 @@ export function StagedImages({ images, onRemove, disabled = false }: { images: S
                         src={img.dataUrl}
                         alt={img.name}
                         title={img.name}
-                        className="h-14 w-14 rounded border object-cover"
-                        style={{ borderColor: 'var(--border-default)' }}
+                        className="h-14 w-14 rounded border object-cover [border-color:var(--border-default)]"
                     />
                     <button
                         type="button"
                         onClick={() => onRemove(img.id)}
                         disabled={disabled}
                         aria-label={t('studio_apps_edit.chat.remove_image', 'Remove {name}', { name: img.name })}
-                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border shadow-sm transition-opacity disabled:opacity-40"
-                        style={{
-                            borderColor: 'var(--border-default)',
-                            background: 'var(--bg-primary)',
-                            color: 'var(--text-secondary)',
-                        }}
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border shadow-sm transition-opacity disabled:opacity-40 [border-color:var(--border-default)] [background:var(--bg-primary)] [color:var(--text-secondary)]"
                     >
                         <X size={10} aria-hidden="true" />
                     </button>
@@ -100,13 +94,8 @@ export function ErrorItem({ message, code, onRetry, disabled = false }: ErrorIte
     const showRetry = canRetry && typeof onRetry === 'function';
     return (
         <div
-            className="flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-xs leading-relaxed"
+            className="flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-xs leading-relaxed [border-color:rgba(239,68,68,0.35)] [background:color-mix(in_srgb,var(--error)_8%,transparent)] [color:var(--text-secondary)]!"
             role="alert"
-            style={{
-                borderColor: 'rgba(239, 68, 68, 0.35)',
-                background: 'color-mix(in srgb, var(--error) 8%, transparent)',
-                color: 'var(--text-secondary)',
-            }}
         >
             <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--error)' }} aria-hidden="true" />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -116,8 +105,7 @@ export function ErrorItem({ message, code, onRetry, disabled = false }: ErrorIte
                         type="button"
                         onClick={() => onRetry()}
                         disabled={disabled}
-                        className="inline-flex w-fit items-center gap-1 rounded border px-1.5 py-0.5 font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40"
-                        style={{ borderColor: 'color-mix(in srgb, var(--error) 40%, transparent)', color: 'var(--text-secondary)' }}
+                        className="inline-flex w-fit items-center gap-1 rounded border px-1.5 py-0.5 font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:opacity-40 [border-color:color-mix(in_srgb,var(--error)_40%,transparent)] [color:var(--text-secondary)]"
                     >
                         <RotateCcw className="h-3 w-3" aria-hidden="true" />
                         {t('app_studio.builder.chat.try_again', 'Try again')}

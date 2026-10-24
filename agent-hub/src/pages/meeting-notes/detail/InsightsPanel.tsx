@@ -15,6 +15,7 @@ import { StatChip } from './insights/primitives';
 import TopicsTab from './insights/TopicsTab';
 import type { MeetingNote } from './meetingDetailTypes';
 import type { TranslateParams } from '../../../hooks/useTranslation';
+import { logger } from '../../../utils/logger';
 
 /**
  * Meeting dynamics, at the top of the note: the three headline numbers are
@@ -40,7 +41,7 @@ function readStored(key: string, fallback: string) {
     } catch { return fallback; }
 }
 function writeStored(key: string, value: string) {
-    try { window.localStorage.setItem(key, value); } catch { /* private mode */ }
+    try { window.localStorage.setItem(key, value); } catch (err) { logger.debug('private mode', err); }
 }
 
 /**

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import PiiSensitivityPicker, { presetFor, PII_SENSITIVITY_PRESETS } from './PiiSensitivityPicker';
 
 /**

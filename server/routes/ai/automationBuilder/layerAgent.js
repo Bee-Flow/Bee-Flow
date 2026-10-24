@@ -144,7 +144,7 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
         const layerAbort = new AbortController();
         req.on('close', () => {
             layerClientGone = true;
-            try { layerAbort.abort(); } catch (_) { /* already aborted */ }
+            try { layerAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });
         const r = await runLayerAgent({
             draftWrap, layerKey, instruction, mode,

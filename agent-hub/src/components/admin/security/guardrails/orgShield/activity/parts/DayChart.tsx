@@ -64,12 +64,12 @@ function Tooltip({ id, stack, index, count, locale, fmt, t }: { id: string; stac
 }
 
 function Bar({ stack, scale }: { stack: DayStack; scale: number }) {
-    let y = H;
+    const parts = OUTCOME_ORDER.filter(o => stack.outcomes[o] > 0)
+        .map(o => ({ o, h: Math.max(1, Math.round(stack.outcomes[o] * scale) - 1) }));
     return (
         <svg aria-hidden="true" width="100%" height={H} viewBox={`0 0 10 ${H}`} preserveAspectRatio="none" className="block">
-            {OUTCOME_ORDER.filter(o => stack.outcomes[o] > 0).map(o => {
-                const h = Math.max(1, Math.round(stack.outcomes[o] * scale) - 1);
-                y -= h + 1;
+            {parts.map(({ o, h }, i) => {
+                const y = H - parts.slice(0, i + 1).reduce((sum, p) => sum + p.h + 1, 0);
                 return <rect key={o} x={0} y={y + 1} width={10} height={h} fill={OUTCOME_FILL[o]} {...(needsOutline(o) ? OUTLINE : {})} />;
             })}
         </svg>

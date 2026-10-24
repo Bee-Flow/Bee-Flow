@@ -12,9 +12,9 @@
  *     no ids, no step types, nothing but the labels the poll sent.
  */
 
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
 import { FormWaitingView } from './PublicFormRenderer';
 
 describe('FormWaitingView', () => {

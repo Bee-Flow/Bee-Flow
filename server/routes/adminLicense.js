@@ -199,7 +199,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
                 try {
                     const userStore = require('../stores/userStore');
                     await userStore.logSubscriptionAudit('email_send_failed', 'license', result.license.id, actorId(req), null, { to: deliverEmail, reason: delivery?.error || 'unknown' });
-                } catch (_) { /* audit best-effort */ }
+                } catch (err) { log.debug('audit best-effort', err); }
             }
         }
 

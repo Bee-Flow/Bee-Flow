@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * Carry a `?plan=<id>` deep link across the login boundary.
  *
@@ -52,5 +53,5 @@ export function takePendingPlan(): string | null {
 }
 
 export function clearPendingPlan(): void {
-    try { sessionStorage.removeItem(KEY); } catch { /* nothing to clear */ }
+    try { sessionStorage.removeItem(KEY); } catch (err) { logger.debug('nothing to clear', err); }
 }

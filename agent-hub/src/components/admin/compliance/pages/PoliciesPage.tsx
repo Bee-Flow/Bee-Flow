@@ -117,7 +117,7 @@ export default function PoliciesPage({ data = {}, isMobile = false, focusId = nu
 
     const loading = docs === null || docs === undefined;
     const failed = !loading && (typeof docs !== 'object' || !Array.isArray(docs.documents));
-    const documents = !loading && !failed ? docs.documents : [];
+    const documents = useMemo(() => (!loading && !failed && docs ? docs.documents : []), [loading, failed, docs]);
     const missing = !loading && !failed && Array.isArray(docs.missing_seeds) ? docs.missing_seeds : [];
     /** A member total we do not know renders nothing — never a 0 denominator. */
     const memberTotal = Array.isArray(orgUsers) ? orgUsers.length : null;

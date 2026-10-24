@@ -83,7 +83,7 @@ export default function TableStage({ phase, dispatch, t, reducedMotion = false, 
                         </p>
                     )}
                     {fields.length > 0 && (
-                        <ul className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }} data-testid="playbook-table-columns">
+                        <ul className="grid gap-1.5 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]" data-testid="playbook-table-columns">
                             {fields.map((f) => {
                                 const slot = schedule.get(f.key);
                                 const role = mapping ? Object.keys(mapping).find((r) => mapping[r] === f.key) : null;

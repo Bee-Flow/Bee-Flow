@@ -268,7 +268,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         const clientAbort = new AbortController();
         req.on('close', () => {
             turn.clientGone = true;
-            try { clientAbort.abort(); } catch (_) { /* already aborted */ }
+            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });
 
         await runBuildLoop(turn, {
@@ -306,7 +306,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         // Still record the turn's usage (Wave 6c) — a turn that died mid-stream
         // burned tokens too. logTurnUsage is idempotent, so a done-path log that
         // already ran wins; this only fires when we never reached it.
-        try { logTurnUsage('internal'); } catch (_) { /* never block cleanup */ }
+        try { logTurnUsage('internal'); } catch (err) { log.debug('never block cleanup', err); }
         stopHeartbeat();
         res.end();
     }

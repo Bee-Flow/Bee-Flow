@@ -1,5 +1,6 @@
 import { SetStateAction, useEffect, useState } from 'react';
 import { authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /**
  * Full-audio blobs are heavy (a 100-min recording is tens of MB); keep only
@@ -56,7 +57,7 @@ async function fetchAndDecode(url: string, bins: number) {
     } finally {
         // Closed on the FAILURE path too. An undecodable recording used to
         // abandon its AudioContext, and browsers cap how many a page may hold.
-        try { ctx.close(); } catch { /* ignore */ }
+        try { ctx.close(); } catch (err) { logger.debug('ignore', err); }
     }
     const result = { peaks, duration: audioBuffer.duration, blob };
     cache.set(url, result);

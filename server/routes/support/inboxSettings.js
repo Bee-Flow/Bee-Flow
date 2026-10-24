@@ -14,6 +14,7 @@ const access = require('../../support/access');
 const audit = require('../../support/audit');
 const { supportEvents } = require('../support');
 const { getUserId, resolveOrgScope, loadInboxInScope } = require('./inboxScope');
+const log = require('../../telemetry/log');
 
 async function listCanned(req, res) {
     const scope = await resolveOrgScope(req);
@@ -101,7 +102,7 @@ async function availableIntegrations(req, res) {
         if (snap && !snap.degraded && Array.isArray(snap.effective?.integration)) {
             effective = new Set(snap.effective.integration);
         }
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     if (!effective.size) {
         const active = await userStore.getOrgEnabledIntegrations(inbox.organization_id).catch(() => []);
         effective = new Set(Array.isArray(active) ? active : []);
@@ -138,7 +139,7 @@ async function availableIntegrations(req, res) {
             }
             if (webpagesOk) { ids.push('webpages'); ids.sort(); }
         }
-    } catch (_) { /* webpages probe failed — leave it out */ }
+    } catch (err) { log.debug('webpages probe failed — leave it out', err); }
 
     res.json({ integrations: ids, operatorUserId });
 }
@@ -148,9 +149,9 @@ async function stream(req, res) {
     let cleaned = false;
     const cleanup = () => {
         if (cleaned) return; cleaned = true;
-        try { if (heartbeat) heartbeat(); } catch {}
-        try { if (listener) supportEvents.off('event', listener); } catch {}
-        try { markEnded(); } catch {}
+        try { if (heartbeat) heartbeat(); } catch (err) { log.debug('heartbeat already stopped', err); }
+        try { if (listener) supportEvents.off('event', listener); } catch (err) { log.debug('listener already removed', err); }
+        try { markEnded(); } catch (err) { log.debug('stream already marked ended', err); }
     };
     try {
         const inboxes = await access.accessibleInboxes(req);

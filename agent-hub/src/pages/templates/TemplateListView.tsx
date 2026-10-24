@@ -46,8 +46,7 @@ function ListHeader({ onBack, searchQuery, setSearchQuery, uploading, skipAiDete
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02]"
-                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] [background:linear-gradient(135deg,#6366f1,#8b5cf6)]"
                     >
                         {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                         {t('templates.upload_template', 'Upload Template')}
@@ -108,7 +107,7 @@ function ListContent({ loading, templates, searchQuery, dragOver, setDragOver, f
             ) : filtered.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(99, 102, 241, 0.08)' }}>
+                        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:rgba(99,102,241,0.08)]">
                             <FileText className="w-10 h-10" style={{ color: '#6366f1', opacity: 0.6 }} />
                         </div>
                         <h3 className="text-base font-semibold mb-1 text-[var(--text-primary)]">
@@ -120,8 +119,7 @@ function ListContent({ loading, templates, searchQuery, dragOver, setDragOver, f
                         {!searchQuery && (
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white"
-                                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white [background:linear-gradient(135deg,#6366f1,#8b5cf6)]"
                             >
                                 {t('templates.upload_first', 'Upload Your First Template')}
                             </button>

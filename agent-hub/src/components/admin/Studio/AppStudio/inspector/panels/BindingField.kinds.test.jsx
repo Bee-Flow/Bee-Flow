@@ -99,7 +99,7 @@ describe('BindingField — six binding kinds', () => {
 
     it('records mode: picking a table + a formula filter emits the canonical shape', async () => {
         authFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ tables: TABLES }) });
-        const { onChange, last, getByRole, findByRole } = renderField({ kind: 'records', tableId: '' });
+        const { onChange, last, findByRole } = renderField({ kind: 'records', tableId: '' });
 
         // Table picker loads from GET /data/tables.
         const tableSelect = await findByRole('combobox', { name: 'Source table' });

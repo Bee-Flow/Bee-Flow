@@ -98,10 +98,6 @@ export default function useIntegrationsAdminState() {
     // live in the Access & Permissions hub.
     const [mcpServers, setMcpServers] = useState<AdminMcpServer[]>([]);
 
-    useEffect(() => {
-        load();
-    }, []);
-
     const load = async () => {
         setLoading(true);
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
@@ -180,6 +176,10 @@ export default function useIntegrationsAdminState() {
         } catch (e) { console.error(e); }
         setLoading(false);
     };
+
+    useEffect(() => {
+        load();
+    }, []);
 
     return {
         defaults, setDefaults,

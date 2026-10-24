@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // MarkdownRenderer isn't under test — stub it to plain text.
 vi.mock('../../../components/renderers/MarkdownRenderer', () => ({ default: ({ content }) => <div>{content}</div> }));

@@ -246,7 +246,7 @@ buildFakeRecords().catch((err) => {
  * userStore.getUser()/getUserByEmail() ALREADY run these columns through
  * parseJSON, so a real row carries an OBJECT `{iv, authTag, data}` — never a
  * JSON string. Calling JSON.parse() on that object stringifies it to
- * "[object Object]" and throws, and the bare `catch (_) {}` around it turned
+ * "[object Object]" and throws, and the bare empty catch around it turned
  * every genuine account's envelope into `null`: the client then never unwrapped
  * its DEK, and a real OPAQUE account answered `wrappedDEK: null` where an
  * absent username answers a well-formed fake blob — the very oracle the fake

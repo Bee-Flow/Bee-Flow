@@ -10,6 +10,7 @@
  * progressive-disclosure hint, component tools).
  */
 
+const { featureModule } = require('../featureModules');
 const { executeComponentTool } = require('./toolExecution');
 const { dispatchToToolFamily, getToolFamily } = require('./toolFamilyRegistry');
 const { registerBuiltinToolFamilies } = require('./builtinToolFamilies');
@@ -113,7 +114,7 @@ function automationCallContext(context) {
 
 async function dispatchAgentCallable(toolName, toolArgs, userId, automationCallCtx) {
     if (!userId) return { handled: false };
-    return await require('../../automation/agentCallableTools')
+    return await featureModule('automation/agentCallableTools')
         .dispatchAgentCallableByName(toolName, toolArgs, automationCallCtx);
 }
 
@@ -125,7 +126,7 @@ async function dispatchStepTool(toolName, toolArgs, userId, automationCallCtx) {
     let match = null;
     let tools = null;
     try {
-        tools = require('../../automation/agentCallableTools');
+        tools = featureModule('automation/agentCallableTools');
         const stepTools = await tools.getStepToolsForUser(userId);
         match = stepTools.find(t => t?.function?.name === toolName) || null;
     } catch (e) {
@@ -136,7 +137,7 @@ async function dispatchStepTool(toolName, toolArgs, userId, automationCallCtx) {
         return { handled: true, result: await tools.dispatchStepTool(match.__step, toolArgs, automationCallCtx) };
     } catch (e) {
         log.warn(`[ToolDispatcher] Step tool ${match.__step?.id} not started: ${e.message}`);
-        return { handled: true, result: require('../../automation/automationCallDepth').toolErrorFor(e) };
+        return { handled: true, result: require('../automationModel/automationCallDepth').toolErrorFor(e) };
     }
 }
 
@@ -153,7 +154,7 @@ function unloadedGroupHint(toolName) {
         if (grp) {
             return { error: `Tool "${toolName}" belongs to the "${grp}" group, which isn't loaded yet. Call load_tools({groups:["${grp}"]}) first, then call this tool.` };
         }
-    } catch (_) { /* non-fatal — fall through to component lookup */ }
+    } catch (err) { log.debug('non-fatal — fall through to component lookup', err); }
     return null;
 }
 

@@ -32,38 +32,38 @@ const InOutBar = ({ input, output, height = 5, style }: InOutBarProps) => {
     return (
         <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary)', overflow: 'hidden', display: 'flex', ...style }}>
             <div style={{ height: '100%', width: `${inputPct}%`, background: '#3b82f6', borderRadius: '99px 0 0 99px', transition: 'width 0.4s ease' }} />
-            <div style={{ height: '100%', flex: 1, background: '#f59e0b', borderRadius: '0 99px 99px 0', transition: 'width 0.4s ease' }} />
+            <div className="h-[100%] [flex:1] [background:#f59e0b] [border-radius:0_99px_99px_0] [transition:width_0.4s_ease]" />
         </div>
     );
 };
 
 const InOutLabel = ({ input, output, inputCost, outputCost, showCost }: InOutLabelProps) => (
     <div style={{ display: 'flex', gap: showCost ? 16 : 12, fontSize: 11, color: 'var(--text-muted)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ color: '#3b82f6', fontWeight: 600 }}>↘ {fNum(input)}</span>
-            {showCost && <span style={{ color: '#3b82f6', opacity: 0.7, fontWeight: 500 }}>({fCur(inputCost)})</span>}
+        <span className="[display:flex] [align-items:center] [gap:3px]">
+            <span className="[color:#3b82f6] [font-weight:600]">↘ {fNum(input)}</span>
+            {showCost && <span className="[color:#3b82f6] [opacity:0.7] [font-weight:500]">({fCur(inputCost)})</span>}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ color: '#f59e0b', fontWeight: 600 }}>↗ {fNum(output)}</span>
-            {showCost && <span style={{ color: '#f59e0b', opacity: 0.7, fontWeight: 500 }}>({fCur(outputCost)})</span>}
+        <span className="[display:flex] [align-items:center] [gap:3px]">
+            <span className="[color:#f59e0b] [font-weight:600]">↗ {fNum(output)}</span>
+            {showCost && <span className="[color:#f59e0b] [opacity:0.7] [font-weight:500]">({fCur(outputCost)})</span>}
         </span>
     </div>
 );
 
 const Legend = ({ inputLabel, outputLabel }: LegendProps) => (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#3b82f6', display: 'inline-block' }} /> {inputLabel}
+    <div className="[display:flex] [gap:12px] [align-items:center]">
+        <span className="[display:flex] [align-items:center] [gap:4px] [font-size:10px] [color:var(--text-muted)] [font-weight:500]">
+            <span className="w-[8px] h-[8px] [border-radius:2px] [background:#3b82f6] [display:inline-block]" /> {inputLabel}
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} /> {outputLabel}
+        <span className="[display:flex] [align-items:center] [gap:4px] [font-size:10px] [color:var(--text-muted)] [font-weight:500]">
+            <span className="w-[8px] h-[8px] [border-radius:2px] [background:#f59e0b] [display:inline-block]" /> {outputLabel}
         </span>
     </div>
 );
 
 const TrendChart = ({ timeline, title, avgLabel, noDataLabel, valueField = 'total_tokens', valueFormatter }: TrendChartProps) => {
     if (!timeline?.length) return (
-        <div style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: 10 }}>
+        <div className="h-[48px] [display:flex] [align-items:center] [justify-content:center] [font-size:12px] [color:var(--text-muted)] [background:var(--bg-secondary)] [border-radius:10px]">
             {noDataLabel}
         </div>
     );
@@ -78,15 +78,15 @@ const TrendChart = ({ timeline, title, avgLabel, noDataLabel, valueField = 'tota
     const fmt = valueFormatter || fNum;
     return (
         <Card style={{ padding: '12px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:8px]">
+                <div className="[display:flex] [align-items:center] [gap:6px]">
                     <TrendingUp style={{ width: 13, height: 13, color: 'var(--accent-primary)', opacity: 0.7 }} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>
+                    <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{title}</span>
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{avgLabel.replace('{value}', fmt(avgDay))}</span>
+                <span className="[font-size:11px] [color:var(--text-muted)] [font-weight:500]">{avgLabel.replace('{value}', fmt(avgDay))}</span>
             </div>
-            <div style={{ height: 56, width: '100%', position: 'relative' }}>
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+            <div className="h-[56px] w-[100%] [position:relative]">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-[100%] h-[100%] [overflow:visible]">
                     <defs>
                         <linearGradient id="ovTrendFill" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.2" />
@@ -205,12 +205,12 @@ export default function OverviewTab({
                     }
                 >
                     {costCap > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, fontWeight: 600 }}>
+                        <div className="[margin-top:12px]">
+                            <div className="[display:flex] [justify-content:space-between] [margin-bottom:6px] [font-size:11px] [font-weight:600]">
                                 <span className="text-[var(--text-secondary)]">{t('usage.ai_usage_vs_cap', 'AI usage vs. cap')}</span>
                                 <span style={{ color: capColor }}>{pct}%</span>
                             </div>
-                            <div style={{ height: 8, borderRadius: 999, background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+                            <div className="h-[8px] [border-radius:999px] [background:var(--bg-tertiary)] [overflow:hidden]">
                                 <div style={{ height: '100%', width: `${pct}%`, background: capColor, borderRadius: 999, transition: 'width 0.5s' }} />
                             </div>
                         </div>
@@ -233,11 +233,11 @@ export default function OverviewTab({
                         <Card>
                             {sortedUsers.length === 0 ? <EmptyInline text={t('usage.no_active_users')} /> : sortedUsers.map((u, i) => (
                                 <ListRow key={i}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                                    <div className="[display:flex] [align-items:center] [gap:8px] min-w-[0] [flex:1]">
                                         <Avatar user={u} color={getColor(i)} />
-                                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.display_name}</span>
+                                        <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{u.display_name}</span>
                                     </div>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', paddingLeft: 10 }}>{sharePct(u.billed_cost)}%</span>
+                                    <span className="[font-size:13px] [font-weight:700] [color:var(--text-primary)] [padding-left:10px]">{sharePct(u.billed_cost)}%</span>
                                 </ListRow>
                             ))}
                         </Card>
@@ -251,11 +251,11 @@ export default function OverviewTab({
                                 const TierIcon = (tb.tierKey && TIER_META[tb.tierKey]?.Icon) || Cpu;
                                 return (
                                     <ListRow key={tb.label}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                                        <div className="[display:flex] [align-items:center] [gap:8px] min-w-[0] [flex:1]">
                                             <IconBadge icon={TierIcon} color={getColor(i)} />
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tb.label}</span>
+                                            <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{tb.label}</span>
                                         </div>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', paddingLeft: 10 }}>{sharePct(tb.billed_cost)}%</span>
+                                        <span className="[font-size:13px] [font-weight:700] [color:var(--text-primary)] [padding-left:10px]">{sharePct(tb.billed_cost)}%</span>
                                     </ListRow>
                                 );
                             })}
@@ -270,11 +270,11 @@ export default function OverviewTab({
                                 const d = getSourceDetails(s.source);
                                 return (
                                     <ListRow key={i}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                                        <div className="[display:flex] [align-items:center] [gap:8px] [flex:1] min-w-[0]">
                                             <IconBadge icon={d.icon} color={d.color} />
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{d.label}</span>
+                                            <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{d.label}</span>
                                         </div>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', paddingLeft: 10 }}>{sharePct(s.billed_cost)}%</span>
+                                        <span className="[font-size:13px] [font-weight:700] [color:var(--text-primary)] [padding-left:10px]">{sharePct(s.billed_cost)}%</span>
                                     </ListRow>
                                 );
                             })}
@@ -319,13 +319,13 @@ export default function OverviewTab({
                     ) : null}
                     subline={(
                         <>
-                            In: <span style={{ color: '#3b82f6', fontWeight: 700 }}>{fCur(data.summary?.total_input_cost)}</span>
-                            <span style={{ margin: '0 6px' }}>·</span>
-                            Out: <span style={{ color: '#f59e0b', fontWeight: 700 }}>{fCur(data.summary?.total_output_cost)}</span>
+                            In: <span className="[color:#3b82f6] [font-weight:700]">{fCur(data.summary?.total_input_cost)}</span>
+                            <span className="[margin:0_6px]">·</span>
+                            Out: <span className="[color:#f59e0b] [font-weight:700]">{fCur(data.summary?.total_output_cost)}</span>
                             {(data.summary?.azure_services_total_cost || 0) > 0 && (
                                 <>
-                                    <span style={{ margin: '0 6px' }}>·</span>
-                                    Azure: <span style={{ color: '#0ea5e9', fontWeight: 700 }}>{fCur(data.summary?.azure_services_total_cost)}</span>
+                                    <span className="[margin:0_6px]">·</span>
+                                    Azure: <span className="[color:#0ea5e9] [font-weight:700]">{fCur(data.summary?.azure_services_total_cost)}</span>
                                 </>
                             )}
                         </>
@@ -349,16 +349,16 @@ export default function OverviewTab({
                         <Card>
                             {data.users.length === 0 ? <EmptyInline text={t('usage.no_active_users')} /> : data.users.slice(0, 8).map((u, i) => (
                                 <ListRow key={i} onClick={() => setFilterUser(u.user_id)}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                                    <div className="[display:flex] [align-items:center] [gap:8px] min-w-[0] [flex:1]">
                                         <Avatar user={u} color={getColor(i)} />
-                                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.display_name}</span>
+                                        <div className="[display:flex] [flex-direction:column] min-w-[0] [flex:1]">
+                                            <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{u.display_name}</span>
                                             <InOutBar input={u.prompt_tokens} output={u.completion_tokens} height={3} style={{ marginTop: 4, maxWidth: 100 }} />
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 10 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fNum(u.total_tokens)}</div>
-                                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{fCur(u.estimated_cost)}</div>
+                                    <div className="[text-align:right] [flex-shrink:0] [padding-left:10px]">
+                                        <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary)]">{fNum(u.total_tokens)}</div>
+                                        <div className="[font-size:10px] [color:var(--text-muted)] [margin-top:1px]">{fCur(u.estimated_cost)}</div>
                                     </div>
                                 </ListRow>
                             ))}
@@ -370,19 +370,19 @@ export default function OverviewTab({
                         <Card>
                             {data.models.length === 0 ? <EmptyInline text={t('usage.no_model_data')} /> : data.models.slice(0, 8).map((m, i) => (
                                 <ListRow key={i} onClick={() => setFilterModel(m.model)}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+                                    <div className="[display:flex] [align-items:center] [gap:8px] min-w-[0] [flex:1]">
                                         <IconBadge icon={Cpu} color={getColor(i)} />
-                                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={m.model}>{shortModel(m.model)}</span>
+                                        <div className="[display:flex] [flex-direction:column] min-w-[0] [flex:1]">
+                                            <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]" title={m.model}>{shortModel(m.model)}</span>
                                             <InOutBar input={m.prompt_tokens} output={m.completion_tokens} height={3} style={{ marginTop: 4, maxWidth: 100 }} />
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 10 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fNum(m.total_tokens)}</div>
-                                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{fCur(m.estimated_cost)} · {m.calls} {t('usage.calls')}</div>
-                                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 1, fontSize: 9 }}>
-                                            <span style={{ color: '#3b82f6', fontWeight: 500 }}>In: {fCur(m.input_cost)}</span>
-                                            <span style={{ color: '#f59e0b', fontWeight: 500 }}>Out: {fCur(m.output_cost)}</span>
+                                    <div className="[text-align:right] [flex-shrink:0] [padding-left:10px]">
+                                        <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary)]">{fNum(m.total_tokens)}</div>
+                                        <div className="[font-size:10px] [color:var(--text-muted)] [margin-top:1px]">{fCur(m.estimated_cost)} · {m.calls} {t('usage.calls')}</div>
+                                        <div className="[display:flex] [gap:6px] [justify-content:flex-end] [margin-top:1px] [font-size:9px]">
+                                            <span className="[color:#3b82f6] [font-weight:500]">In: {fCur(m.input_cost)}</span>
+                                            <span className="[color:#f59e0b] [font-weight:500]">Out: {fCur(m.output_cost)}</span>
                                         </div>
                                     </div>
                                 </ListRow>
@@ -400,16 +400,16 @@ export default function OverviewTab({
                                 const d = getSourceDetails(s.source);
                                 return (
                                     <ListRow key={i} onClick={() => setFilterSource(s.source)}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                                        <div className="[display:flex] [align-items:center] [gap:8px] [flex:1] min-w-[0]">
                                             <IconBadge icon={d.icon} color={d.color} />
-                                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{d.label}</span>
-                                                <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{s.calls} {t('usage.calls')}</span>
+                                            <div className="[display:flex] [flex-direction:column] min-w-[0]">
+                                                <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{d.label}</span>
+                                                <span className="[font-size:10px] [color:var(--text-muted)] [margin-top:1px]">{s.calls} {t('usage.calls')}</span>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: 10 }}>
-                                            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fNum(s.total_tokens)}</div>
-                                            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{fCur(s.estimated_cost)}</div>
+                                        <div className="[text-align:right] [flex-shrink:0] [padding-left:10px]">
+                                            <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary)]">{fNum(s.total_tokens)}</div>
+                                            <div className="[font-size:10px] [color:var(--text-muted)] [margin-top:1px]">{fCur(s.estimated_cost)}</div>
                                         </div>
                                     </ListRow>
                                 );
@@ -425,30 +425,30 @@ export default function OverviewTab({
                                 return (
                                     <div key={gi}>
                                         <ListRow onClick={() => setExpandedAgent(isExpanded ? null : group.agent_name)} style={{ borderBottom: isExpanded ? 'none' : undefined }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                                            <div className="[display:flex] [align-items:center] [gap:8px] [flex:1] min-w-[0]">
                                                 <IconBadge icon={Bot} color={getColor(gi)} />
-                                                <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-                                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.agent_name}</span>
-                                                    <span style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{group.models.length === 1 ? t('usage.overview.model_count', '{count} model', { count: group.models.length }) : t('usage.overview.model_count_plural', '{count} models', { count: group.models.length })}</span>
+                                                <div className="[display:flex] [flex-direction:column] min-w-[0] [flex:1]">
+                                                    <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{group.agent_name}</span>
+                                                    <span className="[font-size:10px] [color:var(--text-muted)] [margin-top:1px]">{group.models.length === 1 ? t('usage.overview.model_count', '{count} model', { count: group.models.length }) : t('usage.overview.model_count_plural', '{count} models', { count: group.models.length })}</span>
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fNum(group.total_tokens)}</div>
-                                                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{fCur(group.estimated_cost)}</div>
+                                            <div className="[display:flex] [align-items:center] [gap:6px] [flex-shrink:0]">
+                                                <div className="[text-align:right]">
+                                                    <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary)]">{fNum(group.total_tokens)}</div>
+                                                    <div className="[font-size:10px] [color:var(--text-muted)]">{fCur(group.estimated_cost)}</div>
                                                 </div>
                                                 <ChevronRight style={{ width: 13, height: 13, color: 'var(--text-muted)', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s ease' }} />
                                             </div>
                                         </ListRow>
                                         {isExpanded && group.models.map((m, mi) => (
-                                            <div key={mi} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 14px 6px 48px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)', fontSize: 11 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <div key={mi} className="[display:flex] [align-items:center] [justify-content:space-between] [padding:6px_14px_6px_48px] [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-subtle)] [font-size:11px]">
+                                                <div className="[display:flex] [align-items:center] [gap:6px]">
                                                     <Cpu style={{ width: 11, height: 11, color: getColor(mi + 3) }} />
-                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{shortModel(m.model)}</span>
+                                                    <span className="[font-weight:600] [color:var(--text-primary)]">{shortModel(m.model)}</span>
                                                     <InOutLabel input={m.prompt_tokens} output={m.completion_tokens} showCost inputCost={m.input_cost} outputCost={m.output_cost} />
                                                 </div>
-                                                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fNum(Number(m.total_tokens ?? 0))}</span>
+                                                <div className="[display:flex] [gap:10px] [align-items:center]">
+                                                    <span className="[font-weight:600] [color:var(--text-primary)]">{fNum(Number(m.total_tokens ?? 0))}</span>
                                                     <span className="text-[var(--text-muted)]">{fCur(Number(m.estimated_cost ?? 0))}</span>
                                                 </div>
                                             </div>
@@ -465,26 +465,26 @@ export default function OverviewTab({
                     <div ref={modelByUserRef}>
                         <CollapsibleSection title={t('usage.model_usage_by_user')} icon={Users} count={muRows.length} defaultOpen right={<Legend inputLabel={t('usage.input')} outputLabel={t('usage.output')} />}>
                             <Card>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr repeat(3, 70px) repeat(3, 72px)', padding: '8px 14px', background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--border-subtle)', overflowX: 'auto' }}>
+                                <div className="[display:grid] [grid-template-columns:1.5fr_1fr_repeat(3,70px)_repeat(3,72px)] [padding:8px_14px] [background:var(--bg-tertiary)] [border-bottom:1px_solid_var(--border-subtle)] [overflow-x:auto]">
                                     {tableHeaders.map(h => (
                                         <span key={h.key} style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: h.color || 'var(--text-muted)', textAlign: h.align, whiteSpace: 'nowrap' }}>{t(h.key)}</span>
                                     ))}
                                 </div>
                                 {muRows.slice(0, muShow).map((row, i) => (
                                     <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr repeat(3, 70px) repeat(3, 72px)', padding: '7px 14px', alignItems: 'center', background: i % 2 === 0 ? 'var(--bg-primary)' : 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', whiteSpace: 'nowrap', cursor: 'pointer', minWidth: 0 }} onClick={() => setFilterUser(row.user_id)}>
+                                        <span className="[font-size:11px] [font-weight:600] [color:var(--text-primary)] [display:flex] [align-items:center] [gap:6px] [overflow:hidden] [white-space:nowrap] [cursor:pointer] min-w-[0]" onClick={() => setFilterUser(row.user_id)}>
                                             <Avatar user={row} color={getColor(i)} size={20} />
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.display_name || row.user_id}</span>
+                                            <span className="[overflow:hidden] [text-overflow:ellipsis]">{row.display_name || row.user_id}</span>
                                         </span>
                                         <span style={{ fontSize: 11, fontWeight: 600, color: getColor(i), display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => setFilterModel(row.model)}>
                                             <Cpu style={{ width: 10, height: 10, flexShrink: 0 }} />{shortModel(row.model)}
                                         </span>
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#3b82f6', textAlign: 'right' }}>{fNum(row.prompt_tokens)}</span>
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textAlign: 'right' }}>{fNum(row.completion_tokens)}</span>
-                                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right' }}>{fNum(row.total_tokens)}</span>
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#3b82f6', textAlign: 'right' }}>{fCur(row.input_cost)}</span>
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textAlign: 'right' }}>{fCur(row.output_cost)}</span>
-                                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'right' }}>{fCur(row.estimated_cost)}</span>
+                                        <span className="[font-size:11px] [font-weight:600] [color:#3b82f6] [text-align:right]">{fNum(row.prompt_tokens)}</span>
+                                        <span className="[font-size:11px] [font-weight:600] [color:#f59e0b] [text-align:right]">{fNum(row.completion_tokens)}</span>
+                                        <span className="[font-size:11px] [font-weight:700] [color:var(--text-primary)] [text-align:right]">{fNum(row.total_tokens)}</span>
+                                        <span className="[font-size:11px] [font-weight:600] [color:#3b82f6] [text-align:right]">{fCur(row.input_cost)}</span>
+                                        <span className="[font-size:11px] [font-weight:600] [color:#f59e0b] [text-align:right]">{fCur(row.output_cost)}</span>
+                                        <span className="[font-size:11px] [font-weight:700] [color:var(--text-primary)] [text-align:right]">{fCur(row.estimated_cost)}</span>
                                     </div>
                                 ))}
                                 {muRows.length > muShow && <ShowMore remaining={muRows.length - muShow} onMore={() => setMuShow(c => c + 20)} label={t('usage.safety_show_more', 'Show more')} />}
@@ -498,7 +498,7 @@ export default function OverviewTab({
                     <div>
                         <SectionTitle icon={Server}>{t('usage.azure_services', 'Azure Services')}</SectionTitle>
                         <Card>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 0 }}>
+                            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] [gap:0]">
                                 {(azureServices.byType as AzureTypeRow[]).map((svc, i) => {
                                     const svcInfo = {
                                         doc_intelligence: { label: 'Document Intelligence', icon: FileText, color: '#0ea5e9', metric: `${fNum(svc.total_pages)} pages` },
@@ -508,24 +508,24 @@ export default function OverviewTab({
                                     }[svc.service_type] || { label: svc.service_type, icon: Server, color: '#94a3b8', metric: '' };
                                     const SvcIcon = svcInfo.icon;
                                     return (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
+                                        <div key={i} className="[display:flex] [align-items:center] [gap:10px] [padding:12px_14px] [border-bottom:1px_solid_var(--border-subtle)]">
                                             <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${svcInfo.color}15`, flexShrink: 0 }}>
                                                 <SvcIcon style={{ width: 16, height: 16, color: svcInfo.color }} />
                                             </div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{svcInfo.label}</div>
-                                                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>{svc.calls} {t('usage.calls')}{svcInfo.metric ? ` · ${svcInfo.metric}` : ''}</div>
+                                            <div className="[flex:1] min-w-[0]">
+                                                <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{svcInfo.label}</div>
+                                                <div className="[font-size:10px] [color:var(--text-muted)] [margin-top:1px]">{svc.calls} {t('usage.calls')}{svcInfo.metric ? ` · ${svcInfo.metric}` : ''}</div>
                                             </div>
-                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                            <div className="[text-align:right] [flex-shrink:0]">
                                                 <div style={{ fontSize: 14, fontWeight: 700, color: svcInfo.color }}>{fCur(svc.total_cost)}</div>
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-tertiary)', borderTop: '2px solid var(--border-subtle)' }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('usage.total', 'Total')}</span>
-                                <span style={{ fontSize: 16, fontWeight: 800, color: '#10b981' }}>{fCur((azureServices.summary as { total_cost?: number } | null)?.total_cost)}</span>
+                            <div className="[display:flex] [align-items:center] [justify-content:space-between] [padding:10px_14px] [background:var(--bg-tertiary)] [border-top:2px_solid_var(--border-subtle)]">
+                                <span className="[font-size:11px] [font-weight:700] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.05em]">{t('usage.total', 'Total')}</span>
+                                <span className="[font-size:16px] [font-weight:800] [color:#10b981]">{fCur((azureServices.summary as { total_cost?: number } | null)?.total_cost)}</span>
                             </div>
                         </Card>
                     </div>

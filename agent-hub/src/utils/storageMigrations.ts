@@ -53,6 +53,7 @@
 
 import { APP_BUILD_SHA } from './appVersion';
 import { scopedKey } from './scopedStorage';
+import { logger } from './logger';
 
 export const STORAGE_SCHEMA_VERSION = 1;
 export const DEVICE_SCHEMA_KEY = 'beeflow:storageSchema';
@@ -75,11 +76,11 @@ export function readDeviceItem(key: string): string | null {
 }
 
 export function writeDeviceItem(key: string, value: string) {
-    try { localStorage.setItem(key, value); } catch { /* quota / blocked */ }
+    try { localStorage.setItem(key, value); } catch (err) { logger.debug('quota / blocked', err); }
 }
 
 export function removeDeviceItem(key: string) {
-    try { localStorage.removeItem(key); } catch { /* blocked */ }
+    try { localStorage.removeItem(key); } catch (err) { logger.debug('blocked', err); }
 }
 
 /**
@@ -111,7 +112,7 @@ function allDeviceKeys() {
             const k = localStorage.key(i);
             if (k) keys.push(k);
         }
-    } catch { /* storage unavailable */ }
+    } catch (err) { logger.debug('storage unavailable', err); }
     return keys;
 }
 
@@ -192,7 +193,7 @@ export function runStorageMigrations() {
             applyDeviceMigrations(from);
             writeDeviceItem(DEVICE_SCHEMA_KEY, String(STORAGE_SCHEMA_VERSION));
         }
-    } catch { /* never take the app down over storage */ }
+    } catch (err) { logger.debug('never take the app down over storage', err); }
 }
 
 /* ─── Per-user ladder ─── */
@@ -274,7 +275,7 @@ export function runUserStorageMigrations(userId?: string | null) {
             applyUserMigrations(userId, from);
             writeDeviceItem(markerKey, String(STORAGE_SCHEMA_VERSION));
         }
-    } catch { /* never take the app down over storage */ }
+    } catch (err) { logger.debug('never take the app down over storage', err); }
 }
 
 export default {

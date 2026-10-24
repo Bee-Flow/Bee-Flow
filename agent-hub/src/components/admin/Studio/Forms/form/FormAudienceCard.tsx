@@ -138,12 +138,12 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
             {restricted && (
                 <div className="mt-3 overflow-hidden" style={CARD} data-testid="form-audience-list">
                     {rows.length === 0 && (
-                        <p className="px-4 py-3 text-xs" style={{ color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-default)' }}>
+                        <p className="px-4 py-3 text-xs [color:var(--text-tertiary)]! [border-bottom:1px_solid_var(--border-default)]">
                             {t('forms.share.audience_empty', 'Nobody yet — only you can open the form. Add the people or groups it is for.')}
                         </p>
                     )}
                     {rows.map(r => (
-                        <div key={`${r.type}:${r.id}`} className="grid items-center gap-3 px-4 py-2.5" style={{ gridTemplateColumns: 'minmax(0,1fr) 32px', borderBottom: '1px solid var(--border-default)' }} data-testid="form-audience-row">
+                        <div key={`${r.type}:${r.id}`} className="grid items-center gap-3 px-4 py-2.5 [grid-template-columns:minmax(0,1fr)_32px] [border-bottom:1px_solid_var(--border-default)]" data-testid="form-audience-row">
                             <span className="flex items-center gap-2.5 min-w-0">
                                 <Avatar name={nameOf(r.type, r.id)} group={r.type === 'group'} />
                                 <span className="min-w-0">
@@ -156,8 +156,7 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                             {canEdit ? (
                                 <button type="button" onClick={() => remove(r.type, r.id)} disabled={busy}
                                     aria-label={t('forms.share.audience_remove', 'Remove {name}', { name: nameOf(r.type, r.id) })}
-                                    className="p-1 rounded justify-self-center focus-visible:outline focus-visible:outline-2"
-                                    style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}>
+                                    className="p-1 rounded justify-self-center focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!">
                                     <X className="w-3.5 h-3.5" aria-hidden="true" />
                                 </button>
                             ) : <span />}
@@ -165,8 +164,7 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                     ))}
                     {canEdit && !adding && (
                         <button type="button" onClick={() => setAdding(true)} disabled={busy}
-                            className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
-                            style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }} data-testid="form-audience-add-open">
+                            className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!" data-testid="form-audience-add-open">
                             <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                             {t('forms.share.audience_add', 'Add a person or group')}
                         </button>
@@ -190,8 +188,7 @@ export default function FormAudienceCard({ form, canEdit, onChanged }: FormAudie
                                 {t('forms.share.audience_add_confirm', 'Add')}
                             </button>
                             <button type="button" onClick={() => { setAdding(false); setGranteeId(''); }}
-                                className="px-3 py-1.5 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                                className="px-3 py-1.5 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-default)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
                                 {t('forms.new.cancel', 'Cancel')}
                             </button>
                         </div>
@@ -215,7 +212,7 @@ interface AvatarProps {
 function Avatar({ name, group = false }: AvatarProps) {
     const initials = String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
     return (
-        <span className="grid place-items-center shrink-0 text-[11px] font-bold" style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} aria-hidden="true">
+        <span className="grid place-items-center shrink-0 text-[11px] font-bold w-[28px] h-[28px] [border-radius:8px] [background:var(--bg-tertiary)] [color:var(--text-secondary)]!" aria-hidden="true">
             {group ? <Users className="w-3.5 h-3.5" /> : (initials.length ? initials : <User className="w-3.5 h-3.5" />)}
         </span>
     );

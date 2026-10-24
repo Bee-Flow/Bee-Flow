@@ -88,7 +88,7 @@ export const IdentitySection = ({
                                                             };
                                                             const currentEmojis = categories[emojiCategory]?.emojis || categories.smileys.emojis;
                                                             return (
-                                                                <div ref={emojiPickerRef} className="absolute top-full left-0 mt-2 rounded-xl border bg-[var(--bg-card)] shadow-xl z-50" style={{ borderColor: 'var(--border-default)', width: '400px' }}>
+                                                                <div ref={emojiPickerRef} className="absolute top-full left-0 mt-2 rounded-xl border bg-[var(--bg-card)] shadow-xl z-50 [border-color:var(--border-default)] w-[400px]">
                                                                     {/* Category Tabs */}
                                                                     <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-[var(--border-subtle)]">
                                                                         {Object.entries(categories).map(([key, cat]) => (
@@ -152,8 +152,7 @@ export const IdentitySection = ({
                                                                         />
                                                                         <button
                                                                             onClick={() => document.getElementById('agent-avatar-upload')?.click()}
-                                                                            className="px-3 py-1 text-xs font-medium rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors flex items-center gap-1.5"
-                                                                            style={{ color: 'var(--text-secondary)' }}
+                                                                            className="px-3 py-1 text-xs font-medium rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors flex items-center gap-1.5 [color:var(--text-secondary)]!"
                                                                             title={t('agent_studio.identity_upload_an_image_as_avatar', 'Upload an image as avatar')}
                                                                         >
                                                                             {t('agent_studio.identity_upload', '📷 Upload')}
@@ -258,8 +257,7 @@ export const IdentitySection = ({
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setShowNewCategory(true)}
-                                                                className="flex items-center gap-1.5 text-xs font-medium transition-all hover:text-[var(--text-primary)]"
-                                                                style={{ color: 'var(--text-muted)' }}
+                                                                className="flex items-center gap-1.5 text-xs font-medium transition-all hover:text-[var(--text-primary)] [color:var(--text-muted)]!"
                                                             >
                                                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -291,11 +289,10 @@ export const IdentitySection = ({
                                                                 <textarea
                                                                     value={systemPrompt}
                                                                     onChange={(e) => setSystemPrompt(e.target.value)}
-                                                                    className="input w-full font-mono text-sm leading-relaxed"
+                                                                    className="input w-full font-mono text-sm leading-relaxed min-h-[200px]"
                                                                     rows={12}
                                                                     data-tour="agent-system-prompt"
                                                                     placeholder={t('agent_studio.identity_you_are_a_helpful_assistant', 'You are a helpful assistant...')}
-                                                                    style={{ minHeight: '200px' }}
                                                                 />
                                                             </div>
 

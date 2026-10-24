@@ -1604,6 +1604,13 @@
   "opts": null
  },
  {
+  "via": "log.debug",
+  "args": [
+   "telemetry is best-effort",
+   {}
+  ]
+ },
+ {
   "via": "fx",
   "code": "EUR",
   "opts": {

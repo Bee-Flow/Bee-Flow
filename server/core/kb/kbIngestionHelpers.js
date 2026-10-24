@@ -10,6 +10,7 @@
  *   • Chunk cleanup via search-service
  */
 
+const { featureModule } = require('../featureModules');
 const crypto = require('crypto');
 const dns = require('dns').promises;
 const net = require('net');
@@ -389,7 +390,7 @@ async function fetchUrlContent(url) {
  * @returns {Promise<{content: string, title: string, resolvedUrl: string}>}
  */
 async function fetchWithPlaywright(url, opts = {}) {
-    const browserProvider = require('../../services/browserProvider');
+    const browserProvider = featureModule('services/browserProvider');
     const { isPrivateHostname, isPrivateIp } = require('../../utils/ssrfGuard');
 
     return browserProvider.withContext(
@@ -416,7 +417,7 @@ async function fetchWithPlaywright(url, opts = {}) {
                     try {
                         const buf = await page.screenshot({ type: 'jpeg', quality: 50, timeout: 2000 });
                         opts.onFrame(buf.toString('base64'));
-                    } catch (_) { /* mid-navigation or page closed — skip this tick */ }
+                    } catch (err) { log.debug('mid-navigation or page closed — skip this tick', err); }
                     finally { capturing = false; }
                 }, 350);
             }
@@ -450,7 +451,7 @@ async function fetchWithPlaywright(url, opts = {}) {
 
                 const resolvedUrl = page.url();
                 let resolvedHost = '';
-                try { resolvedHost = new URL(resolvedUrl).hostname; } catch (_) { /* keep empty */ }
+                try { resolvedHost = new URL(resolvedUrl).hostname; } catch (err) { log.debug('keep empty', err); }
                 if (isPrivateHostname(resolvedHost) || isPrivateIp(resolvedHost)) {
                     throw new Error(`Navigation resolved to a private/internal address (${resolvedHost})`);
                 }
@@ -733,7 +734,7 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
                             ...extra, statusReason: 'Identical content already in this knowledge base',
                         });
                     }
-                } catch (_) { /* non-fatal */ }
+                } catch (err) { log.debug('non-fatal', err); }
                 if (record) return { document: dupRow, chunks: 0, status: 'duplicate', duplicateOf: existing.id };
                 throw Object.assign(new Error('Duplicate content already exists in this KB'), {
                     code: 'DUPLICATE', documentId: existing.id
@@ -760,7 +761,7 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
                             ...extra, statusReason: 'Near-identical content already in this knowledge base',
                         });
                     }
-                } catch (_) { /* non-fatal */ }
+                } catch (err) { log.debug('non-fatal', err); }
                 if (record) return { document: dupRow, chunks: 0, status: 'duplicate', duplicateOf: near.id };
                 throw Object.assign(new Error('Near-duplicate content already in KB'), {
                     code: 'NEAR_DUPLICATE', documentId: near.id
@@ -785,7 +786,7 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
             let errDoc = null;
             try {
                 errDoc = await kbStore.updateDocumentStatus(doc.id, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 });
-            } catch (_) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
             return { document: errDoc || { ...doc, status: 'error' }, chunks: 0, status: 'error', error: embedErr.message };
         }
         // Legacy contract: no row survives a failed ingest. The row never held
@@ -847,7 +848,7 @@ async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {
     try {
         const { deleteChunksLocally } = require('./localKBIngest');
         await deleteChunksLocally(tenantId, kbId, docId);
-    } catch (_) { /* table may not exist yet — that's fine */ }
+    } catch (err) { log.debug('table may not exist yet — that\'s fine', err); }
 
     // Also clean up via remote search-service (skip when admin chose local-only)
     try {
@@ -962,12 +963,12 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
                     title: docTitle, chunkCount: 0, status: 'error', statusReason: friendlyError(embedErr), managedWrite,
                     externalId, sourceModifiedAt, sizeBytes, mime, pageCount, sheetCount,
                 });
-            } catch (_) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
             await kbStore.bumpKBVersion(kbId);
             return { document: errDoc || { ...existing, status: 'error', chunk_count: 0 }, chunks: 0, status: 'error', error: embedErr.message };
         }
         // Row stays (it is the caller's row), but its chunks are gone: say so.
-        try { await kbStore.updateDocumentStatus(docId, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 }); } catch (_) { /* best-effort */ }
+        try { await kbStore.updateDocumentStatus(docId, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 }); } catch (err) { log.debug('best-effort', err); }
         throw embedErr;
     }
 

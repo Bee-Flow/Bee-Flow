@@ -96,7 +96,7 @@ export default function NotificationRow({ n, index, isExpanded, actions }: {
             onMouseLeave={(e) => { e.currentTarget.style.background = restingBackground(n, isExpanded); }}
             onClick={() => actions.onActivate(n)}
         >
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div className="[display:flex] [gap:10px] [align-items:flex-start]">
                 <div style={{
                     flexShrink: 0, width: 34, height: 34,
                     borderRadius: 10,
@@ -109,16 +109,10 @@ export default function NotificationRow({ n, index, isExpanded, actions }: {
                 <RowSummary n={n} cat={cat} isExpanded={isExpanded} />
                 <button
                     onClick={(e) => { e.stopPropagation(); actions.onDelete(n.id); }}
-                    style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        padding: 4, borderRadius: 6,
-                        color: 'var(--text-muted, #94a3b8)',
-                        opacity: 0, flexShrink: 0,
-                    }}
                     onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.color = 'var(--text-muted, #94a3b8)'; }}
                     title={t('common.delete', 'Delete')}
-                    className="notif-delete-btn"
+                    className="notif-delete-btn [background:none] [border:none] [cursor:pointer] [padding:4px] [border-radius:6px] [color:var(--text-muted,#94a3b8)] [opacity:0] [flex-shrink:0]"
                 >
                     <X style={{ width: 14, height: 14 }} />
                 </button>
@@ -143,8 +137,8 @@ function RowSummary({ n, cat, isExpanded }: { n: AppNotification; cat: Category;
         lineHeight: 1.4,
     };
     return (
-        <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+        <div className="[flex:1] min-w-[0]">
+            <div className="[display:flex] [align-items:center] [gap:6px] [margin-bottom:2px]">
                 {!n.read && (
                     <span style={{
                         width: 6, height: 6, borderRadius: '50%',
@@ -157,10 +151,7 @@ function RowSummary({ n, cat, isExpanded }: { n: AppNotification; cat: Category;
                 <span style={titleStyle}>
                     {isExpanded && isResult(n) ? '' : n.title}
                 </span>
-                <span style={{
-                    fontSize: 10, color: 'var(--text-muted, #94a3b8)', flexShrink: 0,
-                    fontWeight: 500,
-                }}>
+                <span className="[font-size:10px] [color:var(--text-muted,#94a3b8)] [flex-shrink:0] [font-weight:500]">
                     {timeAgo(n.created_at)}
                 </span>
             </div>
@@ -193,22 +184,16 @@ function NotificationDetail({ n, cat, actions }: { n: AppNotification; cat: Cate
     const { provider: reauthProvider, body: cleanedBody } = parseReauthToken(n.message);
     const result = isResult(n);
     return (
-        <div style={{
-            marginTop: 10, marginLeft: 44,
-            padding: '12px 14px',
-            background: 'var(--bg-secondary, #f8fafc)',
-            borderRadius: 10,
-            border: '1px solid var(--border-subtle, rgba(0,0,0,0.05))',
-        }}>
+        <div className="[margin-top:10px] [margin-left:44px] [padding:12px_14px] [background:var(--bg-secondary,#f8fafc)] [border-radius:10px] [border:1px_solid_var(--border-subtle,rgba(0,0,0,0.05))]">
             {n.link && !result && (
-                <div style={{ marginBottom: 10 }}>
+                <div className="[margin-bottom:10px]">
                     <button onClick={stop(() => actions.onNavigateLink(n))} style={PRIMARY_BUTTON}>
                         {t('notifications.open', 'Open')}
                     </button>
                 </div>
             )}
             {reauthProvider && (
-                <div style={{ marginBottom: 10 }}>
+                <div className="[margin-bottom:10px]">
                     <button onClick={stop(() => actions.onReconnect(reauthProvider))} style={PRIMARY_BUTTON}>
                         {t('notifications.reconnect_provider', 'Reconnect {provider}', { provider: reauthProvider.charAt(0).toUpperCase() + reauthProvider.slice(1) })}
                     </button>
@@ -225,7 +210,7 @@ function NotificationDetail({ n, cat, actions }: { n: AppNotification; cat: Cate
                 }}>
                     {cat.label}
                 </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted, #94a3b8)' }}>
+                <span className="[font-size:11px] [color:var(--text-muted,#94a3b8)]">
                     {n.created_at ? new Date(n.created_at).toLocaleString(undefined, {
                         month: 'short', day: 'numeric',
                         hour: '2-digit', minute: '2-digit',
@@ -244,25 +229,16 @@ function NotificationDetail({ n, cat, actions }: { n: AppNotification; cat: Cate
 function ResultActions({ n, body, actions }: { n: AppNotification; body: string; actions: NotificationRowActions }) {
     const { t } = useTranslation();
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:10px] [flex-wrap:wrap]">
             <button
                 onClick={stop(() => actions.onOpenResultInChat(n, body))}
                 data-testid="notif-open-in-chat"
-                style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '8px 16px', borderRadius: 9, fontSize: 12.5, fontWeight: 600,
-                    border: 'none', cursor: 'pointer', flexShrink: 0,
-                    background: 'var(--text-primary, #0f172a)', color: 'var(--bg-primary, #fff)',
-                }}
+                className="[display:inline-flex] [align-items:center] [gap:6px] [padding:8px_16px] [border-radius:9px] [font-size:12.5px] [font-weight:600] [border:none] [cursor:pointer] [flex-shrink:0] [background:var(--text-primary,#0f172a)] [color:var(--bg-primary,#fff)]"
             >
                 <MessageSquare style={{ width: 14, height: 14 }} />
                 {t('notifications.open_result_in_chat', 'Open result in chat')}
             </button>
-            <span style={{
-                fontSize: 13, fontWeight: 600, minWidth: 0,
-                color: 'var(--text-primary, #0f172a)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+            <span className="[font-size:13px] [font-weight:600] min-w-[0] [color:var(--text-primary,#0f172a)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                 {n.title}
             </span>
         </div>
@@ -273,11 +249,8 @@ function ResultActions({ n, body, actions }: { n: AppNotification; body: string;
 function EmptyResult({ n, actions }: { n: AppNotification; actions: NotificationRowActions }) {
     const cowork = n.category === 'cowork';
     return (
-        <div style={{ marginBottom: 10 }}>
-            <p style={{
-                fontSize: 13, color: 'var(--text-secondary, #64748b)',
-                margin: '0 0 8px 0', lineHeight: 1.6,
-            }}>
+        <div className="[margin-bottom:10px]">
+            <p className="[font-size:13px] [color:var(--text-secondary,#64748b)] [margin:0_0_8px_0] [line-height:1.6]">
                 {cowork
                     ? 'This ran, but produced no text to show. Open it to see the run.'
                     : 'This automation ran, but no text result was saved. Open the chat to see the run.'}
@@ -289,12 +262,7 @@ function EmptyResult({ n, actions }: { n: AppNotification; actions: Notification
                     if (cowork && n.link) actions.onNavigateLink(n);
                     else actions.onOpenInDirectChat(n.title, '', n.id);
                 })}
-                style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                    border: 'none', cursor: 'pointer',
-                    background: 'var(--bg-secondary, rgba(0,0,0,0.04))', color: 'var(--text-primary, #0f172a)',
-                }}
+                className="[display:flex] [align-items:center] [gap:5px] [padding:6px_14px] [border-radius:8px] [font-size:12px] [font-weight:600] [border:none] [cursor:pointer] [background:var(--bg-secondary,rgba(0,0,0,0.04))] [color:var(--text-primary,#0f172a)]"
             >
                 {cowork ? 'Open in Cowork' : 'Open chat'}
             </button>
@@ -306,23 +274,13 @@ function EmptyResult({ n, actions }: { n: AppNotification; actions: Notification
 function DetailBody({ n, body, reauth }: { n: AppNotification; body: string; reauth: boolean }) {
     if (n.category === 'ai_task' && !reauth) {
         return (
-            <div style={{
-                fontSize: 13, color: 'var(--text-primary, #0f172a)',
-                lineHeight: 1.6,
-                wordBreak: 'break-word',
-                maxHeight: 600, overflowY: 'auto',
-            }}>
+            <div className="[font-size:13px] [color:var(--text-primary,#0f172a)] [line-height:1.6] [word-break:break-word] max-h-[600px] [overflow-y:auto]">
                 <MarkdownRenderer content={body} />
             </div>
         );
     }
     return (
-        <p style={{
-            fontSize: 13, color: 'var(--text-primary, #0f172a)',
-            margin: 0, lineHeight: 1.6,
-            wordBreak: 'break-word',
-            whiteSpace: 'pre-wrap',
-        }}>
+        <p className="[font-size:13px] [color:var(--text-primary,#0f172a)] [margin:0] [line-height:1.6] [word-break:break-word] [white-space:pre-wrap]">
             {body}
         </p>
     );

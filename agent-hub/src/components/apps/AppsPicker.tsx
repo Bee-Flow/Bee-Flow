@@ -17,7 +17,7 @@
  * automation editor) it keeps its own button and its own state.
  */
 import { ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react';
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { groupAppsByCategory } from './appCatalog';
 /** One entry of the picker, as appCatalog.jsx builds it. */
@@ -73,12 +73,13 @@ export default function AppsPicker({
     // off the viewport. Same measure-and-flip as the When sheet.
     const [dropDown, setDropDown] = useState(false);
 
+    const closePicker = useEffectEvent(() => setOpen(false));
     useEffect(() => {
         if (!open) return undefined;
         // Also covers the controlled path, where the opener is a menu row
         // rather than this component's own button.
         setSearch('');
-        const onDown = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false); };
+        const onDown = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) closePicker(); };
         document.addEventListener('mousedown', onDown);
         return () => document.removeEventListener('mousedown', onDown);
     }, [open]);
@@ -149,8 +150,7 @@ export default function AppsPicker({
                             placeholder={t('apps.picker_search_placeholder', 'Search apps...')}
                             autoFocus
                             aria-label={t('apps.picker_search_label', 'Search apps')}
-                            className="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)]"
-                            style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border outline-none transition-colors focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]!"
                         />
                     </div>
 

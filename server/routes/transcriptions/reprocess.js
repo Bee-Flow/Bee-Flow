@@ -193,7 +193,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         if (failure) throw failure;
     } finally {
         // Remove the temp file if the audio was streamed from object storage.
-        try { audioSource?.cleanup?.(); } catch (_) {}
+        try { audioSource?.cleanup?.(); } catch (_) { log.debug('temp audio already gone', _); }
     }
 });
 

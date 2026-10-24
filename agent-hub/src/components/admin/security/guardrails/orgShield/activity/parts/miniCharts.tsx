@@ -38,7 +38,6 @@ export function SegmentBar({ segments, height, gap = 3, className = '' }: {
     const shown = segments.filter(s => s.value > 0);
     const total = shown.reduce((n, s) => n + s.value, 0);
     const room = W - gap * Math.max(0, shown.length - 1);
-    let x = 0;
     return (
         <svg
             aria-hidden="true"
@@ -49,11 +48,10 @@ export function SegmentBar({ segments, height, gap = 3, className = '' }: {
             className={`block ${className}`}
         >
             {total === 0 && <rect x={0} y={0} width={W} height={height} fill="var(--bg-tertiary)" />}
-            {shown.map(s => {
+            {shown.map((s, i) => {
                 const w = (room * s.value) / total;
-                const rect = <rect key={s.key} x={x} y={0} width={w} height={height} fill={s.fill} opacity={s.dim ? 0.3 : 1} {...(s.outline ? OUTLINE : {})} />;
-                x += w + gap;
-                return rect;
+                const x = shown.slice(0, i).reduce((sum, p) => sum + (room * p.value) / total + gap, 0);
+                return <rect key={s.key} x={x} y={0} width={w} height={height} fill={s.fill} opacity={s.dim ? 0.3 : 1} {...(s.outline ? OUTLINE : {})} />;
             })}
         </svg>
     );

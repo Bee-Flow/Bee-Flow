@@ -20,7 +20,7 @@ function conversationRestorer(convId) {
         if (convMap && Object.keys(convMap).length > 0) {
             return (s) => (typeof s === 'string' ? restoreTokens(s, convMap) : s);
         }
-    } catch (_) { /* render-layer best-effort */ }
+    } catch (err) { log.debug('render-layer best-effort', err); }
     return (s) => s;
 }
 
@@ -187,7 +187,7 @@ function restoreToolHistory(collectedToolHistory, convId) {
                 }
             }
         }
-    } catch (_) { /* render-layer best-effort */ }
+    } catch (err) { log.debug('render-layer best-effort', err); }
 }
 
 /** Media, drafts and tool history produced this turn, on the assistant row. */

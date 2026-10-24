@@ -44,19 +44,11 @@ export function FormDownload({ field, href }: { field: FormFieldDef; href?: stri
             <a
                 href={href}
                 download={field.filename || true}
-                className="flex items-center gap-3 px-3 py-2.5 border transition"
-                style={{
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    background: 'var(--bg-card, var(--bg-secondary))',
-                    color: 'var(--text-primary)',
-                    textDecoration: 'none',
-                }}
+                className="flex items-center gap-3 px-3 py-2.5 border transition [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))] [color:var(--text-primary)] [text-decoration:none]"
             >
                 <span
                     aria-hidden="true"
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 34, height: 34, borderRadius: '999px', background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                    className="flex items-center justify-center flex-shrink-0 w-[34px] h-[34px] [border-radius:999px] [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                 >
                     <Download size={16} />
                 </span>
@@ -111,18 +103,11 @@ export function FormOpenInNotebooks({ field, onOpen }: { field: FormFieldDef; on
                 onClick={open}
                 disabled={!onOpen || busy}
                 aria-disabled={!onOpen || busy}
-                className="flex items-center gap-3 px-3 py-2.5 border transition text-left disabled:opacity-60"
-                style={{
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    background: 'var(--bg-card, var(--bg-secondary))',
-                    color: 'var(--text-primary)',
-                }}
+                className="flex items-center gap-3 px-3 py-2.5 border transition text-left disabled:opacity-60 [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))] [color:var(--text-primary)]!"
             >
                 <span
                     aria-hidden="true"
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 34, height: 34, borderRadius: '999px', background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                    className="flex items-center justify-center flex-shrink-0 w-[34px] h-[34px] [border-radius:999px] [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                 >
                     {busy ? <Loader2 size={16} className="animate-spin" /> : <BookOpen size={16} />}
                 </span>
@@ -133,7 +118,7 @@ export function FormOpenInNotebooks({ field, onOpen }: { field: FormFieldDef; on
                     {meta ? <span className="text-xs text-[var(--text-secondary)]">{meta}</span> : null}
                 </span>
             </button>
-            {error ? <p className="text-xs" role="alert" style={{ color: '#ef4444' }}>{error}</p> : null}
+            {error ? <p className="text-xs [color:#ef4444]!" role="alert">{error}</p> : null}
             {field.help ? <p className="text-xs text-[var(--text-muted)]">{field.help}</p> : null}
         </div>
     );
@@ -147,20 +132,12 @@ function FormDownloadUnavailable({ field, meta }: { field: FormFieldDef; meta: s
                 <span className="text-sm font-medium text-[var(--text-primary)]">{field.label}</span>
             ) : null}
             <div
-                className="flex items-center gap-3 px-3 py-2.5 border"
+                className="flex items-center gap-3 px-3 py-2.5 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))] [color:var(--text-secondary)] [opacity:0.65]"
                 aria-disabled="true"
-                style={{
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    background: 'var(--bg-card, var(--bg-secondary))',
-                    color: 'var(--text-secondary)',
-                    opacity: 0.65,
-                }}
             >
                 <span
                     aria-hidden="true"
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{ width: 34, height: 34, borderRadius: '999px', background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
+                    className="flex items-center justify-center flex-shrink-0 w-[34px] h-[34px] [border-radius:999px] [background:var(--bg-tertiary)] [color:var(--text-tertiary)]"
                 >
                     <Download size={16} />
                 </span>

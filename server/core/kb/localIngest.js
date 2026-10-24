@@ -39,7 +39,7 @@ function _trackEmbeddingCost(totalTokensEstimate) {
             source: 'kb_upload',
         }).catch(() => {});
         if (cost > 0) log.info(`[LocalKBIngest] 💰 Embedding cost: $${cost.toFixed(6)} (~${totalTokensEstimate} tokens)`);
-    } catch (_) {}
+    } catch (_) { log.warn('could not record embedding usage', _); }
 }
 
 // ── Main ingestion function ─────────────────────────────────────────
@@ -146,9 +146,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
                 `UPDATE documents SET original_content = $1 WHERE id = $2::uuid`,
                 [content, docId]
             );
-        } catch (_) {
-            // Column may not exist yet — ignore, migration handles it
-        }
+        } catch (err) { log.debug('Column may not exist yet — ignore, migration handles it', err); }
 
         // Issue #9: Batch INSERT — 10 chunks per statement to reduce round-trips
         const BATCH_SIZE = 10;

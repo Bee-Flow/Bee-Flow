@@ -65,7 +65,7 @@ async function resolveTeamsSession(req) {
     let credential = null;
     try {
         credential = await d.credentialStore.getCredential(userId, 'microsoft');
-    } catch (_) { /* vault unavailable → session only */ }
+    } catch (err) { log.debug('vault unavailable → session only', err); }
     const connection = d.settings.deriveConnectionStatus({ session: req.session, credential });
     let session = null;
     try {
@@ -228,7 +228,7 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
                     { transcriptAllowed: connection.hasTranscriptScope });
                 if (artifact) recordingState = artifact.kind === 'recording' ? 'available' : 'transcript_only';
             }
-        } catch (_) { /* best-effort — keep the default state */ }
+        } catch (err) { log.debug('best-effort — keep the default state', err); }
         const job = await d.importStore.getJobForEvent(userId, m.eventId).catch(() => null);
         items.push({
             eventId: m.eventId,

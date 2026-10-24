@@ -35,7 +35,7 @@ export default function useEditorSync(s: EditorShared, props: BeeEditorProps) {
   // it without the mount effect or refreshChrome depending on callback identity.
   const onWordCountRef = useRef(onWordCountChange);
   useEffect(() => { onWordCountRef.current = onWordCountChange; }, [onWordCountChange]);
-  const applyWordCount = useCallback((n: number) => { setWordCount(n); onWordCountRef.current?.(n); }, []);
+  const applyWordCount = useCallback((n: number) => { setWordCount(n); onWordCountRef.current?.(n); }, [setWordCount]);
 
   // Word count, outline, onChange's HTML and the toolbar state: at most once
   // per animation frame (each is O(document)), and only sent when changed.
@@ -68,7 +68,7 @@ export default function useEditorSync(s: EditorShared, props: BeeEditorProps) {
     if (!viewRef.current) return;
     chromeRef.current.schedule({ doc: true });
     chromeRef.current.flush();
-  }, []);
+  }, [viewRef]);
 
   return { chrome, chromeRef, collab, collabRef, effectiveEditable, editableRef, anchors, anchorsRef, refreshChrome };
 }

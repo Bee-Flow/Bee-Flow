@@ -108,12 +108,10 @@ const ConsumerBetaFeaturesSection = () => {
                     {allowedFeatures.map(f => (
                         <div
                             key={f.id}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]"
                         >
                             <div
-                                className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}
+                                className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 [background:rgba(16,185,129,0.10)] [color:#10b981]"
                             >
                                 {pickBetaIcon(f.id || f.name)}
                             </div>
@@ -123,7 +121,7 @@ const ConsumerBetaFeaturesSection = () => {
                                     <p className="text-[11px] truncate text-[var(--text-muted)]">{f.description}</p>
                                 )}
                             </div>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0" style={{ background: 'rgba(16,185,129,0.10)', color: '#10b981' }}>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 [background:rgba(16,185,129,0.10)] [color:#10b981]!">
                                 {t('settings.consumer_beta.active', 'Active')}
                             </span>
                         </div>

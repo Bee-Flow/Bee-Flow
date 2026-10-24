@@ -9,8 +9,8 @@
  * by side, so the path is worth pinning rather than remembering.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const authFetch = vi.fn();
 vi.mock('../../utils/helpers', () => ({

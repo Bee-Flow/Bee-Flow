@@ -32,6 +32,8 @@
  * problem for whoever is being hammered, and short enough that a source
  * whose upstream came back does not sit idle for a working day.
  */
+const log = require('../../telemetry/log');
+
 const MAX_BACKOFF_MINUTES = 60;
 
 /** Never double more than this many times, whatever the streak says. */
@@ -82,7 +84,7 @@ function nextRunFor(schedule, fromTs = Date.now(), {
                     ? new Date(retryFloor).toISOString()
                     : iso;
             }
-        } catch { /* an uncomputable cron falls through to the interval */ }
+        } catch (err) { log.debug('an uncomputable cron falls through to the interval', err); }
     }
 
     const base = Number.isInteger(s?.everyMinutes)

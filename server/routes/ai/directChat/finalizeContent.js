@@ -22,7 +22,7 @@ function settleStreamedContent({ fullContent, streamContentFlush, displaySegment
     // `restoreTokens` also fires a full `content_replace` as a final safety
     // net, but flushing here means a stable token sitting at the very end of
     // the stream gets replaced via the live content channel.
-    try { streamContentFlush(); } catch (_) { /* best-effort */ }
+    try { streamContentFlush(); } catch (err) { log.debug('best-effort', err); }
 
     // BFSF-261: make persistence match the live view: join the earlier rounds'
     // preamble text with the final round. Everything downstream (empty-check,
@@ -102,7 +102,7 @@ function applyOutputRegexGuard({ fullContent, displayContent, regexConfig, send 
         try {
             const regex = new RegExp(rule.pattern, 'gi');
             redacted = redacted.replace(regex, `[REDACTED: ${rule.name}]`);
-        } catch (e) { /* skip */ }
+        } catch (e) { log.debug('skip', e); }
     }
     send('content_replace', { text: redacted });
     // redaction is destructive: replace storage too
@@ -115,7 +115,7 @@ async function retryWithoutThinking({ adapter, apiKey, apiUrl, modelId, convId, 
     try {
         const cs = await configStore.getConfig('claude_settings');
         if (cs && cs.autoRetryOnEmpty === false) autoRetryEnabled = false;
-    } catch (_) { /* default true */ }
+    } catch (err) { log.debug('default true', err); }
     if (!autoRetryEnabled) return null;
     try {
         log.info('[DirectChat] Empty content with thinking — auto-retrying without thinking');
@@ -132,7 +132,7 @@ async function retryWithoutThinking({ adapter, apiKey, apiUrl, modelId, convId, 
         );
         const retryText = retryRes?.content;
         if (retryText && retryText.trim()) {
-            try { send('content_replace', { text: retryText }); } catch (_) { /* ignore */ }
+            try { send('content_replace', { text: retryText }); } catch (err) { log.debug('ignore', err); }
             log.info(`[DirectChat] Auto-retry recovered ${retryText.length} chars`);
             return retryText;
         }
@@ -163,7 +163,7 @@ async function guardEmptyResponse(t) {
         ? 'I wrote the answer to your Notebook — open the Notebook panel to view it.'
         : 'The model returned no response. Please try rephrasing your question.';
     log.warn(`[DirectChat] Empty assistant content (toolsUsed=${collectedToolHistory.length > 0}, notebookWriteCommitted=${notebookWriteCommitted}) — surfacing fallback line.`);
-    try { send('content_replace', { text: fallbackText }); } catch (_) { /* SSE may be closing */ }
+    try { send('content_replace', { text: fallbackText }); } catch (err) { log.debug('SSE may be closing', err); }
     return { fullContent: fallbackText, displayContent: fallbackText };
 }
 

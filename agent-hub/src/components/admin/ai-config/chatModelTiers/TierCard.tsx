@@ -109,7 +109,7 @@ export default function TierCard({
                         {isClaudeModel(tierConfig.modelId) && CLAUDE_RECOMMENDED[tier.key] && (() => {
                             const rec = CLAUDE_RECOMMENDED[tier.key];
                             return (
-                                <div className="mb-3 mt-2 p-2.5 rounded-lg border flex items-center gap-3" style={{ background: 'rgba(217, 119, 6, 0.08)', borderColor: 'rgba(217, 119, 6, 0.3)' }}>
+                                <div className="mb-3 mt-2 p-2.5 rounded-lg border flex items-center gap-3 [background:rgba(217,119,6,0.08)] [border-color:rgba(217,119,6,0.3)]">
                                     <span className="text-base">💡</span>
                                     <div className="flex-1 min-w-0">
                                         <div className="text-[11px] font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_rec_title', 'Bee Flow recommends')}</div>
@@ -135,8 +135,7 @@ export default function TierCard({
                                     value={tierConfig.maxTokens !== undefined ? tierConfig.maxTokens : defaults.maxTokens}
                                     onChange={e => updateFn(tier.key, 'maxTokens', parseInt(e.target.value) || defaults.maxTokens)}
                                     min={256} max={131072} step={256}
-                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                 />
                                 <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                     {t('admin_ai_config.tier_max_hint', 'Default: {n}. Thinking models need higher values.', { n: defaults.maxTokens.toLocaleString() })}
@@ -150,8 +149,7 @@ export default function TierCard({
                                     onChange={e => updateFn(tier.key, 'temperature', parseFloat(e.target.value) || defaults.temperature)}
                                     min={0} max={2} step={0.1}
                                     disabled={isClaudeAdaptiveOnly(tierConfig.modelId)}
-                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm disabled:opacity-60"
-                                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm disabled:opacity-60 [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                 />
                                 <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                     {isClaudeAdaptiveOnly(tierConfig.modelId)
@@ -171,8 +169,7 @@ export default function TierCard({
                                                     : (tierConfig.reasoningEffort || (isClaudeReasoning(tierConfig.modelId) ? 'medium' : 'none'))}
                                             onChange={e => updateFn(tier.key, 'reasoningEffort', e.target.value)}
                                             disabled={isGpt5Pro(tierConfig.modelId)}
-                                            className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm disabled:opacity-60"
-                                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                            className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm disabled:opacity-60 [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                         >
                                             {isGpt5Pro(tierConfig.modelId) ? (
                                                 <option value="high">{t('admin_ai_config.tier_eff_pro', 'High: pro models reason at high only')}</option>
@@ -247,8 +244,7 @@ export default function TierCard({
                                             <select
                                                 value={(tierConfig.verbosity as string | undefined) || defaults.verbosity || 'medium'}
                                                 onChange={e => updateFn(tier.key, 'verbosity', e.target.value)}
-                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                             >
                                                 <option value="low">{t('admin_ai_config.tier_verb_low', 'Low: concise')}</option>
                                                 <option value="medium">{t('admin_ai_config.tier_verb_medium', 'Medium: balanced (default)')}</option>
@@ -319,8 +315,7 @@ export default function TierCard({
                                                 }}
                                                 min={1024} max={64000} step={1024}
                                                 placeholder="10000"
-                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                className="w-full px-3 py-2 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                             />
                                             <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                                                 {t('admin_ai_config.tier_budget_hint', 'Tokens reserved for thinking. Must be < Max Tokens.')}

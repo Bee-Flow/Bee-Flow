@@ -36,13 +36,13 @@ async function hydrateSessionFromVault({ session, D }) {
         try {
             const { hydrateGoogleSessionFromVault } = D.googleSessionHydration();
             await hydrateGoogleSessionFromVault(session);
-        } catch (_) { /* non-fatal — tools just stay unavailable */ }
+        } catch (err) { log.debug('non-fatal — tools just stay unavailable', err); }
     }
     if (!session?.oauthProvider && session?.user?.id) {
         try {
             const { hydrateMicrosoftSessionFromVault } = D.microsoftSessionHydration();
             await hydrateMicrosoftSessionFromVault(session);
-        } catch (_) { /* non-fatal — tools just stay unavailable */ }
+        } catch (err) { log.debug('non-fatal — tools just stay unavailable', err); }
     }
 }
 
@@ -79,7 +79,7 @@ async function addOAuthProviderTools({ userId, session, isAppOn, addTools, T, D 
         try {
             const { resolveMicrosoftSession } = D.microsoftSessionHydration();
             msSession = await resolveMicrosoftSession(session, userId);
-        } catch (_) { /* non-fatal — Outlook just stays unavailable */ }
+        } catch (err) { log.debug('non-fatal — Outlook just stays unavailable', err); }
         if (msSession?.accessToken) {
             if (isAppOn('outlook')) addTools(T.OUTLOOK_TOOLS);
             if (isAppOn('outlook-readonly')) addTools(T.OUTLOOK_READONLY_TOOLS);

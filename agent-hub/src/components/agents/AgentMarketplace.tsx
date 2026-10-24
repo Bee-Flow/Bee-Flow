@@ -58,8 +58,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
     return (
     <div
         onClick={onSelect}
-        className="group relative p-4 rounded-xl border cursor-pointer transition-shadow duration-150 hover:shadow-md flex flex-col"
-        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', minHeight: '130px' }}
+        className="group relative p-4 rounded-xl border cursor-pointer transition-shadow duration-150 hover:shadow-md flex flex-col [background:var(--bg-primary)] [border-color:var(--border-subtle)] min-h-[130px]"
         data-testid={`agent-card-${agentId}`}
     >
         <div className="absolute top-3 right-3 flex items-center gap-1 z-10">
@@ -151,12 +150,9 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
     // BFSF-272: categories are deletable/mergeable now — when the active chip's
     // category vanishes, fall back to 'popular' instead of filtering to a
     // silently empty list (KBsStudio pattern).
-    useEffect(() => {
-        if (!activeCategory.startsWith('cat_')) return;
-        if (!categories.some(c => `cat_${c.id}` === activeCategory)) {
-            setActiveCategory('popular');
-        }
-    }, [categories, activeCategory]);
+    if (activeCategory.startsWith('cat_') && !categories.some(c => `cat_${c.id}` === activeCategory)) {
+        setActiveCategory('popular');
+    }
 
     // Fetch popularity data from monitoring API
     useEffect(() => {
@@ -246,7 +242,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
             id: a.id, name: a.name, avatar, description: a.description,
             typeLabel: TYPE_MAP[getAgentType(a)] || t('store.badge_agent'), isFavorite: favorites.includes(a.id), isOwner, agent: a,
         };
-    }), [filtered, favorites, TYPE_MAP, user]);
+    }), [filtered, favorites, TYPE_MAP, user, t]);
     // Permission check: can this user edit/create agents?
     const canManageAgents = user && (
         user.isAdmin ||
@@ -288,14 +284,13 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                     <input
                         type="text" placeholder={t('store.search_placeholder')} value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 rounded-lg border text-sm focus:outline-none transition-all"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                        className="w-full pl-9 pr-4 py-2 rounded-lg border text-sm focus:outline-none transition-all [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!"
                         data-testid="marketplace-search"
                     />
                 </div>
 
                 {/* Category chips */}
-                <div className="flex items-center gap-1.5 overflow-x-auto py-1" style={{ scrollbarWidth: 'none' }}>
+                <div className="flex items-center gap-1.5 overflow-x-auto py-1 [scrollbar-width:none]">
                     {CATEGORIES.map(cat => {
                         const active = activeCategory === cat.key;
                         return (
@@ -343,8 +338,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-medium text-[var(--text-muted)]">Sort:</span>
                             <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                                className="text-xs py-1 px-2 rounded-md border focus:outline-none cursor-pointer"
-                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', borderColor: 'var(--border-subtle)' }}
+                                className="text-xs py-1 px-2 rounded-md border focus:outline-none cursor-pointer [background:var(--bg-secondary)] [color:var(--text-primary)]! [border-color:var(--border-subtle)]"
                             >
                                 {SORT_OPTIONS.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
                             </select>

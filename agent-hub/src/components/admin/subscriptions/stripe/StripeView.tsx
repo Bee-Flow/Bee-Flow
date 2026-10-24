@@ -13,6 +13,7 @@ import { Field, Select, Input } from '../ui/Input';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 import { Toggle } from '../ui/Toggle';
+import { logger } from '../../../../utils/logger';
 
 /** What the Stripe card shows of `GET /ai/config`: the secrets only as present or not. */
 interface StripeConfig {
@@ -69,7 +70,7 @@ export function StripeView() {
             });
             setPublishableKey(data.stripePublishableKey || '');
             setNotifyEmail(data.subscriptionNotifyEmail || '');
-        } catch (e) { /* ignore */ }
+        } catch (e) { logger.debug('ignore', e); }
         finally { setLoading(false); }
     };
 

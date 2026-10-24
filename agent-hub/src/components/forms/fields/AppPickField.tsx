@@ -78,13 +78,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
             {picked.map(p => (
                 <div
                     key={p.recordId}
-                    className="flex items-center gap-2 px-3 py-2 border text-sm"
-                    style={{
-                        borderColor: 'var(--border-default)',
-                        borderRadius: 'var(--app-radius)',
-                        background: 'var(--bg-card, var(--bg-secondary))',
-                        color: 'var(--text-primary)',
-                    }}
+                    className="flex items-center gap-2 px-3 py-2 border text-sm [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))] [color:var(--text-primary)]!"
                 >
                     <Check size={14} aria-hidden="true" style={{ color: 'var(--app-primary)', flexShrink: 0 }} />
                     <span className="min-w-0 flex-1 truncate">{p.title || p.recordId}</span>
@@ -93,7 +87,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
                         disabled={disabled}
                         onClick={() => remove(p.recordId)}
                         aria-label={`Remove ${p.title || p.recordId}`}
-                        style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
+                        className="[color:var(--text-tertiary)] [flex-shrink:0]"
                     >
                         <X size={14} />
                     </button>
@@ -105,13 +99,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
                     type="button"
                     disabled={disabled}
                     onClick={() => setOpened(v => !v)}
-                    className="flex items-center gap-2 px-3 py-2 border text-sm"
-                    style={{
-                        borderColor: 'var(--border-default)',
-                        borderRadius: 'var(--app-radius)',
-                        background: 'transparent',
-                        color: 'var(--text-secondary)',
-                    }}
+                    className="flex items-center gap-2 px-3 py-2 border text-sm [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:transparent] [color:var(--text-secondary)]!"
                 >
                     <Search size={14} aria-hidden="true" />
                     <span>{picked.length ? `Add another from ${field.app || 'the app'}` : `Choose from ${field.app || 'an app'}`}</span>
@@ -120,8 +108,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
 
             {opened && !full && (
                 <div
-                    className="flex flex-col gap-1 p-2 border"
-                    style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card, var(--bg-secondary))' }}
+                    className="flex flex-col gap-1 p-2 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card,var(--bg-secondary))]"
                 >
                     <input
                         type="text"
@@ -153,8 +140,7 @@ export default function AppPickField({ field, value, disabled, onChange, onSearc
                             type="button"
                             disabled={disabled || picked.some(p => p.recordId === row.id)}
                             onClick={() => add(row)}
-                            className="flex flex-col items-start gap-0.5 px-2 py-1.5 text-left text-sm"
-                            style={{ borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
+                            className="flex flex-col items-start gap-0.5 px-2 py-1.5 text-left text-sm [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
                         >
                             <span className="w-full truncate font-medium">{row.title}</span>
                             {row.subtitle ? (

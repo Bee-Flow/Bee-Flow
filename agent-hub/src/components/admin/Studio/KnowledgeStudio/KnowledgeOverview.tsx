@@ -104,7 +104,7 @@ export default function KnowledgeOverview({
             />
 
             <div className="flex-1 overflow-y-auto">
-                <div className="mx-auto px-4 py-4 flex flex-col gap-2.5" style={{ maxWidth: 884 }}>
+                <div className="mx-auto px-4 py-4 flex flex-col gap-2.5 max-w-[884px]">
                     <div className="flex items-center gap-2 flex-wrap">
                         <CategoryChips
                             t={t}
@@ -193,15 +193,14 @@ function CategoryChips({ t, value, onChange, categories, hasUncategorised }: Cat
 
 function SearchBox({ t, value, onChange }: SearchBoxProps) {
     return (
-        <label className="relative block shrink-0 ml-auto" style={{ width: 200 }}>
+        <label className="relative block shrink-0 ml-auto w-[200px]">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={t('knowledge.search', 'Search a knowledge base…')}
                 aria-label={t('knowledge.search_label', 'Search knowledge bases by name or purpose')}
-                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
             />
         </label>
     );
@@ -223,16 +222,7 @@ function KbRow({ t, rel, kb, categoryName, usage, onOpen }: KbRowProps) {
             onClick={onOpen}
             data-testid="kb-row"
             data-kb-id={kb.id}
-            className="w-full text-left grid gap-3 items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{
-                gridTemplateColumns: '1fr 200px 160px',
-                borderRadius: 12,
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                boxShadow: 'var(--shadow-sm)',
-                padding: 14,
-                outlineColor: 'var(--accent-primary)',
-            }}
+            className="w-full text-left grid gap-3 items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [grid-template-columns:1fr_200px_160px] [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)] [padding:14px] [outline-color:var(--accent-primary)]!"
         >
             <span className="flex items-center gap-2.5 min-w-0">
                 <span style={tile} aria-hidden="true">{Icon && <Icon style={glyph} />}</span>
@@ -264,8 +254,7 @@ function UsagePills({ t, usage }: UsagePillsProps) {
             <span className="flex gap-1 flex-wrap">
                 <span
                     data-testid="kb-usage-none"
-                    className="inline-flex items-center gap-1 px-1.5 rounded-full text-[11px] font-semibold"
-                    style={{ border: '1px dashed var(--warning)', color: 'var(--warning-ink)' }}
+                    className="inline-flex items-center gap-1 px-1.5 rounded-full text-[11px] font-semibold [border:1px_dashed_var(--warning)] [color:var(--warning-ink)]!"
                 >
                     {t('knowledge.used_by_nobody', 'used by nothing')}
                 </span>
@@ -364,8 +353,7 @@ function SuggestionBanner({ t, suggestion, onAccept, onDismiss }: SuggestionBann
     return (
         <div
             data-testid="kb-suggestion"
-            className="flex items-center gap-2.5 px-3.5 py-3 text-[12px]"
-            style={{ borderRadius: 12, border: '1px dashed var(--border-default)', color: 'var(--text-secondary)' }}
+            className="flex items-center gap-2.5 px-3.5 py-3 text-[12px] [border-radius:12px] [border:1px_dashed_var(--border-default)] [color:var(--text-secondary)]!"
         >
             <span>{suggestion.text}</span>
             {onAccept && (

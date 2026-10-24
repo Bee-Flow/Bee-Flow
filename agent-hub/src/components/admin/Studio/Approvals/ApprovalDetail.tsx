@@ -135,8 +135,7 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
                     ) : (approval.automationTitle || t('approvals.automation', 'Automation'))}
                 </div>
                 <h1
-                    className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words"
-                    style={{ fontSize: 'clamp(19px, 3vw, 24px)', fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.3 }}
+                    className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words [font-size:clamp(19px,3vw,24px)]! [font-weight:600] [letter-spacing:-0.02em] [line-height:1.3]"
                 >
                     {approval.prompt || t('approvals.untitled', 'Approval requested')}
                 </h1>

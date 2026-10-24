@@ -25,13 +25,12 @@ export default function WebpageUsedByTab({ page }: Props) {
     const inSolution = !!page?.projectId;
 
     return (
-        <div className="h-full overflow-auto custom-scrollbar px-6 py-6" style={{ background: 'var(--bg-primary)' }} data-testid="webpage-usedby">
+        <div className="h-full overflow-auto custom-scrollbar px-6 py-6 [background:var(--bg-primary)]" data-testid="webpage-usedby">
             <div className="max-w-[560px] flex flex-col gap-3">
                 {inSolution && (
                     <div
-                        className="flex items-start gap-2.5 rounded-xl px-3.5 py-3"
+                        className="flex items-start gap-2.5 rounded-xl px-3.5 py-3 [border:1px_solid_var(--border-subtle)] [background:var(--bg-card)]"
                         data-testid="webpage-usedby-solution"
-                        style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
                     >
                         <Layers size={15} className="mt-0.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
                         <div className="text-[13px] text-[var(--text-primary)]">
@@ -40,8 +39,7 @@ export default function WebpageUsedByTab({ page }: Props) {
                     </div>
                 )}
                 <div
-                    className="flex items-start gap-2.5 rounded-xl px-3.5 py-3"
-                    style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                    className="flex items-start gap-2.5 rounded-xl px-3.5 py-3 [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)]"
                 >
                     <HelpCircle size={15} className="mt-0.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                     <div className="text-[13px] leading-relaxed text-[var(--text-secondary)]">

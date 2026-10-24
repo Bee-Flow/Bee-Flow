@@ -58,7 +58,7 @@ function startPruneSchedulers() {
             purgeOrphanedChunks()
                 .then(n => { if (n > 0) log.info(`[Server] Startup: purged ${n} orphaned KB chunks`); })
                 .catch(err => log.warn('[Server] Orphan purge error:', err.message));
-        } catch (_) { /* localKBIngest not available — skip */ }
+        } catch (err) { log.debug('localKBIngest not available — skip', err); }
         // An embedding model switched while the server was down (or a
         // migration interrupted by a restart) is picked up here.
         require('../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'boot' });

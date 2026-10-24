@@ -71,8 +71,7 @@ export function NewThreadForm({ onCreated, onCancel }: { onCreated?: (threadId: 
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSubject(e.target.value)}
                 placeholder={t('support.support_drawer_what_s_this_about', 'What\'s this about?')}
                 maxLength={200}
-                className="w-full px-3 py-2 rounded-md border text-sm"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full px-3 py-2 rounded-md border text-sm [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
             />
             <textarea
                 rows={6}
@@ -84,14 +83,13 @@ export function NewThreadForm({ onCreated, onCancel }: { onCreated?: (threadId: 
                 onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { (e.target as HTMLTextAreaElement).style.height = 'auto'; (e.target as HTMLTextAreaElement).style.height = Math.min((e.target as HTMLTextAreaElement).scrollHeight, 360) + 'px'; }}
                 placeholder={t('support.support_drawer_describe_what_you_need_help_with_the', 'Describe what you need help with. The Bee Flow AI assistant will reply first and hand off to a human if needed.')}
                 maxLength={10000}
-                className="w-full px-3 py-2 rounded-md border text-sm resize-y"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', maxHeight: 360 }}
+                className="w-full px-3 py-2 rounded-md border text-sm resize-y [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! max-h-[360px]"
             />
             <div className="text-[10px] text-right text-[var(--text-muted)]">{message.length} / 10000</div>
-            {err && <div className="text-xs" style={{ color: '#dc2626' }}>{err}</div>}
+            {err && <div className="text-xs [color:#dc2626]!">{err}</div>}
             <div className="flex justify-end gap-2">
                 <button onClick={onCancel} className="px-3 py-1.5 rounded-md text-sm border border-[var(--border-default)] text-[var(--text-primary)]">{t('support.support_drawer_cancel', 'Cancel')}</button>
-                <button onClick={submit} disabled={submitting} className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                <button onClick={submit} disabled={submitting} className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                     <Send className="w-3.5 h-3.5" /> {submitting ? 'Sending…' : 'Send to Bee Flow'}
                 </button>
             </div>
@@ -197,12 +195,11 @@ export function ThreadDetail({ threadId, onBack, onChanged }: { threadId: string
                         onInput={(e: React.FormEvent<HTMLTextAreaElement>) => { (e.target as HTMLTextAreaElement).style.height = 'auto'; (e.target as HTMLTextAreaElement).style.height = Math.min((e.target as HTMLTextAreaElement).scrollHeight, 240) + 'px'; }}
                         placeholder={t('support.support_drawer_reply', 'Reply…')}
                         maxLength={10000}
-                        className="w-full px-2 py-1.5 rounded-md border text-sm resize-y"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', maxHeight: 240 }}
+                        className="w-full px-2 py-1.5 rounded-md border text-sm resize-y [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! max-h-[240px]"
                     />
                     {reply.length > 0 && <div className="text-[10px] text-right mt-0.5 text-[var(--text-muted)]">{reply.length} / 10000</div>}
                     <div className="mt-1.5 flex justify-end">
-                        <button onClick={send} disabled={sending || !reply.trim()} className="px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                        <button onClick={send} disabled={sending || !reply.trim()} className="px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                             <Send className="w-3 h-3" /> {sending ? 'Sending…' : 'Send'}
                         </button>
                     </div>

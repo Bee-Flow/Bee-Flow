@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { LANGS, Toggle, Row, Select } from '../../pages/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 const MEET_GREEN = '#00832D';
 
@@ -42,7 +43,7 @@ export default function GoogleMeetAdminPanel({ user }: GoogleMeetAdminPanelProps
             try {
                 const res = await authFetch(`${API_BASE}/api/gmeet-notes-settings/${orgId}`);
                 if (res.ok) { const data = await res.json(); setCfg((prev: GoogleMeetConfig) => ({ ...prev, ...data })); }
-            } catch (_) { /* ignore */ } finally { setLoading(false); }
+            } catch (err) { logger.debug('ignore', err); } finally { setLoading(false); }
         })();
     }, [orgId]);
 

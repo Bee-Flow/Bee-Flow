@@ -51,17 +51,17 @@ interface StatCardProps {
 
 const StatCard = ({ icon: Icon, label, value, sub, color }: StatCardProps) => (
     <Card style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+        <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px]">
             <div style={{
                 width: 24, height: 24, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: `${color}15`,
             }}>
                 <Icon style={{ width: 13, height: 13, color }} />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>{label}</span>
+            <span className="[font-size:10px] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.06em] [color:var(--text-muted)]">{label}</span>
         </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{value}</div>
-        {sub && <div style={{ marginTop: 2, fontSize: 11, color: 'var(--text-muted)' }}>{sub}</div>}
+        <div className="[font-size:22px] [font-weight:800] [color:var(--text-primary)] [letter-spacing:-0.02em]">{value}</div>
+        {sub && <div className="[margin-top:2px] [font-size:11px] [color:var(--text-muted)]">{sub}</div>}
     </Card>
 );
 
@@ -204,7 +204,7 @@ const ConsumerUsageSection = () => {
                         {t('settings.consumer_usage.subtitle', 'Track your AI usage and spend')}
                     </p>
                 </div>
-                <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="flex gap-1 p-1 rounded-lg [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                     {[7, 30, 90].map(d => (
                         <button
                             key={d}
@@ -261,11 +261,11 @@ const ConsumerUsageSection = () => {
 
             {/* Cost trend */}
             <Card>
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="[padding:14px_16px] [border-bottom:1px_solid_var(--border-subtle)] [display:flex] [align-items:center] [gap:8px]">
                     <BarChart3 style={{ width: 14, height: 14, color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{t('settings.consumer_usage.cost_trend', 'Cost trend')}</span>
+                    <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{t('settings.consumer_usage.cost_trend', 'Cost trend')}</span>
                 </div>
-                <div style={{ padding: '16px' }}>
+                <div className="[padding:16px]">
                     <Sparkline data={sparklinePoints} color="#10b981" />
                 </div>
             </Card>
@@ -274,11 +274,11 @@ const ConsumerUsageSection = () => {
             {!isCustomerView && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card>
-                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div className="[padding:12px_16px] [border-bottom:1px_solid_var(--border-subtle)] [font-size:12px] [font-weight:600] [color:var(--text-primary)]">
                         {t('settings.consumer_usage.per_model', 'Per model')}
                     </div>
                     {byModel.length === 0 ? (
-                        <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.no_model_usage', 'No model usage yet.')}</div>
+                        <div className="[padding:16px] [font-size:12px] [color:var(--text-muted)]">{t('settings.consumer_usage.no_model_usage', 'No model usage yet.')}</div>
                     ) : (
                         <div>
                             {byModel.slice(0, 8).map((row, i) => (
@@ -286,24 +286,24 @@ const ConsumerUsageSection = () => {
                                     key={row.model || i}
                                     style={{ padding: '10px 16px', borderBottom: i < Math.min(byModel.length, 8) - 1 ? '1px solid var(--border-subtle)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                                 >
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{shortModel(row.model)}</p>
-                                        <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                                    <div className="min-w-[0] [flex:1]">
+                                        <p className="[font-size:12px] [font-weight:600] [color:var(--text-primary)] [text-overflow:ellipsis] [overflow:hidden] [white-space:nowrap]">{shortModel(row.model)}</p>
+                                        <p className="[font-size:10px] [color:var(--text-muted)]">
                                             {t('settings.consumer_usage.tokens_calls', '{tokens} tokens · {calls} calls', { tokens: fNum(row.total_tokens || (row.prompt_tokens || 0) + (row.completion_tokens || 0)), calls: row.total_calls || 0 })}
                                         </p>
                                     </div>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{fCur(row.total_cost || row.estimated_cost || 0)}</span>
+                                    <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{fCur(row.total_cost || row.estimated_cost || 0)}</span>
                                 </div>
                             ))}
                         </div>
                     )}
                 </Card>
                 <Card>
-                    <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div className="[padding:12px_16px] [border-bottom:1px_solid_var(--border-subtle)] [font-size:12px] [font-weight:600] [color:var(--text-primary)]">
                         {t('settings.consumer_usage.per_source', 'Per source')}
                     </div>
                     {bySource.length === 0 ? (
-                        <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.no_source_usage', 'No source usage yet.')}</div>
+                        <div className="[padding:16px] [font-size:12px] [color:var(--text-muted)]">{t('settings.consumer_usage.no_source_usage', 'No source usage yet.')}</div>
                     ) : (
                         <div>
                             {bySource.slice(0, 8).map((row, i) => {
@@ -317,11 +317,11 @@ const ConsumerUsageSection = () => {
                                         <div style={{ width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${meta.color}15` }}>
                                             <Icon style={{ width: 14, height: 14, color: meta.color }} />
                                         </div>
-                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{meta.label}</p>
-                                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('settings.consumer_usage.calls_tokens', '{calls} calls · {tokens} tokens', { calls: row.total_calls || 0, tokens: fNum(row.total_tokens || 0) })}</p>
+                                        <div className="min-w-[0] [flex:1]">
+                                            <p className="[font-size:12px] [font-weight:600] [color:var(--text-primary)]">{meta.label}</p>
+                                            <p className="[font-size:10px] [color:var(--text-muted)]">{t('settings.consumer_usage.calls_tokens', '{calls} calls · {tokens} tokens', { calls: row.total_calls || 0, tokens: fNum(row.total_tokens || 0) })}</p>
                                         </div>
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{fCur(row.total_cost || row.estimated_cost || 0)}</span>
+                                        <span className="[font-size:12px] [font-weight:700] [color:var(--text-primary)]">{fCur(row.total_cost || row.estimated_cost || 0)}</span>
                                     </div>
                                 );
                             })}

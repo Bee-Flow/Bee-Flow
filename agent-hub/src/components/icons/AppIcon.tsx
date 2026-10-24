@@ -114,7 +114,7 @@ export const AppIcon = React.forwardRef<Element, AppIconProps>(({ name, classNam
 
     const Comp = registered || (lazy === undefined ? null : lazy);
     if (Comp) {
-        return <Comp ref={ref as React.Ref<SVGSVGElement>} className={className} style={style} {...rest} />;
+        return React.createElement(Comp, { ref: ref as React.Ref<SVGSVGElement>, className, style, ...rest });
     }
 
     // Barrel still loading: reserve the icon's box so its arrival shifts

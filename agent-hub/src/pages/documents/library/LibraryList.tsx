@@ -65,7 +65,7 @@ function Row({ row, props, onAskArchive }: { row: LibraryRow; props: LibraryList
                     onChange={(e) => props.onSelect(e.target.checked ? [...props.selection, row.id] : props.selection.filter((x) => x !== row.id))} />
             )}
             <span className="shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center text-[var(--kind-doc)] bg-[color-mix(in_srgb,var(--kind-doc)_14%,transparent)]" aria-hidden="true">
-                <Icon size={18} />
+                {React.createElement(Icon, { size: 18 })}
             </span>
             <button type="button" className="flex-1 min-w-0 text-left disabled:cursor-default" onClick={() => props.onOpen(row)} disabled={props.archivedView}>
                 <span className="block text-sm font-semibold truncate text-[var(--text-primary)]">{row.name}</span>

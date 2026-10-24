@@ -29,6 +29,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { HttpError } = require('../../core/http/errors');
 const { worded } = require('../../core/http/schemaParts');
+const log = require('../../telemetry/log');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_machinery')];
 
@@ -122,7 +123,7 @@ function _subjectId(raw) {
     // Express has already decoded the param once; a second pass only helps a
     // client that double-encoded, and must never throw on a stray '%'.
     let s = String(raw || '');
-    try { s = decodeURIComponent(s); } catch { /* keep as-is */ }
+    try { s = decodeURIComponent(s); } catch (err) { log.debug('keep as-is', err); }
     s = s.trim();
     if (!SUBJECT_RE.test(s)) return null;
     return s;
@@ -168,7 +169,7 @@ router.post('/machinery/subjects/:id/attest', ...guard, validate({ body: AttestB
             },
         }).catch(() => {});
         runner.runOne(orgId, ART18_CHECK_ID, { runType: 'event', subjectId }).catch(() => {});
-        try { require('./counts').invalidate(orgId); } catch { /* counts router not shipped yet */ }
+        try { require('./counts').invalidate(orgId); } catch (err) { log.debug('counts router not shipped yet', err); }
         res.status(201).json({ ...attestation, classification: outcome });
     } catch (e) {
         res.status(400).json({ error: e.message });

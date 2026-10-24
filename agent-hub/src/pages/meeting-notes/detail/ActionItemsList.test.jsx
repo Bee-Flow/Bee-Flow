@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import React from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ActionItemsList from './ActionItemsList';
 

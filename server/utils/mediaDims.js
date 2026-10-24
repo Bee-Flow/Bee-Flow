@@ -36,7 +36,7 @@ function assetKeyFromSrc(src) {
     if (typeof src !== 'string' || !src) return null;
     let s = src;
     if (s.startsWith(ASSET_URL_PREFIX)) s = s.slice(ASSET_URL_PREFIX.length);
-    try { s = decodeURIComponent(s); } catch { /* keep raw */ }
+    try { s = decodeURIComponent(s); } catch (err) { log.debug('keep raw', err); }
     if (s.startsWith('cms/')) return s;
     return null;
 }
@@ -96,7 +96,7 @@ async function enrichMediaDims(tree, probe, { probeTimeoutMs = 3000, budgetMs = 
                 node.height = Math.round(dims.height);
                 enriched++;
             }
-        } catch { /* best-effort — see header */ }
+        } catch (err) { log.debug('best-effort — see header', err); }
     }
     return enriched;
 }

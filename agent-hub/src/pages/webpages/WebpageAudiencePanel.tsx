@@ -10,6 +10,7 @@ import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
 import type { WebpageRow } from '../../components/webpages/webpageRow.types';
 import type { ColumnGateTable, ColumnGate, ColumnChoice, AddressOptions, AudienceModel, PublicAiNotesProps, PublicRowProps, ColumnGateFormProps, AddressCardProps, WebpageAudiencePanelProps } from './WebpageAudiencePanel.types';
+import { logger } from '../../utils/logger';
 
 const AUDIENCE_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience`;
 const PUBLIC_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience/public`;
@@ -302,7 +303,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
             await navigator.clipboard.writeText(value);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch { /* een browser zonder klembord: de tekst staat er gewoon */ }
+        } catch (err) { logger.debug('een browser zonder klembord: de tekst staat er gewoon', err); }
     };
 
     return (
@@ -388,8 +389,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
                                 type="password"
                                 value={options.password}
                                 onChange={(e) => setOptions(o => ({ ...o, password: e.target.value }))}
-                                className="rounded border px-2 py-1"
-                                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                                className="rounded border px-2 py-1 [border-color:var(--border-subtle)] [background:var(--bg-primary)]"
                             />
                         </label>
                     )}
@@ -401,8 +401,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
                                 rows={3}
                                 value={options.emails}
                                 onChange={(e) => setOptions(o => ({ ...o, emails: e.target.value }))}
-                                className="rounded border px-2 py-1"
-                                style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                                className="rounded border px-2 py-1 [border-color:var(--border-subtle)] [background:var(--bg-primary)]"
                             />
                         </label>
                     )}
@@ -413,8 +412,7 @@ function AddressCard({ t, model, options, setOptions, onSaveOptions, busy }: Add
                             type="date"
                             value={options.expiresAt}
                             onChange={(e) => setOptions(o => ({ ...o, expiresAt: e.target.value }))}
-                            className="rounded border px-2 py-1 self-start"
-                            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}
+                            className="rounded border px-2 py-1 self-start [border-color:var(--border-subtle)] [background:var(--bg-primary)]"
                         />
                     </label>
 

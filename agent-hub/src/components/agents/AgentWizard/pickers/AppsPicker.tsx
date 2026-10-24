@@ -25,11 +25,9 @@ export default function AppsPicker({ items, enabled, onClose, onToggle, t }: {
     const filtered = items.filter(it =>
         !search.trim() || it.label.toLowerCase().includes(search.toLowerCase()) || (it.description || '').toLowerCase().includes(search.toLowerCase())
     );
-    useEffect(() => {
-        if (filtered.length && !filtered.some(it => it.id === focusedId)) {
-            setFocusedId(filtered[0].id);
-        }
-    }, [filtered, focusedId]);
+    if (filtered.length && !filtered.some(it => it.id === focusedId)) {
+        setFocusedId(filtered[0].id);
+    }
     const focused = items.find(it => it.id === focusedId) || filtered[0] || null;
     const focusedSelected = focused ? isSelected(focused.id) : false;
 

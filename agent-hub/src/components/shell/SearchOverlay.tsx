@@ -7,6 +7,7 @@ import { formatRelativeDate } from '../../utils/dateFormatters';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import useTranslation from '../../hooks/useTranslation';
 import type { SearchMessage, SearchConversation, SearchResult, SearchOverlayProps, PillGroupProps, FilterPillProps, ResultRowProps, EmptyStateProps } from './SearchOverlay.types';
+import { logger } from '../../utils/logger';
 
 const formatDate = (dateStr: string | number | Date | null) => formatRelativeDate(dateStr, {
     fallbackOptions: { year: 'numeric', month: 'short', day: 'numeric' },
@@ -67,7 +68,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
                 messages = typeof conv.messages_json === 'string'
                     ? JSON.parse(conv.messages_json)
                     : conv.messages_json || [];
-            } catch { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
 
             const match = messages.find((m: SearchMessage) =>
                 m.content && typeof m.content === 'string' &&
@@ -184,15 +185,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[max(2rem,8vh)] pb-8 animate-fade-in"
-            style={{
-                // Themed backdrop — softer than bg-black/60 so it doesn't fight
-                // glass surfaces, and the heavy blur lifts the modal forward
-                // without making the rest of the app look "cut off".
-                background: 'color-mix(in srgb, var(--bg-primary, #0f172a) 55%, rgba(15, 23, 42, 0.45))',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-            }}
+            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[max(2rem,8vh)] pb-8 animate-fade-in [background:color-mix(in_srgb,var(--bg-primary,#0f172a)_55%,rgba(15,23,42,0.45))] [backdrop-filter:blur(8px)] [-webkit-backdrop-filter:blur(8px)]"
             onClick={onClose}
             role="dialog"
             aria-label={t('sidebar.search_conversations', 'Search conversations')}
@@ -394,8 +387,7 @@ const FilterPill = ({ icon: Icon, value, onChange, options, disabled }: FilterPi
                 value={value}
                 onChange={e => onChange(e.target.value)}
                 disabled={disabled}
-                className="bg-transparent border-none text-[12px] font-medium focus:ring-0 focus:outline-none cursor-pointer pr-4 appearance-none"
-                style={{ color: 'inherit' }}
+                className="bg-transparent border-none text-[12px] font-medium focus:ring-0 focus:outline-none cursor-pointer pr-4 appearance-none [color:inherit]!"
             >
                 {options.map(o => <option key={o.value} value={o.value} className="text-[var(--text-primary)] bg-[var(--bg-card)]">{o.label}</option>)}
             </select>

@@ -27,9 +27,9 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
             <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                     {t('integ.transcription_pyannoteai', '🎯 pyannoteAI')}
-                    <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#6d28d918', color: '#6d28d9' }}>{t('integ.transcription_diarization_stt', 'Diarization + STT')}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-normal [background:#6d28d918] [color:#6d28d9]!">{t('integ.transcription_diarization_stt', 'Diarization + STT')}</span>
                     {transcriptionProvider === 'pyannote' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
-                    {hasPyannoteKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
+                    {hasPyannoteKey && <span className="text-xs px-2 py-0.5 rounded-full [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-subtle)]">{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
                 </h3>
                 <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('integ.transcription_best_in_class_speaker_diarization_with', 'Best-in-class speaker diarization with speaker-attributed transcription, in a single call.')}</p>
             </div>
@@ -68,8 +68,7 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                             setTimeout(() => setMessage(null), 3000);
                         }}
                         disabled={savingPyannote || !pyannoteApiKey.trim()}
-                        className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {savingPyannote ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
@@ -77,7 +76,7 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                     </button>
                 </div>
                 {/* Speech model */}
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium mb-1 text-[var(--text-primary)]">{t('integ.transcription_speech_to_text_model', 'Speech-to-text model')}</p>
                     <p className="text-xs mb-3 text-[var(--text-muted)]">
                         {t('integ.transcription_speaker_separation_always_uses', 'Speaker separation always uses')} <strong>{t('integ.transcription_precision_3', 'precision-3')}</strong>{t('integ.transcription_pyannoteai_s_most_accurate_model_for', ', pyannoteAI’s most accurate model. For the words themselves, neither available model wins everywhere:')}
@@ -88,8 +87,7 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                         value={pyannoteTranscriptionModel}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => saveTranscriptionModel(e.target.value)}
                         disabled={savingPyannoteModel}
-                        className="w-full px-3 py-2 rounded-lg text-sm border outline-none"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full px-3 py-2 rounded-lg text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         <option value="">{t('integ.transcription_automatic_best_model_per_meeting', 'Automatic — best model per meeting language (recommended)')}</option>
                         <option value="parakeet-tdt-0.6b-v3">{t('integ.transcription_always_parakeet_v3_most_accurate', 'Always Parakeet v3 — most accurate, European languages only')}</option>
@@ -97,7 +95,7 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                     </select>
                 </div>
                 {/* Voiceprint speaker identification */}
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium mb-1 text-[var(--text-primary)]">{t('integ.transcription_recognise_speakers_by_voice', 'Recognise speakers by voice')}</p>
@@ -119,7 +117,7 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                         </button>
                     </div>
                     {voiceprintMatchingEnabled && (
-                        <div className="mt-3 pt-3 flex items-center gap-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                        <div className="mt-3 pt-3 flex items-center gap-3 [border-top:1px_solid_var(--border-subtle)]">
                             <label className="text-xs flex-1 text-[var(--text-muted)]">
                                 {t('integ.transcription_match_confidence_threshold_how_sure', 'Match confidence threshold — how sure pyannoteAI must be before a voice counts as a match. Higher means fewer names, but never the wrong one. Default 50.')}
                             </label>
@@ -129,14 +127,13 @@ export default function PyannoteCard({ transcriptionProvider, pyannoteApiKey, se
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setThresholdDraft(e.target.value)}
                                 onBlur={commitThreshold}
                                 disabled={savingVoiceprint}
-                                className="w-20 px-3 py-1.5 rounded-lg border outline-none text-sm"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-20 px-3 py-1.5 rounded-lg border outline-none text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             />
                         </div>
                     )}
                 </div>
                 {/* Capabilities */}
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium mb-2 text-[var(--text-primary)]">{t('integ.transcription_capabilities', 'Capabilities')}</p>
                     <ul className="text-xs space-y-1 text-[var(--text-muted)]">
                         <li>{t('integ.transcription_premium_speaker_diarization_precision', '✅ Premium speaker diarization (precision-3) — strong multi-speaker separation')}</li>

@@ -3,6 +3,7 @@ import type { ChatMessage, MessageT } from './messageTypes';
 import { describePrivacyLine, messageTextOf } from './privacyLine';
 import type { TokenisationInfo } from '../../../hooks/useChatEngine/types';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
+import { logger } from '../../../utils/logger';
 
 /**
  * Kleur uit index.css, nooit uit dit bestand (C7). De chip was een vaste
@@ -213,7 +214,7 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }: PrivacyPanelProps) => {
                         }
                     }
                     const shownResponse = typeof msg.content === 'string' ? msg.content : '';
-                    const copy = (text: string) => { try { navigator.clipboard.writeText(text || ''); } catch (_) { /* ignore */ } };
+                    const copy = (text: string) => { try { navigator.clipboard.writeText(text || ''); } catch (err) { logger.debug('ignore', err); } };
                     const Row = ({ label, text, hint, revealable }: { label: string; text: string; hint?: string; revealable?: boolean }) => {
                         const [revealed, setRevealed] = React.useState(!revealable);
                         if (!text) return null;
@@ -256,7 +257,7 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }: PrivacyPanelProps) => {
                                         {t('chat.copy', 'Copy')}
                                     </button>
                                 </div>
-                                <div className="px-2.5 py-1.5 rounded text-[11px] leading-relaxed font-mono" style={{ background: 'var(--bg-primary)', maxHeight: '180px', overflow: 'auto' }}>
+                                <div className="px-2.5 py-1.5 rounded text-[11px] leading-relaxed font-mono [background:var(--bg-primary)] max-h-[180px] [overflow:auto]">
                                     {entries.map(([token, value]: [string, string]) => (
                                         <div key={token} className="flex gap-2 items-baseline">
                                             <code className="shrink-0 text-[var(--accent-primary)]">{token}</code>

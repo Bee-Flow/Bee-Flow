@@ -88,8 +88,7 @@ export default function LinkedInDraftCard({ msg, linkedInDraftStatuses, setLinke
                         <button
                             onClick={() => handlePost(draft, i)}
                             disabled={status === 'posting'}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50"
-                            style={{ background: '#0A66C2' }}
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors disabled:opacity-50 [background:#0A66C2]"
                         >
                             {status === 'posting' ? (
                                 <><Loader className="w-3 h-3 animate-spin" /> {t('chat.draft.li_posting', 'Posting...')}</>

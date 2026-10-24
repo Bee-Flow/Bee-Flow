@@ -16,6 +16,7 @@ import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import type { ConnectorParamDecl } from '../../bi/useConnectors';
 import type { AppDefinition, AppNode, FormFieldRef } from '../appDefinition';
 import type { BindingDraft, SourceCardProps, SourceChooserProps, TableNameProps, DatasetNameProps, ConnectorNameProps, NamedProps, SourceSentenceProps, SourceSummaryProps, AggregateBindingProps, TableBindingProps, PickValueFieldProps, DatasetBindingProps, ConnectorParamFieldProps, ConnectorBindingProps, BindingFieldProps } from './BindingField.types';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * BindingField — editor for a `binding` prop value (server contract in
@@ -112,7 +113,7 @@ function parseStatic(raw: string) {
     const trimmed = raw.trim();
     if (trimmed === '') return raw;
     if (/^[[{"]|^-?\d+(\.\d+)?$|^(true|false|null)$/.test(trimmed)) {
-        try { return JSON.parse(trimmed); } catch { /* keep raw */ }
+        try { return JSON.parse(trimmed); } catch (err) { logger.debug('keep raw', err); }
     }
     return raw;
 }

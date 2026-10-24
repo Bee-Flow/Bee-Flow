@@ -5,6 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { HTTP_AUTH_TYPES, httpKindName, splitHttpAuthValues, missingHttpAuthFields, type HttpAuthType } from '../../utils/httpCredentialTypes';
 import type { ProviderField, ProviderSpec, ConnectionSecretMeta, Connection, Grant, GroupLabelProps, ErrorLineProps, SharePanelProps, ConnectionRowProps, AddConnectionFormProps } from './ConnectionsManager.types';
+import { logger } from '../../utils/logger';
 const BASE = `${API_BASE}/api/integrations/connections`;
 const EMERALD = '#059669';
 
@@ -45,7 +46,7 @@ const GroupLabel = ({ children }: GroupLabelProps) => (
 );
 
 const ErrorLine = ({ children }: ErrorLineProps) => (
-    <p role="alert" className="text-[11px] mt-1" style={{ color: '#dc2626' }}>{children}</p>
+    <p role="alert" className="text-[11px] mt-1 [color:#dc2626]!">{children}</p>
 );
 
 function daysFromNowIso(days: number) {
@@ -60,7 +61,7 @@ async function errorFrom(res: Response, fallback: string) {
     try {
         const body = await res.json();
         if (body && typeof body.error === 'string' && body.error) return body.error;
-    } catch { /* empty or non-JSON body */ }
+    } catch (err) { logger.debug('empty or non-JSON body', err); }
     return fallback;
 }
 
@@ -122,12 +123,12 @@ const SharePanel = ({ connection, grants, onChanged }: SharePanelProps) => {
     };
 
     return (
-        <div className="mt-2 p-3 rounded-lg space-y-2.5" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+        <div className="mt-2 p-3 rounded-lg space-y-2.5 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
             <p className="text-[11px] text-[var(--text-muted)]">
                 {t('connections.lend_explainer', "Lending shares this connection with full delegation — the recipient's runs use your credentials.")}
             </p>
             {connection.provider === 'http' && (
-                <p className="text-[11px]" style={{ color: '#d97706' }}>
+                <p className="text-[11px] [color:#d97706]!">
                     {t('connections.lend_http_warning', 'Sharing lends the full credential — recipients can call any URL with it.')}
                 </p>
             )}
@@ -191,7 +192,11 @@ const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowProps) =>
 
     // Keep the rename box in step with the server's value — without this a
     // reopened box still shows whatever was typed before the last reload.
-    useEffect(() => { setLabel(connection.label); }, [connection.label]);
+    const [prevLabel, setPrevLabel] = useState(connection.label);
+    if (prevLabel !== connection.label) {
+        setPrevLabel(connection.label);
+        setLabel(connection.label);
+    }
 
     const patch = async (body: { makeDefault: boolean } | { label: string }, fallbackMsg: string) => {
         setBusy(true); setErr(null);
@@ -236,7 +241,7 @@ const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowProps) =>
     const sharedCount = grants.filter(g => g.connection_id === connection.id).length;
 
     return (
-        <div className="px-3 py-2.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="px-3 py-2.5 [border-top:1px_solid_var(--border-subtle)]">
             <div className="flex items-center gap-2">
                 {renaming ? (
                     <>
@@ -359,7 +364,7 @@ const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
         );
     }
     return (
-        <div className="p-3 space-y-2.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="p-3 space-y-2.5 [border-top:1px_solid_var(--border-subtle)]">
             <div className="flex gap-2">
                 <select
                     value={providerId} onChange={e => { setProviderId(e.target.value); setFields({}); }}
@@ -397,7 +402,7 @@ const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
                 <button onClick={submit} disabled={busy} className="px-4 py-2 rounded-lg text-[13px] font-medium text-white disabled:opacity-40 bg-[var(--accent-primary)]">
                     {busy ? <Loader2 size={14} className="animate-spin" /> : t('connections.create', 'Create connection')}
                 </button>
-                <button onClick={() => { reset(); setOpen(false); }} className="px-4 py-2 rounded-lg text-[13px]" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
+                <button onClick={() => { reset(); setOpen(false); }} className="px-4 py-2 rounded-lg text-[13px] [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-default)]">
                     {t('connections.cancel', 'Cancel')}
                 </button>
             </div>
@@ -446,7 +451,7 @@ const ConnectionsManager = () => {
             <p className="text-[11px] px-1 -mt-1 mb-1 text-[var(--text-muted)]">
                 {t('connections.description', 'Keep multiple named credentials per integration and lend a specific one to teammates. Recipients without a lent connection bring their own.')}
             </p>
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
                 {loading ? (
                     <div className="px-4 py-6 flex items-center gap-2 text-[13px] bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                         <Loader2 size={14} className="animate-spin" /> {t('connections.loading', 'Loading…')}
@@ -468,7 +473,7 @@ const ConnectionsManager = () => {
                                     </p>
                                 )}
                                 {Object.entries(byProvider).map(([provider, conns]) => (
-                                    <div key={provider} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                                    <div key={provider} className="[border-bottom:1px_solid_var(--border-subtle)]">
                                         <div className="px-3 pt-2.5 pb-1 text-[12px] font-semibold text-[var(--text-primary)]">
                                             {PROVIDER_BY_ID[provider]?.name || provider}
                                         </div>

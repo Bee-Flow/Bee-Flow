@@ -18,7 +18,7 @@ interface ThinkingPartData {
     phase?: React.ReactNode;
 }
 
-function resolveParts(msg: ChatMessage): ThinkingPartData[] {
+function resolveParts(msg: Pick<ChatMessage, 'thinkingParts' | 'thinking'>): ThinkingPartData[] {
     if (Array.isArray(msg.thinkingParts) && msg.thinkingParts.length > 0) {
         return msg.thinkingParts;
     }
@@ -58,7 +58,7 @@ interface ThinkingPanelProps {
 
 export function ThinkingPanel({ msg }: ThinkingPanelProps) {
     const { t } = useTranslation();
-    const parts = useMemo(() => resolveParts(msg), [msg.thinkingParts, msg.thinking]);
+    const parts = useMemo(() => resolveParts({ thinkingParts: msg.thinkingParts, thinking: msg.thinking }), [msg.thinkingParts, msg.thinking]);
     const isStreaming = !!msg.isStreaming && parts.some(p => !p.endedAt);
     const hasContent = parts.length > 0 && (parts.some(p => p.text) || parts.some(p => p.redacted));
 
@@ -153,8 +153,8 @@ export function ThinkingPanel({ msg }: ThinkingPanelProps) {
                         <>
                             <span className="flex items-center gap-0.5 ml-0.5" aria-hidden="true">
                                 <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" />
-                                <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '75ms' }} />
-                                <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:75ms]" />
+                                <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce [animation-delay:150ms]" />
                             </span>
                             {totalDurationMs != null && totalDurationMs > 1000 && (
                                 <span className="text-[10px] text-purple-400/70 ml-1">
@@ -232,8 +232,7 @@ function ThinkingPart({ part, showDivider, isLive, t }: ThinkingPartProps) {
                 </span>
             )}
             <div
-                className="text-xs whitespace-pre-wrap leading-relaxed"
-                style={{ fontStyle: 'italic', opacity: 0.8, color: 'var(--text-secondary)' }}
+                className="text-xs whitespace-pre-wrap leading-relaxed [font-style:italic] [opacity:0.8] [color:var(--text-secondary)]!"
             >
                 {part.text}
                 {isLive && (

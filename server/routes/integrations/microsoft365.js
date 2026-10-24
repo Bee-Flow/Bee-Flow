@@ -216,7 +216,7 @@ router.get('/callback', async (req, res) => {
                 const info = await infoRes.json();
                 email = String(info.mail || info.userPrincipalName || '').toLowerCase();
             }
-        } catch (_) { /* non-fatal — status just shows no email */ }
+        } catch (err) { log.debug('non-fatal — status just shows no email', err); }
 
         const userStore = require('../../stores/userStore');
         const user = await userStore.getUser(userId).catch(() => null);
@@ -369,7 +369,7 @@ function callbackHTML(message, success) {
 </div>
 <script>
   if (window.opener) {
-    try { window.opener.postMessage({ type: 'microsoft-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch(e) {}
+    try { window.opener.postMessage({ type: 'microsoft-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch (e) { console.debug("opener gone", e); }
     setTimeout(() => window.close(), 1500);
   }
 </script>

@@ -21,6 +21,7 @@ import {
     AnchoredMenu, CARD, formatSprintDates, MENU_ICON, MENU_ITEM, MENU_PANEL, META, ProgressBar, ROW_LIST, SECTION_LABEL, SprintStatusChip,
     TOOLBAR_BUTTON,
 } from './sprintUi';
+import { logger } from '../../../../utils/logger';
 
 /** Does this task belong to the sprint? The column is the truth; the label is the legacy mirror. */
 function inSprint(task: ProjectTask, sprint: Sprint): boolean {
@@ -247,7 +248,7 @@ function LegacyImport({ projectId, legacy, legacyKey, canEdit }: {
             // One at a time: a rejected name should not lose the rest.
             await create.mutateAsync({ name: s.name, startDate: s.start || null, endDate: s.end || null }).catch(() => {});
         }
-        try { scopedStorage.removeItem(legacyKey); } catch { /* optional */ }
+        try { scopedStorage.removeItem(legacyKey); } catch (err) { logger.debug('optional', err); }
         setDone(true);
     };
     return (

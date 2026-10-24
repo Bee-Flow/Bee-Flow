@@ -46,6 +46,7 @@ const { worded } = require('../../core/http/schemaParts');
 // The handler bodies: the steps of creating a ticket, and the staff routes.
 const { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket } = require('./threadCreate');
 const H = require('./threadHandlers');
+const log = require('../../telemetry/log');
 
 // ── What a body and a query may carry ───────────────────────────────
 
@@ -169,7 +170,7 @@ async function createThread(req, res) {
         try {
             const org = await userStore.getOrganization(r.orgId);
             if (org && org.name) r.orgName = org.name;
-        } catch {}
+        } catch (err) { log.debug('organization lookup failed, the name is omitted', err); }
     }
 
     // Per-email submit cap (anonymous only). Mitigates enumeration by an
@@ -233,9 +234,9 @@ async function stream(req, res) {
     const cleanup = () => {
         if (cleaned) return;
         cleaned = true;
-        try { if (heartbeat) heartbeat(); } catch {}
-        try { if (listener) supportEvents.off('event', listener); } catch {}
-        try { markEnded(); } catch {}
+        try { if (heartbeat) heartbeat(); } catch (err) { log.debug('heartbeat already stopped', err); }
+        try { if (listener) supportEvents.off('event', listener); } catch (err) { log.debug('listener already removed', err); }
+        try { markEnded(); } catch (err) { log.debug('stream already marked ended', err); }
     };
     try {
         if (!(await _hasAdminSupport(req))) {

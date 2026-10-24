@@ -3,6 +3,7 @@ import { API_BASE, authFetch } from '../utils/helpers';
 import { readEventStream } from '../utils/sseStream';
 import { fromError, type ManagedBannerInfo } from '../utils/managedPart';
 import type { HttpConnection } from './useAutomationApi.types';
+import { logger } from '../utils/logger';
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so
  * components don't have to repeat the URL prefix and JSON handshake.
@@ -438,9 +439,7 @@ export default function useAutomationApi() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body || {}),
                 });
-            } catch {
-                /* best-effort — never surface */
-            }
+            } catch (err) { logger.debug('best-effort — never surface', err); }
         },
     }), [get, send, stepGet, stepSend]);
 }

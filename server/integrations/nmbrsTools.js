@@ -344,7 +344,7 @@ function extractNmbrsErrorMessage(bodyText) {
         try {
             const data = JSON.parse(bodyText);
             message = data.message || data.title || (data.error && data.error.message) || null;
-        } catch { /* not JSON after all */ }
+        } catch (err) { log.debug('not JSON after all', err); }
     }
     if (!message) return null;
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
@@ -364,7 +364,7 @@ function mapNmbrsError(status, bodyText) {
     let detail = null;
     try {
         detail = extractNmbrsErrorMessage(bodyText);
-    } catch { /* body unreadable — keep the mapped reason */ }
+    } catch (err) { log.debug('body unreadable — keep the mapped reason', err); }
     return new Error(detail ? `${reason}: ${detail}` : reason);
 }
 

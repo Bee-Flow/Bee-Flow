@@ -102,7 +102,7 @@ function TierGauge({ fraction, auto = false, size = 17 }: { fraction: number | n
         <svg
             width={size} height={size} viewBox="0 0 24 24" fill="none"
             aria-hidden="true" data-testid="tier-gauge" data-mode={auto ? 'auto' : inactive ? 'off' : 'fixed'}
-            style={{ flexShrink: 0, display: 'block' }}
+            className="[flex-shrink:0] [display:block]"
         >
             <path d={trackPath} stroke="currentColor" strokeOpacity="0.28" strokeWidth="2.4" strokeLinecap="round" />
             <path
@@ -123,7 +123,7 @@ function TierGauge({ fraction, auto = false, size = 17 }: { fraction: number | n
                     x={c} y={c}
                     textAnchor="middle" dominantBaseline="central"
                     fill="var(--accent-primary)"
-                    style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '-0.02em' }}
+                    className="[font-size:11px] [font-weight:700] [letter-spacing:-0.02em]"
                 >
                     A
                 </text>
@@ -283,7 +283,7 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
             {/* Same `stopCenter` expression as the dots. The outer two are
                 nudged inward so a wide label ("Deep Thinking") stays inside the
                 panel instead of centring itself off the edge. */}
-            <div data-testid="tier-slider-labels" style={{ position: 'relative', height: '16px', marginTop: '8px' }}>
+            <div data-testid="tier-slider-labels" className="[position:relative] h-[16px] [margin-top:8px]">
                 {stops.map((key, i) => (
                     <span
                         key={key}
@@ -309,8 +309,8 @@ function TierTrack({ stops, activeIndex, metaFor, onSelect, trackRef, onPointerD
 function OtherTierPills({ keys, value, metaFor, onSelect }: { keys: string[]; value: string; metaFor: MetaFor; onSelect: (key: string) => void }) {
     const { t } = useTranslation();
     return (
-        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        <div className="[margin-top:14px] [padding-top:12px] [border-top:1px_solid_var(--border-subtle)]">
+            <div className="[display:flex] [flex-wrap:wrap] [gap:6px]">
                 {keys.map(key => {
                     const meta = metaFor(key);
                     const selected = key === value;
@@ -496,7 +496,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
     if (!stops.length && !others.length) return null;
 
     return (
-        <div ref={rootRef} style={{ position: 'relative', display: 'inline-block' }} data-testid="tier-slider">
+        <div ref={rootRef} className="[position:relative] [display:inline-block]" data-testid="tier-slider">
             {/* Gauge only — no label. The needle already carries the setting,
                 and the composer's icon row is where this belongs; the tier name
                 is stated in full inside the panel. The name still reaches
@@ -551,12 +551,12 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                         the control's output, the track is just how you move.
                         Padded clear of the memory toggle so a long tier name
                         can't run under it. */}
-                    <div style={{ textAlign: 'center', marginBottom: '14px', padding: '0 26px' }}>
-                        <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <div className="[text-align:center] [margin-bottom:14px] [padding:0_26px]">
+                        <div className="[font-size:15px] [font-weight:600] [color:var(--text-primary)]">
                             {currentMeta.label}
                         </div>
                         {currentMeta.desc && (
-                            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                            <div className="[font-size:12px] [color:var(--text-tertiary)] [margin-top:2px]">
                                 {currentMeta.desc}
                             </div>
                         )}

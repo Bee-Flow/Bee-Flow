@@ -9,10 +9,10 @@
  * are silent visual defects no other test would catch, so this one fails the
  * build instead.
  */
-import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
 import { ICON_REGISTRY } from './iconRegistry';
 
 const here = path.dirname(fileURLToPath(import.meta.url));

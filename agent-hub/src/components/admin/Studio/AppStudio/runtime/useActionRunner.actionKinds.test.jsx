@@ -1,5 +1,5 @@
-import { act, renderHook } from '@testing-library/react';
 import { createRequire } from 'node:module';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

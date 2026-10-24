@@ -23,6 +23,8 @@
  * @param {unknown} raw
  * @returns {SelectionOption[]}
  */
+const log = require('../telemetry/log');
+
 function parseSelectionOptions(raw) {
     let list = [];
     if (Array.isArray(raw)) list = raw;
@@ -30,7 +32,7 @@ function parseSelectionOptions(raw) {
         try {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) list = parsed;
-        } catch { /* not a list: no options */ }
+        } catch (err) { log.debug('not a list: no options', err); }
     }
     return list
         .filter(o => o && typeof o === 'object' && o.id !== undefined && o.id !== null)

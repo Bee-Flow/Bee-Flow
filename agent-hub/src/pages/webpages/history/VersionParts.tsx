@@ -106,8 +106,7 @@ export function VersionListRow({ v, onView, onRestore }: { v: Version; onView: (
             {onRestore && (
                 <button
                     onClick={onRestore}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium"
-                    style={{ background: 'var(--accent-primary)', color: 'white' }}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium [background:var(--accent-primary)] [color:white]!"
                 >
                     <RotateCcw className="w-3 h-3" aria-hidden="true" />
                     {t('webpages.versions.restore', 'Restore')}

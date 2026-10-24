@@ -81,7 +81,7 @@ function _customStore() {
     try { return require('../../stores/customFrameworkStore'); } catch { return null; }
 }
 function _invalidateCounts(orgId) {
-    try { require('./counts').invalidate(orgId); } catch { /* not mounted */ }
+    try { require('./counts').invalidate(orgId); } catch (err) { log.debug('not mounted', err); }
 }
 
 function _recentlyInForce(fw, nowMs) {

@@ -210,7 +210,7 @@ async function bustSessionsForUser(userId) {
             try {
                 const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
                 await r.unlink(...keys).catch(() => r.del(...keys).catch(() => { }));
-            } catch (_e) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
         }
         if (sids.length) {
             log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length}`);
@@ -245,7 +245,7 @@ async function bustSessionsForOrg(organizationId) {
             try {
                 const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
                 await r.unlink(...keys).catch(() => r.del(...keys).catch(() => { }));
-            } catch (_e) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
         }
         if (sids.length) {
             log.info(`[SessionCache] bust.org org_id=${organizationId} sessions=${sids.length}`);

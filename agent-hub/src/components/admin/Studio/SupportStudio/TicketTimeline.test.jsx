@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ok } from '@/test/http';
 import TicketTimeline from './TicketTimeline';
 import { authFetch } from '../../../../utils/helpers';
-import { ok } from '@/test/http';
 
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));

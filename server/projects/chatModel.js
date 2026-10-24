@@ -46,9 +46,7 @@ async function resolveChatModel({ userId, orgId, modelTier = null, message = '' 
     try {
         const p = await getProviderForModel(modelId);
         providerConfig = { providerType: p?.providerType, url: p?.url, displayName: p?.providerName || p?.providerType || 'LLM' };
-    } catch (_) {
-        // Unknown provider: the DLP classifier treats it as external, the safe side.
-    }
+    } catch (err) { log.debug('Unknown provider: the DLP classifier treats it as external, the safe side.', err); }
     /** @type {{ maxTokens: number, temperature?: number }} */
     const options = { maxTokens: tier.maxTokens || 4096 };
     if (tier.temperature !== undefined) options.temperature = tier.temperature;

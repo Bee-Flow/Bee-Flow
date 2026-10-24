@@ -128,7 +128,7 @@ function ActivityRow({ n, row, tc, active }: { n: number; row: AppToolCallRow; t
             </summary>
             <div className="px-1 pb-1.5 pl-9">
                 {row.error && (
-                    <div className="mb-1.5 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', color: 'var(--text-primary)' }}>
+                    <div className="mb-1.5 rounded-md px-2 py-1.5 [background:color-mix(in_srgb,var(--warning)_10%,transparent)] [color:var(--text-primary)]">
                         <div>{row.error}</div>
                         {row.hint && <div className="mt-0.5 text-[var(--text-secondary)]">{row.hint}</div>}
                     </div>

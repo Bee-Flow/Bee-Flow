@@ -1,11 +1,11 @@
+import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render } from '@testing-library/react';
-import { createRequire } from 'node:module';
 import { describe, it, expect, vi } from 'vitest';
 import './index'; // side effect: registers every bespoke panel
 import SpecPanel from './SpecPanel';
-import REGISTRY, { getInspectorForType } from '../registry';
 import { findNode } from '../../state/definitionOps';
+import REGISTRY, { getInspectorForType } from '../registry';
 
 // The generic panel renders from the SERVER catalog — feed it the real thing.
 const require = createRequire(import.meta.url);

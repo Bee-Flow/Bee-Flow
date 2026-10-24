@@ -252,9 +252,7 @@ router.post('/system/identity-improver/generate', requireAuth, systemHelperLimit
                         description: identity.description || currentDescription || '',
                     };
                 }
-            } catch (_) {
-                // Fall through to error
-            }
+            } catch (err) { log.debug('Fall through to error', err); }
             return { error: 'Failed to parse response' };
         },
     })

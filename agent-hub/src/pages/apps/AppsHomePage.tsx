@@ -12,6 +12,7 @@ import scopedStorage from '../../utils/scopedStorage';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type React from 'react';
 import type { DirectoryApp, TFn, CategoryFilterProps, AppCardProps, ErrorBannerProps, SectionLabelProps, ToolbarProps, DirectoryProps } from './AppsHomePage.types';
+import { logger } from '../../utils/logger';
 
 // Matches AppList / APP_COLOR_PRESETS[0] (teal).
 const DEFAULT_ACCENT = '#0F766E';
@@ -78,9 +79,7 @@ export function rememberAppOpened(id: string | null, now: number = Date.now()) {
     );
     try {
         scopedStorage.setItem(RECENTS_KEY, JSON.stringify(trimmed));
-    } catch {
-        // A full quota is not worth failing a navigation over.
-    }
+    } catch (err) { logger.debug('A full quota is not worth failing a navigation over.', err); }
 }
 
 /**

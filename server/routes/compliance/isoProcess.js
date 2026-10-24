@@ -42,6 +42,7 @@ const { resolveOrgId, _riskStore, _auditStore, _obligationStore } = require('./s
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const log = require('../../telemetry/log');
 
 // ── The vocabulary, kept next to the routes that speak it ───────────
 //
@@ -306,7 +307,7 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
                 category: 'compliance', likelihood: 3, impact: 3, source: 'seed',
             });
         }
-    } catch { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     try {
         const settings = await complianceStore.getSettings(orgId);
         const attested = new Set((settings.scc_confirmed_operators || [])
@@ -327,7 +328,7 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
                 category: 'confidentiality', likelihood: 3, impact: 4, source: 'seed',
             });
         }
-    } catch { /* table absent on fresh installs */ }
+    } catch (err) { log.debug('table absent on fresh installs', err); }
     seeds.push(
         { seed_key: 'universal:prompt-leak', title: 'Sensitive data leaves via AI prompts', description: 'Users paste customer or personal data into prompts that reach external model providers.', category: 'confidentiality', likelihood: 4, impact: 4, source: 'seed' },
         { seed_key: 'universal:account-takeover', title: 'Admin account takeover', description: 'A compromised administrator credential exposes every workspace and its data.', category: 'confidentiality', likelihood: 2, impact: 5, source: 'seed' },
@@ -369,7 +370,7 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
             soa_approved: soaStats ? `${soaStats.approved}/${soaStats.total}` : null,
             last_internal_audit: audits.filter(a => a.status === 'closed').map(a => a.closed_at).sort().pop() || null,
         };
-    } catch { /* agenda best-effort */ }
+    } catch (err) { log.debug('agenda best-effort', err); }
     res.json({ audits, findings, reviews, ncs, objectives, mr_inputs: mrInputs });
 });
 
@@ -383,15 +384,15 @@ router.get('/iso/audit/independence/:userId', requireAuth, requirePermission('ad
     try {
         const soaOwned = (await soaStore.listEntries(orgId)).filter(e => e.owner_user_id === userId).length;
         if (soaOwned) conflicts.push(`owns ${soaOwned} SoA control row(s)`);
-    } catch { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     try {
         const docsOwned = (await ismsDocStore.listDocs(orgId)).filter(d => d.owner_user_id === userId).length;
         if (docsOwned) conflicts.push(`owns ${docsOwned} policy document(s)`);
-    } catch { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     try {
         const risksOwned = (await _riskStore().listRisks(orgId)).filter(r => r.owner_user_id === userId).length;
         if (risksOwned) conflicts.push(`owns ${risksOwned} risk(s)`);
-    } catch { /* store may not exist yet */ }
+    } catch (err) { log.debug('store may not exist yet', err); }
     res.json({ user_id: userId, independent: conflicts.length === 0, conflicts });
 });
 
@@ -485,7 +486,7 @@ router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), 
             if (lp && typeof lp === 'object') {
                 learningDone = Object.values(lp).filter(v => v === true || v?.completed).length;
             }
-        } catch { /* stays null */ }
+        } catch (err) { log.debug('stays null', err); }
         const attest = attestByUser[m.id] || null;
         personnel.push({
             user_id: m.id,

@@ -204,7 +204,7 @@ class GoogleProvider extends BaseProvider {
                 if (msg.tool_calls && msg.tool_calls.length > 0) {
                     for (const tc of msg.tool_calls) {
                         let args = {};
-                        try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) { }
+                        try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, send empty args', e); }
                         const fcPart = {
                             functionCall: {
                                 name: tc.function?.name || tc.name,
@@ -856,7 +856,7 @@ class GoogleProvider extends BaseProvider {
                 timeoutHandle = setTimeout(() => {
                     if (!sessionClosed) {
                         sessionClosed = true;
-                        try { session.close(); } catch (e) { /* ignore */ }
+                        try { session.close(); } catch (e) { log.debug('ignore', e); }
                         finalize();
                     }
                 }, durationMs);

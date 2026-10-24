@@ -143,10 +143,11 @@ export function useCaptureWorker(projectId: string, onFiled: (meetingId: string)
         }
     });
 
-    useEffect(() => {
+    const runSharedEffect = useEffectEvent(() => {
         if (wasOpen.current && !captureOpen) onModalClosed();
         wasOpen.current = captureOpen;
-    }, [captureOpen]);
+    });
+    useEffect(() => { return runSharedEffect(); }, [captureOpen]);
 
     return {
         start,
@@ -173,7 +174,8 @@ export default function useProjectMeetingCapture(projectId: string, onFiled: (id
     // Isolated hosts/tests may omit the app provider. Only one worker ever claims a result.
     const local = useCaptureWorker(projectId, onFiled, !!shared);
     const callback = useEffectEvent(onFiled);
-    useEffect(() => shared?.subscribe(projectId, id => callback(id)), [shared?.subscribe, projectId]);
+    const subscribe = shared?.subscribe;
+    useEffect(() => subscribe?.(projectId, id => callback(id)), [subscribe, projectId]);
     if (!shared) return local;
     const mine = shared.projectId === projectId;
     return { ...shared.capture, start: () => shared.start(projectId),

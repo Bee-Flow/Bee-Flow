@@ -35,6 +35,7 @@
 'use strict';
 
 const { periodicJob } = require('./lib/periodicTimer');
+const telemetryLog = require('../telemetry/log');
 
 const COLLAB_COMPACTION_LOCK_KEY = 0xBEEF1C0;
 const INTERVAL_MS = 60 * 1000;
@@ -101,7 +102,7 @@ async function runOnce() {
         return { processed, failed };
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [COLLAB_COMPACTION_LOCK_KEY]); } catch (_) { /* best effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [COLLAB_COMPACTION_LOCK_KEY]); } catch (err) { telemetryLog.debug('best effort', err); }
             client.release();
         }
         _running = false;

@@ -43,7 +43,7 @@
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 
-const CONFIG_KEY_PREFIX = 'org_integration_cache_';
+const { INTEGRATION_CACHE_CONFIG_KEY_PREFIX: CONFIG_KEY_PREFIX } = require('../../stores/lib/orgConfigKeyPrefixes');
 const CACHE_TTL_MS = 30_000;
 
 const DEFAULT_TTL_SECONDS = 300;

@@ -197,7 +197,7 @@ function emitChanged(orgId) {
     try {
         const { emit, EVENTS } = require('../../compliance/events');
         emit(EVENTS.CHAT_MONITORING_CHANGED, { orgId });
-    } catch { /* the bus is optional in tests */ }
+    } catch (err) { log.debug('the bus is optional in tests', err); }
 }
 
 function displayName(user) {

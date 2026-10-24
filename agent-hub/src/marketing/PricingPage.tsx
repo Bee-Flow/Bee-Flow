@@ -94,7 +94,7 @@ export default function PricingPage() {
                     <img
                         src={beeFlowLogo}
                         alt="Bee Flow"
-                        style={{ height: 28, width: 'auto' }}
+                        className="h-[28px] w-[auto]"
                     />
                 </a>
                 <a href="/app" style={ctaButtonStyle}>Open the app →</a>

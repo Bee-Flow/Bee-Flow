@@ -8,6 +8,7 @@ import type { TemplateRecord } from './templateTypes';
  * calls useChatEngine, so the reviewed list of chat-engine hosts stays true.)
  */
 export function useTemplateChatOptions(selectedChatTier: string, fillTemplate: TemplateRecord | null, selectedNoteIds: string[]) {
+    const fillTemplateId = fillTemplate?.id;
     return {
         selectedAgent: null,
         currentConversation: null,
@@ -17,12 +18,12 @@ export function useTemplateChatOptions(selectedChatTier: string, fillTemplate: T
         directMode: useMemo(() => ({
             enabled: true,
             modelTier: selectedChatTier,
-            customEndpoint: fillTemplate ? '/ai/chat/template/stream' : undefined,
-            getExtraPayload: () => fillTemplate ? {
-                templateId: fillTemplate.id,
+            customEndpoint: fillTemplateId ? '/ai/chat/template/stream' : undefined,
+            getExtraPayload: () => fillTemplateId ? {
+                templateId: fillTemplateId,
                 meetingNoteIds: selectedNoteIds,
             } : {},
-        }), [selectedChatTier, fillTemplate?.id, selectedNoteIds]),
+        }), [selectedChatTier, fillTemplateId, selectedNoteIds]),
         onDirectConversationCreated: useCallback(() => {}, []),
     };
 }

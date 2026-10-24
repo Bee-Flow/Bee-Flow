@@ -201,8 +201,7 @@ const NanoBananaSettings = ({ isOpen, onClose, settings, onSettingsChange }: { i
     return (
         <div
             ref={panelRef}
-            className="absolute bottom-full mb-2 left-0 rounded-xl border shadow-2xl overflow-hidden z-50"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', width: '320px' }}
+            className="absolute bottom-full mb-2 left-0 rounded-xl border shadow-2xl overflow-hidden z-50 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] w-[320px]"
         >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border-subtle)]">
@@ -237,7 +236,7 @@ const NanoBananaSettings = ({ isOpen, onClose, settings, onSettingsChange }: { i
             </div>
 
             {/* Body */}
-            <div className="p-4 max-h-[380px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+            <div className="p-4 max-h-[380px] overflow-y-auto [scrollbar-width:thin]">
                 {activeTab === 'image' && <ImageTab settings={settings} onUpdate={handleUpdate} t={t} />}
                 {activeTab === 'elevenlabs' && <ElevenLabsTab settings={settings} onUpdate={handleUpdate} t={t} />}
                 {activeTab === 'sfx' && <SfxTab settings={settings} onUpdate={handleUpdate} t={t} />}

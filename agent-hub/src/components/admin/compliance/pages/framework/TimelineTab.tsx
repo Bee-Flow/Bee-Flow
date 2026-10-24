@@ -1,5 +1,6 @@
 import { BookOpen, CalendarClock, ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
+import useNow from '../../../../../hooks/useNow';
 import { frameworkIdOf, type CheckRecord } from './checkSort';
 import { disclosureFails, isArt50Phase, shortTitlesOf } from './phaseRules';
 import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
@@ -135,7 +136,8 @@ interface TimelineTabProps {
 export default function TimelineTab({ regulation, calendar, frameworks, checks = null, now = undefined, testId = 'timeline-tab' }: TimelineTabProps) {
     const { t } = useTranslation();
     const frameworkId = frameworkIdOf(regulation);
-    const nowMs = now ?? Date.now();
+    const clock = useNow(60_000);
+    const nowMs = now ?? clock;
 
     const milestones = useMemo(() => milestonesOf(calendar, frameworkId), [calendar, frameworkId]);
     const record = useMemo(() => frameworkRecord(frameworks, frameworkId), [frameworks, frameworkId]);

@@ -112,7 +112,7 @@ async function resolveContext({ shareId, webpageId }) {
             if (Number(summary?.total_estimated_cost || 0) >= cap) {
                 return { status: 429, error: 'This page has reached its AI usage limit for today.' };
             }
-        } catch (_) { /* usage lookup failure should not open the gate but must not 500 the call */ }
+        } catch (err) { log.debug('usage lookup failure should not open the gate but must not 500 the call', err); }
     }
 
     const ctx = await loadAuthorContext(webpageId);

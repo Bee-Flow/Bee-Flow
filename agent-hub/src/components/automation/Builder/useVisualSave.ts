@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { toast } from '../../shared/Toast';
 import type { SavingState } from './header/LiveActions';
+import { logger } from '../../../utils/logger';
 
 
 export interface UseVisualSaveOptions {
@@ -123,7 +124,7 @@ export default function useVisualSave({
             pendingSaveRef.current.def = null; // save is firing — nothing left pending
             performVisualSave(nextDef);
         }, 500);
-    }, [setDraft, performVisualSave]);
+    }, [setDraft, performVisualSave, readOnlyRef]);
 
     /**
      * Force-flush any pending debounced save. Lets Cmd+S behave the way
@@ -147,7 +148,7 @@ export default function useVisualSave({
             // Fire-and-forget: the component is going away, but the API call
             // still completes (and errors are already toasted inside).
             const { def, perform } = pendingSaveRef.current;
-            if (def && typeof perform === 'function') { try { perform(def); } catch (_) { /* best-effort */ } }
+            if (def && typeof perform === 'function') { try { perform(def); } catch (err) { logger.debug('best-effort', err); } }
         }
     }, []);
 

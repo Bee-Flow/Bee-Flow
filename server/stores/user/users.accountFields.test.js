@@ -68,7 +68,7 @@ const restore = installResolveStub({
     // Pulled in lazily by sanitizeUserNames — the real one loads JSDOM.
     '../../utils/htmlSanitizer': { sanitizePlainText: (v) => (typeof v === 'string' ? v : v ?? null) },
     '../../services/stripeService': { syncSeatQuantityForOrg: async () => {} },
-    '../../license': {},
+    '../../license/seats': { getMaxSeatsForOrg: async () => null },
 });
 after(restore);
 

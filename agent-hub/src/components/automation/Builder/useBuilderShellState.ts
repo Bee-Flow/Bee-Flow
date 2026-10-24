@@ -74,7 +74,7 @@ export function useAssistantAsk({ readOnlyRef, ndvStepId, setTab, setAssistantOp
         if (field) setChatInput(t('automations.assistant.map_prompt', 'Help me map the field "{field}". It expects {kind}. Current binding: {binding}.', {
             field: field.label || '', kind: field.expectKind || 'a value', binding: JSON.stringify(field.value ?? null),
         }));
-    }, [ndvStepId, setTab, setAssistantOpen, setChatInput, t]);
+    }, [ndvStepId, setTab, setAssistantOpen, setChatInput, t, readOnlyRef]);
     const stepByIdForAssistant = useRef<((id: string | null) => AssistantStep | null) | null>(null);
     return { assistantContext, setAssistantContext, askAssistant, stepByIdForAssistant };
 }

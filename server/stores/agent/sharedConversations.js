@@ -99,7 +99,7 @@ async function _rekeyMeta(table, type, conversationId, fromCtx, toCtx) {
         try {
             decryptField(row.meta_json, { key: _metaReadKey(toCtx, conversationId), aad });
             return false;
-        } catch (_) { /* genuinely unreadable — fall through to the warning */ }
+        } catch (err) { log.debug('genuinely unreadable — fall through to the warning', err); }
         log.warn(`[SharedConversations] meta_json for ${conversationId} could not be re-keyed: ${err.message}`);
         return false;
     }

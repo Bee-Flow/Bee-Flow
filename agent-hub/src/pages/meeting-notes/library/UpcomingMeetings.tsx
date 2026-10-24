@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useEffectEvent } from 'react';
 import { Calendar, Loader2, RefreshCw, Video, Mic, Dot, FileText, AlertCircle, Users } from 'lucide-react';
 import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useTranslation from '../../../hooks/useTranslation';
@@ -10,6 +10,7 @@ import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMe
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
 import type { DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, StatusChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
 import { messageOf, errorCode, errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 /**
  * "Upcoming" (Gepland): the calendar meetings with a Talk room or a Meet
@@ -171,7 +172,7 @@ function UpcomingMeetingRow({ provider, icon: Icon, meeting, status, noteId, onO
     const tags = meetingTags(meeting);
     const title = meeting.title || t('meetings.untitled', 'Untitled meeting');
     return (
-        <div className="rounded-lg mb-1" style={{ background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="rounded-lg mb-1 [background:var(--bg-card)] [box-shadow:var(--shadow-sm)]">
             <div className="flex items-start gap-2.5 px-2.5 py-2">
                 <DateBlock start={meeting.start} t={t} />
                 <div className="flex-1 min-w-0">
@@ -259,7 +260,8 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
         catch (err) { setTeams(s => ({ ...s, loading: false, error: err })); }
     };
     const load = () => { setGmeetRowErrors({}); setTeamsRowErrors({}); setOverridden({}); loadTalk(); loadGmeet(); loadTeams(); };
-    useEffect(() => { load(); }, []);
+    const runLoadEffect = useEffectEvent(() => { load(); });
+    useEffect(() => { runLoadEffect(); }, []);
 
     const loading = talk.loading || gmeet.loading || teams.loading;
     const recordingEnabled = !!talk.data?.recordingEnabled;
@@ -407,9 +409,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
         try {
             await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
             await loadTeams();
-        } catch {
-            // popup blocked / auth-url failed — the banner stays, user can retry
-        } finally {
+        } catch (err) { logger.debug('popup blocked / auth-url failed — the banner stays, user can retry', err); } finally {
             setReconnectingMs(false);
         }
     };
@@ -419,9 +419,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
         try {
             await openGoogleOAuthPopup({ authFetch, apiBase: API_BASE });
             await loadGmeet();
-        } catch (_) {
-            // popup blocked / auth-url failed — the banner stays, user can retry
-        } finally {
+        } catch (err) { logger.debug('popup blocked / auth-url failed — the banner stays, user can retry', err); } finally {
             setReconnecting(false);
         }
     };

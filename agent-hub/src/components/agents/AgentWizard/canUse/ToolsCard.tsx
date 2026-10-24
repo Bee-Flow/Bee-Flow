@@ -231,8 +231,7 @@ function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onOpenChoose
     return (
         <div
             data-testid="agent-tool-row"
-            className="grid items-start gap-3 px-4 py-3"
-            style={{ gridTemplateColumns: '1fr 1fr 220px 32px' }}
+            className="grid items-start gap-3 px-4 py-3 [grid-template-columns:1fr_1fr_220px_32px]"
         >
             <div className="min-w-0 flex items-start gap-2.5">
                 {/* `getIntegrationIcon` geeft een ELEMENT terug, geen

@@ -102,8 +102,7 @@ function LinkPills({ webpage }: { webpage: WebpageCardData }) {
             })}
             {rest > 0 && (
                 <span
-                    className="inline-flex items-center"
-                    style={{ padding: '1px 7px', borderRadius: 999, background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+                    className="inline-flex items-center [padding:1px_7px] [border-radius:999px] [background:var(--bg-secondary)] [color:var(--text-secondary)] [border:1px_solid_var(--border-default)]"
                 >
                     +{rest}
                 </span>
@@ -121,8 +120,7 @@ function Preview({ webpage }: { webpage: WebpageCardData }) {
         : null;
     return (
         <div
-            className="relative shrink-0 overflow-hidden"
-            style={{ height: 150, background: 'var(--bg-secondary)', padding: '12px 14px 0' }}
+            className="relative shrink-0 overflow-hidden h-[150px] [background:var(--bg-secondary)] [padding:12px_14px_0]"
         >
             {/* The mock browser page the artboard draws: a sheet that runs off
                 the bottom edge, so the card reads as a page and not a photo. */}
@@ -227,8 +225,7 @@ export default function WebpageCard({
                 </div>
                 {opening && (
                     <div
-                        className="absolute inset-0 z-10 grid place-items-center"
-                        style={{ background: 'color-mix(in srgb, var(--bg-card) 70%, transparent)' }}
+                        className="absolute inset-0 z-10 grid place-items-center [background:color-mix(in_srgb,var(--bg-card)_70%,transparent)]"
                         role="status"
                         aria-live="polite"
                     >
@@ -238,7 +235,7 @@ export default function WebpageCard({
                 )}
             </div>
 
-            <div className="flex flex-col gap-1.5" style={{ padding: '12px 14px' }}>
+            <div className="flex flex-col gap-1.5 [padding:12px_14px]">
                 <div className="flex items-center gap-2">
                     {renaming ? (
                         <input
@@ -252,8 +249,7 @@ export default function WebpageCard({
                             onClick={(e) => e.stopPropagation()}
                             autoFocus
                             aria-label={t('webpages.card.rename', 'Rename')}
-                            className="flex-1 min-w-0 px-1 py-0.5 text-[13px] font-semibold rounded outline-none"
-                            style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--accent-primary)' }}
+                            className="flex-1 min-w-0 px-1 py-0.5 text-[13px] font-semibold rounded outline-none [background:var(--bg-secondary)] [color:var(--text-primary)]! [border:1px_solid_var(--accent-primary)]"
                         />
                     ) : (
                         <span

@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchCoworkSchedules } from '../../../../api/agentEditor';
 import { useCan } from '../../../licensing/Gate';
+import { logger } from '../../../../utils/logger';
 
 export interface Schedule { id: string; title?: string; agentId?: string | number | null; [key: string]: unknown }
 
@@ -25,7 +26,7 @@ export default function useAgentSchedules(agentId: string | number | null | unde
                 const all: Schedule[] = Array.isArray(data?.schedules) ? data.schedules : [];
                 setAgentSchedules(all.filter(s => s.agentId === agentId));
             }
-        } catch { /* non-fatal */ }
+        } catch (err) { logger.debug('non-fatal', err); }
     }, [schedulesAllowed, agentId]);
     useEffect(() => { refreshAgentSchedules(); }, [refreshAgentSchedules]);
     return { schedulesAllowed, agentSchedules, refreshAgentSchedules };

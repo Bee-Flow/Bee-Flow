@@ -96,7 +96,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
         // min-h-full, not h-screen: on a phone the card is taller than the
         // screen, and a fixed-height centred box overflowed at the top too,
         // where no scroll reaches (BFSF-280). The page scrolls instead.
-        <div className="min-h-full flex items-center-safe justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="min-h-full flex items-center-safe justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
             <div className="w-full max-w-md">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
@@ -105,7 +105,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
                         <div className="w-20 h-20 mx-auto mb-5 rounded-full overflow-hidden shadow-xl ring-4 ring-[var(--border-subtle)]">
                             <img src={beeFlowLogo} alt="Bee Flow" className="w-full h-full object-cover" />
                         </div>
-                        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:rgba(16,185,129,0.1)]">
                             <ShieldCheck className="w-7 h-7 text-emerald-400" />
                         </div>
                         <h2 className="text-lg font-bold mb-2 text-[var(--text-primary)]">
@@ -114,7 +114,7 @@ export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
                         <p className="text-sm mb-2 text-[var(--text-secondary)] leading-[1.6]">
                             {t('mfa.setup_intro', 'Two-factor authentication (2FA) adds a second step to signing in: besides your password, you enter a code from an app on your phone, so a stolen password alone cannot open your account.')}
                         </p>
-                        <p className="text-sm mb-5" style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                        <p className="text-sm mb-5 [color:var(--text-secondary)]! [line-height:1.6]">
                             {t('mfa.required_desc', 'Two-factor authentication is required for accounts that sign in with a password. Set it up now to continue.')}
                         </p>
                     </div>

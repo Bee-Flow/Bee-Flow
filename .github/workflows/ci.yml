@@ -163,6 +163,8 @@ jobs:
               - 'server/stores/usage/{queries,breakdowns}.js'
               - 'server/services/stripe/invoicesPromos.js'
               - 'server/utils/stableJson.js'
+              # the logger every server file mobile reads may require (catch blocks log at debug)
+              - 'server/telemetry/log.js'
               - 'server/shared/appDefinition/{sectionStyle,ids,variables}.mjs'
               - 'server/stores/agent/{agentTools,directConversations,initSchema,initSchema.base,initSchema.agents}.js'
               - 'server/stores/automationStore/rowMappers.js'
@@ -313,6 +315,8 @@ jobs:
               - 'agent-hub/src/components/shared/statusTokens.ts'
               # required by agent-hub/src/hooks/useAutomationApi.ts (managed parts of a Solution stage)
               - 'agent-hub/src/utils/managedPart.ts'
+              # required by agent-hub/src/hooks/useTranslation.tsx (catch blocks log at debug)
+              - 'agent-hub/src/utils/logger.ts'
               - 'agent-hub/src/i18n/en-defaults.js'
               - 'scripts/gen-i18n-defaults.mjs'
               - 'agent-hub/src/index.css'

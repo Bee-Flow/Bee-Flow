@@ -180,7 +180,7 @@ async function resolveModel(rawModel, { userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier(rawModel || 'tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (_) { /* fall through */ }
+    } catch (err) { log.debug('fall through', err); }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {

@@ -111,7 +111,7 @@ async function getAvailableIntegrations(userId) {
             // Super admins bypass — they always see everything the platform
             // allows in the wizard's suggestions.
             orgActiveSet = await resolveOrgActiveSet(orgId, { bypass: user?.role === 'admin' });
-        } catch (_) { /* ignore */ }
+        } catch (err) { log.debug('ignore', err); }
     }
     // NC catalog — NC IDs aren't gated by the org-admin active list (they
     // run through the dedicated NC panel + per-group opt-out path), so
@@ -120,7 +120,7 @@ async function getAvailableIntegrations(userId) {
     try {
         const cat = require('../../core/integrations/ncIntegrationCatalog');
         ncIdSet = cat.NC_INTEGRATION_ID_SET || new Set(cat.NC_INTEGRATION_IDS || []);
-    } catch (_) { }
+    } catch (_) { log.debug('integration catalog unavailable, no Nextcloud ids to gate', _); }
 
     const isGoogleUser = !!user?.oauthProvider && user.oauthProvider === 'google';
     const isMicrosoftUser = !!user?.oauthProvider && user.oauthProvider === 'microsoft';
@@ -134,7 +134,7 @@ async function getAvailableIntegrations(userId) {
         const rows = await automationCredentialStore.listProvidersForUser(userId);
         hasMicrosoftConnection = rows.some(r => r.provider === 'microsoft' && r.status === 'active');
         hasGoogleConnection = rows.some(r => r.provider === 'google' && r.status === 'active');
-    } catch (_) { /* no vault → SSO-only gating, as before */ }
+    } catch (err) { log.debug('no vault → SSO-only gating, as before', err); }
     const hasFirefliesKey = !!(await configStore.getSecret(`fireflies_api_key_user_${userId}`).catch(() => null));
     const hasYouTrackConfig = !!(await configStore.getSecret(`youtrack_url_user_${userId}`).catch(() => null))
         && !!(await configStore.getSecret(`youtrack_token_user_${userId}`).catch(() => null));
@@ -153,7 +153,7 @@ async function getAvailableIntegrations(userId) {
             const url = await configStore.getConfig(`n8n_url_org_${orgId}`);
             const key = await configStore.getSecret(`n8n_api_key_org_${orgId}`);
             hasN8nConfig = !!(url && key);
-        } catch (_) { /* ignore */ }
+        } catch (err) { log.debug('ignore', err); }
     }
 
     const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };

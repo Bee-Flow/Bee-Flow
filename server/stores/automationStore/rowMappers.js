@@ -1,5 +1,6 @@
 // @typecheck
 const { safeParse } = require('../lib/json');
+const log = require('../../telemetry/log');
 /**
  * Pure row→object mappers + JSON helpers (§WS5, extracted verbatim). Leaf module.
  */
@@ -219,7 +220,7 @@ function rowToRunStep(r) {
     if (!out.errorInfo && r.error && (r.status === 'error' || r.status === 'handled_error')) {
         try {
             out.errorInfo = require('../../utils/stepErrorInfo').legacyStepErrorInfo(r.error, r.step_type, out.input);
-        } catch { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     }
     // Derive a human "what to do next" hint for LEGACY Nextcloud error rows
     // recorded before the runner enriched the message. New rows already embed
@@ -228,7 +229,7 @@ function rowToRunStep(r) {
         try {
             const { classifyNextcloudError } = require('../../utils/nextcloudErrorClassifier');
             out.errorRemediation = classifyNextcloudError(r.error).remediation;
-        } catch { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     }
     return out;
 }

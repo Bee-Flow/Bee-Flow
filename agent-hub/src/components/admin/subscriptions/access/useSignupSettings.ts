@@ -5,6 +5,7 @@ import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import { apiJson } from '../hooks/useApi';
 import { messageOf } from '../../../../utils/caughtError';
+import { logger } from '../../../../utils/logger';
 
 export type GeoMode = 'off' | 'allowlist' | 'blocklist';
 
@@ -108,7 +109,7 @@ export default function useSignupSettings() {
             try {
                 const list = await apiJson('/auth/admin/waitlist');
                 if (alive) setWaitlistUsers(list);
-            } catch (e) { /* ignore */ }
+            } catch (e) { logger.debug('ignore', e); }
         })();
         return () => { alive = false; };
     }, []);

@@ -20,7 +20,6 @@ const NOW = new Date(2026, 8, 6, 12, 0, 0);           // Sunday 6 Sep 2026, 12:0
 const CLOCK = { hour: '2-digit', minute: '2-digit' };
 const clockOf = (d) => d.toLocaleTimeString(undefined, CLOCK);
 
-const noop = () => {};
 
 function setup(over = {}) {
     const props = {

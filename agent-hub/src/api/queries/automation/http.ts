@@ -6,6 +6,7 @@
 // callers render a failure as a sentence, and the tests mock `authFetch`.
 
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /** A refused request, with the server's error code (`ai_act.domain_required`, `remind_rate_limited`, …). */
 export class AutomationRequestError extends Error {
@@ -36,7 +37,7 @@ export async function failure(res: Response, fallback: string): Promise<Automati
             code = nonEmpty(sent);
             details = sentDetails ?? null;
         }
-    } catch { /* not JSON */ }
+    } catch (err) { logger.debug('not JSON', err); }
     return new AutomationRequestError(message, res.status, code, details);
 }
 

@@ -80,16 +80,15 @@ const fakeUserStore = {
     async getEffectiveLimits(orgId) { return this._limits[orgId] || null; },
 };
 
-// Intercept require('./store') and require('../stores/userStore') from any
-// file inside server/license/ — store.js requires userStore at the top level
-// for its license-keys JOINs, and index.js lazy-requires it for the
-// subscription fallback. Both must hit the fake.
+// Intercept require('./store') and require('../stores/user/subscriptions') from
+// any file inside server/license/ — index.js lazy-requires the subscription
+// queries for the subscription fallback. Both must hit the fake.
 const origResolve = Module._resolveFilename;
 const LICENSE_DIR = path.sep + path.join('license');
 Module._resolveFilename = function (request, parent, ...rest) {
     if (parent && parent.filename && parent.filename.includes(LICENSE_DIR + path.sep)) {
         if (request === './store') return path.join(__dirname, '__fake_store__.js');
-        if (request === '../stores/userStore') return path.join(__dirname, '__fake_user_store__.js');
+        if (request === '../stores/user/subscriptions') return path.join(__dirname, '__fake_user_store__.js');
     }
     return origResolve.call(this, request, parent, ...rest);
 };

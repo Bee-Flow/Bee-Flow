@@ -204,7 +204,7 @@ export default function SummaryActionsLayout({
                     {actions}
                 </>
             ) : (
-                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,380px)] gap-4" style={{ minHeight: 320 }}>
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,380px)] gap-4 min-h-[320px]">
                     {summary}
                     {actions}
                 </div>

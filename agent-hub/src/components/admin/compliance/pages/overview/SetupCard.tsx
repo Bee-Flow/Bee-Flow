@@ -10,6 +10,7 @@ import SetupStepBody, {
 import type { SetupBody, SetupData, SetupSettings } from '../../setup/SetupSteps';
 import type { OrgUser } from '../../shared/UserPicker';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import { logger } from '../../../../../utils/logger';
 
 interface SetupCardProps {
     settings?: SetupSettings | null;
@@ -91,7 +92,7 @@ export default function SetupCard({
         if (!last) { setActive(active + 1); return; }
         setSaving(true);
         try { await onFinish?.(setupBody(data)); }
-        catch { /* the hook toasts; the card stays open so nothing is lost */ }
+        catch (err) { logger.debug('the hook toasts; the card stays open so nothing is lost', err); }
         finally { setSaving(false); }
     };
 

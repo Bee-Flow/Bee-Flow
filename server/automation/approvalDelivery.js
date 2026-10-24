@@ -217,7 +217,7 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
             userId: ownerId, orgId,
         });
         if (denial) return { ok: false, via: 'user', error: 'that conversation is outside this user’s Nextcloud access scope' };
-    } catch { /* guard unavailable → the post below still carries user auth */ }
+    } catch (err) { log.debug('guard unavailable → the post below still carries user auth', err); }
 
     try {
         const { TALK_V1 } = talkBot;
@@ -307,7 +307,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
                             messageId: res.messageId, reaction: APPROVE_EMOJI,
                         });
                     }
-                } catch { /* the card stands without it */ }
+                } catch (err) { log.debug('the card stands without it', err); }
             }
         }
     }

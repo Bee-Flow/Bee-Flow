@@ -98,7 +98,7 @@ export default function WebpageHistoryTab({ webpageId, onRestore, onLoaded }: {
 
     const partial = !!coverage && coverage.coversProject === false;
     return (
-        <div className="h-full overflow-auto custom-scrollbar px-6 py-5" data-testid="webpage-history" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full overflow-auto custom-scrollbar px-6 py-5 [background:var(--bg-primary)]" data-testid="webpage-history">
             <div className="max-w-[720px] flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">

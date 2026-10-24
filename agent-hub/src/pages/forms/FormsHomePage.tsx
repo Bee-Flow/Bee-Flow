@@ -153,8 +153,7 @@ export default function FormsHomePage({ onNavigate = null }: Pick<FormCardProps,
 
             {error && (
                 <div
-                    className="shrink-0 px-4 py-2 text-xs flex items-center gap-2"
-                    style={{ background: 'rgba(239,68,68,0.1)', color: '#991b1b' }}
+                    className="shrink-0 px-4 py-2 text-xs flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#991b1b]!"
                     role="alert"
                 >
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}

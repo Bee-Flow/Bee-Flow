@@ -1,5 +1,6 @@
 import scopedStorage from './scopedStorage';
 import type { PublishedForm } from '../components/shell/sidebar/sidebarNav';
+import { logger } from './logger';
 
 /**
  * Which published forms this user reaches for.
@@ -47,9 +48,7 @@ export function rememberFormOpened(id: string, now: number = Date.now()) {
     );
     try {
         scopedStorage.setItem(KEY, JSON.stringify(trimmed));
-    } catch {
-        // A full quota is not worth failing a navigation over.
-    }
+    } catch (err) { logger.debug('A full quota is not worth failing a navigation over.', err); }
 }
 
 /**

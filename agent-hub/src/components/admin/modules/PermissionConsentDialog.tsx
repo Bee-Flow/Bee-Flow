@@ -62,8 +62,7 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
                     <button
                         onClick={() => onAccept(perms.map((p: ModulePermission) => p.id))}
                         disabled={busy || perms.length === 0}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                         data-testid="consent-accept"
                     >
                         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}

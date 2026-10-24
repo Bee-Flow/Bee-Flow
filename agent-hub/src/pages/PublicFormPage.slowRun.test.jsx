@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
  * The stretch between two pages of a form: the automation is running and the

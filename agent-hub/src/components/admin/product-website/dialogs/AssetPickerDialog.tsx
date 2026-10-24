@@ -76,7 +76,7 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }:
 
     return (
         <ModalShell onClose={onClose} labelledBy="cms-asset-picker-title" width="lg">
-            <div className="flex flex-col" style={{ height: 'min(72vh, 620px)' }}>
+            <div className="flex flex-col h-[min(72vh,620px)]">
                 <div className="px-4 pt-4 pb-3 border-b border-[var(--border-default)]">
                     <h2 id="cms-asset-picker-title" className="text-sm font-semibold text-[var(--text-primary)] mb-2">
                         {t('cms_site.site.dialogs.asset_title', 'Media library')}

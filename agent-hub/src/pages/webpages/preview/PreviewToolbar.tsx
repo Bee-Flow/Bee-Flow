@@ -36,8 +36,7 @@ function ToolbarAction({ Icon, label, title, onClick }: { Icon: LucideIcon; labe
     return (
         <button
             onClick={onClick}
-            className="px-2 py-0.5 rounded text-[11px] flex items-center gap-1 transition-colors"
-            style={{ color: 'var(--vsc-fg)' }}
+            className="px-2 py-0.5 rounded text-[11px] flex items-center gap-1 transition-colors [color:var(--vsc-fg)]!"
             onMouseEnter={(e) => e.currentTarget.style.background = 'var(--vsc-hover-bg)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             title={title}
@@ -61,7 +60,7 @@ export default function PreviewToolbar({ size, device, onDevice, onReload, onOpe
     return (
         <div className="shrink-0 px-3 py-1.5 border-b flex items-center justify-between gap-2 border-[var(--vsc-border)]">
             <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--vsc-fg-muted)', letterSpacing: '0.06em' }}>
+                <span className="text-[11px] font-semibold uppercase tracking-wider [color:var(--vsc-fg-muted)]! [letter-spacing:0.06em]">
                     {t('webpages.preview.title', 'Preview')}
                 </span>
                 {/* What the shield claims is exactly what the iframe does:
@@ -80,9 +79,8 @@ export default function PreviewToolbar({ size, device, onDevice, onReload, onOpe
                     when it cannot be measured. */}
                 {size && (
                     <span
-                        className="text-[10px] tabular-nums"
+                        className="text-[10px] tabular-nums [color:var(--vsc-fg-muted)]! [opacity:0.7]"
                         data-testid="preview-size"
-                        style={{ color: 'var(--vsc-fg-muted)', opacity: 0.7 }}
                     >
                         {size.w} × {size.h}
                     </span>

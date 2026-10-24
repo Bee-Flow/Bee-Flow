@@ -82,7 +82,11 @@ interface SlugFieldProps {
 function SlugField({ value, allSlugs, onCommit }: SlugFieldProps) {
     const { t } = useTranslation();
     const [draft, setDraft] = useState(value || '');
-    useEffect(() => { setDraft(value || ''); }, [value]);
+    const [prevValue, setPrevValue] = useState(value);
+    if (prevValue !== value) {
+        setPrevValue(value);
+        setDraft(value || '');
+    }
 
     const normalized = draft.toLowerCase().replace(/[^a-z0-9_-]/g, '');
     const issue = slugIssues(normalized, { existingSlugs: allSlugs, currentSlug: value });

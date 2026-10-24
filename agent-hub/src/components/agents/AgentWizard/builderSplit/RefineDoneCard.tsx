@@ -106,8 +106,7 @@ export default function RefineDoneCard({
     return (
         <div
             data-testid="refine-done-card"
-            className="rounded-2xl border px-4 py-3"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card, transparent)' }}
+            className="rounded-2xl border px-4 py-3 [border-color:var(--border-default)] [background:var(--bg-card,transparent)]"
         >
             <div className="text-sm font-semibold text-[var(--text-primary)]">
                 {t('agent_studio.refine.done_title', 'Done')}

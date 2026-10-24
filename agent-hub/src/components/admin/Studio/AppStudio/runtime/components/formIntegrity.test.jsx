@@ -2,15 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AppRenderer from '../AppRenderer';
+import AppButton from './AppButton';
 import AppForm from './AppForm';
 import AppInputCheckbox from './AppInputCheckbox';
 import AppInputMultiselect from './AppInputMultiselect';
 import AppInputNumber from './AppInputNumber';
 import AppInputRelation from './AppInputRelation';
+import { CANDIDATE_LIMIT } from './AppInputRelation';
 import AppInputRichtext from './AppInputRichtext';
 import AppInputSelect from './AppInputSelect';
-import AppButton from './AppButton';
-import { CANDIDATE_LIMIT } from './AppInputRelation';
 import { dataCacheKey } from '../resolveBinding';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
 

@@ -16,6 +16,7 @@ import { toast } from '../../../shared/Toast';
 import type { CheckRecord } from '../pages/framework/checkSort';
 import type { SetupSettings } from '../setup/SetupSteps';
 import type { HistoryRow } from '../shared/miniBarsMath';
+import { logger } from '../../../../utils/logger';
 
 interface ScoreHistoryRow extends HistoryRow {
     captured_at: string;
@@ -72,7 +73,7 @@ export default function useComplianceCore({ onChanged = null }: UseComplianceCor
     const [setupOpen, setSetupOpen] = useState(false);
     const changed = useRef(onChanged);
     useEffect(() => { changed.current = onChanged; });
-    const bump = () => { try { changed.current?.(); } catch { /* counts are best-effort */ } };
+    const bump = () => { try { changed.current?.(); } catch (err) { logger.debug('counts are best-effort', err); } };
 
     const refresh = useCallback(async () => {
         try {

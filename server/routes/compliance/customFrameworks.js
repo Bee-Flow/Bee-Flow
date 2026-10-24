@@ -45,6 +45,7 @@ const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailur
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const log = require('../../telemetry/log');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_custom')];
 
@@ -162,7 +163,7 @@ function _isUuid(v) {
 
 function _invalidateCounts(orgId) {
     // routes/compliance/counts.js is another stream's file; its absence is harmless.
-    try { require('./counts').invalidate(orgId); } catch { /* not shipped yet */ }
+    try { require('./counts').invalidate(orgId); } catch (err) { log.debug('not shipped yet', err); }
 }
 
 /** Evidence row for an attestation — explicit allow-list, never the raw body or user record. */

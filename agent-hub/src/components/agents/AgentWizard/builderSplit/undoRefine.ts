@@ -1,6 +1,7 @@
 import { restoreAgentVersion } from '../../../../api/agentEditor';
 import type { ChatMessage } from '../agentEditor.types';
 import type { Ref, Setter } from './agentSaveTypes';
+import { logger } from '../../../../utils/logger';
 
 interface UndoRefineDeps {
     roRef: Ref<boolean>;
@@ -45,7 +46,7 @@ export function createUndoRefine({ roRef, agentIdRef, mountedRef, setChat, flush
             });
         };
         try {
-            try { await flush(); } catch { /* best effort — the restore is the truth */ }
+            try { await flush(); } catch (err) { logger.debug('best effort — the restore is the truth', err); }
             const res = await restoreAgentVersion(agentIdRef.current, versionId);
             if (!res.ok) { finish('failed'); return; }
             await handleVersionRestore();

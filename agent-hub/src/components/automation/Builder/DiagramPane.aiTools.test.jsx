@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import DiagramPane from './DiagramPane';
-import { STEP_DND_MIME } from './flow/stepDrag';
 import { toolNodeId } from './flow/aiToolNodes';
+import { STEP_DND_MIME } from './flow/stepDrag';
 
 /**
  * Where an AI step's tools meet React Flow.

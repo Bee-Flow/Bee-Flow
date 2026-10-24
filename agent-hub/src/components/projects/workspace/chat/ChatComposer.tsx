@@ -3,7 +3,7 @@
 // asks the AI to answer even when nobody mentions it.
 
 import { Bot, BookOpen, CheckSquare, CornerUpLeft, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
-import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useEffectEvent } from 'react';
 import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import TierSlider from '../../../licensing/TierSlider';
@@ -142,16 +142,19 @@ function useComposerState(props: ChatComposerProps) {
     const nextCaret = useRef<number | null>(null);
     const menu = useMentionMenu(props.candidates);
     const candidatesRef = useRef(props.candidates);
-    candidatesRef.current = props.candidates;
+    useLayoutEffect(() => {
+        candidatesRef.current = props.candidates;
+    });
 
     // A starter chip drops its text (and the mentions it names, so @ai really asks) into the box.
     const prefill = props.prefill;
-    useEffect(() => {
+    const applyPrefill = useEffectEvent(() => {
         if (!prefill) return;
         picked.current = candidatesRef.current.filter(c => mentions(prefill.text, c.token));
         setText(prefill.text);
         inputRef.current?.focus();
-    }, [prefill]);
+    });
+    useEffect(() => { return applyPrefill(); }, [prefill]);
 
     useLayoutEffect(() => {
         const el = inputRef.current;

@@ -119,8 +119,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                                 return (
                                     <li
                                         key={i}
-                                        className="flex items-start gap-2 rounded-lg p-1.5"
-                                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}
+                                        className="flex items-start gap-2 rounded-lg p-1.5 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]"
                                     >
                                         <span
                                             className="shrink-0 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
@@ -147,8 +146,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                                             )}
                                             {s.preview && (
                                                 <pre
-                                                    className="mt-1 text-[10px] font-mono whitespace-pre-wrap break-words rounded p-1.5 overflow-x-auto"
-                                                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)', maxHeight: 120 }}
+                                                    className="mt-1 text-[10px] font-mono whitespace-pre-wrap break-words rounded p-1.5 overflow-x-auto [background:var(--bg-secondary)] [color:var(--text-tertiary)]! max-h-[120px]"
                                                 >
                                                     {s.preview}
                                                 </pre>
@@ -165,8 +163,7 @@ export default function WebpagePlanCard({ plan, status = 'pending', planId, onAp
                         <div className="flex items-center gap-1.5 mt-2">
                             <button
                                 onClick={() => onApprove?.(planId)}
-                                className="px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:opacity-90"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}
+                                className="px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 hover:opacity-90 [background:var(--accent-primary)] [color:white]!"
                             >
                                 <CheckCircle2 size={12} /> {t('webpages.plan.approve', 'Approve & build')}
                             </button>

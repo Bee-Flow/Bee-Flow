@@ -182,8 +182,7 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
         <EditorChromeContext.Provider value={chrome}>
         <ScreenValuesContext.Provider value={screenValues}>
         <div
-            className="ase-shell flex h-full min-h-0 w-full"
-            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+            className="ase-shell flex h-full min-h-0 w-full [background:var(--bg-primary)] [color:var(--text-primary)]"
             data-presenter={presenter ? 'on' : undefined}
         >
             <ChatColumn chatSlot={chatSlot} pane={chatPane} streamLock={streamLock} />

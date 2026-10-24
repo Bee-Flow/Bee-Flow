@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { READ, datatableGrantsOf } from './canUseFacts';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { ReadState } from '../agentEditor.types';
+import { logger } from '../../../../utils/logger';
 
 /** `GET /api/skills/usage-summary`: per skill id how many agents link it. */
 type SkillUsageSummary = Record<string, { agents?: number | null }>;
@@ -85,7 +86,7 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
                 setTablesState(READ.ERROR);
             }
         })();
-        return () => { alive = false; try { ctrl.abort(); } catch (_) { /* noop */ } };
+        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [enabled, grantCount, tablesNonce]);
 
     useEffect(() => {
@@ -112,7 +113,7 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
                 setUsageState(READ.ERROR);
             }
         })();
-        return () => { alive = false; try { ctrl.abort(); } catch (_) { /* noop */ } };
+        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [enabled, skillKey, skillIds.length, usageNonce]);
 
     const refetchTables = useCallback(() => setTablesNonce(n => n + 1), []);

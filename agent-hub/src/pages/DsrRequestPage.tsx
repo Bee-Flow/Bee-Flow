@@ -80,14 +80,14 @@ function VerifyIdentity({ token, id }: { token: string; id: string | null }) {
     }, [token, id]);
 
     if (state === 'verifying') {
-        return <div style={{ fontSize: 14, color: '#555' }} data-testid="dsr-verify-pending">{t('dsr_public.verify_pending', 'Confirming your identity…')}</div>;
+        return <div className="[font-size:14px] [color:#555]" data-testid="dsr-verify-pending">{t('dsr_public.verify_pending', 'Confirming your identity…')}</div>;
     }
     if (state === 'ok') {
         return (
             <div style={successBox} data-testid="dsr-verify-ok">
                 <BadgeCheck size={28} style={{ color: '#10b981' }} />
-                <div style={{ fontSize: 15, fontWeight: 700 }}>{t('dsr_public.verify_ok_title', 'Identity confirmed')}</div>
-                <div style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>
+                <div className="[font-size:15px] [font-weight:700]">{t('dsr_public.verify_ok_title', 'Identity confirmed')}</div>
+                <div className="[font-size:13px] [color:#555] [line-height:1.5]">
                     {t('dsr_public.verify_ok_body', 'Thank you. Your request will be handled within the legal deadline; you will hear from us by e-mail.')}
                 </div>
             </div>
@@ -96,8 +96,8 @@ function VerifyIdentity({ token, id }: { token: string; id: string | null }) {
     return (
         <div style={{ ...successBox, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)' }} data-testid="dsr-verify-failed">
             <CircleAlert size={28} style={{ color: '#666' }} />
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{t('dsr_public.verify_failed_title', 'This link could not be used')}</div>
-            <div style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>
+            <div className="[font-size:15px] [font-weight:700]">{t('dsr_public.verify_failed_title', 'This link could not be used')}</div>
+            <div className="[font-size:13px] [color:#555] [line-height:1.5]">
                 {t('dsr_public.verify_failed_body', 'The link may have expired or already been used. Your request itself is unaffected — check its status below, or submit a new request if you did not receive an acknowledgement.')}
             </div>
         </div>
@@ -169,13 +169,13 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
     return (
         <div style={page}>
             <div style={card}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:6px]">
                     <ShieldCheck size={26} style={{ color: '#10b981' }} />
-                    <h1 style={{ margin: 0, fontSize: 22 }}>
+                    <h1 className="[margin:0] [font-size:22px]">
                         {t('dsr_public.title', 'Privacy request')}
                     </h1>
                 </div>
-                <p style={{ margin: '0 0 20px', fontSize: 14, color: '#555', lineHeight: 1.5 }}>
+                <p className="[margin:0_0_20px] [font-size:14px] [color:#555] [line-height:1.5]">
                     {t('dsr_public.subtitle', 'Under the GDPR you can ask what personal data we process about you, and have it corrected, exported or deleted. Submit your request below — it will be answered within one month of receipt, a period that can be extended by two further months where necessary.')}
                 </p>
 
@@ -184,22 +184,22 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
                 ) : result ? (
                     <div style={successBox}>
                         <CheckCircle2 size={28} style={{ color: '#10b981' }} />
-                        <div style={{ fontSize: 15, fontWeight: 700 }}>
+                        <div className="[font-size:15px] [font-weight:700]">
                             {t('dsr_public.submitted_title', 'Request received')}
                         </div>
-                        <div style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>
+                        <div className="[font-size:13px] [color:#555] [line-height:1.5]">
                             {t('dsr_public.submitted_body', 'Keep this reference number to check the status of your request later:')}
                         </div>
-                        <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '0.02em' }}>#{result.id}</div>
+                        <div className="[font-size:20px] [font-weight:800] [letter-spacing:0.02em]">#{result.id}</div>
                         {result.due_at && (
-                            <div style={{ fontSize: 13, color: '#555' }} data-testid="dsr-submitted-due">
+                            <div className="[font-size:13px] [color:#555]" data-testid="dsr-submitted-due">
                                 {t('dsr_public.due_by', 'Answer expected by {date}', { date: formatDueDate(result.due_at, resolvedLocale || locale) })}
                             </div>
                         )}
-                        <div style={{ fontSize: 12.5, color: '#777' }}>{result.ack}</div>
+                        <div className="[font-size:12.5px] [color:#777]">{result.ack}</div>
                     </div>
                 ) : (
-                    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <form onSubmit={submit} className="[display:flex] [flex-direction:column] [gap:14px]">
                         <label style={fieldLabel}>
                             {t('dsr_public.email', 'Your email address')}
                             <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
@@ -219,7 +219,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
                                 style={{ ...input, resize: 'vertical' }} />
                         </label>
                         {error && (
-                            <div style={{ fontSize: 13, color: '#dc2626' }}>
+                            <div className="[font-size:13px] [color:#dc2626]">
                                 {t('dsr_public.error', 'Could not submit the request:')} {error}
                             </div>
                         )}
@@ -234,13 +234,13 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
 
             {/* Status check */}
             <div style={{ ...card, marginTop: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div className="[display:flex] [align-items:center] [gap:8px] [margin-bottom:10px]">
                     <Search size={16} style={{ color: '#666' }} />
-                    <h2 style={{ margin: 0, fontSize: 15 }}>
+                    <h2 className="[margin:0] [font-size:15px]">
                         {t('dsr_public.check_title', 'Check an existing request')}
                     </h2>
                 </div>
-                <form onSubmit={checkStatus} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <form onSubmit={checkStatus} className="[display:flex] [gap:8px] [flex-wrap:wrap]">
                     <input required value={checkId} onChange={e => setCheckId(e.target.value)}
                         placeholder={t('dsr_public.check_id', 'Reference #')} style={{ ...input, flex: '0 1 130px' }} />
                     <input type="email" required value={checkEmail} onChange={e => setCheckEmail(e.target.value)}
@@ -257,7 +257,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
                                 <>
                                     <div>{t('dsr_public.check_status', 'Status of request #{id}: {status}', { id: checkResult.id, status: checkResult.status })}</div>
                                     {(checkResult.extended_until || checkResult.due_at) && checkResult.status !== 'fulfilled' && checkResult.status !== 'rejected' && (
-                                        <div style={{ marginTop: 4, color: '#555' }} data-testid="dsr-check-due">
+                                        <div className="[margin-top:4px] [color:#555]" data-testid="dsr-check-due">
                                             {t('dsr_public.due_by', 'Answer expected by {date}', { date: formatDueDate(checkResult.extended_until || checkResult.due_at, resolvedLocale || locale) })}
                                             {checkResult.extended_until && ` · ${t('dsr_public.check_extended', 'deadline extended (Art. 12(3))')}`}
                                         </div>

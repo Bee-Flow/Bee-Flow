@@ -2,6 +2,7 @@ import { useReactFlow, useStore, type ReactFlowState } from '@xyflow/react';
 import { Plus, Minus, Maximize, Maximize2, Minimize2, Rows3, Presentation } from 'lucide-react';
 import { toggleCanvasFullscreen, useStudioMenuHidden } from '../../../../hooks/useStudioChrome';
 import useTranslation from '../../../../hooks/useTranslation';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The zoom stack in the canvas's south-west zone (design 1a): zoom in, zoom
@@ -52,11 +53,11 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
     const pct = useStore(selectPct);
     const fullscreen = useStudioMenuHidden();
     const zoom = (dir: number) => {
-        try { dir > 0 ? rf.zoomIn({ duration: 200 }) : rf.zoomOut({ duration: 200 }); } catch { /* canvas gone */ }
+        try { dir > 0 ? rf.zoomIn({ duration: 200 }) : rf.zoomOut({ duration: 200 }); } catch (err) { logger.debug('canvas gone', err); }
     };
     const fit = () => {
         if (onFit) { onFit(); return; }
-        try { rf.fitView({ padding: 0.08, duration: 300 }); } catch { /* canvas gone */ }
+        try { rf.fitView({ padding: 0.08, duration: 300 }); } catch (err) { logger.debug('canvas gone', err); }
     };
     // Each control takes the separator class its place in the stack gives it.
     const zoomIn = (cls: string) => (
@@ -73,7 +74,7 @@ export default function CanvasZoomStack({ onWrapToFit = null, onFit = null, pres
         <button
             key="pct"
             type="button"
-            onClick={() => { try { rf.zoomTo(1, { duration: 200 }); } catch { /* canvas gone */ } }}
+            onClick={() => { try { rf.zoomTo(1, { duration: 200 }); } catch (err) { logger.debug('canvas gone', err); } }}
             className={`${btn} ${cls} text-[10px] font-semibold tabular-nums !text-[var(--text-primary)]`}
             title={t('automations.canvas.zoom_reset', 'Zoom to 100%')}
             aria-label={t('automations.canvas.zoom_reset', 'Zoom to 100%')}

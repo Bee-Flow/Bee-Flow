@@ -53,13 +53,13 @@ export default function SupportTagsTab() {
             <p className="text-xs mb-4 text-[var(--text-muted)]">
                 {t('support.support_tags_the_catalogue_of_tags_the_ai_may_auto', 'The catalogue of tags the AI may auto-assign and staff can apply to threads.')}
             </p>
-            {error && <div className="text-xs mb-3 px-3 py-2 rounded" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>{error}</div>}
+            {error && <div className="text-xs mb-3 px-3 py-2 rounded [background:rgba(220,38,38,0.08)] [color:#dc2626]!">{error}</div>}
 
             <div className="flex items-center gap-2 mb-4">
                 <input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && create()} placeholder={t('support.support_tags_new_tag_name', 'New tag name')}
-                    className="flex-1 px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }} />
-                <input type="color" value={color} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)} className="w-9 h-9 rounded border" style={{ borderColor: 'var(--border-default)' }} />
-                <button onClick={create} disabled={busy || !name.trim()} className="px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 disabled:opacity-50" style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                    className="flex-1 px-2 py-1.5 rounded border text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
+                <input type="color" value={color} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColor(e.target.value)} className="w-9 h-9 rounded border [border-color:var(--border-default)]" />
+                <button onClick={create} disabled={busy || !name.trim()} className="px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                     <Plus className="w-3.5 h-3.5" /> {t('support.support_tags_add', 'Add')}
                 </button>
             </div>
@@ -71,7 +71,7 @@ export default function SupportTagsTab() {
                         <span className="w-2.5 h-2.5 rounded-full" style={{ background: tag.color || '#64748b' }} />
                         #{tag.name}
                         {tag.organization_id == null && <span className="text-xs text-[var(--text-muted)]">{t('support.support_tags_system', '(system)')}</span>}
-                        <button onClick={() => remove(tag.id)} className="opacity-60 hover:opacity-100" style={{ color: '#dc2626' }}><Trash2 className="w-3 h-3" /></button>
+                        <button onClick={() => remove(tag.id)} className="opacity-60 hover:opacity-100 [color:#dc2626]"><Trash2 className="w-3 h-3" /></button>
                     </span>
                 ))}
             </div>

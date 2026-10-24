@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
-import { authFetch } from '../utils/helpers';
 import useProjectStream from './useProjectStream';
+import { authFetch } from '../utils/helpers';
 
 afterEach(() => { vi.useRealTimers(); });
 

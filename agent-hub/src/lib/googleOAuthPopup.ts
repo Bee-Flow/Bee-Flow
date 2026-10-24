@@ -10,6 +10,7 @@
 
 import { isTrustedOAuthOrigin } from './oauthMessageOrigin';
 import type { AuthFetchOptions } from '../utils/helpers.types';
+import { logger } from '../utils/logger';
 
 const POPUP_NAME = 'google-oauth';
 const POPUP_WIDTH = 600;
@@ -58,7 +59,7 @@ export async function openGoogleOAuthPopup({ authFetch, apiBase, onDone, onOpene
         const res = await (authFetch as NonNullable<OpenGoogleOAuthPopupArgs['authFetch']>)(`${apiBase}/api/integrations/google/auth-url`);
         data = await res.json().catch(() => ({}));
         ok = res.ok;
-    } catch { /* rejected below as auth_url_failed */ }
+    } catch (err) { logger.debug('rejected below as auth_url_failed', err); }
     if (!ok || !data.url) {
         // Empty message when the server gave none — callers fall back to their
         // own translated generic error (`e.message || t(...)`).

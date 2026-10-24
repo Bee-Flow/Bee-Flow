@@ -24,6 +24,7 @@ import {
 } from './cookieBannerLayout';
 import type { CookieLayout } from './cookieBannerLayout';
 import { useCookieReserve } from './useCookieReserve';
+import { logger } from '../../utils/logger';
 
 // Built-in copy. Caller-supplied `text` is overlaid per language, so a
 // partial override (e.g. just the message) keeps the default button labels.
@@ -101,17 +102,13 @@ export default function CookieBanner({
         setConsent(value);
         try {
             window.localStorage.setItem(STORAGE_KEY, value);
-        } catch {
-            /* storage blocked — the in-memory choice still hides the banner */
-        }
+        } catch (err) { logger.debug('storage blocked — the in-memory choice still hides the banner', err); }
         // Notify same-tab listeners (e.g. AnalyticsTracker in cookie mode) that
         // consent changed — the `storage` event only fires in OTHER tabs, so a
         // dedicated event is needed for the tab the visitor clicked in.
         try {
             window.dispatchEvent(new CustomEvent('bf-cookie-consent', { detail: value }));
-        } catch {
-            /* CustomEvent unsupported — non-fatal, tracker reconciles on reload */
-        }
+        } catch (err) { logger.debug('CustomEvent unsupported — non-fatal, tracker reconciles on reload', err); }
     };
 
     const reopen = () => setConsent(null);

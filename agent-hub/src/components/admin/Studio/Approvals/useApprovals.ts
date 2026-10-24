@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ApprovalRowLike } from './approvalDisplay';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
+import { logger } from '../../../../utils/logger';
 
 /**
  * List + facets state for the Approvals section, modeled on Executions'
@@ -94,7 +95,7 @@ export default function useApprovals({ scope = 'mine', status = null, q = null }
                 if (pendingRef.current !== null && pending !== pendingRef.current) load();
                 pendingRef.current = pending;
                 setFacets(f.facets || { status: {} });
-            } catch { /* keep the last good data */ }
+            } catch (err) { logger.debug('keep the last good data', err); }
         }, 30_000);
         return () => clearInterval(timer);
     }, [api, scope, load]);

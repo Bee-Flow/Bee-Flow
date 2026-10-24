@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { logger } from '../../../../utils/logger';
 
 /** The organisation's editable fields; every one is sent on save. */
 interface OrgFormFields {
@@ -131,7 +132,7 @@ async function resolveMyOrg(orgs: OrgRow[], grps: GroupRow[], user: OrgInfoUser 
             if (freshOrgId) {
                 myOrg = orgs.find(o => o.id === freshOrgId);
             }
-        } catch (_) { /* best-effort */ }
+        } catch (err) { logger.debug('best-effort', err); }
     }
     // Fallback: detect from group membership
     if (!myOrg) {
@@ -305,9 +306,10 @@ export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateC
     };
 
     // Notify parent of save state
-    useEffect(() => {
+    const notifyParent = useEffectEvent(() => {
         if (onStateChange) onStateChange({ hasChanges, saving, message, handleSave });
-    }, [hasChanges, saving, message]);
+    });
+    useEffect(() => { return notifyParent(); }, [hasChanges, saving, message]);
 
     // The logo endpoints store the change themselves, so the saved snapshot
     // takes the new logo too — otherwise the bar would call an upload that

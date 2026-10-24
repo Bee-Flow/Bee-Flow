@@ -25,6 +25,7 @@ import {
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';
+import { logger } from '../../../../../utils/logger';
 
 /** One UTM dimension's rows: the value under `x`, its count under `y` (or `count`). */
 type UtmRow = { x?: string | null; y?: number; count?: number; name?: string; value?: string };
@@ -69,14 +70,14 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
     }, [rows, quality.payload]);
 
     if (referrers.loading && stats.loading) {
-        return <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}><Skeleton height={140} /><Skeleton height={260} /></div>;
+        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={140} /><Skeleton height={260} /></div>;
     }
     if (referrers.error) return <ErrorNote message={referrers.error} onRetry={referrers.reload} />;
 
     const peak = maxOf(enriched.map(r => r.views));
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
             <Card title={t('cms_site.analytics.sources.channel_mix', 'Channel mix')} icon={Share2}>
                 {channels.length === 0 ? (
                     <Empty text={t('cms_site.analytics.sources.no_visits', 'No visits in this period.')} />
@@ -88,7 +89,7 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
                             }))}
                             legend height={12}
                         />
-                        <p style={{ fontSize: 12, color: 'var(--text-secondary, #aaa)', margin: '12px 0 0' }}>
+                        <p className="[font-size:12px] [color:var(--text-secondary,#aaa)] [margin:12px_0_0]">
                             {channels[0].share >= 80
                                 ? <>{rich(t('cms_site.analytics.sources.almost_all', 'Almost everything is {channel} traffic ({pct}%). Tag the links you share to see more here.'), {
                                     channel: <strong>{channelLabel(channels[0].label, t).toLowerCase()}</strong>,
@@ -108,31 +109,25 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
             </Card>
 
             <Card title={t('cms_site.analytics.sources.referring', 'Referring sites')} icon={Share2} action={
-                enriched.length ? <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.sources.click_filter', 'click to filter')}</span> : null
+                enriched.length ? <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.sources.click_filter', 'click to filter')}</span> : null
             }>
                 {enriched.length === 0 ? (
                     <Empty text={t('cms_site.analytics.sources.no_referrers', 'Nobody arrived from another site in this period — all traffic was direct or untracked.')} />
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                    <div className="[display:flex] [flex-direction:column] [gap:9px]">
                         {enriched.slice(0, 15).map((r, i) => (
                             <button key={`${i}-${r.referrer}`} onClick={() => onDrill('referrer', r.referrer)}
-                                style={{
-                                    display: 'block', width: '100%', textAlign: 'left', padding: 0,
-                                    background: 'transparent', border: 'none', cursor: 'pointer',
-                                }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                                    <span style={{
-                                        fontSize: 12, color: 'var(--text-primary, #fff)', overflow: 'hidden',
-                                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    }}>{r.host}</span>
-                                    <span style={{ display: 'flex', gap: 12, flexShrink: 0, alignItems: 'baseline' }}>
+                                className="[display:block] w-[100%] [text-align:left] [padding:0] [background:transparent] [border:none] [cursor:pointer]">
+                                <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
+                                    <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{r.host}</span>
+                                    <span className="[display:flex] [gap:12px] [flex-shrink:0] [align-items:baseline]">
                                         {r.bounceRate != null && (
                                             <span style={{ fontSize: 11, color: rateColor(r.bounceRate) }}>
                                                 {t('cms_site.analytics.sources.bounce_pct', '{pct}% bounce', { pct: Math.round(r.bounceRate) })}
                                             </span>
                                         )}
                                         {r.avgTime != null && (
-                                            <span style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>
+                                            <span className="[font-size:11px] [color:var(--text-muted,#888)]">
                                                 {fmtDurationSec(r.avgTime)}
                                             </span>
                                         )}
@@ -189,10 +184,10 @@ function CampaignCard({ utm, onDrill }: { utm: { payload: UtmPayload | null; loa
     if (!present.length) {
         return (
             <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary, #ccc)', margin: '0 0 4px' }}>
+                <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0_0_4px]">
                     {t('cms_site.analytics.sources.no_tagged', 'No tagged links were visited in this period.')}
                 </p>
-                <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: '0 0 14px' }}>
+                <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0_0_14px]">
                     {rich(t('cms_site.analytics.sources.no_tagged_hint', 'Campaign data only appears when you share a link carrying {code}. Build one here and every visit through it shows up in this card.'), { code: <code>?utm_source=…</code> })}
                 </p>
                 <UtmBuilder />
@@ -202,29 +197,23 @@ function CampaignCard({ utm, onDrill }: { utm: { payload: UtmPayload | null; loa
 
     return (
         <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] [gap:16px]">
                 {present.map(f => {
                     const peak = maxOf(f.rows.map(r => Number(r.y ?? r.count) || 0));
                     return (
                         <div key={f.key}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #888)', marginBottom: 7 }}>
+                            <div className="[font-size:11px] [font-weight:700] [color:var(--text-muted,#888)] [margin-bottom:7px]">
                                 {t(f.labelKey, f.label)}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                            <div className="[display:flex] [flex-direction:column] [gap:7px]">
                                 {f.rows.slice(0, 6).map((r: UtmRow, i: number) => {
                                     const label = r.x ?? r.name ?? r.value;
                                     const value = Number(r.y ?? r.count) || 0;
                                     return (
                                         <button key={`${i}-${label}`} onClick={() => label && onDrill(f.dim, label)}
-                                            style={{
-                                                display: 'block', width: '100%', textAlign: 'left', padding: 0,
-                                                background: 'transparent', border: 'none', cursor: 'pointer',
-                                            }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-                                                <span style={{
-                                                    fontSize: 12, color: 'var(--text-primary, #fff)', overflow: 'hidden',
-                                                    textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                                }}>{label}</span>
+                                            className="[display:block] w-[100%] [text-align:left] [padding:0] [background:transparent] [border:none] [cursor:pointer]">
+                                            <div className="[display:flex] [justify-content:space-between] [gap:8px] [margin-bottom:2px]">
+                                                <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{label}</span>
                                                 <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(value)}</span>
                                             </div>
                                             <ShareBar value={value} of={peak} />
@@ -236,7 +225,7 @@ function CampaignCard({ utm, onDrill }: { utm: { payload: UtmPayload | null; loa
                     );
                 })}
             </div>
-            <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle, rgba(255,255,255,0.08))' }}>
+            <div className="[margin-top:18px] [padding-top:14px] [border-top:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))]">
                 <UtmBuilder />
             </div>
         </Card>
@@ -268,28 +257,23 @@ function UtmBuilder() {
             await navigator.clipboard.writeText(built);
             setCopied(true);
             setTimeout(() => setCopied(false), 1600);
-        } catch { /* clipboard blocked — the field is selectable anyway */ }
+        } catch (err) { logger.debug('clipboard blocked — the field is selectable anyway', err); }
     };
 
     return (
         <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted, #888)', marginBottom: 8 }}>
+            <div className="[font-size:11px] [font-weight:700] [color:var(--text-muted,#888)] [margin-bottom:8px]">
                 {t('cms_site.analytics.sources.build_link', 'Build a tagged link')}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] [gap:8px]">
                 <Field value={url} onChange={setUrl} placeholder="https://your.site/pricing" label={t('cms_site.analytics.sources.destination', 'Destination')} />
                 <Field value={source} onChange={setSource} placeholder={t('cms_site.analytics.sources.ph_source', 'newsletter')} label={t('cms_site.analytics.sources.utm_source', 'Source')} />
                 <Field value={medium} onChange={setMedium} placeholder={t('cms_site.analytics.sources.ph_medium', 'email')} label={t('cms_site.analytics.sources.utm_medium', 'Medium')} />
                 <Field value={campaign} onChange={setCampaign} placeholder={t('cms_site.analytics.sources.ph_campaign', 'launch-july')} label={t('cms_site.analytics.sources.utm_campaign', 'Campaign')} />
             </div>
             {built && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
-                    <input readOnly value={built} onFocus={(e) => e.target.select()} style={{
-                        flex: 1, fontFamily: 'ui-monospace, monospace', fontSize: 11,
-                        background: 'var(--bg-primary, #0f0f1a)', color: 'var(--text-primary, #fff)',
-                        border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-                        borderRadius: 8, padding: '7px 10px',
-                    }} />
+                <div className="[display:flex] [gap:8px] [margin-top:10px] [align-items:center]">
+                    <input readOnly value={built} onFocus={(e) => e.target.select()} className="[flex:1] [font-family:ui-monospace,monospace] [font-size:11px] [background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:7px_10px]" />
                     <button onClick={copy} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px',
                         borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
@@ -313,13 +297,9 @@ interface FieldProps {
 
 function Field({ value, onChange, placeholder, label }: FieldProps) {
     return (
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{ fontSize: 10, color: 'var(--text-muted, #888)' }}>{label}</span>
-            <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{
-                background: 'var(--bg-primary, #0f0f1a)', color: 'var(--text-primary, #fff)',
-                border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-                borderRadius: 8, padding: '6px 9px', fontSize: 12, width: '100%',
-            }} />
+        <label className="[display:flex] [flex-direction:column] [gap:3px]">
+            <span className="[font-size:10px] [color:var(--text-muted,#888)]">{label}</span>
+            <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="[background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:6px_9px] [font-size:12px] w-[100%]" />
         </label>
     );
 }

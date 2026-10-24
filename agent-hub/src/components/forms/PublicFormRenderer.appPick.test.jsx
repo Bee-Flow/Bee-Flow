@@ -9,9 +9,9 @@
  * answer loops over nothing.
  */
 
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import PublicFormRenderer from './PublicFormRenderer';
 
 const CALL = {
@@ -48,7 +48,7 @@ function renderForm(fields, { onSearchApp = vi.fn(async () => ({ results })), on
 }
 
 /** Open the picker and wait for its first (debounced) search to land. */
-async function openPicker(label = 'Kies uit Fireflies') {
+async function openPicker() {
     fireEvent.click(screen.getByRole('button', { name: /Fireflies/ }));
     await waitFor(() => expect(screen.getByText('Kickoff met Acme')).toBeInTheDocument());
 }

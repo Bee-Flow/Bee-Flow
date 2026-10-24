@@ -118,6 +118,7 @@ const bfElements = require('./bfElements');
 const bridgeGrants = require('../../stores/webpage/bridgeGrants');
 const storageStore = require('../../stores/storageStore');
 const webpageStore = require('../../stores/webpageStore');
+const log = require('../../telemetry/log');
 
 /** Hoeveel externe oproepen we hoogstens uitschrijven; de rest wordt geteld. */
 const MAX_REPORTED_CALLS = 20;
@@ -187,7 +188,7 @@ function ownHosts() {
     const hosts = new Set();
     for (const raw of [process.env.PUBLIC_SHARE_BASE_URL, process.env.PUBLIC_APP_URL]) {
         if (typeof raw !== 'string' || !raw.trim()) continue;
-        try { hosts.add(new URL(raw.trim()).host.toLowerCase()); } catch { /* onbruikbare env → geen host */ }
+        try { hosts.add(new URL(raw.trim()).host.toLowerCase()); } catch (err) { log.debug('onbruikbare env → geen host', err); }
     }
     return hosts;
 }

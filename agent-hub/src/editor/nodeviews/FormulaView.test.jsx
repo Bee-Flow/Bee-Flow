@@ -8,8 +8,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/editor/nodeviews/FormulaView.test.jsx
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import FormulaView from './FormulaView';
 
 /** Minimal EditorView stand-in exposing just the bridge FormulaView uses. */

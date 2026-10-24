@@ -64,8 +64,8 @@ export function OrgsView() {
 
     const reloadAll = () => { orgsRes.reload(); subsRes.reload(); };
 
-    const subs  = Array.isArray(subsRes.data)  ? subsRes.data  : [];
-    const orgs  = Array.isArray(orgsRes.data)  ? orgsRes.data  : [];
+    const subs = useMemo(() => Array.isArray(subsRes.data)  ? subsRes.data  : [], [subsRes.data]);
+    const orgs = useMemo(() => Array.isArray(orgsRes.data)  ? orgsRes.data  : [], [orgsRes.data]);
     const plans = Array.isArray(plansRes.data) ? plansRes.data : [];
 
     const filteredSubs = useMemo(() => {

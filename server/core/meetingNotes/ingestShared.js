@@ -7,6 +7,7 @@
 'use strict';
 
 const fs = require('fs');
+const log = require('../../telemetry/log');
 
 class IngestError extends Error {
     constructor(message, { code = 'ingest_failed', status = 500 } = {}) {
@@ -17,6 +18,6 @@ class IngestError extends Error {
     }
 }
 
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) {} }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = { IngestError, safeUnlink };

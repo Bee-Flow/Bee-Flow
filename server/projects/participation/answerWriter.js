@@ -225,7 +225,7 @@ function makeAnswerWriter(deps = {}) {
             } catch (err) {
                 log.warn(`[AiParticipation] turn release failed for ${surface} ${watch.containerId}; it expires on its own: ${err && err.message}`);
             }
-            try { shield.release(dlpConversationId); } catch (_) { /* nothing held */ }
+            try { shield.release(dlpConversationId); } catch (err) { log.debug('nothing held', err); }
         }
     }
 

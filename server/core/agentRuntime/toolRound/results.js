@@ -159,7 +159,7 @@ async function logToolUsageRow(rc, deps, toolName) {
             conversation_id: conversation?.id || null,
             parent_call_id: messageMetadata.parentCallId || null,
         });
-    } catch (e) { /* ignore */ }
+    } catch (e) { log.debug('ignore', e); }
 }
 
 /**
@@ -224,7 +224,7 @@ function logSuccessEgress(rc, deps, result, _preScan) {
                 return detectPii(logText, scanCategoriesFor(dlpShield, _toolClassOf(toolName)), threshold);
             },
         });
-    } catch (e) { /* ignore integration logging errors */ }
+    } catch (e) { log.debug('ignore integration logging errors', e); }
 }
 
 /**

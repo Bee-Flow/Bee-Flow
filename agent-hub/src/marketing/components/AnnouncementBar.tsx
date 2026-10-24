@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import EditableText from './EditableText';
+import { logger } from '../../utils/logger';
 
 /**
  * Site-wide announcement bar — a short, dismissible strip that sits ABOVE
@@ -168,9 +169,7 @@ export default function AnnouncementBar({
         setDismissedFor(sig);
         try {
             window.localStorage.setItem(STORAGE_KEY, sig);
-        } catch {
-            /* storage blocked — the in-memory dismissal still hides the bar */
-        }
+        } catch (err) { logger.debug('storage blocked — the in-memory dismissal still hides the bar', err); }
     };
 
     const cls = VARIANTS.has(variant) ? variant : 'accent';

@@ -249,7 +249,7 @@ class ClaudeProvider extends BaseProvider {
                     for (const tc of m.tool_calls) {
                         const fn = tc.function || tc;
                         let input = {};
-                        try { input = typeof fn.arguments === "string" ? JSON.parse(fn.arguments) : (fn.arguments || fn.input || {}); } catch (e) { }
+                        try { input = typeof fn.arguments === "string" ? JSON.parse(fn.arguments) : (fn.arguments || fn.input || {}); } catch (e) { log.debug('tool arguments are not valid JSON, send an empty input', e); }
                         contentBlocks.push({
                             type: "tool_use",
                             id: tc.id,
@@ -684,9 +684,7 @@ class ClaudeProvider extends BaseProvider {
                         log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (5m=${streamUsage.cache_creation_5m_tokens}, 1h=${streamUsage.cache_creation_1h_tokens})`);
                     }
                 }
-            } catch (e) {
-                // already consumed
-            }
+            } catch (e) { log.debug('already consumed', e); }
         } catch (err) {
             // A rejection of the context-management beta would otherwise loop
             // forever in upstream retries (the 400 is permanent for identical

@@ -102,13 +102,12 @@ export default function AppTimeline({ node }: NodeProps<TimelineProps>) {
                         {/* rail + dot */}
                         <div className="flex flex-col items-center shrink-0" aria-hidden="true">
                             <span
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-full"
-                                style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                             >
-                                {icon ? <AppIcon name={icon} className="w-3 h-3" /> : <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'currentColor' }} />}
+                                {icon ? <AppIcon name={icon} className="w-3 h-3" /> : <span className="h-1.5 w-1.5 rounded-full [background:currentColor]" />}
                             </span>
                             {i < rows.length - 1 ? (
-                                <span className="w-px flex-1 mt-1" style={{ background: 'var(--border-default)' }} />
+                                <span className="w-px flex-1 mt-1 [background:var(--border-default)]" />
                             ) : null}
                         </div>
                         {clickable ? (

@@ -6,6 +6,7 @@ import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslati
 import { kindColorVar, kindIcon, kindTint } from '../../../shared/kindColors';
 import Modal from '../../../shared/Modal';
 import type { RoutePlan, Destination, BlockRowProps, PlanCaveatsProps, PlanCardProps, PanelBodyProps, DescribeItPanelProps } from './DescribeItPanel.types';
+import { logger } from '../../../../utils/logger';
 
 const CARD_CLASS = 'rounded-xl border border-[var(--border-default)] px-3.5 py-3';
 
@@ -138,8 +139,7 @@ function PlanCard({ plan, dest, blocked, busyRun, copied, errorLine, onConfirm, 
                     data-testid="studio-ai-create"
                     onClick={onConfirm}
                     disabled={blocked || busyRun}
-                    className="h-8 px-3 rounded-lg text-[12px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: 'var(--accent-primary, #2563eb)' }}
+                    className="h-8 px-3 rounded-lg text-[12px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed [background:var(--accent-primary,#2563eb)]"
                 >
                     {t('studio.ai.create', 'Make this')}
                 </button>
@@ -166,7 +166,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
     const [busyRun, setBusyRun] = useState(false);
     const abortRef = useRef<AbortController>(null);
 
-    useEffect(() => () => { try { abortRef.current?.abort(); } catch { /* al weg */ } }, []);
+    useEffect(() => () => { try { abortRef.current?.abort(); } catch (err) { logger.debug('al weg', err); } }, []);
 
     const submit = useCallback(async () => {
         if (!text.trim() || phase === 'busy') return;
@@ -204,7 +204,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
     }, [text, phase]);
 
     const cancel = useCallback(() => {
-        try { abortRef.current?.abort(); } catch { /* al weg */ }
+        try { abortRef.current?.abort(); } catch (err) { logger.debug('al weg', err); }
         abortRef.current = null;
         setPhase('idle');
     }, []);
@@ -238,7 +238,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
         try {
             await navigator?.clipboard?.writeText(plan?.seed || '');
             setCopied(true);
-        } catch { /* geen klembord: de tekst staat er zelf, selecteerbaar */ }
+        } catch (err) { logger.debug('geen klembord: de tekst staat er zelf, selecteerbaar', err); }
     }, [plan]);
 
     const errorLine = errorCode ? t(ERROR_TEXT[errorCode]?.[0] || ERROR_TEXT.failed[0], ERROR_TEXT[errorCode]?.[1] || ERROR_TEXT.failed[1]) : null;
@@ -296,8 +296,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
                     data-testid="studio-ai-submit"
                     onClick={submit}
                     disabled={busy || !text.trim()}
-                    className="h-8 px-3 rounded-lg text-[12px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{ background: 'var(--accent-primary, #2563eb)' }}
+                    className="h-8 px-3 rounded-lg text-[12px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed [background:var(--accent-primary,#2563eb)]"
                 >
                     {t('studio.ai.submit', 'Show the plan')}
                 </button>

@@ -97,8 +97,7 @@ export default function MeetingPicker({
                     value={query}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                     placeholder={placeholder}
-                    className="w-full pl-7 pr-3 py-1.5 bg-transparent outline-none text-sm"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="w-full pl-7 pr-3 py-1.5 bg-transparent outline-none text-sm [color:var(--text-primary)]!"
                 />
             </div>
             <div className="max-h-72 overflow-auto">

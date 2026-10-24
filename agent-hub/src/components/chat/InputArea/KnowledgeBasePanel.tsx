@@ -73,17 +73,10 @@ const KnowledgeBasePanel = ({
 
     return (
         <div
-            className="absolute bottom-full left-0 mb-2 w-[22rem] rounded-2xl z-50 overflow-hidden"
+            className="absolute bottom-full left-0 mb-2 w-[22rem] rounded-2xl z-50 overflow-hidden [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-popover,0_12px_36px_rgba(15,23,42,0.18))] [animation:modelTierPanelIn_140ms_cubic-bezier(0.22,1,0.36,1)_both] [transform-origin:bottom_left]"
             role="dialog"
             aria-label={t('chat.composer.kb_panel_title', 'Knowledge bases')}
             data-testid="composer-kb-picker"
-            style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-default)',
-                boxShadow: 'var(--shadow-popover, 0 12px 36px rgba(15,23,42,0.18))',
-                animation: 'modelTierPanelIn 140ms cubic-bezier(0.22, 1, 0.36, 1) both',
-                transformOrigin: 'bottom left',
-            }}
         >
             <div className="px-3.5 pt-3 pb-2">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -100,8 +93,7 @@ const KnowledgeBasePanel = ({
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setKbPickerSearch(e.target.value)}
                     placeholder={t('chat.composer.kb_search', 'Search…')}
                     aria-label={t('chat.composer.kb_search', 'Search…')}
-                    className="w-full px-3 py-1.5 rounded-lg border text-xs outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/25"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-1.5 rounded-lg border text-xs outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/25 [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!"
                 />
             </div>
             <div className="max-h-72 overflow-auto px-1.5 pb-1.5">
@@ -183,10 +175,9 @@ const KnowledgeBasePanel = ({
             </div>
             {kbError && (
                 <div
-                    className="px-3.5 py-2 text-[11px]"
+                    className="px-3.5 py-2 text-[11px] [color:var(--warning)]! [border-top:1px_solid_var(--border-subtle)]"
                     role="status"
                     data-testid="composer-kb-error"
-                    style={{ color: 'var(--warning)', borderTop: '1px solid var(--border-subtle)' }}
                 >{kbErrorText(kbError)}</div>
             )}
             <div className="px-3 py-2 border-t flex items-center justify-between border-[var(--border-subtle)]">
@@ -203,8 +194,7 @@ const KnowledgeBasePanel = ({
                     )}
                     <button
                         onClick={onDone}
-                        className="px-3 py-1.5 rounded-md text-[11px] font-semibold"
-                        style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}
+                        className="px-3 py-1.5 rounded-md text-[11px] font-semibold [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!"
                     >{t('chat.composer.kb_done', 'Done')}</button>
                 </div>
             </div>

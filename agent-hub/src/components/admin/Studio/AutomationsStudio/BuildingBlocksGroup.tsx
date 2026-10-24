@@ -4,6 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import StepRow from './StepRow';
 import type { StepRowData } from './StepRow';
+import { logger } from '../../../../utils/logger';
 
 const OPEN_KEY = 'automationBlocksOpen';
 
@@ -38,7 +39,7 @@ export default function BuildingBlocksGroup(props: BuildingBlocksGroupProps) {
     const toggle = () => {
         setStored((prev) => {
             const next = !prev;
-            try { scopedStorage.setJSON(OPEN_KEY, next); } catch { /* storage best-effort */ }
+            try { scopedStorage.setJSON(OPEN_KEY, next); } catch (err) { logger.debug('storage best-effort', err); }
             return next;
         });
     };

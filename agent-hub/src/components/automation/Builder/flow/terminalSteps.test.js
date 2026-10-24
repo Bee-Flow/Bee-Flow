@@ -33,8 +33,8 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 
 import { NODE_DEFS, NODE_TYPE_KEYS, stepFamily } from './nodeDefs';
-import { TERMINAL_STEP_TYPES, isTerminalStep, isTerminalStepType } from './terminalSteps';
 import { findNodeDropTarget } from './nodeDropTarget';
+import { TERMINAL_STEP_TYPES, isTerminalStep, isTerminalStepType } from './terminalSteps';
 import { describeNode } from '../mapping/upstream';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));

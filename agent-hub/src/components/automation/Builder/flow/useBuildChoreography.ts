@@ -7,6 +7,7 @@ import {
 import { flowOrder } from './flowOrder';
 import { projectGhostDraft } from './ghostDraft';
 import type { ApplyDiffOptions, DiagramDefinition, Node, RefObject, BuildChoreographyArgs, BuildCue, CameraPlan, ChoreographyDiff, FxEntry, FxEvent, FxState, LatestChoreography, PendingCard, PlanCameraMoveFn, ProjectGhostDraftFn, Rect, ShotForFn, ShotKind } from './useBuildChoreography.types';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The build as a film — the stateful half (the pure half is
@@ -541,9 +542,7 @@ export function useBuildChoreography({
                 lastMoveAtRef.current = Date.now();
                 return true;
             }
-        } catch {
-            // canvas gone
-        }
+        } catch (err) { logger.debug('canvas gone', err); }
         return false;
     }, [ownCamera]);
 
@@ -768,7 +767,7 @@ export function useBuildChoreography({
         let inner = 0;
         const outer = requestAnimationFrame(() => {
             inner = requestAnimationFrame(() => {
-                try { rf.fitView({ padding: 0.12, duration: 260, minZoom: 0.2, maxZoom: 1 }); } catch { /* canvas gone */ }
+                try { rf.fitView({ padding: 0.12, duration: 260, minZoom: 0.2, maxZoom: 1 }); } catch (err) { logger.debug('canvas gone', err); }
             });
         });
         return () => { cancelAnimationFrame(outer); if (inner) cancelAnimationFrame(inner); };

@@ -6,6 +6,7 @@
 // which is a `useUsage` fetcher and therefore throws on a non-2xx answer.
 
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 type Id = string | number;
 
@@ -71,7 +72,7 @@ interface UsageRequestError extends Error {
 export async function agentUsageFetcher(_kind: string, id: Id | null | undefined): Promise<unknown> {
     const res: Response = await authFetch(`${API_BASE}/agents/${encodeURIComponent(String(id))}/usage`);
     let body: { error?: string; code?: string } | null = null;
-    try { body = await res.json(); } catch { /* empty or not JSON */ }
+    try { body = await res.json(); } catch (err) { logger.debug('empty or not JSON', err); }
     if (!res.ok) {
         const err: UsageRequestError = new Error(body?.error || `Request failed (${res.status})`);
         err.status = res.status;

@@ -157,7 +157,7 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
     if (window.opener) {
       window.opener.postMessage({ type: 'beeflow-oauth-complete' }, '*');
     }
-  } catch(e) {}
+  } catch (e) { console.debug("opener gone", e); }
   window.close();
 </script>
 <p style="font-family:sans-serif;text-align:center;margin-top:40px">Login complete. You can close this window.</p>

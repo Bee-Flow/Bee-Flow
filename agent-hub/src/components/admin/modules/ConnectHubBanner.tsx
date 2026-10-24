@@ -17,7 +17,7 @@ export default function ConnectHubBanner({ licensed = true, busy, onConnect }: C
             className="rounded-xl border p-5 flex flex-col sm:flex-row sm:items-center gap-4 bg-[var(--bg-secondary)] border-[var(--border-default)]"
             data-testid="connect-hub-banner"
         >
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(245,158,11,0.12)' }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 [background:rgba(245,158,11,0.12)]">
                 <Plug className="w-5 h-5" style={{ color: '#f59e0b' }} />
             </div>
             <div className="min-w-0 flex-1">
@@ -29,8 +29,7 @@ export default function ConnectHubBanner({ licensed = true, busy, onConnect }: C
             <button
                 onClick={onConnect}
                 disabled={busy}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 flex-shrink-0"
-                style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 flex-shrink-0 [background:var(--accent-primary)] [color:#fff]!"
             >
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
                 {t('modules.connect_cta')}

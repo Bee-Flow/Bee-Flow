@@ -106,7 +106,7 @@ export default function MarketplaceModuleCard({
             {/* Status badge */}
             <div className="absolute top-3 right-3">
                 {expired ? (
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
                         <AlertTriangle className="w-3 h-3" /> {t('modules.badge_expired')}
                     </span>
                 ) : module.installed ? (
@@ -154,7 +154,7 @@ export default function MarketplaceModuleCard({
                             </span>
                         )}
                         {pendingRestart && !quarantined && (
-                            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }} data-testid={`restart-required-${module.id}`}>
+                            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!" data-testid={`restart-required-${module.id}`}>
                                 <AlertTriangle className="w-3 h-3" /> {t('modules.badge_restart_required')}
                             </span>
                         )}
@@ -179,8 +179,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onReactivate)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                         data-testid={`reactivate-${module.id}`}
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -190,8 +189,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onBuy)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                         {t('modules.renew')}
@@ -199,15 +197,14 @@ export default function MarketplaceModuleCard({
                 ) : module.installed || sideloaded ? (
                     module.updateAvailable && !sideloaded ? (
                         <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: '#f59e0b' }}>
+                            <span className="flex items-center gap-1 text-xs font-medium [color:#f59e0b]!">
                                 <ArrowUpCircle className="w-3.5 h-3.5" /> {t('modules.update_available')}
                             </span>
                             <div className="flex-1" />
                             <button
                                 onClick={act(onUpdate)}
                                 disabled={busy}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                             >
                                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpCircle className="w-3.5 h-3.5" />}
                                 {t('modules.update')}
@@ -222,8 +219,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onInstall)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                         {t('modules.install')}
@@ -247,8 +243,7 @@ export default function MarketplaceModuleCard({
                     <button
                         onClick={act(onBuy)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShoppingCart className="w-3.5 h-3.5" />}
                         {t('modules.buy')}

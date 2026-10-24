@@ -11,6 +11,8 @@
 
 'use strict';
 
+const log = require('../../../telemetry/log');
+
 const {
     _plainObject, toolsConfigOf, CONFIRM_MODES, DATATABLE_SCOPES,
     MAX_DATATABLE_GRANTS, MAX_COLUMNS_PER_DATATABLE, UNSAFE_OBJECT_KEYS,
@@ -71,7 +73,7 @@ function datatableGrantsOf(toolsConfig) {
             const scope = DATATABLE_SCOPES.includes(raw.scope) ? raw.scope : 'own';
             out[id] = { scope, columns: _datatableColumns(raw.columns) };
         }
-    } catch (_) { /* an unreadable section grants nothing */ }
+    } catch (err) { log.debug('an unreadable section grants nothing', err); }
     return out;
 }
 

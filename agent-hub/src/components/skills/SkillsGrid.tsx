@@ -69,11 +69,7 @@ export default function SkillsGrid({
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <div
-                                className="w-10 h-10 rounded-xl flex items-center justify-center border-[1.5px]"
-                                style={{
-                                    background: 'linear-gradient(135deg, rgba(245,158,11,.3) 0%, rgba(251,191,36,.15) 100%)',
-                                    borderColor: 'rgba(245,158,11,.25)',
-                                }}
+                                className="w-10 h-10 rounded-xl flex items-center justify-center border-[1.5px] [background:linear-gradient(135deg,rgba(245,158,11,.3)_0%,rgba(251,191,36,.15)_100%)] [border-color:rgba(245,158,11,.25)]!"
                             >
                                 <Sparkles size={20} color="#f59e0b" />
                             </div>
@@ -97,8 +93,7 @@ export default function SkillsGrid({
                             {onClose && (
                                 <button
                                     onClick={onClose}
-                                    className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)]"
-                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', background: 'transparent' }}
+                                    className="w-9 h-9 rounded-xl border flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-subtle)] [color:var(--text-secondary)] [background:transparent]!"
                                 >
                                     <X size={16} />
                                 </button>
@@ -107,8 +102,7 @@ export default function SkillsGrid({
                     </div>
 
                     {activeSkillIds.length > 0 && (
-                        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl mb-3 border"
-                            style={{ background: 'rgba(245,158,11,.1)', borderColor: 'rgba(245,158,11,.25)' }}>
+                        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl mb-3 border [background:rgba(245,158,11,.1)] [border-color:rgba(245,158,11,.25)]">
                             <Zap size={13} color="#f59e0b" />
                             <span className="text-[12px] font-medium text-amber-600">
                                 {/* One or many is a choice of KEY, not a letter glued on in
@@ -126,8 +120,7 @@ export default function SkillsGrid({
                                 value={search}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                                 placeholder={t('agent_skills.search', 'Search skills…')}
-                                className="w-full pl-9 pr-3 py-2 text-[13px] rounded-xl border-[1.5px] outline-none transition-colors focus:border-[var(--accent-primary)]"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                                className="w-full pl-9 pr-3 py-2 text-[13px] rounded-xl border-[1.5px] outline-none transition-colors focus:border-[var(--accent-primary)] [background:var(--bg-secondary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]!"
                             />
                         </div>
                         <div className="flex gap-1 p-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">

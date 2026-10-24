@@ -30,6 +30,7 @@
 
 const pd = require('../../projects/projectData');
 const signals = require('../../projects/personalDataSignals');
+const log = require('../../../telemetry/log');
 
 const ORG_WIDE_DPIA_KEY = 'project_ai_participation';
 const ORG = pd.orgMatch('p.organization_id');
@@ -256,7 +257,7 @@ module.exports = {
         if (!targets.length) return { changed: 0, summary: 'No team chat needed switching.' };
         const updated = await deps.query(MENTION_SQL, [orgId, targets.map(s => s.id.slice(PREFIX.chats.length))]);
         for (const r of updated || []) {
-            try { await deps.announce(String(r.project_id), String(r.id), actorId); } catch { /* the switch stands; the live feed is best-effort */ }
+            try { await deps.announce(String(r.project_id), String(r.id), actorId); } catch (err) { log.debug('the switch stands; the live feed is best-effort', err); }
         }
         return { changed: (updated || []).length, summary: `Switched ${(updated || []).length} team chat(s) to "AI answers on mention".` };
     },

@@ -237,8 +237,7 @@ export default function MachineryPage(props: MachineryPageProps) {
     return (
         <div className="relative h-full min-h-0 overflow-y-auto p-3.5 @[1100px]/cpage:px-7 @[1100px]/cpage:py-[18px] flex flex-col gap-3.5 text-xs" data-testid="machinery-page">
             <section
-                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-start gap-2.5"
-                style={{ boxShadow: 'var(--shadow-sm)' }}
+                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] px-3.5 py-3 flex items-start gap-2.5 [box-shadow:var(--shadow-sm)]"
                 data-testid="mach-intro"
             >
                 <Factory size={15} className="text-[var(--text-secondary)] shrink-0 mt-px" aria-hidden="true" />

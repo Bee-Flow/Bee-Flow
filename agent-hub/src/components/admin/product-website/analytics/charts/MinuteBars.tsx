@@ -75,10 +75,7 @@ export default function MinuteBars({
                     );
                 })}
             </div>
-            <div style={{
-                display: 'flex', justifyContent: 'space-between', marginTop: 5,
-                fontSize: 10, color: 'var(--text-muted, #777)',
-            }}>
+            <div className="[display:flex] [justify-content:space-between] [margin-top:5px] [font-size:10px] [color:var(--text-muted,#777)]">
                 <span>{formatLabel(buckets[0].t)}</span>
                 {caption && <span>{caption}</span>}
                 <span>{tr('cms_site.analytics.minute_bars.now', 'now')}</span>

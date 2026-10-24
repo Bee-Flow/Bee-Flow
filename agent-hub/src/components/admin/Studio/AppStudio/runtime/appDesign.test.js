@@ -2,8 +2,8 @@
  * App Design v2 runtime helpers — identity discipline + the noPurple contract
  * for the derived chart palette.
  */
-import { describe, it, expect } from 'vitest';
 import { createRequire } from 'module';
+import { describe, it, expect } from 'vitest';
 import {
     appDesignProps, brandPalette, isBannedHue,
     DESIGN_ENUMS, DESIGN_DEFAULTS, NAV_STYLES, NAV_DEFAULT_STYLE, FONT_STACKS,

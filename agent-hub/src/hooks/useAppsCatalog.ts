@@ -58,11 +58,10 @@ export default function useAppsCatalog(
     const [enabledApps, setEnabledApps] = useState<string[] | null>(null);
     const [seeded, setSeeded] = useState(false);
 
-    useEffect(() => {
-        if (seeded || !integrationStatus) return;
+    if (!seeded && integrationStatus) {
         if (integrationStatus.enabledApps) setEnabledApps(integrationStatus.enabledApps as string[]);
         setSeeded(true);
-    }, [integrationStatus, seeded]);
+    }
 
     useEffect(() => {
         let alive = true;

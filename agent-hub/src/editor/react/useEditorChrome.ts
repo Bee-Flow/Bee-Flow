@@ -10,7 +10,7 @@
  * re-render per keystroke either. The outline also tracks which heading is
  * being read (scroll spy).
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef , useLayoutEffect } from 'react';
 import { activeHeadingIndex, collectHeadings, tocItems, tocSignature, type TocItem } from './toc';
 import { errorName } from '../../utils/caughtError';
 
@@ -42,7 +42,9 @@ function scheduleFrame(fn: () => void): () => void {
 
 export default function useEditorChrome(cb: ChromeCallbacks) {
     const cbRef = useRef(cb);
-    cbRef.current = cb;
+    useLayoutEffect(() => {
+        cbRef.current = cb;
+    });
     const cancelRef = useRef<(() => void) | null>(null);
     const metaRef = useRef<{ remote: boolean; doc: boolean; emit: boolean }>({ remote: true, doc: false, emit: false });
     const lastToc = useRef('');

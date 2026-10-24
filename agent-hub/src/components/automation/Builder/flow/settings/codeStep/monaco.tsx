@@ -3,6 +3,7 @@
 // ways it can fail and what the author gets instead.
 import { useEffect, type ComponentType } from 'react';
 import { lazy } from '../../../../../../utils/lazyWithReload';
+import { logger } from '../../../../../../utils/logger';
 
 /** What we hand Monaco; the real component takes more, we pass only these. */
 export interface MonacoProps {
@@ -104,7 +105,7 @@ export function monacoTheme(): string {
     // preference is the better of the two remaining guesses.
     try {
         if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'vs-dark';
-    } catch { /* jsdom without matchMedia */ }
+    } catch (err) { logger.debug('jsdom without matchMedia', err); }
     return 'vs';
 }
 

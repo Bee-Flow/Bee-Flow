@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck, Download } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 interface SystemKb {
     id: string;
@@ -87,7 +88,7 @@ const SystemKnowledgeBasesPanel = () => {
                     // One last reload to pick up the new document counts.
                     load();
                 }
-            } catch (_) { /* keep polling — transient errors are OK */ }
+            } catch (err) { logger.debug('keep polling — transient errors are OK', err); }
         }, 2000);
     }, [items, load]);
 
@@ -176,7 +177,7 @@ const SystemKnowledgeBasesPanel = () => {
 
     if (error) {
         return (
-            <div className="p-4 rounded-lg border" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)', color: 'rgb(239, 68, 68)' }}>
+            <div className="p-4 rounded-lg border [border-color:rgba(239,68,68,0.3)] [background:rgba(239,68,68,0.05)] [color:rgb(239,68,68)]">
                 <div className="flex items-center justify-between">
                     <span className="text-sm">{error}</span>
                     <button onClick={load} className="text-xs underline">{t('knowledge.system_knowledge_bases_retry', 'Retry')}</button>

@@ -12,6 +12,7 @@ const automationStore = require('../../stores/automationStore');
 const { resolveTriggerPayload } = require('./execution');
 const { callerOnlyUserId } = require('./callerConnections');
 const { resolveRunPolicy } = require('./runPolicy');
+const log = require('../../telemetry/log');
 
 async function runTriggerOnly({ automation, triggerId, triggerNode, triggerPayload, triggerKind, startedByUserId }) {
     // This branch synthesizes its own run and never reaches
@@ -50,7 +51,7 @@ async function runTriggerOnly({ automation, triggerId, triggerNode, triggerPaylo
             // steps, so no secret bridge can have populated any secrets.
             secretValues: [],
         });
-    } catch (_) { /* recordRunStep is best-effort here */ }
+    } catch (err) { log.debug('recordRunStep is best-effort here', err); }
     await automationStore.updateRun(run.id, {
         status: 'success',
         startedAt: nowIso,

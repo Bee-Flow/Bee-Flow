@@ -53,7 +53,7 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
     const peakViews = useMemo(() => maxOf(rows.map(r => r.views)), [rows]);
 
     if (breakdown.loading) {
-        return <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}><Skeleton height={320} /><Skeleton height={200} /></div>;
+        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={320} /><Skeleton height={200} /></div>;
     }
     if (breakdown.error) return <ErrorNote message={breakdown.error} onRetry={breakdown.reload} />;
 
@@ -61,17 +61,13 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
         {
             key: 'path', label: t('cms_site.analytics.pages.page', 'Page'), width: '2fr',
             render: (r: PivotOut) => (
-                <span title={t('cms_site.analytics.pages.filter_by', 'Filter the dashboard by {value}', { value: r.path })} style={{
-                    fontSize: 12, color: 'var(--text-primary, #fff)',
-                    textDecoration: 'underline dotted', textUnderlineOffset: 3,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
-                }}>{r.path}</span>
+                <span title={t('cms_site.analytics.pages.filter_by', 'Filter the dashboard by {value}', { value: r.path })} className="[font-size:12px] [color:var(--text-primary,#fff)] [text-decoration:underline_dotted] [text-underline-offset:3px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [display:block]">{r.path}</span>
             ),
         },
         {
             key: 'views', label: t('cms_site.analytics.pages.views', 'Views'), width: '110px', align: 'right',
             render: (r: PivotOut) => (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
+                <span className="[display:inline-flex] [align-items:center] [gap:8px] [justify-content:flex-end] w-[100%]">
                     <ShareBar value={r.views} of={peakViews} width={40} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, minWidth: 32, textAlign: 'right' }}>{fmt(r.views)}</span>
                 </span>
@@ -79,12 +75,12 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
         },
         {
             key: 'visitors', label: t('cms_site.analytics.pages.visitors', 'Visitors'), width: '80px', align: 'right',
-            render: (r: PivotOut) => <span style={{ fontSize: 12, color: 'var(--text-secondary, #aaa)' }}>{fmt(r.visitors)}</span>,
+            render: (r: PivotOut) => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{fmt(r.visitors)}</span>,
         },
         {
             key: 'bounceRate', label: t('cms_site.analytics.pages.bounce', 'Bounce'), width: '80px', align: 'right',
             render: (r: PivotOut) => (r.bounceRate == null
-                ? <span style={{ fontSize: 12, color: 'var(--text-muted, #777)' }}>—</span>
+                ? <span className="[font-size:12px] [color:var(--text-muted,#777)]">—</span>
                 // Colour is a hint; the number is always printed beside it.
                 : <span style={{ fontSize: 12, fontWeight: 700, color: rateColor(r.bounceRate) }}>
                     {Math.round(r.bounceRate)}%
@@ -93,7 +89,7 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
         {
             key: 'avgTime', label: t('cms_site.analytics.pages.time_on_page', 'Time on page'), width: '110px', align: 'right',
             render: (r: PivotOut) => (
-                <span style={{ fontSize: 12, color: 'var(--text-secondary, #aaa)' }}>
+                <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">
                     {r.avgTime == null ? '—' : fmtDurationSec(r.avgTime)}
                 </span>
             ),
@@ -101,10 +97,10 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
     ];
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
             <Card title={t('cms_site.analytics.pages.title', 'Every page, by engagement')} icon={FileText} action={
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.pages.rank_by', 'rank by')}</span>
+                <div className="[display:flex] [gap:5px] [align-items:center]">
+                    <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.pages.rank_by', 'rank by')}</span>
                     {[
                         { k: 'views', l: t('cms_site.analytics.pages.views', 'Views') },
                         { k: 'visitors', l: t('cms_site.analytics.pages.visitors', 'Visitors') },
@@ -129,12 +125,12 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
                             maxRows={25} emptyText={t('cms_site.analytics.pages.no_pageviews', 'No pageviews in this period.')}
                             onRowClick={(r) => onDrill('path', r.path)}
                         />
-                        <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 11, color: 'var(--text-muted, #888)' }}>
-                            <span>{rich(t('cms_site.analytics.pages.pages_visited', '{n} pages visited'), { n: <strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(rows.length)}</strong> })}</span>
-                            <span>{rich(t('cms_site.analytics.pages.total_views', '{n} views'), { n: <strong style={{ color: 'var(--text-primary, #fff)' }}>{fmt(totals.views)}</strong> })}</span>
+                        <div className="[display:flex] [gap:20px] [margin-top:12px] [font-size:11px] [color:var(--text-muted,#888)]">
+                            <span>{rich(t('cms_site.analytics.pages.pages_visited', '{n} pages visited'), { n: <strong className="[color:var(--text-primary,#fff)]">{fmt(rows.length)}</strong> })}</span>
+                            <span>{rich(t('cms_site.analytics.pages.total_views', '{n} views'), { n: <strong className="[color:var(--text-primary,#fff)]">{fmt(totals.views)}</strong> })}</span>
                             <span>
                                 {rich(t('cms_site.analytics.pages.pages_per_visit', '{n} pages per visit'), {
-                                    n: <strong style={{ color: 'var(--text-primary, #fff)' }}>
+                                    n: <strong className="[color:var(--text-primary,#fff)]">
                                         {totals.visits ? (totals.views / totals.visits).toFixed(1) : '—'}
                                     </strong>,
                                 })}
@@ -144,9 +140,9 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
                 )}
             </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] [gap:12px]">
                 <Card title={t('cms_site.analytics.pages.by_title', 'By page title')} icon={Compass} action={
-                    <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>
+                    <span className="[font-size:10px] [color:var(--text-muted,#777)]">
                         {t('cms_site.analytics.pages.by_title_hint', 'useful when several paths share a template')}
                     </span>
                 }>
@@ -187,24 +183,18 @@ function EntryPages({ scope, onDrill }: EntryPagesProps) {
 
     return (
         <Card title={t('cms_site.analytics.pages.entry', 'Where visits start')} icon={Compass} action={
-            <span style={{ fontSize: 10, color: 'var(--text-muted, #777)' }}>{t('cms_site.analytics.pages.entry_hint', 'visits, not views')}</span>
+            <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.pages.entry_hint', 'visits, not views')}</span>
         }>
             {breakdown.loading ? <Skeleton height={180} />
                 : breakdown.error ? <ErrorNote message={breakdown.error} onRetry={breakdown.reload} compact />
                 : rows.length === 0 ? <Empty text={t('cms_site.analytics.pages.no_visits', 'No visits in this period.')} />
                 : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div className="[display:flex] [flex-direction:column] [gap:8px]">
                         {rows.map((r, i) => (
                             <button key={`${i}-${r.path}`} onClick={() => onDrill('path', r.path)}
-                                style={{
-                                    display: 'block', width: '100%', textAlign: 'left', padding: 0,
-                                    background: 'transparent', border: 'none', cursor: 'pointer',
-                                }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                                    <span style={{
-                                        fontSize: 12, color: 'var(--text-primary, #fff)', overflow: 'hidden',
-                                        textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    }}>{r.path}</span>
+                                className="[display:block] w-[100%] [text-align:left] [padding:0] [background:transparent] [border:none] [cursor:pointer]">
+                                <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
+                                    <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{r.path}</span>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: SERIES.secondary, flexShrink: 0 }}>
                                         {fmt(r.visits)}
                                     </span>

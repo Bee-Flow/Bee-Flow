@@ -49,9 +49,9 @@ const HowIGotThisAnswer = ({ msg, idx, allMessages, hasPrivacyInfo, t: tProp, sh
     const totalMs = visibleTools.reduce((acc: number, t: ToolEntry) => acc + (t.endTime && t.startTime ? t.endTime - t.startTime : 0), 0);
     const totalSec = totalMs > 0 ? (totalMs / 1000).toFixed(1) : null;
     return (
-    <div className="mt-3 pt-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(0,0,0,0.018)', border: '1px solid rgba(0,0,0,0.05)' }}>
+    <div className="mt-3 pt-3 p-3 rounded-lg [background-color:rgba(0,0,0,0.018)] [border:1px_solid_rgba(0,0,0,0.05)]">
         <details className="group/reasoning">
-            <summary className="flex items-center gap-2 cursor-pointer text-xs transition-colors select-none list-none [&::-webkit-details-marker]:hidden" style={{ color: 'var(--text-primary, #000)' }}>
+            <summary className="flex items-center gap-2 cursor-pointer text-xs transition-colors select-none list-none [&::-webkit-details-marker]:hidden [color:var(--text-primary,#000)]!">
                 <span className="text-sm opacity-70">🧠</span>
                 <span className="font-medium">{t('chat.msg.how_i_got_this', 'How I got this answer')}</span>
                 {/* Aggregate stats bar */}
@@ -98,8 +98,7 @@ const HowIGotThisAnswer = ({ msg, idx, allMessages, hasPrivacyInfo, t: tProp, sh
                         );
                         return (
                             <span
-                                className="px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1"
-                                style={{ background: 'rgba(59, 130, 246, 0.10)', color: 'rgb(29, 78, 216)' }}
+                                className="px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 [background:rgba(59,130,246,0.10)] [color:rgb(29,78,216)]"
                                 title={_title}
                             >
                                 🔒 {(msg.tokenisationInfo as TokenisationInfo).count} {_noun}

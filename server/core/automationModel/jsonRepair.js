@@ -29,6 +29,8 @@
 'use strict';
 
 /** Strip a leading ```json / ``` fence and its closing fence, if both are there. */
+const log = require('../../telemetry/log');
+
 function stripFence(text) {
     const t = String(text).trim();
     if (!t.startsWith('```')) return t;
@@ -100,7 +102,7 @@ function parseJsonish(text) {
     const direct = stripFence(text);
     try {
         return { ok: true, value: JSON.parse(direct), repaired: false };
-    } catch (_) { /* fall through to the repair */ }
+    } catch (err) { log.debug('fall through to the repair', err); }
 
     try {
         return { ok: true, value: JSON.parse(escapeControlChars(direct)), repaired: true };

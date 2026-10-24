@@ -37,7 +37,7 @@ export default function AskPortal({ ask, query, setQuery, onSubmit, onClose, t }
       style={{ top, left, minWidth: 280, maxWidth: W, background: 'var(--bg-primary)', borderColor: 'var(--border-default)' }}
       onMouseDown={(e) => e.stopPropagation()}>
       {preview && (
-        <div className="px-3 pt-2 pb-1.5 text-[10px] border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
+        <div className="px-3 pt-2 pb-1.5 text-[10px] border-b [border-color:var(--border-subtle)]! [background:var(--bg-tertiary)] [color:var(--text-secondary)]!">
           <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5 text-[var(--text-tertiary)]">{tt('notebooks.selected_text', 'Selected text')}</div>
           <p className="italic line-clamp-3">{preview}</p>
         </div>

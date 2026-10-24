@@ -235,7 +235,7 @@ function createSuggestionsRouter(deps = null) {
         const { sendEvent, abortController, markEnded } = d.setupSSE(res);
         const stopHeartbeat = d.startSseHeartbeat(res);
         const signal = abortController.signal;
-        const finish = () => { stopHeartbeat(); markEnded(); try { res.end(); } catch (_) { /* already closed */ } };
+        const finish = () => { stopHeartbeat(); markEnded(); try { res.end(); } catch (err) { log.debug('already closed', err); } };
         const framing = { mode, ...(mode === 'patterns' ? { sources } : {}), focus };
 
         try {
@@ -248,7 +248,7 @@ function createSuggestionsRouter(deps = null) {
             const scopeKey = d.scanCache.deriveScopeKey({ userId });
             const cacheKey = scanCacheKey({ userId, mode, sources: keyList, focus, now: d.now(), timeZone: mode === 'patterns' ? timeZone : null });
             let eu = false;
-            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (_) { /* transparency only */ }
+            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (err) { log.debug('transparency only', err); }
 
             if (!force) {
                 const hit = await cachedScan({ scopeKey, cacheKey, mode, userId });
@@ -319,7 +319,7 @@ function createSuggestionsRouter(deps = null) {
                 sendEvent('error', { error: mode === 'ideas'
                     ? 'Could not generate ideas right now. Please try again.'
                     : 'Could not finish the scan right now. Please try again.' });
-            } catch (_) { /* stream gone */ }
+            } catch (err) { log.debug('stream gone', err); }
             finish();
         }
     });

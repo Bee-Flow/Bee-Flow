@@ -142,15 +142,14 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                                     : t('modules.sideload_success', { version: result.version })}
                             </div>
                             {result.requiresRestart && (
-                                <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>
+                                <p className="text-xs px-3 py-2 rounded-lg [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
                                     {t('modules.sideload_restart_required')}
                                 </p>
                             )}
                             <div className="flex justify-end pt-1">
                                 <button
                                     onClick={onClose}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium"
-                                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium [background:var(--accent-primary)] [color:#fff]!"
                                 >
                                     {t('modules.close')}
                                 </button>
@@ -180,8 +179,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                                 <button
                                     onClick={() => grantRef.current?.click()}
                                     disabled={busy}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
-                                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                     data-testid="sideload-pick-grant"
                                 >
                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
@@ -223,8 +221,7 @@ export default function SideloadDialog({ onClose, onDone }: SideloadDialogProps)
                                 <button
                                     onClick={() => doSideload()}
                                     disabled={busy || !file}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5"
-                                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                     data-testid="sideload-submit"
                                 >
                                     {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}

@@ -97,7 +97,7 @@ async function recordPaymentFailureForOrg(orgId) {
           WHERE organization_id = $1`,
         [orgId, new Date().toISOString()]
     );
-    try { require('../usageStore').invalidatePaygCache(orgId, null); } catch (_) { /* circular-load safe */ }
+    try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
     const row = await getOne(
         'SELECT payment_attempt_count, past_due_since FROM organization_subscriptions WHERE organization_id = $1',
         [orgId]
@@ -116,7 +116,7 @@ async function recordPaymentFailureForConsumer(userId) {
           WHERE user_id = $1`,
         [userId, new Date().toISOString()]
     );
-    try { require('../usageStore').invalidatePaygCache(null, userId); } catch (_) { /* circular-load safe */ }
+    try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { log.debug('circular-load safe', err); }
     const row = await getOne(
         'SELECT payment_attempt_count, past_due_since FROM consumer_subscriptions WHERE user_id = $1',
         [userId]
@@ -134,7 +134,7 @@ async function resetPaymentFailureForOrg(orgId) {
           WHERE organization_id = $1`,
         [orgId, new Date().toISOString()]
     );
-    try { require('../usageStore').invalidatePaygCache(orgId, null); } catch (_) { /* circular-load safe */ }
+    try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
 }
 
 async function resetPaymentFailureForConsumer(userId) {
@@ -147,7 +147,7 @@ async function resetPaymentFailureForConsumer(userId) {
           WHERE user_id = $1`,
         [userId, new Date().toISOString()]
     );
-    try { require('../usageStore').invalidatePaygCache(null, userId); } catch (_) { /* circular-load safe */ }
+    try { require('../usage/payg').invalidatePaygCache(null, userId); } catch (err) { log.debug('circular-load safe', err); }
 }
 
 // Run a sweep that suspends any org/consumer sub whose past_due_since is
@@ -174,7 +174,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
                   WHERE organization_id = $1`,
                 [row.organization_id, new Date().toISOString()]
             );
-            try { require('../usageStore').invalidatePaygCache(row.organization_id, null); } catch (_) { /* circular-load safe */ }
+            try { require('../usage/payg').invalidatePaygCache(row.organization_id, null); } catch (err) { log.debug('circular-load safe', err); }
             await logSubscriptionAudit(
                 'dunning_suspend', 'organization', row.organization_id, 'system', null,
                 { reason: 'past_due_grace_exceeded', attempt_count: row.payment_attempt_count, past_due_since: row.past_due_since, grace_days: graceDays }
@@ -200,7 +200,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
                   WHERE user_id = $1`,
                 [row.user_id, new Date().toISOString()]
             );
-            try { require('../usageStore').invalidatePaygCache(null, row.user_id); } catch (_) { /* circular-load safe */ }
+            try { require('../usage/payg').invalidatePaygCache(null, row.user_id); } catch (err) { log.debug('circular-load safe', err); }
             await logSubscriptionAudit(
                 'dunning_suspend', 'consumer', row.user_id, 'system', null,
                 { reason: 'past_due_grace_exceeded', attempt_count: row.payment_attempt_count, past_due_since: row.past_due_since, grace_days: graceDays }
@@ -246,7 +246,7 @@ async function expireOverdueTrials() {
                       WHERE organization_id = $1`,
                     [row.organization_id, nowIso]
                 );
-                try { require('../usageStore').invalidatePaygCache(row.organization_id, null); } catch (_) { /* circular-load safe */ }
+                try { require('../usage/payg').invalidatePaygCache(row.organization_id, null); } catch (err) { log.debug('circular-load safe', err); }
             }
             await logSubscriptionAudit(
                 'trial_expired', 'organization', row.organization_id, 'system', null,
@@ -274,7 +274,7 @@ async function expireOverdueTrials() {
                   WHERE user_id = $1`,
                 [row.user_id, nowIso]
             );
-            try { require('../usageStore').invalidatePaygCache(null, row.user_id); } catch (_) { /* circular-load safe */ }
+            try { require('../usage/payg').invalidatePaygCache(null, row.user_id); } catch (err) { log.debug('circular-load safe', err); }
             await logSubscriptionAudit(
                 'trial_expired', 'consumer', row.user_id, 'system', null,
                 { trial_end_date: row.trial_end_date, transitioned_to: 'suspended' }
@@ -363,7 +363,7 @@ async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'd
     }
     try { await require('../../services/planEntitlements').applyPlanToOrg(orgId, freeId, { mode: 'reset' }); }
     catch (e) { log.warn(`[UserStore] downgradeOrgToFreePlan applyPlanToOrg failed for ${orgId}:`, e.message); }
-    try { require('../usageStore').invalidatePaygCache(orgId, null); } catch (_) { /* circular-load safe */ }
+    try { require('../usage/payg').invalidatePaygCache(orgId, null); } catch (err) { log.debug('circular-load safe', err); }
     await logSubscriptionAudit('downgrade_to_free', 'organization', orgId, changedBy, before, { plan_id: freeId, reason });
     return await getOrgSubscription(orgId);
 }

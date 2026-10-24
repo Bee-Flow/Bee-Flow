@@ -40,7 +40,7 @@ export default function useBehaviorToggles({ allowCopy, setAllowCopy, disableExt
         stateRef.current.embedEnabled = next;
         dirtyRef.current = true;
         queueSave(true);
-    }, [queueSave]);
+    }, [dirtyRef, queueSave, setEmbedEnabled, stateRef]);
     const toggleEmbedEnabled = () => {
         const next = !embedEnabled;
         if (next) {

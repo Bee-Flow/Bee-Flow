@@ -572,7 +572,7 @@ async function workflowExecute(args, { orgId }) {
         if (onlyWebhook) {
             return { error: 'This workflow is webhook-triggered. Trigger it by calling its webhook URL directly, or temporarily swap in a Manual Trigger.', workflow_id };
         }
-    } catch (_) { /* fall through — let the execute attempt surface the real error */ }
+    } catch (err) { log.debug('fall through — let the execute attempt surface the real error', err); }
 
     // Kick off the run. n8n's POST /workflows/:id/execute returns an execution record.
     const start = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}/execute`, {
@@ -591,7 +591,7 @@ async function workflowExecute(args, { orgId }) {
         try {
             lastExec = await n8nApiFetch(orgId, `/executions/${encodeURIComponent(execId)}?includeData=true`);
             if (lastExec?.finished) break;
-        } catch (e) { /* transient — keep polling */ }
+        } catch (e) { log.debug('transient — keep polling', e); }
         await new Promise(r => setTimeout(r, 1000));
     }
 

@@ -30,24 +30,23 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }: StepDeploymen
                         : '0 1px 3px rgba(0,0,0,0.06)',
                 }}>
                 {deploymentType === 'azure' && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: '#0078D4' }}>✓</div>
+                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white [background:#0078D4]">✓</div>
                 )}
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,120,212,0.1)' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:rgba(0,120,212,0.1)]">
                         <AzureOpenAILogo size={24} />
                     </div>
                     <div>
-                        <div className="font-semibold text-sm" style={{ color: '#1f2937' }}>{t('init_setup.step_deployment_type_microsoft_azure', 'Microsoft Azure')}</div>
-                        <div className="text-xs" style={{ color: '#6b7280' }}>{t('init_setup.step_deployment_type_enterprise_ready_setup', 'Enterprise-ready setup')}</div>
+                        <div className="font-semibold text-sm [color:#1f2937]!">{t('init_setup.step_deployment_type_microsoft_azure', 'Microsoft Azure')}</div>
+                        <div className="text-xs [color:#6b7280]!">{t('init_setup.step_deployment_type_enterprise_ready_setup', 'Enterprise-ready setup')}</div>
                     </div>
                 </div>
-                <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                <p className="text-xs leading-relaxed [color:#6b7280]!">
                     {t('init_setup.step_deployment_type_azure_openai_bing_search_and_microsoft', 'Azure OpenAI, Bing Search, and Microsoft SSO — fully integrated Azure ecosystem.')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                     {['Azure OpenAI', 'Bing Search', 'Microsoft SSO'].map(tag => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                            style={{ background: 'rgba(0,120,212,0.08)', color: '#0078D4' }}>{tag}</span>
+                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full font-medium [background:rgba(0,120,212,0.08)] [color:#0078D4]!">{tag}</span>
                     ))}
                 </div>
             </button>
@@ -69,21 +68,20 @@ const StepDeploymentType = ({ deploymentType, setDeploymentType }: StepDeploymen
                     <div className="absolute top-3 right-3 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white bg-[var(--accent-primary)]">✓</div>
                 )}
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:rgba(99,102,241,0.1)]">
                         <span className="text-xl">🔧</span>
                     </div>
                     <div>
-                        <div className="font-semibold text-sm" style={{ color: '#1f2937' }}>{t('init_setup.step_deployment_type_custom_setup', 'Custom Setup')}</div>
-                        <div className="text-xs" style={{ color: '#6b7280' }}>{t('init_setup.step_deployment_type_mix_match_providers', 'Mix & match providers')}</div>
+                        <div className="font-semibold text-sm [color:#1f2937]!">{t('init_setup.step_deployment_type_custom_setup', 'Custom Setup')}</div>
+                        <div className="text-xs [color:#6b7280]!">{t('init_setup.step_deployment_type_mix_match_providers', 'Mix & match providers')}</div>
                     </div>
                 </div>
-                <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                <p className="text-xs leading-relaxed [color:#6b7280]!">
                     {t('init_setup.step_deployment_type_choose_from_openai_google_mistral', 'Choose from OpenAI, Google, Mistral, Claude — configure each service independently.')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-3">
                     {['OpenAI', 'Google', 'Mistral', 'Claude'].map(tag => (
-                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                            style={{ background: 'rgba(99,102,241,0.08)', color: 'var(--accent-primary)' }}>{tag}</span>
+                        <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full font-medium [background:rgba(99,102,241,0.08)] [color:var(--accent-primary)]!">{tag}</span>
                     ))}
                 </div>
             </button>

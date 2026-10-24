@@ -163,7 +163,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     try {
         const { resolveOrgShield } = require('../privacy/orgShield');
         shield = await resolveOrgShield(ctx.orgId);
-    } catch (_) { /* fail-open */ }
+    } catch (err) { log.debug('fail-open', err); }
 
     // Org-level opt-out: the org admin can exclude automations from the
     // Privacy Shield (Settings → Organisation → Privacy Shield → "Apply to
@@ -198,7 +198,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     }
 
     let aiConfig = {};
-    try { aiConfig = (await require('../aiAgent').getAIConfig()) || {}; } catch (_) { /* tolerate */ }
+    try { aiConfig = (await require('../aiAgent').getAIConfig()) || {}; } catch (err) { log.debug('tolerate', err); }
 
     const override = (ctx.definition && ctx.definition.safety) || {};
 
@@ -288,7 +288,7 @@ function _logGuardrail(auditBase, { violation_type, categories, direction, actio
             action_taken,
             is_dry_run: !!isDryRun,
         }).catch(() => {});
-    } catch (_) { /* never fail the run on logging */ }
+    } catch (err) { log.debug('never fail the run on logging', err); }
 }
 
 function _hash(s) {
@@ -417,7 +417,7 @@ async function _scanText(text, policy) {
                 log.info('[safety] allowlist kept spans unredacted:', JSON.stringify(byCat));
             }
             entities = filtered.entities;
-        } catch (_) { /* allowlist unavailable — keep the raw detections */ }
+        } catch (err) { log.debug('allowlist unavailable — keep the raw detections', err); }
     }
 
     return {
@@ -641,7 +641,7 @@ async function _guardValue(value, policy, auditBase, { direction, scopeOn, mode,
             try {
                 const safe = h.pattern.replace(/^\(\?i\)/, '').replace(/^\(\?-[a-z]+\)/, '');
                 out = out.replace(new RegExp(safe, 'gi'), `[REDACTED:${h.ruleName}]`);
-            } catch (_) { /* skip bad pattern */ }
+            } catch (err) { log.debug('skip bad pattern', err); }
         }
         if (entities.length) {
             // Regex redaction shifted the offsets, so re-derive the spans on the
@@ -1042,7 +1042,7 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             // that run already logged the real transfer.
             servedFromCache: !!servedFromCache,
         });
-    } catch (_) { /* never fail a run on egress logging */ }
+    } catch (err) { log.debug('never fail a run on egress logging', err); }
 }
 
 module.exports = {

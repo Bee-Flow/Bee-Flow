@@ -151,7 +151,7 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
         try {
             await fs.promises.access(audioPath);
             return { path: audioPath, cleanup: () => {}, fromStorage: false, cached: false };
-        } catch (_) { /* local copy gone — try object storage */ }
+        } catch (err) { log.debug('local copy gone — try object storage', err); }
     }
     if (!audioStorageKey) {
         return { path: null, reason: 'never_durable' };
@@ -191,12 +191,12 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
         }
         return {
             path: dest,
-            cleanup: () => { try { fs.unlinkSync(dest); } catch (_) { /* already gone */ } },
+            cleanup: () => { try { fs.unlinkSync(dest); } catch (err) { log.debug('already gone', err); } },
             fromStorage: true,
             cached: false,
         };
     } catch (e) {
-        try { await fs.promises.unlink(dest); } catch (_) { /* never created */ }
+        try { await fs.promises.unlink(dest); } catch (err) { log.debug('never created', err); }
         log.error('[SavedAudio] Object-storage fetch failed:', e.message);
         // A key that exists but will not fetch means RustFS lost the object —
         // terminal, and worth noticing separately from an outage.

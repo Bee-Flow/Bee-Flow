@@ -80,7 +80,7 @@ function makeChatShield(deps = {}) {
     function audit(base, fields) {
         try {
             Promise.resolve(logGuardrailEvent({ ...base, ...fields, direction: 'input', source })).catch(() => {});
-        } catch (_) { /* auditing never decides the outcome */ }
+        } catch (err) { log.debug('auditing never decides the outcome', err); }
     }
 
     /** The kinds of thing that were replaced, as labels only (never the values). */
@@ -257,7 +257,7 @@ function makeChatShield(deps = {}) {
 
     /** Drop the per-run token map from process memory. Never throws. */
     function release(conversationId) {
-        try { dlp().clearConversationState(conversationId, { ephemeral: true }); } catch (_) { /* nothing held */ }
+        try { dlp().clearConversationState(conversationId, { ephemeral: true }); } catch (err) { log.debug('nothing held', err); }
     }
 
     return { resolve, protect, tokenAddendum, restore, release, toolGate, restoreArgs, searchGuard };

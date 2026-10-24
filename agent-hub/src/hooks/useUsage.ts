@@ -28,6 +28,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 /** One "this depends on you" row. A legacy endpoint answers a different
  *  shape, adapted at the render side, so nothing beyond the list is claimed. */
@@ -123,7 +124,7 @@ export async function defaultUsageFetcher(kind: string, id: string | number | nu
     if (!url) throw new Error(`No usage endpoint for kind "${kind}"`);
     const res = await authFetch(url);
     let body = null;
-    try { body = await res.json(); } catch { /* empty or non-JSON body */ }
+    try { body = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
     if (!res.ok) {
         const err: UsageError = new Error(body?.error || `Request failed (${res.status})`);
         err.status = res.status;

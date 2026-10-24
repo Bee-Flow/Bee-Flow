@@ -69,7 +69,7 @@ async function resolveAppIds() {
         const config = await loadConfig();
         const clientId = config?.providers?.microsoft?.clientId;
         if (clientId && GUID_RE.test(clientId)) return [clientId];
-    } catch (_) { /* fall through — nothing to associate */ }
+    } catch (err) { log.debug('fall through — nothing to associate', err); }
     return [];
 }
 

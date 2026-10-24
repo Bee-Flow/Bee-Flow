@@ -25,10 +25,10 @@ export default function GlobalDefaultsSection({
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={enableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                            <button onClick={enableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80 [background:rgba(16,185,129,0.1)] [color:#10b981]!">
                                 {t('integ.global_defaults_enable_all', 'Enable All')}
                             </button>
-                            <button onClick={disableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                            <button onClick={disableAllDefaults} className="text-xs px-3 py-1.5 rounded-lg font-medium transition-all hover:opacity-80 [background:rgba(239,68,68,0.1)] [color:#ef4444]!">
                                 {t('integ.global_defaults_disable_all', 'Disable All')}
                             </button>
                         </div>

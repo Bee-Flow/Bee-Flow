@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 export type CaptchaGlobal = 'turnstile' | 'hcaptcha' | 'grecaptcha';
 
@@ -127,7 +128,7 @@ const CaptchaWidget = ({ config, onToken }: CaptchaWidgetProps) => {
             cancelled = true;
             const api = window[PROVIDERS[config.provider]?.global];
             if (api?.remove && widgetIdRef.current !== null) {
-                try { api.remove(widgetIdRef.current); } catch (_) { /* already gone */ }
+                try { api.remove(widgetIdRef.current); } catch (err) { logger.debug('already gone', err); }
             }
             widgetIdRef.current = null;
         };

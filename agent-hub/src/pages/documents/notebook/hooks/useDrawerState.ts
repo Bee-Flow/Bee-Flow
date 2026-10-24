@@ -4,6 +4,7 @@
  * reloads. Defaults: both open on first use.
  */
 import { useState, useCallback } from 'react';
+import { logger } from '../../../../utils/logger';
 
 const key = (variant: string, k: string) => `bf.workspace.${variant}.${k}`;
 
@@ -15,7 +16,7 @@ function readBool(k: string, fallback: boolean) {
 }
 
 function persist(k: string, v: boolean) {
-    try { localStorage.setItem(k, v ? '1' : '0'); } catch { /* ignore */ }
+    try { localStorage.setItem(k, v ? '1' : '0'); } catch (err) { logger.debug('ignore', err); }
 }
 
 interface DrawerDefaults {

@@ -100,7 +100,7 @@ export default function TalkImportPanel({ onComplete }: { onComplete?: () => voi
             )}
 
             {!loading && Boolean(error) && (
-                <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
+                <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs [background:color-mix(in_srgb,var(--error)_8%,var(--bg-secondary))] [border-color:var(--error)] [color:var(--text-primary)]!">
                     <div className="font-semibold">{t('meetings.talk_load_failed', 'Couldn’t load recordings')}</div>
                     <div className="text-[var(--text-secondary)]">{errorMessage(error)}</div>
                 </div>
@@ -172,7 +172,7 @@ export default function TalkImportPanel({ onComplete }: { onComplete?: () => voi
             )}
 
             {Boolean(uploadError) && (
-                <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs" style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}>
+                <div className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs [background:color-mix(in_srgb,var(--error)_8%,var(--bg-secondary))] [border-color:var(--error)] [color:var(--text-primary)]!">
                     <div className="font-semibold">{t('meetings.import_failed', 'Import failed')}</div>
                     <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
                     <button

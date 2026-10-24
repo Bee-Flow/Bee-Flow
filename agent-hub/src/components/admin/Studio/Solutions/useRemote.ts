@@ -20,7 +20,7 @@ interface KeyedRemoteState<T> extends RemoteState<T> {
  * Every Solutions screen loads lists that can genuinely be empty — the tables
  * an installer may pick, the people to share with, the Blueprints kept on this
  * instance, the Solutions themselves. Each of those, read with a plain
- * `useState([])` and a `catch {}`, renders a failure exactly like an empty
+ * `useState([])` and a silent catch, renders a failure exactly like an empty
  * answer, and a silent empty list teaches somebody their organisation has none.
  * So the status is part of the answer here rather than something each caller
  * remembers to keep.

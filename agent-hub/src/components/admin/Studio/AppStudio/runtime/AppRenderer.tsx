@@ -78,12 +78,7 @@ function UnknownType({ type }: UnknownTypeProps) {
     const { t } = useTranslation();
     return (
         <div
-            className="flex items-center gap-2 border border-dashed px-3 py-2 text-sm"
-            style={{
-                borderColor: 'var(--border-default)',
-                color: 'var(--text-muted)',
-                borderRadius: 'var(--app-radius)',
-            }}
+            className="flex items-center gap-2 border border-dashed px-3 py-2 text-sm [border-color:var(--border-default)]! [color:var(--text-muted)]! [border-radius:var(--app-radius)]"
         >
             <FileQuestion className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span>{t('studio_apps_runtime.renderer.unknown_component', 'Unknown component: {type}', { type: String(type) })}</span>
@@ -230,7 +225,7 @@ function DisabledWrap({ children }: DisabledWrapProps) {
                 data-app-disabled="true"
                 aria-disabled="true"
                 inert={true}
-                style={{ opacity: 0.6, pointerEvents: 'none' }}
+                className="[opacity:0.6] [pointer-events:none]"
             >
                 {children}
             </div>
@@ -491,13 +486,8 @@ export default function AppRenderer({
                 >
                     {screenHidden ? (
                         <div
-                            className="flex items-center gap-2 border border-dashed px-4 py-6 text-sm"
+                            className="flex items-center gap-2 border border-dashed px-4 py-6 text-sm [border-color:var(--border-default)]! [color:var(--text-muted)]! [border-radius:var(--app-radius)]"
                             data-app-screen-role-hidden="true"
-                            style={{
-                                borderColor: 'var(--border-default)',
-                                color: 'var(--text-muted)',
-                                borderRadius: 'var(--app-radius)',
-                            }}
                         >
                             <EyeOff className="w-4 h-4 shrink-0" aria-hidden="true" />
                             {/* A real viewer reaches this too (a screen gated away

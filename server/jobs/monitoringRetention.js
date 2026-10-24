@@ -170,7 +170,7 @@ function makeMonitoringRetentionPass(deps) {
             log.error('[monitoringRetention] pass error:', e.message);
         } finally {
             if (client) {
-                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
                 client.release();
             }
             if (acquired) deps.recordJobRun({ job: 'monitoring_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

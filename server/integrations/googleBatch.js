@@ -28,6 +28,7 @@
 const crypto = require('crypto');
 const { refreshAccessToken } = require('./googleClient');
 const { parseRetryAfter, backoffDelay, sleep } = require('../core/http/retryAfter');
+const log = require('../telemetry/log');
 
 const GMAIL_BATCH_ENDPOINT = 'https://gmail.googleapis.com/batch/gmail/v1';
 /** Google's hard limit: 101 parts fail the whole batch with 400. */
@@ -129,7 +130,7 @@ function parsePart(chunk) {
     /** @type {any} */
     let body = bodyText;
     if (bodyText && (headers['content-type'] || '').includes('json')) {
-        try { body = JSON.parse(bodyText); } catch { /* keep the text */ }
+        try { body = JSON.parse(bodyText); } catch (err) { log.debug('keep the text', err); }
     }
     // We send `<x>`; Google answers `<response-x>`.
     const contentId = (mime['content-id'] || '').replace(/^<|>$/g, '').replace(/^response-/, '');
@@ -329,7 +330,7 @@ async function googleBatch(session, requests, opts = {}) {
             }
             if (response.status === 401) throw new Error('NOT_CONNECTED');
             let message = `Google batch request failed: ${response.status}`;
-            try { message = JSON.parse(text)?.error?.message || message; } catch { /* not JSON */ }
+            try { message = JSON.parse(text)?.error?.message || message; } catch (err) { log.debug('not JSON', err); }
             throw new Error(message);
         }
     }

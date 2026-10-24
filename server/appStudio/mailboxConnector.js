@@ -18,6 +18,7 @@
 
 const emailFetch = require('../services/email/fetch');
 const { resolveMailboxIdentity, sharedModeFor } = require('./mailboxIdentity');
+const log = require('../telemetry/log');
 // The shipped table shapes live in a leaf module so the editor catalog
 // (componentSpecs.js) can serve them without loading this connector.
 const {
@@ -262,10 +263,7 @@ async function runMailboxConnector(connector, ctx = {}) {
                         _parentIndex: i,
                     });
                 }
-            } catch {
-                // One unreadable attachment list must not lose the whole batch —
-                // the message row is the valuable part.
-            }
+            } catch (err) { log.debug('One unreadable attachment list must not lose the whole batch — the message row is the valuable part.', err); }
         }
     }
 

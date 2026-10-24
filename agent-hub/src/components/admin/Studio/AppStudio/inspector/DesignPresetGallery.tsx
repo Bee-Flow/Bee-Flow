@@ -28,8 +28,7 @@ function NavGlyph({ style }: { style: string | undefined }) {
     // Tabs: a bar across the top. Sidebar: a rail down the left.
     return (
         <span
-            className="inline-flex h-4 w-5 overflow-hidden"
-            style={{ border: '1px solid var(--border-default)', borderRadius: '3px' }}
+            className="inline-flex h-4 w-5 overflow-hidden [border:1px_solid_var(--border-default)] [border-radius:3px]"
             aria-hidden="true"
         >
             {style === 'sidebar' ? (

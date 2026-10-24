@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import NcScopeSection from './NcScopeSection';
 import { authFetch } from '../../../utils/helpers';

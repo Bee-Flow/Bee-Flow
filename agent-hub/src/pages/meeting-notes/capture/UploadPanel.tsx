@@ -51,7 +51,7 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
                     className="hidden"
                     onChange={(e) => handleFiles(e.target.files)}
                 />
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)', color: 'var(--accent-primary)' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]">
                     <Upload className="w-7 h-7" />
                 </div>
                 <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -70,8 +70,7 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
             )}
             {Boolean(uploadError) && isTooLongNoFallback && (
                 <div
-                    className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs"
-                    style={{ background: 'color-mix(in srgb, var(--warning) 8%, var(--bg-secondary))', borderColor: 'var(--warning)', color: 'var(--text-primary)' }}
+                    className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs [background:color-mix(in_srgb,var(--warning)_8%,var(--bg-secondary))] [border-color:var(--warning)] [color:var(--text-primary)]!"
                 >
                     <div className="font-semibold">{t('meetings.upload_too_long_title', 'Recording too long for on-device transcription')}</div>
                     <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>
@@ -89,8 +88,7 @@ export default function UploadPanel({ onComplete }: { onComplete?: () => void })
             )}
             {Boolean(uploadError) && !isTooLongNoFallback && (
                 <div
-                    className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs"
-                    style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}
+                    className="flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs [background:color-mix(in_srgb,var(--error)_8%,var(--bg-secondary))] [border-color:var(--error)] [color:var(--text-primary)]!"
                 >
                     <div className="font-semibold">{t('meetings.upload_failed', 'Upload failed')}</div>
                     <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>

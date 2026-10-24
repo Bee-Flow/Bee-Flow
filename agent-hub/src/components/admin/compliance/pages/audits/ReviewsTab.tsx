@@ -87,7 +87,11 @@ export default function ReviewsTab({ audit, orgUsers, isMobile = false, focusId 
     const [creating, setCreating] = useState(false);
     const [draft, setDraft] = useState<ReviewDraft>(EMPTY_DRAFT);
     const [frameRef, drawerMode] = useDrawerMode({ isMobile });
-    useEffect(() => { if (focusId) setSelectedId(String(focusId)); }, [focusId]);
+    const [prevFocusId, setPrevFocusId] = useState(focusId);
+    if (prevFocusId !== focusId) {
+        setPrevFocusId(focusId);
+        if (focusId) setSelectedId(String(focusId));
+    }
     const selected = useMemo(() => list.find(r => String(r.id) === String(selectedId)) || null, [list, selectedId]);
     const recordLabel = t('compliance.mr_record', 'Record review');
     const headerHasCreate = useHeaderPrimary(setHeaderActions, {

@@ -47,7 +47,7 @@ async function writeSlot(userId, webpageId, slot, content) {
     }
     const key = keyFor(userId, webpageId, slot);
     if (!content) {
-        try { await storageStore.deleteFile(key); } catch (_) {}
+        try { await storageStore.deleteFile(key); } catch (_) { log.warn('object could not be deleted from storage', _); }
         return { sha: '', size: 0 };
     }
     const buf = Buffer.from(content, 'utf8');
@@ -89,7 +89,7 @@ async function restoreSlotFromVersion(userId, webpageId, versionId, slot) {
         if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
             // No DB in this snapshot — drop the current one too so the restore
             // is a true reset to the snapshot's state.
-            try { await storageStore.deleteFile(dst); } catch (_) {}
+            try { await storageStore.deleteFile(dst); } catch (_) { log.warn('object could not be deleted from storage', _); }
             return false;
         }
         throw err;
@@ -138,7 +138,7 @@ async function purgeWebpageObjects(userId, webpageId) {
     try {
         const keys = await storageStore.listKeys(prefix);
         for (const k of keys) {
-            try { await storageStore.deleteFile(k); } catch (_) {}
+            try { await storageStore.deleteFile(k); } catch (_) { log.warn('object could not be deleted from storage', _); }
         }
         return keys.length;
     } catch (err) {

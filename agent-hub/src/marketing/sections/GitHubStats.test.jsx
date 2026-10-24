@@ -8,9 +8,9 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/GitHubStats.test.jsx
  */
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import React from 'react';
+import { it, expect, afterEach, vi } from 'vitest';
 import GitHubStats from './GitHubStats';
 
 const data = {

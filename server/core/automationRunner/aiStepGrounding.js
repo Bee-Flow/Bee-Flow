@@ -104,7 +104,7 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
                 const result = await scrubMemoryContext(block, orgShield);
                 if (result?.replacedCategories?.length > 0) block = result.scrubbed;
             }
-        } catch (_) { /* fail-open: the unscrubbed block is still the owner's own data */ }
+        } catch (err) { log.debug('fail-open: the unscrubbed block is still the owner\'s own data', err); }
         return block ? `\n\n${block}` : '';
     } catch (e) {
         log.warn(`[AutomationRunner] ai_step memory grounding skipped: ${e.message}`);

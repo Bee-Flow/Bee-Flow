@@ -1,11 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst';
-import { astToMarkdown } from '../serialization/astToMd';
-import { createState, applyTransform } from './state.js';
 import { textSelection, pos } from './selection.js';
-import * as T from './transforms.js';
+import { createState, applyTransform } from './state.js';
 import { makeTable } from './tables';
+import * as T from './transforms.js';
+import { astToMarkdown } from '../serialization/astToMd';
+import { markdownToAst } from '../serialization/mdToAst';
 
 const stateFrom = (md) => createState(markdownToAst(md));
 const toMd = (state) => astToMarkdown(state.doc).trim();

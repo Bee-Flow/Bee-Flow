@@ -145,11 +145,7 @@ export function LevelChip({ t, level }: { t: TFn; level?: string }) {
     if (!level) return null;
     return (
         <span
-            className="inline-flex items-center whitespace-nowrap flex-shrink-0 uppercase"
-            style={{
-                padding: '1px 6px', borderRadius: 999, border: '1px solid var(--border-default)',
-                fontSize: 10, fontWeight: 600, letterSpacing: '.04em', color: 'var(--text-secondary)',
-            }}
+            className="inline-flex items-center whitespace-nowrap flex-shrink-0 uppercase [padding:1px_6px] [border-radius:999px] [border:1px_solid_var(--border-default)] [font-size:10px] [font-weight:600] [letter-spacing:.04em] [color:var(--text-secondary)]"
         >
             {t(`learn.level.${level}`, level)}
         </span>

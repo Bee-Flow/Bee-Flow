@@ -96,8 +96,7 @@ export default function AdvancedGlassDisclosure({ form, setForm, saving }: LookS
                     </FormField>
 
                     <div
-                        className="rounded-xl border p-4 space-y-4"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)' }}
+                        className="rounded-xl border p-4 space-y-4 [border-color:var(--border-subtle)] [background:var(--bg-tertiary)]"
                         data-surface="default"
                     >
                         <div>
@@ -141,7 +140,7 @@ function TierEditor({ tierKey, value, onChange, disabled }: TierEditorProps) {
                     type="checkbox"
                     checked={enabled}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.checked ? TIER_DEFAULTS[tierKey] : null)}
-                    style={{ accentColor: 'var(--accent-primary)' }}
+                    className="[accent-color:var(--accent-primary)]"
                     disabled={disabled}
                 />
                 <span className="text-sm font-medium text-[var(--text-primary)]">

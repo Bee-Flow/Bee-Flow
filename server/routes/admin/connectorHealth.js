@@ -32,6 +32,7 @@ const { tagGate } = require('../../auth/gateMeta');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const log = require('../../telemetry/log');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -247,14 +248,14 @@ router.get('/admin/connector-health/mine', requireAuth, async (req, res) => {
     try {
         const sub = await userStore.getOrgSubscription(orgId);
         hasActiveSubscription = !!sub && sub.status === 'active';
-    } catch (_) { /* treat as unknown-not-active */ }
+    } catch (err) { log.debug('treat as unknown-not-active', err); }
 
     // Total successful messages — computeHealth needs it for 'inactive'.
     let messagesTotal = 0;
     try {
         const summary = await require('../../stores/usageStore').getUsageSummary({ organizationId: orgId });
         messagesTotal = Number(summary?.total_calls) || 0;
-    } catch (_) { /* 0 is safe: 'inactive' is non-actionable in the banner */ }
+    } catch (err) { log.debug('0 is safe: \'inactive\' is non-actionable in the banner', err); }
 
     const problems = await orgHealthStore.listProblems({ organizationId: orgId });
     const health = orgHealthStore.computeHealth({

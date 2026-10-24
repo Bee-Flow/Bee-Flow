@@ -177,7 +177,7 @@ export default function PublicFormPage({ token, authenticated = false, webpagesE
         const sid = fileSidRef.current;
         if (!field?.fileId || !sid) return null;
         return `${API}/${encodeURIComponent(String(token))}/s/${encodeURIComponent(sid)}/file/${encodeURIComponent(field.fileId)}`;
-    }, [token, sessionId]);
+    }, [token]);
 
     /**
      * "Open in Notebooks" — the server copies the document into a new notebook

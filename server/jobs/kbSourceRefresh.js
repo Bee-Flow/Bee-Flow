@@ -136,7 +136,7 @@ async function processDueSources() {
         log.warn('[KBSourceRefresh] tick error:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'kb_source_refresh', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

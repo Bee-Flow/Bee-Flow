@@ -11,6 +11,7 @@ const router = express.Router();
 const agentStore = require('../../stores/agentStore');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const log = require('../../telemetry/log');
 
 const AGENT_IDS = 'agentIds is a list of agent ids.';
 const BulkFavoritesBody = z.object({
@@ -72,7 +73,7 @@ router.post('/favorites/bulk', validate({ body: BulkFavoritesBody }), async (req
         const agent = await agentStore.getAgent(id).catch(() => null);
         if (!agent) continue;
         if (!(await canReadAgent(agent, userId, req))) continue;
-        try { await agentStore.addAgentFavorite(userId, id); } catch (_) { /* skip invalid */ }
+        try { await agentStore.addAgentFavorite(userId, id); } catch (err) { log.debug('skip invalid', err); }
     }
     const ids = await agentStore.listAgentFavorites(userId);
     res.json(ids);

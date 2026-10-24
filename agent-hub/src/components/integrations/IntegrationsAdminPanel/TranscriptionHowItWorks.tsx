@@ -17,7 +17,7 @@ export default function TranscriptionHowItWorks() {
                         { step: '4', title: 'Result returned', desc: 'A formatted transcript with timestamps and speaker names is returned in the chat and can be exported or summarised.' },
                     ].map(item => (
                         <li key={item.step} className="flex gap-3">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center" style={{ background: 'var(--accent-primary)', color: '#fff' }}>{item.step}</span>
+                            <span className="flex-shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center [background:var(--accent-primary)] [color:#fff]!">{item.step}</span>
                             <div>
                                 <p className="text-sm font-medium text-[var(--text-primary)]">{item.title}</p>
                                 <p className="text-xs text-[var(--text-muted)]">{item.desc}</p>

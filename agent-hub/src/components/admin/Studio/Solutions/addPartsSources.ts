@@ -1,5 +1,6 @@
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { SECTIONS, itemLabel, type SolutionSection } from './solutionSections';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Where "Add to this Solution" gets its candidates, and how a candidate becomes
@@ -126,7 +127,7 @@ export async function loadSolutionNames(): Promise<Map<string, string>> {
         for (const p of Array.isArray(list) ? list : []) {
             if (p && typeof p.id === 'string' && typeof p.name === 'string' && p.name) names.set(p.id, p.name);
         }
-    } catch { /* the names are a courtesy */ }
+    } catch (err) { logger.debug('the names are a courtesy', err); }
     return names;
 }
 

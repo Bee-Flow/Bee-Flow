@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
 import React from 'react';
+import { describe, it, expect } from 'vitest';
 import { currentThought, renderThinking } from './thinkingMarkdown';
 
 /** Lines lifted verbatim from a real local-model build of the ticket brief. */

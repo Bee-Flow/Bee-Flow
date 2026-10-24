@@ -18,6 +18,7 @@
 
 'use strict';
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const { test, beforeEach, after } = require('node:test');
 // The runner reaches automation/, integrations/ and services/ through
 // core/automationRunner/featurePorts.js; boot registers these for the server.

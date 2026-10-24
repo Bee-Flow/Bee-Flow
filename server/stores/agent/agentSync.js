@@ -5,6 +5,8 @@
  */
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
+const log = require('../../telemetry/log');
+
 async function _notifySync(orgId, agentId, action = 'pending') {
     if (!orgId) return;
     try {
@@ -20,7 +22,7 @@ async function _notifySync(orgId, agentId, action = 'pending') {
         if (config.autoSync === true) {
             require('../../services/githubSyncService').autoSyncResource(orgId, 'agent', agentId, action);
         }
-    } catch (e) { /* non-fatal — sync tracking failure should never break agent ops */ }
+    } catch (e) { log.debug('non-fatal — sync tracking failure should never break agent ops', e); }
 }
 
 module.exports = { _notifySync };

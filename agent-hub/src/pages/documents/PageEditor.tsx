@@ -8,7 +8,7 @@
 // comments (in a project), the version history, print and PDF. Viewers read;
 // nothing here interrupts typing.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
 import RichTextEditorJs from '../../editor/react/RichTextEditor';
 import { useDocumentSuggestions } from '../../api/queries/suggestions';
 import useTranslation from '../../hooks/useTranslation';
@@ -77,7 +77,9 @@ function usePageSuggestions(documentId: string, side: SidePanel, setSide: (s: Si
     const [focusedId, setFocusedId] = useState<string | null>(null);
     const seen = useRef<Set<string> | null>(null);
     const sideRef = useRef(side);
-    sideRef.current = side;
+    useLayoutEffect(() => {
+        sideRef.current = side;
+    });
     useEffect(() => {
         if (!query.data) return;
         const ids = new Set(query.data.suggestions.filter(s => s.status === 'open').map(s => s.batchId));

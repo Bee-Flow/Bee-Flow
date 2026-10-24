@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState , useLayoutEffect } from 'react';
 import useCmsBuilderStream from '../../../../hooks/useCmsBuilderStream';
 import useModelTierSelection from '../../../../hooks/useModelTierSelection';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -145,7 +145,9 @@ export default function CmsAssistantPane({
     const siteTouchedRef = useRef(new Set<string>());         // tool names from SITE_TOUCH_SURFACES that succeeded this turn
     const scrollRef = useRef<HTMLDivElement>(null);
     const bridgeRef = useRef(bridge);
-    bridgeRef.current = bridge;
+    useLayoutEffect(() => {
+        bridgeRef.current = bridge;
+    });
 
     const { modelTiers, selectedTier, setSelectedTier } = useModelTierSelection({ storageKey: 'cmsBuilderTier' });
 

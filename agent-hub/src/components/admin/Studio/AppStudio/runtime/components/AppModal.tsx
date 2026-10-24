@@ -91,17 +91,14 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
     if (mode === 'edit') {
         return (
             <div
-                className="w-full border"
-                style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-card)' }}
+                className="w-full border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card)]"
                 data-app-modal="edit"
             >
                 <div
-                    className="flex items-center gap-2 px-3 py-2 border-b"
-                    style={{ borderColor: 'var(--border-default)' }}
+                    className="flex items-center gap-2 px-3 py-2 border-b [border-color:var(--border-default)]!"
                 >
                     <span
-                        className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
-                        style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                        className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
                     >
                         {t('studio_apps_runtime.modal.badge', 'Modal')}
                     </span>
@@ -121,8 +118,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
                 <button
                     type="button"
                     onClick={() => setOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium"
-                    style={{ background: 'var(--app-primary)', color: 'var(--app-primary-contrast)', borderRadius: 'var(--app-radius)' }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium [background:var(--app-primary)] [color:var(--app-primary-contrast)]! [border-radius:var(--app-radius)]"
                     data-app-modal-trigger={node.id}
                 >
                     {triggerLabel}
@@ -145,8 +141,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
                         type="button"
                         onClick={() => setOpen(false)}
                         aria-label={t('studio_apps_runtime.modal.close', 'Close dialog')}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)]"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]"
                         data-app-modal-close={node.id}
                     >
                         <X className="w-4 h-4" aria-hidden="true" />

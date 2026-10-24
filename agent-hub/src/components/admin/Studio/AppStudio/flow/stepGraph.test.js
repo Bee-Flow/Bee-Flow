@@ -1,12 +1,10 @@
 // @vitest-environment node
-import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
 import {
     canConnect, createsCycle, graphToSteps, orderScope, parseId, sameScope,
     stepsToGraph, stripStepIds, withStepIds,
 } from './stepGraph';
 
-const require = createRequire(import.meta.url);
 // The server's own pre-order walk — the contract this codec must not break.
 const { _flattenSteps: serverFlatten } = (() => {
     // studioAppsRun does not export it, so the walk is re-stated here EXACTLY
@@ -170,7 +168,7 @@ describe('graphToSteps — the round trip', () => {
 
     it('moving a step to another branch puts it in that branch’s array', () => {
         const action = seq([{ kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'moved' }], else: [] }]);
-        const { nodes, edges } = stepsToGraph(action);
+        const { nodes } = stepsToGraph(action);
         const moved = nodes.find((n) => n.step?.message === 'moved');
         const elseEntry = nodes.find((n) => n.isEntry && n.scopeKey === 'else');
 
@@ -214,7 +212,7 @@ describe('orderScope — stable', () => {
 });
 
 describe('canConnect — what keeps the graph a tree', () => {
-    const { nodes, edges } = stepsToGraph(seq(NESTED));
+    const { nodes } = stepsToGraph(seq(NESTED));
     const flat = nodes.filter((n) => !n.isEntry && n.prefix === '');
     const inThen = nodes.filter((n) => n.scopeKey === 'then' && !n.isEntry);
 

@@ -28,6 +28,7 @@ const configStore = require('../../../stores/configStore');
 const { configuredSsoProviders } = require('../../lib/ssoProviders');
 // Cached boot-time verdict on OPAQUE_SERVER_SETUP; never loads the WASM.
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
+const log = require('../../../telemetry/log');
 
 const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');
 
@@ -73,7 +74,7 @@ module.exports = {
         let minPasswordLength = null;
         try {
             minPasswordLength = require(path.join(AUTH_DIR, 'passwordPolicy')).MIN_PASSWORD_LENGTH;
-        } catch { /* policy module missing — reported below */ }
+        } catch (err) { log.debug('policy module missing — reported below', err); }
 
         // One predicate with NIS2 Art. 21(2)(j): lib/ssoProviders.js.
         const ssoProviders = configuredSsoProviders(

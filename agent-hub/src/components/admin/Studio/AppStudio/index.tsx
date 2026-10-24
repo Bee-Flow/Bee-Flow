@@ -115,8 +115,7 @@ export default function AppStudioSection({
             <AppList onOpen={handleOpenFromList} />
             {opening && (
                 <div
-                    className="absolute inset-0 z-10 flex items-center justify-center"
-                    style={{ background: 'color-mix(in srgb, var(--bg-primary) 70%, transparent)' }}
+                    className="absolute inset-0 z-10 flex items-center justify-center [background:color-mix(in_srgb,var(--bg-primary)_70%,transparent)]"
                     role="status"
                     aria-live="polite"
                 >

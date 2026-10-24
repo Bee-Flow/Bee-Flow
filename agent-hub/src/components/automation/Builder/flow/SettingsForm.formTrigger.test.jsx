@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';

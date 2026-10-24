@@ -1,3 +1,4 @@
+import { logger } from '../../../../../../utils/logger';
 /**
  * Per-viewer display preferences for a data_grid.
  *
@@ -87,10 +88,7 @@ export function writeViewPrefs(nodeId: string | null | undefined, prefs: ViewPre
     try {
         if (Object.keys(clean).length) localStorage.setItem(PREFIX + nodeId, JSON.stringify(clean));
         else localStorage.removeItem(PREFIX + nodeId);
-    } catch {
-        // Storage full or blocked — the session keeps the setting in React
-        // state either way, so there is nothing useful to tell the reader.
-    }
+    } catch (err) { logger.debug('Storage full or blocked — the session keeps the setting in React state either way, so there is nothing useful to tell the reader.', err); }
 }
 
 /** Forget this grid's overrides and fall back to whatever the author chose. */

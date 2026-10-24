@@ -20,6 +20,7 @@ import type { CommentAnchor } from '../../api/queries/comments';
 import useTranslation from '../../hooks/useTranslation';
 import { deskColour, parseFrameMessage, type FrameKey, type FrameMessage, type FramePeer, type FrameStats, type OutlineItem } from './canvasBridge';
 import { usePreviewHtml } from './documentQueries';
+import { logger } from '../../utils/logger';
 
 export interface InsertParameter { key: string; type?: string; fields?: Array<{ key: string }> }
 
@@ -66,7 +67,7 @@ function useFrame() {
     const queued = useRef<Array<Record<string, unknown>>>([]);
     const send = useCallback((message: Record<string, unknown>) => {
         // '*' is the only usable target for an opaque-origin frame.
-        try { iframeRef.current?.contentWindow?.postMessage(message, '*'); } catch { /* frame gone */ }
+        try { iframeRef.current?.contentWindow?.postMessage(message, '*'); } catch (err) { logger.debug('frame gone', err); } // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- sandboxed srcDoc frame has an opaque origin
     }, []);
     const post = useCallback<Post>((message) => {
         if (readyRef.current && iframeRef.current?.contentWindow) send(message);

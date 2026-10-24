@@ -1,6 +1,6 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
 import { ReactFlowProvider } from '@xyflow/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import TriggerNode from './TriggerNode';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 

@@ -15,6 +15,7 @@ import BoardCard, { ColumnDot } from './BoardCard';
 import type { BoardFocus } from './BoardSettings';
 import { AnchoredMenu, ICON_BUTTON_CLASS, MENU_PANEL_CLASS, MenuItem, MenuSeparator } from './tasksMenu';
 import { statusLabel } from './taskText';
+import { logger } from '../../../../utils/logger';
 
 const COLUMN_PREFIX = 'column:';
 // Header actions show while the lane is hovered or holds focus, and always on touch screens.
@@ -30,7 +31,7 @@ function QuickAdd({ columnId, open, onOpenChange, onCreate }: {
     const submit = async () => {
         if (!title.trim() || busy) return;
         setBusy(true);
-        try { await onCreate(columnId, title.trim()); setTitle(''); } catch { /* the parent shows the error; the draft stays */ }
+        try { await onCreate(columnId, title.trim()); setTitle(''); } catch (err) { logger.debug('the parent shows the error; the draft stays', err); }
         finally { setBusy(false); }
     };
     if (!open) {

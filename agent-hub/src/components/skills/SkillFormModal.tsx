@@ -11,6 +11,7 @@ import type { TranslateParams } from '../../hooks/useTranslation';
 import type { Skill } from '../../hooks/useSkills';
 import type { SkillRecord } from './SkillCard';
 import type { TextTab, FormState, CharCountProps, SkillFormModalProps } from './SkillFormModal.types';
+import { logger } from '../../utils/logger';
 /**
  * The LIGHT skill maker — the one that opens from a chat surface and from
  * the agent's Skills tab, next to the full editor in Studio.
@@ -204,7 +205,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
             try {
                 const res = await authFetch(`${API_BASE}/skills/${encodeURIComponent(skillId)}`);
                 if (!cancelled && res.ok) setFetchedManaged(managedOf(await res.json()));
-            } catch { /* non-fatal: the 409 on save still turns the form read-only */ }
+            } catch (err) { logger.debug('non-fatal: the 409 on save still turns the form read-only', err); }
         })();
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once per skill id
@@ -311,8 +312,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                             placeholder={t('skill_form.name_placeholder', 'Skill name (e.g. meeting-summary)')}
                             aria-label={t('skill_form.name', 'Skill name')}
                             ref={nameRef}
-                            className="w-full text-base font-bold bg-transparent outline-none border-none"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="w-full text-base font-bold bg-transparent outline-none border-none [color:var(--text-primary)]!"
                         />
                         <input
                             value={form.description}
@@ -320,15 +320,13 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                             readOnly={locked}
                             placeholder={t('skill_form.description_placeholder', 'Short description…')}
                             aria-label={t('skill_form.description', 'Description')}
-                            className="w-full text-[13px] bg-transparent outline-none border-none mt-0.5"
-                            style={{ color: 'var(--text-secondary)' }}
+                            className="w-full text-[13px] bg-transparent outline-none border-none mt-0.5 [color:var(--text-secondary)]!"
                         />
                     </div>
 
                     <button
                         onClick={onCancel}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[var(--bg-tertiary)] [color:var(--text-secondary)] [background:var(--bg-tertiary)]!"
                         title={t('skill_form.close', 'Close')}
                         aria-label={t('skill_form.close', 'Close')}
                     >
@@ -380,13 +378,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                         }}
                         placeholder={t(currentTab.phKey, currentTab.phEn)}
                         aria-label={t(currentTab.labelKey, currentTab.labelEn)}
-                        className="w-full min-h-[200px] text-[13px] leading-relaxed rounded-xl border-[1.5px] p-3.5 resize-y outline-none transition-colors focus:border-[var(--accent-primary)]"
-                        style={{
-                            color: 'var(--text-primary)',
-                            background: 'var(--bg-tertiary)',
-                            borderColor: 'var(--border-subtle)',
-                            fontFamily: 'inherit',
-                        }}
+                        className="w-full min-h-[200px] text-[13px] leading-relaxed rounded-xl border-[1.5px] p-3.5 resize-y outline-none transition-colors focus:border-[var(--accent-primary)] [color:var(--text-primary)]! [background:var(--bg-tertiary)] [border-color:var(--border-subtle)]! [font-family:inherit]"
                     />
                 </div>
 
@@ -434,8 +426,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                     <div className="flex gap-2">
                         <button
                             onClick={onCancel}
-                            className="px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--bg-tertiary)]"
-                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', background: 'transparent' }}
+                            className="px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [background:transparent]!"
                         >
                             {t('skill_form.cancel', 'Cancel')}
                         </button>

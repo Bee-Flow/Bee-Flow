@@ -71,6 +71,7 @@ const { resolveRuntime } = require('../integrations/webpageFramework');
 const { executeApiHandler } = require('../integrations/webpageApiRuntime');
 const Ai = require('./webpagesPreviewAi');
 const Ask = require('./webpagesPreviewAsk');
+const log = require('../telemetry/log');
 
 // W3 — window.beeflowTables: `/:id/tables/:tid/query|insert|update`. A file
 // of its own because those routes run as THE LOGGED-IN VISITOR and not
@@ -151,7 +152,7 @@ router.all('/:id/app/*rest', requirePreviewToken, dbBridgeLimiter, async (req, r
     });
     if (out.headers) {
         for (const [k, v] of Object.entries(out.headers)) {
-            try { res.setHeader(k, v); } catch (_) { /* ignore bad header */ }
+            try { res.setHeader(k, v); } catch (err) { log.debug('ignore bad header', err); }
         }
     }
     res.status(out.status || 200).json(out.body);

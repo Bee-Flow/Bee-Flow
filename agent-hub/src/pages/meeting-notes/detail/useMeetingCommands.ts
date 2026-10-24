@@ -6,6 +6,7 @@ import * as api from '../lib/transcriptionsApi';
 import type { RegenerateArg } from '../lib/transcriptionsApi.types';
 import type { MeetingActionItem, MeetingChapter, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
 import { errorCode, errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 interface RegenerateAnswer {
     summary?: string;
@@ -149,7 +150,7 @@ export default function useMeetingCommands({ data, setLocal, refresh, onChanged,
         try {
             await navigator.clipboard.writeText(data.transcript);
             toast.success(t('meetings.transcript_copied', 'Transcript copied'));
-        } catch { /* clipboard unavailable — nothing to say */ }
+        } catch (err) { logger.debug('clipboard unavailable — nothing to say', err); }
     };
 
     /**

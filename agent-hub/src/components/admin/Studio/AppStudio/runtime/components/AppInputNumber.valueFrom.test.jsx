@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import AppInputNumber from './AppInputNumber';
 import AppForm from './AppForm';
+import AppInputNumber from './AppInputNumber';
 import { RuntimeProvider, DEFAULT_RUNTIME, buildScope } from '../RuntimeContext';
 
 /**

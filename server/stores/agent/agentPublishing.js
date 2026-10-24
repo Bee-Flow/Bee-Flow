@@ -8,6 +8,7 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 const { getAgentToolsBatch, getAgentToolsWithParamsBatch } = require('./agentTools');
 const { projectRuntime, parseConfig, buildToolParamsFromList } = require('./agentRows');
+const log = require('../../telemetry/log');
 
 async function getPublishedAgents() {
     await initDB();
@@ -73,7 +74,8 @@ async function getPublishedAgentsForUser(userGroups = [], userOrgId = null, reso
             if (agent.organization_id) return false;
         }
         let sharedGroups = [];
-        try { sharedGroups = JSON.parse(agent.shared_groups || '[]'); } catch (_) { }
+        // Unreadable restriction: fail closed. Treating it as "no restriction" would show the agent to the whole org.
+        try { sharedGroups = JSON.parse(agent.shared_groups || '[]'); } catch (err) { log.warn('shared_groups is not valid JSON, hiding the agent', err); return false; }
         // If agent has group restrictions, user must be in at least one shared group
         if (sharedGroups.length > 0) return sharedGroups.some(sg => userGroups.includes(sg));
         return true;

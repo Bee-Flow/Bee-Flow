@@ -8,6 +8,7 @@ import { isBlocking } from './SolutionControlPanel';
 import type { ContentResources, TargetedFinding } from './SolutionContentTable';
 import useProjectStream from '../../../../hooks/useProjectStream';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The data side of the Solution detail screen: the fetches, the live feed and
@@ -143,7 +144,7 @@ export function useSolutionData(projectId: string) {
             // null-vs-[] survives untouched: null = a store could not be
             // reached, and must not render as "you have none".
             if (res.ok) setResources(await res.json());
-        } catch { /* keep the previous view rather than blanking it */ } finally {
+        } catch (err) { logger.debug('keep the previous view rather than blanking it', err); } finally {
             setResourcesLoading(false);
         }
     }, [projectId]);
@@ -165,7 +166,7 @@ export function useSolutionData(projectId: string) {
         try {
             const res = await authFetch(`${API_BASE}/api/projects/${projectId}/graph`);
             if (res.ok) setGraph(await res.json());
-        } catch { /* keep the previous view */ } finally {
+        } catch (err) { logger.debug('keep the previous view', err); } finally {
             setGraphLoading(false);
         }
     }, [projectId]);

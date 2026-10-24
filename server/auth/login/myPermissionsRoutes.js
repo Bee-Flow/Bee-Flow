@@ -47,7 +47,7 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
             userOrgIds = [...orgSet];
             allowedAgentTypes = [...agentTypeSet];
         }
-    } catch (_) { }
+    } catch (_) { log.warn('group lookup failed, org and agent-type lists stay empty', _); }
 
     // Derive the beta-feature list AND the canUseFeature map from the ONE unified
     // resolver (the same resolveEntitlements that requireCapability enforces), so
@@ -77,11 +77,11 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
         } else {
             // Transient resolver outage — fall back to the legacy beta list so the
             // UI isn't hard-locked (the API still enforces authoritatively).
-            try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (_) { /* leave empty */ }
+            try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (err) { log.debug('leave empty', err); }
         }
     } catch (err) {
         log.warn('[Auth] my-permissions — entitlement resolution failed:', err?.message);
-        try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (_) { /* leave empty */ }
+        try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (err) { log.debug('leave empty', err); }
     }
 
     res.json({ permissions: perms, groups: userGroups, organizations: userOrgIds, allowedAgentTypes, betaFeatures, canUseFeature, orgRole: user?.orgRole || '' });

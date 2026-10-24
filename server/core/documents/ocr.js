@@ -25,7 +25,7 @@ function resolveMistralOcrKey(config) {
     // provider read it too): a genuine Mistral key whatever the default provider is.
     if (config.mistralApiKey) return config.mistralApiKey;
     let host = '';
-    try { host = new URL(config.url || '').hostname; } catch { /* no usable url */ }
+    try { host = new URL(config.url || '').hostname; } catch (err) { log.debug('no usable url', err); }
     const defaultIsMistral = config.providerType
         ? config.providerType === 'mistral'
         : host === 'api.mistral.ai'; // legacy single-provider config has no type

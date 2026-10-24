@@ -97,7 +97,7 @@ async function verifyCaptcha(token, req) {
     try {
         const ip = req ? clientIp(req) : null;
         if (ip) body.set('remoteip', ip);
-    } catch (_) { /* optional signal */ }
+    } catch (err) { log.debug('optional signal', err); }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);

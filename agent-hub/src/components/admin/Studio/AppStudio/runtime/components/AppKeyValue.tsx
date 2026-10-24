@@ -4,6 +4,7 @@ import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
+import { logger } from '../../../../../../utils/logger';
 
 /** App Studio runtime — 'keyValue'. Spec: server/appStudio/componentSpecs.js. */
 
@@ -40,9 +41,7 @@ function readableLeaf(value: unknown) {
                     const items = parsed.filter((v: unknown) => v != null && v !== '').map((v: unknown) => String(v));
                     return items.length ? items.join(', ') : displayValue(null);
                 }
-            } catch {
-                // Not JSON after all — show the string as authored.
-            }
+            } catch (err) { logger.debug('Not JSON after all — show the string as authored.', err); }
         }
     }
     return displayValue(value);

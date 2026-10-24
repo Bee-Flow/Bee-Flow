@@ -1,5 +1,5 @@
 import { X, Plus, Trash2, PenTool, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import Modal from '../../../components/shared/Modal';
 import useTranslation from '../../../hooks/useTranslation';
 
@@ -42,7 +42,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
     const [result, setResult] = useState<SignResult | null>(null);
 
     // Reset state when opened
-    useEffect(() => {
+    const runOnClearErrorEffect = useEffectEvent(() => {
         if (open) {
             setSigners([blankSigner()]);
             // This string is the SUBJECT LINE of the email the signer receives,
@@ -53,7 +53,8 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
             setResult(null);
             onClearError?.();
         }
-    }, [open, notebookTitle, t]);
+    });
+    useEffect(() => { return runOnClearErrorEffect(); }, [open, notebookTitle, t]);
 
     if (!open) return null;
 
@@ -96,16 +97,11 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
             className="max-w-lg"
         >
             <div
-                className="w-full rounded-2xl shadow-2xl overflow-hidden"
-                style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-subtle)',
-                    animation: 'slideDown 0.25s ease-out',
-                }}
+                className="w-full rounded-2xl shadow-2xl overflow-hidden [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [animation:slideDown_0.25s_ease-out]"
             >
                 {/* Header */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-subtle)]">
-                    <div className="p-2 rounded-xl" style={{ background: 'rgba(34,197,94,0.1)' }}>
+                    <div className="p-2 rounded-xl [background:rgba(34,197,94,0.1)]">
                         <PenTool className="w-5 h-5" style={{ color: '#22c55e' }} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -144,8 +140,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                             <span className="flex-1 truncate text-[var(--text-primary)]">
                                                 {s.name ? `${s.name} (${s.email})` : s.email}
                                             </span>
-                                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium"
-                                                style={{ background: 'rgba(234,179,8,0.1)', color: '#ca8a04' }}>
+                                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium [background:rgba(234,179,8,0.1)] [color:#ca8a04]!">
                                                 {s.status || t('notebooks.sign_pending', 'Pending')}
                                             </span>
                                         </div>
@@ -171,8 +166,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                                     aria-label={t('notebooks.signer_email', 'Email *')}
                                                     value={signer.email}
                                                     onChange={e => updateSigner(signer._uid, 'email', e.target.value)}
-                                                    className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                    className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                                 />
                                                 <input
                                                     type="text"
@@ -180,8 +174,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                                     aria-label={t('notebooks.signer_first_name', 'First name')}
                                                     value={signer.first_name}
                                                     onChange={e => updateSigner(signer._uid, 'first_name', e.target.value)}
-                                                    className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                    className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                                 />
                                                 <input
                                                     type="text"
@@ -189,8 +182,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                                     aria-label={t('notebooks.signer_last_name', 'Last name')}
                                                     value={signer.last_name}
                                                     onChange={e => updateSigner(signer._uid, 'last_name', e.target.value)}
-                                                    className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                                    className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                                 />
                                             </div>
                                             {signers.length > 1 && (
@@ -224,8 +216,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                     value={subject}
                                     onChange={e => setSubject(e.target.value)}
                                     placeholder={t('notebooks.email_subject_placeholder', 'e.g. Contract for review and signature')}
-                                    className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors"
-                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                 />
                             </div>
 
@@ -239,8 +230,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                                     onChange={e => setMessage(e.target.value)}
                                     placeholder={t('notebooks.message_placeholder', 'Add a personal message to the signers…')}
                                     rows={3}
-                                    className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors resize-none"
-                                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                    className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors resize-none [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                                 />
                             </div>
                         </>
@@ -250,8 +240,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                 {/* Inline error — the page-level banner is behind this
                     modal's backdrop, so a failure here was invisible. */}
                 {error && !result && (
-                    <div className="mx-6 mb-3 flex items-start gap-2 px-3 py-2 rounded-lg text-[12px]"
-                        style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error, #ef4444)' }} role="alert">
+                    <div className="mx-6 mb-3 flex items-start gap-2 px-3 py-2 rounded-lg text-[12px] [background:rgba(239,68,68,0.1)] [color:var(--error,#ef4444)]!" role="alert">
                         <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
                         <span className="flex-1">{error}</span>
                     </div>
@@ -262,8 +251,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                     {result ? (
                         <button
                             onClick={onClose}
-                            className="px-5 py-2 rounded-xl text-[13px] font-medium text-white"
-                            style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                            className="px-5 py-2 rounded-xl text-[13px] font-medium text-white [background:linear-gradient(135deg,#22c55e,#16a34a)]"
                         >
                             {t('notebooks.done', 'Done')}
                         </button>
@@ -271,16 +259,14 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                         <>
                             <button
                                 onClick={onClose}
-                                className="px-4 py-2 rounded-xl text-[13px] font-medium transition-colors"
-                                style={{ color: 'var(--text-secondary)', background: 'var(--bg-primary)', border: '1px solid var(--border-default)' }}
+                                className="px-4 py-2 rounded-xl text-[13px] font-medium transition-colors [color:var(--text-secondary)]! [background:var(--bg-primary)] [border:1px_solid_var(--border-default)]"
                             >
                                 {t('common.cancel', 'Cancel')}
                             </button>
                             <button
                                 onClick={handleSend}
                                 disabled={!canSend}
-                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100"
-                                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                                className="flex items-center gap-2 px-5 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 [background:linear-gradient(135deg,#22c55e,#16a34a)]"
                             >
                                 {sending ? (
                                     <>

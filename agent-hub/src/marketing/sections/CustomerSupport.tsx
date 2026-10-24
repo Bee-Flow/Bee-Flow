@@ -4,6 +4,7 @@ import { API_BASE } from '../../utils/helpers';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import type { Convo, SupportThread, SupportMessage } from './CustomerSupport.types';
+import { logger } from '../../utils/logger';
 /**
  * Customer Support — a public, CMS-placeable support widget that mirrors the
  * in-app "Help & Support" experience for logged-out website visitors.
@@ -213,7 +214,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                 setThread(payload?.thread || null);
                 setMessages(Array.isArray(payload?.messages) ? payload.messages : []);
             }
-        } catch { /* keep polling */ }
+        } catch (err) { logger.debug('keep polling', err); }
     }, [convo?.threadId, convo?.accessToken]);
     // Poll the conversation every 8s (matching the app's ThreadDetail cadence,
     // a touch faster) until it resolves/closes.
@@ -243,7 +244,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                 setReply('');
                 await loadThread(); // surface the new requester message immediately
             }
-        } catch { /* swallow — next poll recovers */ }
+        } catch (err) { logger.debug('swallow — next poll recovers', err); }
         finally { setSending(false); }
     };
     // Hooks are all above — safe to bail now. CMS already filters disabled
@@ -267,7 +268,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
         <SectionFrame id="customer-support" name="Customer Support" enabled={data.enabled}>
             <section id={id} className={sectionClass}>
                 <div className="container">
-                    <div style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
+                    <div className="max-w-[720px] [margin:0_auto] [text-align:center]">
                         {children}
                     </div>
                 </div>
@@ -285,9 +286,9 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
 
         return wrap(
                 <div className="support-card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:14px]">
                         <CheckCircle2 size={22} color={T.primary} aria-hidden="true" />
-                        <div style={{ minWidth: 0 }}>
+                        <div className="min-w-[0]">
                             <h2 className="headline-md" style={{ color: T.text, margin: 0, fontSize: 18 }}>{c.successTitle}</h2>
                             <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
                                 {thread?.subject || convo.subject} · {statusText}
@@ -295,7 +296,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+                    <div className="[display:flex] [flex-direction:column] [gap:8px] max-h-[360px] [overflow-y:auto]">
                         {messages.map(m => {
                             const meta = bubbleMeta(m.author_kind);
                             const Icon = meta.Icon;
@@ -304,9 +305,9 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: T.muted, marginBottom: 4 }}>
                                         <Icon size={12} aria-hidden="true" />
                                         <span>{m.author_display || meta.who}</span>
-                                        <span style={{ marginLeft: 'auto' }}>{formatRelative(m.created_at)}</span>
+                                        <span className="[margin-left:auto]">{formatRelative(m.created_at)}</span>
                                     </div>
-                                    <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.55 }}>{m.body}</div>
+                                    <div className="[white-space:pre-wrap] [font-size:14px] [line-height:1.55]">{m.body}</div>
                                 </div>
                             );
                         })}
@@ -320,19 +321,16 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                     </div>
 
                     {replyable ? (
-                        <div style={{ marginTop: 14 }}>
+                        <div className="[margin-top:14px]">
                             <textarea
                                 rows={2}
                                 value={reply}
                                 onChange={e => setReply(e.target.value)}
                                 placeholder="Reply…"
                                 maxLength={5000}
-                                className="support-input"
-                                // Inline min-height wins over the class's
-                                // 120px floor — the reply box starts compact.
-                                style={{ minHeight: 56 }}
+                                className="support-input min-h-[56px]"
                             />
-                            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                            <div className="[margin-top:8px] [display:flex] [justify-content:space-between] [align-items:center] [gap:12px]">
                                 <span style={{ fontSize: 12, color: T.muted }}>Our AI replies first; a human takes over if needed.</span>
                                 <button
                                     type="button"
@@ -352,7 +350,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                     ) : null}
 
                     {convo.threadUrl && (
-                        <div style={{ marginTop: 14 }}>
+                        <div className="[margin-top:14px]">
                             <a href={convo.threadUrl} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: T.primary, textDecoration: 'none', fontWeight: 600 }}>
                                 Open this conversation in its own page
                                 <ArrowRight size={14} aria-hidden="true" />
@@ -407,7 +405,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                     Deliberately NO autocomplete value and no id/htmlFor pair:
                     it must never be offered to (or filled by) a browser's
                     autofill, only by bots that fill every field they find. */}
-                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', height: 0, overflow: 'hidden' }}>
+                <div aria-hidden="true" className="[position:absolute] [left:-9999px] h-[0] [overflow:hidden]">
                     <label>Website (leave blank)
                         <input
                             type="text"
@@ -425,7 +423,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                     browsers and assistive tech can identify the purpose of
                     each field (WCAG 1.3.5). Subject/message have no matching
                     autocomplete token — none exists for them. */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:12px] [margin-bottom:12px]">
                     <div>
                         <label className="support-label" htmlFor={`${uid}-name`}>{c.nameLabel}</label>
                         <input
@@ -456,7 +454,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                         />
                     </div>
                 </div>
-                <div style={{ marginBottom: 12 }}>
+                <div className="[margin-bottom:12px]">
                     <label className="support-label" htmlFor={`${uid}-subject`}>{c.subjectLabel}</label>
                     <input
                         id={`${uid}-subject`}
@@ -470,7 +468,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                         maxLength={200}
                     />
                 </div>
-                <div style={{ marginBottom: 12 }}>
+                <div className="[margin-bottom:12px]">
                     <label className="support-label" htmlFor={`${uid}-message`}>{c.messageLabel}</label>
                     <textarea
                         id={`${uid}-message`}
@@ -484,7 +482,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
                     />
                 </div>
                 {err && <div style={errorStyle}>{err}</div>}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, marginTop: 12 }}>
+                <div className="[display:flex] [flex-direction:column] [align-items:flex-end] [gap:6px] [margin-top:12px]">
                     <button
                         type="submit"
                         className="support-submit"

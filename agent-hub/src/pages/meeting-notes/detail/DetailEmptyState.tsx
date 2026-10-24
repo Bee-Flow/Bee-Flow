@@ -30,12 +30,7 @@ export default function DetailEmptyState() {
                         key={mode}
                         type="button"
                         onClick={() => openCapture(mode)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)]"
-                        style={{
-                            background: 'var(--bg-card)',
-                            borderColor: 'var(--border-default)',
-                            color: 'var(--text-primary)',
-                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors hover:bg-[var(--bg-tertiary)] [background:var(--bg-card)]! [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         <Icon className="w-4 h-4" style={{ color: kindColorVar('meeting') }} aria-hidden="true" />
                         {label}

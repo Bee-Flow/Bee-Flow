@@ -134,7 +134,7 @@ function StepCard({ step, index, chain, connector, catalog, availableFields, onP
                     {params.map(({ key, spec, required }) => (
                         <div key={key} className="flex items-center gap-2">
                             <span className="w-32 shrink-0 truncate text-xs text-[var(--text-secondary)]">
-                                {key}{required ? <span style={{ color: '#d97706' }}> *</span> : null}
+                                {key}{required ? <span className="[color:#d97706]"> *</span> : null}
                             </span>
                             <select
                                 className={`${INPUT} flex-1`}

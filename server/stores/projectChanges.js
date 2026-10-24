@@ -112,7 +112,7 @@ function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
             await client.query('COMMIT');
             return out;
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) { /* connection already gone */ }
+            try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection already gone', err); }
             log.warn(`[ProjectStore] ${label} failed:`, err.message);
             return null;
         } finally {

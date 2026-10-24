@@ -141,7 +141,7 @@ function createBuildToolHint({ lazy }) {
                     if (!row || !row.name) continue;
                     integrations.push(`${row.name} (custom org integration: ${toolNames.join(', ')})`);
                 }
-            } catch (_) { /* fail soft — hint only, the tools themselves still work */ }
+            } catch (err) { log.debug('fail soft — hint only, the tools themselves still work', err); }
         }
 
         let hint = ' You have access to tools — use them when they would help answer the user\'s question. You can call multiple tools in parallel when appropriate.';

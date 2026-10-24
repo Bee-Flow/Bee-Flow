@@ -56,8 +56,7 @@ function HandoffPill({ t, chosen }: { t: TranslateFn; chosen: HandoffSelection |
         <div className="flex flex-col gap-1">
             <span
                 data-testid="agent-role-handoff-pill"
-                className="self-start inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[12px] font-semibold"
-                style={{ background: 'color-mix(in srgb, var(--type-trigger) 14%, transparent)', color: 'var(--type-trigger)' }}
+                className="self-start inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[12px] font-semibold [background:color-mix(in_srgb,var(--type-trigger)_14%,transparent)] [color:var(--type-trigger)]!"
             >
                 <Workflow size={11} aria-hidden="true" />
                 {chosen.title || chosen.id}

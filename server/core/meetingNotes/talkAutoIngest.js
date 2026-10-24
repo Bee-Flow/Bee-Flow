@@ -148,7 +148,7 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
         // whether or not we managed to transcribe it. Leaving it armed made
         // every later manual recording in the room auto-transcribe against the
         // user's own setting.
-        if (armed) { try { await require('./talkAutoRecord').disarmToken(ownerId, token); } catch (_) {} }
+        if (armed) { try { await require('./talkAutoRecord').disarmToken(ownerId, token); } catch (_) { log.warn('could not disarm the auto-record token, a later manual recording may auto-transcribe', _); } }
     }
 }
 

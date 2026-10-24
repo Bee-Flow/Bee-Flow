@@ -59,7 +59,7 @@ export default function DocProcessingSection({
                 description={t('azure.doc_processing_toggle_desc')}
             />
 
-            <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '16px 0' }} />
+            <div className="h-[1px] [background:var(--border-subtle)] [margin:16px_0]" />
 
             {/* Document Intelligence */}
             <div className="space-y-1">
@@ -88,7 +88,7 @@ export default function DocProcessingSection({
                 helpText={hasAzureDocKey ? t('azure.key_configured') : t('azure.doc_intelligence_key_help')}
             />
 
-            <div style={{ height: '1px', background: 'var(--border-subtle)', margin: '16px 0' }} />
+            <div className="h-[1px] [background:var(--border-subtle)] [margin:16px_0]" />
 
             {/* Azure OpenAI Embeddings */}
             <div className="space-y-1">
@@ -125,8 +125,7 @@ export default function DocProcessingSection({
                 <select
                     value={azureEmbedModel}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAzureEmbedModel(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] transition-colors focus:ring-2 focus:ring-blue-500/20"
-                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full px-3 py-2 rounded-lg border outline-none text-[13px] transition-colors focus:ring-2 focus:ring-blue-500/20 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 >
                     <option value="text-embedding-3-small">{t('azure.doc_processing_text_embedding_3_small_1536_dims', 'text-embedding-3-small (1536 dims)')}</option>
                     <option value="text-embedding-3-large">{t('azure.doc_processing_text_embedding_3_large_3072_dims', 'text-embedding-3-large (3072 dims)')}</option>

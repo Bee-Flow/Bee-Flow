@@ -1,6 +1,6 @@
 import { Brain, ChevronRight, Clock, Folder, Info, ListChecks, SlidersHorizontal, User, Workflow, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useState, useEffectEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { ChatMessage, MemoryUsedItem } from '../../../hooks/useChatEngine/types';
 import { openMemoryPanel } from '../../../utils/memoryMode';
@@ -48,14 +48,15 @@ export default function MemoryUsedDisclosure({ items }: { items: MemoryUsedItem[
     const [fetched, setFetched] = useState<Record<string, string> | null>(null);
     const [forgetting, setForgetting] = useState<Record<string, Forgetting>>({});
     const needsFetch = items.some(i => !i.preview);
-    useEffect(() => {
+    const runItemsEffect = useEffectEvent(() => {
         if (!open || !needsFetch || fetched) return undefined;
         const controller = new AbortController();
         fetchMemoriesByIds(items.map(i => i.id), controller.signal)
             .then(found => setFetched(Object.fromEntries(found.map(m => [m.id, m.summary || m.content || '']))))
             .catch(() => { if (!controller.signal.aborted) setFetched({}); });
         return () => controller.abort();
-    }, [open, needsFetch, fetched]);
+    });
+    useEffect(() => { return runItemsEffect(); }, [open, needsFetch, fetched]);
     if (items.length === 0) return null;
 
     const forget = async (id: string) => {

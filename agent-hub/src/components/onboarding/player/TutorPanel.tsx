@@ -84,7 +84,7 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
     };
 
     return (
-        <div className="flex flex-col gap-2 rounded-[10px] flex-shrink-0" style={{ background: 'var(--bg-secondary)', padding: '10px 12px' }} data-testid="tutor-panel">
+        <div className="flex flex-col gap-2 rounded-[10px] flex-shrink-0 [background:var(--bg-secondary)] [padding:10px_12px]" data-testid="tutor-panel">
             <div className="flex items-center gap-1.5">
                 <MessageCircleQuestionMark className="w-[13px] h-[13px] text-[var(--accent-primary)]" aria-hidden="true" />
                 <span className="font-semibold text-[var(--text-primary)]">{t('learn.tutor.name', 'AI tutor')}</span>
@@ -99,14 +99,13 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                 <div className="flex flex-wrap gap-1 text-[11px] font-medium">
                     {QUICK_PROMPTS.map((p) => (
                         <button key={p.id} type="button" onClick={() => ask(t(p.labelKey, p.labelFallback))}
-                            className="rounded-full transition-colors hover:bg-[var(--bg-tertiary)]"
-                            style={{ padding: '3px 9px', border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}>
+                            className="rounded-full transition-colors hover:bg-[var(--bg-tertiary)] [padding:3px_9px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]! [color:var(--text-secondary)]">
                             {t(p.labelKey, p.labelFallback)}
                         </button>
                     ))}
                 </div>
             ) : (
-                <div ref={scrollRef} className="overflow-y-auto flex flex-col gap-1.5" style={{ maxHeight: 220 }}>
+                <div ref={scrollRef} className="overflow-y-auto flex flex-col gap-1.5 max-h-[220px]">
                     {thread.map((m, i) => (
                         <div key={i} className="text-[12px] leading-relaxed rounded-lg px-3 py-2 max-w-[92%]"
                             style={m.role === 'user'
@@ -123,15 +122,14 @@ export default function TutorPanel({ lessonId, step, modelTier = 'fast', onClose
                 </div>
             )}
 
-            <form className="flex items-center gap-2 rounded-lg" style={{ padding: '7px 10px', border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}
+            <form className="flex items-center gap-2 rounded-lg [padding:7px_10px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]"
                 onSubmit={(e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); ask(input); }}>
                 <input
                     value={input}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
                     placeholder={t('learn.tutor.placeholder_step', 'Ask a question about this step…')}
                     aria-label={t('learn.tutor.title', 'Ask the AI coach')}
-                    className="flex-1 min-w-0 bg-transparent outline-none text-[12px]"
-                    style={{ color: 'var(--text-primary)' }}
+                    className="flex-1 min-w-0 bg-transparent outline-none text-[12px] [color:var(--text-primary)]!"
                 />
                 <button type="submit" disabled={busy || !input.trim()} aria-label={t('learn.tutor.send', 'Send')}
                     className="grid place-items-center transition-opacity disabled:opacity-40 text-[var(--text-tertiary)]">

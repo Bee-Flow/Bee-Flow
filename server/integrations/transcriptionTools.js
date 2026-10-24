@@ -325,7 +325,7 @@ async function handleAzureTranscription(args, context) {
         log.error('[Transcription:Azure] Error:', safeMsg);
         return { error: `Azure transcription failed: ${safeMsg}` };
     } finally {
-        if (tempInputPath) { try { fs.unlinkSync(tempInputPath); } catch (_) {} }
+        if (tempInputPath) { try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); } }
     }
 }
 
@@ -363,7 +363,7 @@ async function handlePyannoteTranscription(args, context) {
         try {
             const { getUser } = require('../stores/userStore');
             orgId = (await getUser(context.userId))?.organizationId || null;
-        } catch (_) { /* no org context → no identification, transcription unaffected */ }
+        } catch (err) { log.debug('no org context → no identification, transcription unaffected', err); }
 
         const { transcribeWithPyannote } = require('../core/voice/pyannoteClient');
         const p = await transcribeWithPyannote(inputPath, { language, orgId, recorderUserId: context.userId });
@@ -388,7 +388,7 @@ async function handlePyannoteTranscription(args, context) {
         log.error('[Transcription:Pyannote] Error:', safeMsg);
         return { error: `Pyannote transcription failed: ${safeMsg}` };
     } finally {
-        if (tempInputPath) { try { fs.unlinkSync(tempInputPath); } catch (_) {} }
+        if (tempInputPath) { try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); } }
     }
 }
 
@@ -619,7 +619,7 @@ async function handleScalewayTranscription(args, context) {
         log.error('[Transcription:Scaleway] Error:', safeMsg);
         return { error: `Scaleway transcription failed: ${safeMsg}` };
     } finally {
-        try { fs.unlinkSync(tmpPath); } catch (_) { /* ignore */ }
+        try { fs.unlinkSync(tmpPath); } catch (err) { log.debug('ignore', err); }
     }
 }
 
@@ -682,7 +682,7 @@ async function handleLocalTranscription(args, context) {
         log.error('[Transcription:Local] Error:', err.message);
         return { error: `Local transcription failed: ${err.message}` };
     } finally {
-        try { fs.unlinkSync(tmpPath); } catch (_) { /* ignore */ }
+        try { fs.unlinkSync(tmpPath); } catch (err) { log.debug('ignore', err); }
     }
 }
 

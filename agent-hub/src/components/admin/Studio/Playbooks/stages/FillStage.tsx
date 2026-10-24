@@ -12,6 +12,7 @@ import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
 import type { DiagramDefinition } from '../../../../automation/Builder/flow/diagramPaneTypes';
 import type { StepRecord } from './runFilm';
 import RunExecutionView from '../../../../automation/Builder/RunExecutionView';
+import { logger } from '../../../../../utils/logger';
 
 const STEPS_POLL_MS = 1500;
 /**
@@ -60,7 +61,7 @@ export default function FillStage({ playbook, phase, dispatch, t, reducedMotion 
                 if (!alive) return;
                 setSteps(Array.isArray(d?.steps) ? d.steps : []);
                 setDefinition(d?.definition || null);
-            } catch { /* keep the last good data */ }
+            } catch (err) { logger.debug('keep the last good data', err); }
             if (alive && live) timer = setTimeout(fetchSteps, STEPS_POLL_MS);
         };
         fetchSteps();

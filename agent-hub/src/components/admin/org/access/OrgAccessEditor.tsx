@@ -111,7 +111,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
     if (!data) return null;
 
     return (
-        <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+        <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
             <header className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                     <ListChecks className="w-5 h-5" style={{ color: EMERALD }} />
@@ -123,7 +123,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
                     </span>
                 ) : null}
             </header>
-            <p className="text-sm mb-4" style={{ color: 'var(--text-muted)', maxWidth: 760 }}>
+            <p className="text-sm mb-4 [color:var(--text-muted)]! max-w-[760px]">
                 {t('admin_org.ceiling_org_access_intro', "Which capabilities this organisation may use, within your {ceiling}. Org-admins can only distribute what's allowed here: everything else is locked for them.", { ceiling: data.mode === 'cloud' ? t('admin_org.ceiling_word_plan_long', 'subscription plan') : t('admin_org.ceiling_word_licence', 'licence') })}
             </p>
 

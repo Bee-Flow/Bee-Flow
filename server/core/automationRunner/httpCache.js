@@ -381,7 +381,7 @@ async function readInto(into, key) {
     try {
         const parsed = JSON.parse(row.response_headers || '{}');
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) headers = parsed;
-    } catch { /* a hand-edited header cell is not worth failing a run over */ }
+    } catch (err) { log.debug('a hand-edited header cell is not worth failing a run over', err); }
     return {
         status,
         ok: status >= 200 && status < 300,

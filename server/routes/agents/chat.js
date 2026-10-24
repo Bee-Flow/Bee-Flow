@@ -176,7 +176,7 @@ async function userCanAccessPublishedAgent(agent, userId, req) {
                 : (() => { try { return JSON.parse(user.groups || '[]'); } catch (_) { return []; } })();
             userDirectOrgId = user.organizationId || null;
         }
-    } catch (_) { /* treat as no groups */ }
+    } catch (err) { log.debug('treat as no groups', err); }
 
     // Resolve the full set of org IDs the user belongs to
     const resolvedOrgIds = await resolveUserOrgIds(req);
@@ -313,7 +313,7 @@ router.get('/:id/embed', embedLimiter, async (req, res) => {
         starterPrompts = typeof agent.starter_prompts === 'string'
             ? JSON.parse(agent.starter_prompts)
             : (agent.starter_prompts || []);
-    } catch (e) { }
+    } catch (e) { log.debug('starter prompts are not valid JSON, show none', e); }
 
     return res.json({
         id: agent.id,

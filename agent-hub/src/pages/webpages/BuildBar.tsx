@@ -60,14 +60,7 @@ export default function BuildBar({
         <form
             onSubmit={submit}
             data-testid="webpages-build-bar"
-            className="flex flex-col gap-2"
-            style={{
-                padding: '14px 16px',
-                borderRadius: 12,
-                border: '1px solid var(--border-default)',
-                background: 'var(--bg-card)',
-                boxShadow: 'var(--shadow-sm)',
-            }}
+            className="flex flex-col gap-2 [padding:14px_16px] [border-radius:12px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [box-shadow:var(--shadow-sm)]"
         >
             <div className="flex items-center gap-3">
                 <div
@@ -92,14 +85,7 @@ export default function BuildBar({
                         'webpages.build.placeholder',
                         'Describe the page — e.g. "a status page where customers enter their quote number and see the progress from table Quotes"',
                     )}
-                    className="flex-1 min-w-0 text-[13px] outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-60"
-                    style={{
-                        padding: '9px 12px',
-                        borderRadius: 8,
-                        border: '1px solid var(--border-default)',
-                        background: 'transparent',
-                        color: 'var(--text-primary)',
-                    }}
+                    className="flex-1 min-w-0 text-[13px] outline-none focus:ring-2 focus:ring-[var(--accent-primary)] disabled:opacity-60 [padding:9px_12px] [border-radius:8px] [border:1px_solid_var(--border-default)] [background:transparent] [color:var(--text-primary)]!"
                 />
                 <SourcePicker value={sources} onChange={onSourcesChange} disabled={building} />
                 <button

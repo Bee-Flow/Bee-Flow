@@ -15,6 +15,7 @@
 import { resolveKeyToColumn } from './columnMatch';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import type { Binding } from './codeStep/codeParams';
+import { logger } from '../../../../../utils/logger';
 
 /** One column in the editor's own shape (see normaliseColumn). */
 export interface TableColumn {
@@ -199,7 +200,7 @@ function fromJsonString(text: string): ValuesMapReading | null {
     try {
         const parsed = JSON.parse(text);
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return { map: parsed, whole: null };
-    } catch { /* not JSON — the caller decides */ }
+    } catch (err) { logger.debug('not JSON — the caller decides', err); }
     return null;
 }
 

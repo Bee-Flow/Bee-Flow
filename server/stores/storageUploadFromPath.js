@@ -44,7 +44,7 @@ function createUploadFileFromPath(deps) {
             await fs.promises.copyFile(filePath, dest);
             if (contentType) {
                 try { await fs.promises.writeFile(dest + '.meta', String(contentType), 'utf8'); }
-                catch (_) { /* non-fatal, extension fallback covers this */ }
+                catch (err) { log.debug('non-fatal, extension fallback covers this', err); }
             }
             log.info(`[StorageStore:local] Uploaded: ${key} (from file)`);
             return { key };
@@ -73,7 +73,7 @@ function createUploadFileFromPath(deps) {
                 }
                 await deps.completeMultipartUpload(key, uploadId, parts);
             } catch (e) {
-                try { await deps.abortMultipartUpload(key, uploadId); } catch (_) { /* best effort */ }
+                try { await deps.abortMultipartUpload(key, uploadId); } catch (err) { log.debug('best effort', err); }
                 throw e;
             }
             log.info(`[StorageStore] Uploaded: ${key} (${(size / 1024).toFixed(1)} KB, multipart)`);

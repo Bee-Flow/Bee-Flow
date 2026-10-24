@@ -160,7 +160,7 @@ async function _applyUserCreated(org, ncUid) {
                 const ncDisplay = ncUser.displayname || ncUser.displayName;
                 if (ncDisplay && ncDisplay !== existing.displayName) updates.displayName = ncDisplay;
             }
-        } catch { /* leave identity untouched on transient errors */ }
+        } catch (err) { log.debug('leave identity untouched on transient errors', err); }
         // Groups must be resolved BEFORE the reactivation decision below.
         let ncGroups = null;
         try {
@@ -169,7 +169,7 @@ async function _applyUserCreated(org, ncUid) {
             const current = Array.isArray(existing.groups) ? existing.groups.slice().sort() : [];
             const next = expected.slice().sort();
             if (current.join(',') !== next.join(',')) updates.groups = expected;
-        } catch { /* leave groups untouched on transient errors */ }
+        } catch (err) { log.debug('leave groups untouched on transient errors', err); }
         // Reactivate only when the sync mode still admits this user.
         //
         // This used to be an unconditional `status = 'active'` at the top of

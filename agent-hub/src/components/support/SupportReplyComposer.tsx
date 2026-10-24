@@ -30,8 +30,7 @@ export default function SupportReplyComposer({ composer }: { composer: ReturnTyp
                     if (e.key === 'Escape') setShowCanned(false);
                 }}
                 placeholder={internalNote ? 'Internal note (only visible to staff)…' : 'Reply to the customer…  (type / for templates)'}
-                className="w-full px-3 py-2 rounded-md border text-sm resize-y"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full px-3 py-2 rounded-md border text-sm resize-y [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
             />
             <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -46,8 +45,7 @@ export default function SupportReplyComposer({ composer }: { composer: ReturnTyp
                 <button
                     onClick={sendReply}
                     disabled={sending || !reply.trim()}
-                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
-                    style={{ background: 'var(--accent-primary)', color: 'white' }}
+                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
                 >
                     <Send className="w-3.5 h-3.5" /> {sending ? 'Sending…' : (internalNote ? 'Save note' : 'Send reply')}
                 </button>

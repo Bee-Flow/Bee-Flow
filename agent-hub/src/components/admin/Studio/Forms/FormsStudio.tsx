@@ -516,7 +516,7 @@ export default function FormsStudio({ user = null, onNavigate = null, initialFor
     }
 
     return (
-        <div className="h-full overflow-y-auto custom-scrollbar" style={{ background: 'var(--bg-primary)' }}>
+        <div className="h-full overflow-y-auto custom-scrollbar [background:var(--bg-primary)]">
             <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
                 <FormsHeader
                     t={t}
@@ -531,8 +531,7 @@ export default function FormsStudio({ user = null, onNavigate = null, initialFor
 
                 {error && (
                     <div
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-                        style={{ background: 'color-mix(in srgb, var(--error) 12%, transparent)', color: 'var(--error)' }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs [background:color-mix(in_srgb,var(--error)_12%,transparent)] [color:var(--error)]!"
                         role="alert"
                         data-testid="forms-error"
                     >

@@ -88,8 +88,7 @@ export default function CommandPalette({ open, onClose, actions = [] }: CommandP
                         }}
                         placeholder={t('studio_apps_edit.command_palette.placeholder', 'Type a command…')}
                         aria-label={t('studio_apps_edit.command_palette.search_aria', 'Command palette search')}
-                        className="flex-1 bg-transparent text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="flex-1 bg-transparent text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [color:var(--text-primary)]!"
                     />
                     <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]">
                         <Command size={10} aria-hidden="true" /> K

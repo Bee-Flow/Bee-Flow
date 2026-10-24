@@ -20,6 +20,7 @@ import type { MirrorSource, SourceError } from './sourceMirrors';
 import type { DtColumn, DtTable } from './rowBrowser/rowBrowserModel';
 import type { SourceMirror } from './useSourceMirror';
 import type { Field, DesignerTable, UsageReader, SaveError, ManagedSaveError, ColumnDesignerProps, UsageSummaryProps, ColumnRowProps, DestructiveConfirmProps } from './ColumnDesigner.types';
+import { logger } from '../../../../utils/logger';
 
 export default function ColumnDesigner({ table, canEdit: canEditProp, usage = [], onChanged, mirror = null, onOpenUsage = null }: ColumnDesignerProps) {
     const { t } = useTranslation();
@@ -502,7 +503,7 @@ function ColumnRow({
                     <button
                         type="button"
                         draggable
-                        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', label); } catch { /* jsdom */ } drag.start(); }}
+                        onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', label); } catch (err) { logger.debug('jsdom', err); } drag.start(); }}
                         onDragEnd={drag.end}
                         onKeyDown={onHandleKey}
                         className="grid place-items-center w-6 h-6 rounded cursor-grab active:cursor-grabbing focus-visible:outline focus-visible:outline-2"

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { STEP_ICON_NAMES } from './flow/stepIcons';
 import type { FlowDefinition, FlowStep } from './flow/types';
+import { logger } from '../../../utils/logger';
 
 type Labels = Record<string, { label?: string; icon?: string }>;
 
@@ -113,9 +114,7 @@ export default function useAutoLabelSteps({ def, api, apply, enabled = true, del
                 baselineRef.current = structuralSignature(defRef.current);
                 const labels = r?.labels || {};
                 if (Object.keys(labels).length) applyRef.current(applyLabels(defRef.current as FlowDefinition, labels));
-            } catch (_) {
-                /* best-effort — naming never blocks editing */
-            } finally {
+            } catch (err) { logger.debug('best-effort — naming never blocks editing', err); } finally {
                 inFlightRef.current = false;
             }
         }, delayMs);

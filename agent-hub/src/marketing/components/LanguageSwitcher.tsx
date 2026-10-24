@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import AppIcon from '../../components/icons/AppIcon';
+import { logger } from '../../utils/logger';
 
 interface Locale {
     code: string;
@@ -24,7 +25,7 @@ function currentLocale() {
         if (param) return param.toLowerCase().split('-')[0];
         const stored = localStorage.getItem('beeflow_locale');
         if (stored) return stored.toLowerCase().split('-')[0];
-    } catch { /* ignore */ }
+    } catch (err) { logger.debug('ignore', err); }
     return (navigator.language || 'en').toLowerCase().split('-')[0];
 }
 
@@ -62,7 +63,7 @@ export default function LanguageSwitcher() {
 
     const choose = (code: string) => {
         if (code === active) { setOpen(false); return; }
-        try { localStorage.setItem('beeflow_locale', code); } catch { /* ignore */ }
+        try { localStorage.setItem('beeflow_locale', code); } catch (err) { logger.debug('ignore', err); }
         const url = new URL(window.location.href);
         url.searchParams.set('locale', code);
         window.location.assign(url.toString());
@@ -72,7 +73,7 @@ export default function LanguageSwitcher() {
     const label = (activeInfo?.code || active).toUpperCase();
 
     return (
-        <div className="lang-switcher" ref={ref} style={{ position: 'relative' }}>
+        <div className="lang-switcher [position:relative]" ref={ref}>
             <button
                 type="button"
                 className="lang-switcher-btn"

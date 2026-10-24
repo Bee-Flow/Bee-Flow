@@ -8,6 +8,7 @@ import useTranslation from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import type { NavigateFn } from '../actionRunner/runnerContext';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * NavSidebar — the left-rail shell layout (nav.style 'sidebar'). Brand on
@@ -67,7 +68,7 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
                 try {
                     if (next) window.localStorage.setItem(storageKey, '1');
                     else window.localStorage.removeItem(storageKey);
-                } catch { /* storage unavailable — collapse stays session-only */ }
+                } catch (err) { logger.debug('storage unavailable — collapse stays session-only', err); }
             }
             return next;
         });
@@ -114,10 +115,9 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
 
     return (
         <aside
-            className="app-nav-sidebar hidden sm:flex flex-col shrink-0 border-r"
+            className="app-nav-sidebar hidden sm:flex flex-col shrink-0 border-r [border-color:var(--border-default)]! [background:var(--bg-card)]"
             data-collapsed={collapsed || undefined}
             data-railed={railed || undefined}
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}
         >
             <div className="px-3 shrink-0">
                 <Brand definition={definition} />
@@ -134,8 +134,7 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
                         {railed ? (
                             // No room for a word: the group becomes a rule.
                             <div
-                                className="mx-3 my-1.5 border-t"
-                                style={{ borderColor: 'var(--border-subtle)' }}
+                                className="mx-3 my-1.5 border-t [border-color:var(--border-subtle)]!"
                                 role="separator"
                                 aria-label={group.label}
                             />
@@ -152,7 +151,7 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
                 ))}
             </nav>
 
-            <div className="shrink-0 border-t px-2 py-2 flex flex-col gap-1" style={{ borderColor: 'var(--border-subtle)' }}>
+            <div className="shrink-0 border-t px-2 py-2 flex flex-col gap-1 [border-color:var(--border-subtle)]!">
                 <UserMenu viewer={viewer} onExit={onExit} collapsed={collapsed} direction="up" />
                 {railed ? null : (
                     <button

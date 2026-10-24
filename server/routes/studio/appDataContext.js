@@ -218,8 +218,8 @@ function parseListQuery(req) {
     const q = req.query || {};
     let filters;
     let sort;
-    if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch { /* ignore */ } }
-    if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch { /* ignore */ } }
+    if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { log.debug('ignore', err); } }
+    if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { log.debug('ignore', err); } }
     if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
     return { filters, sort };
 }

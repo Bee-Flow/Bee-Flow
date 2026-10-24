@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * In-flight chat streams, kept alive across navigation.
  *
@@ -57,7 +58,7 @@ export function registerStream(key: string, controller: AbortController): void {
     // generations writing to one thread is never what the user asked for.
     const existing = streams.get(key);
     if (existing && existing.controller !== controller) {
-        try { existing.controller.abort(); } catch { /* already gone */ }
+        try { existing.controller.abort(); } catch (err) { logger.debug('already gone', err); }
         if (existing.timer) clearTimeout(existing.timer);
     }
     streams.set(key, { controller, detachedAt: null, timer: null });
@@ -83,7 +84,7 @@ export function detachStream(key: string, { canDetach = true }: { canDetach?: bo
     if (!entry) return false;
 
     if (!canDetach) {
-        try { entry.controller.abort(); } catch { /* already gone */ }
+        try { entry.controller.abort(); } catch (err) { logger.debug('already gone', err); }
         releaseStream(key);
         return false;
     }
@@ -92,7 +93,7 @@ export function detachStream(key: string, { canDetach = true }: { canDetach?: bo
     // Backstop. If the server never closes the stream, a detached fetch would
     // otherwise hold a socket for the life of the tab.
     entry.timer = setTimeout(() => {
-        try { entry.controller.abort(); } catch { /* already gone */ }
+        try { entry.controller.abort(); } catch (err) { logger.debug('already gone', err); }
         streams.delete(key);
     }, DETACHED_TIMEOUT_MS);
     return true;
@@ -120,7 +121,7 @@ export function activeStreamKeys(): string[] {
 /** Stop everything — page unload, or sign-out. */
 export function abortAllStreams(): void {
     for (const [key, entry] of streams) {
-        try { entry.controller.abort(); } catch { /* already gone */ }
+        try { entry.controller.abort(); } catch (err) { logger.debug('already gone', err); }
         if (entry.timer) clearTimeout(entry.timer);
         streams.delete(key);
     }

@@ -13,6 +13,7 @@
 
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
 import type { EditorSnapshot } from '../builderSplit/agentSaveTypes';
+import { logger } from '../../../../utils/logger';
 
 /** The agent row `PUT /agents/:id` answers with; the editor reads these fields only. */
 export interface SavedAgent {
@@ -79,7 +80,7 @@ export async function saveAgent(id: string | number | null | undefined, snapshot
 
     if (res.status === 409) {
         let body: { currentVersion?: unknown; agent?: unknown } = {};
-        try { body = await res.json(); } catch { /* non-JSON body */ }
+        try { body = await res.json(); } catch (err) { logger.debug('non-JSON body', err); }
         return { ok: false, conflict: true, currentVersion: body.currentVersion, agent: body.agent };
     }
 

@@ -222,7 +222,7 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
     // the legacy non-retrievable model (token shown once at create only).
     let tokenCipher = null;
     try { tokenCipher = configStore.encryptValue(rawToken, organizationId || null); }
-    catch (_) { /* MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable */ }
+    catch (err) { log.debug('MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable', err); }
     const passwordHash = accessMode === 'password'
         ? await argon2.hash(password, { type: argon2.argon2id })
         : null;
@@ -431,7 +431,7 @@ async function purgeSnapshotObjects(shareId) {
     try {
         const keys = await storageStore.listKeys(prefix);
         for (const k of keys) {
-            try { await storageStore.deleteFile(k); } catch (_) {}
+            try { await storageStore.deleteFile(k); } catch (_) { log.warn('snapshot object could not be deleted from storage', _); }
         }
         return keys.length;
     } catch (err) {

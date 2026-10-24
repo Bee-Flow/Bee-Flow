@@ -114,14 +114,9 @@ export default class NodeErrorBoundary extends React.Component<NodeErrorBoundary
             const detail = this.props.mode === 'edit' ? this.state.detail : null;
             return (
                 <div
-                    className="flex items-start gap-2 border border-dashed px-3 py-2 text-sm"
+                    className="flex items-start gap-2 border border-dashed px-3 py-2 text-sm [border-color:var(--border-default)]! [color:var(--text-muted)]! [border-radius:var(--app-radius)]"
                     role="alert"
                     data-app-node-error={type || 'unknown'}
-                    style={{
-                        borderColor: 'var(--border-default)',
-                        color: 'var(--text-muted)',
-                        borderRadius: 'var(--app-radius)',
-                    }}
                 >
                     <TriangleAlert className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
                     <span className="flex min-w-0 flex-col gap-0.5 text-left">

@@ -11,6 +11,7 @@
 
 const supportStore = require('../stores/supportStore');
 const userStore = require('../stores/userStore');
+const log = require('../telemetry/log');
 
 const SUPPORT_TOOLS = [
     {
@@ -205,7 +206,7 @@ function _emitThreadUpdated(thread) {
         if (!thread?.inbox_id) return;
         const { supportEvents } = require('../support/events');
         supportEvents.emit('event', { event: 'thread_updated', data: { threadId: thread.id, inboxId: thread.inbox_id } });
-    } catch { /* non-fatal */ }
+    } catch (err) { log.debug('non-fatal', err); }
 }
 
 async function _resolveThread(context) {
@@ -217,7 +218,7 @@ async function _resolveThread(context) {
 async function _recordAction(threadId, tool, payload = {}) {
     try {
         await supportStore.recordThreadEvent({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } });
-    } catch { /* audit is best-effort */ }
+    } catch (err) { log.debug('audit is best-effort', err); }
 }
 
 // The group ACL on the thread's inbox ([] = open). Used so AI assignment/
@@ -327,7 +328,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
                     const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups });
                     if (next) await supportStore.updateThread(thread.id, { assignee_user_id: next, auto_assigned: true });
                 }
-            } catch { /* auto-assign best-effort */ }
+            } catch (err) { log.debug('auto-assign best-effort', err); }
             await _recordAction(thread.id, toolName, { reason });
             result = { ok: true };
             break;
@@ -361,7 +362,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                         role = role || user.role || null;
                         accountCreatedAt = user.createdAt || user.created_at || null;
                     }
-                } catch { /* best-effort */ }
+                } catch (err) { log.debug('best-effort', err); }
             }
             return {
                 name: thread.requester_name || null,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import { ChevronRight, ChevronDown, Search, Loader2, Folder, FolderOpen } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
@@ -106,7 +106,7 @@ const FolderNode = ({ path, label, depth, selected, onToggle, t }: FolderNodePro
 };
 
 const FolderTreePicker = ({ selected, onToggle, t }: FolderTreePickerProps) => (
-    <div className="max-h-72 overflow-auto rounded-lg p-1.5" style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }} data-testid="nc-scope-folder-tree">
+    <div className="max-h-72 overflow-auto rounded-lg p-1.5 [border:1px_solid_var(--border-subtle)] [background:var(--bg-primary)]" data-testid="nc-scope-folder-tree">
         <FolderNode path="/" label={t('nc_scope.all_files_root', 'All files')} depth={0} selected={selected} onToggle={onToggle} t={t} />
     </div>
 );
@@ -118,7 +118,7 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t }:
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState('');
 
-    useEffect(() => {
+    const runTEffect = useEffectEvent(() => {
         let alive = true;
         (async () => {
             try {
@@ -132,7 +132,8 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t }:
             }
         })();
         return () => { alive = false; };
-    }, [integrationId]);
+    });
+    useEffect(() => { return runTEffect(); }, [integrationId]);
 
     if (error) return <p className="text-[11px] text-[var(--text-muted)]">{error}</p>;
     if (resources === null) {
@@ -152,15 +153,14 @@ const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t }:
     return (
         <div data-testid={`nc-scope-picker-${integrationId}`}>
             {resources.length > 8 && (
-                <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="flex items-center gap-2 px-3 py-1.5 mb-2 rounded-lg [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <Search size={13} className="text-[var(--text-tertiary)]" />
                     <input
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         placeholder={t('nc_scope.search', 'Search…')}
                         aria-label={t('nc_scope.search', 'Search…')}
-                        className="flex-1 bg-transparent outline-none text-[13px]"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="flex-1 bg-transparent outline-none text-[13px] [color:var(--text-primary)]!"
                     />
                 </div>
             )}
@@ -216,7 +216,11 @@ const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }: ScopeRo
     // Selection edits buffer locally; Done persists. Mode changes persist
     // immediately — flipping to Off must not wait behind a picker.
     const [draft, setDraft] = useState(entry.selected || []);
-    useEffect(() => { setDraft(entry.selected || []); }, [entry.selected]);
+    const [prevSelected, setPrevSelected] = useState(entry.selected);
+    if (prevSelected !== entry.selected) {
+        setPrevSelected(entry.selected);
+        setDraft(entry.selected || []);
+    }
 
     const narrowed = entry.mode !== MODE_ALL;
     const dirty = JSON.stringify(draft) !== JSON.stringify(entry.selected || []);
@@ -229,8 +233,7 @@ const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }: ScopeRo
         <div style={{ borderBottom: last ? 'none' : '1px solid var(--border-subtle)' }}>
             <button
                 type="button"
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors [background:var(--bg-secondary)]"
                 onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; }}
                 onClick={() => setOpen(v => !v)}
@@ -279,7 +282,7 @@ const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }: ScopeRo
                             {id === 'nextcloud'
                                 ? <FolderTreePicker selected={draft} onToggle={toggleDraft} t={t} />
                                 : <ResourcePicker integrationId={id} resourceLabel={entry.resource?.label || ''} selected={draft} onToggle={toggleDraft} t={t} />}
-                            <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                            <div className="flex items-center justify-between pt-1 [border-top:1px_solid_var(--border-subtle)]">
                                 <button
                                     type="button"
                                     disabled={draft.length === 0}
@@ -293,8 +296,7 @@ const ScopeRow = ({ id, entry, last, onModeChange, onSelectionSave, t }: ScopeRo
                                     type="button"
                                     disabled={!dirty}
                                     onClick={() => onSelectionSave(id, draft)}
-                                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium disabled:opacity-40"
-                                    style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}
+                                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium disabled:opacity-40 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!"
                                     data-testid={`nc-scope-done-${id}`}
                                 >
                                     {t('nc_scope.done', 'Done')}
@@ -411,7 +413,7 @@ const NcScopeSection = () => {
             <p className="text-[12px] mb-3 text-[var(--text-muted)]">
                 {t('nc_scope.intro', 'Share parts of your Nextcloud with Bee Flow the way you would with a colleague — and take them back any time. Enforced on the server for chats, automations and apps alike.')}
             </p>
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
                 {Object.entries(integrations).map(([id, entry], i, arr) => (
                     <ScopeRow
                         key={id}

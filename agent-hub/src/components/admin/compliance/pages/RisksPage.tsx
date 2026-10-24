@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState , useLayoutEffect } from 'react';
 import { Plus, Search, Sprout } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import FilterPills, { type PillTone } from '../../../shared/FilterPills';
@@ -128,7 +128,7 @@ export default function RisksPage(props: RisksPageProps) {
         if (headerAction === HEADER_ACTION_CREATE) openCreateFromHeader();
     }, [headerAction]);
 
-    const rows = Array.isArray(list) ? list : [];
+    const rows = useMemo(() => Array.isArray(list) ? list : [], [list]);
     const counts = useMemo(() => {
         if (!Array.isArray(list)) return null;
         const c: Record<string, number> = {};
@@ -157,7 +157,9 @@ export default function RisksPage(props: RisksPageProps) {
     // the seed call live here. The handles go up once (the seed reference is
     // read through a ref, so re-registering never chases a new closure).
     const seedRef = useRef(seed);
-    seedRef.current = seed;
+    useLayoutEffect(() => {
+        seedRef.current = seed;
+    });
     useEffect(() => {
         if (typeof setHeaderActions !== 'function') return undefined;
         setHeaderActions({ onAddRisk: () => setShowCreate(true), onSeedRisks: () => seedRef.current() });

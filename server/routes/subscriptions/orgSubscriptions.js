@@ -105,7 +105,7 @@ router.get('/orgs', async (req, res) => {
         let usage = {};
         try {
             usage = await usageStore.getUsageSummary({ startDate: period.startDate, endDate: new Date().toISOString(), organizationId: sub.organization_id });
-        } catch (_) { }
+        } catch (_) { log.warn('usage summary failed, answering with empty usage', _); }
 
         const plan = sub.plan_id ? await userStore.getPlan(sub.plan_id) : null;
         const markup = Number(plan?.markup_percent) || 0;
@@ -138,7 +138,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     let usage = {};
     try {
         usage = await usageStore.getUsageSummary({ startDate: period.startDate, endDate: new Date().toISOString(), organizationId: req.params.orgId });
-    } catch (_) { }
+    } catch (_) { log.warn('usage summary failed, answering with empty usage', _); }
 
     const plan = sub.plan_id ? await userStore.getPlan(sub.plan_id) : null;
     const markup = Number(plan?.markup_percent) || 0;
@@ -185,7 +185,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     try {
         const orgRow = await userStore.getOrganization(req.params.orgId);
         usagePooled = (orgRow?.usage_pooled ?? '1') !== '0' && orgRow?.usagePooled !== false;
-    } catch (_) { /* keep default = true */ }
+    } catch (err) { log.debug('keep default = true', err); }
 
     const billing = plan ? {
         plan_price: planPrice || null,
@@ -288,7 +288,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // Resolve the friendly name of a pending (scheduled) downgrade target.
     let pending_plan_name = null;
     if (sub.pending_plan_id) {
-        try { pending_plan_name = (await userStore.getPlan(sub.pending_plan_id))?.name || null; } catch (_) { /* ignore */ }
+        try { pending_plan_name = (await userStore.getPlan(sub.pending_plan_id))?.name || null; } catch (err) { log.debug('ignore', err); }
     }
 
     res.json({

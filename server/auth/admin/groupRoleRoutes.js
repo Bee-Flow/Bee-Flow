@@ -412,7 +412,7 @@ router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody
         throw new Error(`Failed to add '${targetUserId}' to group '${id}'`);
     }
     await userStore.logAccessAudit('group.member.add', 'group', id, ctx.adminId || null, null, { userId: targetUserId }, ctx.group.organizationId || null);
-    try { await invalidateAllPermissionCaches(); } catch (_) { /* best-effort */ }
+    try { await invalidateAllPermissionCaches(); } catch (err) { log.debug('best-effort', err); }
     res.json({ success: true });
 });
 
@@ -428,7 +428,7 @@ router.delete('/groups/:id/members/:userId', requireAuth, async (req, res) => {
         throw new Error(`Failed to remove '${targetUserId}' from group '${id}'`);
     }
     await userStore.logAccessAudit('group.member.remove', 'group', id, ctx.adminId || null, { userId: targetUserId }, null, ctx.group.organizationId || null);
-    try { await invalidateAllPermissionCaches(); } catch (_) { /* best-effort */ }
+    try { await invalidateAllPermissionCaches(); } catch (err) { log.debug('best-effort', err); }
     res.json({ success: true });
 });
 

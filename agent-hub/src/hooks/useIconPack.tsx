@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
 import { buildStampedCacheKey, ICONPACK_CACHE_PREFIX } from '../utils/storageMigrations';
+import { logger } from '../utils/logger';
 
 /** One override: an emoji, or an image the icon API serves. */
 export interface CustomIcon {
@@ -32,14 +33,14 @@ const cacheKeyFor = (packId: string) => buildStampedCacheKey(ICONPACK_CACHE_PREF
 // cache", so the caller renders defaults until the fetch lands.
 function readCachedPack(packId: string): IconMap | null {
     let raw = null;
-    try { raw = localStorage.getItem(cacheKeyFor(packId)); } catch { /* storage unavailable */ }
+    try { raw = localStorage.getItem(cacheKeyFor(packId)); } catch (err) { logger.debug('storage unavailable', err); }
     if (!raw) return null;
     try {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed.data === 'object' && parsed.data !== null && !Array.isArray(parsed.data)) {
             return parsed.data;
         }
-    } catch { /* corrupt entry — treat as absent */ }
+    } catch (err) { logger.debug('corrupt entry — treat as absent', err); }
     return null;
 }
 
@@ -49,7 +50,7 @@ function writeCachedPack(packId: string, icons: IconMap): void {
             data: icons,
             timestamp: Date.now(),
         }));
-    } catch { /* quota / blocked — cache is best-effort */ }
+    } catch (err) { logger.debug('quota / blocked — cache is best-effort', err); }
 }
 
 export function IconPackProvider({ children }: { children: ReactNode }) {
@@ -103,10 +104,7 @@ export function IconPackProvider({ children }: { children: ReactNode }) {
                         setActivePackId(data.activeIconPackId);
                     }
                 }
-            } catch {
-                // No pack list means the default icons, which is what renders
-                // until one arrives — nothing to report.
-            }
+            } catch (err) { logger.debug('No pack list means the default icons, which is what renders until one arrives — nothing to report.', err); }
         };
         fetchInitial();
         return () => { mounted = false; };

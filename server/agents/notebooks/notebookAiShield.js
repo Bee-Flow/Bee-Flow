@@ -36,6 +36,8 @@
  * @param {any} [deps]  test seams: getConfig, resolveShieldFor, stripInjectedText, composeScan, dlp, log
  * @returns {Promise<ShieldRefusal|ShieldPass>}  the units in order: sourceText first, then otherUnits
  */
+const telemetryLog = require('../../telemetry/log');
+
 async function shieldNotebookPrompt({ orgId, userId, notebookId, sourceText, otherUnits = [] }, deps = {}) {
     const getConfig = deps.getConfig || ((key) => require('../../stores/configStore').getConfig(key));
     const resolveShieldFor = deps.resolveShieldFor || require('../../core/privacy/orgShield').resolveShieldFor;
@@ -47,7 +49,7 @@ async function shieldNotebookPrompt({ orgId, userId, notebookId, sourceText, oth
     const { buildTokenPreservationAddendum } = require('../../core/dlp/tokenPreservationPrompt');
 
     // The notebook's token map, so tokens minted in its chat are reused here.
-    try { await dlp.getConversationTokenMapAsync(notebookId); } catch (_) { /* best-effort */ }
+    try { await dlp.getConversationTokenMapAsync(notebookId); } catch (err) { telemetryLog.debug('best-effort', err); }
     const storedShield = orgId ? await getConfig(`org_privacy_shield_${orgId}`) : null;
     const resolved = await resolveShieldFor({ orgId, userId });
     const failClosed = !!storedShield?.enabled && storedShield?.dlpFailureMode === 'fail_closed';

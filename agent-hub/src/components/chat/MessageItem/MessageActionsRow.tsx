@@ -192,8 +192,7 @@ const MessageActionsRow = ({
                         </button>
                     )}
                     {showCopyMenu && (
-                        <div className="absolute bottom-full left-0 mb-1 rounded-lg shadow-xl overflow-hidden z-[100] animate-fade-in"
-                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', minWidth: '160px', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}
+                        <div className="absolute bottom-full left-0 mb-1 rounded-lg shadow-xl overflow-hidden z-[100] animate-fade-in [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)] min-w-[160px] [box-shadow:0_4px_16px_rgba(0,0,0,0.2)]"
                         >
                             <button
                                 onClick={() => { handleCopy(); setShowCopyMenu(false); }}
@@ -211,7 +210,7 @@ const MessageActionsRow = ({
                                 <FileText className="w-3.5 h-3.5 opacity-60" />
                                 {t('chat.copy_markdown', 'Copy as Markdown')}
                             </button>
-                            <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+                            <div className="h-[1px] [background:var(--border-subtle)]" />
                             <button
                                 onClick={() => { handleExportPdf(); setShowCopyMenu(false); }}
                                 className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-primary)]"

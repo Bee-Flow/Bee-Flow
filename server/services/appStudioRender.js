@@ -32,6 +32,7 @@ const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { compile, tryEvaluate } = require('../automation/expr');
+const log = require('../telemetry/log');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
 const BUNDLE_JS = 'app-runtime.mjs';
@@ -351,7 +352,7 @@ async function captureDocument({ doc, assets, viewport }) {
                     if ((t === 'error' || t === 'warning') && consoleErrors.length < MAX_DIAG_MSGS) {
                         consoleErrors.push(`[${t}] ${m.text()}`.slice(0, 300));
                     }
-                } catch (_) { /* ignore */ }
+                } catch (err) { log.debug('ignore', err); }
             });
             page.on('pageerror', (e) => {
                 if (pageErrors.length < MAX_DIAG_MSGS) pageErrors.push(String((e && e.message) || e).slice(0, 300));
@@ -383,7 +384,7 @@ async function captureDocument({ doc, assets, viewport }) {
             try {
                 const root = await page.$('#root');
                 if (root) png = await root.screenshot({ type: 'png' });
-            } catch (_) { /* fall through to viewport shot */ }
+            } catch (err) { log.debug('fall through to viewport shot', err); }
             if (!png) png = await page.screenshot({ type: 'png' });
             return { png, mountError, consoleErrors, pageErrors };
         },
@@ -433,7 +434,7 @@ async function boundPng(pngBuffer, vp) {
             width = m2.width || width;
             height = m2.height || height;
         }
-    } catch (_) { /* sharp unavailable — keep the raw PNG */ }
+    } catch (err) { log.debug('sharp unavailable — keep the raw PNG', err); }
     return { pngBuffer, width, height };
 }
 

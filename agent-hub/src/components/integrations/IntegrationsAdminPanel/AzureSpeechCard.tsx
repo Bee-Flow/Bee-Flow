@@ -12,9 +12,9 @@ export default function AzureSpeechCard({ transcriptionProvider, hasAzureSpeechK
             <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                     {t('integ.transcription_azure_ai_speech', '☁️ Azure AI Speech')}
-                    <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#0078D418', color: '#0078D4' }}>{t('integ.transcription_microsoft_cloud', 'Microsoft Cloud')}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-normal [background:#0078D418] [color:#0078D4]!">{t('integ.transcription_microsoft_cloud', 'Microsoft Cloud')}</span>
                     {transcriptionProvider === 'azure' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
-                    {hasAzureSpeechKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
+                    {hasAzureSpeechKey && <span className="text-xs px-2 py-0.5 rounded-full [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-subtle)]">{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
                 </h3>
                 <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('integ.transcription_azure_cognitive_services_speech_with', 'Azure Cognitive Services Speech with optional Whisper model. Enterprise SLAs, GDPR-compliant regions available.')}</p>
             </div>
@@ -72,15 +72,14 @@ export default function AzureSpeechCard({ transcriptionProvider, hasAzureSpeechK
                             setTimeout(() => setMessage(null), 3000);
                         }}
                         disabled={savingAzureSpeech || (!azureSpeechRegion.trim() && !azureSpeechKey.trim())}
-                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {savingAzureSpeech ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         {t('integ.transcription_save_credentials', 'Save credentials')}
                     </button>
                 </div>
                 {/* Info */}
-                <div className="rounded-xl p-4 space-y-1.5" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 space-y-1.5 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium text-[var(--text-primary)]">{t('integ.transcription_capabilities', 'Capabilities')}</p>
                     <ul className="text-xs space-y-1 text-[var(--text-muted)]">
                         <li>{t('integ.transcription_speaker_diarization_2', '✅ Speaker diarization')}</li>
@@ -90,7 +89,7 @@ export default function AzureSpeechCard({ transcriptionProvider, hasAzureSpeechK
                         <li>{t('integ.transcription_key_encrypted_at_rest_aes_256_gcm', '🔒 Key encrypted at rest (AES-256-GCM) — never exposed in API responses')}</li>
                     </ul>
                 </div>
-                <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'var(--accent-primary)10', border: '1px solid var(--accent-primary)30' }}>
+                <div className="flex items-start gap-2 rounded-xl p-3 [background:var(--accent-primary)10] [border:1px_solid_var(--accent-primary)30]">
                     <ExternalLink className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--accent-primary)]" />
                     <p className="text-xs text-[var(--text-muted)]">
                         {t('integ.transcription_create_a_resource_in_the', 'Create a resource in the')}{' '}

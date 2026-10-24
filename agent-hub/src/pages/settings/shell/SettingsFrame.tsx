@@ -8,8 +8,7 @@ export function SettingsTitleBar({ titleLabel, onBack }: { titleLabel: string; o
     const { t } = useTranslation();
     return (
         <div
-            className="flex-shrink-0 flex items-center gap-2 px-5"
-            style={{ height: '48px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}
+            className="flex-shrink-0 flex items-center gap-2 px-5 h-[48px] [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-subtle)]"
         >
             {/* Phone back button. In a section (detail) it returns to the
                 section list; on the list it exits Settings back to chat —

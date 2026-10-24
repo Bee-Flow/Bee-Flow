@@ -4,6 +4,7 @@ import { revealForTarget } from './tourAnchors';
 import { TOUR_ENSURE_SIDEBAR_EVENT, TOUR_OPEN_DESIGNER_SECTION } from './tourSteps';
 import { DEFAULT_TIMEOUT, NAV_TIMEOUT, isShowable, pickShowable } from './tourDom';
 import type { OnboardingTourProps, TargetRect, TourStep } from './OnboardingTour.types';
+import { logger } from '../../utils/logger';
 
 interface StepTrackingDeps {
     active: boolean;
@@ -35,10 +36,10 @@ export function useTourStepTracking({ active, step, stepIndex, onNavigate, goNex
         const wantSidebar = step.ensureSidebarOpen || reveal.sidebar;
         const wantSection = step.revealSection || reveal.designerSection;
         if (wantSidebar) {
-            try { window.dispatchEvent(new CustomEvent(TOUR_ENSURE_SIDEBAR_EVENT)); } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent(TOUR_ENSURE_SIDEBAR_EVENT)); } catch (e) { logger.debug('ignore', e); }
         }
         if (wantSection) {
-            try { window.dispatchEvent(new CustomEvent(TOUR_OPEN_DESIGNER_SECTION, { detail: { section: wantSection } })); } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent(TOUR_OPEN_DESIGNER_SECTION, { detail: { section: wantSection } })); } catch (e) { logger.debug('ignore', e); }
         }
         if (step.navigateTo && onNavigate) { navigatedRef.current = true; onNavigate(step.navigateTo); }
 
@@ -64,7 +65,7 @@ export function useTourStepTracking({ active, step, stepIndex, onNavigate, goNex
                     targetElRef.current = el;
                     if (!acquired) {
                         acquired = true;
-                        try { el.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) { /* ignore */ }
+                        try { el.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e) { logger.debug('ignore', e); }
                     }
                 }
                 measure(el);
@@ -94,7 +95,7 @@ export function useTourStepTracking({ active, step, stepIndex, onNavigate, goNex
 
         raf = requestAnimationFrame(frame);
         return () => { cancelled = true; if (raf) cancelAnimationFrame(raf); };
-    }, [active, stepIndex, step, onNavigate, goNext]);
+    }, [active, stepIndex, step, onNavigate, goNext, agentCreatedRef, navigatedRef, setRect, targetElRef]);
 
     // ── Keep glued on scroll / resize ──────────────────────────────────
     useEffect(() => {
@@ -117,5 +118,5 @@ export function useTourStepTracking({ active, step, stepIndex, onNavigate, goNex
             window.removeEventListener('resize', reposition);
             window.removeEventListener('scroll', reposition, true);
         };
-    }, [active]);
+    }, [active, setRect, targetElRef]);
 }

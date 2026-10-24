@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { readNavHas, writeNavHas } from './sidebarTokens';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /** Every status bucket added up — "does this person have approvals at all". */
 const facetTotal = (facets?: { status?: Record<string, unknown> } | null): number => Object.values(facets?.status || {})
@@ -71,7 +72,7 @@ export function useApprovalsNav({ canBrowseApprovals, isOrgAdmin }: { canBrowseA
                 if (cancelled) return;
                 setHasApprovals(any);
                 writeNavHas('approvals', any);
-            } catch { /* silent — the row keeps its last known shape */ }
+            } catch (err) { logger.debug('silent — the row keeps its last known shape', err); }
         };
         load();
         const timer = setInterval(load, 30_000);

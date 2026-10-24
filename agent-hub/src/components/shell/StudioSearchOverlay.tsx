@@ -309,8 +309,7 @@ export default function StudioSearchOverlay({ isOpen, onClose, onNavigate }: {
             data-testid="studio-search-overlay"
         >
             <div
-                className="relative w-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden"
-                style={{ boxShadow: 'var(--shadow-popover, 0 20px 60px rgba(15,23,42,0.18))' }}
+                className="relative w-full rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden [box-shadow:var(--shadow-popover,0_20px_60px_rgba(15,23,42,0.18))]"
                 data-surface="opaque"
                 onKeyDown={onKeyDown}
             >

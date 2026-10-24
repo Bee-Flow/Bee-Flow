@@ -261,7 +261,7 @@ function extractAfasErrorMessage(bodyText) {
         try {
             const data = JSON.parse(bodyText);
             message = data.externalMessage || data.message || (data.error && data.error.message) || null;
-        } catch { /* not JSON after all */ }
+        } catch (err) { log.debug('not JSON after all', err); }
     }
     if (!message) return null;
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
@@ -312,7 +312,7 @@ async function afasRequest(creds, path, query = null) {
         let detail = null;
         try {
             detail = extractAfasErrorMessage(await response.text());
-        } catch { /* body unreadable — keep the mapped reason */ }
+        } catch (err) { log.debug('body unreadable — keep the mapped reason', err); }
         throw new Error(detail ? `${reason}: ${detail}` : reason);
     }
 

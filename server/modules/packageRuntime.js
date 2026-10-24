@@ -65,8 +65,8 @@ function _pushDescriptors() {
         allCaps.push(...d.capDescriptors);
         allBetas.push(...d.betaDescriptors);
     }
-    try { registry().setRemoteModuleCapabilityDescriptors(allCaps); } catch (_) { /* registry not ready */ }
-    try { betaFeatures().setRemoteBetaFeatures(allBetas); } catch (_) { /* beta not ready */ }
+    try { registry().setRemoteModuleCapabilityDescriptors(allCaps); } catch (err) { log.debug('registry not ready', err); }
+    try { betaFeatures().setRemoteBetaFeatures(allBetas); } catch (err) { log.debug('beta not ready', err); }
 }
 
 // ── Worker tick (stop; the start lives with activation) ───────────────────

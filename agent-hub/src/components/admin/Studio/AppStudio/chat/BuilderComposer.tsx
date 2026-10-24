@@ -152,8 +152,7 @@ export default function BuilderComposer({
                         data-app-ai-composer=""
                         placeholder={busy ? t('app_studio.builder.chat.placeholder_busy', 'The AI is building…') : t('app_studio.builder.chat.placeholder', 'Describe a change, or paste a screenshot…')}
                         aria-label={t('app_studio.builder.chat.composer_aria', 'Message the AI builder')}
-                        className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none disabled:opacity-60"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none disabled:opacity-60 [color:var(--text-primary)]!"
                     />
                     {/* Attach: the discoverable twin of Ctrl+V. Hidden while a
                         build runs, like every other composer control. */}

@@ -1,9 +1,8 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import { editor, editors, editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 const noIssues = { errors: [], warnings: [] };
 

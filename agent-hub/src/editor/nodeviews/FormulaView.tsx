@@ -12,6 +12,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import type { AtomNode } from '../react/AtomRenderer';
+import { logger } from '../../utils/logger';
 
 /** True when the caret sits where a reference can legally be inserted. */
 function acceptsRefAt(text: string, caret: number) {
@@ -75,7 +76,11 @@ export default function FormulaView({ node, view, editable }: FormulaViewProps) 
   const fallbackAtRef = useRef<AtomPosition | null>(null);
 
   useEffect(() => { draftRef.current = draft; }, [draft]);
-  useEffect(() => { setDraft(src || '='); }, [src]);
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (prevSrc !== src) {
+      setPrevSrc(src);
+      setDraft(src || '=');
+  }
   useEffect(() => {
     if (!editing) return;
     const at = view?.resolveAtom ? view.resolveAtom(node) : null;
@@ -87,7 +92,7 @@ export default function FormulaView({ node, view, editable }: FormulaViewProps) 
     if (!el) return;
     el.focus();
     const at = Math.min(caretRef.current, el.value.length);
-    try { el.setSelectionRange(at, at); } catch (_) { /* not selectable yet */ }
+    try { el.setSelectionRange(at, at); } catch (err) { logger.debug('not selectable yet', err); }
   }, [editing]);
 
   const rememberCaret = useCallback(() => {
@@ -114,7 +119,7 @@ export default function FormulaView({ node, view, editable }: FormulaViewProps) 
       // Keep focus in the input; the click landed on a table cell.
       requestAnimationFrame(() => {
         el.focus();
-        try { el.setSelectionRange(next.caret, next.caret); } catch (_) { /* noop */ }
+        try { el.setSelectionRange(next.caret, next.caret); } catch (err) { logger.debug('noop', err); }
       });
     }
   }, []);

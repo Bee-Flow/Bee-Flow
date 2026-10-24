@@ -138,8 +138,7 @@ function Chips({ items, labelKey, testId }: ChipsProps) {
                 return (
                     <span
                         key={i}
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] rounded"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] rounded [background:var(--bg-secondary)] [color:var(--text-secondary)]!"
                     >
                         {label}
                     </span>
@@ -149,8 +148,7 @@ function Chips({ items, labelKey, testId }: ChipsProps) {
                 <button
                     type="button"
                     onClick={() => setExpanded(!expanded)}
-                    className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded font-medium"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--app-primary)' }}
+                    className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded font-medium [background:var(--bg-secondary)] [color:var(--app-primary)]!"
                     data-app-thread-chips-toggle={expanded ? 'less' : 'more'}
                 >
                     {expanded ? t('studio_apps_runtime.thread.show_less', 'Show less') : t('studio_apps_runtime.thread.more', '+{n} more', { n: hidden })}
@@ -311,8 +309,7 @@ export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>
                             >
                                 {showAvatar ? (
                                     <span
-                                        className="inline-flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold"
-                                        style={{ width: '28px', height: '28px', background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                                        className="inline-flex items-center justify-center rounded-full shrink-0 text-[11px] font-semibold w-[28px] h-[28px] [background:var(--app-primary-soft)] [color:var(--app-primary)]!"
                                         data-app-thread-avatar="true"
                                     >
                                         {initials(rawAuthor)}

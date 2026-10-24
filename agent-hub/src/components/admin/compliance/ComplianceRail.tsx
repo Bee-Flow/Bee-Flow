@@ -273,8 +273,7 @@ export default function ComplianceRail({
                     <input value={query} onChange={(e) => setQuery(e.target.value)}
                         placeholder={t('compliance.rail_search_placeholder', 'Search checks, articles or registers…')}
                         aria-label={t('compliance.rail_search_placeholder', 'Search checks, articles or registers…')}
-                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border outline-none focus:ring-2 focus:ring-[var(--accent-primary)] [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                         data-testid={`${testId}-search`} />
                 </label>
                 <SegmentedControl size="sm" fullWidth ariaLabel={t('compliance.rail_filter_aria', 'Show all or only what needs attention')}

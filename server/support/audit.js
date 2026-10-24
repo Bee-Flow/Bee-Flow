@@ -9,6 +9,7 @@
  */
 
 const supportStore = require('../stores/supportStore');
+const log = require('../telemetry/log');
 
 // Canonical actor kind per action. Includes the historical action strings the
 // engine already emits (so backfilled + legacy events categorise correctly) and
@@ -107,7 +108,7 @@ function emit(req, { organizationId = null, inboxId = null, threadId = null, act
             actorKind: kind, actorUserId: uid, action, payload,
             ip: clientIp(req), ua: clientUa(req),
         }).catch(() => { /* never break the request */ });
-    } catch (_) { /* never break the request */ }
+    } catch (err) { log.debug('never break the request', err); }
 }
 
 /**
@@ -121,7 +122,7 @@ function emitSystem({ organizationId = null, inboxId = null, threadId = null, ac
             actorKind: actorKind || actorKindFor(action, 'system'),
             actorUserId, action, payload,
         }).catch(() => {});
-    } catch (_) { /* swallow */ }
+    } catch (err) { log.debug('swallow', err); }
 }
 
 module.exports = { ACTION_CATALOG, actorKindFor, emit, emitSystem, clientIp, clientUa };

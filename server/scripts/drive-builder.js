@@ -41,6 +41,7 @@
 const http = require('http');
 const fs = require('fs');
 const { isDeepStrictEqual } = require('util');
+const log = require('../telemetry/log');
 
 // The script lives in /tmp inside the container, so bare resolution would not
 // reach the server's modules. BEEFLOW_APP_DIR points elsewhere for a run
@@ -75,7 +76,7 @@ let pathGrammarModule = null;
 function pathGrammar() {
     if (pathGrammarModule) return pathGrammarModule;
     for (const where of ['../shared/expr/path.mjs', `${APP}/shared/expr/path.mjs`]) {
-        try { pathGrammarModule = require(where); return pathGrammarModule; } catch { /* next */ }
+        try { pathGrammarModule = require(where); return pathGrammarModule; } catch (err) { log.debug('next', err); }
     }
     throw new Error('cannot load shared/expr/path.mjs — set BEEFLOW_APP_DIR to the server directory');
 }

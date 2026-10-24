@@ -22,7 +22,7 @@
 import { select } from 'd3-selection';
 import 'd3-transition';
 import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior } from 'd3-zoom';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject, useEffectEvent } from 'react';
 
 import { K_MAX, K_MIN, type Box, type Size, type ZoomState } from './mapGeometry';
 
@@ -100,7 +100,7 @@ export function useMapZoom(svgRef: RefObject<SVGSVGElement | null>, opts: Option
 
     // The home view: on the first draw, on every resize, and on a traffic
     // change for as long as nobody has moved the map.
-    useLayoutEffect(() => {
+    const goHome = useEffectEvent(() => {
         const svg = svgRef.current;
         const z = zoomRef.current;
         if (!svg || !z || !w || !h) return;
@@ -112,7 +112,8 @@ export function useMapZoom(svgRef: RefObject<SVGSVGElement | null>, opts: Option
         select(svg).interrupt().call(z.transform, zoomIdentity.translate(home.x, home.y).scale(home.k));
         // `home` is keyed by homeKey on purpose: a new object with the same
         // framing must not snap the view back on every refresh.
-    }, [svgRef, w, h, homeKey]);
+    });
+    useLayoutEffect(() => { return goHome(); }, [svgRef, w, h, homeKey]);
 
     const run = useCallback((apply: (z: ZoomBehavior<SVGSVGElement, unknown>, animate: boolean) => void) => {
         const svg = svgRef.current;

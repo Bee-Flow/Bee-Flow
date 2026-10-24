@@ -25,6 +25,7 @@ import type { UserMenuViewer } from '../../components/admin/Studio/AppStudio/run
 import type { NavigateFn } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/runnerContext';
 import type { ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
 import type { ShellDefinition, RuntimePayload, RuntimeLoadError, RunState, ConnectionsPreflightProps, RunBodyProps, RunSurfaceProps, AppRunPageProps } from './AppRunPage.types';
+import { logger } from '../../utils/logger';
 export type { ShellDefinition } from './AppRunPage.types';
 
 // Stands in for "this viewer has no role in this app" so role gating stays
@@ -43,7 +44,7 @@ function ConnectionsPreflight({ appId }: ConnectionsPreflightProps) {
                 const list: { runAs?: string; integrationId?: string }[] = Array.isArray(body?.connectors) ? body.connectors : [];
                 const next = [...new Set(list.filter((c) => c.runAs === 'viewer' && c.integrationId).map((c) => c.integrationId as string))];
                 if (alive) setProviders(next);
-            } catch { /* best-effort pre-flight — the banner just stays hidden */ }
+            } catch (err) { logger.debug('best-effort pre-flight — the banner just stays hidden', err); }
         })();
         return () => { alive = false; };
     }, [appId]);

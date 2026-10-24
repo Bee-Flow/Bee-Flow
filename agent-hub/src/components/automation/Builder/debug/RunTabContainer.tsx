@@ -14,6 +14,7 @@ import { usedByDownstream } from '../output/usedBy';
 import { runStepTypeMap } from '../runs/bindingMisses';
 import { routeContextOf, routeSummaryOf, type RouteContext } from '../output/routeNote';
 import { flattenPromotedKeys } from '../output/columns';
+import { logger } from '../../../../utils/logger';
 
 const deepEqual = deepEqualJs as (a: unknown, b: unknown) => boolean;
 const summariseData = summariseDataJs as (value: unknown) => { label: string } | null;
@@ -76,10 +77,7 @@ function RunTabContainer({
         if (!path) return;
         try {
             void navigator.clipboard?.writeText(path);
-        } catch {
-            // Clipboard API can be blocked in non-secure contexts: a silent
-            // fail is preferable to a noisy error here.
-        }
+        } catch (err) { logger.debug('Clipboard API can be blocked in non-secure contexts: a silent fail is preferable to a noisy error here.', err); }
     }, []);
 
     const stepId = step?.id ?? null;

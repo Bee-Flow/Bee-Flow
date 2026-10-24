@@ -213,18 +213,27 @@ const DsrPage = forwardRef<DsrPageHandle, DsrPageProps>(function DsrPage({
     onCountsChange,
 }, ref) {
     const { t } = useTranslation();
-    const now = useNow();
+    const now = useNow(60_000);
     const src = useDsrSource(data?.dsr, tab !== 'public_form');
     const [frameRef, drawerMode] = useDrawerMode({ isMobile, drawerWidth: DRAWER_WIDTH });
 
     const [filter, setFilter] = useState('open');
     const [query, setQuery] = useState('');
     const [selectedId, setSelectedId] = useState(focusId !== null && focusId !== undefined ? String(focusId) : null);
-    const [captureOpen, setCaptureOpen] = useState(false);
+    const [captureOpen, setCaptureOpen] = useState(!!captureSignal);
 
-    useEffect(() => { if (focusId !== null && focusId !== undefined) setSelectedId(String(focusId)); }, [focusId]);
-    useEffect(() => { if (captureSignal) setCaptureOpen(true); }, [captureSignal]);
-    useImperativeHandle(ref, () => ({ openCapture: () => setCaptureOpen(true), refresh: () => src.refresh() }), [src.refresh]);
+    const [prevFocusId, setPrevFocusId] = useState(focusId);
+    if (prevFocusId !== focusId) {
+        setPrevFocusId(focusId);
+        if (focusId !== null && focusId !== undefined) setSelectedId(String(focusId));
+    }
+    const [prevCaptureSignal, setPrevCaptureSignal] = useState(captureSignal);
+    if (prevCaptureSignal !== captureSignal) {
+        setPrevCaptureSignal(captureSignal);
+        if (captureSignal) setCaptureOpen(true);
+    }
+    const refreshSource = src.refresh;
+    useImperativeHandle(ref, () => ({ openCapture: () => setCaptureOpen(true), refresh: () => refreshSource() }), [refreshSource]);
 
     // The header's primary ("Record a request") is rendered by the hub; the
     // modal lives here, so the hub gets the handle and loses it on unmount.

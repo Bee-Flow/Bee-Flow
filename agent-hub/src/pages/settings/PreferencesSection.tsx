@@ -137,7 +137,11 @@ const PreferencesSection = ({
 }: PreferencesSectionProps) => {
     const { t, locale, setLocale } = useTranslation();
     const [localUser, setLocalUser] = useState(user);
-    useEffect(() => { if (user) setLocalUser(user); }, [user]);
+    const [prevUser, setPrevUser] = useState(user);
+    if (prevUser !== user) {
+        setPrevUser(user);
+        if (user) setLocalUser(user);
+    }
 
     const isSimpleMode = !!localUser?.simpleMode;
     // "AI in team chats" acts only in projects: shown where they can be used.
@@ -222,8 +226,7 @@ const PreferencesSection = ({
             {/* ── Profile strip ── */}
             {localUser && (
                 <div
-                    className="flex items-center gap-4 px-5 py-4 rounded-xl"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+                    className="flex items-center gap-4 px-5 py-4 rounded-xl [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]"
                 >
                     <AvatarPicker user={localUser} onSaved={handleAvatarSaved} />
                     <div className="flex-1 min-w-0">
@@ -254,8 +257,7 @@ const PreferencesSection = ({
             <div>
                 <SectionLabel>{t('settings.general_section', 'General')}</SectionLabel>
                 <div
-                    className="rounded-xl"
-                    style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}
+                    className="rounded-xl [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)]"
                 >
                     {hasLanguageRow && (
                         <Row
@@ -296,8 +298,7 @@ const PreferencesSection = ({
                     )}
                     {showStartup && showAgentSelect && (
                         <div
-                            className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5"
-                            style={{ borderTop: '1px solid var(--border-subtle)' }}
+                            className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-5 py-3.5 [border-top:1px_solid_var(--border-subtle)]"
                         >
                             <p className="text-[13px] font-medium flex-1 min-w-0 text-[var(--text-primary)]">
                                 {t('settings.select_agent_label')}
@@ -306,12 +307,7 @@ const PreferencesSection = ({
                                 value={defaultAgentId}
                                 onChange={e => setDefaultAgentId(e.target.value)}
                                 aria-label={t('settings.select_agent_label')}
-                                className="w-full sm:w-auto sm:min-w-[180px] px-3 py-1.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] transition-colors text-[13px]"
-                                style={{
-                                    borderColor: 'var(--border-default)',
-                                    color: 'var(--text-primary)',
-                                    background: 'var(--bg-primary)',
-                                }}
+                                className="w-full sm:w-auto sm:min-w-[180px] px-3 py-1.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] transition-colors text-[13px] [border-color:var(--border-default)]! [color:var(--text-primary)]! [background:var(--bg-primary)]"
                             >
                                 <option value="">{t('settings.select_agent')}</option>
                                 {agents.map((agent: PreferencesAgent) => (
@@ -356,8 +352,7 @@ const PreferencesSection = ({
                 <div className="flex justify-end pt-2">
                     <button
                         onClick={onLogout}
-                        className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium transition-colors"
-                        style={{ color: '#dc2626', background: 'transparent' }}
+                        className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium transition-colors [color:#dc2626]! [background:transparent]"
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(220,38,38,0.08)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >

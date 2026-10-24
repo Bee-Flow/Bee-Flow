@@ -35,7 +35,7 @@ async function auditAndPropagate(action, moduleId, actorId, beforeStatus, afterS
 // TTL cache) so back-to-back toggles audit the true previous state.
 async function currentStatus(entry) {
     let row = null;
-    try { row = await store().getState(entry.id); } catch (_) { /* default below */ }
+    try { row = await store().getState(entry.id); } catch (err) { log.debug('default below', err); }
     return statusFor(entry, row);
 }
 

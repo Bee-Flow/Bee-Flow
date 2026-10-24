@@ -149,11 +149,10 @@ export default function EditorToolbar({
   };
 
   return (
-    <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b overflow-x-auto custom-scrollbar"
-      style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}
+    <div className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b overflow-x-auto custom-scrollbar [border-color:var(--border-subtle)]! [background:var(--bg-secondary)]"
       role="toolbar" aria-label={tt('notebooks.toolbar', 'Editor toolbar')}>
       {/* undo / redo */}
-      <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg shrink-0" style={{ background: 'var(--bg-tertiary)' }}>
+      <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-lg shrink-0 [background:var(--bg-tertiary)]">
         <Btn onClick={() => chain().undo().run()} disabled={!editor.can().undo()} icon={Undo} title={tt('notebooks.undo', 'Undo')} />
         <Btn onClick={() => chain().redo().run()} disabled={!editor.can().redo()} icon={Redo} title={tt('notebooks.redo', 'Redo')} />
       </div>
@@ -274,7 +273,7 @@ export default function EditorToolbar({
       {/* AI */}
       {askAiEnabled && (onAIFill || onAIAction) && (
         <Dropdown trigger={(open, setOpen) => (
-          <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium shrink-0 hover:bg-[var(--bg-tertiary)]" style={{ color: 'var(--accent-primary)' }} title={tt('notebooks.ai', 'AI')}>
+          <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium shrink-0 hover:bg-[var(--bg-tertiary)] [color:var(--accent-primary)]!" title={tt('notebooks.ai', 'AI')}>
             <Wand2 className="w-3.5 h-3.5" /> {tt('notebooks.ai', 'AI')} <ChevronDown className="w-3 h-3 opacity-50" />
           </button>
         )}>
@@ -306,5 +305,5 @@ export default function EditorToolbar({
 }
 
 function Divider() {
-  return <div className="w-px h-5 mx-0.5 shrink-0" style={{ background: 'var(--border-subtle)' }} />;
+  return <div className="w-px h-5 mx-0.5 shrink-0 [background:var(--border-subtle)]" />;
 }

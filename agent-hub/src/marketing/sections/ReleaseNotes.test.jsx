@@ -2,9 +2,9 @@
  * ReleaseNotes section — rendering and the fail-soft contract.
  */
 
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
 import ReleaseNotes, { groupByKind, formatReleaseDate } from './ReleaseNotes';
 
 const ENTRY = {

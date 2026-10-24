@@ -97,7 +97,11 @@ export default function ComplianceMobile({
     const sec = section || sectionById(active);
     const [view, setView] = useState<string>('overview');
     // Coming back home from a section lands on the overview segment again.
-    useEffect(() => { if (!atHome) setView('overview'); }, [atHome]);
+    const [prevAtHome, setPrevAtHome] = useState(atHome);
+    if (prevAtHome !== atHome) {
+        setPrevAtHome(atHome);
+        if (!atHome) setView('overview');
+    }
 
     const counts = data?.counts || null;
     const core = data?.core || {};
@@ -120,13 +124,12 @@ export default function ComplianceMobile({
     return (
         <div data-testid="compliance-mobile" data-view={homeTab ? 'tab' : atHome ? view : 'section'} className="flex flex-col h-full min-h-0 bg-[var(--bg-primary)]">
             {/* ── Top bar ── */}
-            <div className="flex items-center gap-2.5 px-4 py-1.5 flex-shrink-0" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-default)' }}>
+            <div className="flex items-center gap-2.5 px-4 py-1.5 flex-shrink-0 [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-default)]">
                 <button type="button" data-testid="mobile-back" onClick={goBack} className={`${ICON_BUTTON} -ml-2.5 text-[var(--text-secondary)]`}
                     aria-label={atHome && !homeTab ? t('compliance.back_to_settings', 'Back to settings') : t('compliance.mob_back_home', 'Back to overview')}>
                     <ChevronLeft size={20} aria-hidden="true" />
                 </button>
-                <div className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0"
-                    style={{ background: 'color-mix(in srgb, var(--kind-compliance) 18%, transparent)', color: 'var(--kind-compliance)' }}>
+                <div className="w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 [background:color-mix(in_srgb,var(--kind-compliance)_18%,transparent)] [color:var(--kind-compliance)]">
                     <Scale size={15} aria-hidden="true" />
                 </div>
                 <div className="flex-1 min-w-0">

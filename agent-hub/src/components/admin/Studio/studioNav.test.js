@@ -171,7 +171,7 @@ describe('studioAppForKind', () => {
     it('eerste treffer wint — twee secties kunnen dezelfde soort dragen', () => {
         for (const kind of new Set(STUDIO_APPS.filter((a) => a.kind).map((a) => a.kind))) {
             const first = STUDIO_APPS.find((a) => a.kind === kind);
-            expect(studioAppForKind(kind), kind).toBe(first);
+            expect(studioAppForKind(kind)?.id, kind).toBe(first?.id);
         }
     });
 

@@ -88,6 +88,7 @@ const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { flattenSteps, normalizeSequence, sanitizeBag } = require('../appStudio/actionSequence');
+const log = require('../telemetry/log');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -379,8 +380,8 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
 
         let filters;
         let sort;
-        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch { /* compiler validates */ } }
-        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch { /* compiler validates */ } }
+        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { log.debug('compiler validates', err); } }
+        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { log.debug('compiler validates', err); } }
         if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
@@ -507,7 +508,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
     await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
     const scan = await scanBuffer(file.buffer);
     if (!scan.clean) {
-        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort */ }
+        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort', err); }
         return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
     }
 
@@ -596,7 +597,7 @@ router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requ
     await studioAppDataStore.deleteAttachment(attachment.id, found.app.id, found.app.userId);
     const stillUsed = await studioAppDataStore.countAttachmentsBySha(found.app.id, found.app.userId, attachment.sha256);
     if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
-        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (_) { /* swept later */ }
+        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (err) { log.debug('swept later', err); }
     }
     return res.json({ success: true });
 });

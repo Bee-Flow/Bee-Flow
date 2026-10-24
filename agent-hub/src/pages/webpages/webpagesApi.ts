@@ -1,5 +1,6 @@
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { ExtraContent, ExtraFileMeta } from './webpageEditorTypes';
+import { logger } from '../../utils/logger';
 
 export interface ApiOptions extends Omit<RequestInit, 'headers'> {
     headers?: Record<string, string>;
@@ -101,7 +102,7 @@ export async function fetchWebpageBundle(id: string | number) {
     await Promise.all(extrasList.map(async (meta: ExtraFileMeta) => {
         try {
             extraContents[meta.path] = await fetchExtraContent(id, meta);
-        } catch { /* ignore single-file failures */ }
+        } catch (err) { logger.debug('ignore single-file failures', err); }
     }));
     return {
         webpage,

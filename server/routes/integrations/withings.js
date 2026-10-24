@@ -271,7 +271,7 @@ function callbackHTML(message, success) {
 </div>
 <script>
   if (window.opener) {
-    try { window.opener.postMessage({ type: 'withings-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch(e) {}
+    try { window.opener.postMessage({ type: 'withings-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch (e) { console.debug("opener gone", e); }
     setTimeout(() => window.close(), 1500);
   }
 </script>

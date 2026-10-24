@@ -6,6 +6,7 @@ import { resolveLessonSteps, DEFAULT_LESSON_ID, LESSON_COMPLETE_EVENT } from './
 import { resolveTourCompletionNavigation } from './tourCompletion';
 import { TOUR_SEEN_KEY, TOUR_START_EVENT } from './tourSteps';
 import type { OnboardingTourProps, TargetRect, TourStartDetail, TourStep } from './OnboardingTour.types';
+import { logger } from '../../utils/logger';
 
 /**
  * The run of a tour: which lesson is running, the steps and the current one,
@@ -59,20 +60,20 @@ export function useTourRun({ user, onNavigate, currentPage }: OnboardingTourProp
         runningRef.current = false;
         setRect(null);
         targetElRef.current = null;
-        try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (e) { /* ignore */ }
+        try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (e) { logger.debug('ignore', e); }
 
         // Legacy intro path — unchanged so the first-login auto-start never
         // re-fires and the user lands back on chat.
         if (isIntro) {
-            try { scopedStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) { /* ignore */ }
+            try { scopedStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) { logger.debug('ignore', e); }
             try {
                 await userSettingsApi.save({ [TOUR_SEEN_KEY]: true });
-            } catch (e) { /* best-effort — local guard already set */ }
+            } catch (e) { logger.debug('best-effort — local guard already set', e); }
         }
 
         // Per-lesson completion for the Learning Center (also recorded for the
         // intro lesson so its card shows a checkmark).
-        try { await markLessonComplete(user, lessonId); } catch (e) { /* best-effort */ }
+        try { await markLessonComplete(user, lessonId); } catch (e) { logger.debug('best-effort', e); }
 
         // The home-jump is intro-tour behaviour only, and only for first-time
         // onboarding: a run started WITH a return context (e.g. the Learning
@@ -85,7 +86,7 @@ export function useTourRun({ user, onNavigate, currentPage }: OnboardingTourProp
         returnToRef.current = null;
 
         // Let an open Learning Center flip this lesson's card to "Replay".
-        try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (e) { /* ignore */ }
+        try { window.dispatchEvent(new CustomEvent(LESSON_COMPLETE_EVENT, { detail: { lessonId } })); } catch (e) { logger.debug('ignore', e); }
     }, [onNavigate, user]);
 
     const goNext = useCallback(() => {
@@ -108,8 +109,8 @@ export function useTourRun({ user, onNavigate, currentPage }: OnboardingTourProp
         if (typeof window !== 'undefined' && window.innerWidth < 768) { autoStartTriedRef.current = true; return; }
         autoStartTriedRef.current = true;
         let cancelled = false;
-        try { scopedStorage.setCurrentUser(user.id); } catch (e) { /* ignore */ }
-        try { if (scopedStorage.getItem(TOUR_SEEN_KEY) === '1') return; } catch (e) { /* ignore */ }
+        try { scopedStorage.setCurrentUser(user.id); } catch (e) { logger.debug('ignore', e); }
+        try { if (scopedStorage.getItem(TOUR_SEEN_KEY) === '1') return; } catch (e) { logger.debug('ignore', e); }
 
         (async () => {
             try {
@@ -118,7 +119,7 @@ export function useTourRun({ user, onNavigate, currentPage }: OnboardingTourProp
                 const data = await res.json();
                 if (data?.[TOUR_SEEN_KEY]) return;
                 setTimeout(() => { if (!cancelled) startTour(); }, 900);
-            } catch (e) { /* don't block the app on a settings fetch */ }
+            } catch (e) { logger.debug('don\'t block the app on a settings fetch', e); }
         })();
         return () => { cancelled = true; };
     }, [user?.id, currentPage, startTour]);

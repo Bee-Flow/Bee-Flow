@@ -240,7 +240,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     }));
 
     return (
-        <div className="h-full flex flex-col" style={{ background: 'var(--bg-primary)', position: 'relative' }}>
+        <div className="h-full flex flex-col [background:var(--bg-primary)] [position:relative]">
             {/* ── Title bar ── */}
             {!hideTitleBar && (
                 <SettingsTitleBar titleLabel={titleLabel} onBack={() => { if (mobileInDetail) setMobileDetail(false); else handleClose(); }} />
@@ -279,7 +279,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
             </div>
 
             {showMemoryPanel && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'var(--bg-primary)' }}>
+                <div className="[position:absolute] [inset:0] [z-index:10] [background:var(--bg-primary)]">
                     <MemoryPanel
                         initialView={memoryPanelView}
                         sensitiveOptIn={user?.memorySensitiveOptIn === true}

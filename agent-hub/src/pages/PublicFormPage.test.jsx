@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const authFetch = vi.fn();
 vi.mock('../utils/authFetch', () => ({ default: authFetch, authFetch }));

@@ -71,7 +71,7 @@ function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCa
             await client.query('COMMIT');
             return out;
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) { /* connection-level failure */ }
+            try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection-level failure', err); }
             throw mapPgError(err);
         } finally {
             client.release();
@@ -261,7 +261,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
                 // this transaction. A failure here is swallowed: if the
                 // transaction is already aborted the caller's error is the
                 // one that matters.
-                try { await client.query('SET LOCAL search_path = DEFAULT'); } catch { /* aborted tx */ }
+                try { await client.query('SET LOCAL search_path = DEFAULT'); } catch (err) { log.debug('aborted tx', err); }
             }
         }
         return withAppTx(ownerId, appId, {}, work);

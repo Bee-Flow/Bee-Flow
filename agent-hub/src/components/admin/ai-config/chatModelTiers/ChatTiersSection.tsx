@@ -42,9 +42,9 @@ export default function ChatTiersSection({
 }: ChatTiersSectionProps) {
     const { t } = useTranslation();
     return (
-            <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="p-4 sm:p-6 rounded-xl border [background:var(--bg-secondary)] [border-color:var(--border-default)]">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>💬</div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl [background:rgba(139,92,246,0.15)]">💬</div>
                     <div>
                         <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.tier_chat_title', 'Chat Model Tiers')}</h3>
                         <p className="text-xs text-[var(--text-muted)]">
@@ -99,7 +99,7 @@ export default function ChatTiersSection({
                         </button>
                     </div>
                     {customTiers.length === 0 ? (
-                        <div className="p-4 rounded-lg border text-center text-xs" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-muted)' }}>
+                        <div className="p-4 rounded-lg border text-center text-xs [background:var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-muted)]!">
                             {t('admin_ai_config.tier_custom_none', 'No custom tiers yet.')}
                         </div>
                     ) : (

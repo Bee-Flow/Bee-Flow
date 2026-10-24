@@ -20,6 +20,7 @@ const { encryptionOpts } = require('./shared');
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
+const log = require('../../../telemetry/log');
 
 // ── What a caller may send ────────────────────────────────────────────────
 // Every schema is `.strict()`: a key the router does not read is a client
@@ -187,7 +188,7 @@ router.post('/direct/conversations/:id/session-skills/regenerate', requireAuth, 
                 }
             }
         }
-    } catch (_) { /* non-fatal */ }
+    } catch (err) { log.debug('non-fatal', err); }
 
     const newSkills = await bootstrapSessionSkills({
         adapter: bootstrapAdapter,

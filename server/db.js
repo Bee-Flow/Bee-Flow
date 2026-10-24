@@ -144,7 +144,7 @@ if (process.env.REDIS_URL) {
             log.warn('[DB] Redis connection failed:', err.message);
             // Not reachable at boot: run without it (as before), and stop the
             // background reconnects of a client nothing references any more.
-            try { client.disconnect(); } catch (_) { /* already closed */ }
+            try { client.disconnect(); } catch (err) { log.debug('already closed', err); }
             if (_redis.client === client) _redis.client = null;
         });
     } catch (err) {
@@ -163,7 +163,7 @@ function redisHealthy() { return _redis.client?.status === 'ready'; }
 /** Gracefully disconnect Redis (call during shutdown). */
 async function disconnectRedis() {
     if (_redis.client) {
-        try { await _redis.client.quit(); } catch (_) { /* ignore */ }
+        try { await _redis.client.quit(); } catch (err) { log.debug('ignore', err); }
         _redis.client = null;
     }
 }
@@ -191,7 +191,7 @@ async function _timedQuery(sql, params) {
             if (ms > DB_SLOW_MS) {
                 log.warn(`[DB] Slow query ${ms.toFixed(0)}ms (params=${Array.isArray(params) ? params.length : 0}): ${_sanitizeSql(sql)}`);
             }
-        } catch (_) { /* instrumentation must never break a query */ }
+        } catch (err) { log.debug('instrumentation must never break a query', err); }
     }
 }
 
@@ -333,7 +333,7 @@ function _instrumentClient(client) {
                 if (ms > DB_SLOW_MS) {
                     log.warn(`[DB] Slow query ${ms.toFixed(0)}ms (params=${Array.isArray(params) ? params.length : 0}): ${_sanitizeSql(sql)}`);
                 }
-            } catch (_) { /* instrumentation must never break a query */ }
+            } catch (err) { log.debug('instrumentation must never break a query', err); }
         };
 
         // Callback form: measure around the callback and pass it through
@@ -376,7 +376,7 @@ async function _runTransaction(client, fn) {
         await client.query('COMMIT');
         return result;
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (_) { /* connection may be dead */ }
+        try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection may be dead', err); }
         throw e;
     } finally {
         client.release();

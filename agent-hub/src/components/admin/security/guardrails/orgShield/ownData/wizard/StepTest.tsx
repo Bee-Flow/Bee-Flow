@@ -22,6 +22,7 @@ import type { StepProps } from './stepTypes';
 import { DegradedNote } from './TestSentence';
 import TryOwnText from './TryOwnText';
 import TuneResult from './TuneResult';
+import { logger } from '../../../../../../../utils/logger';
 
 /**
  * Step 2: write or collect test sentences, mark what should be hidden, run
@@ -79,7 +80,7 @@ export function StepTest(props: StepProps) {
         try {
             const res = await test.mutateAsync({ type: resolveType(type), sentences: wireSentences(sentences) });
             dispatch({ type: 'test_done', run: findingsOf(res, type) });
-        } catch { /* worded below from test.error */ }
+        } catch (err) { logger.debug('worded below from test.error', err); }
     };
 
     const runTune = async () => {
@@ -98,7 +99,7 @@ export function StepTest(props: StepProps) {
             // Re-test with what was kept, so the marks under each sentence
             // show the tuned result rather than the one it replaced.
             if (res.improved) await runTest(mergeConfig(state.type, res.best.config));
-        } catch { /* worded below from tune.error */ }
+        } catch (err) { logger.debug('worded below from tune.error', err); }
     };
 
     const focusAdd = () => document.querySelector<HTMLInputElement>(`#${ADD_SENTENCE_ID} input`)?.focus();

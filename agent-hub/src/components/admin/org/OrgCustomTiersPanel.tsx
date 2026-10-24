@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
@@ -98,7 +98,8 @@ const OrgCustomTiersPanel = () => {
         }
     };
 
-    useEffect(() => { loadAll(); }, []);
+    const loadAllOnMount = useEffectEvent(() => { loadAll(); });
+    useEffect(() => { loadAllOnMount(); }, []);
 
     const addTier = () => {
         let n = orgTiers.length + 1;
@@ -238,7 +239,7 @@ const OrgCustomTiersPanel = () => {
                                             />
                                             <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
                                         </div>
-                                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#eab308' }}>{t('admin_org.custom_tiers_org', 'org')}</span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full [background:rgba(234,179,8,0.2)] [color:#eab308]!">{t('admin_org.custom_tiers_org', 'org')}</span>
                                         <button
                                             onClick={() => setExpandedId(isExpanded ? null : tier.id)}
                                             className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 text-[var(--text-muted)]"

@@ -133,7 +133,7 @@ function subscribeProject(projectId, handler) {
         // is watching.
         if (bus.listenerCount(projectId) === 0 && _subscribedProjects.has(projectId)) {
             _subscribedProjects.delete(projectId);
-            try { _subscriber?.unsubscribe(_channel(projectId)); } catch (_) { /* non-fatal */ }
+            try { _subscriber?.unsubscribe(_channel(projectId)); } catch (err) { log.debug('non-fatal', err); }
         }
     };
 }

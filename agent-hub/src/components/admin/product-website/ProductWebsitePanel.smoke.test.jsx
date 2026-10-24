@@ -2,9 +2,9 @@
 // redesign. Pins the load → edit → debounced-save → publish pipeline at the
 // network boundary (mocked authFetch), driving the edit through the real
 // cms-edit postMessage protocol rather than editor internals.
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
@@ -21,9 +21,9 @@ vi.mock('./assistant/CmsAssistantPane', () => ({
     },
 }));
 
+import ProductWebsitePanel from './ProductWebsitePanel';
 import { authFetch } from '../../../utils/helpers';
 import { Toaster } from '../../shared/Toast';
-import ProductWebsitePanel from './ProductWebsitePanel';
 
 const SITE_ID = 'pj_abc1';
 const PAGE_ID = 'pg_1';

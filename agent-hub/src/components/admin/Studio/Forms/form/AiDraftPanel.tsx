@@ -136,7 +136,7 @@ export default function AiDraftPanel({ form, onApply, seed = null }: AiDraftPane
 
     const isRevise = effectiveMode === 'revise';
     return (
-        <section className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }} aria-labelledby="form-ai-title" data-testid="form-ai">
+        <section className="rounded-xl border p-4 space-y-3 [border-color:var(--border-default)] [background:var(--bg-card)]" aria-labelledby="form-ai-title" data-testid="form-ai">
             <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
@@ -170,8 +170,7 @@ export default function AiDraftPanel({ form, onApply, seed = null }: AiDraftPane
                     ? t('forms.ai.placeholder_revise', 'e.g. add a phone number, make the address optional, shorter labels')
                     : t('forms.ai.placeholder', 'e.g. A vacation request: name, department, first and last day, a reason, and whether a colleague covers. Or paste the checklist the form should follow.')}
                 disabled={busy}
-                className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 disabled:opacity-60"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 disabled:opacity-60 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 aria-label={t('forms.ai.title', 'Build it with AI')}
                 data-testid="form-ai-text"
             />

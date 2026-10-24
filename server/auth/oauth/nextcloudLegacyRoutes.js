@@ -278,7 +278,7 @@ router.get('/callback', async (req, res) => {
                 }
 
                 return res.send(`<!DOCTYPE html><html><head><title>Login Complete</title></head><body>
-<script>try{if(window.opener)window.opener.postMessage({type:'beeflow-oauth-complete'},'*');}catch(e){}window.close();</script>
+<script>try{if(window.opener)window.opener.postMessage({type:'beeflow-oauth-complete'},'*');}catch (e) { console.debug("opener gone", e); }window.close();</script>
 <p style="font-family:sans-serif;text-align:center;margin-top:40px">Login complete. You can close this window.</p>
 </body></html>`);
             }

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useEffectEvent } from 'react';
 import { settingsShellApi } from '../../../api/settingsShellApi';
 import type { MemoryStats } from '../../../components/knowledge/memory/memoryTypes';
 import type { PreferencesAgent } from '../PreferencesSection.types';
 import type { SettingsStatuses, SettingsUser } from './settingsShellTypes';
+import { logger } from '../../../utils/logger';
 
 type StatsStatus = 'loading' | 'ok' | 'error';
 
@@ -57,7 +58,7 @@ export function useSettingsData(user: SettingsUser | null | undefined, canSeeOrg
                 ? orgs.find((o: { id?: string }) => o.id === user.organizationId)
                 : orgs[0];
             setOrgAuthLocked(!!myOrg?.authMethod);
-        } catch (e) { /* non-critical */ }
+        } catch (e) { logger.debug('non-critical', e); }
     };
     const fetchSettingsStatuses = async () => {
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed status fetch; nothing reaches another user or a response
@@ -73,11 +74,11 @@ export function useSettingsData(user: SettingsUser | null | undefined, canSeeOrg
         try {
             const liRes = await settingsShellApi.linkedinStatus();
             if (liRes.ok) { const d = await liRes.json(); setStatuses(p => ({ ...p, linkedInConnected: !!d.connected, linkedInName: d.name })); }
-        } catch (e) { }
+        } catch (err) { logger.debug('LinkedIn status unavailable', err); }
         try {
             const ncRes = await settingsShellApi.appPasswordStatus();
             if (ncRes.ok) { const d = await ncRes.json(); setStatuses(p => ({ ...p, hasNextcloudAppPassword: !!d.hasAppPassword, isNextcloudUser: !!d.isNextcloudUser, nextcloudUrl: d.nextcloudUrl || '' })); }
-        } catch (e) { }
+        } catch (err) { logger.debug('Nextcloud app password status unavailable', err); }
         // GitHub Sync menu item is hidden until the org-admin connects a
         // GitHub account in Settings → Connections. The org-sync panel
         // itself prompts for that step, but there's no point exposing the
@@ -85,10 +86,11 @@ export function useSettingsData(user: SettingsUser | null | undefined, canSeeOrg
         try {
             const ghRes = await settingsShellApi.githubStatus();
             if (ghRes.ok) { const d = await ghRes.json(); setStatuses(p => ({ ...p, githubConnected: !!d.connected })); }
-        } catch (e) { }
+        } catch (err) { logger.debug('GitHub status unavailable', err); }
     };
 
-    useEffect(() => { fetchMemoryStats(); fetchAgents(); fetchSettingsStatuses(); fetchOrgAuthLocked(); }, []);
+    const runFetchOrgAuthLockedEffect = useEffectEvent(() => { fetchMemoryStats(); fetchAgents(); fetchSettingsStatuses(); fetchOrgAuthLocked(); });
+    useEffect(() => { runFetchOrgAuthLockedEffect(); }, []);
 
     return { memoryStats, memoryStatsStatus, agents, statuses, orgAuthLocked, fetchMemoryStats, fetchSettingsStatuses };
 }

@@ -1,9 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DatatableDetail from './DatatableDetail';
-import { datatablesApi } from './datatablesApi';
 import { DEFINITION_MANAGED_KINDS, isFormAnswers, isSchemaLocked, managedColumnProblem, tableIconOf } from './datatableDisplay';
+import { datatablesApi } from './datatablesApi';
 
 /**
  * A FORM'S ANSWERS table in the detail view: opens on its Dashboard tab,

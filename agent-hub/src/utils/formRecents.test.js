@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import scopedStorage from './scopedStorage';
 import { readFormRecents, rememberFormOpened, recentForms } from './formRecents';
+import scopedStorage from './scopedStorage';
 
 /**
  * The sidebar can only offer a handful of forms, so it has to pick. "The ones

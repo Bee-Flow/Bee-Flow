@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * The hosted form page's session plumbing: fetching a journey, mapping a poll
  * answer onto the page's phase, and mirroring the session id into the URL.
@@ -128,7 +129,7 @@ export function writeSessionToUrl(sid: string | null): void {
         if (sid) url.searchParams.set('s', sid);
         else url.searchParams.delete('s');
         window.history.replaceState(null, '', url.toString());
-    } catch { /* a browser without history API still works, just not on reload */ }
+    } catch (err) { logger.debug('a browser without history API still works, just not on reload', err); }
 }
 
 export function randomNonce(): string {

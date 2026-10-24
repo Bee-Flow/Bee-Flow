@@ -48,7 +48,11 @@ export function useLibraryFilters() {
         return () => clearTimeout(timer);
     }, [query]);
     // Another filter is another list: back to its first page.
-    useEffect(() => { setOffset(0); }, [kind, archived, debounced, folderId, visibility, format, category, sort]);
+    const [prevKindDeps, setPrevKindDeps] = useState([kind, archived, debounced, folderId, visibility, format, category, sort]);
+    if (prevKindDeps[0] !== kind || prevKindDeps[1] !== archived || prevKindDeps[2] !== debounced || prevKindDeps[3] !== folderId || prevKindDeps[4] !== visibility || prevKindDeps[5] !== format || prevKindDeps[6] !== category || prevKindDeps[7] !== sort) {
+        setPrevKindDeps([kind, archived, debounced, folderId, visibility, format, category, sort]);
+        setOffset(0);
+    }
 
     const filters = useMemo<LibraryFilters>(() => ({
         kind, archived, query: debounced || undefined, folderId, category: category.trim() || undefined,

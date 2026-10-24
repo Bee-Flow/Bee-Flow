@@ -216,7 +216,7 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
     const grandTotalRow = () => {
         const all = allRows;
         return (
-            <tr style={{ background: 'var(--bg-tertiary)' }}>
+            <tr className="[background:var(--bg-tertiary)]">
                 <th
                     scope="row"
                     colSpan={stubCols}

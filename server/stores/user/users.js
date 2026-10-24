@@ -418,7 +418,7 @@ async function deleteUser(userId) {
     try {
         const owner = await getOne('SELECT "organizationId" FROM users WHERE id = $1', [userId]);
         orgIdForSeatSync = owner?.organizationId || null;
-    } catch (_) { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     const { rowCount } = await run('DELETE FROM users WHERE id = $1', [userId]);
     if (rowCount === 0) return false;
 
@@ -477,17 +477,17 @@ async function deleteUser(userId) {
         const { notebooks } = await notebookPort.deleteAllForUser(userId);
         if (notebooks) log.info(`[UserStore] Erased ${notebooks} notebook(s) for '${userId}'`);
     } catch (e) { log.error('[UserStore] Notebook erasure failed:', e.message); }
-    try { await run('DELETE FROM notebook_conversations WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM notebook_conversations WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
 
-    try { await run('DELETE FROM user_memories WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM user_memories WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // The tokenization vault is a store of this user's raw PII by definition,
     // so it has to go with them. Counters go too — unlike an in-life "clear
     // vault", there is no surviving message left to hold a stale token.
-    try { await run('DELETE FROM pii_vault_entries WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    try { await run('DELETE FROM pii_vault_counters WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    try { await run('DELETE FROM agent_conversations WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    try { await run('DELETE FROM direct_conversations WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    try { await run('DELETE FROM execution_history WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM pii_vault_entries WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    try { await run('DELETE FROM pii_vault_counters WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    try { await run('DELETE FROM agent_conversations WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    try { await run('DELETE FROM direct_conversations WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    try { await run('DELETE FROM execution_history WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // Two tables that record what a person did and were never in this cascade.
     //
     // `message_feedback` holds their rating, their free-text comment and — on
@@ -499,10 +499,10 @@ async function deleteUser(userId) {
     // advertises erasure both have to go with the account. Their absence is
     // exactly the kind of gap that only shows up when somebody exercises an
     // Art. 17 request and the answer turns out to be untrue.
-    try { await run('DELETE FROM message_feedback WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
-    try { await run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM message_feedback WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
+    try { await run('DELETE FROM ai_usage_log WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // Their "Don't count my chat turns" choice (chat signals, Art. 21).
-    try { await run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM chat_signal_objections WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // "Find repeating work": scans derived from this person's own mail, files
     // and ledger, and their feedback on them.
     await eraseSuggestionTraces(userId);
@@ -511,7 +511,7 @@ async function deleteUser(userId) {
     // and a future user with the same id (rare but possible) could inherit
     // it. App passwords live on the users row itself and are dropped by
     // the DELETE FROM users above.
-    try { await run('DELETE FROM automation_credentials WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM automation_credentials WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // Cached integration answers. Fetched with THIS person's credentials and
     // about the things they could see, so they go with the account for the same
     // reason automation_credentials and the PII vault do — and an id reused later
@@ -521,7 +521,7 @@ async function deleteUser(userId) {
     // memoised per-org row/byte counters, which otherwise keep claiming the org
     // still stores what was just erased, and the one Art. 17 guarantee that
     // cache makes stops being an untested SQL string in a cascade.
-    try { await require('../integrationCacheStore').purgeForUser(userId); } catch (e) { /* table may not exist */ }
+    try { await require('../integrationCacheStore').purgeForUser(userId); } catch (e) { log.debug('table may not exist', e); }
     // Named integration connections + lends, for the same reason. Two extra
     // hazards beyond id-reuse: the encrypted API keys of a departed employee
     // would otherwise sit in the vault indefinitely, and any org-wide lend they
@@ -535,19 +535,19 @@ async function deleteUser(userId) {
              WHERE grantor_user_id = $1 OR (grantee_type = 'user' AND grantee_id = $1)`,
             [userId]
         );
-    } catch (e) { /* table may not exist */ }
-    try { await run('DELETE FROM integration_connections WHERE owner_user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    } catch (e) { log.debug('table may not exist', e); }
+    try { await run('DELETE FROM integration_connections WHERE owner_user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // Voiceprints are biometric data (GDPR Art. 9). They must go with the
     // account, unconditionally — there is no legitimate reason to keep a
     // speaker template for a user who no longer exists.
-    try { await run('DELETE FROM voiceprints WHERE user_id = $1', [userId]); } catch (e) { /* table may not exist */ }
+    try { await run('DELETE FROM voiceprints WHERE user_id = $1', [userId]); } catch (e) { log.debug('table may not exist', e); }
     // Projects: delete the user's owned projects the way the project delete
     // route does (colleagues' co-edits folded back, soft references detached,
     // files base removed; stores/user/projectErasure.js), and remove any
     // shares that target this user directly.
     const owned = await require('./projectErasure').eraseOwnedProjects(userId, { teardown: projectTeardown });
     if (owned.deleted || owned.kept || owned.failed) log.info(`[UserStore] Owned projects of '${userId}': ${JSON.stringify(owned)}`);
-    try { await run(`DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1`, [userId]); } catch (e) { /* table may not exist */ }
+    try { await run(`DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1`, [userId]); } catch (e) { log.debug('table may not exist', e); }
     // What they wrote and marked in colleagues' projects: team chat messages and
     // comments blanked as if by their own hand, their id out of the co-editing
     // log, their seen marks and AI feedback gone (stores/user/projectErasure.js).
@@ -559,9 +559,9 @@ async function deleteUser(userId) {
     // cascade: drop each agent's conversations first, then the agents.
     try {
         const ownedAgents = await getAll('SELECT id FROM agents WHERE owner_id = $1', [userId]);
-        for (const agent of ownedAgents) { try { await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]); } catch (_) { } }
+        for (const agent of ownedAgents) { try { await run('DELETE FROM agent_conversations WHERE agent_id = $1', [agent.id]); } catch (err) { log.warn('could not delete the conversations of an agent during user cleanup', err); } }
         await run('DELETE FROM agents WHERE owner_id = $1', [userId]);
-    } catch (e) { /* table may not exist */ }
+    } catch (e) { log.debug('table may not exist', e); }
 
     // Datatables. Two different things wear the same shape here, so they get
     // different answers:
@@ -629,7 +629,7 @@ async function deleteUser(userId) {
     try {
         const notificationStore = require('../notificationStore');
         if (notificationStore.deleteUserNotifications) await notificationStore.deleteUserNotifications(userId);
-    } catch (e) { /* PG store may not be initialized */ }
+    } catch (e) { log.debug('PG store may not be initialized', e); }
 
     log.info(`[UserStore] Cleanup complete for user '${userId}'`);
     // Per-seat plans rebill on user count change. Fire-and-forget — Stripe
@@ -639,7 +639,7 @@ async function deleteUser(userId) {
             try {
                 const { syncSeatQuantityForOrg } = require('../../services/stripeService');
                 await syncSeatQuantityForOrg(orgIdForSeatSync);
-            } catch (_) { /* best-effort */ }
+            } catch (err) { log.debug('best-effort', err); }
         });
     }
     return true;
@@ -738,7 +738,7 @@ async function updateUser(userId, updates) {
                     try {
                         const { syncSeatQuantityForOrg } = require('../../services/stripeService');
                         await syncSeatQuantityForOrg(existing.organizationId);
-                    } catch (_) { /* best-effort */ }
+                    } catch (err) { log.debug('best-effort', err); }
                 });
             }
         }
@@ -835,14 +835,11 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
     try {
         const limits = await getEffectiveLimits(orgId);
         max = limits?.max_users ?? null;
-    } catch (_e) { /* ignore */ }
+    } catch (err) { log.debug('ignore', err); }
     try {
-        const license = require('../../license');
-        const seatCap = typeof license.getMaxSeatsForOrg === 'function'
-            ? await license.getMaxSeatsForOrg(orgId)
-            : null;
+        const seatCap = await require('../../license/seats').getMaxSeatsForOrg(orgId);
         if (seatCap != null && (max == null || seatCap < max)) max = seatCap;
-    } catch (_e) { /* license module optional during early boot */ }
+    } catch (err) { log.debug('license module optional during early boot', err); }
 
     const insertParams = (() => {
         const mwDek = userData.masterWrappedDEK
@@ -916,12 +913,12 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
                     try {
                         const { syncSeatQuantityForOrg } = require('../../services/stripeService');
                         await syncSeatQuantityForOrg(orgId);
-                    } catch (_) { /* best-effort */ }
+                    } catch (err) { log.debug('best-effort', err); }
                 });
             }
             return { created: true, reason: null };
         } catch (e) {
-            try { await client.query('ROLLBACK'); } catch (_) { }
+            try { await client.query('ROLLBACK'); } catch (_) { log.debug('connection already broken, the original error is handled below', _); }
             client.release();
             if (e && e.code === '40001' && attempt < 1) continue;
             if (e instanceof SeatCapExceededError) throw e;

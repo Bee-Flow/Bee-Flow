@@ -14,8 +14,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/MediaText.test.jsx
  */
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import MediaText from './MediaText';
 

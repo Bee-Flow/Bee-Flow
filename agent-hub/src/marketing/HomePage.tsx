@@ -133,7 +133,7 @@ export default function HomePage() {
                         <img
                             src={beeFlowLogo}
                             alt="Bee Flow"
-                            style={{ height: 28, width: 'auto' }}
+                            className="h-[28px] w-[auto]"
                         />
                     </a>
                     <nav style={topNavStyle}>

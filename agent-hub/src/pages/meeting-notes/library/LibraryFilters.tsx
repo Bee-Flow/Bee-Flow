@@ -93,8 +93,7 @@ export default function LibraryFilters({
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onQueryChange(e.target.value)}
                         placeholder={t('meetings.search_placeholder', 'Search title, tag or text…')}
                         aria-label={t('meetings.search_label', 'Search meetings')}
-                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                        style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     />
                 </div>
                 <SortMenu sort={sort} onSortChange={onSortChange} labels={sortLabels} t={t} />
@@ -183,8 +182,7 @@ function SortMenu({ sort, onSortChange, labels, t }: SortMenuProps) {
                 aria-expanded={open}
                 aria-label={t('meetings.sort_label', 'Sort')}
                 title={labels[sort] || labels.recent}
-                className="grid place-items-center w-7 h-7 rounded-lg border flex-shrink-0 transition-colors hover:bg-[var(--bg-tertiary)]"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}
+                className="grid place-items-center w-7 h-7 rounded-lg border flex-shrink-0 transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-secondary)] [background:var(--bg-card)]!"
             >
                 <ArrowUpDown className="w-3.5 h-3.5" aria-hidden="true" />
             </button>

@@ -30,6 +30,7 @@
 import { createJsonResource } from '../../../../api/client';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { SourceConfig } from './sourceKinds';
+import { logger } from '../../../../utils/logger';
 
 const base = `${API_BASE}/api/kb`;
 const enc = encodeURIComponent;
@@ -181,7 +182,7 @@ async function readNamedSse(response: Response, onEvent: SseHandler | undefined)
             }
         }
     } finally {
-        try { reader.releaseLock(); } catch { /* already released */ }
+        try { reader.releaseLock(); } catch (err) { logger.debug('already released', err); }
     }
 }
 
@@ -236,7 +237,7 @@ export const knowledgeApi = {
             // A failure BEFORE the stream opens still answers JSON, so the
             // reason survives — "access denied" beats an empty answer box.
             let body = null;
-            try { body = await res.json(); } catch { /* non-JSON */ }
+            try { body = await res.json(); } catch (err) { logger.debug('non-JSON', err); }
             const err: Error & { status?: number; code?: string | null } = new Error(body?.error || `Request failed (${res.status})`);
             err.status = res.status;
             err.code = body?.code || null;

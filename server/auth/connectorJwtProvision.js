@@ -217,7 +217,7 @@ async function _autoProvision(req, org, orgId, payload, reqNcUid) {
                 _notifyOrgAdminsOfPendingUser(orgId, pendingUser).catch(() => { });
                 userStore.logAccessAudit('nc_user_autoprovisioned_pending', 'user', userId,
                     'system:connector_jwt', null, { orgId, status: 'pending' }, orgId).catch(() => { });
-            } catch (_) { /* never break the auth path */ }
+            } catch (err) { log.debug('never break the auth path', err); }
         });
         return reject(403, {
             error: 'Your account has been created in Bee Flow but requires admin approval. Please contact your organization administrator.',

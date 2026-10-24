@@ -67,10 +67,10 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
             data-phase={phase.key}
             aria-label={t('playbooks.inspect.title', 'What this phase did')}
         >
-            <header className="flex items-center gap-2 px-4 shrink-0" style={{ height: 44, borderBottom: '1px solid var(--border-default)' }}>
+            <header className="flex items-center gap-2 px-4 shrink-0 h-[44px] [border-bottom:1px_solid_var(--border-default)]">
                 <span className="font-semibold truncate" style={{ fontSize: presenter ? 15 : 13, color: 'var(--text-primary)' }}>{phaseLabel(phase, t)}</span>
                 <span className="text-[11px]" style={{ color: phase.status === 'failed' ? 'var(--error-ink, var(--error))' : 'var(--text-secondary)' }}>{state}</span>
-                <button type="button" onClick={onClose} className="ml-auto inline-flex items-center justify-center rounded-lg" style={{ width: 28, height: 28, color: 'var(--text-secondary)' }} aria-label={t('playbooks.inspect.close', 'Close')} data-testid="playbook-inspector-close">
+                <button type="button" onClick={onClose} className="ml-auto inline-flex items-center justify-center rounded-lg w-[28px] h-[28px] [color:var(--text-secondary)]" aria-label={t('playbooks.inspect.close', 'Close')} data-testid="playbook-inspector-close">
                     <X className="w-4 h-4" aria-hidden="true" />
                 </button>
             </header>
@@ -88,7 +88,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
 
                 {phase.error && (
                     <Block title={t('playbooks.inspect.error', 'What went wrong')}>
-                        <p className="flex items-start gap-1.5" style={{ color: 'var(--error-ink, var(--error))' }}>
+                        <p className="flex items-start gap-1.5 [color:var(--error-ink,var(--error))]">
                             <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />{errorText(phase.error, t)}
                         </p>
                     </Block>
@@ -99,7 +99,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                         <dl className="space-y-1">
                             {facts.map((f, i) => (
                                 <div key={i} className="flex gap-2">
-                                    <dt className="shrink-0" style={{ color: 'var(--text-secondary)', minWidth: 84 }}>{f.label}</dt>
+                                    <dt className="shrink-0 [color:var(--text-secondary)] min-w-[84px]">{f.label}</dt>
                                     <dd className="min-w-0 truncate text-[var(--text-primary)]" title={f.value}>{f.value}</dd>
                                 </div>
                             ))}
@@ -111,7 +111,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                     <Block title={t('playbooks.inspect.columns', 'Columns')}>
                         <ul className="flex flex-wrap gap-1.5" data-testid="playbook-inspector-columns">
                             {columns.map((c) => (
-                                <li key={c.key} className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-lg text-[11px]" style={{ border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
+                                <li key={c.key} className="inline-flex items-baseline gap-1 px-2 py-0.5 rounded-lg text-[11px] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!">
                                     {c.name || c.key}<span className="text-[var(--text-tertiary)]">{c.type}</span>
                                 </li>
                             ))}
@@ -131,7 +131,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
 
                 {phase.brief && (
                     <Block title={t('playbooks.inspect.brief', 'The brief the AI works from')}>
-                        <div className="break-words rounded-lg p-2" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)', maxHeight: 260, overflowY: 'auto' }} data-testid="playbook-inspector-brief">
+                        <div className="break-words rounded-lg p-2 [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)] max-h-[260px] [overflow-y:auto]" data-testid="playbook-inspector-brief">
                             <MarkdownRenderer content={phase.brief} className={BRIEF_MD} />
                         </div>
                     </Block>
@@ -145,7 +145,7 @@ export default function PhaseInspector({ phase, t, onClose, onNavigate = null, p
                 lands in. This was the only page in the film where a stuck phase
                 had no button at all. */}
             {(retryable || skippable) && (
-                <div className="shrink-0 flex flex-wrap items-center gap-2" style={{ padding: '10px 14px', borderTop: '1px solid var(--border-default)', background: 'var(--bg-primary)' }} data-testid="playbook-inspector-actions">
+                <div className="shrink-0 flex flex-wrap items-center gap-2 [padding:10px_14px] [border-top:1px_solid_var(--border-default)] [background:var(--bg-primary)]" data-testid="playbook-inspector-actions">
                     {retryable && (
                         <button type="button" className={STAGE_BUTTON} style={{ ...PRIMARY_ACTION_STYLE, outlineColor: 'var(--accent-primary)' }} onClick={onRetry} disabled={busy} data-testid="playbook-inspector-retry">
                             <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />{t('playbooks.handoff.retry', 'Retry')}

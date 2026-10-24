@@ -91,8 +91,7 @@ const AgentDesigner = ({
       {/* Title bar — only rendered when inline (onClose provided) */}
       {onClose && (
         <div
-          className="flex-shrink-0 flex items-center px-5"
-          style={{ height: '48px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}
+          className="flex-shrink-0 flex items-center px-5 h-[48px] [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-subtle)]"
         >
           <span className="text-[15px] font-semibold text-[var(--text-primary)]">{t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}</span>
         </div>

@@ -34,6 +34,8 @@
  *   safetyNote   optional least-privilege advice shown at install time
  */
 
+const log = require('../../../telemetry/log');
+
 const CATEGORIES = Object.freeze(['development', 'data', 'docs', 'payments', 'automation', 'observability']);
 
 const REMOTE_CATALOG = Object.freeze([
@@ -243,7 +245,7 @@ function officialHosts() {
     const hosts = new Set();
     for (const e of REMOTE_CATALOG) {
         if (e.selfHosted) continue;
-        try { hosts.add(new URL(e.url).hostname.toLowerCase()); } catch (_) { /* a broken entry is simply not official */ }
+        try { hosts.add(new URL(e.url).hostname.toLowerCase()); } catch (err) { log.debug('a broken entry is simply not official', err); }
     }
     return hosts;
 }

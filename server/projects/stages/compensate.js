@@ -193,7 +193,7 @@ async function compensate({ deployment, stage }, deps = {}) {
         } catch (err) {
             out.failed += 1;
             log.warn(`[stages/compensate] ${deployment.id} could not undo ${step.action} of ${step.ref || step.entityId}: ${err && err.message}`);
-            try { await journal.record(`undo_${step.action}`, row, 'failed'); } catch { /* the journal is best-effort here */ }
+            try { await journal.record(`undo_${step.action}`, row, 'failed'); } catch (err) { log.debug('the journal is best-effort here', err); }
         }
     }
     return out;

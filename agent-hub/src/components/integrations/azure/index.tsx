@@ -168,7 +168,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
     // ── No org ──
     if (!orgId) {
         return (
-            <div className="rounded-xl px-5 py-4" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl px-5 py-4 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 <p className="text-[13px] text-[var(--text-muted)]">
                     {t('azure.no_org_message')}
                 </p>
@@ -240,7 +240,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
 
             {/* Error banner */}
             {error && (
-                <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-[12px]" style={{ background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-[12px] [background:rgba(239,68,68,0.08)] [color:#ef4444]! [border:1px_solid_rgba(239,68,68,0.2)]">
                     <AlertTriangle size={14} />
                     {error}
                     <button onClick={() => setError(null)} className="ml-auto text-[11px] underline">{t('azure.dismiss')}</button>
@@ -248,7 +248,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
             )}
 
             {/* Sub-section tabs */}
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
                 {SUB_SECTIONS.map((section: SubSection, i: number) => {
                     const Icon = section.icon;
                     const isActive = activeSection === section.id;
@@ -288,7 +288,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
             </div>
 
             {/* Active section content */}
-            <div className="rounded-xl px-6 py-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <div className="rounded-xl px-6 py-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 {sectionComponents[activeSection]}
             </div>
         </div>

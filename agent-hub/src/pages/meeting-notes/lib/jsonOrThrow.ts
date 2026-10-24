@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 /**
  * The JSON body of a transcriptions API answer, or a thrown Error that keeps
  * the server's `error` text, its `code`, the HTTP `status` and the parsed body.
@@ -23,7 +24,7 @@ export async function jsonOrThrow(res: Response) {
             body = await res.json();
             if (body?.error) msg = body.error;
             if (body?.code) code = body.code;
-        } catch (_) { /* no JSON body — a proxy rejection, handled below */ }
+        } catch (err) { logger.debug('no JSON body — a proxy rejection, handled below', err); }
         // A 413 is normally refused by the reverse proxy, not by the API, so
         // there is no JSON to read and the user was shown a bare "HTTP 413"
         // with no hint of what went wrong or what to do about it. Only rewrite

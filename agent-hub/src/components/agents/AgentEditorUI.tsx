@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useEffectEvent } from 'react';
 import KnowledgePanel from '../knowledge/KnowledgePanel';
 import VersionHistory from './VersionHistory';
 import ModelTierSelector from '../licensing/ModelTierSelector';
@@ -11,6 +11,7 @@ import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { ModelEntry } from '../../utils/modelMeta';
 import type { AppUserLike } from '../projects/workspace/types';
 import type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory, AgentEditorUIProps } from './AgentEditorUI.types';
+import { logger } from '../../utils/logger';
 export type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory } from './AgentEditorUI.types';
 
 const AgentEditorUI = ({
@@ -45,7 +46,7 @@ const AgentEditorUI = ({
     const [localTab, setLocalTab] = useState('general');
     const [fetchedTiers, setFetchedTiers] = useState<ModelTierMap>({});
     const modelTiers = modelTiersProp || fetchedTiers;
-    useEffect(() => {
+    const runAPIBASEEffect = useEffectEvent(() => {
         if (modelTiersProp) return;
         let cancelled = false;
         (async () => {
@@ -54,10 +55,11 @@ const AgentEditorUI = ({
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!cancelled) setFetchedTiers(data || {});
-            } catch { /* keep empty — selector still shows standard tiers */ }
+            } catch (err) { logger.debug('keep empty — selector still shows standard tiers', err); }
         })();
         return () => { cancelled = true; };
-    }, [modelTiersProp]);
+    });
+    useEffect(() => { return runAPIBASEEffect(); }, [modelTiersProp]);
     const activeTab = urlSyncKey
         ? (VALID_TABS.includes(urlTab) ? urlTab : 'general')
         : localTab;

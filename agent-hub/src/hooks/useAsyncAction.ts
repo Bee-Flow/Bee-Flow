@@ -17,7 +17,7 @@
 // `run` always resolves (never throws to the caller) — failures land in
 // `error`. The component decides what to render.
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState , useLayoutEffect } from 'react';
 
 export type AsyncActionResult<T> =
     | { ok: true; data: T }
@@ -39,7 +39,9 @@ export default function useAsyncAction<TArgs extends unknown[], TData>(
     const [data, setData] = useState<TData | null>(null);
     // Keep latest fn in a ref so changing identity doesn't recreate `run`.
     const fnRef = useRef(fn);
-    fnRef.current = fn;
+    useLayoutEffect(() => {
+        fnRef.current = fn;
+    });
 
     const run = useCallback(async (...args: TArgs): Promise<AsyncActionResult<TData>> => {
         setLoading(true);

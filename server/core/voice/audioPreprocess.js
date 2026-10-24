@@ -128,7 +128,7 @@ async function preprocessForStt(inputPath, opts = {}) {
         // Corrupt input, unsupported codec, ffmpeg missing a library — none of
         // these should cost the user their transcription.
         log.warn(`[AudioPreprocess] Conditioning failed, sending original audio: ${err.message}`);
-        try { fs.unlinkSync(outPath); } catch (_) {}
+        try { fs.unlinkSync(outPath); } catch (_) { log.debug('converted temp file already gone', _); }
         return noop;
     }
 
@@ -143,7 +143,7 @@ async function preprocessForStt(inputPath, opts = {}) {
     return {
         path: outPath,
         preprocessed: true,
-        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) {} },
+        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) { log.debug('converted temp file already gone', _); } },
     };
 }
 
@@ -189,13 +189,13 @@ async function asM4aIfAdts(inputPath, fileName) {
         await runFfmpeg(repackArgs(inputPath, outPath));
     } catch (err) {
         log.warn(`[AudioPreprocess] Repacking .aac failed, sending it as is: ${err.message}`);
-        try { fs.unlinkSync(outPath); } catch (_) {}
+        try { fs.unlinkSync(outPath); } catch (_) { log.debug('repacked temp file already gone', _); }
         return same;
     }
     return {
         path: outPath,
         fileName: fileName.replace(/\.aac$/i, '.m4a'),
-        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) {} },
+        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) { log.debug('repacked temp file already gone', _); } },
     };
 }
 

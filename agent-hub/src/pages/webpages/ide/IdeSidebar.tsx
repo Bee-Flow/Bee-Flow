@@ -59,8 +59,7 @@ export default function IdeSidebar(p: IdeSidebarProps) {
                     <div className="flex items-center justify-center h-full text-[12px] text-[var(--vsc-fg-muted)]">
                         <button
                             onClick={p.onVersionsClick}
-                            className="px-3 py-1.5 rounded text-[12px]"
-                            style={{ background: 'var(--vsc-accent)', color: '#fff' }}
+                            className="px-3 py-1.5 rounded text-[12px] [background:var(--vsc-accent)] [color:#fff]!"
                         >
                             {t('webpages.ide.open_history', 'Open version history')}
                         </button>

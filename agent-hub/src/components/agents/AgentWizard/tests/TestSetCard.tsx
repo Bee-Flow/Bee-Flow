@@ -151,8 +151,7 @@ function RefusalNotice({ t, refusal, onRetry }: RefusalNoticeProps) {
             role="status"
             data-testid="agent-tests-refusal"
             data-kind={refusal.kind}
-            className="flex items-start gap-2 px-4 py-3 text-[12px]"
-            style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)' }}
+            className="flex items-start gap-2 px-4 py-3 text-[12px] [background:color-mix(in_srgb,var(--warning)_8%,transparent)]"
         >
             <AlertTriangle size={14} aria-hidden="true" style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
             <span className="flex-1 text-[var(--text-secondary)]">{refusalSentence(t, refusal)}</span>

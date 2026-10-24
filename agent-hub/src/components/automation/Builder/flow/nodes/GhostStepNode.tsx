@@ -124,8 +124,7 @@ function DraftGhost({ draft }: { draft: GhostDraft }) {
                 ) : (
                     <span
                         key={caption || ''}
-                        className="bf-rv-sub max-w-full truncate text-[12px] italic leading-[16px] text-[var(--text-secondary)]"
-                        style={{ animation: 'bfSubWipe 380ms steps(24) both' }}
+                        className="bf-rv-sub max-w-full truncate text-[12px] italic leading-[16px] text-[var(--text-secondary)] [animation:bfSubWipe_380ms_steps(24)_both]"
                         title={caption || undefined}
                         data-testid="ghost-step-caption"
                     >
@@ -158,8 +157,7 @@ export default function GhostStepNode({ data }: { data?: { draft?: GhostDraft; c
             <Dots />
             <span
                 key={text}
-                className="bf-rv-sub max-w-full truncate text-[11px] italic leading-[14px] text-[var(--text-tertiary)]"
-                style={{ animation: 'bfSubWipe 380ms steps(24) both' }}
+                className="bf-rv-sub max-w-full truncate text-[11px] italic leading-[14px] text-[var(--text-tertiary)] [animation:bfSubWipe_380ms_steps(24)_both]"
                 title={text}
                 data-testid="ghost-step-caption"
             >

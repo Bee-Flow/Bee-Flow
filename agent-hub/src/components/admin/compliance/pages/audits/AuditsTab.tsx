@@ -101,7 +101,11 @@ export default function AuditsTab({ audit, orgUsers, isMobile = false, focusId =
     // The audit whose "Close audit?" question is open; another row asks afresh.
     const [confirmCloseId, setConfirmCloseId] = useState<number | null>(null);
     const [frameRef, drawerMode] = useDrawerMode({ isMobile });
-    useEffect(() => { if (focusId) setSelectedId(String(focusId)); }, [focusId]);
+    const [prevFocusId, setPrevFocusId] = useState(focusId);
+    if (prevFocusId !== focusId) {
+        setPrevFocusId(focusId);
+        if (focusId) setSelectedId(String(focusId));
+    }
     const planLabel = t('compliance.audit_plan', 'Plan audit');
     const headerHasCreate = useHeaderPrimary(setHeaderActions, {
         label: planLabel, icon: Plus, onClick: () => { setSelectedId(null); setCreating(true); },

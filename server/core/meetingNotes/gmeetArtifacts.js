@@ -220,7 +220,7 @@ async function setAutoRecording(session, { meetingCode, enabled } = {}) {
         try {
             const space = await meet.spaces.get({ name });
             if (space.data?.name) name = space.data.name;
-        } catch (_) { /* fall through — the patch below yields the classified error */ }
+        } catch (err) { log.debug('fall through — the patch below yields the classified error', err); }
         await meet.spaces.patch({
             name,
             updateMask: AUTO_RECORDING_MASK,
@@ -287,7 +287,7 @@ async function downloadRecordingToFile(session, driveFileId, destPath, { maxByte
     try {
         await pipeline(res.data, fs.createWriteStream(destPath));
     } catch (err) {
-        try { fs.unlinkSync(destPath); } catch (_) {}
+        try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
         throw codedError(`Recording download failed: ${err.message}`, 'download_failed');
     }
     return { size, name: meta.data?.name || null, mimeType: meta.data?.mimeType || null };

@@ -2,9 +2,9 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PlanReview from './PlanReview';
-import WorkModePicker from './WorkModePicker';
 import ProposalCard from './ProposalCard';
 import { reviewedProposal } from './proposalChanges';
+import WorkModePicker from './WorkModePicker';
 
 afterEach(cleanup);
 

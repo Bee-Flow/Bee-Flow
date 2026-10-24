@@ -254,7 +254,7 @@ router.get('/', async (req, res) => {
                 try {
                     const a = await agentStore.getAgent(id);
                     if (a) agentMap.set(id, { name: a.name, avatar: a.avatar || a.config?.avatar || '🤖' });
-                } catch (_) { /* missing agent → leave unenriched */ }
+                } catch (err) { log.debug('missing agent → leave unenriched', err); }
             }));
             for (const s of schedules) {
                 const a = s.agentId && agentMap.get(s.agentId);
@@ -442,7 +442,7 @@ router.post('/compose', validate({ body: ComposeBody }), async (req, res) => {
                         name: a.name,
                         description: a.description || a.config?.description || null,
                     }));
-            } catch (_) { /* compose still works without agents */ }
+            } catch (err) { log.debug('compose still works without agents', err); }
         }
 
         const { composeCowork } = require('../core/cowork/coworkCompose');

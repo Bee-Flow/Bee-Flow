@@ -2,6 +2,7 @@ import { AlertTriangle, UserCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /**
  * OrgHealthBanner — org-admin surfacing of connector-health blockers, mounted
@@ -45,9 +46,7 @@ export default function OrgHealthBanner({ onJumpToPending }: OrgHealthBannerProp
                 if (!res || !res.ok) return; // 403/404/500 → stay silent
                 const d = await res.json().catch(() => null);
                 if (!cancelled && d && typeof d === 'object') setData(d);
-            } catch {
-                /* network error → stay silent */
-            }
+            } catch (err) { logger.debug('network error → stay silent', err); }
         })();
         return () => { cancelled = true; };
     }, []);

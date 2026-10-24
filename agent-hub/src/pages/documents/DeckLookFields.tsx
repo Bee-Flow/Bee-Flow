@@ -283,7 +283,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                         </label>
                         {logoMode === 'own' && <img src={deck.logo} alt="" className="h-8 max-w-24 object-contain rounded bg-[var(--bg-tertiary)]" data-testid={`${testPrefix}-logo-preview`} />}
                     </div>
-                    {logoError && <p className="text-xs mt-1" style={{ color: 'var(--danger, #b91c1c)' }}>{logoError}</p>}
+                    {logoError && <p className="text-xs mt-1 [color:var(--danger,#b91c1c)]!">{logoError}</p>}
                 </div>
             )}
             <div>
@@ -319,7 +319,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                         <span className="px-3 py-1.5 rounded border text-xs border-[var(--border-default)]">{templateBusy ? t('documents.style.deck_template_reading', 'Reading…') : t('documents.style.deck_template_upload', 'Upload a .pptx')}</span>
                     </label>
                 ))}
-                {templateError && <p className="text-xs mt-1" style={{ color: 'var(--danger, #b91c1c)' }} data-testid={`${testPrefix}-template-error`}>{templateError}</p>}
+                {templateError && <p className="text-xs mt-1 [color:var(--danger,#b91c1c)]!" data-testid={`${testPrefix}-template-error`}>{templateError}</p>}
                 {suggestions.length > 0 && !disabled && (
                     <div className="mt-3 p-3 rounded-md text-sm bg-[var(--bg-tertiary)]" data-testid="house-style-template-suggestions">
                         <div className="font-medium mb-1 text-[var(--text-primary)]">{t('documents.style.deck_template_suggest', 'Match the house style to this template?')}</div>
@@ -337,7 +337,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
                             ))}
                         </ul>
                         <div className="flex gap-2">
-                            <button type="button" className="px-3 py-1 rounded text-xs text-white" style={{ background: 'var(--accent-primary, #123a5e)' }} onClick={applySuggestions} data-testid="house-style-template-apply">{t('documents.style.deck_template_apply', 'Apply')}</button>
+                            <button type="button" className="px-3 py-1 rounded text-xs text-white [background:var(--accent-primary,#123a5e)]" onClick={applySuggestions} data-testid="house-style-template-apply">{t('documents.style.deck_template_apply', 'Apply')}</button>
                             <button type="button" className="px-3 py-1 rounded text-xs border border-[var(--border-default)]" onClick={() => setSuggestFor(null)}>{t('documents.style.deck_template_keep', 'Keep mine')}</button>
                         </div>
                     </div>

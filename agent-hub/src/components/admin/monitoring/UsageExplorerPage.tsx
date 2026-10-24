@@ -65,9 +65,9 @@ export function UsageExplorerPage({
         {
             key: 'model', label: t('admin_monitoring.col_model', 'Model'), width: '2fr', sortable: true,
             render: (row, i) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="[display:flex] [align-items:center] [gap:8px]">
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: MODEL_COLORS[i % MODEL_COLORS.length], flexShrink: 0 }} />
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.model}>
+                    <span className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]" title={row.model}>
                         {shortModel(row.model)}
                     </span>
                 </div>
@@ -88,7 +88,7 @@ export function UsageExplorerPage({
         },
         {
             key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true,
-            render: row => <span style={{ fontSize: '12px', color: 'var(--text-secondary, #aaa)' }}>{row.calls}</span>,
+            render: row => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{row.calls}</span>,
         },
         {
             key: 'cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: false,
@@ -105,7 +105,7 @@ export function UsageExplorerPage({
         {
             key: 'display_name', label: t('admin_monitoring.d_user', 'User'), width: '1.5fr', sortable: true,
             render: (row, i) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="[display:flex] [align-items:center] [gap:8px]">
                     <div style={{
                         width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0,
@@ -114,9 +114,9 @@ export function UsageExplorerPage({
                         {(row.display_name || '?')[0].toUpperCase()}
                     </div>
                     <div>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)' }}>{row.display_name || row.user_id}</div>
+                        <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)]">{row.display_name || row.user_id}</div>
                         {row.display_name && row.user_id && row.display_name !== row.user_id && (
-                            <div style={{ fontSize: '10px', color: 'var(--text-muted, #666)' }}>{row.user_id}</div>
+                            <div className="[font-size:10px] [color:var(--text-muted,#666)]">{row.user_id}</div>
                         )}
                     </div>
                 </div>
@@ -134,7 +134,7 @@ export function UsageExplorerPage({
         },
         {
             key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '60px', align: 'right', sortable: true,
-            render: row => <span style={{ fontSize: '12px', color: 'var(--text-secondary, #aaa)' }}>{row.calls}</span>,
+            render: row => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{row.calls}</span>,
         },
         {
             key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true,
@@ -143,7 +143,7 @@ export function UsageExplorerPage({
     ];
 
     return (
-        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+        <div className="[animation:fadeIn_0.3s_ease]">
             {/* Filter Bar */}
             <FilterBar
                 filters={filters} setFilters={setFilters}
@@ -153,7 +153,7 @@ export function UsageExplorerPage({
             />
 
             {/* By Model + By User */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '1.25rem' }}>
+            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px] [margin-bottom:1.25rem]">
                 <Card title={t('admin_monitoring.usage_by_model', 'By Model')} icon={Cpu}>
                     <SortableTable
                         columns={modelColumns} data={filteredModels} emptyText={t('admin_monitoring.usage_no_model', 'No model data')}
@@ -178,32 +178,25 @@ export function UsageExplorerPage({
                         <div key={i}>
                             <div
                                 onClick={() => setExpandedAgent(isExpanded ? null : (a.agent_name || a.agent_id))}
-                                style={{
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    padding: '10px 2px', borderBottom: '1px solid var(--border-default, rgba(255,255,255,0.05))',
-                                    cursor: 'pointer', transition: 'background 0.12s', borderRadius: '4px',
-                                }}
+                                className="[display:flex] [justify-content:space-between] [align-items:center] [padding:10px_2px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))] [cursor:pointer] [transition:background_0.12s] [border-radius:4px]"
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.03))'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                <div className="[display:flex] [align-items:center] [gap:10px] min-w-[0]">
                                     <span style={{
                                         padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
                                         background: style.bg, color: style.text, flexShrink: 0,
                                     }}>{a.agent_type || 'chat'}</span>
-                                    <span style={{
-                                        fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #fff)',
-                                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    }}>{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
+                                    <span className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-muted, #888)' }}>
+                                <div className="[display:flex] [align-items:center] [gap:16px] [flex-shrink:0]">
+                                    <span className="[font-size:12px] [color:var(--text-muted,#888)]">
                                         {t('admin_monitoring.usage_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}
                                     </span>
                                     <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>
                                         {fmt(a.total_tokens)}
                                     </span>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-muted, #888)' }}>
+                                    <span className="[font-size:12px] [color:var(--text-muted,#888)]">
                                         {t('admin_monitoring.usage_n_calls', '{n} calls', { n: a.calls })}
                                     </span>
                                     <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, minWidth: '50px', textAlign: 'right' }}>
@@ -218,23 +211,16 @@ export function UsageExplorerPage({
                             </div>
                             {/* Expanded sub-models */}
                             {isExpanded && (a.models || []).length > 0 && (
-                                <div style={{
-                                    padding: '4px 0 8px 32px',
-                                    background: 'var(--bg-tertiary, rgba(255,255,255,0.02))',
-                                    borderRadius: '0 0 8px 8px',
-                                }}>
+                                <div className="[padding:4px_0_8px_32px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))] [border-radius:0_0_8px_8px]">
                                     {(a.models || []).map((m, mi) => (
-                                        <div key={mi} style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            padding: '6px 8px', fontSize: '11px', borderBottom: '1px solid var(--border-default, rgba(255,255,255,0.03))',
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <div key={mi} className="[display:flex] [align-items:center] [justify-content:space-between] [padding:6px_8px] [font-size:11px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.03))]">
+                                            <div className="[display:flex] [align-items:center] [gap:6px]">
                                                 <Cpu style={{ width: 11, height: 11, color: MODEL_COLORS[mi % MODEL_COLORS.length] }} />
-                                                <span style={{ fontWeight: 600, color: 'var(--text-primary, #fff)' }}>{shortModel(m.model)}</span>
+                                                <span className="[font-weight:600] [color:var(--text-primary,#fff)]">{shortModel(m.model)}</span>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <div className="[display:flex] [gap:12px] [align-items:center]">
                                                 <span style={{ color: COLORS.green, fontWeight: 600 }}>{fmt(m.total_tokens)}</span>
-                                                <span style={{ color: 'var(--text-muted, #888)' }}>{t('admin_monitoring.usage_n_calls', '{n} calls', { n: m.calls })}</span>
+                                                <span className="[color:var(--text-muted,#888)]">{t('admin_monitoring.usage_n_calls', '{n} calls', { n: m.calls })}</span>
                                                 <span style={{ color: COLORS.amber, fontWeight: 600 }}>{fmtCost(m.estimated_cost || 0)}</span>
                                             </div>
                                         </div>
@@ -255,17 +241,17 @@ export function UsageExplorerPage({
                                 key: 'agent_name', label: t('admin_monitoring.col_agent', 'Agent'), width: '1.5fr', sortable: true,
                                 render: row => (
                                     <div>
-                                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)' }}>
+                                        <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)]">
                                             {row.agent_name || 'Direct Chat'}
                                         </div>
-                                        <div style={{ fontSize: '10px', color: 'var(--text-muted, #666)', fontFamily: 'monospace' }}>
+                                        <div className="[font-size:10px] [color:var(--text-muted,#666)] [font-family:monospace]">
                                             {row.conversation_id?.slice(0, 8)}…
                                         </div>
                                     </div>
                                 ),
                             },
                             { key: 'calls', label: t('admin_monitoring.usage_col_calls', 'Calls'), width: '70px', align: 'right', sortable: true,
-                              render: row => <span style={{ fontSize: '12px', color: 'var(--text-secondary, #aaa)' }}>{row.calls}</span> },
+                              render: row => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{row.calls}</span> },
                             { key: 'total_tokens', label: t('admin_monitoring.col_tokens', 'Tokens'), width: '80px', align: 'right', sortable: true,
                               render: row => <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.green }}>{fmt(row.total_tokens)}</span> },
                             { key: 'estimated_cost', label: t('admin_monitoring.col_cost', 'Cost'), width: '80px', align: 'right', sortable: true,
@@ -273,7 +259,7 @@ export function UsageExplorerPage({
                             {
                                 key: 'models_used', label: t('admin_monitoring.usage_col_models', 'Models'), width: '1.2fr', sortable: false,
                                 render: row => (
-                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    <div className="[display:flex] [gap:4px] [flex-wrap:wrap]">
                                         {(row.models_used || '').split(',').filter(Boolean).slice(0, 3).map((m, j) => (
                                             <span key={j} style={{
                                                 padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600,

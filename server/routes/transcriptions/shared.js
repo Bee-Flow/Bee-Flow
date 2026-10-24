@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const summaryTemplateStore = require('../../stores/summaryTemplateStore');
+const log = require('../../telemetry/log');
 
 /** A user-supplied speaker count → a positive int, or null (Auto). */
 function parseSpeakerCount(raw) {
@@ -32,7 +33,7 @@ async function resolveUserGroupIds(req) {
         if (typeof user.groups === 'string') {
             try { return JSON.parse(user.groups || '[]'); } catch { return []; }
         }
-    } catch (_) { /* ignore */ }
+    } catch (err) { log.debug('ignore', err); }
     return [];
 }
 
@@ -77,7 +78,7 @@ async function resolveUserOrgFromReq(req) {
                 if (g?.organizationId) return g.organizationId;
             }
         }
-    } catch (_) {}
+    } catch (_) { log.debug('org lookup failed, no organization resolved', _); }
     return null;
 }
 
@@ -150,7 +151,7 @@ async function withInsightsPolicy(transcription) {
             const talkNotes = require('../../core/meetingNotes/talkNotesSettings');
             const orgSettings = await talkNotes.getOrgSettings(transcription.organizationId);
             perPersonInsights = orgSettings.insightsPerPersonStats !== false;
-        } catch (_) { /* config unavailable → default */ }
+        } catch (err) { log.debug('config unavailable → default', err); }
     }
     const { audioPath, audioStorageKey, voiceprintMatches, ...safe } = transcription || {};
     return {
@@ -179,7 +180,7 @@ async function describeAudio(transcription) {
         try { await fs.promises.access(transcription.audioPath); localPresent = true; } catch (_) { localPresent = false; }
     }
     let storageConfigured = false;
-    try { storageConfigured = !!require('../../stores/storageStore').getStatus().configured; } catch (_) { /* default */ }
+    try { storageConfigured = !!require('../../stores/storageStore').getStatus().configured; } catch (err) { log.debug('default', err); }
     return {
         available: localPresent || durable,
         durable,

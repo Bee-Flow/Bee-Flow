@@ -197,7 +197,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                     [target.id],
                 );
                 if (admins?.[0]?.email) recipientEmail = admins[0].email;
-            } catch (_) { /* tolerate */ }
+            } catch (err) { log.debug('tolerate', err); }
         }
         if (!recipientEmail) return;
 
@@ -212,7 +212,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                 planName = plan.name;
                 interval = plan.billing_interval || interval;
             }
-        } catch (_) { /* fall back to Stripe's own data */ }
+        } catch (err) { log.debug('fall back to Stripe\'s own data', err); }
         if (!planName) planName = price?.nickname || line?.description || 'Subscription';
 
         const periodEnd = line?.period?.end;
@@ -225,7 +225,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                     const portal = await stripeService.createPortalSession(invoice.customer, portalUrl);
                     if (portal?.url) portalUrl = portal.url;
                 }
-            } catch (_) { /* fall back to the settings page */ }
+            } catch (err) { log.debug('fall back to the settings page', err); }
         }
 
         const { sendSubscriptionConfirmationEmail } = require('../../utils/emailService');
@@ -343,7 +343,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
                     [target.id],
                 );
                 if (admins?.[0]?.email) recipientEmail = admins[0].email;
-            } catch (_) { /* tolerate */ }
+            } catch (err) { log.debug('tolerate', err); }
         }
         if (!recipientEmail) return;
 
@@ -354,7 +354,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
                 const portal = await stripeService.createPortalSession(customerId, portalUrl);
                 if (portal?.url) portalUrl = portal.url;
             }
-        } catch (_) { /* fall back */ }
+        } catch (err) { log.debug('fall back', err); }
 
         const { sendSubscriptionSuspendedEmail } = require('../../utils/emailService');
         await sendSubscriptionSuspendedEmail({
@@ -398,7 +398,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
                 );
                 const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
                 if (adminEmails.length > 0) recipientEmail = adminEmails[0];
-            } catch (_) { /* tolerate */ }
+            } catch (err) { log.debug('tolerate', err); }
         }
         if (!recipientEmail) return;
 
@@ -409,7 +409,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
                 const portal = await stripeService.createPortalSession(customerId, portalUrl);
                 if (portal?.url) portalUrl = portal.url;
             }
-        } catch (_) { /* fall back to settings page */ }
+        } catch (err) { log.debug('fall back to settings page', err); }
 
         const { sendPaymentFailedEmail } = require('../../utils/emailService');
         await sendPaymentFailedEmail({

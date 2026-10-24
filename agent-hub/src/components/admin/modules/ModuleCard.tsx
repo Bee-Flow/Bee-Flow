@@ -48,7 +48,7 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }: 
                 </div>
             ) : !module.requirementsMet ? (
                 <div className="absolute top-3 right-3">
-                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium [background:rgba(245,158,11,0.15)] [color:#f59e0b]!">
                         <AlertTriangle className="w-3 h-3" /> {t('modules.badge_requirements_unmet')}
                     </span>
                 </div>
@@ -140,8 +140,7 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }: 
                     <button
                         onClick={() => onImport(module)}
                         disabled={busy}
-                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="w-full py-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                         {busy ? t('modules.importing') : t('modules.import')}
@@ -154,7 +153,7 @@ export default function ModuleCard({ module, onImport, onRemoveRequest, busy }: 
                         >
                             <Download className="w-3.5 h-3.5" /> {t('modules.import')}
                         </button>
-                        <p className="text-xs mt-1.5 flex items-center gap-1" style={{ color: '#f59e0b' }}>
+                        <p className="text-xs mt-1.5 flex items-center gap-1 [color:#f59e0b]!">
                             <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {t('modules.requirements_blocked')}
                         </p>
                     </>

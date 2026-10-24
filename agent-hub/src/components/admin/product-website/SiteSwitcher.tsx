@@ -152,8 +152,7 @@ export default function SiteSwitcher({
 
             {open && (
                 <div
-                    className="absolute z-30 mt-1 left-0 right-0 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-lg overflow-hidden"
-                    style={{ minWidth: 220 }}
+                    className="absolute z-30 mt-1 left-0 right-0 rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] shadow-lg overflow-hidden min-w-[220px]"
                 >
                     {listAndFooter}
                 </div>

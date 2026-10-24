@@ -79,7 +79,7 @@ async function transcribeOnDevice({ filePath, language }) {
 async function transcribeWithVoxtral({ filePath, fileName, language, contextTerms }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
     if (!apiKey) {
-        try { fs.unlinkSync(filePath); } catch (_) {}
+        try { fs.unlinkSync(filePath); } catch (_) { log.debug('temp upload already gone', _); }
         throw new Error('Mistral API key not configured. Go to Admin → AI Config → API Keys.');
     }
 

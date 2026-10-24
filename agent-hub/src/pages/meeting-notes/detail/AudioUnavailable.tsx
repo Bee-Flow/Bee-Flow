@@ -48,8 +48,7 @@ export default function AudioUnavailable({ audio, onRetry }: { audio?: MeetingNo
                 <button
                     type="button"
                     onClick={onRetry}
-                    className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
-                    style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                    className="mt-1 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium [background:var(--accent-primary)] [color:#fff]!"
                 >
                     <RefreshCw className="w-3.5 h-3.5" />
                     {t('meeting_notes.audio_retry', 'Try again')}
@@ -68,8 +67,7 @@ export function AudioNotBackedUp({ downloadUrl }: { downloadUrl?: string | null 
     const { t } = useTranslation();
     return (
         <div
-            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px]"
-            style={{ background: 'var(--bg-secondary)', borderColor: '#f59e0b', color: 'var(--text-muted)' }}
+            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px] [background:var(--bg-secondary)] [border-color:#f59e0b] [color:var(--text-muted)]!"
         >
             <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: '#f59e0b' }} />
             <span className="flex-1">{t('meeting_notes.audio_no_backup', 'This recording doesn’t have a durable backup yet.')}</span>

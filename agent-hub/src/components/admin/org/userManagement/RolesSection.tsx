@@ -22,7 +22,7 @@ export default function RolesSection({ roles, onAddRole, onEditRole, onDeleteRol
                     <div key={role.id} className="p-4 rounded-xl border group hover:border-[var(--accent-primary)] bg-[var(--bg-secondary)] border-[var(--border-default)]">
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245, 158, 11, 0.15)' }}><Tag className="w-5 h-5 text-amber-400" /></div>
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center [background:rgba(245,158,11,0.15)]"><Tag className="w-5 h-5 text-amber-400" /></div>
                                 <div><h4 className="font-semibold text-[var(--text-primary)]">{role.name}</h4><p className="text-sm text-[var(--text-muted)]">{role.description}</p></div>
                             </div>
                             <div className="flex items-center gap-2 opacity-100 xl:opacity-0 xl:group-hover:opacity-100">

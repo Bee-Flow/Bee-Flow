@@ -3,6 +3,7 @@ import { summariseDeleteBlock } from './deleteBlock';
 import type { DeleteBlockBody } from './deleteBlock';
 import { deleteAgentRequest } from '../../../api/agentStudio';
 import { errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 export type DeleteBlock = ReturnType<typeof summariseDeleteBlock>;
 export interface DeleteTarget { id?: string | null; name?: string }
@@ -55,7 +56,7 @@ export default function useAgentDelete({ onDeleted, fetchAgents }: Options) {
             // summariseDeleteBlock reports every kind as unchecked instead.
             if (res.status === 409) {
                 let body: DeleteBlockBody | null = null;
-                try { body = await res.json(); } catch (_) { /* leave null: unreadable */ }
+                try { body = await res.json(); } catch (err) { logger.debug('leave null: unreadable', err); }
                 setDeleteBlocked(summariseDeleteBlock(body));
                 return;
             }
@@ -64,7 +65,7 @@ export default function useAgentDelete({ onDeleted, fetchAgents }: Options) {
                 // would otherwise reject inside the throw, swallowing the real
                 // status code.
                 let detail = '';
-                try { detail = await res.text(); } catch (_) { /* ignore */ }
+                try { detail = await res.text(); } catch (err) { logger.debug('ignore', err); }
                 throw new Error(detail || `HTTP ${res.status}`);
             }
             onDeleted(a.id);

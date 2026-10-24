@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /**
  * One member, as GET /auth/users returns them. Only what the panel reads is
@@ -173,7 +174,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
                     const data: { tiers?: CustomTierMeta[] } | null = await res.json();
                     if (Array.isArray(data?.tiers)) setCustomTiersMeta(data.tiers);
                 }
-            } catch { /* non-critical */ }
+            } catch (err) { logger.debug('non-critical', err); }
         })();
     }, []);
 

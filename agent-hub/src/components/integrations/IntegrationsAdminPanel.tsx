@@ -140,18 +140,9 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
     }
 
     return (
-        <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+        <div className="[display:flex] h-[100%] [overflow:hidden]">
             {/* ── Left Sidebar ── */}
-            <div style={{
-                width: '56px',
-                flexShrink: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                padding: '8px 0',
-                background: 'var(--bg-secondary, #111)',
-                borderRight: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-            }}>
+            <div className="w-[56px] [flex-shrink:0] [display:flex] [flex-direction:column] [gap:2px] [padding:8px_0] [background:var(--bg-secondary,#111)] [border-right:1px_solid_var(--border-default,rgba(255,255,255,0.08))]">
                 {visibleSections.map(sec => {
                     const Icon = sec.icon;
                     const isActive = active === sec.id;
@@ -196,10 +187,10 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
             </div>
 
             {/* ── Main Content Panel ── */}
-            <div style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+            <div className="[flex:1] [overflow:auto] [position:relative]">
             {/* Status message toast */}
             {message && (
-                <div style={{ position: 'sticky', top: 0, zIndex: 10, padding: '8px 24px' }}>
+                <div className="[position:sticky] [top:0] [z-index:10] [padding:8px_24px]">
                     <span className={`text-sm font-medium px-3 py-1.5 rounded-lg inline-block ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                         {message.text}
                     </span>

@@ -14,6 +14,7 @@ import SourceCard from './sources/SourceCard';
 import SourcePreviewModal, { type SourcePreview } from './sources/SourcePreviewModal';
 import { AddUrlPanel, MeetingSourcePanel, PasteTextPanel, type MeetingMode } from './sources/AddSourcePanels';
 import { SOURCE_META, type SourceRow } from './sources/sourceMeta';
+import { logger } from '../../../utils/logger';
 
 export { SOURCE_META };
 
@@ -81,7 +82,7 @@ export default function NotebookSources({
     });
     const updateMeetingMode = useCallback((m: MeetingMode) => {
         setMeetingMode(m);
-        try { localStorage.setItem('nb_meeting_mode', m); } catch { /* storage unavailable: the choice lasts for this visit */ }
+        try { localStorage.setItem('nb_meeting_mode', m); } catch (err) { logger.debug('storage unavailable: the choice lasts for this visit', err); }
     }, []);
 
     const choose = (key: PanelKey) => {
@@ -112,7 +113,7 @@ export default function NotebookSources({
     const onCardDragStart = (e: React.DragEvent, id: string) => {
         setDragId(id);
         e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', id); } catch { /* some browsers refuse */ }
+        try { e.dataTransfer.setData('text/plain', id); } catch (err) { logger.debug('some browsers refuse', err); }
     };
     const onCardDragOver = (e: React.DragEvent) => { if (dragId) e.preventDefault(); };
     const onCardDrop = (e: React.DragEvent, targetId: string) => {

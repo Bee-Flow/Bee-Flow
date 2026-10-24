@@ -36,6 +36,7 @@
 
 'use strict';
 
+const { featureModule } = require('../featureModules');
 const { normalizeDeck, DECK_LIMITS } = require('./deckModel');
 const { normaliseDeckOverrides } = require('./deckThemeOptions');
 const log = require('../../telemetry/log');
@@ -108,7 +109,7 @@ async function renderDeckDocument({
     const { deck, fill } = deckFromDocument(source, values, { sectionOverrides });
     if (fill && assertFilled) require('./documentContract').assertFinal(fill);
 
-    const { renderPresentation } = require('../../services/presentationRenderer');
+    const { renderPresentation } = featureModule('services/presentationRenderer');
     const out = await renderPresentation({
         deck,
         format,

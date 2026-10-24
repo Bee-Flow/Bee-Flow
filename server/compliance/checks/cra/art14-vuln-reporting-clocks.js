@@ -31,6 +31,7 @@ const db = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
 const { addCalendarMonths } = require('../../../utils/calendarMonths');
+const log = require('../../../telemetry/log');
 
 const EARLY_WARNING_HOURS = 24;
 const NOTIFICATION_HOURS = 72;
@@ -216,7 +217,7 @@ module.exports = {
             if (published && typeof published.body === 'string') {
                 procedureMentionsVulns = VULN_PROCEDURE_RE.test(published.body);
             }
-        } catch { /* ISMS documents not provisioned — signal stays unknown */ }
+        } catch (err) { log.debug('ISMS documents not provisioned — signal stays unknown', err); }
 
         const evidence = {
             cra_role: craRole,

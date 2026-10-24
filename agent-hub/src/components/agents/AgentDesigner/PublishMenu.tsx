@@ -61,11 +61,7 @@ function PublishDropdown(p: PublishMenuProps) {
     const { sharedGroups } = p;
     return (
         <div
-            className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl z-50 overflow-hidden"
-            style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-default)',
-            }}
+            className="absolute right-0 top-full mt-2 w-72 rounded-xl shadow-2xl z-50 overflow-hidden [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)]"
         >
             <div className="p-3 border-b border-[var(--border-subtle)]">
                 <p className="text-sm font-semibold text-[var(--text-primary)]">
@@ -81,7 +77,7 @@ function PublishDropdown(p: PublishMenuProps) {
                 onClick={() => p.setPublishState(false, [])}
                 className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left"
             >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(107, 114, 128, 0.15)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:rgba(107,114,128,0.15)]">
                     <svg className="w-4 h-4 text-[var(--text-secondary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={LOCK_PATH} />
                     </svg>
@@ -98,7 +94,7 @@ function PublishDropdown(p: PublishMenuProps) {
                 onClick={() => p.setPublishState(true, [])}
                 className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left border-t border-[var(--border-subtle)]"
             >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(16, 185, 129, 0.15)' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:rgba(16,185,129,0.15)]">
                     <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>

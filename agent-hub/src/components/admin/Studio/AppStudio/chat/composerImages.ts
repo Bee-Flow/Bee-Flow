@@ -1,6 +1,7 @@
 import type { StagedImage } from './TranscriptItems';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { readAsDataUrl, resizeImageForUpload } from '../../../../../utils/imageResize';
+import { logger } from '../../../../../utils/logger';
 
 /** A staged image with what the size and type checks measured. */
 export interface PreparedImage extends StagedImage {
@@ -107,10 +108,7 @@ async function toDataUrl(file: File, fallbackType: string): Promise<{ dataUrl: s
                 mimeType: String(resized.mimeType || fallbackType).toLowerCase(),
             };
         }
-    } catch {
-        // Downscaling is best-effort (no canvas / decode failure) — the raw
-        // file still beats losing the user's screenshot.
-    }
+    } catch (err) { logger.debug('Downscaling is best-effort (no canvas / decode failure) — the raw file still beats losing the user\'s screenshot.', err); }
     try {
         return { dataUrl: await readAsDataUrl(file), mimeType: fallbackType };
     } catch {

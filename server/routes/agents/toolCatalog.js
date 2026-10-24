@@ -293,7 +293,7 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
             // two providers would be described by one of them. No registry
             // entry does that today.
             if (provider === null && providersKnown) {
-                try { provider = providerForTool(name) || null; } catch (_) { /* stays null */ }
+                try { provider = providerForTool(name) || null; } catch (err) { log.debug('stays null', err); }
             }
         }
 

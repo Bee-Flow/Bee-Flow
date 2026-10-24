@@ -173,63 +173,55 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_organisation_name', 'Organisation name *')}</label>
                 <input value={org.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, name: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
             </div>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_billing_email', 'Billing email')}</label>
                 <input type="email" value={org.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, email: e.target.value })}
                     placeholder="finance@example.com"
-                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
             </div>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_tagline', 'Tagline')}</label>
                 <input value={org.tagline} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, tagline: e.target.value })}
                     placeholder={t('nc_onboarding.nc_onboarding_wizard_one_line_that_describes_your_team', 'One line that describes your team')}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_phone', 'Phone')}</label>
                     <input value={org.phone} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, phone: e.target.value })}
-                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
                 </div>
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_website', 'Website')}</label>
                     <input value={org.website} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, website: e.target.value })}
                         placeholder="https://"
-                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
                 </div>
             </div>
             <div>
                 <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_address', 'Address')}</label>
                 <input value={org.address} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, address: e.target.value })}
-                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                    style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                    className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
             </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_chamber_of_commerce_kvk', 'Chamber of Commerce (KVK)')}</label>
                     <input value={org.kvk} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, kvk: e.target.value })}
-                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
                 </div>
                 <div>
                     <label className="text-xs font-medium text-[var(--text-secondary)]">{t('nc_onboarding.nc_onboarding_wizard_vat', 'VAT')}</label>
                     <input value={org.vat} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrg({ ...org, vat: e.target.value })}
-                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} />
+                        className="w-full mt-1 px-3 py-2 rounded-lg border text-sm [border-color:var(--border-subtle)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!" />
                 </div>
             </div>
         </div>
     );
 
     return (
-        <div className="h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(160deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%)' }}>
+        <div className="h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
             <div className="w-full max-w-2xl">
                 <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                     {/* Header */}
@@ -411,14 +403,12 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
                         </button>
                         {step !== 'done' ? (
                             <button type="button" onClick={next} disabled={!canAdvance()}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-30"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-30 [background:var(--accent-primary)] [color:white]!">
                                 {t('nc_onboarding.nc_onboarding_wizard_next', 'Next')} <ChevronRight className="w-4 h-4" />
                             </button>
                         ) : (
                             <button type="button" onClick={handleFinish} disabled={submitting}
-                                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
-                                style={{ background: 'var(--accent-primary)', color: 'white' }}>
+                                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium disabled:opacity-50 [background:var(--accent-primary)] [color:white]!">
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                                 {submitting ? 'Finishing…' : 'Finish setup'}
                             </button>

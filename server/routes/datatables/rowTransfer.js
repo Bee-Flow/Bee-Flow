@@ -17,6 +17,7 @@ const { metaAndFilter, metaFor } = require('./grade');
 const { assertQuota, answerDatatableError } = require('./refusals');
 const { mirrorCtx } = require('./source');
 const { answering } = require('./rowHandlers');
+const log = require('../../telemetry/log');
 
 const lineError = (line, e) => ({ line, error: e.message, ...(typeof e.code === 'string' ? { code: e.code } : {}) });
 
@@ -204,7 +205,7 @@ async function exportCsv(req, res) {
     } catch (e) {
         // Headers may already be out: a half-written CSV cannot become a JSON
         // error, so the only honest end is to stop the stream.
-        if (res.headersSent) { try { res.end(); } catch { /* client gone */ } return; }
+        if (res.headersSent) { try { res.end(); } catch (err) { log.debug('client already gone', err); } return; }
         if (answerDatatableError(res, e, req.datatableScope)) return;
         throw e;
     }

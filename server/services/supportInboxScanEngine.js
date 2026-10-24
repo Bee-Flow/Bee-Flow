@@ -34,7 +34,7 @@ function _emit(event, inboxId, data = {}) {
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });
-    } catch { /* never block the scan on the event bus */ }
+    } catch (err) { log.debug('never block the scan on the event bus', err); }
 }
 
 function _percentile(sorted, p) {

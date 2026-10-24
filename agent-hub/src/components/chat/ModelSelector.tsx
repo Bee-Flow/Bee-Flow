@@ -133,7 +133,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
     };
 
     return (
-        <div ref={ref} style={{ position: 'relative' }}>
+        <div ref={ref} className="[position:relative]">
             {/* Trigger Button */}
             <button
                 type="button"
@@ -163,12 +163,12 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                         }}>
                             {CAT_ICONS[selectedMeta?.cat as string] || '⚙️'}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div className="[flex:1] min-w-[0]">
+                            <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
                                 {selectedModel.displayName || selectedModel.name}
                             </div>
                             {!compact && selectedMeta?.desc && (
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <div className="[font-size:11px] [color:var(--text-muted)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
                                     {selectedMeta.desc}
                                 </div>
                             )}
@@ -186,13 +186,8 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                     </>
                 ) : (
                     <>
-                        <div style={{
-                            width: '32px', height: '32px', borderRadius: '8px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '16px', flexShrink: 0,
-                            background: 'rgba(107, 114, 128, 0.1)',
-                        }}>✨</div>
-                        <div style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                        <div className="w-[32px] h-[32px] [border-radius:8px] [display:flex] [align-items:center] [justify-content:center] [font-size:16px] [flex-shrink:0] [background:rgba(107,114,128,0.1)]">✨</div>
+                        <div className="[flex:1] [font-size:13px] [font-weight:500] [color:var(--text-secondary)]">
                             {defaultLabel}
                         </div>
                     </>
@@ -206,22 +201,12 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
             {open && (
                 <div
                     ref={panelRef}
-                    style={{
-                        position: 'absolute',
-                        left: 0, right: 0,
-                        zIndex: 50,
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: '14px',
-                        boxShadow: '0 20px 50px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05)',
-                        overflow: 'hidden',
-                        animation: 'modelSelectorFadeIn 0.15s ease-out',
-                    }}
+                    className="[position:absolute] [left:0] [right:0] [z-index:50] [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)] [border-radius:14px] [box-shadow:0_20px_50px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.05)] [overflow:hidden] [animation:modelSelectorFadeIn_0.15s_ease-out]"
                 >
                     {/* Search */}
-                    <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-                        <div style={{ position: 'relative' }}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                    <div className="[padding:10px_12px] [border-bottom:1px_solid_var(--border-subtle)]">
+                        <div className="[position:relative]">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="[position:absolute] [left:10px] [top:50%] [transform:translateY(-50%)] [color:var(--text-muted)]">
                                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                             </svg>
                             <input
@@ -231,18 +216,13 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                                 placeholder={t('chat.model.search', 'Search models...')}
                                 aria-label={t('chat.model.search', 'Search models...')}
-                                style={{
-                                    width: '100%', padding: '8px 10px 8px 32px', borderRadius: '8px',
-                                    border: '1px solid var(--border-subtle)', background: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)', fontSize: '13px', outline: 'none',
-                                    boxSizing: 'border-box',
-                                }}
+                                className="w-[100%] [padding:8px_10px_8px_32px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-primary)] [color:var(--text-primary)] [font-size:13px] [outline:none] [box-sizing:border-box]"
                             />
                         </div>
                     </div>
 
                     {/* Default option */}
-                    <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+                    <div className="max-h-[380px] [overflow-y:auto]">
                         <button
                             type="button"
                             onClick={() => handleSelect('')}
@@ -256,14 +236,10 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                             onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (value !== '') e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
                             onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (value !== '') e.currentTarget.style.background = 'transparent'; }}
                         >
-                            <div style={{
-                                width: '36px', height: '36px', borderRadius: '10px',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '18px', background: 'rgba(107, 114, 128, 0.1)', flexShrink: 0,
-                            }}>✨</div>
+                            <div className="w-[36px] h-[36px] [border-radius:10px] [display:flex] [align-items:center] [justify-content:center] [font-size:18px] [background:rgba(107,114,128,0.1)] [flex-shrink:0]">✨</div>
                             <div>
-                                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{defaultOptionLabel}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t('chat.model.default_option_desc', 'Uses the system default model')}</div>
+                                <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)]">{defaultOptionLabel}</div>
+                                <div className="[font-size:11px] [color:var(--text-muted)]">{t('chat.model.default_option_desc', 'Uses the system default model')}</div>
                             </div>
                         </button>
 
@@ -309,7 +285,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                                             }}>
                                                 {CAT_ICONS[meta?.cat as string] || '⚙️'}
                                             </div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div className="[flex:1] min-w-[0]">
                                                 <div style={{
                                                     fontSize: '13px', fontWeight: 600,
                                                     color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)',
@@ -318,25 +294,18 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                                                     {m.displayName || m.name || m.id}
                                                 </div>
                                                 {meta?.desc && (
-                                                    <div style={{
-                                                        fontSize: '11px', color: 'var(--text-muted)',
-                                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                    }}>
+                                                    <div className="[font-size:11px] [color:var(--text-muted)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
                                                         {meta.desc}
                                                     </div>
                                                 )}
                                             </div>
                                             {price && (
-                                                <span style={{
-                                                    fontSize: '10px', fontWeight: 600, padding: '2px 6px',
-                                                    borderRadius: '6px', whiteSpace: 'nowrap', flexShrink: 0,
-                                                    background: 'rgba(16, 185, 129, 0.1)', color: '#34d399',
-                                                }}>
+                                                <span className="[font-size:10px] [font-weight:600] [padding:2px_6px] [border-radius:6px] [white-space:nowrap] [flex-shrink:0] [background:rgba(16,185,129,0.1)] [color:#34d399]">
                                                     {price}
                                                 </span>
                                             )}
                                             {isSelected && (
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ color: 'var(--accent-primary)', flexShrink: 0 }}>
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="[color:var(--accent-primary)] [flex-shrink:0]">
                                                     <polyline points="20 6 9 17 4 12" />
                                                 </svg>
                                             )}
@@ -347,7 +316,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
                         ))}
 
                         {filtered.length === 0 && search && (
-                            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                            <div className="[padding:24px] [text-align:center] [color:var(--text-muted)] [font-size:13px]">
                                 {t('chat.model_selector_no_match', 'No models matching "{query}"', { query: search })}
                             </div>
                         )}

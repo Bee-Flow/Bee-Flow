@@ -18,6 +18,7 @@
  */
 
 const { exec } = require('../db');
+const log = require('../telemetry/log');
 
 async function up() {
     await exec(`
@@ -51,7 +52,7 @@ async function up() {
     `);
 
     // Index source_kind so the marketplace filter (source_kind='manual') is cheap.
-    try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_source_kind ON knowledge_bases(source_kind)`); } catch (_) {}
+    try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_source_kind ON knowledge_bases(source_kind)`); } catch (_) { log.warn('source_kind index could not be created', _); }
 
     // The 'webpage' usage-context is no longer offered to users from the studio
     // (auto-created webpage KBs already live with `source_kind='webpage_auto'`).

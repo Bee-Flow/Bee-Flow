@@ -31,6 +31,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const log = require('../telemetry/log');
 
 const APP = process.env.BEEFLOW_APP_DIR || '/app';
 const ORG = process.env.HARNESS_ORG || 'nc-nextcloud-nc-host-bee';
@@ -410,8 +411,8 @@ async function main() {
     const token = jwt.sign({ sub: NC_UID, email: EMAIL, name: NC_UID, nc_admin: true }, key, { algorithm: 'HS256', issuer: 'nextcloud-connector', audience: 'beeflow.nl', expiresIn: 4 * 3600 });
     const headers = { Authorization: `Bearer ${token}`, 'X-Beeflow-Source': 'nextcloud-connector', 'X-Beeflow-NC-Uid': NC_UID, 'Content-Type': 'application/json' };
     const drivers = {};
-    try { drivers.automation = require('/tmp/drive-builder.js'); } catch { /* judged without the automation matcher */ }
-    try { drivers.app = require('/tmp/drive-app-builder.js'); } catch { /* judged without the app matcher */ }
+    try { drivers.automation = require('/tmp/drive-builder.js'); } catch (err) { log.debug('judged without the automation matcher', err); }
+    try { drivers.app = require('/tmp/drive-app-builder.js'); } catch (err) { log.debug('judged without the app matcher', err); }
 
     console.log(`\n=== ${caseFile.id}: ${caseFile.title} ===`);
     const h = new Harness(headers, caseFile, flag('print-calls'));

@@ -181,8 +181,7 @@ function RuleChips({ rules, tt }: { rules: RuleChip[]; tt: TranslateFn }) {
     );
     return (
         <div
-            className="flex flex-wrap items-center gap-1.5 pt-1.5"
-            style={{ borderTop: '1px dashed var(--border-subtle)' }}
+            className="flex flex-wrap items-center gap-1.5 pt-1.5 [border-top:1px_dashed_var(--border-subtle)]"
             role="list"
             /* De toegankelijke naam is de UITLEG, niet het kopje: een
                schermlezer die "Judged" hoort weet nog niets. */

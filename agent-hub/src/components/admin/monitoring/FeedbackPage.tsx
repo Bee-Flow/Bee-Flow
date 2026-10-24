@@ -21,7 +21,7 @@ function FeedbackKpis({ feedback, summary }: FeedbackPageProps) {
     // Count items with conversation snapshots
     const withConvoCount = useMemo(() => feedback.filter(f => f.conversation_snapshot).length, [feedback]);
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '1.25rem' }}>
+        <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] [gap:12px] [margin-bottom:1.25rem]">
             <MetricCard icon={ThumbsUp} label={t('admin_monitoring.feedback_positive', 'Positive')} color={COLORS.green}
                 value={posCount} subtitle={t('admin_monitoring.feedback_approval', '{rate}% approval', { rate: posRate })} />
             <MetricCard icon={ThumbsDown} label={t('admin_monitoring.feedback_negative', 'Negative')} color={COLORS.rose}
@@ -51,7 +51,7 @@ function FeedbackFilterBar({ filter, onFilter, search, onSearch }: FilterBarProp
         { id: 'with_convo', label: `🗨️ ${t('admin_monitoring.feedback_with_convo', 'With Conversation')}` },
     ];
     return (
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
             {filters.map(f => (
                 <button
                     key={f.id}
@@ -64,20 +64,13 @@ function FeedbackFilterBar({ filter, onFilter, search, onSearch }: FilterBarProp
                     }}
                 >{f.label}</button>
             ))}
-            <div style={{ flex: 1 }} />
-            <div style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 10px',
-                borderRadius: '8px', background: 'var(--bg-primary, #0f0f1a)',
-                border: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-            }}>
+            <div className="[flex:1]" />
+            <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))]">
                 <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
                 <input
                     value={search} onChange={e => onSearch(e.target.value)}
                     placeholder={t('admin_monitoring.feedback_search', 'Search feedback...')}
-                    style={{
-                        background: 'transparent', border: 'none', outline: 'none', fontSize: '12px',
-                        color: 'var(--text-primary, #fff)', width: '140px',
-                    }}
+                    className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary,#fff)] w-[140px]"
                 />
             </div>
         </div>
@@ -86,13 +79,13 @@ function FeedbackFilterBar({ filter, onFilter, search, onSearch }: FilterBarProp
 
 function Pagination({ pageNum, totalPages, setPageNum }: { pageNum: number; totalPages: number; setPageNum: (f: (p: number) => number) => void }) {
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '14px', alignItems: 'center' }}>
+        <div className="[display:flex] [justify-content:center] [gap:6px] [margin-top:14px] [align-items:center]">
             <button
                 onClick={() => setPageNum(p => Math.max(0, p - 1))}
                 disabled={pageNum === 0}
                 style={paginationBtn}
             >←</button>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted, #888)', padding: '0 8px' }}>
+            <span className="[font-size:12px] [color:var(--text-muted,#888)] [padding:0_8px]">
                 {pageNum + 1} / {totalPages}
             </span>
             <button
@@ -116,7 +109,7 @@ export function FeedbackPage({ feedback, summary }: FeedbackPageProps) {
     const paged = filtered.slice(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE);
 
     return (
-        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+        <div className="[animation:fadeIn_0.3s_ease]">
             <FeedbackKpis feedback={feedback} summary={summary} />
 
             <Card>

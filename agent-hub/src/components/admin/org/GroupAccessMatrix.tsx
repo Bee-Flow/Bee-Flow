@@ -92,7 +92,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     }, []);
 
     const ceiling = useMemo(() => new Set(data?.ceiling || []), [data]);
-    const groups = data?.groups || [];
+    const groups = useMemo(() => data?.groups || [], [data?.groups]);
 
     const saveEveryone = (nextSet: Set<string>) => {
         if (everyoneTimer.current) clearTimeout(everyoneTimer.current);
@@ -160,7 +160,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     if (loading) return <div className="p-6"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>;
     if (!data || !data.orgId) {
         return (
-            <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <div className="rounded-2xl p-5 text-sm [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-muted)]!">
                 {t('admin_org.access_matrix_no_org', 'Your account is not bound to an organisation, so there is nothing to manage here.')}
             </div>
         );
@@ -241,7 +241,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
     );
 
     return (
-        <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+        <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
             {hideHeading ? (
                 <div className="flex items-start justify-between gap-3 mb-4">
                     <p className="text-sm text-[var(--text-muted)] max-w-[760px]">{intro}</p>
@@ -272,8 +272,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                         <div className="relative mb-2">
                             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                             <input value={groupQuery} onChange={e => setGroupQuery(e.target.value)} placeholder={t('admin_org.access_matrix_search_groups', 'Search groups…')}
-                                className="w-full text-sm rounded-lg pl-8 pr-2 py-1.5 outline-none"
-                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }} />
+                                className="w-full text-sm rounded-lg pl-8 pr-2 py-1.5 outline-none [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!" />
                         </div>
                     ) : null}
                     {groups.length === 0 ? (
@@ -308,7 +307,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                             .filter(x => x.caps.length > 0);
                         if (sections.length === 0) {
                             return (
-                                <p className="text-sm rounded-xl px-4 py-3" style={{ color: 'var(--text-muted)', background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                                <p className="text-sm rounded-xl px-4 py-3 [color:var(--text-muted)]! [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                                     {kinds && kinds.length === 1 && kinds[0] === 'integration'
                                         ? t('admin_org.access_matrix_no_integrations', "Your subscription doesn't include any integrations yet.")
                                         : t('admin_org.access_matrix_nothing', 'Nothing to grant here yet.')}

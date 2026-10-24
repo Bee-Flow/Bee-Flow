@@ -474,11 +474,11 @@ async function preflight(ctx) {
         });
     } catch (err) {
         if (err === ROLLBACK) { for (const t of changed) t.diff.preflight = 'ok'; return; }
-        try { s.datatableDbStore.invalidate(key); } catch { /* best effort */ }
+        try { s.datatableDbStore.invalidate(key); } catch (err) { log.debug('best effort', err); }
         for (const t of changed) t.diff.preflight = 'failed';
         ctx.blocking.push(blocking('schema.preflight_failed', { code: err && err.code ? String(err.code) : null }));
     }
-    try { s.datatableDbStore.invalidate(key); } catch { /* best effort */ }
+    try { s.datatableDbStore.invalidate(key); } catch (err) { log.debug('best effort', err); }
 }
 
 // ── 5. Verify ───────────────────────────────────────────────────────────────

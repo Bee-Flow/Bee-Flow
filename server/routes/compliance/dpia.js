@@ -17,6 +17,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
+const log = require('../../telemetry/log');
 
 /**
  * Chat signals keep their org-wide DPIA under the key 'chat_monitoring'. A
@@ -99,7 +100,7 @@ router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_complianc
     try {
         const row = await getAll(`SELECT name FROM agents WHERE id = $1 LIMIT 1`, [req.params.agentId]);
         if (row?.[0]?.name) agentName = row[0].name;
-    } catch { /* keep id */ }
+    } catch (err) { log.debug('keep id', err); }
     const { buildDpiaPdf } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildDpiaPdf({ agentName, dpia });
     // The PDF goes out either way, but a lost stamp makes the trail say the

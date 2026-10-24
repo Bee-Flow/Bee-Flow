@@ -51,7 +51,7 @@ function Circle({ status }: { status: string }) {
         case 'done':
             return <span style={{ ...base, background: 'var(--kind-playbook)', color: 'var(--accent-primary-fg)' }}><Check className="w-4 h-4" strokeWidth={2.5} aria-hidden="true" /></span>;
         case 'running':
-            return <span className="pbk-ring" style={{ ...base, background: 'var(--type-ai)', color: 'var(--accent-primary-fg)' }}><span style={{ width: 8, height: 8, borderRadius: 999, background: 'currentColor' }} /></span>;
+            return <span className="pbk-ring" style={{ ...base, background: 'var(--type-ai)', color: 'var(--accent-primary-fg)' }}><span className="w-[8px] h-[8px] [border-radius:999px] [background:currentColor]" /></span>;
         case 'awaiting':
             return <span style={{ ...base, border: '2px solid var(--type-ai)', color: 'var(--type-ai)' }}><Pause className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" /></span>;
         case 'failed':
@@ -59,7 +59,7 @@ function Circle({ status }: { status: string }) {
         case 'locked':
             return <span style={{ ...base, border: '2px solid var(--border-default)', color: 'var(--text-tertiary)' }}><Lock className="w-3.5 h-3.5" aria-hidden="true" /></span>;
         case 'skipped':
-            return <span style={{ ...base, border: '2px dashed var(--border-default)', color: 'var(--text-tertiary)' }}><span style={{ width: 10, height: 2, background: 'currentColor' }} /></span>;
+            return <span style={{ ...base, border: '2px dashed var(--border-default)', color: 'var(--text-tertiary)' }}><span className="w-[10px] h-[2px] [background:currentColor]" /></span>;
         case 'ready':
             return <span style={{ ...base, border: '2px solid var(--type-ai)' }} />;
         default:
@@ -103,13 +103,13 @@ export default function PhaseRail({ phases = [], activeKey = null, t, presenter 
                 const color = p.status === 'pending' ? 'var(--text-tertiary)' : p.status === 'failed' ? 'var(--error-ink, var(--error))' : 'var(--text-primary)';
                 return (
                     <li key={p.key} className="flex gap-3" data-testid={`playbook-phase-${p.key}`} data-status={p.status} aria-current={active ? 'step' : undefined}>
-                        <div className="flex flex-col items-center" style={{ width: 28 }}>
+                        <div className="flex flex-col items-center w-[28px]">
                             <Circle status={p.status} />
                             {i < list.length - 1 && (
                                 <span aria-hidden="true" style={{ width: 2, flex: 1, minHeight: 22, margin: '4px 0', background: p.status === 'done' || p.status === 'skipped' ? 'var(--kind-playbook)' : 'var(--border-default)', opacity: p.status === 'done' ? 1 : 0.7 }} />
                             )}
                         </div>
-                        <div className="min-w-0 pb-4 flex-1" style={{ paddingTop: 4 }}>
+                        <div className="min-w-0 pb-4 flex-1 [padding-top:4px]!">
                             <Body onSelect={onSelect} phaseKey={p.key} selected={selected} label={phaseLabel(p, t)} t={t}>
                             <div className="flex items-baseline gap-2">
                                 <span className="font-semibold" style={{ fontSize: presenter ? 15 : 13, color, textDecoration: p.status === 'skipped' ? 'line-through' : 'none' }}>

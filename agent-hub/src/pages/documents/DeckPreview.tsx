@@ -72,7 +72,7 @@ function Slide({ theme, children, background, style, side = 'content' }: SlidePr
             data-template={tpl ? 'yes' : undefined}
         >
             {overlays.map((o: NonNullable<TemplateSide['overlays']>[number], i: number) => <img key={i} src={o.image} alt="" style={{ position: 'absolute', left: `${o.x * 100}%`, top: `${o.y * 100}%`, width: `${o.w * 100}%`, height: `${o.h * 100}%`, objectFit: 'contain' }} />)}
-            <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+            <div className="[position:absolute] [inset:0]">{children}</div>
         </div>
     );
 }
@@ -166,14 +166,14 @@ export function ContentSlide({ theme, title = 'Overview of invoices' }: { theme:
             </div>
             {cornerLogo && <Logo theme={theme} style={{ position: 'absolute', right: '4%', top: band ? '17%' : '4%', width: '12%', height: '8%' }} />}
             <div style={{ position: 'absolute', left: '5%', right: '5%', top: band ? '22%' : '26%', bottom: '18%', display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '5%' }}>
-                <div style={{ minWidth: 0 }}>
+                <div className="min-w-[0]">
                     <ul style={{ margin: 0, paddingLeft: '1em', color: theme.text, fontSize: '0.42em', lineHeight: 1.5 }}>
                         <li>{t('documents.deck.sample_revenue', 'Revenue up 12%')}</li>
                         <li>{t('documents.deck.sample_margin', 'Margin stable')}</li>
                     </ul>
                     <MiniChart theme={theme} />
                 </div>
-                <table style={{ borderCollapse: 'collapse', width: '100%', alignSelf: 'start' }}>
+                <table className="[border-collapse:collapse] w-[100%] [align-self:start]">
                     <thead><tr>{['Supplier', 'Invoice', 'Total'].map((h: string, i: number) => <th key={h} style={cell(h, i, true)}>{h}</th>)}</tr></thead>
                     <tbody>
                         {rows.map((r: string[], ri: number) => (

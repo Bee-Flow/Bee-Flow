@@ -287,7 +287,7 @@ router.get('/users', requireAuth, async (req, res) => {
             if (selfId && u.id === selfId) return true;
             if (u.organizationId && myOrgIds.has(u.organizationId)) return true;
             let uGroups = [];
-            try { uGroups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (_) { }
+            try { uGroups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); }
             return uGroups.some(gid => orgGroupIds.has(gid));
         });
     }
@@ -612,7 +612,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
         try {
             const { invalidateUserExistenceCache } = require('../permissions');
             await invalidateUserExistenceCache(id);
-        } catch (_) { /* optional helper */ }
+        } catch (err) { log.debug('optional helper', err); }
 
         // Soft hint when the admin is assigning a *weaker* orgRole than the
         // user already had. Not an error — admins legitimately demote — but
@@ -716,7 +716,7 @@ router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
             await invalidateUserExistenceCache(id);
             const { bustSessionsForUser } = require('../sessionCache');
             await bustSessionsForUser(id);
-        } catch (_) { /* optional */ }
+        } catch (err) { log.debug('optional', err); }
         res.json({ success: true });
     } else {
         res.status(404).json({ error: 'User not found' });

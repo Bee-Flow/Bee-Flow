@@ -17,6 +17,8 @@
 'use strict';
 
 /** Fields whose name says what kind of personal data the table holds. */
+const log = require('../../telemetry/log');
+
 const CATEGORY_HINTS = Object.freeze([
     { re: /\b(name|naam|voornaam|achternaam|surname|contact)\b/i, label: 'Names' },
     { re: /\b(e?mail|e-?mailadres)\b/i, label: 'E-mail addresses' },
@@ -73,7 +75,7 @@ async function datatableActivities(orgId, deps = defaultDeps()) {
         try {
             const meta = await deps.getTableMeta({ kind: r.scope_kind, id: r.scope_id }, r.id);
             fields = (meta && meta.fields) || [];
-        } catch { /* the row still describes a processing activity */ }
+        } catch (err) { log.debug('the row still describes a processing activity', err); }
         const categories = categoriesOf(fields);
         const days = Number(r.retention_days);
         out.push({

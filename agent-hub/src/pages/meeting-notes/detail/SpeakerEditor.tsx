@@ -246,7 +246,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
         >
             <div className="flex flex-col gap-2">
                 {onAutoDetect && rows.length > 0 && (
-                    <div className="rounded-lg border p-3 mb-1" style={{ background: 'color-mix(in srgb, var(--accent-primary) 5%, var(--bg-secondary))', borderColor: 'var(--border-default)' }}>
+                    <div className="rounded-lg border p-3 mb-1 [background:color-mix(in_srgb,var(--accent-primary)_5%,var(--bg-secondary))] [border-color:var(--border-default)]">
                         <div className="flex items-center gap-1.5 text-[13px] font-semibold mb-1 text-[var(--text-primary)]">
                             <Sparkles className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
                             {t('meeting_notes.speaker_autodetect', 'Auto-detect names')}
@@ -259,8 +259,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                 value={autoNames}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAutoNames(e.target.value)}
                                 placeholder={t('meeting_notes.speaker_autodetect_ph', 'Gerard, Tom, René… (optional)')}
-                                className="flex-1 px-3 py-1.5 rounded-lg text-sm border outline-none"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="flex-1 px-3 py-1.5 rounded-lg text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             />
                             <button
                                 type="button"
@@ -293,8 +292,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                 value={row.name}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => rename(row.targetId, e.target.value)}
                                 placeholder={formatSpeakerLabel(row.targetId)}
-                                className="flex-1 min-w-0 px-2 py-1 rounded text-sm border outline-none"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-subtle)', color: 'var(--text-primary)' }}
+                                className="flex-1 min-w-0 px-2 py-1 rounded text-sm border outline-none [background:var(--bg-primary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]!"
                             />
                             <span className="text-[11px] tabular-nums whitespace-nowrap text-[var(--text-muted)]">
                                 {formatSec(row.speakingSeconds)}
@@ -311,8 +309,7 @@ export default function SpeakerEditor({ open, onClose, meeting, onSave, onAutoDe
                                         sourcesToUndo.forEach(undoMerge);
                                     }}
                                     title={t('meeting_notes.speaker_undo_merge', 'Undo merge')}
-                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border"
-                                    style={{ background: 'transparent', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border [background:transparent] [border-color:var(--border-default)] [color:var(--text-secondary)]!"
                                 >
                                     <Undo2 className="w-3 h-3" />
                                     {t('meeting_notes.speaker_undo', 'Undo')}
@@ -350,8 +347,7 @@ function MergeSelect({ others, onPick }: { others: SpeakerRow[]; onPick: (destId
             <button
                 type="button"
                 onClick={() => setOpen(v => !v)}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border"
-                style={{ background: 'transparent', borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium border [background:transparent] [border-color:var(--border-default)] [color:var(--text-secondary)]!"
             >
                 <Merge className="w-3 h-3" />
                 {t('meeting_notes.merge_with', 'Merge with…')}

@@ -42,11 +42,7 @@ export default function LookPreview({ draftPayload }: Props) {
                     </p>
                 </div>
                 <span
-                    className="inline-flex items-center gap-1 text-[10px] uppercase font-semibold tracking-wider px-2 py-1 rounded-full"
-                    style={{
-                        background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
-                        color: 'var(--accent-primary)',
-                    }}
+                    className="inline-flex items-center gap-1 text-[10px] uppercase font-semibold tracking-wider px-2 py-1 rounded-full [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]!"
                 >
                     <span
                         className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]"
@@ -56,8 +52,7 @@ export default function LookPreview({ draftPayload }: Props) {
             </div>
 
             <div
-                className="flex-1 min-h-0 rounded-xl border overflow-hidden flex flex-col"
-                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}
+                className="flex-1 min-h-0 rounded-xl border overflow-hidden flex flex-col [border-color:var(--border-default)] [background:var(--bg-card)]"
                 data-surface="opaque"
             >
                 <LookPreviewToolbar

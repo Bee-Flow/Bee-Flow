@@ -5,6 +5,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import Modal from '../../shared/Modal';
 import { memoryRefusal } from './memoryErrors';
+import { logger } from '../../../utils/logger';
 
 // The prompt goes to ANOTHER assistant, so it stays English whatever the UI language is.
 const EXPORT_PROMPT = `Export all of my stored memories and any context you've learned about me from past conversations. Preserve my words verbatim where possible, especially for instructions and preferences.
@@ -56,7 +57,7 @@ export default function ImportMemoryModal({ onClose, onImported }: ImportMemoryM
             await navigator.clipboard.writeText(EXPORT_PROMPT);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch { /* clipboard unavailable: the prompt stays selectable */ }
+        } catch (err) { logger.debug('clipboard unavailable: the prompt stays selectable', err); }
     };
 
     const submit = async () => {

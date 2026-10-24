@@ -54,6 +54,7 @@ const queryCompiler = require('./queryCompiler');
 const accessFilter = require('./accessFilter');
 const datatableStore = require('../../stores/datatableStore');
 const datatableDbStore = require('../../stores/datatableDbStore');
+const log = require('../../telemetry/log');
 const {
     gradeForPrincipal, gradeAtLeast, datatableScopesFor, synthesizeAccess,
 } = require('../../auth/datatableAccess');
@@ -249,7 +250,7 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     if (isMirror(resolved)) {
         try {
             require('./sources').kickStale(resolved.table, { reason: 'view' });
-        } catch (_) { /* never a reason to fail a read */ }
+        } catch (err) { log.debug('never a reason to fail a read', err); }
     }
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
     if (!columns.length) {

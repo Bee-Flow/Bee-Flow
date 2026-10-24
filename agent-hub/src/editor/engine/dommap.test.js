@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst';
-import { createState } from './state.js';
-import { renderDoc } from './render';
+import { describe, it, expect } from 'vitest';
 import { posFromDOM, domFromPos } from './dommap.js';
+import { renderDoc } from './render';
 import { pos } from './selection.js';
+import { createState } from './state.js';
+import { markdownToAst } from '../serialization/mdToAst';
 
 function setup(md) {
   const doc = createState(markdownToAst(md)).doc;

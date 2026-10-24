@@ -24,6 +24,8 @@
 
 'use strict';
 
+const log = require('../../../telemetry/log');
+
 const ACRONYMS = new Set([
     'vat', 'id', 'ids', 'url', 'urls', 'uri', 'api', 'iban', 'bic', 'pdf', 'csv', 'json', 'html', 'http', 'https',
     'uuid', 'sku', 'kvk', 'btw', 'ip', 'xml', 'eur', 'usd', 'gbp', 'sms', 'cc', 'bcc', 'ai', 'crm', 'erp', 'nl', 'en',
@@ -134,7 +136,7 @@ function parseDefault(raw) {
     if (text === '') return undefined;
     const quoted = unquote(text);
     if (quoted !== null) return quoted;
-    try { return JSON.parse(text); } catch (_) { /* try the single-quoted form below */ }
+    try { return JSON.parse(text); } catch (err) { log.debug('try the single-quoted form below', err); }
     try {
         return JSON.parse(text.replace(/'((?:[^'\\]|\\.)*)'/g, (_, s) => JSON.stringify(s.replace(/\\'/g, "'"))));
     } catch (_) {

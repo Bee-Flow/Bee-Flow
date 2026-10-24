@@ -39,14 +39,13 @@ export default function EmailSection({
                             <>
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-sm text-[var(--text-secondary)]">{t('integ.email_connected_account', 'Connected account:')}</span>
-                                    <span className="text-sm font-medium px-2 py-1 rounded-lg" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}>
+                                    <span className="text-sm font-medium px-2 py-1 rounded-lg [background:var(--bg-primary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-default)]">
                                         {serviceEmailAddress || 'Google account'}
                                     </span>
                                     <button
                                         onClick={disconnectServiceEmail}
                                         disabled={savingServiceEmail}
-                                        className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all disabled:opacity-50"
-                                        style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
+                                        className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all disabled:opacity-50 [background:rgba(239,68,68,0.1)] [color:#ef4444]!"
                                     >
                                         {t('integ.email_disconnect', 'Disconnect')}
                                     </button>
@@ -63,16 +62,14 @@ export default function EmailSection({
                                     <button
                                         onClick={saveServiceEmailDisplayName}
                                         disabled={savingServiceEmail}
-                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                                     >
                                         {savingServiceEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                         {t('integ.email_save', 'Save')}
                                     </button>
                                     <button
                                         onClick={() => setShowTestEmail(!showTestEmail)}
-                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5"
-                                        style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 [background:rgba(16,185,129,0.1)] [color:#10b981]!"
                                     >
                                         <Send className="w-3.5 h-3.5" />
                                         {t('integ.email_send_test_email', 'Send Test Email')}
@@ -83,8 +80,7 @@ export default function EmailSection({
                             <button
                                 onClick={startServiceEmailConnect}
                                 disabled={connectingServiceEmail}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-2"
-                                style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-2 [background:var(--accent-primary)] [color:#fff]!"
                             >
                                 {connectingServiceEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                                 {t('integ.email_connect_google_account', 'Connect Google account')}
@@ -133,8 +129,7 @@ export default function EmailSection({
                                         setTimeout(() => setMessage(null), 5000);
                                     }}
                                     disabled={testingServiceEmail || !testEmailRecipient.trim()}
-                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                                    style={{ background: '#10b981', color: '#fff' }}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:#10b981] [color:#fff]!"
                                 >
                                     {testingServiceEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                                     {t('integ.email_send', 'Send')}

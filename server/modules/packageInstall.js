@@ -97,7 +97,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
                 const row = await store().getState(moduleId);
                 existingList = (row && row.settings && row.settings.grantedPermissions
                     && row.settings.grantedPermissions.list) || [];
-            } catch (_) {}
+            } catch (_) { log.warn('module state lookup failed, no earlier granted permissions merged', _); }
             const granted = new Set([...existingList, ...(Array.isArray(acceptedPermissions) ? acceptedPermissions : [])]);
             const missing = needed.filter(p => !granted.has(p));
             if (missing.length) {
@@ -121,7 +121,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
                 packageSha256: staged.sha256, actorId,
             });
             if (grantedPermissions) {
-                try { await store().mergeSettings(moduleId, { grantedPermissions }); } catch (_) {}
+                try { await store().mergeSettings(moduleId, { grantedPermissions }); } catch (_) { log.warn('could not persist the granted permissions', _); }
             }
             _setProgress(moduleId, 'staged', 100);
             _logSystem(moduleId, `update to v${resolvedVersion} staged — restart required`);
@@ -154,7 +154,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
                     error: e.message,
                     status: e.compat ? 'incompatible' : 'failed',
                 });
-            } catch (_) { /* best effort */ }
+            } catch (err) { log.debug('best effort', err); }
         }
         throw e;
     } finally {
@@ -170,7 +170,7 @@ async function updateModule(moduleId, { actorId = null, acceptedPermissions = nu
     // Policy-aware resolution: highest non-yanked candidate on the install's
     // channel satisfying its pin (v1-hub fallback: flat latest_version).
     let row = null;
-    try { row = await store().getState(moduleId); } catch (_) {}
+    try { row = await store().getState(moduleId); } catch (_) { log.warn('module state lookup failed, installed version unknown', _); }
     const installedVersion = (row && (row.version || (row.settings && row.settings.package && row.settings.package.version))) || null;
     const updatePolicy = (row && row.settings && row.settings.updatePolicy) || null;
     const latest = installedVersion
@@ -223,7 +223,7 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
                 const row = await store().getState(moduleId);
                 existingList = (row && row.settings && row.settings.grantedPermissions
                     && row.settings.grantedPermissions.list) || [];
-            } catch (_) {}
+            } catch (_) { log.warn('module state lookup failed, no earlier granted permissions merged', _); }
             const granted = new Set([...existingList, ...(Array.isArray(acceptedPermissions) ? acceptedPermissions : [])]);
             const missing = needed.filter(p => !granted.has(p));
             if (missing.length) {
@@ -251,7 +251,7 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
             await packageStore().setStaged(moduleId, version, {
                 manifest: _manifestSummary(manifest), kid, packageSha256: sha256, actorId, source: 'sideload',
             });
-            if (grantedPermissions) { try { await store().mergeSettings(moduleId, { grantedPermissions }); } catch (_) {} }
+            if (grantedPermissions) { try { await store().mergeSettings(moduleId, { grantedPermissions }); } catch (_) { log.warn('could not persist the granted permissions', _); } }
             _setProgress(moduleId, 'staged', 100);
             return { ok: true, version, requiresRestart: true };
         }
@@ -309,7 +309,7 @@ async function listVersions(moduleId) {
     const out = [];
     for (const r of (rows || [])) {
         let hasPackageFile = false;
-        try { await fsp.access(packagePath(r.moduleId, r.version)); hasPackageFile = true; } catch (_) {}
+        try { await fsp.access(packagePath(r.moduleId, r.version)); hasPackageFile = true; } catch (_) { log.debug('package file absent', _); }
         out.push({ ...r, hasPackageFile });
     }
     return out;
@@ -330,7 +330,7 @@ async function rollbackTo(moduleId, { version = null, force = false, actorId = n
     if (_installing.has(moduleId)) { const e = new Error('install_in_progress'); e.code = 'install_in_progress'; throw e; }
     _installing.add(moduleId);
     try {
-        try { await installStore().acquire(moduleId, { version: target.version, actor: actorId, replica: REPLICA_ID }); } catch (_) {}
+        try { await installStore().acquire(moduleId, { version: target.version, actor: actorId, replica: REPLICA_ID }); } catch (_) { log.warn('install lock could not be acquired, continuing without it', _); }
         _setProgress(moduleId, 'verifying', 30);
         const { manifest, kid } = await _reverifyFromDisk(moduleId, target.version);
 
@@ -348,7 +348,7 @@ async function rollbackTo(moduleId, { version = null, force = false, actorId = n
 
         // Offline entitlement: the persisted timestamp gate must still hold.
         let row = null;
-        try { row = await store().getState(moduleId); } catch (_) {}
+        try { row = await store().getState(moduleId); } catch (_) { log.warn('module state lookup failed before the entitlement check', _); }
         if (!remoteCatalog().isEntitled(row)) { const e = new Error('not_entitled'); e.code = 'not_entitled'; throw e; }
 
         await activate(moduleId, target.version, {

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { arrangeDefinition, DEFAULT_DIMS } from './arrange';
 import { DEFAULT_SPACING } from './dagreLayout';
-import { ROW_GAP } from './rowBands';
 import { seedPositions } from './layout';
+import { ROW_GAP } from './rowBands';
 
 // Two nodes stacked inside one rank sit a card height plus one nodesep apart
 // (96 + 64); a node on the next row is at least a ROW_GAP (270) further down.

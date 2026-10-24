@@ -55,7 +55,7 @@ function restoreDlpArgs(rc, deps, toolArgs) {
     try {
         const _argMap = deps.dlpRunner().getConversationTokenMap(conversation?.id);
         if (_argMap && Object.keys(_argMap).length) toolArgs = untokeniseToolArgs(toolArgs, _argMap);
-    } catch (_) { /* best-effort: leave args tokenized on error */ }
+    } catch (err) { log.debug('best-effort: leave args tokenized on error', err); }
     return toolArgs;
 }
 

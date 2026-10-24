@@ -7,6 +7,7 @@
  * SHAPE rather than whichever integrations happen to ship this week.
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const { test } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');

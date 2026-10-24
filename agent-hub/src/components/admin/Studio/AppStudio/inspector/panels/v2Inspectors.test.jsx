@@ -1,10 +1,10 @@
 import { fireEvent, render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import DataGridInspector from './DataGridInspector';
 import ChartInspector from './ChartInspector';
-import PivotInspector from './PivotInspector';
+import DataGridInspector from './DataGridInspector';
+import InputDatetimeInspector from './InputDatetimeInspector';
 import InputFileInspector from './InputFileInspector';
-import InputRichtextInspector from './InputRichtextInspector';
+import InputMultiselectInspector from './InputMultiselectInspector';
 import {
     InputCheckboxInspector,
     InputDateInspector,
@@ -13,10 +13,10 @@ import {
     InputTextInspector,
     InputTextareaInspector,
 } from './inputPanels';
-import InputDatetimeInspector from './InputDatetimeInspector';
 import InputRelationInspector from './InputRelationInspector';
-import InputMultiselectInspector from './InputMultiselectInspector';
+import InputRichtextInspector from './InputRichtextInspector';
 import ModalInspector from './ModalInspector';
+import PivotInspector from './PivotInspector';
 import RepeaterInspector from './RepeaterInspector';
 import { TabsInspector, TabInspector } from './TabsInspector';
 import { findNode } from '../../state/definitionOps';

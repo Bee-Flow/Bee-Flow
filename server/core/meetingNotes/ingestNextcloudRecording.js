@@ -223,7 +223,7 @@ async function resolveTalkParticipantNames(session, userId, talkRoomToken, orgId
     }
 }
 
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) {} }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = {
     ingestNextcloudRecording,

@@ -36,5 +36,5 @@ export function useDiagramHandle(ref: ForwardedRef<DiagramPaneHandle>, wrapperRe
             if (!stepId || !rf.fitView) return;
             rf.fitView({ nodes: [{ id: stepId }], duration: 300, maxZoom: 1, padding: 0.5 });
         },
-    }), [rf]);
+    }), [rf, wrapperRef]);
 }

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { describe, it, expect } from 'vitest';
 
-import { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange } from './upcomingWhen';
+import { parseWhen, meetingDurationMinutes, timeRange } from './upcomingWhen';
 
 /**
  * De datumregels van een Gepland-rij.

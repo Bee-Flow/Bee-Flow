@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
 import { useState } from 'react';
+import { describe, it, expect } from 'vitest';
 import AppInputTextarea from './components/AppInputTextarea';
 import { RuntimeProvider, DEFAULT_RUNTIME } from './RuntimeContext';
 

@@ -46,6 +46,7 @@
 
 const Y = require('yjs');
 const { toB64 } = require('./wire');
+const telemetryLog = require('../../telemetry/log');
 
 const DEFAULT_BACKLOG_MAX = 200;
 const DEFAULT_CACHE_MAX = 256;
@@ -305,7 +306,7 @@ function makeDocHub(deps) {
         entry.closed = true;
         if (entries.get(entry.doc.id) === entry) entries.delete(entry.doc.id);
         if (entry.timer) { clearTimer(entry.timer); entry.timer = null; }
-        try { if (entry.unsubscribe) entry.unsubscribe(); } catch (_) { /* already gone */ }
+        try { if (entry.unsubscribe) entry.unsubscribe(); } catch (err) { telemetryLog.debug('already gone', err); }
         entry.unsubscribe = null;
         entry.cache.clear();
     }

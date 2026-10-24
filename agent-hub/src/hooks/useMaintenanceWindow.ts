@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { logger } from '../utils/logger';
 
 /**
  * Watches for an announced deployment window so the app can warn people before
@@ -136,12 +137,7 @@ export function useMaintenanceWindow({ enabled = true }: { enabled?: boolean } =
             const win: MaintenanceWindow | null = data.maintenance || null;
             setWindow(win);
             setSecondsRemaining(win ? secondsUntil(win.endsAt) : 0);
-        } catch {
-            // A failed poll during a rollout is EXPECTED — the pod serving us is
-            // being replaced. Holding the last known state is exactly right: the
-            // banner stays up across the outage instead of flickering off at the
-            // moment it is most useful.
-        }
+        } catch (err) { logger.debug('A failed poll during a rollout is EXPECTED — the pod serving us is being replaced. Holding the last known state is exactly right: the banner stays up across the outage instead of flickering off at the moment it is most useful.', err); }
     }, []);
 
     // Poll loop. Interval tightens while a window is open — that is when the

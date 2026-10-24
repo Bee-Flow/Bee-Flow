@@ -163,7 +163,7 @@ function openSse(res, opts = {}) {
     if (flush && typeof res.flushHeaders === 'function') res.flushHeaders();
     const sendRaw = (chunk) => {
         if (res.writableEnded || res.destroyed) return;
-        try { res.write(chunk); } catch (_) { /* socket gone */ }
+        try { res.write(chunk); } catch (err) { log.debug('socket gone', err); }
     };
     const send = (event, data) => sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     const abortController = new AbortController();
@@ -173,7 +173,7 @@ function openSse(res, opts = {}) {
             if (res.writableEnded) return;
             gone = true;
             if (tag) log.info(`[${tag}] client disconnected — aborting the generation`);
-            try { abortController.abort(); } catch (_) { /* already aborted */ }
+            try { abortController.abort(); } catch (err) { log.debug('already aborted', err); }
         });
     }
     let stopHeartbeat = () => {};
@@ -240,7 +240,7 @@ async function persistAndTitle({ conversation, messages, encryptionKey, userId, 
                 await agentStore.updateConversationTitle(conversation.id, title);
                 sendEvent('title_update', { title, conversationId: conversation.id });
             }
-        } catch (e) { /* ignore title gen errors */ }
+        } catch (e) { log.debug('ignore title gen errors', e); }
     }
 }
 

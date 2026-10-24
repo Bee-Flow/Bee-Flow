@@ -75,7 +75,7 @@ async function syncAppEventSubscription(automationId, userId, def) {
     // A genuinely NEW trigger still bootstraps with null (no history claim).
     let priorSubs = [];
     try { priorSubs = await automationStore.getSubscriptionsForAutomation(automationId) || []; }
-    catch { /* fall back to fresh bootstrap */ }
+    catch (err) { log.debug('fall back to fresh bootstrap', err); }
 
     // Revoke any existing remote subscriptions BEFORE wiping the rows.
     await revokeRemoteSubscriptions(automationId, userId);
@@ -144,7 +144,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
                 const userStore = require('../stores/userStore');
                 const u = await userStore.getUser(userId).catch(() => null);
                 isConnector = u?.provider === 'nextcloud_connector';
-            } catch { /* default below */ }
+            } catch (err) { log.debug('default below', err); }
             mode = isConnector ? 'webhook' : 'polling';
         }
     } else {
@@ -154,7 +154,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
         let declaredKind = null;
         try {
             declaredKind = require('./triggerSources').getEventDef(provider, event)?.source?.kind || null;
-        } catch { /* fall through to polling */ }
+        } catch (err) { log.debug('fall through to polling', err); }
         mode = declaredKind === 'push' ? 'webhook' : 'polling';
     }
 

@@ -21,6 +21,7 @@
  * Run: cd server && node --test --test-force-exit core/integrations/integrationTools.agentAutomations.test.js
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const { test } = require('node:test');
 const assert = require('node:assert');
 

@@ -48,7 +48,7 @@ async function resolveAllowedProviders(localEnabled) {
  */
 async function resolveProjectFiling(req, userId, userOrgId) {
     if (!req.body.projectId) return { projectId: null };
-    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (_) { /* multer's temp file may already be gone */ } };
+    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (err) { log.debug('multer\'s temp file may already be gone', err); } };
     let target;
     try {
         // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- meetingFiling.resolve is the project access check, not path.resolve; no file path is built
@@ -85,7 +85,7 @@ async function resolveUploadProvider(req) {
         // exactly that reason had no way to stop a user picking a US cloud.
         const allowed = await resolveAllowedProviders(localEnabled);
         if (!allowed.includes(requestedProvider)) {
-            if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch (_) {} }
+            if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch (_) { log.debug('temp upload already gone', _); } }
             return {
                 provider,
                 refusal: {

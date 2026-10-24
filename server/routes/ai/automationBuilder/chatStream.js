@@ -198,7 +198,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         turn.clientAbort = clientAbort;
         req.on('close', () => {
             turn.clientGone = true;
-            try { clientAbort.abort(); } catch (_) { /* already aborted */ }
+            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });
 
         turn.lastFinalized = false;

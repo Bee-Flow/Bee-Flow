@@ -9,6 +9,7 @@ import type { ConceptPersona } from './useAgentConceptFacts';
 import type { ModelTierMap } from '../../../../api/queries/modelTiers';
 import type { Skill } from '../../../../api/queries/skills';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { logger } from '../../../../utils/logger';
 
 export interface RefineDeps {
     chat: ChatMessage[];
@@ -75,7 +76,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
         // is lost). Flush any pending manual edit first so the refine's own save
         // is the only one that fires during this operation.
         setInstructionsEditing(false);
-        if (dirtyRef.current) { try { await flush(); } catch (_) { /* best effort */ } }
+        if (dirtyRef.current) { try { await flush(); } catch (err) { logger.debug('best effort', err); } }
         try {
             // Send the AI the CURRENT curated config and tell it to preserve it.
             const attachedSkills = (attachedSkillIds || []).map(id => {
@@ -143,7 +144,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                         const snap = await snapRes.json();
                         if (snap && typeof snap.id === 'string' && snap.id) undoVersionId = snap.id;
                     }
-                } catch (_) { /* geen herstelpunt — de kaart zegt dat zelf */ }
+                } catch (err) { logger.debug('geen herstelpunt — de kaart zegt dat zelf', err); }
             }
 
             // Resolve skills BEFORE the single save so attachedSkillIds are
@@ -164,7 +165,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                                 const created = await sres.json();
                                 if (created?.id) { setAllSkills(prev => [...(prev || []), created]); attach.add(created.id); }
                             }
-                        } catch (_) { /* non-fatal — a failed skill is simply not attached */ }
+                        } catch (err) { logger.debug('non-fatal — a failed skill is simply not attached', err); }
                     }
                 }
             }
@@ -277,7 +278,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                         await refreshAgentSchedules();
                         setChat(prev => [...prev, { role: 'system', content: `⏰ Created schedule "${r.title}" — ${r.repeatInterval}${r.timeOfDay ? ` at ${r.timeOfDay}` : ''}.` }]);
                     }
-                } catch (_) { /* non-fatal — chat already shows the plan update */ }
+                } catch (err) { logger.debug('non-fatal — chat already shows the plan update', err); }
             }
         } catch (err) {
             setChat(prev => [...prev, { role: 'error', content: errorMessage(err) }]);

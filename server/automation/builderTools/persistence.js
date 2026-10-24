@@ -125,7 +125,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                 const u = await userStore.getUser(draftWrap.userId);
                 orgId = u?.organizationId || null;
                 if (orgId) draftWrap.orgId = orgId; // memoize for subsequent updates
-            } catch (_) { /* keep null */ }
+            } catch (err) { log.debug('keep null', err); }
         }
         // Create a draft row.
         const a = await automationStore.createAutomation({
@@ -155,7 +155,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
     // automation is ACTIVE the trigger config below has to be compared against
     // what its subscriptions and schedule rows were built from.
     let prior = null;
-    try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (_) { /* treated as unchanged */ }
+    try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (err) { log.debug('treated as unchanged', err); }
     const updates = {
         title: draftWrap.title || undefined,
         description: draftWrap.description || undefined,

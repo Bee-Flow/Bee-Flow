@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of empty catch blocks agent-hub/src may still carry. Lower it with `node scripts/count-ratchet.mjs empty-catch agent-hub --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-14",
-  "count": 505
+  "_generated": "2026-10-24",
+  "count": 4
 }

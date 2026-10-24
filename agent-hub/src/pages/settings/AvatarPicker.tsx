@@ -76,8 +76,8 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
                 aria-expanded={open}
             >
                 <AvatarDisplay user={user} size={64} />
-                <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.4)' }}>
-                    <svg fill="none" stroke="white" viewBox="0 0 24 24" style={{ width: '14px', height: '14px' }}>
+                <div className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity [background:rgba(0,0,0,0.4)]">
+                    <svg fill="none" stroke="white" viewBox="0 0 24 24" className="w-[14px] h-[14px]">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                 </div>
@@ -85,11 +85,10 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
 
             {open && (
                 <div
-                    className="absolute left-0 top-[72px] z-50 rounded-xl"
-                    style={{ width: '300px', background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-lg)' }}
+                    className="absolute left-0 top-[72px] z-50 rounded-xl w-[300px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-lg)]"
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className="flex items-center px-2 pt-2 pb-1 gap-0.5" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <div className="flex items-center px-2 pt-2 pb-1 gap-0.5 [border-bottom:1px_solid_var(--border-subtle)]">
                         {EMOJI_CATEGORIES.map((cat, i) => (
                             <button key={i} onClick={() => setTab(i)} type="button"
                                 className="flex-1 flex items-center justify-center py-1.5 rounded-md transition-colors text-base"
@@ -98,7 +97,7 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
                             </button>
                         ))}
                     </div>
-                    <div className="p-2 grid grid-cols-8 gap-0.5" style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                    <div className="p-2 grid grid-cols-8 gap-0.5 max-h-[180px] [overflow-y:auto]">
                         {EMOJI_CATEGORIES[tab].emojis.map((em, i) => (
                             <button key={i} type="button" onClick={() => pickEmoji(em)}
                                 className="text-xl w-8 h-8 flex items-center justify-center rounded-md hover:bg-[var(--bg-tertiary)] transition-colors leading-none cursor-pointer"
@@ -106,12 +105,11 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
                             </button>
                         ))}
                     </div>
-                    <div className="px-2.5 pb-2.5 pt-2 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                    <div className="px-2.5 pb-2.5 pt-2 flex flex-col gap-2 [border-top:1px_solid_var(--border-subtle)]">
                         <div className="flex gap-1.5">
                             <input value={customEmoji} onChange={e => setCustomEmoji(e.target.value)}
                                 placeholder={t('settings.avatar.paste_emoji', 'Paste any emoji…')}
-                                className="flex-1 px-2.5 py-1.5 rounded-lg border outline-none text-sm"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="flex-1 px-2.5 py-1.5 rounded-lg border outline-none text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                                 onKeyDown={e => { if (e.key === 'Enter' && customEmoji.trim()) pickEmoji(customEmoji.trim()); }}
                             />
                             <button onClick={() => customEmoji.trim() && pickEmoji(customEmoji.trim())} type="button"
@@ -124,8 +122,7 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
                                     className="text-xs px-2.5 py-1 rounded-md transition-colors bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">{t('settings.avatar.upload_image', '📁 Upload image')}</button>
                                 {user?.avatar && (
                                     <button onClick={removeAvatar} type="button" disabled={saving}
-                                        className="text-xs px-2.5 py-1 rounded-md transition-colors hover:bg-red-500/10"
-                                        style={{ color: '#f87171' }}>{t('settings.avatar.remove', 'Remove')}</button>
+                                        className="text-xs px-2.5 py-1 rounded-md transition-colors hover:bg-red-500/10 [color:#f87171]!">{t('settings.avatar.remove', 'Remove')}</button>
                                 )}
                             </div>
                             <button onClick={() => setOpen(false)} type="button"

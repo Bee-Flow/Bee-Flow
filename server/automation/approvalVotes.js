@@ -13,6 +13,7 @@ const {
     mergeVoteAnswers, voteSummary, panelProgress, isFinalApprover,
 } = require('./approvalRulebook');
 const { outcome, userDisplayName, finalizeDecision } = require('./approvalDecision');
+const log = require('../telemetry/log');
 
 /** The next stage's reminder deadline, or undefined to leave the clock alone. */
 function nextStageRemindAt(approval, stage) {
@@ -48,7 +49,7 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
         const u = await userStore.getUser(deciderId);
         voterName = userDisplayName(u);
         groupIds = u ? parseGroupIds(u).map(String) : [];
-    } catch { /* seat matching falls back to personal seats only */ }
+    } catch (err) { log.debug('seat matching falls back to personal seats only', err); }
     const viewer = { userId: deciderId, groupIds };
 
     const stage = currentStage(approval);
@@ -186,7 +187,7 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
         const u = await userStore.getUser(deciderId);
         voterName = userDisplayName(u);
         groupIds = u ? parseGroupIds(u).map(String) : [];
-    } catch { /* seat matching falls back to personal seats only */ }
+    } catch (err) { log.debug('seat matching falls back to personal seats only', err); }
     const viewer = { userId: deciderId, groupIds };
 
     const votes = await automationStore.getApprovalVotes(approval.id);

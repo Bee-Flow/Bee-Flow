@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Stub collaborators not under test.
 vi.mock('./CaptureControls', () => ({ default: () => null }));
@@ -12,9 +12,9 @@ const recorderMock = { current: null };
 vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.current }));
 
 import GoogleMeetImportPanel from './GoogleMeetImportPanel';
+import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 import { listGoogleMeetRecordings } from '../lib/transcriptionsApi';
-import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 
 const ITEMS = [
     { eventId: 'e1', meetingCode: 'abc-defg-hij', title: 'Weekly sync', start: '2026-07-16T10:00:00Z', end: '2026-07-16T10:45:00Z', recordingState: 'available', importedNoteId: null },

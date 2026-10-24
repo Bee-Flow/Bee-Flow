@@ -4,6 +4,7 @@ import { buildPreviewUrl } from './previewSurfaces';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import type { PreviewSurface } from './previewSurfaces';
 import type { DraftPayload } from '../useLookForm';
+import { logger } from '../../../../../utils/logger';
 
 type PreviewStatus = 'loading' | 'ready' | 'timeout' | 'session-expired';
 
@@ -96,7 +97,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
         try {
             const path = iframeRef.current?.contentWindow?.location?.pathname || '';
             if (path.startsWith('/login')) setStatus('session-expired');
-        } catch (_) { /* cross-origin — ignore */ }
+        } catch (err) { logger.debug('cross-origin — ignore', err); }
     };
 
     const retry = () => {
@@ -146,8 +147,7 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
 
             {errorMsg && status === 'ready' && (
                 <div
-                    className="absolute top-2 left-2 right-2 px-3 py-2 rounded-lg text-xs flex items-center gap-2"
-                    style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger, #ef4444)' }}
+                    className="absolute top-2 left-2 right-2 px-3 py-2 rounded-lg text-xs flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:var(--danger,#ef4444)]!"
                 >
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>{errorMsg}</span>

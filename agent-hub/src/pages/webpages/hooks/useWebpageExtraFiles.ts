@@ -5,6 +5,7 @@ import { uniqueAssetPath } from '../webpageAssetPath';
 import type { ExtraContent, ExtraContents, ExtraFileMeta } from '../webpageEditorTypes';
 import { api, fetchExtraContent } from '../webpagesApi';
 import type { PageGuards } from './usePageGuards';
+import { logger } from '../../../utils/logger';
 
 function upsertMeta(prev: ExtraFileMeta[], meta: ExtraFileMeta): ExtraFileMeta[] {
     const idx = prev.findIndex(f => f.path === meta.path);
@@ -61,7 +62,7 @@ export function useWebpageExtraFiles(
             // Drop the fetched content if the user switched pages meanwhile.
             if (!isStillCurrent(targetId)) return;
             setExtraContents(prev => ({ ...prev, [path]: entry }));
-        } catch { /* ignore single-file fetch failures */ }
+        } catch (err) { logger.debug('ignore single-file fetch failures', err); }
     }, [pageId, isStillCurrent]);
 
     const onWebpageExtraDeleted = useCallback((data: { path: unknown }) => {

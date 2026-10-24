@@ -12,6 +12,7 @@
 
 'use strict';
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const test = require('node:test');
 const assert = require('node:assert');
 

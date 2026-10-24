@@ -6,6 +6,7 @@ import { LANGUAGES_API } from './useLanguages';
 import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { getLanguages, sendLanguagesJson } from '../../../api/languages';
+import { logger } from '../../../utils/logger';
 
 const FIELD_STYLE = { borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' };
 const TH_STYLE = { color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' };
@@ -42,7 +43,11 @@ const GuiStringRow = memo(function GuiStringRow({ stringKey, defaultValue, trans
     const [value, setValue] = useState(translation);
     const [editing, setEditing] = useState(false);
 
-    useEffect(() => setValue(translation), [translation]);
+    const [prevTranslation, setPrevTranslation] = useState(translation);
+    if (prevTranslation !== translation) {
+        setPrevTranslation(translation);
+        setValue(translation);
+    }
 
     const handleBlur = () => {
         setEditing(false);
@@ -55,7 +60,7 @@ const GuiStringRow = memo(function GuiStringRow({ stringKey, defaultValue, trans
     };
 
     return (
-        <tr className="group hover:bg-[var(--bg-secondary)] transition-colors" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+        <tr className="group hover:bg-[var(--bg-secondary)] transition-colors [border-bottom:1px_solid_var(--border-subtle)]">
             <td className="px-3 py-1.5 font-mono text-[11px] break-all text-[var(--text-muted)]">{stringKey}</td>
             <td className="px-3 py-1.5 text-[var(--text-secondary)]">{defaultValue}</td>
             <td className="px-3 py-1">
@@ -101,7 +106,7 @@ function useGuiStrings(locale: string) {
             });
     }, [locale]);
 
-    useEffect(() => { reload(); }, [locale]);
+    useEffect(() => { reload(); }, [reload]);
 
     const saveTranslation = useCallback(async (key: string, value: string) => {
         try {
@@ -112,7 +117,7 @@ function useGuiStrings(locale: string) {
                 setSavedKey(key);
                 setTimeout(() => setSavedKey(null), 1500);
             }
-        } catch { }
+        } catch (err) { logger.warn('GUI string save failed', err); }
     }, [locale]);
 
     return { data, translations, savedKey, reload, saveTranslation };
@@ -222,9 +227,9 @@ export default function GuiStringEditor({ locale }: { locale: string }) {
             />
 
             {/* Table */}
-            <div className="flex-1 overflow-y-auto rounded-xl border" style={{ borderColor: 'var(--border-default)', scrollbarWidth: 'thin' }}>
+            <div className="flex-1 overflow-y-auto rounded-xl border [border-color:var(--border-default)] [scrollbar-width:thin]">
                 <table className="w-full text-xs">
-                    <thead className="sticky top-0 z-10" style={{ background: 'var(--bg-tertiary)' }}>
+                    <thead className="sticky top-0 z-10 [background:var(--bg-tertiary)]">
                         <tr>
                             <th className="text-left px-3 py-2 font-semibold w-1/4" style={TH_STYLE}>{t('admin_languages.col_key', 'Key')}</th>
                             <th className="text-left px-3 py-2 font-semibold w-[37.5%]" style={TH_STYLE}>{t('admin_languages.english_default', 'English Default')}</th>

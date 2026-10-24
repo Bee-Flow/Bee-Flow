@@ -85,6 +85,8 @@
 
 // Required lazily inside main() so importing this file for its envelope
 // helpers (see the test) never opens a database pool.
+const log = require('../telemetry/log');
+
 const {
     inferOrgIdFromKey,
     deriveKey,
@@ -355,7 +357,7 @@ async function main() {
     });
     // Release the advisory lock explicitly. Releasing the client to the pool
     // does NOT auto-release session locks (the client may be reused).
-    try { await client.query('SELECT pg_advisory_unlock($1)', [ROTATION_LOCK_KEY]); } catch (_) { /* ignore */ }
+    try { await client.query('SELECT pg_advisory_unlock($1)', [ROTATION_LOCK_KEY]); } catch (err) { log.debug('ignore', err); }
     client.release();
     if (passState.aborted > 0) {
         console.error(`[rotate] ${passState.aborted} pass(es) ABORTED mid-rotation (${passState.abortedLabels.join(', ')}): some rows may still be sealed under the OLD master. Fix the cause and re-run (idempotent) BEFORE promoting NEW.`);

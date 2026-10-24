@@ -38,8 +38,7 @@ export default function LearningHeader({ onBack, backLabel, tile, title, chips, 
     const options = (tabs || []).map((tab) => ({ value: tab.id, label: tab.label, badge: tab.count != null ? { count: tab.count, tone: tab.tone } : undefined }));
     return (
         <div
-            className="flex items-center gap-2.5 px-3 h-12 flex-nowrap min-w-0 flex-shrink-0"
-            style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-default)' }}
+            className="flex items-center gap-2.5 px-3 h-12 flex-nowrap min-w-0 flex-shrink-0 [background:var(--bg-secondary)] [border-bottom:1px_solid_var(--border-default)]"
             data-testid="learning-header"
         >
             {onBack && (
@@ -66,8 +65,7 @@ export default function LearningHeader({ onBack, backLabel, tile, title, chips, 
 /** The 28px accent-tinted tile that opens the header. */
 export function HeaderTile({ icon: Icon, emoji }: { icon?: React.ComponentType<{ style?: React.CSSProperties }> | null; emoji?: string | null }) {
     return (
-        <div className="grid place-items-center flex-shrink-0" aria-hidden="true"
-            style={{ width: 28, height: 28, borderRadius: 8, background: 'color-mix(in srgb, var(--accent-primary) 18%, transparent)', color: 'var(--accent-primary)', fontSize: 15, lineHeight: 1 }}>
+        <div className="grid place-items-center flex-shrink-0 w-[28px] h-[28px] [border-radius:8px] [background:color-mix(in_srgb,var(--accent-primary)_18%,transparent)] [color:var(--accent-primary)] [font-size:15px] [line-height:1]" aria-hidden="true">
             {emoji || (Icon && <Icon style={{ width: 15, height: 15 }} />)}
         </div>
     );

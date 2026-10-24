@@ -49,6 +49,9 @@ import { fileURLToPath } from 'node:url';
 import { assignShards, fileTimeoutMs, orderLongestFirst, parseShard } from './testShards.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Fills core's feature-module registry the way index.js does (testUtils/registerFeatures.js).
+const FEATURES_PRELOAD = path.join(SERVER_DIR, 'testUtils', 'registerFeatures.js');
+const PRELOAD_ARGS = existsSync(FEATURES_PRELOAD) ? ['--require', FEATURES_PRELOAD] : [];
 const EXCLUSIONS_FILE = path.join(SERVER_DIR, 'scripts', 'test-exclusions.json');
 
 // ── Environment defaults ────────────────────────────────────────────────────
@@ -244,7 +247,7 @@ function runFile(file) {
         // load average reached 26 on four cores and every suite crawled.
         const child = spawn(
             process.execPath,
-            ['--test', ...passthrough, file],
+            ['--test', ...PRELOAD_ARGS, ...passthrough, file],
             { cwd: SERVER_DIR, env: childEnv, stdio: ['ignore', 'pipe', 'pipe'], detached: true },
         );
         const t0 = Date.now();

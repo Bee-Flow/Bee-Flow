@@ -109,8 +109,7 @@ const RuntimeRow = ({ provider, runtime, starterModels, onMessage, onChanged, on
                                 key={m.model}
                                 onClick={() => download(m.model)}
                                 disabled={downloading}
-                                className="text-left px-3 py-2 rounded-lg text-xs transition-colors hover:bg-white/5 disabled:opacity-50"
-                                style={{ background: 'var(--bg-tertiary)' }}
+                                className="text-left px-3 py-2 rounded-lg text-xs transition-colors hover:bg-white/5 disabled:opacity-50 [background:var(--bg-tertiary)]!"
                             >
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-medium text-[var(--text-primary)]">{m.label}</span>

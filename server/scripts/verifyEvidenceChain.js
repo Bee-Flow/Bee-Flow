@@ -31,6 +31,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const log = require('../telemetry/log');
 
 const APP_ROOT = fs.existsSync('/app/db.js') ? '/app' : path.join(__dirname, '..');
 
@@ -115,7 +116,7 @@ async function main() {
         console.error(`Could not verify the chain for org ${orgId}: ${e.message}`);
         return EXIT_UNVERIFIED;
     } finally {
-        try { await db.pool.end(); } catch (_) { /* best-effort */ }
+        try { await db.pool.end(); } catch (err) { log.debug('best-effort', err); }
     }
 }
 

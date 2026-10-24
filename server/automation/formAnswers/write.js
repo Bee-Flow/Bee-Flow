@@ -87,7 +87,7 @@ async function clearWriteError(table, scope) {
     if (!table?.source?.lastWriteError) return;
     try {
         await datatableStore.setDefinitionSource(table.id, scope, { ...table.source, lastWriteError: null });
-    } catch { /* cosmetic */ }
+    } catch (err) { log.debug('cosmetic', err); }
 }
 
 /**

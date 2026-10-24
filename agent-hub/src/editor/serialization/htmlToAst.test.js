@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from './mdToAst';
 import { astToHtml } from './astToHtml.js';
 import { htmlToAst } from './htmlToAst';
+import { markdownToAst } from './mdToAst';
 import { nodeEq } from '../model/nodes.js';
 
 // These canonical fixtures survive the HTML mirror losslessly (ast → html → ast).

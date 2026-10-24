@@ -208,7 +208,7 @@ async function logAdapterUsage({ agent, agentId, userId, modelToUse, messageMeta
             organization_id: agent.organization_id || null,
             conversation_id: conversation?.id || null,
         });
-    } catch (e) { /* ignore usage errors */ }
+    } catch (e) { log.debug('ignore usage errors', e); }
 }
 
 module.exports = {

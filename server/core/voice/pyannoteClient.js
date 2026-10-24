@@ -247,7 +247,7 @@ async function transcribeWithPyannote(inputPath, {
                 log.info(`[Pyannote] Voiceprints: ${voiceprintInfo.matched} speaker(s) named from ${vpList.length} template(s)`);
                 if (result.matchedIds.length) {
                     // Feeds the "who is usually in this org's meetings" ranking.
-                    try { require('../../stores/voiceprintStore').recordMatches(result.matchedIds); } catch (_) {}
+                    try { require('../../stores/voiceprintStore').recordMatches(result.matchedIds); } catch (_) { log.debug('voiceprint ranking update failed, the match result is unaffected', _); }
                 }
             }
         }

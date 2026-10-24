@@ -1,3 +1,4 @@
+import useNow from '../../../hooks/useNow';
 import AudioPlayerInline from './AudioPlayer';
 import { resolveUrl } from './messageItemHelpers';
 import { openLibraryDocument } from './openLibraryDocument';
@@ -27,6 +28,7 @@ interface GeneratedFile {
 // AI Generated Images — rendered after text (skip if album art for audio)
 export const GeneratedImages = ({ msg, setLightboxImage }: { msg: ChatMessage; setLightboxImage: (img: string) => void }) => {
     const { t } = useTranslation();
+    const stamp = useNow(60_000);
     return (
     <div className="mt-3 flex flex-wrap gap-2">
         {(msg.images as GeneratedImage[]).map((img: GeneratedImage, i: number) => {
@@ -37,14 +39,13 @@ export const GeneratedImages = ({ msg, setLightboxImage }: { msg: ChatMessage; s
                 <img
                     src={imgSrc}
                     alt={t('chat.media.image_alt', 'AI generated image')}
-                    className="w-full h-auto object-contain cursor-pointer hover:opacity-95 transition-opacity"
-                    style={{ background: 'var(--bg-tertiary)', maxHeight: '400px' }}
+                    className="w-full h-auto object-contain cursor-pointer hover:opacity-95 transition-opacity [background:var(--bg-tertiary)] max-h-[400px]"
                     onClick={() => setLightboxImage(imgSrc)}
                 />
                 <div className="absolute bottom-2 right-2 opacity-0 group-hover/img:opacity-100 transition-opacity">
                     <a
                         href={imgSrc}
-                        download={`ai-image-${Date.now()}.png`}
+                        download={`ai-image-${stamp}.png`}
                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-white bg-black/60 backdrop-blur-sm hover:bg-black/80 transition-colors"
                     >
                         ⬇ {t('chat.download', 'Download')}
@@ -100,17 +101,13 @@ export const GeneratedAudio = ({ msg }: { msg: ChatMessage }) => {
 // AI Generated Videos — Modern Player
 export const GeneratedVideos = ({ msg }: { msg: ChatMessage }) => {
     const { t } = useTranslation();
+    const stamp = useNow(60_000);
     return (
     <div className="mt-3 flex flex-col gap-2">
         {(msg.videoFiles as GeneratedVideoFile[]).map((vid: GeneratedVideoFile, i: number) => (
-            <div key={i} className="rounded-2xl overflow-hidden max-w-lg shadow-xl"
-                style={{
-                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                }}>
+            <div key={i} className="rounded-2xl overflow-hidden max-w-lg shadow-xl [background:linear-gradient(135deg,#1a1a2e_0%,#16213e_50%,#0f3460_100%)] [border:1px_solid_rgba(255,255,255,0.08)]">
                 <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', boxShadow: '0 4px 15px rgba(124,58,237,0.3)' }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm [background:linear-gradient(135deg,#7c3aed,#4f46e5)] [box-shadow:0_4px_15px_rgba(124,58,237,0.3)]">
                         🎬
                     </div>
                     <div>
@@ -121,19 +118,13 @@ export const GeneratedVideos = ({ msg }: { msg: ChatMessage }) => {
                 <div className="px-3 pb-2">
                     <video
                         controls
-                        className="w-full rounded-xl"
-                        style={{
-                            maxHeight: '400px',
-                            background: '#000',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                        }}
+                        className="w-full rounded-xl max-h-[400px] [background:#000] [box-shadow:0_8px_32px_rgba(0,0,0,0.4)]"
                         src={resolveUrl(vid.url)}
                     />
                 </div>
                 <div className="px-4 pb-3 flex justify-end">
-                    <a href={resolveUrl(vid.url)} download={`ai-video-${Date.now()}.mp4`}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200"
-                        style={{ color: '#7c3aed', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+                    <a href={resolveUrl(vid.url)} download={`ai-video-${stamp}.mp4`}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 [color:#7c3aed]! [background:rgba(124,58,237,0.1)] [border:1px_solid_rgba(124,58,237,0.2)]"
                         onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = 'rgba(124,58,237,0.2)'; }}
                         onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = 'rgba(124,58,237,0.1)'; }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -184,12 +175,12 @@ export const GeneratedFiles = ({ msg }: { msg: ChatMessage }) => {
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                             {f.documentId && (
-                                <button type="button" onClick={() => openLibraryDocument(f.documentId as string)} className="px-2.5 py-1 rounded-lg text-xs font-medium text-white" style={{ background: 'var(--accent-primary, #123a5e)' }} data-testid="generated-file-open">
+                                <button type="button" onClick={() => openLibraryDocument(f.documentId as string)} className="px-2.5 py-1 rounded-lg text-xs font-medium text-white [background:var(--accent-primary,#123a5e)]" data-testid="generated-file-open">
                                     {t('chat.files.open', 'Open')}
                                 </button>
                             )}
                             {f.webUrl && (
-                                <a href={f.webUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 rounded-lg text-xs font-medium text-white" style={{ background: 'var(--accent-primary, #123a5e)' }}>
+                                <a href={f.webUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 rounded-lg text-xs font-medium text-white [background:var(--accent-primary,#123a5e)]">
                                     {t('chat.files.open_nextcloud', 'Open in Nextcloud Office')}
                                 </a>
                             )}

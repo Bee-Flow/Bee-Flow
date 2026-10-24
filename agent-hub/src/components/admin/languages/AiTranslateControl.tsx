@@ -58,8 +58,7 @@ export default function AiTranslateControl({
                 value={tier}
                 onChange={e => onTierChange(e.target.value)}
                 disabled={translating}
-                className="px-2 py-1 rounded-lg text-xs border bg-[var(--bg-secondary)]"
-                style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' }}
+                className="px-2 py-1 rounded-lg text-xs border bg-[var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline:none]"
             >
                 {TIER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>

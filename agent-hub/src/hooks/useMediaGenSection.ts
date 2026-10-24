@@ -23,9 +23,11 @@ export default function useMediaGenSection(
         () => mediaGenSettingsStore.getSection(section),
     );
 
-    useEffect(() => {
+    const [prevIsOpenDeps, setPrevIsOpenDeps] = useState([isOpen, section]);
+    if (prevIsOpenDeps[0] !== isOpen || prevIsOpenDeps[1] !== section) {
+        setPrevIsOpenDeps([isOpen, section]);
         if (isOpen) setSettings(mediaGenSettingsStore.getSection(section));
-    }, [isOpen, section]);
+    }
 
     const update: MediaGenSectionUpdate = (key, val) => {
         const next = { ...settings, [key]: val };

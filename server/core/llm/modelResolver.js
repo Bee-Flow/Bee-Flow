@@ -13,6 +13,7 @@
 
 const configStore = require('../../stores/configStore');
 const { createTtlCache } = require('../../utils/ttlCache');
+const log = require('../../telemetry/log');
 
 // ─── Tier Defaults ────────────────────────────────────────────────────────────
 // Centralised token / temperature / reasoning standards per tier.
@@ -546,7 +547,7 @@ async function getUserTierMap({ userOrgId = null, userId = null } = {}) {
                 custom: true,
             };
         }
-    } catch (_) { /* fall through without custom tiers */ }
+    } catch (err) { log.debug('fall through without custom tiers', err); }
     return tiers;
 }
 
@@ -602,7 +603,7 @@ async function resolveEffectiveOrgId(req, { userId, skipGroupFallback = false } 
                     }
                 }
             }
-        } catch (_) { /* fall through to null */ }
+        } catch (err) { log.debug('fall through to null', err); }
     }
 
     if (cacheKey) _effectiveOrgCache.set(cacheKey, orgId);

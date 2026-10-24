@@ -135,8 +135,7 @@ export default function RegisterPanel({
                     <button
                         type="button"
                         onClick={() => onNavigate(`settings/organisation/compliance/ropa/${encodeURIComponent(`datatable:${table.id}`)}`)}
-                        className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ color: 'var(--type-ai)', outlineColor: 'var(--type-ai)' }}
+                        className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--type-ai)]! [outline-color:var(--type-ai)]!"
                         data-testid="playbook-compliance-open-ropa"
                     >
                         <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
@@ -176,8 +175,7 @@ export default function RegisterPanel({
                         type="button"
                         onClick={suggest}
                         disabled={suggesting}
-                        className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ color: 'var(--type-ai)', border: '1px solid var(--type-ai)', background: 'color-mix(in srgb, var(--type-ai) 8%, transparent)', outlineColor: 'var(--type-ai)' }}
+                        className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--type-ai)]! [border:1px_solid_var(--type-ai)] [background:color-mix(in_srgb,var(--type-ai)_8%,transparent)] [outline-color:var(--type-ai)]!"
                         data-testid="playbook-compliance-suggest"
                     >
                         {suggesting
@@ -210,8 +208,7 @@ export default function RegisterPanel({
                         {personal.map((c) => (
                             <span
                                 key={c.key}
-                                className="inline-flex items-center gap-1 text-[11px] px-2 py-[2px] rounded-full"
-                                style={{ border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                                className="inline-flex items-center gap-1 text-[11px] px-2 py-[2px] rounded-full [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                                 title={facts.personalMethod === 'values'
                                     ? t('playbooks.compliance.cat_values', 'found by reading the values')
                                     : t('playbooks.compliance.cat_names', 'assumed from the column name')}
@@ -224,7 +221,7 @@ export default function RegisterPanel({
                 </div>
             )}
 
-            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+            <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
                 {/* THE ONE FIELD THAT OPENS EMPTY, AND SAYS WHY.
                     It used to open on the organisation's first configured
                     ground, so Register was one click away from recording a
@@ -353,7 +350,7 @@ export default function RegisterPanel({
                     {t('playbooks.compliance.register_note', 'Nothing else on this screen writes anything.')}
                 </span>
             </div>
-            {error && <p role="alert" className="text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{error}</p>}
+            {error && <p role="alert" className="text-[11px] [color:var(--error-ink,var(--error))]!">{error}</p>}
         </section>
     );
 }

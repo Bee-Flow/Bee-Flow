@@ -4,10 +4,11 @@ import {
     groupStudioApps, makeCanUse, resolveStudioNav, studioLockHint, createAutomationDraft,
     createFormAutomation, firstOpenStudioSection, studioPermissionHeld, STUDIO_ICONS,
 } from './studioApps';
-import { STUDIO_GLYPH_ICONS } from '../../../utils/integrationLogos';
 import studioGatesSource from './studioGates.ts?raw';
 import studioRegistrySource from './studioRegistry.tsx?raw';
+import studioSectionsSource from './studioSections.ts?raw';
 import EN_DEFAULTS from '../../../i18n/en-defaults';
+import { STUDIO_GLYPH_ICONS } from '../../../utils/integrationLogos';
 import { KIND_KEYS } from '../../shared/kindColors';
 
 // The lazy onCreate callbacks import()` this module at call time; mocking it
@@ -632,7 +633,7 @@ describe('icons borrowed by the automation builder', () => {
 });
 
 describe('import discipline', () => {
-    it('top-level imports stay limited to react, lazyWithReload and lucide-react', () => {
+    it('top-level imports stay limited to react, lazyWithReload and studioSections (registry), lucide-react (sections)', () => {
         const src = studioRegistrySource;
         const specifiers = [
             // `import type` is erased at build time, so it pulls nothing in.
@@ -640,7 +641,7 @@ describe('import discipline', () => {
             ...src.matchAll(/^import\s+['"]([^'"]+)['"]/gm),
         ].map((m) => m[1]);
         expect(specifiers.length).toBeGreaterThan(0);
-        const allowed = new Set(['react', 'lucide-react', '../../../utils/lazyWithReload']);
+        const allowed = new Set(['react', '../../../utils/lazyWithReload', './studioSections']);
         for (const spec of specifiers) {
             expect(allowed.has(spec), `top-level import of "${spec}" would pull it into the main chunk`).toBe(true);
         }
@@ -651,10 +652,17 @@ describe('import discipline', () => {
         // top-level `import x from` of the API layer (checked above) and never
         // a dynamic import at MODULE scope (a column-0 line; the callbacks'
         // imports are indented inside their function bodies).
-        expect(/^(?:const|let|var)\s[^\n]*\bimport\(/m.test(src)).toBe(false);
-        expect(/^await\s+import\(/m.test(src)).toBe(false);
+        // These live in studioSections.ts, which also imports nothing but
+        // lucide-react (the registry adds the lazy components).
+        const data = studioSectionsSource;
+        const dataSpecifiers = [...data.matchAll(/^import\s(?!type\s)[^;]*?from\s+['"]([^'"]+)['"]/gm)].map((m) => m[1]);
+        expect(dataSpecifiers).toEqual(['lucide-react']);
+        for (const code of [src, data]) {
+            expect(/^(?:const|let|var)\s[^\n]*\bimport\(/m.test(code)).toBe(false);
+            expect(/^await\s+import\(/m.test(code)).toBe(false);
+        }
         // …and there ARE call-time imports, so the check is not vacuous.
-        expect(/^\s+const \{[^}]*\} = await import\(/m.test(src)).toBe(true);
+        expect(/^\s+const \{[^}]*\} = await import\(/m.test(data)).toBe(true);
     });
 
     it('studioGates.ts has no runtime import at all, and import()s only at call time', () => {

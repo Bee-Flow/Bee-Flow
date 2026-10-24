@@ -27,6 +27,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { formatRelative } from '../../../projects/relativeTime';
 import StudioSectionHeader from '../../../shared/StudioSectionHeader';
 import type { SolutionProject, SolutionDetailViewProps, SolutionDetailProps } from './SolutionDetail.types';
+import { logger } from '../../../../utils/logger';
 export type { SolutionProject } from './SolutionDetail.types';
 
 export { blueprintVersionFor, controlBadge };
@@ -328,7 +329,7 @@ function mirrorToUrl(stage: string, tab: string | null) {
         if (stage === 'dev') url.searchParams.delete('stage'); else url.searchParams.set('stage', stage);
         if (tab) url.searchParams.set('tab', tab); else url.searchParams.delete('tab');
         window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
-    } catch { /* a URL that cannot be written only costs a deep link */ }
+    } catch (err) { logger.debug('a URL that cannot be written only costs a deep link', err); }
 }
 
 export default function SolutionDetail({ project, onBack, currentUserId, initialStage = null }: SolutionDetailProps) {

@@ -300,10 +300,14 @@ function bubbleFor(message: TeamChatMessage, ctx: MessageContext): { className: 
 
 function ConfirmedBubble({ message, ctx }: { message: TeamChatMessage; ctx: MessageContext }) {
     const { t } = useTranslation();
-    const [editing, setEditing] = useState(false);
     // An outside request (ArrowUp in the empty composer) opens this bubble's editor.
     const editNonce = ctx.editRequest && ctx.editRequest.messageId === message.id ? ctx.editRequest.nonce : 0;
-    useEffect(() => { if (editNonce) setEditing(true); }, [editNonce]);
+    const [editing, setEditing] = useState(!!editNonce);
+    const [prevEditNonce, setPrevEditNonce] = useState(editNonce);
+    if (prevEditNonce !== editNonce) {
+        setPrevEditNonce(editNonce);
+        if (editNonce) setEditing(true);
+    }
     const shape = bubbleFor(message, ctx);
     const active = !!ctx.highlight && ctx.highlight.activeMessageId === message.id;
     return (

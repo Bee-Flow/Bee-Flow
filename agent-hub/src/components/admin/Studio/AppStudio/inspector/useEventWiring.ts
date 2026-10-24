@@ -18,6 +18,7 @@ import useTranslation from '../../../../../hooks/useTranslation';
 import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
+import { logger } from '../../../../../utils/logger';
 
 /** One automation the picker has resolved, as far as this hook reads it. */
 export interface WiredAutomation {
@@ -476,7 +477,7 @@ export default function useEventWiring({
                 body: JSON.stringify({ triggerPayload: payload }),
             });
             let body: { error?: string; run?: { id?: unknown } } | null = null;
-            try { body = await r.json(); } catch { /* empty body */ }
+            try { body = await r.json(); } catch (err) { logger.debug('empty body', err); }
             if (!r.ok) throw new Error(body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));
             // A 200 carries the finished run; a 202 says "still going" and has
             // no id yet, so the link then opens the automation's Runs tab instead

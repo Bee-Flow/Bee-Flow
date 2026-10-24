@@ -43,6 +43,7 @@
 const tiers = require('../../license/tiers');
 const featureMap = require('../../license/featureMap');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('../../utils/ncIntegrationCatalog');
+const log = require('../../telemetry/log');
 
 const CapabilityKind = Object.freeze({
     CORE: 'core',
@@ -215,9 +216,7 @@ function setRemoteModuleCapabilityDescriptors(list) {
 async function refreshModuleCapabilityFilter() {
     try {
         await require('../../modules/index').refreshModuleActivations();
-    } catch (_) {
-        // Modules runtime/store unavailable — keep whatever was last pushed.
-    }
+    } catch (err) { log.debug('Modules runtime/store unavailable — keep whatever was last pushed.', err); }
 }
 
 /** Re-read mcpStore and project enabled servers as integration capabilities. */
@@ -239,9 +238,7 @@ async function refreshMcpIntegrationDescriptors() {
                 groupTogglable: true,
                 _mcpServer: true,
             })));
-    } catch (_) {
-        // mcpStore unavailable — keep whatever was last cached (or empty).
-    }
+    } catch (err) { log.debug('mcpStore unavailable — keep whatever was last cached (or empty).', err); }
 }
 
 // ── Org-scoped custom-integration projection (AI Integration Builder) ───

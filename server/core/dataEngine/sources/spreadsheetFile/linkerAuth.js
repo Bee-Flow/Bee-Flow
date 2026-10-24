@@ -35,6 +35,7 @@ const MEMO_TTL_MS = 60_000;
 const _memo = new Map();   // memoKey → { at, value, error }
 
 const { integrationClient } = require('../../../integrations/integrationClients');
+const log = require('../../../../telemetry/log');
 
 function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
@@ -195,7 +196,7 @@ async function assertWritable(source, linker, orgId) {
 /** Test/relink hook: forget a linker's memo — and their credential memo. */
 function forget(userId) {
     for (const k of _memo.keys()) if (k.startsWith(`${userId}|`)) _memo.delete(k);
-    try { require('./credentials').forget(userId); } catch (_) { /* pure module — cannot fail */ }
+    try { require('./credentials').forget(userId); } catch (err) { log.debug('pure module — cannot fail', err); }
 }
 
 module.exports = { resolveLinker, assertWritable, forget, _memo, MEMO_TTL_MS };

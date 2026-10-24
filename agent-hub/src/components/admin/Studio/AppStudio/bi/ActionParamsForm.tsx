@@ -222,7 +222,7 @@ function ParamRow({ param, connector, onChange, disabled }: ParamRowProps) {
                 <label htmlFor={controlId} className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-sm font-medium text-[var(--text-primary)]">{key}</span>
-                        {required ? <span className="text-xs" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.params.required', 'required')}>{t('studio_apps_bi.params.required', 'required')}</span> : null}
+                        {required ? <span className="text-xs [color:#d97706]!" aria-label={t('studio_apps_bi.params.required', 'required')}>{t('studio_apps_bi.params.required', 'required')}</span> : null}
                         <span className="text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
                             {Array.isArray(spec.enum) ? t('studio_apps_bi.params.type_choice', 'choice') : (spec.type || t('studio_apps_bi.params.type_text', 'text'))}
                         </span>
@@ -267,7 +267,7 @@ function ParamRow({ param, connector, onChange, disabled }: ParamRowProps) {
             ) : null}
 
             {required && source === 'unset' ? (
-                <p className="mt-1.5 flex items-start gap-1.5 text-xs" style={{ color: '#d97706' }}>
+                <p className="mt-1.5 flex items-start gap-1.5 text-xs [color:#d97706]!">
                     <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
                     {t('studio_apps_bi.params.needs_value', 'This action needs {key}. Pin a value, ask the viewer for it, or get it from another action under “Combine actions”.', { key })}
                 </p>

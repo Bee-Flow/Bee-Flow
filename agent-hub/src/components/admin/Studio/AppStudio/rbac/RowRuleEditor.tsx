@@ -204,8 +204,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                         value={tableId}
                         onChange={(e) => requestSwitch({ tableId: e.target.value })}
                         aria-label={t('studio_apps_edit.rule_editor.table', 'Table')}
-                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         {tables.map((t) => <option key={t.id} value={t.id}>{t.name || t.key}</option>)}
                     </select>
@@ -216,8 +215,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                         value={roleKey}
                         onChange={(e) => requestSwitch({ roleKey: e.target.value })}
                         aria-label={t('studio_apps_edit.rule_editor.role', 'Role')}
-                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                        style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     >
                         {roles.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
                     </select>
@@ -351,8 +349,7 @@ function RawRuleBox({ table, value, onChange, disabled, error }: RawRuleBoxProps
                 placeholder={t('studio_apps_edit.rule_editor.raw_example', 'e.g. record.owner_id == viewer.id')}
                 spellCheck={false}
                 aria-label={t('studio_apps_edit.rule_editor.raw_aria', 'Row rule expression')}
-                className="w-full rounded border px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 disabled:opacity-50"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="w-full rounded border px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 disabled:opacity-50 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
             />
             <div className="flex flex-wrap items-center gap-1.5">
                 {ruleFields(table, t).slice(0, 8).map((f) => (

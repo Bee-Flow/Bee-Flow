@@ -166,7 +166,7 @@ describe('a graph the server could not read whole', () => {
     it('an answer with no verdict in it is treated as partial, not as clean', () => {
         // A cached payload, or a server that predates the field. Unknown
         // narrows: no reassurance, and the tab says why.
-        const { complete, unavailable, ...noVerdict } = PARTIAL;   // eslint-disable-line no-unused-vars
+        const { complete, unavailable, ...noVerdict } = PARTIAL;    
         const { getByTestId, queryByText } = renderTab({ graph: noVerdict });
         expect(getByTestId('project-flow-unverified')).toBeTruthy();
         expect(queryByText('Everything in this project is connected and owned consistently.')).toBeNull();

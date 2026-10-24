@@ -97,12 +97,12 @@ interface ModelTierBadgeProps {
 }
 
 export const ModelTierBadge = ({ model, tier }: ModelTierBadgeProps) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }} title={model}>
+    <span className="[display:inline-flex] [align-items:center] [gap:4px] [flex-wrap:wrap]">
+        <span className="[display:inline-flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={model}>
             <Cpu style={{ width: 9, height: 9 }} /> {shortModel(model)}
         </span>
         {tier && (
-            <span style={{ padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: '#f59e0b15', color: '#f59e0b' }} title={`tier: ${tier}`}>
+            <span className="[padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:#f59e0b15] [color:#f59e0b]" title={`tier: ${tier}`}>
                 tier: {tier}
             </span>
         )}

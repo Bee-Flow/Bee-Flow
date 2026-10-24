@@ -9,6 +9,7 @@ import { INPUT_CLS } from '../inspector/panels/kit';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, ValueControlProps, FilterRowsEditorProps } from './FilterRowsEditor.types';
+import { logger } from '../../../../../utils/logger';
 export type { FilterRow } from './FilterRowsEditor.types';
 
 const filterOps = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
@@ -280,7 +281,7 @@ export function literalFromExpr(expr: string | undefined, control: string) {
     if (src === 'false') return false;
     if (/^-?\d+(\.\d+)?$/.test(src)) return control === 'number' ? src : Number(src);
     if (/^"([^"\\]|\\.)*"$/.test(src) || /^'([^'\\]|\\.)*'$/.test(src)) {
-        try { return JSON.parse(`"${src.slice(1, -1).replace(/"/g, '\\"')}"`); } catch { /* fall through */ }
+        try { return JSON.parse(`"${src.slice(1, -1).replace(/"/g, '\\"')}"`); } catch (err) { logger.debug('string literal not parseable, fall through to raw expression', err); }
     }
     return emptyValueFor(control);
 }

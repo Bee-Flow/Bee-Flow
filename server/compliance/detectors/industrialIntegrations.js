@@ -45,6 +45,7 @@
 
 const db = require('../../db');
 const { errorLabel } = require('../lib/errorShape');
+const log = require('../../telemetry/log');
 
 const HEURISTICS_VERSION = '1.0.0';
 const ACTIVITY_WINDOW_DAYS = 90;
@@ -249,7 +250,7 @@ function _walkSteps(definition, fn) {
     try {
         const graph = require('../../automation/automationGraph');
         if (typeof graph.walkSteps === 'function') return graph.walkSteps(definition, fn);
-    } catch { /* not there yet — fall back */ }
+    } catch (err) { log.debug('not there yet — fall back', err); }
     return _fallbackWalkSteps(definition, fn);
 }
 

@@ -8,6 +8,7 @@ import {
     formatRelative,
 } from '../../components/support/SupportDrawer';
 import { useTranslation } from '../../hooks/useTranslation';
+import { logger } from '../../utils/logger';
 
 interface HelpSupportSectionProps {
     showLearningLink?: boolean;
@@ -51,7 +52,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
                 const data = await res.json();
                 setThreads(data.threads || []);
             }
-        } catch {} finally {
+        } catch (err) { logger.warn('support threads load failed', err); } finally {
             setLoading(false);
         }
     }, []);
@@ -73,7 +74,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
                 params.delete('thread');
                 const qs = params.toString();
                 window.history.replaceState(window.history.state, '', window.location.pathname + (qs ? `?${qs}` : ''));
-            } catch (_) { /* no-op */ }
+            } catch (err) { logger.debug('no-op', err); }
         };
         openFromUrl();
         window.addEventListener('popstate', openFromUrl);
@@ -106,8 +107,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
                             <button
                                 type="button"
                                 onClick={openLearning}
-                                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border hover:bg-[var(--bg-tertiary)] transition-colors"
-                                style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', background: 'transparent' }}
+                                className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 border hover:bg-[var(--bg-tertiary)] transition-colors [border-color:var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!"
                                 title={t('settings.help_support.learning_title', 'Hands-on courses in the Learning Center')}
                             >
                                 <GraduationCap className="w-3.5 h-3.5" /> {t('settings.help_support.learning_center', 'Learning Center')}
@@ -116,8 +116,7 @@ export default function HelpSupportSection({ showLearningLink = true, onOpenLear
                         <button
                             type="button"
                             onClick={() => setView('new')}
-                            className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5"
-                            style={{ background: 'var(--accent-primary)', color: 'white' }}
+                            className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 [background:var(--accent-primary)] [color:white]!"
                         >
                             <Plus className="w-3.5 h-3.5" /> {t('settings.help_support.new_question', 'New question')}
                         </button>

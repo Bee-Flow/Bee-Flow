@@ -269,7 +269,7 @@ async function processTick({ mayIngest = null } = {}) {
         log.warn('[DatasetIngest] tick error:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         if (acquired && didWork) recordJobRun({ job: 'dataset_ingest', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

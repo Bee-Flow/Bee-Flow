@@ -11,6 +11,8 @@
 
 
 /** Where the project's chats may use the base. Not an access rule (see core/kb/usageContexts.js). */
+const telemetryLog = require('../telemetry/log');
+
 const USAGE_CONTEXTS = Object.freeze(['agent', 'direct_chat']);
 
 /** The base's name: "<project> · Files", within the KB name column's reasonable length. */
@@ -82,7 +84,7 @@ function makeFilesKbAccess(ctx) {
             // before they save, or their next PUT is a needless conflict.
             try {
                 await publishTransient(projectId, { kind: 'project_updated', payload: { changes: ['knowledgeBaseIds'] } });
-            } catch (_) { /* presence-grade: never fail the upload over it */ }
+            } catch (err) { telemetryLog.debug('presence-grade: never fail the upload over it', err); }
             return true;
         }
         log.warn(`[ProjectFiles] could not list the files base on project ${projectId} after three attempts`);

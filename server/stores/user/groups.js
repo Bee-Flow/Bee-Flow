@@ -122,10 +122,10 @@ async function deleteGroup(groupId) {
     // comment was wrong; the DELETE cascades nothing here.)
     try {
         await run(`DELETE FROM project_shares WHERE shared_with_type = 'group' AND shared_with_id = $1`, [groupId]);
-    } catch (e) { /* table may not exist yet on a fresh install */ }
+    } catch (e) { log.debug('table may not exist yet on a fresh install', e); }
 
     // Caller-supplied group ids must not re-grant old document shares if reused.
-    await require('../lib/documentSharing').revokeGroupShares(groupId);
+    await require('../lib/groupShareRevoke').revokeGroupShares(groupId);
     const { rowCount } = await run('DELETE FROM groups WHERE id = $1', [groupId]);
     return rowCount > 0;
 }

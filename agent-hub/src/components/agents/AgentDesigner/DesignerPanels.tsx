@@ -129,31 +129,19 @@ export function KnowledgeSection(p: KnowledgeSectionProps) {
 export function DesignerEmptyState({ systemMode, onCreate }: { systemMode: boolean; onCreate: () => void }) {
     const { t } = useTranslation();
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-4xl mx-auto w-full" style={{ paddingBottom: '20%' }}>
+        <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-4xl mx-auto w-full [padding-bottom:20%]!">
             <h1
-                className="text-center"
-                style={{
-                    fontSize: '32px',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    marginBottom: '12px',
-                    letterSpacing: '-0.02em',
-                }}
+                className="text-center [font-size:32px]! [font-weight:600] [color:var(--text-primary)]! [margin-bottom:12px] [letter-spacing:-0.02em]"
             >
                 {t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}
             </h1>
-            <p className="text-sm text-center mb-8 leading-relaxed" style={{ color: 'var(--text-muted)', maxWidth: '420px' }}>
+            <p className="text-sm text-center mb-8 leading-relaxed [color:var(--text-muted)]! max-w-[420px]">
                 {t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
             </p>
             {!systemMode && (
                 <button
                     onClick={onCreate}
-                    className="px-6 py-2.5 rounded-full text-sm font-medium transition-all border hover:border-purple-500/30 hover:bg-[var(--bg-secondary)]"
-                    style={{
-                        borderColor: 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                        background: 'var(--bg-card)',
-                    }}
+                    className="px-6 py-2.5 rounded-full text-sm font-medium transition-all border hover:border-purple-500/30 hover:bg-[var(--bg-secondary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]! [background:var(--bg-card)]!"
                 >
                     {t('agent_studio.agent_designer_create_new_agent', 'Create New Agent')}
                 </button>

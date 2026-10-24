@@ -10,6 +10,7 @@ import {
 } from '../audits/auditForms';
 import type { OrgUser } from '../accessAuditLabels';
 import type { RowLike } from '../../../../shared/DataTable';
+import { logger } from '../../../../../utils/logger';
 
 /**
  * PolicyDrawer — the editor for one ISMS policy document (ISO 27001 A.5.1 /
@@ -135,7 +136,7 @@ export default function PolicyDrawer({
         try {
             const full = await onLoadDoc?.(slug);
             if (full) { setDraft(draftOf(full)); setBaseline(baselineOf(full)); }
-        } catch { /* the list refresh still shows the new version */ }
+        } catch (err) { logger.debug('the list refresh still shows the new version', err); }
     };
 
     const saveButton = (

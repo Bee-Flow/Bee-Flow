@@ -56,7 +56,7 @@ async function getPipeline() {
                 if (env.backends?.onnx?.wasm) {
                     env.backends.onnx.wasm.numThreads = CPU_EMBED_WASM_THREADS;
                 }
-            } catch (_) { /* older versions: ignore */ }
+            } catch (err) { log.debug('older versions: ignore', err); }
 
             const extractor = await withTimeout(
                 pipeline('feature-extraction', CPU_EMBED_MODEL_ID, { dtype: 'q8' }),
@@ -141,7 +141,7 @@ async function warmup() {
         if (out.length > 0) {
             log.info('[CpuEmbed] Warmup complete — first user query will be fast.');
         }
-    } catch (_) { /* fail-open */ }
+    } catch (err) { log.debug('fail-open', err); }
 }
 
 module.exports = {

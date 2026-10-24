@@ -81,7 +81,11 @@ function useLibraryPage() {
     const [selection, setSelection] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const fail = (e: unknown) => setError(projectErrorText(t, e) || messageOf(e, t('documents.library.action_failed', 'That did not work. Please try again.')));
-    useEffect(() => { setSelection([]); }, [f.filters]);
+    const [prevFilters, setPrevFilters] = useState(f.filters);
+    if (prevFilters !== f.filters) {
+        setPrevFilters(f.filters);
+        setSelection([]);
+    }
     // The assistant made or changed a document in a chat: the list may be stale.
     const qc = useQueryClient();
     useEffect(() => {

@@ -32,7 +32,7 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
         try {
             const stat = await fsp.stat(localPathFor(id));
             return stat.size;
-        } catch (_) {}
+        } catch (_) { log.debug('no local file, the cold-replica path follows', _); }
         // Cold replica: no handle and no local file, but the entity may be real
         // and LARGE — fall back to the last flushed metadata size so byte
         // quotas hold on every replica, not only the warm one. (This used to
@@ -58,12 +58,12 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
                 throw new Error(`${entityLabel} handle owned by another user — refusing to reset`);
             }
             if (entry.flushTimer) clearTimeout(entry.flushTimer);
-            try { entry.db.close(); } catch (_) {}
+            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
             handles.delete(id);
         }
-        try { await fsp.unlink(localPathFor(id)); } catch (_) {}
+        try { await fsp.unlink(localPathFor(id)); } catch (_) { log.debug('local file already gone', _); }
         if (storage.isAvailable()) {
-            try { await storage.deleteFile(dbKey(ownerId, id)); } catch (_) {}
+            try { await storage.deleteFile(dbKey(ownerId, id)); } catch (_) { log.warn('blob could not be deleted from object storage', _); }
         }
         await runQuery(
             `UPDATE ${metaTable} SET db_sha256 = '', db_size = 0, updated_at = NOW() WHERE id = $1 AND user_id = $2`,
@@ -112,12 +112,12 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
             // If a flush is in flight, let it finish so we don't tear it down
             // mid-upload — but we'll still drop the handle afterward.
             if (entry.flushing) {
-                try { await entry.flushing; } catch (_) {}
+                try { await entry.flushing; } catch (_) { log.debug('in-flight flush failed, the handle is dropped anyway', _); }
             }
-            try { entry.db.close(); } catch (_) {}
+            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
             handles.delete(id);
         }
-        try { await fsp.unlink(localPathFor(id)); } catch (_) {}
+        try { await fsp.unlink(localPathFor(id)); } catch (_) { log.debug('local file already gone', _); }
     }
 
     /**
@@ -135,7 +135,7 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
             } catch (e) {
                 log.warn(`[${logPrefix}] Shutdown flush failed for ${id}:`, e.message);
             }
-            try { entry.db.close(); } catch (_) {}
+            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
             handles.delete(id);
         }
     }

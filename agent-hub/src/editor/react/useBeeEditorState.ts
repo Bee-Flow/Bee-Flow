@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState , useLayoutEffect } from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import type { EditorView } from '../engine/view';
 import type { AskState, AtomEntry, BeeEditorProps, ChartConfig, EditorShared, LinkEditState } from './beeEditorTypes';
@@ -23,13 +23,17 @@ export default function useBeeEditorState(props: BeeEditorProps): EditorShared {
   const [tick, setTick] = useState(0);
   const [linkEdit, setLinkEdit] = useState<LinkEditState | null>(null); // { rect, href, canRemove, doc, selection } | null
   const linkEditRef = useRef<LinkEditState | null>(null);
-  linkEditRef.current = linkEdit;
+  useLayoutEffect(() => {
+      linkEditRef.current = linkEdit;
+  });
   const [findOpen, setFindOpen] = useState(false);
   const [findFocus, setFindFocus] = useState(0);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [uploadError, setUploadError] = useState(false);
   const onUploadImageRef = useRef(onUploadImage);
-  onUploadImageRef.current = onUploadImage;
+  useLayoutEffect(() => {
+      onUploadImageRef.current = onUploadImage;
+  });
   // Assigned every render; the host's keydown listener calls through it.
   const runShortcutRef = useRef<(action: string) => boolean>(() => false);
   const facadeRef = useRef<EditorFacade | null>(null);

@@ -133,16 +133,15 @@ const GoogleWorkspacePickerModal = ({
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3.5"
-                    style={{ borderBottom: '1px solid #e0e0e0' }}>
+                <div className="flex items-center justify-between px-5 py-3.5 [border-bottom:1px_solid_#e0e0e0]">
                     <div className="flex items-center gap-3">
                         <Icon className="w-7 h-7" />
                         <div>
-                            <h2 id={titleId} className="text-[17px] font-medium" style={{ color: '#202124' }}>
+                            <h2 id={titleId} className="text-[17px] font-medium [color:#202124]!">
                                 {title}
                             </h2>
                             {status.connected && status.user && (
-                                <span className="text-xs" style={{ color: '#5f6368' }}>
+                                <span className="text-xs [color:#5f6368]!">
                                     {status.user.email || status.user.displayName}
                                 </span>
                             )}
@@ -151,8 +150,7 @@ const GoogleWorkspacePickerModal = ({
                     <button onClick={onClose}
                         aria-label={t('common.close', 'Close')}
                         title={t('common.close', 'Close')}
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                        style={{ color: '#5f6368' }}>
+                        className="p-2 rounded-full hover:bg-gray-100 transition-colors [color:#5f6368]">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -162,27 +160,21 @@ const GoogleWorkspacePickerModal = ({
                     <div className="flex-1 flex flex-col items-center justify-center p-10 gap-5">
                         <Icon className="w-20 h-20" />
                         <div className="text-center">
-                            <h3 className="text-lg font-medium mb-1" style={{ color: '#202124' }}>
+                            <h3 className="text-lg font-medium mb-1 [color:#202124]!">
                                 {connectTitle}
                             </h3>
-                            <p className="text-sm" style={{ color: '#5f6368', maxWidth: '320px' }}>
+                            <p className="text-sm [color:#5f6368]! max-w-[320px]">
                                 {connectDescription}
                             </p>
                         </div>
                         {!status.configured ? (
-                            <p className="text-xs px-6 text-center" style={{ color: '#d93025' }}>
+                            <p className="text-xs px-6 text-center [color:#d93025]!">
                                 {t('chat.picker.sso_missing', 'Google SSO is not configured. Ask your admin to set it up in Security settings.')}
                             </p>
                         ) : (
                             <button
                                 onClick={handleConnect}
-                                className="flex items-center gap-3 px-6 py-2.5 rounded-md text-sm font-medium transition-all hover:shadow-md"
-                                style={{
-                                    background: '#fff',
-                                    border: '1px solid #dadce0',
-                                    color: '#3c4043',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                                }}
+                                className="flex items-center gap-3 px-6 py-2.5 rounded-md text-sm font-medium transition-all hover:shadow-md [background:#fff] [border:1px_solid_#dadce0] [color:#3c4043]! [box-shadow:0_1px_2px_rgba(0,0,0,0.1)]"
                             >
                                 <GoogleGIcon />
                                 {t('chat.picker.sign_in_google', 'Sign in with Google')}
@@ -195,7 +187,7 @@ const GoogleWorkspacePickerModal = ({
                 {status.connected && (
                     <>
                         {/* Search bar */}
-                        <div className="px-4 py-3" style={{ borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
+                        <div className="px-4 py-3 [border-bottom:1px_solid_#e0e0e0] [background:#f8f9fa]">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#9aa0a6' }} />
                                 {/* Takes the focus as it mounts, on open or once the
@@ -219,20 +211,19 @@ const GoogleWorkspacePickerModal = ({
 
                         {/* Error */}
                         {error && (
-                            <div className="mx-4 mt-3 p-3 rounded-lg text-xs font-medium"
-                                style={{ background: '#fce8e6', color: '#d93025' }}>
+                            <div className="mx-4 mt-3 p-3 rounded-lg text-xs font-medium [background:#fce8e6] [color:#d93025]!">
                                 {error}
                             </div>
                         )}
 
                         {/* Item List */}
-                        <div className="flex-1 overflow-y-auto" style={{ minHeight: '300px', maxHeight: '420px' }}>
+                        <div className="flex-1 overflow-y-auto min-h-[300px] max-h-[420px]">
                             {loading && items.length === 0 ? (
                                 <div className="flex items-center justify-center h-full">
                                     <RefreshCw className="w-6 h-6 animate-spin" style={{ color: accentColor }} />
                                 </div>
                             ) : items.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full gap-2" style={{ color: '#5f6368' }}>
+                                <div className="flex flex-col items-center justify-center h-full gap-2 [color:#5f6368]">
                                     <EmptyIcon className="w-12 h-12 opacity-40" />
                                     <span className="text-sm">{searchQuery ? emptySearchText : emptyText}</span>
                                 </div>
@@ -285,9 +276,8 @@ const GoogleWorkspacePickerModal = ({
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-between px-5 py-3"
-                            style={{ borderTop: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-                            <span className="text-xs" style={{ color: '#5f6368' }}>
+                        <div className="flex items-center justify-between px-5 py-3 [border-top:1px_solid_#e0e0e0] [background:#f8f9fa]">
+                            <span className="text-xs [color:#5f6368]!">
                                 {selectedIds.size > 0
                                     ? nOf(
                                         t,
@@ -304,8 +294,7 @@ const GoogleWorkspacePickerModal = ({
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={onClose}
-                                    className="px-4 py-2 rounded text-sm font-medium transition-colors hover:bg-gray-200"
-                                    style={{ color: '#5f6368' }}
+                                    className="px-4 py-2 rounded text-sm font-medium transition-colors hover:bg-gray-200 [color:#5f6368]!"
                                 >
                                     {t('chat.picker.cancel', 'Cancel')}
                                 </button>

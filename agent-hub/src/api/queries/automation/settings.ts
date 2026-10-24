@@ -9,6 +9,7 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 const BASE = `${API_BASE}/api/automation`;
 const enc = encodeURIComponent;
@@ -38,7 +39,7 @@ async function failure(res: Response, fallback: string): Promise<SettingsRequest
         const body = await res.json();
         if (body && typeof body.error === 'string' && body.error) message = body.error;
         if (body && typeof body.code === 'string') code = body.code;
-    } catch { /* not JSON: keep the fallback */ }
+    } catch (err) { logger.debug('not JSON: keep the fallback', err); }
     return new SettingsRequestError(message, res.status, code);
 }
 

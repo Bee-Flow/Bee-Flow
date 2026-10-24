@@ -7,6 +7,7 @@
  * on drag-end (not per-move, to avoid hammering storage during a drag).
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { logger } from '../../../../utils/logger';
 
 interface UseResizableWidthArgs {
     initial?: number;
@@ -22,7 +23,7 @@ export default function useResizableWidth({ initial = 320, min = 250, max = 800,
             try {
                 const v = parseInt(localStorage.getItem(storageKey) as string, 10);
                 if (Number.isFinite(v)) return Math.max(min, Math.min(v, max));
-            } catch { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
         }
         return initial;
     });
@@ -57,7 +58,7 @@ export default function useResizableWidth({ initial = 320, min = 250, max = 800,
             document.body.style.cursor = 'default';
             document.body.style.userSelect = 'auto';
             if (storageKey) {
-                try { localStorage.setItem(storageKey, String(widthRef.current)); } catch { /* ignore */ }
+                try { localStorage.setItem(storageKey, String(widthRef.current)); } catch (err) { logger.debug('ignore', err); }
             }
         };
         document.addEventListener('mousemove', onMove);

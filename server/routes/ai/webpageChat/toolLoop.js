@@ -160,7 +160,7 @@ async function runToolLoop({
             const _convMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
             const _add = buildTokenPreservationAddendum(_convMap);
             if (_add && messages[0]?.role === 'system') messages[0].content += _add;
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     }
     // Response un-tokeniser: restore [token]s minted from attachment PII back to
     // real values as chunks stream (shared by every phase below). Passthrough

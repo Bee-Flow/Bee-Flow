@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // t() interpolates so price/awaiting labels are assertable by their key prefix.
 const t = (key, a, b) => {
@@ -13,8 +13,8 @@ vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t, lo
 vi.mock('../../licensing/EntitlementsContext', () => ({ useEntitlements: () => ({ tier: 'enterprise' }) }));
 vi.mock('../../../moduleRuntime/registry', () => ({ reloadRemoteModules: vi.fn() }));
 
-import { authFetch } from '../../../utils/helpers';
 import MarketplaceTab from './MarketplaceTab';
+import { authFetch } from '../../../utils/helpers';
 
 const jsonRes = (body, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,

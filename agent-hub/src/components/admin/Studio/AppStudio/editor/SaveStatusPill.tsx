@@ -67,12 +67,7 @@ export function SaveNoticeCapsule({ status, error, onRetry, noticeCount = 0, not
     if (status === 'error') {
         return (
             <span
-                className="inline-flex h-8 max-w-72 items-center gap-1.5 whitespace-nowrap rounded-[10px] border px-2.5 text-xs font-medium"
-                style={{
-                    borderColor: 'color-mix(in srgb, var(--error) 40%, transparent)',
-                    color: 'var(--error-ink)',
-                    background: 'color-mix(in srgb, var(--error) 8%, transparent)',
-                }}
+                className="inline-flex h-8 max-w-72 items-center gap-1.5 whitespace-nowrap rounded-[10px] border px-2.5 text-xs font-medium [border-color:color-mix(in_srgb,var(--error)_40%,transparent)] [color:var(--error-ink)]! [background:color-mix(in_srgb,var(--error)_8%,transparent)]"
                 role="status"
                 data-testid="save-notice-capsule"
                 data-tone="error"

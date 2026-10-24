@@ -154,7 +154,7 @@ router.post('/events/gmail', eventsLimiter, express.json({ limit: '128kb' }), as
     const data = req.body?.message?.data;
     if (!data) return res.status(204).end();
     let decoded = {};
-    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch {}
+    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch (err) { log.debug('payload is not base64 JSON, handled as an empty event', err); }
     // userId intentionally null until an emailAddress→userId mapping + OIDC
     // verification exist; dispatchEvent drops null-userId gmail events.
     await triggerBus.dispatchEvent({ provider: 'gmail', event: 'mail.new', payload: decoded, userId: null });
@@ -281,7 +281,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
             for (const sub of subs) {
                 await automationStore.updateSubscription(sub.id, { lastPushAt: new Date().toISOString() }).catch(() => {});
             }
-        } catch (_) { /* best-effort */ }
+        } catch (err) { log.debug('best-effort', err); }
     }
     return res.status(202).end();
 });

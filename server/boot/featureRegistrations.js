@@ -4,6 +4,7 @@
  * (server/ARCHITECTURE.md), so a capability core calls is injected: the
  * feature registers it here at boot, before any route or tick can need it.
  *
+ *   boot/featureModules.js         feature modules core looks up by name -> core/featureModules.js
  *   integrations/toolFamilies.js   every integration's tools -> core/tools/toolFamilyRegistry.js
  *   automation/runnerPorts.js      approvals, trigger bus, form queue, code sandbox, ...
  *   jobs/runnerPorts.js            the retention and digest passes the runner ticks drive
@@ -15,6 +16,7 @@
  *                                  sources use -> core/integrations/integrationClients.js
  *   jobs/datatableChangePorts.js   the live-datatable listeners -> stores/datatableStore/liveChanges.js
  *   projects/erasurePorts.js       account erasure's notebooks + projects -> stores/user/erasurePorts.js
+ *   boot/lateBoundPorts.js         lazy callbacks for setters a lower module exposes (load-order safe)
  *
  * Loaded by index.js, early. A test that drives the real code path through
  * one of these loads the registering module itself.
@@ -22,6 +24,7 @@
 
 'use strict';
 
+require('./featureModules');
 require('../integrations/toolFamilies');
 require('../automation/runnerPorts');
 require('../jobs/runnerPorts');
@@ -31,3 +34,4 @@ require('../core/meetingNotes/runnerPorts');
 require('../integrations/integrationClients');
 require('../jobs/datatableChangePorts');
 require('../projects/erasurePorts');
+require('./lateBoundPorts');

@@ -12,9 +12,9 @@ export default function ScalewayCard({ transcriptionProvider, scalewayApiKey, se
             <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
                 <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
                     {t('integ.transcription_scaleway_whisper', '🇪🇺 Scaleway Whisper')}
-                    <span className="text-xs px-2 py-0.5 rounded-full font-normal" style={{ background: '#7c3aed18', color: '#7c3aed' }}>{t('integ.transcription_hybrid_eu', 'Hybrid · EU')}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-normal [background:#7c3aed18] [color:#7c3aed]!">{t('integ.transcription_hybrid_eu', 'Hybrid · EU')}</span>
                     {transcriptionProvider === 'scaleway' && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.transcription_active', 'Active')}</span>}
-                    {hasScalewayKey && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-primary)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
+                    {hasScalewayKey && <span className="text-xs px-2 py-0.5 rounded-full [background:var(--bg-primary)] [color:var(--text-muted)]! [border:1px_solid_var(--border-subtle)]">{t('integ.transcription_key_saved', 'Key saved 🔒')}</span>}
                 </h3>
                 <p className="text-xs mt-0.5 text-[var(--text-muted)]">{t('integ.transcription_fast_gdpr_eu_cloud_transcription', 'Fast GDPR-EU cloud transcription (Whisper large-v3) with speaker labels from your local WhisperX diarizer.')}</p>
             </div>
@@ -54,8 +54,7 @@ export default function ScalewayCard({ transcriptionProvider, scalewayApiKey, se
                             setTimeout(() => setMessage(null), 3000);
                         }}
                         disabled={savingScaleway || !scalewayApiKey.trim()}
-                        className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5"
-                        style={{ background: 'var(--accent-primary)', color: '#fff' }}
+                        className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
                     >
                         {savingScaleway ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                         {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */}
@@ -63,7 +62,7 @@ export default function ScalewayCard({ transcriptionProvider, scalewayApiKey, se
                     </button>
                 </div>
                 {/* Capabilities */}
-                <div className="rounded-xl p-4" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)' }}>
+                <div className="rounded-xl p-4 [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                     <p className="text-sm font-medium mb-2 text-[var(--text-primary)]">{t('integ.transcription_capabilities', 'Capabilities')}</p>
                     <ul className="text-xs space-y-1 text-[var(--text-muted)]">
                         <li>{t('integ.transcription_fast_cloud_transcription_gpu_whisper', '✅ Fast cloud transcription — GPU Whisper large-v3, far quicker than local CPU')}</li>
@@ -74,7 +73,7 @@ export default function ScalewayCard({ transcriptionProvider, scalewayApiKey, se
                     </ul>
                 </div>
                 {!hasWhisperxUrl && (
-                    <div className="rounded-xl p-4 text-xs" style={{ background: 'var(--bg-primary)', border: '1px solid #f59e0b44', color: 'var(--text-muted)' }}>
+                    <div className="rounded-xl p-4 text-xs [background:var(--bg-primary)] [border:1px_solid_#f59e0b44] [color:var(--text-muted)]!">
                         {t('integ.transcription_no_whisperx_url_configured_scaleway', '⚠️ No WhisperX URL configured. Scaleway will transcribe but every segment will be one speaker until you set the WhisperX/diarizer URL above.')}
                     </div>
                 )}

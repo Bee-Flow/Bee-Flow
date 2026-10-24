@@ -194,8 +194,7 @@ export default function BuildBanner({ following = true, onFollow = null, screen 
     const dotTone = live ? accent : (state.farewell && state.farewell.finalized ? 'var(--success, #10b981)' : 'var(--text-tertiary)');
     return (
         <div
-            className="flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card,var(--bg-secondary))] py-2 pl-3.5 pr-2 text-[12px] text-[var(--text-primary)]"
-            style={{ boxShadow: 'var(--shadow-popover, 0 4px 16px rgba(0,0,0,.12))' }}
+            className="flex items-center gap-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card,var(--bg-secondary))] py-2 pl-3.5 pr-2 text-[12px] text-[var(--text-primary)] [box-shadow:var(--shadow-popover,0_4px_16px_rgba(0,0,0,.12))]"
             data-testid="app-build-banner"
             data-phase={live ? (c as BuildCueValue).phase : 'ended'}
         >

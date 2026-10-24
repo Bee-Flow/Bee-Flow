@@ -35,7 +35,7 @@ async function resolveEnabledSystemSlugs(req) {
     const enabled = [];
     for (const slug of SYSTEM_KB_BETA_SLUGS) {
         try { if (await userHasBetaFeature(userId, slug, req.session)) enabled.push(slug); }
-        catch (_) { /* skip this slug on resolve failure */ }
+        catch (err) { log.debug('skip this slug on resolve failure', err); }
     }
     return enabled;
 }

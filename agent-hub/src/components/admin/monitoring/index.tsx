@@ -16,6 +16,7 @@ import { monitoringUrl } from './monitoringUrl';
 import type { DrawerDetail, ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem } from './feedback/feedbackModel';
 import type { MonitoringPanelProps } from './index.types';
+import { logger } from '../../../utils/logger';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/usage';
 const AI_API = (import.meta.env.VITE_API_URL || '') + '/ai';
@@ -194,7 +195,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                 ]);
                 setFeedback(Array.isArray(fbData) ? fbData : []);
                 setFeedbackSummary(fbSum || { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
-            } catch { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
         } catch (e) {
             console.error('[Monitoring] fetch error:', e);
         }
@@ -261,7 +262,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                                 color: page === p.id ? COLORS.primary : 'var(--text-muted, #666)',
                                 flexShrink: 0
                             }} />
-                            <div style={{ flex: 1, textAlign: 'left' }}>
+                            <div className="[flex:1] [text-align:left]">
                                 <div style={{
                                     fontSize: '13px', fontWeight: page === p.id ? 600 : 500,
                                     color: page === p.id ? 'var(--text-primary, #fff)' : 'var(--text-secondary, #aaa)',
@@ -285,7 +286,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                             {t(PAGES.find(p => p.id === page)?.descriptionKey, PAGES.find(p => p.id === page)?.description)}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="[display:flex] [gap:8px] [align-items:center] [flex-wrap:wrap]">
                         <div style={styles.rangeGroup}>
                             {RANGES.map(r => (
                                 <button
@@ -314,7 +315,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                                         style={styles.dateInput}
                                     />
                                 </div>
-                                <span style={{ color: 'var(--text-muted, #666)', fontSize: '12px', padding: '0 2px' }}>→</span>
+                                <span className="[color:var(--text-muted,#666)] [font-size:12px] [padding:0_2px]">→</span>
                                 <div style={styles.datePickerField}>
                                     <span style={styles.datePickerLabel}>{t('admin_monitoring.to', 'To')}</span>
                                     <input

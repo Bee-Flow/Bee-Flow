@@ -217,7 +217,7 @@ async function finishRemove({ deployment, stage }, deps = {}) {
             kind: 'deployment.succeeded', actorId: deployment.requestedBy || null, targetType: 'deployment', targetId: deployment.id,
             payload: { deploymentId: deployment.id, kind: 'remove', stage: stage.stage, warnings: warnings.length },
         }, { label: 'Solution stages' });
-    } catch { /* the feed is best-effort */ }
+    } catch (err) { log.debug('the feed is best-effort', err); }
     const report = { warnings, attempts: 1 };
     const row = await s.stageStore.transitionDeployment(deployment.id, ['converging'], warnings.length ? 'succeeded_with_warnings' : 'succeeded', { report });
     return { deployment: row, report };

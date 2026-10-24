@@ -39,7 +39,7 @@ const STALE_SOCKET = Symbol('staleKeepAliveSocket');
  */
 function _describeFailure(status, raw) {
     let parsed = null;
-    try { parsed = raw ? JSON.parse(raw) : null; } catch (_) { /* not JSON */ }
+    try { parsed = raw ? JSON.parse(raw) : null; } catch (err) { log.debug('not JSON', err); }
     const detail = Array.isArray(parsed?.detail) ? parsed.detail : [];
     const types = [...new Set(detail.map(d => (d && typeof d.type === 'string' ? d.type : null)).filter(Boolean))].slice(0, 5);
     const locs = [...new Set(detail
@@ -205,7 +205,7 @@ async function detectPiiViaCpuModel(text, enabledCategories, confidenceThreshold
             require('../../../telemetry/metrics').recordSidecarCall({
                 service: 'guard', status: _status, durationMs: Date.now() - _t0,
             });
-        } catch (_) { /* telemetry must never break detection */ }
+        } catch (err) { log.debug('telemetry must never break detection', err); }
     }
     // result = { hasPii, entities: [...], degraded, degraded_reason }
     const entities = (result.entities || []).map(e => ({

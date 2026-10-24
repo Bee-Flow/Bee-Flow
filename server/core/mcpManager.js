@@ -167,7 +167,7 @@ async function getConnection(serverId, userId) {
                 await mcpStore.updateServer(serverId, { tools_cache: tools, status: 'ready', error: null });
             }
         }
-    } catch (_) { /* best-effort — never block a runtime connection on discovery */ }
+    } catch (err) { log.debug('best-effort — never block a runtime connection on discovery', err); }
 
     return client;
 }
@@ -259,7 +259,7 @@ async function callTool(serverId, toolName, args = {}, userId) {
                 server: serverId, tool: toolName, status,
                 durationMs: Number(process.hrtime.bigint() - _t0) / 1e6,
             });
-        } catch (_) { /* telemetry is best-effort */ }
+        } catch (err) { log.debug('telemetry is best-effort', err); }
     };
 
     try {
@@ -328,7 +328,7 @@ async function testCommand(command, args = [], envVars = {}, transportType = 'st
         return { success: false, tools: [], error: err.message };
     } finally {
         if (client) {
-            try { await client.close(); } catch (_) {}
+            try { await client.close(); } catch (_) { log.debug('MCP client already closed', _); }
         }
     }
 }

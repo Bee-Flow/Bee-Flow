@@ -117,7 +117,7 @@ export default function PlaybooksStudio({ user = null, hasPermission = () => tru
             />
 
             <div className="flex-1 overflow-y-auto">
-                <div className="mx-auto px-6 py-8 space-y-4" style={{ maxWidth: 760 }}>
+                <div className="mx-auto px-6 py-8 space-y-4 max-w-[760px]">
                     <div>
                         <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
                             {t('playbooks.heading', 'Playbooks')}
@@ -170,7 +170,7 @@ interface NoPlaybooksYetProps {
 function NoPlaybooksYet({ t, canCreate, onCreate }: NoPlaybooksYetProps) {
     const { tile, glyph } = kindTileStyle('playbook', { size: 44, pct: 14 });
     return (
-        <div className="flex flex-col items-center" style={{ border: '1px dashed var(--border-default)', borderRadius: 12, background: 'var(--bg-card)' }}>
+        <div className="flex flex-col items-center [border:1px_dashed_var(--border-default)] [border-radius:12px] [background:var(--bg-card)]">
             <EmptyState
                 icon={<span style={tile}><Clapperboard style={glyph} aria-hidden="true" /></span>}
                 title={t('playbooks.empty_title', 'No playbooks yet')}

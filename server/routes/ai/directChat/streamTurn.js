@@ -122,7 +122,7 @@ async function handleTurnError(error, { turn, clientAbort, persistInterruptedTur
     // signal with every cancelled answer.
     if (turn.clientGone || error?.name === 'AbortError' || clientAbort.signal.aborted) {
         log.info('[DirectChat] turn cancelled by the client');
-        try { if (!res.writableEnded) res.end(); } catch (_) { /* socket already gone */ }
+        try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
         return;
     }
     log.error('[DirectChat] Stream error:', error);
@@ -172,7 +172,7 @@ async function releaseTurn(turn) {
     } catch (e) {
         log.warn('[DirectChat] turn release failed:', e.message);
     }
-    try { if (!res.writableEnded) res.end(); } catch (_) { /* socket already gone */ }
+    try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
 }
 
 // ─── Streaming Direct Chat ───────────────────────────────────────
@@ -226,7 +226,7 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
         if (res.writableEnded) return;
         turn.clientGone = true;
         log.info('[DirectChat] client disconnected — aborting the generation');
-        try { clientAbort.abort(); } catch (_) { /* already aborted */ }
+        try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
     });
 
     // Emit on every turn so the "How I got this answer" panel always knows

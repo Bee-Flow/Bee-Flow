@@ -21,6 +21,7 @@
 
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
+const log = require('../telemetry/log');
 
 /**
  * @param {string|null} orgId
@@ -50,10 +51,10 @@ async function resolveOrgIdForRequest(req) {
         try {
             const orgIds = await resolveUserOrgIds(req); // null = super-admin
             if (orgIds && orgIds.size > 0) orgId = Array.from(orgIds)[0];
-        } catch (_) { /* fall through */ }
+        } catch (err) { log.debug('fall through', err); }
     }
     if (!orgId && user.id) {
-        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (_) { /* ignore */ }
+        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { log.debug('ignore', err); }
     }
     return orgId;
 }

@@ -5,6 +5,7 @@ import { LANGUAGES_API } from './useLanguages';
 import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { getLanguages, sendLanguagesJson } from '../../../api/languages';
+import { logger } from '../../../utils/logger';
 
 /** GET /api/languages/:locale/prompts */
 interface PromptData {
@@ -32,7 +33,7 @@ function PromptList({ data, translations, selectedPrompt, onSelect }: PromptList
     const labels = data.labels || {};
     const stats = data.stats || {};
     return (
-        <div className="w-56 shrink-0 border rounded-xl overflow-y-auto" style={{ borderColor: 'var(--border-default)', background: 'var(--bg-secondary)', scrollbarWidth: 'thin' }}>
+        <div className="w-56 shrink-0 border rounded-xl overflow-y-auto [border-color:var(--border-default)] [background:var(--bg-secondary)] [scrollbar-width:thin]">
             <div className="p-2 border-b border-[var(--border-default)]">
                 <span className="text-xs font-medium text-[var(--text-muted)]">
                     {t('admin_languages.prompt_stats', '{translated} / {total} translated', { translated: stats.translated || 0, total: stats.total || 0 })}
@@ -109,8 +110,7 @@ function PromptSideBySide({ locale, label, defaultText, editText, setEditText, s
                     <textarea
                         value={defaultText}
                         readOnly
-                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none"
-                        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', outline: 'none', scrollbarWidth: 'thin' }}
+                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-secondary)]! [outline:none] [scrollbar-width:thin]"
                     />
                     <div className="text-[10px] mt-1 px-1 text-[var(--text-muted)]">{t('admin_languages.chars', '{n} chars', { n: defaultText.length })}</div>
                 </div>
@@ -122,8 +122,7 @@ function PromptSideBySide({ locale, label, defaultText, editText, setEditText, s
                         value={editText}
                         onChange={e => setEditText(e.target.value)}
                         placeholder={t('admin_languages.enter_translation', 'Enter translation...')}
-                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none focus:border-[var(--accent-primary)]"
-                        style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-primary)', outline: 'none', scrollbarWidth: 'thin' }}
+                        className="flex-1 w-full px-3 py-2 rounded-lg border text-xs font-mono resize-none focus:border-[var(--accent-primary)] [border-color:var(--border-default)]! [background:var(--bg-primary)] [color:var(--text-primary)]! [outline:none] [scrollbar-width:thin]"
                     />
                     <div className="text-[10px] mt-1 px-1 text-[var(--text-muted)]">{t('admin_languages.chars', '{n} chars', { n: editText.length })}</div>
                 </div>
@@ -171,7 +170,7 @@ export default function PromptEditor({ locale }: { locale: string }) {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
             }
-        } catch { }
+        } catch (err) { logger.warn('prompt translation save failed', err); }
         setSaving(false);
     };
 

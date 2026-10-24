@@ -370,7 +370,7 @@ export function useNavigateToPage({
         setShowSkillsPanel(false);
         const path = PAGE_ROUTES[page] || '/';
         window.history.pushState({ page }, '', path);
-    }), []);
+    }), [isMobileRef, setAdminPath, setAppRunId, setCurrentPage, setFormViewToken, setInitialCoworkId, setInitialDesignerAgentId, setInitialDocumentId, setInitialProjectRoute, setOrgSettingsPath, setShowAgentDesigner, setShowAgentWizard, setShowProfileMenu, setShowProjects, setShowSettings, setShowSkillsPanel, setShowStudio, setStudioRoute, user?.isConsumerAccount]);
 
     return navigateToPage;
 }

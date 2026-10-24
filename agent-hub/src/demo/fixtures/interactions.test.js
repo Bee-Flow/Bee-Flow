@@ -13,8 +13,8 @@
  * Run: cd agent-hub && npx vitest run src/demo/fixtures/interactions.test.js
  */
 import { describe, it, expect } from 'vitest';
-import * as automations from './automations';
 import * as agents from './agents';
+import * as automations from './automations';
 
 const call = async (mod, route, args) => {
     const handler = mod.ROUTES[route];

@@ -32,7 +32,7 @@ async function resolveAttachmentShield(req) {
                 shield = allCfg[shieldKeys[0]];
                 log.info(`[DirectChat] Attachment scanner: super-admin fallback → sole org shield ${shieldKeys[0]}`);
             }
-        } catch (_) { /* non-fatal */ }
+        } catch (err) { log.debug('non-fatal', err); }
     }
     return { userOrgId, shield };
 }
@@ -152,7 +152,7 @@ async function reportAttachmentBlock(attErr, { send, userOrgId, userId, conversa
             attachment_filename: attErr.filename,
             attachment_page: null,
         });
-    } catch (_) { /* audit best-effort */ }
+    } catch (err) { log.debug('audit best-effort', err); }
 }
 
 /** Audit rows for tokenised, allowed and incompletely scanned attachments. */
@@ -176,7 +176,7 @@ async function auditScanSummaries(summaries, auditCtx) {
                 });
             }
         }
-    } catch (_) { /* audit best-effort */ }
+    } catch (err) { log.debug('audit best-effort', err); }
 }
 
 /**
@@ -228,7 +228,7 @@ function surfaceScanSummaries(summaries, { send, shield, contentParts, modelId, 
         if (convMap && Object.keys(convMap).length > 0) {
             send('privacy_token_map', { tokenMap: convMap, source: 'privacy_shield' });
         }
-    } catch (_) { /* transparency is best-effort */ }
+    } catch (err) { log.debug('transparency is best-effort', err); }
 }
 
 module.exports = {

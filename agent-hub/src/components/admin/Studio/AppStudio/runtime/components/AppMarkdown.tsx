@@ -136,13 +136,7 @@ export function CodeBlock({ code }: { code: string }) {
     return (
         <div className="app-code-block relative group">
             <pre
-                className="text-xs p-3 overflow-x-auto border"
-                style={{
-                    background: 'var(--bg-tertiary)',
-                    borderColor: 'var(--border-default)',
-                    borderRadius: 'var(--app-radius)',
-                    color: 'var(--text-primary)',
-                }}
+                className="text-xs p-3 overflow-x-auto border [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
             >
                 <code>{code}</code>
             </pre>

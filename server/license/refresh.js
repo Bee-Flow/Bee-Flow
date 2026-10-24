@@ -126,7 +126,7 @@ async function refreshOne(lic) {
         try {
             const expMs = lic.expiresAt ? new Date(lic.expiresAt).getTime() : null;
             if (Number.isFinite(expMs) && expMs <= Date.now()) graceWindow = 0;
-        } catch (_) { /* fall through to default grace */ }
+        } catch (err) { log.debug('fall through to default grace', err); }
         await store.markRefreshFailure(lic.id, { graceWindowSeconds: graceWindow });
         log.info(`[License Refresh] license.refresh.expired license_id=${lic.id} grace_window_s=${graceWindow}`);
         return { ok: true, status: 'expired', graceWindow };
@@ -230,7 +230,7 @@ async function crlTick() {
         }
         const newSince = Number.isFinite(body.next_since) ? body.next_since : since;
         if (newSince > since) {
-            try { await configStore.setConfig(CRL_CONFIG_KEY, newSince); } catch (_e) { /* best effort */ }
+            try { await configStore.setConfig(CRL_CONFIG_KEY, newSince); } catch (err) { log.debug('best effort', err); }
         }
         _health.crl.lastSince = newSince;
         _health.crl.lastProcessed = processed;

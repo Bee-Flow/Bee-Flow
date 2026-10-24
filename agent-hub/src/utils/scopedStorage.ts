@@ -1,3 +1,4 @@
+import { logger } from './logger';
 /**
  * User-scoped localStorage wrapper.
  *
@@ -60,12 +61,12 @@ export function getItem(key: string): string | null {
 
 export function setItem(key: string, value: string): void {
     if (!currentUserId) return;
-    try { localStorage.setItem(scopedKey(currentUserId, key), value); } catch { /* ignore quota */ }
+    try { localStorage.setItem(scopedKey(currentUserId, key), value); } catch (err) { logger.debug('ignore quota', err); }
 }
 
 export function removeItem(key: string): void {
     if (!currentUserId) return;
-    try { localStorage.removeItem(scopedKey(currentUserId, key)); } catch { /* ignore */ }
+    try { localStorage.removeItem(scopedKey(currentUserId, key)); } catch (err) { logger.debug('ignore', err); }
 }
 
 /**
@@ -79,7 +80,7 @@ export function getJSON<T = unknown>(key: string, fallback: T | null = null): T 
 }
 
 export function setJSON(key: string, value: unknown): void {
-    try { setItem(key, JSON.stringify(value)); } catch { /* ignore */ }
+    try { setItem(key, JSON.stringify(value)); } catch (err) { logger.debug('ignore', err); }
 }
 
 /**
@@ -96,7 +97,7 @@ export function clearUser(userId: string | null | undefined): void {
             if (k && k.startsWith(prefix)) toRemove.push(k);
         }
         for (const k of toRemove) localStorage.removeItem(k);
-    } catch { /* ignore */ }
+    } catch (err) { logger.debug('ignore', err); }
 }
 
 export default {

@@ -4,6 +4,7 @@ import Modal from '../../../components/shared/Modal';
 import { Eyebrow, PrimaryButton, SecondaryButton } from './bits';
 import { fetchAssetObjectUrl, downloadAsset } from '../../../components/onboarding/achievements';
 import type { TranslateParams } from '../../../hooks/useTranslation';
+import { logger } from '../../../utils/logger';
 
 /**
  * CertificateDrawer — artboard 1e: the in-app drawer for an issued
@@ -54,7 +55,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
     }, [cert.imageUrl]);
 
     const copyVerify = async () => {
-        try { await navigator.clipboard.writeText(cert.verifyUrl as string); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch (_) { /* ignore */ }
+        try { await navigator.clipboard.writeText(cert.verifyUrl as string); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch (err) { logger.debug('ignore', err); }
     };
     // Public but no link: the deployment has no public base URL to mint one.
     const noPublicUrl = !!cert.isPublic && !cert.verifyUrl;
@@ -71,9 +72,8 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
             className="w-[480px] max-w-full h-full"
             data-testid="certificate-drawer"
         >
-            <div className="flex flex-col min-h-0 h-full w-full"
-                style={{ background: 'var(--bg-card)', borderLeft: '1px solid var(--border-default)', boxShadow: 'var(--shadow-popover)', fontSize: 13, color: 'var(--text-primary)' }}>
-                <div className="flex items-center gap-2 flex-shrink-0" style={{ height: 48, padding: '0 10px 0 16px', borderBottom: '1px solid var(--border-default)' }}>
+            <div className="flex flex-col min-h-0 h-full w-full [background:var(--bg-card)] [border-left:1px_solid_var(--border-default)] [box-shadow:var(--shadow-popover)] [font-size:13px] [color:var(--text-primary)]">
+                <div className="flex items-center gap-2 flex-shrink-0 h-[48px] [padding:0_10px_0_16px] [border-bottom:1px_solid_var(--border-default)]">
                     <div className="min-w-0 flex-1">
                         <Eyebrow accent>{t('learn.cert.drawer_label', 'Certificate')}</Eyebrow>
                         <div className="font-semibold text-[14px] leading-[18px] truncate">{cert.title}</div>
@@ -83,23 +83,23 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                     </button>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3.5 text-[12px]" style={{ padding: 16 }}>
+                <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3.5 text-[12px] [padding:16px]">
                     {/* Preview */}
-                    <div className="relative overflow-hidden rounded-[10px]" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }}>
-                        <div style={{ height: 6, background: 'var(--accent-primary)' }} />
+                    <div className="relative overflow-hidden rounded-[10px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]">
+                        <div className="h-[6px] [background:var(--accent-primary)]" />
                         {imgSrc ? (
                             <img src={imgSrc} alt={cert.title} className="w-full h-auto block" />
                         ) : (
-                            <div className="flex flex-col gap-1.5" style={{ padding: '16px 18px', minHeight: 150 }}>
+                            <div className="flex flex-col gap-1.5 [padding:16px_18px] min-h-[150px]">
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-[16px] leading-none" aria-hidden="true">🐝</span>
-                                    <span className="uppercase font-semibold" style={{ fontSize: 10, letterSpacing: '.1em', color: 'var(--text-tertiary)' }}>{t('learn.cert.brand', 'Bee Flow AI Certified')}</span>
+                                    <span className="uppercase font-semibold [font-size:10px] [letter-spacing:.1em] [color:var(--text-tertiary)]">{t('learn.cert.brand', 'Bee Flow AI Certified')}</span>
                                 </div>
                                 <div className="text-[22px] font-bold leading-[26px]">{cert.level || cert.title}</div>
                                 <div className="text-[11px] mt-1 text-[var(--text-tertiary)]">
                                     {imgError ? t('learn.cert.preview_failed', 'Could not load the preview — the download still works.') : <span className="inline-flex items-center gap-1.5"><Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />{t('learn.cert.preview_loading', 'Rendering the preview…')}</span>}
                                 </div>
-                                <div className="absolute grid place-items-center rounded-full" style={{ right: 18, bottom: 16, width: 44, height: 44, border: '2px solid var(--accent-primary)', color: 'var(--accent-primary)' }} aria-hidden="true">
+                                <div className="absolute grid place-items-center rounded-full [right:18px] [bottom:16px] w-[44px] h-[44px] [border:2px_solid_var(--accent-primary)] [color:var(--accent-primary)]" aria-hidden="true">
                                     <Award style={{ width: 20, height: 20 }} />
                                 </div>
                             </div>
@@ -115,7 +115,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                         </SecondaryButton>
                     </div>
 
-                    <div className="flex flex-col gap-2.5" style={{ borderTop: '1px solid var(--border-default)', paddingTop: 12 }}>
+                    <div className="flex flex-col gap-2.5 [border-top:1px_solid_var(--border-default)] [padding-top:12px]">
                         <div className="flex items-center gap-2.5">
                             <div className="flex-1 min-w-0">
                                 <div className="font-semibold">{t('learn.cert.make_public', 'Make public & share')}</div>
@@ -130,10 +130,10 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                         </div>
                         {cert.isPublic && cert.verifyUrl && (
                             <>
-                                <div className="flex items-center gap-2 rounded-lg" style={{ padding: '7px 10px', border: '1px solid var(--border-default)', background: 'var(--bg-secondary)' }}>
+                                <div className="flex items-center gap-2 rounded-lg [padding:7px_10px] [border:1px_solid_var(--border-default)] [background:var(--bg-secondary)]">
                                     <Link style={{ width: 12, height: 12, color: 'var(--text-tertiary)', flexShrink: 0 }} aria-hidden="true" />
-                                    <span className="flex-1 min-w-0 truncate text-[11px]" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', color: 'var(--text-secondary)' }}>{cert.verifyUrl.replace(/^https?:\/\//, '')}</span>
-                                    <button type="button" onClick={copyVerify} className="inline-flex items-center gap-1 text-[11px] font-medium whitespace-nowrap rounded-md" style={{ padding: '3px 8px', background: 'var(--bg-card)', border: '1px solid var(--border-default)' }}>
+                                    <span className="flex-1 min-w-0 truncate text-[11px] [font-family:ui-monospace,SFMono-Regular,monospace] [color:var(--text-secondary)]!">{cert.verifyUrl.replace(/^https?:\/\//, '')}</span>
+                                    <button type="button" onClick={copyVerify} className="inline-flex items-center gap-1 text-[11px] font-medium whitespace-nowrap rounded-md [padding:3px_8px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)]">
                                         {copied ? <Check style={{ width: 11, height: 11, color: 'var(--learn-complete)' }} /> : <Copy style={{ width: 11, height: 11 }} aria-hidden="true" />}
                                         {copied ? t('learn.cert.copied', 'Copied') : t('learn.cert.copy', 'Copy')}
                                     </button>

@@ -40,6 +40,7 @@ const userStore = require('../stores/userStore');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const log = require('../telemetry/log');
 
 /** A whole number on the query string, refused in words when it is not one. */
 const whole = (name, min, what) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
@@ -83,7 +84,7 @@ function audit(req, action, meta = {}) {
     try {
         const userId = req.session.user.id;
         userStore.logAccessAudit(action, 'pii_vault', userId, userId, null, meta, req.session.user.organizationId || null);
-    } catch (_) { /* auditing must never fail the request */ }
+    } catch (err) { log.debug('auditing must never fail the request', err); }
 }
 
 /** GET / — the caller's vault, decrypted. */

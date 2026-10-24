@@ -73,8 +73,7 @@ export default function AccessGateCard({ changes, blocked, applying, approve, di
                     type="button"
                     onClick={discard}
                     disabled={applying || planEmpty}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-medium disabled:opacity-50"
-                    style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-xs font-medium disabled:opacity-50 [color:var(--text-secondary)]! [border:1px_solid_var(--border-default)]"
                     data-testid="playbook-access-discard"
                 >
                     <X className="w-3.5 h-3.5" aria-hidden="true" />{t('playbooks.access.discard', 'Discard')}
@@ -86,7 +85,7 @@ export default function AccessGateCard({ changes, blocked, applying, approve, di
                     <Globe className="w-3 h-3 shrink-0" aria-hidden="true" />{ncWords}
                 </p>
             )}
-            {applyError && <p role="alert" className="mt-1 text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{t('playbooks.access.apply_failed', 'Could not apply: {what}', { what: applyError })}</p>}
+            {applyError && <p role="alert" className="mt-1 text-[11px] [color:var(--error-ink,var(--error))]!">{t('playbooks.access.apply_failed', 'Could not apply: {what}', { what: applyError })}</p>}
             {blockers && blockers.length > 0 && (
                 <ul className="mt-1 space-y-0.5" data-testid="playbook-access-blockers">
                     <li className="text-[11px] text-[var(--text-secondary)]">{t('playbooks.access.blockers', 'The app itself is what stops the publish:')}</li>

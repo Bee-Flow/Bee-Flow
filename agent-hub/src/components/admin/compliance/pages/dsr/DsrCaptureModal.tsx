@@ -116,7 +116,7 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
     };
 
     const err = (k: string) => errors[k] ? t(...ERROR_TEXT[errors[k]]) : null;
-    const Err = ({ k }: { k: string }) => err(k) ? <span className="text-[11px] text-[var(--error-ink)]" role="alert" data-testid={`${testId}-err-${k}`}>{err(k)}</span> : null;
+    const renderErr = (k: string) => err(k) ? <span className="text-[11px] text-[var(--error-ink)]" role="alert" data-testid={`${testId}-err-${k}`}>{err(k)}</span> : null;
 
     return (
         <Modal
@@ -143,13 +143,13 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
                     <select value={form.request_type} onChange={set('request_type')} className={FIELD} data-testid={`${testId}-type`}>
                         {DSR_TYPES.map(k => <option key={k} value={k}>{typeLabel(t, k)} · {t('compliance.dsr_article', 'Art. {n}', { n: articleOf(k) })}</option>)}
                     </select>
-                    <Err k="request_type" />
+                    {renderErr('request_type')}
                 </label>
                 <label className="flex flex-col gap-1">
                     <span className={LABEL}>{t('compliance.dsr_capture_email', 'E-mail address of the data subject')}</span>
                     <input type="email" value={form.subject_email} onChange={set('subject_email')} className={FIELD} autoComplete="off"
                         placeholder="name@example.org" data-testid={`${testId}-email`} aria-invalid={errors.subject_email ? true : undefined} />
-                    <Err k="subject_email" />
+                    {renderErr('subject_email')}
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                     <label className="flex flex-col gap-1">
@@ -157,13 +157,13 @@ export default function DsrCaptureModal({ open = false, onClose, onCapture, busy
                         <select value={form.channel} onChange={set('channel')} className={FIELD} data-testid={`${testId}-channel`}>
                             {CAPTURE_CHANNELS.map(c => <option key={c} value={c}>{channelLabel(t, c)}</option>)}
                         </select>
-                        <Err k="channel" />
+                        {renderErr('channel')}
                     </label>
                     <label className="flex flex-col gap-1">
                         <span className={LABEL}>{t('compliance.dsr_capture_received', 'Received on')}</span>
                         <input type="datetime-local" value={form.received_at} onChange={set('received_at')} className={FIELD}
                             data-testid={`${testId}-received`} aria-invalid={errors.received_at ? true : undefined} />
-                        <Err k="received_at" />
+                        {renderErr('received_at')}
                     </label>
                 </div>
                 <label className="flex flex-col gap-1">

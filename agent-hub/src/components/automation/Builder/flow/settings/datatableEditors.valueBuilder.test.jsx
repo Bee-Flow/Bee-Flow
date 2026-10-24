@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import DatatableFields from './datatableEditors';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 

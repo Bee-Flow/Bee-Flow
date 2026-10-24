@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../utils/helpers', () => ({ authFetch: vi.fn() }));
 
-import { authFetch } from '../../../../utils/helpers';
 import { API, API_DSR, OPTS, fetchJson, jsonInit, json, downloadUrl, asObject, asArray, chatMonitoringUrls } from './api';
+import { authFetch } from '../../../../utils/helpers';
 
 beforeEach(() => authFetch.mockReset());
 

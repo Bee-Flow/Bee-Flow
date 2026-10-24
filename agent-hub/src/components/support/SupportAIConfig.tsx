@@ -12,6 +12,7 @@ import SupportToolsTab from './tabs/SupportToolsTab';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { SupportAgentRow, SupportAgentData, PreviewReply } from './SupportAIConfig.types';
+import { logger } from '../../utils/logger';
 
 const CONFIG_TABS = [
     { id: 'agent', label: 'Agent' },
@@ -103,7 +104,7 @@ export default function SupportAIConfig() {
                 if (!res.ok) return;
                 const json = await res.json();
                 if (!cancelled) setTiers(json || {});
-            } catch {}
+            } catch (err) { logger.debug('model tiers unavailable, defaults stay', err); }
         })();
         return () => { cancelled = true; };
     }, []);
@@ -222,7 +223,7 @@ export default function SupportAIConfig() {
                 </div>
                 <div className="flex items-center gap-2">
                     {saveError && (
-                        <span className="text-xs flex items-center gap-1" style={{ color: '#dc2626' }}>
+                        <span className="text-xs flex items-center gap-1 [color:#dc2626]!">
                             <AlertTriangle className="w-3 h-3" /> {saveError}
                         </span>
                     )}
@@ -232,8 +233,7 @@ export default function SupportAIConfig() {
                     <button
                         onClick={handleSave}
                         disabled={!dirty || saving}
-                        className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
-                        style={{ background: 'var(--accent-primary)', color: 'white' }}
+                        className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
                     >
                         <Save className="w-3.5 h-3.5" /> {saving ? 'Saving…' : 'Save'}
                     </button>
@@ -259,8 +259,7 @@ export default function SupportAIConfig() {
                     }
                     return (
                         <div className="max-w-2xl mx-auto px-4 pt-3">
-                            <div className="rounded-lg border p-3 text-xs flex items-start gap-2"
-                                style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.35)', color: '#991b1b' }}>
+                            <div className="rounded-lg border p-3 text-xs flex items-start gap-2 [background:rgba(239,68,68,0.08)] [border-color:rgba(239,68,68,0.35)] [color:#991b1b]!">
                                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                                 <div>
                                     <div className="font-medium">{t('support.support_aiconfig_tier', 'Tier')} <code>{tierKey}</code> {t('support.support_aiconfig_has_no_model_configured', 'has no model configured.')}</div>
@@ -301,33 +300,26 @@ export default function SupportAIConfig() {
                                 onChange={e => setPreviewInput(e.target.value)}
                                 rows={3}
                                 placeholder={t('support.support_aiconfig_type_a_question_as_if_you_were_a', 'Type a question as if you were a customer…')}
-                                className="w-full px-3 py-2 rounded-lg border text-sm resize-y"
-                                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 rounded-lg border text-sm resize-y [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                             />
                             <div className="flex justify-end">
                                 <button
                                     onClick={runPreview}
                                     disabled={previewing || !previewInput.trim()}
-                                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50"
-                                    style={{ background: 'var(--accent-primary)', color: 'white' }}
+                                    className="px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)] [color:white]!"
                                 >
                                     <Send className="w-3.5 h-3.5" /> {previewing ? 'Asking…' : 'Test reply'}
                                 </button>
                             </div>
 
                             {previewError && (
-                                <div className="text-xs px-3 py-2 rounded-md" style={{ background: 'rgba(220,38,38,0.08)', color: '#dc2626' }}>
+                                <div className="text-xs px-3 py-2 rounded-md [background:rgba(220,38,38,0.08)] [color:#dc2626]!">
                                     {previewError}
                                 </div>
                             )}
 
                             {previewReply && (
-                                <div className="rounded-lg p-3 text-sm border"
-                                    style={{
-                                        background: 'rgba(14,165,233,0.06)',
-                                        borderColor: 'var(--border-default)',
-                                        color: 'var(--text-primary)',
-                                    }}>
+                                <div className="rounded-lg p-3 text-sm border [background:rgba(14,165,233,0.06)] [border-color:var(--border-default)] [color:var(--text-primary)]!">
                                     <div className="flex items-center gap-2 mb-2 text-xs text-[var(--text-muted)]">
                                         <span className="font-medium">{t('support.support_aiconfig_bee_flow_support_ai', 'Bee Flow Support (AI)')}</span>
                                         {previewReply.modelTier && (
@@ -336,8 +328,7 @@ export default function SupportAIConfig() {
                                             </span>
                                         )}
                                         {previewReply.escalated && (
-                                            <span className="px-1.5 py-0.5 rounded"
-                                                style={{ background: 'rgba(245,158,11,0.18)', color: '#b45309' }}>
+                                            <span className="px-1.5 py-0.5 rounded [background:rgba(245,158,11,0.18)] [color:#b45309]">
                                                 {t('support.support_aiconfig_would_escalate', 'would escalate')}{previewReply.escalateReason ? `: ${previewReply.escalateReason}` : ''}
                                             </span>
                                         )}

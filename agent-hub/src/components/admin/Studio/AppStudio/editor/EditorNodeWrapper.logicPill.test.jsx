@@ -10,8 +10,8 @@ vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations }),
 }));
 
-import EditorNodeWrapper from './EditorNodeWrapper';
 import { clearAutomationTitles } from './automationTitles';
+import EditorNodeWrapper from './EditorNodeWrapper';
 import { RuntimeProvider } from '../runtime/RuntimeContext';
 import { AppEditorProvider } from '../state/AppEditorContext';
 

@@ -153,7 +153,7 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderPa
                 <IconBadge icon={icon} />
                 <h1 className="text-xl font-semibold truncate min-w-0 basis-48 grow text-[var(--text-primary)]" title={title}>{title}</h1>
                 {subtitle ? (
-                    <p className="text-sm mt-0.5 text-right line-clamp-2 min-w-0" title={subtitle} style={{ color: 'var(--text-muted)', maxWidth: '45%' }}>{subtitle}</p>
+                    <p className="text-sm mt-0.5 text-right line-clamp-2 min-w-0 [color:var(--text-muted)]! max-w-[45%]" title={subtitle}>{subtitle}</p>
                 ) : null}
                 {kids.length ? (
                     <div
@@ -166,7 +166,7 @@ function SplitHeader({ icon, title, subtitle, gap, kids, showDivider }: HeaderPa
                 ) : null}
             </div>
             {showDivider ? (
-                <hr className="mt-3 border-0 h-px w-full" style={{ background: 'var(--border-default)' }} aria-hidden="true" />
+                <hr className="mt-3 border-0 h-px w-full [background:var(--border-default)]" aria-hidden="true" />
             ) : null}
         </header>
     );
@@ -206,8 +206,7 @@ export default function AppPageHeader({ node, children }: NodeProps<PageHeaderPr
             <div className="flex flex-wrap items-start" style={{ gap: spaceSteps(gap) }}>
                 {icon ? (
                     <span
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md shrink-0"
-                        style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)' }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
                         aria-hidden="true"
                     >
                         <AppIcon name={icon} className="w-4.5 h-4.5" />
@@ -230,7 +229,7 @@ export default function AppPageHeader({ node, children }: NodeProps<PageHeaderPr
                 ) : null}
             </div>
             {showDivider && !banner ? (
-                <hr className="mt-3 border-0 h-px w-full" style={{ background: 'var(--border-default)' }} aria-hidden="true" />
+                <hr className="mt-3 border-0 h-px w-full [background:var(--border-default)]" aria-hidden="true" />
             ) : null}
         </header>
     );

@@ -62,7 +62,7 @@ export default function CourseView({
     const title = t(course.titleKey, course.titleFallback);
 
     return (
-        <div className="flex flex-col h-full min-h-0" style={{ fontSize: 13, color: 'var(--text-primary)' }} data-testid="course-view">
+        <div className="flex flex-col h-full min-h-0 [font-size:13px] [color:var(--text-primary)]" data-testid="course-view">
             <LearningHeader
                 t={t}
                 onBack={onBack}
@@ -83,14 +83,14 @@ export default function CourseView({
                 )}
             />
 
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 text-[12px]" style={{ padding: 28 }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 text-[12px] [padding:28px]">
                 {locked && (
-                    <div className="flex items-center gap-2 rounded-[10px] text-[12px]" style={{ padding: '10px 12px', border: '1px dashed var(--text-tertiary)', color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 rounded-[10px] text-[12px] [padding:10px_12px] [border:1px_dashed_var(--text-tertiary)] [color:var(--text-secondary)]!">
                         <Lock style={{ width: 13, height: 13, flexShrink: 0 }} aria-hidden="true" />{lockedReason}
                     </div>
                 )}
 
-                <p className="m-0 leading-[18px] text-[13px]" style={{ maxWidth: 680, color: 'var(--text-secondary)', textWrap: 'pretty' }}>
+                <p className="m-0 leading-[18px] text-[13px] max-w-[680px] [color:var(--text-secondary)]! [text-wrap:pretty]!">
                     {t(course.descKey, course.descFallback)}
                 </p>
 
@@ -275,7 +275,7 @@ function LessonSteps({ t, lesson, stripe, showPractice, reviewBuilding, onPracti
         <div className="flex flex-col gap-[7px] leading-4" data-testid="lesson-steps"
             style={{ padding: '2px 14px 16px 44px', background: 'var(--bg-secondary)', boxShadow: `inset 3px 0 0 ${stripe}`, color: 'var(--text-secondary)', maxWidth: 760 }}>
             {steps.map((s, i) => (
-                <div key={s.id || i} className="grid items-center gap-2" style={{ gridTemplateColumns: '14px 14px minmax(0,1fr)' }}>
+                <div key={s.id || i} className="grid items-center gap-2 [grid-template-columns:14px_14px_minmax(0,1fr)]">
                     <span className="font-semibold text-[var(--text-primary)]">{i + 1}</span>
                     <StepKindIcon kind={kinds[i]} />
                     <span className="truncate">

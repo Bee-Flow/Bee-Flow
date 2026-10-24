@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from './mdToAst';
 import { astToMarkdown } from './astToMd';
+import { markdownToAst } from './mdToAst';
 
 /**
  * Table-sniff guard: a '|' line only opens a table when the next line is a

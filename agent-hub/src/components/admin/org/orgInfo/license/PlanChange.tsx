@@ -88,9 +88,9 @@ export function PlanSummaryCard({ sub, limits, canChangePlan, billing }: PlanSum
     const { showChangePlan, setShowChangePlan, handleManageBilling, portalLoading } = billing;
     return (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
-            <div className="p-5 flex items-center justify-between" style={{ background: 'rgba(59, 130, 246, 0.06)' }}>
+            <div className="p-5 flex items-center justify-between [background:rgba(59,130,246,0.06)]">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#3b82f6' }}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center [background:#3b82f6]">
                         <Zap className="w-6 h-6 text-white" />
                     </div>
                     <div>

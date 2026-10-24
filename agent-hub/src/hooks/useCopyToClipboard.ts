@@ -16,6 +16,7 @@
 // and `copied` stays false so the caller can render an error message.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 
 export interface UseCopyToClipboardOptions {
     /** Milliseconds before `copied` flips back to false. */
@@ -52,10 +53,7 @@ export default function useCopyToClipboard(
                 timerRef.current = setTimeout(() => setCopied(false), resetMs);
                 return true;
             }
-        } catch {
-            // Fall through to manual reset; some browsers reject in non-secure
-            // contexts even though the API exists.
-        }
+        } catch (err) { logger.debug('Fall through to manual reset; some browsers reject in non-secure contexts even though the API exists.', err); }
         return false;
     }, [resetMs]);
 

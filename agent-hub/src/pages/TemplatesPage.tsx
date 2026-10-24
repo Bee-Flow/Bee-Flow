@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useEffectEvent } from 'react';
 import { API_BASE, mutate } from '../api/mutate';
 import { createTemplateActions } from './templates/templateActions';
 import useConfirm from '../components/shared/useConfirm';
@@ -76,7 +76,7 @@ export default function TemplatesPage({ user, onBack }: TemplatesPageProps) {
     const pollDeps = { pollersRef, setParameterizing, setFillTemplate, setEditInstructions, loadTemplates };
 
     // Reset chat when changing template + detect if still processing
-    useEffect(() => {
+    const runFillTemplateEffect = useEffectEvent(() => {
         setChatMessages([]);
         setChatInput('');
         setSelectedNoteIds([]);
@@ -93,7 +93,8 @@ export default function TemplatesPage({ user, onBack }: TemplatesPageProps) {
                 setParameterizing(false);
             }
         }
-    }, [fillTemplate?.id]);
+    });
+    useEffect(() => { return runFillTemplateEffect(); }, [fillTemplate?.id]);
 
     // Auto-generate document when AI outputs a JSON block with parameter values
     useTemplateAutoGenerate(fillTemplate, chatMessages, chatLoading, setChatMessages);

@@ -9,10 +9,10 @@
  * has neither.
  */
 
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { FormEndingView } from './PublicFormRenderer';
 
 const LONG_TEXT = '## Waterstralen\n\n' + 'Een lange alinea over een SEO-blog. '.repeat(20);

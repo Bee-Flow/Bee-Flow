@@ -211,7 +211,7 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
                     when the words are not enough. Showing the reason without a
                     click is the whole point of surfacing failures at all. */}
                 {row.error && (
-                    <div className="mb-1.5 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', color: 'var(--text-primary)' }}>
+                    <div className="mb-1.5 rounded-md px-2 py-1.5 [background:color-mix(in_srgb,var(--warning)_10%,transparent)] [color:var(--text-primary)]">
                         <div>{row.error}</div>
                         {row.hint && <div className="mt-0.5 text-[var(--text-secondary)]">{row.hint}</div>}
                     </div>

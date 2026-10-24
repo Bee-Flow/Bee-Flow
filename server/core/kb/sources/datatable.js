@@ -65,6 +65,7 @@
  *     are rebuilt, never the whole table.
  */
 const log = require('../../../telemetry/log');
+const telemetryLog = require('../../../telemetry/log');
 
 const supportsModes = ['manual', 'schedule', 'live'];
 const defaultMode = 'live';
@@ -147,7 +148,7 @@ async function enumerate(source, ctx, deps) {
     let asker = { orgIds: new Set(), userGroups: [] };
     try {
         asker = await require('../askerContext').askerContext(owner);
-    } catch (_) { /* a failed resolve narrows; see askerContext */ }
+    } catch (err) { telemetryLog.debug('a failed resolve narrows; see askerContext', err); }
 
     // The owner, as the principal every table in this pass is read as — the
     // source's own table and every table its relation columns point at.
@@ -239,7 +240,7 @@ async function enumerate(source, ctx, deps) {
             try {
                 const v = await dtStore.getDataVersion(tableId);
                 if (v !== null && v !== undefined) versions[tableId] = Number(v) || 0;
-            } catch (_) { /* unreadable now; the backstop simply cannot compare it */ }
+            } catch (err) { telemetryLog.debug('unreadable now; the backstop simply cannot compare it', err); }
         }
         ctx.relatedTables = versions;
     } else {

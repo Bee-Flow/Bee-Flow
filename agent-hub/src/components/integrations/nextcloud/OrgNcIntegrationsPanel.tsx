@@ -139,7 +139,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
             </p>
 
             {/* Org-wide toggles */}
-            <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 <div className="flex items-center justify-between mb-3">
                     <div>
                         <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_org_wide', 'Org-wide')}</h3>
@@ -186,7 +186,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
             </section>
 
             {/* Per-group exceptions */}
-            <section className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
                 <div className="mb-3">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_per_group_exceptions', 'Per-group exceptions')}</h3>
                     <p className="text-xs text-[var(--text-muted)]">
@@ -201,7 +201,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
                             const isOpen = expandedGroup === g.id;
                             const disabledCount = (g.disabledIntegrations || []).length;
                             return (
-                                <div key={g.id} className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)' }}>
+                                <div key={g.id} className="rounded-xl overflow-hidden [background:var(--bg-tertiary)] [border:1px_solid_var(--border-subtle)]">
                                     <button
                                         type="button"
                                         onClick={() => setExpandedGroup(isOpen ? null : g.id)}
@@ -213,13 +213,13 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
                                             <Users className="w-3 h-3" /> {g.userCount}
                                         </span>
                                         {disabledCount > 0 && (
-                                            <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706' }}>
+                                            <span className="text-[11px] px-1.5 py-0.5 rounded [background:rgba(245,158,11,0.15)] [color:#d97706]!">
                                                 {t('integ.org_nc_integrations_disabled_count', '{count} disabled', { count: disabledCount })}
                                             </span>
                                         )}
                                     </button>
                                     {isOpen && (
-                                        <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                                        <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 [border-top:1px_solid_var(--border-subtle)]">
                                             {catalog.map((it: NcCatalogItem) => {
                                                 const orgOn = config.enabled.includes(it.id);
                                                 const groupDisabled = (g.disabledIntegrations || []).includes(it.id);

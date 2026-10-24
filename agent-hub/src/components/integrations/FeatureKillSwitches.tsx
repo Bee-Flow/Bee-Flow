@@ -3,6 +3,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface FlagDef {
     key: string;
@@ -63,7 +64,7 @@ export default function FeatureKillSwitches() {
                         return next;
                     });
                 }
-            } catch (e) { /* leave defaults */ }
+            } catch (e) { logger.debug('leave defaults', e); }
             finally { if (alive) setLoading(false); }
         })();
         return () => { alive = false; };

@@ -43,17 +43,12 @@ function LinkAddedCard({ links, t }: LinkAddedCardProps) {
     return (
         <div
             data-testid="webpage-link-added"
-            className="mt-1 ml-1 rounded-md px-2 py-1.5 flex items-start gap-1.5"
-            style={{
-                background: 'color-mix(in srgb, var(--accent-primary) 8%, transparent)',
-                border: '1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)',
-            }}
+            className="mt-1 ml-1 rounded-md px-2 py-1.5 flex items-start gap-1.5 [background:color-mix(in_srgb,var(--accent-primary)_8%,transparent)] [border:1px_solid_color-mix(in_srgb,var(--accent-primary)_30%,transparent)]"
         >
             <Link2 size={11} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" aria-hidden="true" />
             <div className="min-w-0">
                 <div
-                    className="text-[10px] uppercase tracking-wider font-semibold"
-                    style={{ color: 'var(--accent-primary)', opacity: 0.9 }}
+                    className="text-[10px] uppercase tracking-wider font-semibold [color:var(--accent-primary)]! [opacity:0.9]"
                 >
                     {t('webpages.chat.link_added', 'Link added')}
                 </div>

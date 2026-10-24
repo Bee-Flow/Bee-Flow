@@ -36,6 +36,7 @@
 
 'use strict';
 
+const { featureModule } = require('../../featureModules');
 const { HttpError } = require('../../http/errors');
 const { parseRange, cellsIn, fillRange, colName } = require('./sheetRefs');
 const { sheetDigest, rowsBlock, errorList, RANGE_CELL_CHARS } = require('./sheetDigest');
@@ -144,7 +145,7 @@ function makeSheetAssistant(deps = {}) {
     const cellsApi = () => deps.cells || require('../sheetCells');
     const evaluate = (/** @type {Record<string, string>} */ c, /** @type {any} */ options = {}) => (deps.evaluate || require('../../../shared/expr/sheet.mjs').evaluateSheet)(c, options);
     const llm = () => deps.llm || require('../../llm/llmClient');
-    const resolveModel = deps.resolveModel || ((/** @type {any} */ o) => require('../../../projects/chatModel').resolveChatModel(o));
+    const resolveModel = deps.resolveModel || ((/** @type {any} */ o) => featureModule('projects/chatModel').resolveChatModel(o));
     const privacy = deps.privacy || realPrivacy;
     const logUsage = deps.logUsage || (async (row) => require('../../../stores/usageStore').logUsage(row));
 

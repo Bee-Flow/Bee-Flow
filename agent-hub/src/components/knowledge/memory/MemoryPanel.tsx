@@ -63,7 +63,11 @@ export default function MemoryPanel({
     const { items } = memories;
 
     // A selection or an open editor must not point at rows that left the view.
-    useEffect(() => { setSelected(new Set()); setEditingId(null); }, [view, scope, search, type, sort]);
+    const [prevViewDeps, setPrevViewDeps] = useState([view, scope, search, type, sort]);
+    if (prevViewDeps[0] !== view || prevViewDeps[1] !== scope || prevViewDeps[2] !== search || prevViewDeps[3] !== type || prevViewDeps[4] !== sort) {
+        setPrevViewDeps([view, scope, search, type, sort]);
+        setSelected(new Set()); setEditingId(null);
+    }
 
     // A full-page panel moves focus in on open and hands it back on close.
     useEffect(() => {

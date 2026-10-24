@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchRecentMemories, type RecentMemory } from '../api/memoryApi';
+import { logger } from '../utils/logger';
 
 /**
  * After a turn ends, ask the server what it saved: at 2 s, 6 s and 15 s after the
@@ -39,9 +40,7 @@ export default function useRememberedMemories({ conversationId, since, until, en
                 let found: RecentMemory[] = [];
                 try {
                     found = await fetchRecentMemories(conversationId, since, controller.signal);
-                } catch {
-                    // A failed lookup is the same as nothing yet: try the next time.
-                }
+                } catch (err) { logger.debug('A failed lookup is the same as nothing yet: try the next time.', err); }
                 if (cancelled) return;
                 if (found.length > 0) {
                     foundRef.current = true;

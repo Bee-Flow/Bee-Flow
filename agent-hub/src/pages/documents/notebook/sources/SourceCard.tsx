@@ -49,7 +49,11 @@ export default function SourceCard({
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [draft, setDraft] = useState(source.name);
     const inputRef = useRef<HTMLInputElement>(null);
-    useEffect(() => { setDraft(source.name); }, [source.name]);
+    const [prevName, setPrevName] = useState(source.name);
+    if (prevName !== source.name) {
+        setPrevName(source.name);
+        setDraft(source.name);
+    }
     useEffect(() => { if (editing) inputRef.current?.select(); }, [editing]);
 
     // File + url sources retry from stored bytes/URL; text/meeting retry from

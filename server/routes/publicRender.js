@@ -118,7 +118,7 @@ async function siteLocales() {
         extra = (available || [])
             .map(l => String(l.code).toLowerCase())
             .filter(code => code !== defaultLocale && LOCALE_PREFIXES.has(code));
-    } catch (_) { /* a single-locale site is a fine fallback */ }
+    } catch (err) { log.debug('a single-locale site is a fine fallback', err); }
     return { defaultLocale, locales: [defaultLocale, ...extra] };
 }
 

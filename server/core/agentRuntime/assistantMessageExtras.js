@@ -70,7 +70,7 @@ function restoreToolHistoryTokens(toolHistory, conversation, privacy) {
                 }
             }
         }
-    } catch (_) { /* render-layer best-effort */ }
+    } catch (err) { log.debug('render-layer best-effort', err); }
 }
 
 const _capText = (s) => (typeof s === 'string' && s.length > THINKING_BUDGET)
@@ -99,7 +99,7 @@ function persistedThinking(thinkingParts, thinking, conversation, privacy) {
         if (_convMapTHK && Object.keys(_convMapTHK).length > 0) {
             _restoreTH = (s) => (typeof s === 'string' ? restoreTokens(s, _convMapTHK) : s);
         }
-    } catch (_) { /* render-layer best-effort */ }
+    } catch (err) { log.debug('render-layer best-effort', err); }
     if (thinkingParts.length > 0) {
         let budget = THINKING_BUDGET;
         return thinkingParts.map(p => {

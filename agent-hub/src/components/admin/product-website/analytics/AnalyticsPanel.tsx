@@ -187,23 +187,23 @@ export default function AnalyticsPanel() {
     const showControls = !activeSection.rangeless || !activeSection.filterless;
 
     return (
-        <div className="absolute inset-0 overflow-auto" style={{ background: 'var(--bg-primary)' }}>
+        <div className="absolute inset-0 overflow-auto [background:var(--bg-primary)]">
             <AnalyticsStyles />
             <div style={{ maxWidth: activeSectionWidth(section), margin: '0 auto', padding: '24px 28px' }}>
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="[display:flex] [align-items:center] [justify-content:space-between] [flex-wrap:wrap] [gap:12px] [margin-bottom:14px]">
+                    <div className="[display:flex] [align-items:center] [gap:10px]">
                         <div style={{ width: 34, height: 34, borderRadius: 9, background: `${ACCENT}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <BarChart3 style={{ width: 18, height: 18, color: ACCENT }} />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #fff)', margin: 0 }}>{t('cms_site.analytics.panel.title', 'Website Analytics')}</h2>
-                            <p style={{ fontSize: 12, color: 'var(--text-muted, #888)', margin: 0 }}>
+                            <h2 className="[font-size:18px] [font-weight:800] [color:var(--text-primary,#fff)] [margin:0]">{t('cms_site.analytics.panel.title', 'Website Analytics')}</h2>
+                            <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0]">
                                 {t('cms_site.analytics.panel.subtitle', 'Self-hosted, privacy-first usage tracking for your published site')}
                             </p>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="[display:flex] [align-items:center] [gap:8px]">
                         {trackedSites.length > 1 && (
                             <select value={siteId} onChange={(e) => setSiteId(e.target.value)} style={selectStyle}>
                                 {trackedSites.map(s => (
@@ -220,16 +220,16 @@ export default function AnalyticsPanel() {
                     </div>
                 </div>
 
-                {error && <div style={{ marginBottom: 14 }}><ErrorNote message={error} onRetry={loadShell} /></div>}
+                {error && <div className="[margin-bottom:14px]"><ErrorNote message={error} onRetry={loadShell} /></div>}
 
                 {!provisioned ? (
-                    <div style={{ marginTop: 40, textAlign: 'center', color: 'var(--text-muted, #888)', fontSize: 13 }}>
+                    <div className="[margin-top:40px] [text-align:center] [color:var(--text-muted,#888)] [font-size:13px]">
                         {t('cms_site.analytics.panel.no_site', 'No tracked site yet. Publish a CMS site (with analytics enabled) to start collecting visitor data.')}
                     </div>
                 ) : (
                     <>
                         {/* Section nav */}
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 12, borderBottom: '1px solid var(--border-subtle, rgba(255,255,255,0.08))', paddingBottom: 8 }}>
+                        <div className="[display:flex] [gap:4px] [flex-wrap:wrap] [margin-bottom:12px] [border-bottom:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [padding-bottom:8px]">
                             {SECTIONS.map(s => {
                                 const active = s.id === section;
                                 const Icon = s.icon;
@@ -258,7 +258,7 @@ export default function AnalyticsPanel() {
                             honours neither — a control that changes nothing is
                             worse than no control. */}
                         {showControls && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                        <div className="[display:flex] [align-items:center] [gap:10px] [flex-wrap:wrap] [margin-bottom:14px]">
                             {!activeSection.rangeless && <RangeControl range={range} onChange={setRange} />}
                             {!activeSection.filterless && Object.entries(filters).map(([k, v]) => (
                                 <span key={k} style={{

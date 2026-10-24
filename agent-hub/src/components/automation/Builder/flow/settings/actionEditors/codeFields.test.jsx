@@ -1,5 +1,5 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React, { useEffect, useRef } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 

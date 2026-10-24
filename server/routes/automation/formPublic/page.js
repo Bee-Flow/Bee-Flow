@@ -19,6 +19,7 @@ const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./acc
 const { ipLimiter, tokenLimiter, uploadLimiter, pickLimiter, contentLengthGuard } = require('./limits');
 const { pickCaller, declaredPickField } = require('./picks');
 const { friendly } = require('./friendly');
+const log = require('../../../telemetry/log');
 
 // Per-form upload quota inside a rolling window. There is no user to bill, so
 // the form itself carries the budget.
@@ -110,7 +111,7 @@ async function uploadFile(req, res) {
     if (!scan.clean) {
         // Quarantine: delete the bytes and never write the ledger row, so
         // an unscanned blob can never be claimed by a submission.
-        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort */ }
+        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort', err); }
         return res.status(422).json({ error: 'That file failed a malware scan' });
     }
 

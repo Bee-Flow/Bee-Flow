@@ -90,13 +90,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
             onClick={() => setOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={open}
-            className="flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm font-medium min-w-0"
-            style={{
-                borderColor: 'var(--border-default)',
-                color: 'var(--text-primary)',
-                background: 'var(--bg-primary)',
-                borderRadius: 'var(--app-radius)',
-            }}
+            className="flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm font-medium min-w-0 [border-color:var(--border-default)] [color:var(--text-primary)]! [background:var(--bg-primary)] [border-radius:var(--app-radius)]!"
         >
             <Menu className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span className="truncate">{activeScreen?.name || 'Menu'}</span>
@@ -115,8 +109,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
         >
             <div>
                 <div
-                    className="mx-auto mt-2 mb-1 h-1 w-9 rounded-full"
-                    style={{ background: 'var(--border-default)' }}
+                    className="mx-auto mt-2 mb-1 h-1 w-9 rounded-full [background:var(--border-default)]"
                     aria-hidden="true"
                 />
                 <div className="flex flex-col gap-0.5 px-1 pt-1">
@@ -143,8 +136,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
         const hasNav = model.flat.length > 1;
         return (
             <div
-                className="sm:hidden flex items-center gap-3 border-b px-4 shrink-0"
-                style={{ borderColor: 'var(--border-default)', background: 'var(--bg-card)' }}
+                className="sm:hidden flex items-center gap-3 border-b px-4 shrink-0 [border-color:var(--border-default)]! [background:var(--bg-card)]"
             >
                 {brand}
                 {hasNav ? <div className="ml-auto py-1.5">{trigger}</div> : null}

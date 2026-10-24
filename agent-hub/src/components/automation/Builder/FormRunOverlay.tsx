@@ -6,6 +6,7 @@ import apiClient from '../../../api/client';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import type { FormDef, FormFieldDef } from '../../forms/PublicFormRenderer.types';
+import { logger } from '../../../utils/logger';
 
 function headerTitle(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, attached: boolean, hasStep: boolean) {
     if (attached) return t('automations.form_run_overlay.live_run_title', 'Live run — this page is waiting for you');
@@ -108,9 +109,7 @@ export default function FormRunOverlay({
             let state: RunFormState | null = null;
             try {
                 state = await apiClient.get<RunFormState>(`/api/automation/runs/${encodeURIComponent(String(id))}/form`);
-            } catch (_) {
-                // A transient read must not end the test; the next tick retries.
-            }
+            } catch (err) { logger.debug('A transient read must not end the test; the next tick retries.', err); }
             if (closedRef.current) return;
             if (state?.waiting && state.form) {
                 setRunId(state.runId || id);

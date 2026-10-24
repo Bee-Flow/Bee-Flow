@@ -56,7 +56,7 @@ async function loadUserTools(req, userId) {
         for (const t of userToolDefs) {
             if (t?.function?.name) userToolNames.add(t.function.name);
         }
-    } catch (_) { /* user might not be fully set up */ }
+    } catch (err) { log.debug('user might not be fully set up', err); }
     return { userToolNames, userToolDefs };
 }
 
@@ -72,7 +72,7 @@ async function isWebpagesAvailable(req, userId) {
     try {
         const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
         webpagesAvailable = await userHasBetaFeature(userId, 'webpages', req.session);
-    } catch (_) { /* default false */ }
+    } catch (err) { log.debug('default false', err); }
     return webpagesAvailable;
 }
 

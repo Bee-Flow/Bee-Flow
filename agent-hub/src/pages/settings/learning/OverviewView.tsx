@@ -76,7 +76,7 @@ export default function OverviewView({
         : (columns.some((c) => colKey(c) === pickedCol) ? pickedCol : null);
 
     return (
-        <div className="flex flex-col gap-6" style={{ padding: 28, fontSize: 13, color: 'var(--text-primary)' }}>
+        <div className="flex flex-col gap-6 [padding:28px] [font-size:13px] [color:var(--text-primary)]">
             <ContinueHero t={t} target={continueTarget} reviewDue={reviewDue} reviewBuilding={reviewBuilding}
                 onStartLesson={onStartLesson} onStartReview={onStartReview} />
 
@@ -89,8 +89,7 @@ export default function OverviewView({
                         <Card key={colKey(col)} className="overflow-hidden" data-testid="curriculum-column">
                             <button type="button" onClick={() => setPickedCol(expanded ? '_none_' : colKey(col))}
                                 aria-expanded={expanded} data-testid="curriculum-tile"
-                                className="w-full flex items-center gap-3 text-left transition hover:bg-[var(--bg-secondary)]"
-                                style={{ padding: '14px' }}>
+                                className="w-full flex items-center gap-3 text-left transition hover:bg-[var(--bg-secondary)] [padding:14px]">
                                 <EmojiTile icon={pathDef?.icon || '📚'} size={44} />
                                 <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
                                     <span className="font-semibold truncate">
@@ -115,7 +114,7 @@ export default function OverviewView({
                                     lockedReason={lockedReasonFor(course)} onOpen={() => onOpenCourse(course.id)} />
                             ))}
                             {expanded && !col.courses.length && (
-                                <div className="text-[11px]" style={{ padding: '12px 14px', borderTop: '1px solid var(--border-default)', color: 'var(--text-tertiary)' }}>
+                                <div className="text-[11px] [padding:12px_14px] [border-top:1px_solid_var(--border-default)] [color:var(--text-tertiary)]!">
                                     {t('learn.curriculum.no_courses', 'No courses on this path yet.')}
                                 </div>
                             )}
@@ -292,11 +291,7 @@ function CapstoneRow({ t, user, hasFeature, course, isComplete, locked, lockedRe
     return (
         <button type="button" onClick={onOpen} data-testid="capstone-station"
             aria-label={locked ? `${title} — ${lockedReason}` : title}
-            className="w-full flex items-center gap-2.5 text-left rounded-xl transition hover:bg-[var(--bg-secondary)]"
-            style={{
-                padding: '12px 14px', color: 'var(--text-tertiary)',
-                background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)',
-            }}>
+            className="w-full flex items-center gap-2.5 text-left rounded-xl transition hover:bg-[var(--bg-secondary)] [padding:12px_14px] [color:var(--text-tertiary)]! [background:var(--bg-card)]! [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]">
                 <Crown style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden="true" />
                 <span className="font-medium flex-shrink-0 text-[var(--text-primary)]">{title}</span>
                 <span className="text-[12px] truncate">{t('learn.capstone.short', 'No lessons — prove it in your own workspace.')}</span>

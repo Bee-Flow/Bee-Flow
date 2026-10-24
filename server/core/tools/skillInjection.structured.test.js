@@ -15,11 +15,12 @@
  *
  * DB-free: stores/skillStore and stores/skillActivations are stubbed via
  * require.cache BEFORE skillInjection is required (the pattern of
- * skillInjection.test.js) — and so are the automation store and runner.
+ * skillInjection.test.js) — and so is the automation store; the runner's
+ * executeAutomation is a fake registered on tools/automationExecutorPort.js.
  *
  * ── WHY THE AUTOMATION STUBS ARE NOT OPTIONAL ───────────────────────
  * `executeActivateSkill` requires `stores/automationStore` and
- * `core/automationRunner` LAZILY but UNCONDITIONALLY (skillInjection.js, in
+ * the executor port LAZILY but UNCONDITIONALLY (skillInjection.js, in
  * the block above the per-skill render), for every activation — including
  * the ones here, whose skills link no automation at all. That require chain
  * drags in the notification store and the config store, whose LISTEN/NOTIFY
@@ -59,9 +60,9 @@ let linkedRuns = null;     // set by a test that links an automation: its execut
 mock('../../stores/automationStore', {
     getAutomation: async (id) => { if (!linkedRuns) throw new Error('no skill here links an automation'); return { id, title: 'Linked' }; },
 });
-mock('../automationRunner', {
-    executeAutomation: async (automation, o) => { if (!linkedRuns) throw new Error('no skill here links an automation'); linkedRuns.push(o); return { id: 'r1', status: 'success' }; },
-});
+require('./automationExecutorPort').setAutomationExecutor(
+    async (automation, o) => { if (!linkedRuns) throw new Error('no skill here links an automation'); linkedRuns.push(o); return { id: 'r1', status: 'success' }; },
+);
 
 const {
     buildSkillInjection,
@@ -259,7 +260,6 @@ test('no real automation runtime or config store was ever loaded', () => {
     // moment a real one is back in the process.
     const stubs = new Map([
         [require.resolve('../../stores/automationStore'), 'getAutomation'],
-        [require.resolve('../automationRunner'), 'executeAutomation'],
     ]);
     for (const [file, fn] of stubs) {
         const entry = require.cache[file];

@@ -111,7 +111,7 @@ function reauthError(message) {
 async function throwRefreshFailed(label, res) {
     const txt = await res.text().catch(() => '');
     let oauthError = null;
-    try { oauthError = JSON.parse(txt)?.error || null; } catch (_) { /* non-JSON body */ }
+    try { oauthError = JSON.parse(txt)?.error || null; } catch (err) { log.debug('non-JSON body', err); }
     const message = `${label} refresh failed (${res.status}): ${txt.slice(0, 200)}`;
     if (FATAL_OAUTH_ERRORS.has(oauthError)) throw reauthError(message);
     throw new Error(message);

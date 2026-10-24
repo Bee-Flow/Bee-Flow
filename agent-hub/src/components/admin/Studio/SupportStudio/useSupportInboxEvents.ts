@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { API_BASE, isDemoMode } from '../../../../utils/helpers';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Subscribe to /api/support-inbox/stream (SSE). Calls onEvent(type, data) for
@@ -20,7 +21,7 @@ export default function useSupportInboxEvents(onEvent?: ((type: string, data: un
             es = new EventSource(`${API_BASE}/api/support-inbox/stream`, { withCredentials: true });
         } catch (_) { return undefined; }
         const handle = (e: MessageEvent<string>) => {
-            try { onEvent?.(e.type, JSON.parse(e.data)); } catch (_) { /* ignore */ }
+            try { onEvent?.(e.type, JSON.parse(e.data)); } catch (err) { logger.debug('ignore', err); }
         };
         es.addEventListener('thread_created', handle);
         es.addEventListener('thread_updated', handle);
@@ -28,6 +29,6 @@ export default function useSupportInboxEvents(onEvent?: ((type: string, data: un
         es.addEventListener('scan_done', handle);
         // EventSource auto-reconnects on transient errors; nothing to do here.
         es.onerror = () => {};
-        return () => { try { es.close(); } catch (_) {} };
+        return () => { try { es.close(); } catch (err) { logger.debug('event stream already closed', err); } };
     }, [onEvent]);
 }

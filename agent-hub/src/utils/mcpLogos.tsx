@@ -97,7 +97,11 @@ export function McpLogo({ server, size = 32, className = '' }: McpLogoProps) {
     const [idx, setIdx] = useState(0);
 
     // Reset to the best candidate whenever the underlying server changes.
-    useEffect(() => { setIdx(0); }, [server?.id, server?.name, server?.icon, server?.logo, server?.iconUrl, server?.repository]);
+    const [prevIdDeps, setPrevIdDeps] = useState([server?.id, server?.name, server?.icon, server?.logo, server?.iconUrl, server?.repository]);
+    if (prevIdDeps[0] !== server?.id || prevIdDeps[1] !== server?.name || prevIdDeps[2] !== server?.icon || prevIdDeps[3] !== server?.logo || prevIdDeps[4] !== server?.iconUrl || prevIdDeps[5] !== server?.repository) {
+        setPrevIdDeps([server?.id, server?.name, server?.icon, server?.logo, server?.iconUrl, server?.repository]);
+        setIdx(0);
+    }
 
     const cand = candidates[Math.min(idx, candidates.length - 1)] || { kind: 'letter', char: '?', color: '#64748b' };
 

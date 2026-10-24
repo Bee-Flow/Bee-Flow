@@ -96,7 +96,7 @@ function _decodeAuditCursor(cursor) {
     try {
         const obj = JSON.parse(Buffer.from(String(cursor), 'base64').toString('utf8'));
         if (obj && obj.t && obj.id) return obj;
-    } catch { /* ignore malformed cursor */ }
+    } catch (err) { log.debug('ignore malformed cursor', err); }
     return null;
 }
 function _encodeAuditCursor(row) {

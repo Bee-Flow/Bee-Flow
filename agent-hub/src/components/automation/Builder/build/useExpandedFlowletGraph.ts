@@ -99,7 +99,7 @@ export default function useExpandedFlowletGraph({
         if (!inlineFlowlets.expanded.has(stepId)) inlineFlowlets.toggle(stepId, null, inlineSidecar);
         closeNdv?.();
         diagramRef.current?.focusStep?.(stepId);
-    }, [inlineFlowlets, inlineSidecar, closeNdv]);
+    }, [inlineFlowlets, inlineSidecar, closeNdv, diagramRef]);
 
     /**
      * The one write path for canvas edits. Splits the edited flat graph back

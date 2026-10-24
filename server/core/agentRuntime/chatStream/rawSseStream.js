@@ -101,9 +101,7 @@ async function streamRawSseRound({
             let verdict;
             try {
                 verdict = applySseFrame(JSON.parse(data), rs, { splitter: sseThinkSplitter, onEvent });
-            } catch (e) {
-                // Skip parse errors
-            }
+            } catch (e) { log.debug('Skip parse errors', e); }
             if (verdict === 'break') break;
         }
     }

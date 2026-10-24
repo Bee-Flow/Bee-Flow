@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { DraftStatusMap } from '../../../hooks/useDraftAction';
 import useTranslation from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 interface EmailDraft {
     to?: string;
@@ -43,7 +44,7 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
                 try {
                     const err = await res.json();
                     errorMsg = err.error || errorMsg;
-                } catch (_) {}
+                } catch (err) { logger.debug('error body is not JSON, keep the HTTP status', err); }
                 setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${errorMsg}` }));
             }
         } catch (err) {
@@ -68,7 +69,7 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
                 try {
                     const err = await res.json();
                     errorMsg = err.error || errorMsg;
-                } catch (_) {}
+                } catch (err) { logger.debug('error body is not JSON, keep the HTTP status', err); }
                 setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: `failed: ${errorMsg}` }));
             }
         } catch (err) {

@@ -1,6 +1,6 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ReactFlowProvider } from '@xyflow/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import StepNodeBase from './StepNodeBase';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 

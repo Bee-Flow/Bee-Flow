@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { buildPatch } from './settings/formState';

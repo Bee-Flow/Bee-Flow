@@ -185,8 +185,7 @@ function AssignmentCard({ item, agents, t }: { item: CoworkItem; agents?: Cowork
 
     return (
         <section
-            className="rounded-[10px] border px-[18px] py-4 flex flex-col gap-2.5"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', boxShadow: 'var(--shadow-sm)' }}
+            className="rounded-[10px] border px-[18px] py-4 flex flex-col gap-2.5 [background:var(--bg-card)] [border-color:var(--border-subtle)] [box-shadow:var(--shadow-sm)]"
             data-testid="cowork-brief"
         >
             <h3

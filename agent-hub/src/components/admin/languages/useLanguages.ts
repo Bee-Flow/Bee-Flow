@@ -77,7 +77,7 @@ export default function useLanguages(): LanguagesState {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [t]);
 
     useEffect(() => { fetchLocales(); }, [fetchLocales]);
 

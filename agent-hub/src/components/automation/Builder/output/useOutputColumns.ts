@@ -3,6 +3,7 @@ import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslati
 import { getJSON, setJSON } from '../../../../utils/scopedStorage';
 import { EMPTY_PREFS, keptChoice, suggestColumns, type ColumnPrefs, type OutputColumn } from './columns';
 import { columnsOf } from './perItem';
+import { logger } from '../../../../utils/logger';
 
 /** How many columns the drawer's narrow table suggests; the large view takes 7. */
 const NARROW_MAX = 4;
@@ -71,7 +72,7 @@ export default function useOutputColumns(
     const commit = useCallback((next: ColumnPrefs) => {
         setPrefs(next);
         if (storageKey) {
-            try { setJSON(storageKeyFor(storageKey), next); } catch { /* storage blocked: keep it for this session */ }
+            try { setJSON(storageKeyFor(storageKey), next); } catch (err) { logger.debug('storage blocked: keep it for this session', err); }
         }
     }, [storageKey]);
 

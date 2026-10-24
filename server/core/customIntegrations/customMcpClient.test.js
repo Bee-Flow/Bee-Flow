@@ -7,6 +7,7 @@
  * valueTemplate rendering, pool-key shape, scrubbing, result capping).
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const assert = require('assert');
 const {
     normalizeAndFilterTools,

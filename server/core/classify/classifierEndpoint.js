@@ -13,6 +13,8 @@
  * module, and an automation without an "is about" rule must never pay for it.
  */
 
+const log = require('../../telemetry/log');
+
 const ENDPOINT_CACHE_TTL_MS = 10_000;
 
 /** @type {{ url: string|null, apiKey: string } | null} */
@@ -38,7 +40,7 @@ async function getClassifierEndpoint({ store, env = process.env } = {}) {
             url = (await s.getConfig('automation_classifier_url')) || null;
             if (url) apiKey = (await s.getSecret('automation_classifier_api_key')) || '';
         }
-    } catch { /* fall through to env */ }
+    } catch (err) { log.debug('fall through to env', err); }
     if (!url) {
         url = env.CLASSIFY_SERVICE_URL || null;
         apiKey = env.CLASSIFY_SERVICE_API_KEY || env.SERVICES_API_KEY || '';

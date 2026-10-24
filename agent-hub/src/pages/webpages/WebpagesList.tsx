@@ -129,8 +129,7 @@ export default function WebpagesList({
 
             {error && (
                 <div
-                    className="shrink-0 px-4 py-2 text-xs flex items-center gap-2"
-                    style={{ background: 'color-mix(in srgb, var(--error) 12%, transparent)', color: 'var(--error-ink)' }}
+                    className="shrink-0 px-4 py-2 text-xs flex items-center gap-2 [background:color-mix(in_srgb,var(--error)_12%,transparent)] [color:var(--error-ink)]!"
                     role="alert"
                 >
                     <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" /> {error}
@@ -140,8 +139,8 @@ export default function WebpagesList({
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar" style={{ padding: '24px 28px' }}>
-                <div className="flex flex-col" style={{ gap: 18 }}>
+            <div className="flex-1 overflow-y-auto custom-scrollbar [padding:24px_28px]">
+                <div className="flex flex-col [gap:18px]">
                     <div className="flex flex-col gap-2">
                         <BuildBar
                             prompt={prompt}
@@ -170,7 +169,7 @@ export default function WebpagesList({
                     ) : search.trim() && filtered.length === 0 ? (
                         <EmptySearch t={t} />
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: 14 }}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 [gap:14px]">
                             {filtered.map((w: WebpageCardData) => (
                                 <WebpageCard
                                     key={w.id}
@@ -203,11 +202,7 @@ function SearchField({ t, value, onChange }: SearchFieldProps) {
     const label = t('webpages.search', 'Search…');
     return (
         <div
-            className="flex items-center gap-2 text-xs"
-            style={{
-                width: 220, padding: '6px 10px', borderRadius: 8,
-                border: '1px solid var(--border-default)', background: 'var(--bg-card)',
-            }}
+            className="flex items-center gap-2 text-xs w-[220px] [padding:6px_10px] [border-radius:8px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]"
         >
             <Search className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
@@ -216,8 +211,7 @@ function SearchField({ t, value, onChange }: SearchFieldProps) {
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={label}
                 aria-label={label}
-                className="min-w-0 flex-1 bg-transparent outline-none"
-                style={{ color: 'var(--text-primary)' }}
+                className="min-w-0 flex-1 bg-transparent outline-none [color:var(--text-primary)]"
             />
         </div>
     );
@@ -230,8 +224,7 @@ function AllOptions({ t, open, onToggle, newName, onNewNameChange, creating, onC
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                className="inline-flex items-center gap-1 text-[11px] transition-colors hover:text-[var(--text-primary)]"
-                style={{ color: 'var(--text-tertiary)' }}
+                className="inline-flex items-center gap-1 text-[11px] transition-colors hover:text-[var(--text-primary)] [color:var(--text-tertiary)]!"
             >
                 <ChevronDown size={12} aria-hidden="true" className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
                 {t('webpages.all_options', 'All options')}
@@ -244,8 +237,7 @@ function AllOptions({ t, open, onToggle, newName, onNewNameChange, creating, onC
                         value={newName}
                         onChange={(e) => onNewNameChange(e.target.value)}
                         disabled={creating}
-                        className="flex-1 min-w-0 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                        style={{ borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                        className="flex-1 min-w-0 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--accent-primary)] [border-radius:8px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!"
                     />
                     <button
                         type="submit"
@@ -272,12 +264,7 @@ function ExampleCard({ t, onPick }: ExampleCardProps) {
     return (
         <div
             data-testid="webpages-examples"
-            className="flex flex-col items-center justify-center text-center"
-            style={{
-                borderRadius: 12,
-                border: '1px dashed var(--border-default)',
-                gap: 8, padding: 24, color: 'var(--text-secondary)',
-            }}
+            className="flex flex-col items-center justify-center text-center [border-radius:12px] [border:1px_dashed_var(--border-default)] [gap:8px] [padding:24px] [color:var(--text-secondary)]!"
         >
             <LayoutTemplate size={22} aria-hidden="true" className="text-[var(--text-tertiary)]" />
             <div className="font-semibold text-[var(--text-primary)]">

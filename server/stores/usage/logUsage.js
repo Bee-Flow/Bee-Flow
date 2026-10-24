@@ -170,7 +170,7 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
                     completionTokens,
                     costUsd,
                 });
-            } catch (_) { /* telemetry is best-effort */ }
+            } catch (err) { log.debug('telemetry is best-effort', err); }
 
             // Resolve PAYG target up front (cached, <1ms after warmup) so we can
             // persist the marked-up `billed_cost` alongside the raw cost in a
@@ -322,7 +322,7 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
                         setImmediate(() => {
                             try {
                                 _paygDrain().drainOne(identifier).catch(() => {});
-                            } catch (_) { /* drain not yet loaded */ }
+                            } catch (err) { log.debug('drain not yet loaded', err); }
                         });
                     }
                 }

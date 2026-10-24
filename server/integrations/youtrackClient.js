@@ -99,7 +99,7 @@ async function ping({ userId = null } = {}) {
     if (!creds) return { configured: false, ok: false, host: null };
 
     let host = null;
-    try { host = new URL(creds.baseUrl).host; } catch (_) { /* malformed URL: reported as not-ok below */ }
+    try { host = new URL(creds.baseUrl).host; } catch (err) { log.debug('malformed URL: reported as not-ok below', err); }
 
     try {
         const projects = await listProjects(creds, { limit: 100 });

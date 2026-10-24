@@ -1,6 +1,6 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('@xyflow/react', () => ({
     Handle: (props) => <div data-testid={`handle-${props.type}`} />,

@@ -21,8 +21,7 @@ function PublishedBadge() {
     const { t } = useTranslation();
     return (
         <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-            style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}
+            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold [background:rgba(16,185,129,0.12)] [color:#059669]!"
         >
             {t('studio_apps_bi.list.published', 'Published')}
         </span>
@@ -40,8 +39,7 @@ function StoragePill({ ratio }: { ratio?: number }) {
     const pct = Math.min(100, Math.round(ratio * 100));
     return (
         <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-            style={{ background: 'rgba(245, 158, 11, 0.14)', color: '#b45309' }}
+            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold [background:rgba(245,158,11,0.14)] [color:#b45309]!"
             title={t('studio_apps_bi.list.storage_title', 'Storage {pct}% of the app\'s database limit', { pct })}
         >
             {t('studio_apps_bi.list.storage', 'Storage {pct}%', { pct })}
@@ -69,8 +67,7 @@ function TemplateUpdatePill({ app, onUpgrade }: CardBodyProps) {
             type="button"
             onClick={(e) => { e.stopPropagation(); onUpgrade(app); }}
             onKeyDown={(e) => e.stopPropagation()}
-            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#2563eb' }}
+            className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold transition-opacity hover:opacity-80 [background:rgba(59,130,246,0.12)] [color:#2563eb]!"
             title={t('studio_apps_bi.list.update_title', 'New template version available (v{from} → v{to})', { from: fromVersion, to: toVersion })}
         >
             {t('studio_apps_bi.list.update_available', 'Update available')}

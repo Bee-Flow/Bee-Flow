@@ -142,7 +142,7 @@ export function SettingsSidebar({
                             groups (ORG_NAV_GROUPS) with a thin rule
                             between them. */}
                         {orgExpanded && (
-                            <div id="settings-org-subnav" className="space-y-px overflow-hidden" style={{ animation: 'fadeIn 120ms ease' }}>
+                            <div id="settings-org-subnav" className="space-y-px overflow-hidden [animation:fadeIn_120ms_ease]">
                                 {orgNavGroups.map((group, gi) => (
                                     <React.Fragment key={group[0].id}>
                                         {gi > 0 && <NavDivider inset />}
@@ -185,12 +185,12 @@ export function SettingsSidebar({
             </div>
 
             {/* Footer — product name + build version (commit SHA is unique per CI deploy). */}
-            <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+            <div className="px-4 py-3 flex-shrink-0 [border-top:1px_solid_var(--border-subtle)]">
                 <p
                     className="text-[10px] text-[var(--text-muted)]"
                     title={formatVersionWithDate()}
                 >
-                    Bee Flow <span style={{ opacity: 0.7 }}>{formatVersion()}</span>
+                    Bee Flow <span className="[opacity:0.7]">{formatVersion()}</span>
                 </p>
             </div>
         </div>

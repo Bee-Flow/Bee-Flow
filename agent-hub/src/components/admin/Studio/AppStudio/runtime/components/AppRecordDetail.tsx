@@ -51,8 +51,7 @@ export function FieldValue({ value, format }: FieldValueProps) {
         case 'badge':
             return (
                 <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium [background:var(--bg-tertiary)] [color:var(--text-secondary)]!"
                 >
                     {displayValue(value)}
                 </span>
@@ -62,7 +61,7 @@ export function FieldValue({ value, format }: FieldValueProps) {
             return (
                 <a
                     href={String(value)} target="_blank" rel="noopener noreferrer"
-                    className="underline underline-offset-2" style={{ color: 'var(--app-primary)' }}
+                    className="underline underline-offset-2 [color:var(--app-primary)]"
                 >
                     {displayValue(value)}
                 </a>
@@ -139,8 +138,7 @@ export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) 
     const heading = (name: string) => (
         <div
             key={`grp-${name}`}
-            className="text-[11px] font-semibold uppercase tracking-wide pt-2 first:pt-0"
-            style={{ color: 'var(--text-muted)', gridColumn: '1 / -1' }}
+            className="text-[11px] font-semibold uppercase tracking-wide pt-2 first:pt-0 [color:var(--text-muted)]! [grid-column:1_/_-1]"
             data-app-recorddetail-group={name}
         >
             {name}

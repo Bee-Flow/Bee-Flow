@@ -66,7 +66,7 @@ export default function AchievementsView({
     const lessonsDone = levelInfo?.lessonsDone || 0;
 
     return (
-        <div className="flex flex-col gap-4" style={{ padding: '22px 28px', fontSize: 13, color: 'var(--text-primary)' }} data-testid="achievements-view">
+        <div className="flex flex-col gap-4 [padding:22px_28px] [font-size:13px] [color:var(--text-primary)]" data-testid="achievements-view">
             {/* Level card */}
             <Card className="grid items-center gap-7" style={{ padding: '16px 18px', gridTemplateColumns: 'auto minmax(0,1fr) auto' }}>
                 <div className="flex items-center gap-3">
@@ -94,17 +94,17 @@ export default function AchievementsView({
                 </div>
             </Card>
 
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'minmax(0,1fr) 400px' }}>
+            <div className="grid gap-4 [grid-template-columns:minmax(0,1fr)_400px]">
                 {/* Badges table */}
                 <Card className="overflow-hidden flex flex-col text-[12px]">
-                    <div className="flex items-center gap-2" style={{ padding: '12px 14px' }}>
+                    <div className="flex items-center gap-2 [padding:12px_14px]">
                         <Medal style={{ width: 15, height: 15, color: 'var(--text-secondary)' }} aria-hidden="true" />
                         <span className="font-semibold">{t('learn.achievements.badges_title', 'Badges')}</span>
                         <span className="text-[11px] text-[var(--text-tertiary)]">
                             {t('learn.achievements.badges_sub', 'one per course · {a} of {b}').replace('{a}', String(earnedCount)).replace('{b}', String(ordered.length))}
                         </span>
                     </div>
-                    <div className="grid gap-3 uppercase font-semibold" style={{ gridTemplateColumns: '32px minmax(0,1fr) 170px 180px', padding: '6px 14px', borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)', fontSize: 10, letterSpacing: '.08em', color: 'var(--text-tertiary)' }}>
+                    <div className="grid gap-3 uppercase font-semibold [grid-template-columns:32px_minmax(0,1fr)_170px_180px] [padding:6px_14px] [border-top:1px_solid_var(--border-default)] [border-bottom:1px_solid_var(--border-default)] [font-size:10px] [letter-spacing:.08em] [color:var(--text-tertiary)]">
                         <span /><span>{t('learn.achievements.col_badge', 'Badge')}</span><span>{t('learn.achievements.col_course', 'Course')}</span><span>{t('learn.achievements.col_status', 'Status')}</span>
                     </div>
                     {ordered.map((course, i) => {
@@ -199,10 +199,10 @@ function LevelLine({ t, xp, current }: LevelLineProps) {
                 const last = i === LEVELS.length - 1;
                 return (
                     <div key={lv.key} className="flex flex-col gap-1.5 min-w-0">
-                        <div className="flex items-center" style={{ height: 10 }}>
+                        <div className="flex items-center h-[10px]">
                             <span className="rounded-full flex-shrink-0" style={{ width: 10, height: 10, background: reached ? 'var(--accent-primary)' : 'var(--bg-tertiary)', boxShadow: isCurrent ? '0 0 0 3px color-mix(in srgb, var(--accent-primary) 25%, transparent)' : 'none' }} />
                             {!last && (
-                                <span className="flex-1 flex overflow-hidden" style={{ height: 4, background: 'var(--bg-tertiary)' }}>
+                                <span className="flex-1 flex overflow-hidden h-[4px] [background:var(--bg-tertiary)]">
                                     <span style={{ width: `${Math.round(fillPct * 100)}%`, height: '100%', background: 'var(--accent-primary)' }} />
                                 </span>
                             )}
@@ -235,7 +235,7 @@ function Counter({ value, label, color, valueColor }: CounterProps) {
         </div>
     );
 }
-function Divider() { return <div style={{ width: 1, background: 'var(--border-default)' }} />; }
+function Divider() { return <div className="w-[1px] [background:var(--border-default)]" />; }
 
 interface BadgeStatusProps {
     t: TFn;

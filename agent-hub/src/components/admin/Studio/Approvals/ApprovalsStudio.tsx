@@ -6,6 +6,7 @@ import useApprovals from './useApprovals';
 import type { ApprovalListRow } from './useApprovals';
 import useTranslation from '../../../../hooks/useTranslation';
 import { RequireTier } from '../../../licensing/LicenseContext';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The Approvals section: every request waiting on a person, and the durable
@@ -71,13 +72,13 @@ function ApprovalsStudioInner({ user = null, initialApprovalId = null }: Approva
         setOpenId(id);
         try {
             window.history.pushState({}, '', `/app/studio/approvals/${id}`);
-        } catch { /* history not writable (tests) — the panel still opens */ }
+        } catch (err) { logger.debug('history not writable (tests) — the panel still opens', err); }
     }, []);
     const closeApproval = useCallback(() => {
         setOpenId(null);
         try {
             window.history.pushState({}, '', '/app/studio/approvals');
-        } catch { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
         reload();
     }, [reload]);
 
@@ -99,8 +100,7 @@ function ApprovalsStudioInner({ user = null, initialApprovalId = null }: Approva
             <MobileEscapeHatch />
             <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <h1
-                    className="text-[var(--text-primary)]"
-                    style={{ fontSize: 'clamp(20px, 3.2vw, 26px)', fontWeight: 600, letterSpacing: '-0.02em' }}
+                    className="text-[var(--text-primary)] [font-size:clamp(20px,3.2vw,26px)]! [font-weight:600] [letter-spacing:-0.02em]"
                 >
                     {t('approvals.title', 'Approvals')}
                 </h1>

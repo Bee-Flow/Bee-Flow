@@ -5,6 +5,7 @@ import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
 import type { AppUserLike } from '../../../../projects/workspace/types';
 import useAutomationApi from '../../../../../hooks/useAutomationApi';
 import BuilderShell from '../../../../automation/Builder/BuilderShell';
+import { logger } from '../../../../../utils/logger';
 
 /**
  * Phase 2 — the automation builder, unchanged, mounted as the stage. The page
@@ -178,7 +179,7 @@ export default function AutomationStage({ playbook, phase, dispatch, user, t, fo
                 title = a?.title || null;
                 const steps = Array.isArray(a?.definition?.steps) ? a.definition.steps.length : (Array.isArray(a?.steps) ? a.steps.length : null);
                 summary = t('playbooks.automation.summary', 'Automation "{title}" ready{steps}', { title: title || '', steps: Number.isFinite(steps) ? ` · ${t('playbooks.automation.steps', '{n} steps', { n: steps })}` : '' });
-            } catch { /* the rail then shows the id-less fact */ }
+            } catch (err) { logger.debug('the rail then shows the id-less fact', err); }
             dispatch({ type: 'finished', key: phase.key, summary: summary || undefined, artifacts: { automationId: id, ...(title ? { automationTitle: title } : {}) } });
             return;
         }

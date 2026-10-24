@@ -8,6 +8,7 @@ import { contentToDoc } from './contentPipeline';
 import { makeFacade } from './editorFacade';
 import { matchShortcut } from './shortcuts';
 import type { EditorSync } from './useEditorSync';
+import { logger } from '../../utils/logger';
 
 /** The image of a paste/drop payload, handed to `upload`; false when it carries none. */
 export function imageFromTransfer(dt: DataTransfer | null | undefined, upload: (file: File) => void): boolean {
@@ -111,7 +112,7 @@ export function mountEditorView(deps: MountEditorViewDeps): () => void {
     host.removeEventListener('keydown', onKeyDown);
     if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
     view.destroy();
-    try { host.textContent = ''; } catch { /* noop */ }
+    try { host.textContent = ''; } catch (err) { logger.debug('noop', err); }
     setAtoms([]);
     viewRef.current = null;
     facadeRef.current = null;

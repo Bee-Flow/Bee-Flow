@@ -21,6 +21,7 @@
  */
 
 const { sanitizeError } = require('../core/privacy/errorSanitizer');
+const log = require('../telemetry/log');
 
 // Lazy store indirection so tests can inject a stub without ever loading the
 // real store (which would open a pg pool). _setStore(null) restores the real one.
@@ -349,7 +350,7 @@ async function _problemAsync(code, opts) {
             meta: (result && result.count > 1) ? { ...meta, occurrenceCount: result.count } : meta,
             ip: _clientIp(opts.req),
         });
-    } catch (_) { /* swallow */ }
+    } catch (err) { log.debug('swallow', err); }
 }
 
 /**
@@ -383,7 +384,7 @@ async function _eventAsync(code, opts) {
             meta: _sanitizeMeta(opts.meta),
             ip: _clientIp(opts.req),
         });
-    } catch (_) { /* swallow */ }
+    } catch (err) { log.debug('swallow', err); }
 }
 
 /**
@@ -402,7 +403,7 @@ function event(code, opts = {}) {
 async function _resolveAsync(subjectOrOrgId, codes, { resolvedBy = 'system', appendEvent = true } = {}) {
     const list = (Array.isArray(codes) ? codes : [codes]).filter(Boolean);
     if (!subjectOrOrgId || !list.length) return 0;
-    const id = String(subjectOrOrgId);
+    const id = String(subjectOrOrgId); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the only regex below is anchored /^(nc:|domain:)/, linear
     let count = 0;
     try {
         count = await _getStore().resolveProblems(id, list, resolvedBy || 'system');
@@ -424,7 +425,7 @@ async function _resolveAsync(subjectOrOrgId, codes, { resolvedBy = 'system', app
                 message: `Resolved: ${list.join(', ')}`,
                 meta: { codes: list },
             });
-        } catch (_) { /* swallow */ }
+        } catch (err) { log.debug('swallow', err); }
     }
     return count;
 }
@@ -490,7 +491,7 @@ async function _touchLivenessAsync(orgId, kind, { connectorVersion } = {}) {
     _capMap(_livenessMarks);
     try {
         await _getStore().touchLiveness(String(orgId), { [k]: true, connectorVersion: connectorVersion || null });
-    } catch (_) { /* swallow */ }
+    } catch (err) { log.debug('swallow', err); }
 }
 
 /**

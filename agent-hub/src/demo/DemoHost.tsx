@@ -262,16 +262,7 @@ function CloseDemoButton() {
             onClick={close}
             aria-label="Close the demo and go back to the website"
             title="Close the demo"
-            className="demo-close-btn"
-            style={{
-                position: 'fixed', top: 10, right: 10, width: 44, height: 44,
-                zIndex: 2147483000,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 999, border: '1px solid rgba(255, 255, 255, 0.25)',
-                background: 'rgba(15, 23, 42, 0.62)', color: '#fff',
-                cursor: 'pointer', padding: 0,
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
-            }}
+            className="demo-close-btn [position:fixed] [top:10px] [right:10px] w-[44px] h-[44px] [z-index:2147483000] [display:flex] [align-items:center] [justify-content:center] [border-radius:999px] [border:1px_solid_rgba(255,255,255,0.25)] [background:rgba(15,23,42,0.62)] [color:#fff] [cursor:pointer] [padding:0] [box-shadow:0_4px_14px_rgba(0,0,0,0.35)]"
         >
             <X aria-hidden="true" style={{ width: '52%', height: '52%' }} />
         </button>

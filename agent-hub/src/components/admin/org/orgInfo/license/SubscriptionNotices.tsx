@@ -29,8 +29,7 @@ export function SubMessageBanner({ message, onDismiss }: { message: SubMessage; 
 export function ServerOverrideNotice() {
     const { t } = useLicenseText();
     return (
-        <div className="rounded-2xl border px-5 py-4 flex items-start gap-3"
-            style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.06)' }}>
+        <div className="rounded-2xl border px-5 py-4 flex items-start gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]">
             <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgb(59,130,246)' }} />
             <div className="text-xs text-[var(--text-secondary)]">
                 <div className="font-semibold mb-0.5 text-[var(--text-primary)]">
@@ -50,8 +49,7 @@ export function CheckoutSettlingNotice() {
     const { t } = useLicenseText();
     return (
         <div
-            className="rounded-2xl border px-4 py-3 flex items-center gap-3"
-            style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.06)' }}
+            className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]"
         >
             <Loader2 className="w-4 h-4 animate-spin shrink-0" style={{ color: '#3b82f6' }} />
             <div className="flex-1 min-w-0">
@@ -81,8 +79,7 @@ export function ScheduledDowngradeBanner({ sub, busy, onUndo }: UndoBannerProps)
     const { t, fmtDate } = useLicenseText();
     return (
         <div
-            className="rounded-2xl border px-4 py-3 flex items-center gap-3"
-            style={{ borderColor: 'rgba(100,116,139,0.35)', background: 'rgba(100,116,139,0.06)' }}
+            className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(100,116,139,0.35)] [background:rgba(100,116,139,0.06)]"
         >
             <Clock className="w-4 h-4 shrink-0" style={{ color: '#64748b' }} />
             <div className="flex-1 min-w-0">
@@ -96,8 +93,7 @@ export function ScheduledDowngradeBanner({ sub, busy, onUndo }: UndoBannerProps)
             <button
                 onClick={onUndo}
                 disabled={busy}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all hover:opacity-80 disabled:opacity-50"
-                style={{ borderColor: 'rgba(100,116,139,0.35)', color: '#64748b', background: 'rgba(100,116,139,0.05)' }}
+                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all hover:opacity-80 disabled:opacity-50 [border-color:rgba(100,116,139,0.35)] [color:#64748b]! [background:rgba(100,116,139,0.05)]"
             >
                 {busy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : t('org.keep_current_plan', 'Keep current plan')}
             </button>
@@ -114,8 +110,7 @@ export function ScheduledCancelBanner({ sub, busy, onUndo }: UndoBannerProps) {
     const { t, fmtDate } = useLicenseText();
     return (
         <div
-            className="rounded-2xl border px-4 py-3 flex items-center gap-3"
-            style={{ borderColor: 'rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.06)' }}
+            className="rounded-2xl border px-4 py-3 flex items-center gap-3 [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.06)]"
         >
             <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: '#3b82f6' }} />
             <div className="flex-1 min-w-0">
@@ -129,8 +124,7 @@ export function ScheduledCancelBanner({ sub, busy, onUndo }: UndoBannerProps) {
             <button
                 onClick={onUndo}
                 disabled={busy}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all hover:opacity-80 disabled:opacity-50"
-                style={{ borderColor: 'rgba(59,130,246,0.3)', color: '#3b82f6', background: 'rgba(59,130,246,0.05)' }}
+                className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all hover:opacity-80 disabled:opacity-50 [border-color:rgba(59,130,246,0.3)] [color:#3b82f6]! [background:rgba(59,130,246,0.05)]"
             >
                 {busy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : t('org.keep_subscription', 'Keep subscription')}
             </button>

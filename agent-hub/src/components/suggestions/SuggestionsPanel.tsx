@@ -21,6 +21,7 @@ import { hunkWords, type Hunk } from '../../editor/suggest';
 import { useTranslation } from '../../hooks/useTranslation';
 import { LoadingRow, Notice } from '../projects/workspace/workspaceUi';
 import { formatMessageTime } from '../projects/workspace/chat/messageGroups';
+import { logger } from '../../utils/logger';
 
 export type HighlightSuggestions = (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
 
@@ -167,9 +168,9 @@ export default function SuggestionsPanel(props: SuggestionsPanelProps) {
     const latest = useRef(list);
     useEffect(() => { latest.current = list; }, [list]);
     useEffect(() => {
-        try { painter.current?.(latest.current, focusedId); } catch { /* highlighting is a courtesy */ }
+        try { painter.current?.(latest.current, focusedId); } catch (err) { logger.debug('highlighting is a courtesy', err); }
     }, [key, focusedId]);
-    useEffect(() => () => { try { painter.current?.([], null); } catch { /* nothing to clear */ } }, []);
+    useEffect(() => () => { try { painter.current?.([], null); } catch (err) { logger.debug('nothing to clear', err); } }, []);
 
     const focus = useCallback((s: Suggestion | null) => {
         onFocus(s ? s.id : null);

@@ -88,7 +88,7 @@ export function PricingEditor({ data = {}, onChange }: BlockEditorProps<PricingD
             <InlineHint>
                 {t('cms_site.blocks.pricing.pricing_cards_are_pulled_live_from_your', 'Pricing cards are pulled live from your published subscription plans. For both audiences on one page, add a second pricing block with the other audience.')}{' '}
                 {t('cms_site.blocks.pricing.manage_plans_at', 'Manage plans at')}{' '}
-                <a href="/app/admin/subscriptions" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>/app/admin/subscriptions</a>
+                <a href="/app/admin/subscriptions" target="_blank" rel="noopener noreferrer" className="[text-decoration:underline]">/app/admin/subscriptions</a>
             </InlineHint>
 
             <CollapsibleCard title={t('cms_site.blocks.pricing.heading', 'Heading')} defaultOpen={true} persistKey="blk.pricing.heading">

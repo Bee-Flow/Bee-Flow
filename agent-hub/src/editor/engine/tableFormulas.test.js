@@ -7,17 +7,17 @@
  * Run: cd agent-hub && npx vitest run src/editor/engine/tableFormulas.test.js
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { createState, applyTransform } from './state.js';
-import { textSelection, cellSelection, pos } from './selection.js';
-import { markdownToAst } from '../serialization/mdToAst';
-import { EditorView } from './view';
-import * as Tbl from './tables';
 import { evaluateTable, isFormulaCell, formulaSrc } from './formula.js';
 import { colLabel, colToIndex, parseAnyRef } from './formulaRefs.js';
 import { remapSrc } from './formulaRemap.js';
-import { normalizeDeep } from './normalize';
 import { runInputRules } from './inputRules.js';
+import { normalizeDeep } from './normalize';
+import { textSelection, cellSelection, pos } from './selection.js';
+import { createState, applyTransform } from './state.js';
+import * as Tbl from './tables';
 import { insertText } from './transforms.js';
+import { EditorView } from './view';
+import { markdownToAst } from '../serialization/mdToAst';
 
 const cell = (text, attrs = null) => ({
     type: 'tableCell',

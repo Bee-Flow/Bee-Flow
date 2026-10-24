@@ -9,6 +9,7 @@
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { applyCustomTypes, deriveCustomState } = require('./customTypes/resolve');
+const customTypeRegistry = require('./customTypes/registry');
 
 /**
  * The seams resolveOrgShield reads through. Production never touches this;
@@ -56,9 +57,7 @@ async function applyTierClampsToShield(shield, { organizationId, userId } = {}) 
         const lic = _deps.license();
         const tier = await lic.resolveTier({ organizationId, userId });
         hasWebSearchGuard = lic.tiers.tierHasFeature(tier, 'web_search_guard');
-    } catch (_) {
-        // fail closed — leave `false`, strictest clamp applies
-    }
+    } catch (err) { log.debug('fail closed — leave `false`, strictest clamp applies', err); }
     // NOTE: we deliberately do NOT clamp `piiDetectionAction` down to 'block'
     // here. An explicitly-saved "tokenize" is honored everywhere (text chat
     // already reads the raw config and tokenizes; clamping only the attachment /
@@ -353,7 +352,7 @@ function classifyToolClass(toolName, toolArgs = {}) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored literal prefix: constant time
     if (/^cint_/.test(toolName || '')) return 'external';
     let meta = null;
-    try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, toolArgs || {}); } catch (_) { /* treat as internal */ }
+    try { meta = require('../integrations/integrationToolMap').resolveIntegration(toolName, toolArgs || {}); } catch (err) { log.debug('treat as internal', err); }
     if (!meta) return 'internal';            // internal/unknown tools (notebook_*, workspace_*, set_*, regex_*)
     if (meta.isLocal === true) return 'internal'; // local integrations (Nextcloud family, on-box whisper, …)
     return 'external';                       // any resolved integration leaving the box
@@ -603,5 +602,9 @@ async function resolveShieldFor({ orgId, userId }) {
     // org's own shield is off, but never an implicit one.
     return resolveUserShield(userId, { allowImplicitDefault: !orgId });
 }
+
+// The registry re-syncs every org through resolveOrgShield but may not require
+// this file (that would close the cycle), so it is handed over here.
+customTypeRegistry.setOrgShieldResolver(resolveOrgShield);
 
 module.exports = { resolveOrgShield, resolveUserShield, resolveShieldFor, mergeWithOrgShield, selfCheckOrgShields, applyTierClampsToShield, synthesizeToolPiiPolicy, classifyToolClass, isBlockedForTool, _deps };

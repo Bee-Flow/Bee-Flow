@@ -25,6 +25,7 @@
 const rlsGateway = require('./rlsGateway');
 const queryCompiler = require('./queryCompiler');
 const studioAppDbStore = require('../stores/studioAppDbStore');
+const log = require('../telemetry/log');
 
 /**
  * The access-scoped probe(s) proving a record this attachment hangs off exists
@@ -73,7 +74,7 @@ async function viewerMayReadAttachment(app, attachment, { id: viewerId, role, mo
                 const { rows } = await studioAppDbStore.query(app.userId, app.id, sql, params);
                 if (rows && rows.length) return true;
             }
-        } catch (_) { /* this table is not readable for the role — try the next */ }
+        } catch (err) { log.debug('this table is not readable for the role — try the next', err); }
     }
     return false;
 }

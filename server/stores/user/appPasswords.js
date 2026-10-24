@@ -66,7 +66,7 @@ function decrypt(encrypted) {
     };
     // v2 first, then the legacy derivation for rows written before the change.
     let out = null;
-    try { out = tryKey(getEncryptionKey()); } catch (_) { /* master missing — try legacy */ }
+    try { out = tryKey(getEncryptionKey()); } catch (err) { log.debug('master missing — try legacy', err); }
     if (out !== null) return out;
     try { out = tryKey(getLegacyEncryptionKey()); } catch (_) { return null; }
     if (out === null) log.error('App-password decryption failed (wrong key or rotated master)');
@@ -107,7 +107,7 @@ async function getAppPassword(userId) {
                 createdAt: user.appPasswordCreated
             };
         }
-    } catch (_) { /* legacy bare-password path */ }
+    } catch (err) { log.debug('legacy bare-password path', err); }
     return { username: user.username, password: decrypted, url: null, createdAt: user.appPasswordCreated };
 }
 

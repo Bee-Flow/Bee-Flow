@@ -8,6 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { queryClient } from '../../queryClient';
+import { logger } from '../../../utils/logger';
 
 const BASE = `${API_BASE}/api/automation`;
 
@@ -43,7 +44,7 @@ async function failure(res: Response, fallback: string): Promise<LibraryRequestE
     try {
         const body = await res.json();
         if (body && typeof body.error === 'string' && body.error) message = body.error;
-    } catch { /* not JSON: keep the fallback */ }
+    } catch (err) { logger.debug('not JSON: keep the fallback', err); }
     return new LibraryRequestError(message, res.status);
 }
 

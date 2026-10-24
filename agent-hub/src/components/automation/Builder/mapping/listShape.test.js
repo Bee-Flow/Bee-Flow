@@ -1,10 +1,10 @@
+import { EXPR_FUNCTION_NAMES } from '@shared/expr/engine.mjs';
+import { compile } from '@shared/expr/engine.mjs';
 import { describe, it, expect } from 'vitest';
 import {
     pathListShape, fieldListShape, splitColumnPath, forEachPickFor,
     bindingsForList, previewForEachPick, expectedShapeFor,
 } from './listShape';
-import { EXPR_FUNCTION_NAMES } from '@shared/expr/engine.mjs';
-import { compile } from '@shared/expr/engine.mjs';
 
 /**
  * The list vocabulary must agree with the RUNTIME, not with the pickers'

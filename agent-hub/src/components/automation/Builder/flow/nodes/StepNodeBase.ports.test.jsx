@@ -1,10 +1,10 @@
 import { render, cleanup } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from 'vitest';
 import { ReactFlowProvider } from '@xyflow/react';
+import { describe, it, expect, beforeEach } from 'vitest';
 import StepNodeBase from './StepNodeBase';
+import { toolLayoutHeights } from '../aiToolNodes';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 import { cardHeightForPorts, CARD_H, PORT_PAD, PORT_PITCH } from '../nodeTypeColors';
-import { toolLayoutHeights } from '../aiToolNodes';
 
 /**
  * A card with more than two output ports grows a row per port (user feedback

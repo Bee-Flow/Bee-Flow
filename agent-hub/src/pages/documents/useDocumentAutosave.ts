@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDocument, updateDocument } from './documentsApi';
 import type { StudioDocument } from './documentQueries';
 import { resolveParts, type MergePart } from './canvasBridge';
+import { logger } from '../../utils/logger';
 
 export const AUTOSAVE_MS = 1500;
 
@@ -80,7 +81,7 @@ export function readDraft(documentId: string): Draft | null {
         try {
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed.html === 'string') return { html: parsed.html, base: parsed.base || null, at: Number(parsed.at) || 0 };
-        } catch { /* an older, plain-text draft */ }
+        } catch (err) { logger.debug('an older, plain-text draft', err); }
         return { html: raw, base: null, at: 0 };
     } catch {
         return null;
@@ -91,7 +92,7 @@ function writeDraft(documentId: string, draft: Draft | null) {
     try {
         if (draft) sessionStorage.setItem(draftKey(documentId), JSON.stringify(draft));
         else sessionStorage.removeItem(draftKey(documentId));
-    } catch { /* storage unavailable: the pending copy in memory remains */ }
+    } catch (err) { logger.debug('storage unavailable: the pending copy in memory remains', err); }
 }
 
 /** The revision the frame's text grew from. */

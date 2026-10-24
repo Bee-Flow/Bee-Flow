@@ -24,7 +24,7 @@ export function useComplianceNavigation(
         setActiveTabState(esc.tab);
         if (window.location.pathname !== esc.url) window.history.pushState({}, '', esc.url);
         return true;
-    }, [canSeeOrg]);
+    }, [canSeeOrg, setActiveTabState, setOrgDeepSegs]);
 
     // ComplianceHub always emits admin-dashboard paths. Keep compliance-internal
     // navigation on the settings surface (deep URL incl. section/check id and
@@ -45,7 +45,7 @@ export function useComplianceNavigation(
         }
         if (applyAdminEscape(path)) return;
         onNavigate?.(path);
-    }, [onNavigate, applyAdminEscape]);
+    }, [applyAdminEscape, onNavigate, setOrgDeepSegs, setActiveTabState]);
 
     return { handleComplianceNavigate };
 }

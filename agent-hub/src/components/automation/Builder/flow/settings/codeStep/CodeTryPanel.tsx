@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { useCodeTest, type CodeParam, type CodeTestResult } from '../../../../../../api/queries/automation/codeStep';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
 import type { InputsMap } from './codeParams';
+import { logger } from '../../../../../../utils/logger';
 
 /** A starting value per input: the literal typed in the form, else the default, else empty. */
 export function tryValuesFrom(params: CodeParam[], inputs: InputsMap, otherNames: string[]): Record<string, string> {
@@ -26,7 +27,7 @@ export function inputsFromValues(values: Record<string, string>): Record<string,
     for (const [k, raw] of Object.entries(values)) {
         const v = raw.trim();
         if (!v) continue;
-        if (/^[[{]/.test(v)) { try { out[k] = JSON.parse(v); continue; } catch { /* keep the text */ } }
+        if (/^[[{]/.test(v)) { try { out[k] = JSON.parse(v); continue; } catch (err) { logger.debug('keep the text', err); } }
         out[k] = raw;
     }
     return out;

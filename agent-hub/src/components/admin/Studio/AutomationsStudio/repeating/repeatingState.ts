@@ -1,4 +1,5 @@
 import scopedStorage from '../../../../../utils/scopedStorage';
+import { logger } from '../../../../../utils/logger';
 
 /**
  * Per-viewer conveniences for "Find repeating work", in scoped (per-user)
@@ -40,6 +41,6 @@ export function readRepeatingPrefs(): RepeatingPrefs {
 export function writeRepeatingPrefs(prefs: RepeatingPrefs): RepeatingPrefs {
     try {
         scopedStorage.setJSON(PREFS_KEY, prefs);
-    } catch { /* best-effort */ }
+    } catch (err) { logger.debug('best-effort', err); }
     return prefs;
 }

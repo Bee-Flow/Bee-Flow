@@ -72,7 +72,7 @@ export default function QuestionsTab({ detail, draft, setDraft, dirty, save, dis
                 </p>
             )}
             {draft && (
-                <div className="sticky bottom-0 flex items-center justify-end gap-2 py-3 -mx-1 px-1" style={{ background: 'var(--bg-primary)' }} data-testid="form-savebar">
+                <div className="sticky bottom-0 flex items-center justify-end gap-2 py-3 -mx-1 px-1 [background:var(--bg-primary)]" data-testid="form-savebar">
                     {saveError && <span role="alert" className="mr-auto text-xs text-[var(--error)]">{saveError.message || t('forms.page.save_failed', 'Could not save the form.')}</span>}
                     <button type="button" onClick={discard} disabled={!dirty || saving} className={BTN} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
                         {t('forms.page.discard', 'Discard changes')}

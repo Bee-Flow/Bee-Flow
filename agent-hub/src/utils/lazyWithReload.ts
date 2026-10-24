@@ -1,5 +1,6 @@
 import { lazy as reactLazy, type ComponentType, type ExoticComponent } from 'react';
 import { ensureI18nDefaults } from '../hooks/useTranslation';
+import { logger } from './logger';
 
 // After a redeploy, browsers that loaded the old index.html still hold
 // references to the previous hashed chunk filenames (e.g. WorkspaceNotebook-
@@ -46,7 +47,7 @@ export function lazy(importer: () => Promise<{ default: ComponentType }>): Exoti
     return reactLazy(async () => {
         try {
             const mod = await importer();
-            try { sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* private mode */ }
+            try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('private mode', err); }
             return mod;
         } catch (err) {
             if (!isChunkLoadError(err)) throw err;
@@ -55,7 +56,7 @@ export function lazy(importer: () => Promise<{ default: ComponentType }>): Exoti
             try {
                 await new Promise(res => setTimeout(res, 250));
                 const mod = await importer();
-                try { sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* ignore */ }
+                try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
                 return mod;
             } catch (retryErr) {
                 if (!isChunkLoadError(retryErr)) throw retryErr;
@@ -63,12 +64,12 @@ export function lazy(importer: () => Promise<{ default: ComponentType }>): Exoti
                 // Guard against an infinite reload loop on a genuinely broken
                 // deploy: if we've already reloaded this tab once, give up.
                 let alreadyReloaded = false;
-                try { alreadyReloaded = !!sessionStorage.getItem(RELOAD_FLAG); } catch (_) { /* ignore */ }
+                try { alreadyReloaded = !!sessionStorage.getItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
                 if (alreadyReloaded) {
-                    try { sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* ignore */ }
+                    try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
                     throw retryErr;
                 }
-                try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); } catch (_) { /* ignore */ }
+                try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); } catch (err) { logger.debug('ignore', err); }
                 if (typeof window !== 'undefined') window.location.reload();
                 // Hang the Suspense promise so the user sees the existing
                 // fallback (not an error flash) while the reload runs.

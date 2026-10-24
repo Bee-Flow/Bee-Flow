@@ -59,7 +59,7 @@ export const BehaviorSection = ({
 
                                                         {/* Embed URL Info Card */}
                                                         {embedEnabled && selectedAgent && (
-                                                            <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--accent-primary)', background: 'rgba(99, 102, 241, 0.05)' }}>
+                                                            <div className="p-4 rounded-xl border space-y-3 [border-color:var(--accent-primary)] [background:rgba(99,102,241,0.05)]">
                                                                 <div className="flex items-center gap-2 text-sm font-medium text-[var(--accent-primary)]">
                                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                                                                     {t('agent_studio.behavior_embed_settings', 'Embed Settings')}
@@ -70,8 +70,7 @@ export const BehaviorSection = ({
                                                                         <input
                                                                             readOnly
                                                                             value={`${window.location.origin}/chat/${selectedAgent.id}`}
-                                                                            className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent"
-                                                                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                            className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                         />
                                                                         <button
                                                                             onClick={() => copy(`${window.location.origin}/chat/${selectedAgent.id}`)}
@@ -87,8 +86,7 @@ export const BehaviorSection = ({
                                                                         <input
                                                                             readOnly
                                                                             value={`<iframe src="${window.location.origin}/chat/${selectedAgent.id}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`}
-                                                                            className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent"
-                                                                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                            className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                         />
                                                                         <button
                                                                             onClick={() => copy(`<iframe src="${window.location.origin}/chat/${selectedAgent.id}" width="400" height="600" style="border:none;border-radius:12px;"></iframe>`)}
@@ -112,15 +110,13 @@ export const BehaviorSection = ({
                                                                                     type="color"
                                                                                     value={bubbleColor}
                                                                                     onChange={(e) => setBubbleColor(e.target.value)}
-                                                                                    className="w-8 h-8 rounded-lg border-0 cursor-pointer"
-                                                                                    style={{ padding: 0 }}
+                                                                                    className="w-8 h-8 rounded-lg border-0 cursor-pointer [padding:0]"
                                                                                 />
                                                                                 <input
                                                                                     type="text"
                                                                                     value={bubbleColor}
                                                                                     onChange={(e) => setBubbleColor(e.target.value)}
-                                                                                    className="flex-1 text-xs font-mono px-2 py-1.5 rounded-lg border bg-transparent"
-                                                                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                                    className="flex-1 text-xs font-mono px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                                 />
                                                                             </div>
                                                                         </div>
@@ -210,8 +206,7 @@ export const BehaviorSection = ({
                                                                             <select
                                                                                 value={chatFont}
                                                                                 onChange={(e) => setChatFont(e.target.value)}
-                                                                                className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent cursor-pointer"
-                                                                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                                className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent cursor-pointer [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                             >
                                                                                 <option value="System Default">{t('agent_studio.behavior_system_default', 'System Default')}</option>
                                                                                 <option value="Inter">{t('agent_studio.behavior_inter', 'Inter')}</option>
@@ -269,8 +264,7 @@ export const BehaviorSection = ({
                                                                                     value={userBubbleColor}
                                                                                     onChange={(e) => setUserBubbleColor(e.target.value)}
                                                                                     placeholder={t('agent_studio.behavior_default', 'Default')}
-                                                                                    className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent"
-                                                                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                                    className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                                 />
                                                                             </div>
                                                                         </div>
@@ -288,8 +282,7 @@ export const BehaviorSection = ({
                                                                                     value={assistantBubbleColor}
                                                                                     onChange={(e) => setAssistantBubbleColor(e.target.value)}
                                                                                     placeholder={t('agent_studio.behavior_default', 'Default')}
-                                                                                    className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent"
-                                                                                    style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                                    className="flex-1 text-xs px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                                 />
                                                                             </div>
                                                                         </div>
@@ -303,8 +296,7 @@ export const BehaviorSection = ({
                                                                             value={warningText}
                                                                             onChange={(e) => setWarningText(e.target.value)}
                                                                             placeholder={t('agent_studio.behavior_ai_can_make_mistakes_please_verify', 'AI can make mistakes. Please verify important information.')}
-                                                                            className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent"
-                                                                            style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                            className="w-full text-xs px-2 py-1.5 rounded-lg border bg-transparent [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                         />
                                                                     </div>
 
@@ -351,8 +343,7 @@ export const BehaviorSection = ({
                                                                                     const chatUrl = `${window.location.origin}/chat/${selectedAgent.id}${paramStr}`;
                                                                                     return `<!-- Bee Flow Chat Widget -->\n<script>\n(function(){\n  var d=document,s=d.createElement('style'),b=d.createElement('div');\n  s.textContent='#bf-bubble{position:fixed;bottom:24px;${pos};width:${bubbleSize}px;height:${bubbleSize}px;border-radius:50%;background:linear-gradient(135deg,${bubbleColor},${bubbleColor}dd);border:none;cursor:pointer;box-shadow:0 4px 20px ${bubbleColor}66;display:flex;align-items:center;justify-content:center;font-size:${Math.round(bubbleSize * 0.45)}px;transition:transform .3s,box-shadow .3s;z-index:10001}#bf-bubble:hover{transform:scale(1.1)}#bf-bubble.open{background:linear-gradient(135deg,#e74c3c,#c0392b);box-shadow:0 4px 20px rgba(231,76,60,.4)}#bf-window{position:fixed;bottom:${bubbleSize + 40}px;${pos};width:${windowWidth}px;height:${windowHeight}px;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.15);opacity:0;transform:translateY(20px) scale(.95);pointer-events:none;transition:opacity .3s,transform .3s;z-index:10000}#bf-window.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}#bf-window iframe{width:100%;height:100%;border:none}';\n  d.head.appendChild(s);\n  b.innerHTML='<div id="bf-window"><iframe src="${chatUrl}"><\\/iframe><\\/div><button id="bf-bubble">${bubbleIcon}<\\/button>';\n  d.body.appendChild(b);\n  d.getElementById('bf-bubble').onclick=function(){var w=d.getElementById('bf-window'),t=this;t.classList.toggle('open');w.classList.toggle('open');t.textContent=t.classList.contains('open')?'\\u2715':'${bubbleIcon}'};\n})();\n<\\/script>`;
                                                                                 })()}
-                                                                                className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent resize-none"
-                                                                                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                                                className="flex-1 text-xs font-mono px-3 py-2 rounded-lg border bg-transparent resize-none [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                                                             />
                                                                             <button
                                                                                 onClick={() => {

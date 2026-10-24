@@ -223,17 +223,13 @@ export function StatTile({
 
 function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t }: RenderStatTileArgs) {
     return (
-        <div style={{
-            background: 'var(--bg-secondary, #1a1a2e)',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            borderRadius: 12, padding: '12px 14px',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+        <div className="[background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [border-radius:12px] [padding:12px_14px]">
+            <div className="[display:flex] [align-items:center] [gap:7px] [margin-bottom:6px]">
                 {Icon && <Icon style={{ width: 14, height: 14, color }} />}
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted, #888)' }}>{label}</span>
+                <span className="[font-size:11px] [font-weight:600] [color:var(--text-muted,#888)]">{label}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary, #fff)', lineHeight: 1.1 }}>{value}</span>
+            <div className="[display:flex] [align-items:baseline] [gap:8px] [flex-wrap:wrap]">
+                <span className="[font-size:22px] [font-weight:800] [color:var(--text-primary,#fff)] [line-height:1.1]">{value}</span>
                 {state === 'new' ? (
                     <span title={deltaLabel || t('cms_site.analytics.common.new_title', 'nothing in the previous period')} style={{
                         fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -241,13 +237,13 @@ function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLa
                     }}>{t('cms_site.analytics.common.new', 'new')}</span>
                 ) : state === 'flat' ? (
                     <span title={deltaLabel || t('cms_site.analytics.common.vs_previous', 'vs previous period')}
-                        style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>{t('cms_site.analytics.common.no_change', 'no change')}</span>
+                        className="[font-size:11px] [color:var(--text-muted,#888)]">{t('cms_site.analytics.common.no_change', 'no change')}</span>
                 ) : delta != null && chipDisplay ? (
                     <TrendChip delta={delta} display={chipDisplay} goodWhenDown={goodWhenDown}
                         title={deltaLabel || t('cms_site.analytics.common.vs_previous', 'vs previous period')} />
                 ) : null}
             </div>
-            {subtitle && <div style={{ fontSize: 11, color: 'var(--text-muted, #777)', marginTop: 3 }}>{subtitle}</div>}
+            {subtitle && <div className="[font-size:11px] [color:var(--text-muted,#777)] [margin-top:3px]">{subtitle}</div>}
         </div>
     );
 }
@@ -279,13 +275,9 @@ export function ErrorNote({ message, onRetry, compact = false }: ErrorNoteProps)
             color: '#fda4af', fontSize: 12,
         }}>
             <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
-            <span style={{ flex: 1, wordBreak: 'break-word' }}>{message}</span>
+            <span className="[flex:1] [word-break:break-word]">{message}</span>
             {onRetry && (
-                <button onClick={onRetry} title={t('cms_site.analytics.common.retry', 'Retry')} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent',
-                    border: '1px solid rgba(244,63,94,0.35)', borderRadius: 7, color: '#fda4af',
-                    fontSize: 11, fontWeight: 700, padding: '3px 8px', cursor: 'pointer', flexShrink: 0,
-                }}>
+                <button onClick={onRetry} title={t('cms_site.analytics.common.retry', 'Retry')} className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:1px_solid_rgba(244,63,94,0.35)] [border-radius:7px] [color:#fda4af] [font-size:11px] [font-weight:700] [padding:3px_8px] [cursor:pointer] [flex-shrink:0]">
                     <RefreshCw style={{ width: 11, height: 11 }} /> {t('cms_site.analytics.common.retry', 'Retry')}
                 </button>
             )}
@@ -372,7 +364,7 @@ export function BreakdownTable({
         {
             key: 'count', label: valueHeader ?? t('cms_site.analytics.common.views', 'Views'), width: '120px', align: 'right',
             render: (r: BreakdownRow) => (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
+                <span className="[display:inline-flex] [align-items:center] [gap:8px] [justify-content:flex-end] w-[100%]">
                     <ShareBar value={r.count} of={total} width={44} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, minWidth: 34, textAlign: 'right' }}>{fmt(r.count)}</span>
                 </span>
@@ -438,17 +430,17 @@ export function SplitBar({ segments, mode = 'stacked', height = 10, legend = fal
                 })}
             </div>
             {legend && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>
+                <div className="[display:flex] [flex-wrap:wrap] [gap:12px] [margin-top:8px]">
                     {items.map((s, i) => (
-                        <span key={`${s.label}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                        <span key={`${s.label}-${i}`} className="[display:inline-flex] [align-items:center] [gap:6px] [font-size:11px]">
                             <span style={{
                                 width: 8, height: 8, borderRadius: 2, flexShrink: 0,
                                 background: s.color || (mode === 'diverging'
                                     ? (Number(s.value) >= 0 ? SERIES.primary : SERIES.bad)
                                     : paletteAt(i)),
                             }} />
-                            <span style={{ color: 'var(--text-muted, #888)' }}>{s.label}</span>
-                            <span style={{ color: 'var(--text-primary, #fff)', fontWeight: 700 }}>{formatValue(s.value)}</span>
+                            <span className="[color:var(--text-muted,#888)]">{s.label}</span>
+                            <span className="[color:var(--text-primary,#fff)] [font-weight:700]">{formatValue(s.value)}</span>
                         </span>
                     ))}
                 </div>
@@ -474,7 +466,7 @@ export function BarList({
     if (!items.length) return <Empty text={emptyText ?? t('cms_site.analytics.common.no_data', 'No data')} />;
     const peak = peakProp || maxOf(items.map(r => r.y || 0));
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:7px]">
             {items.map((r, i) => {
                 const isBlank = !r.x;
                 const label = isBlank ? (blankLabel ?? t('cms_site.analytics.common.unknown', 'Unknown')) : r.x;
@@ -489,7 +481,7 @@ export function BarList({
                             border: 'none', padding: 0, cursor: clickable ? 'pointer' : 'default',
                         }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
+                        <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
                             <span style={{
                                 fontSize: 12, overflow: 'hidden',
                                 color: isBlank ? 'var(--text-muted, #888)' : 'var(--text-primary, #fff)',

@@ -11,6 +11,7 @@ import type {
     Continuation,
     TurnOutcome,
 } from './types';
+import { logger } from '../../utils/logger';
 
 // Shown when the build stream drops mid-flight (gateway timeout / network
 // cut). Every draft is persisted server-side as it lands, so nothing is lost —
@@ -98,7 +99,7 @@ export async function runBuilderTurn(
     { message, options, failTurn }: RunTurnParams,
 ): Promise<{ continuation: Continuation | null; doneInfo: AppBuilderDoneInfo | null }> {
     if (deps.abortRef.current) {
-        try { deps.abortRef.current.abort(); } catch { /* already settled */ }
+        try { deps.abortRef.current.abort(); } catch (err) { logger.debug('already settled', err); }
     }
     const ac = new AbortController();
     deps.abortRef.current = ac;

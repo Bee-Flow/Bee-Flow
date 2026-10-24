@@ -184,14 +184,14 @@ async function _tick() {
         // boot-time catalog flag; fails open.
         try {
             if (!await require('../modules').isModuleActive('learning')) return;
-        } catch (_) { /* fail open — a state read blip must not stop the job */ }
+        } catch (err) { log.debug('fail open — a state read blip must not stop the job', err); }
         await run();
     } catch (e) {
         ok = false;
         log.warn('[learningNudge] tick failed (will retry tomorrow):', e && e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (_) { /* best-effort */ }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'learning_nudge', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

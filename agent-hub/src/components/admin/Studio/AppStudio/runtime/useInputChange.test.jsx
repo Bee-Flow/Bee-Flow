@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import AppInputSelect from './components/AppInputSelect';
 import AppInputCheckbox from './components/AppInputCheckbox';
+import AppInputSelect from './components/AppInputSelect';
 import AppInputText from './components/AppInputText';
 import { RuntimeProvider, DEFAULT_RUNTIME } from './RuntimeContext';
 

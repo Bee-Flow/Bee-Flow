@@ -33,11 +33,11 @@ vi.mock('@/utils/imageResize', async (importOriginal) => {
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { authFetch } from '@/utils/helpers';
-import BuilderChatPane from './BuilderChatPane';
 import { EditorChromeContext } from '../editor/EditorChromeContext';
 import { AppEditorProvider, useAppEditor } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
 import { studioAppsApi } from '../studioAppsApi';
+import BuilderChatPane from './BuilderChatPane';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 

@@ -2,6 +2,7 @@ import { useRef, useCallback, useEffect } from 'react';
 import { API_BASE, setSessionToken } from '../../utils/helpers';
 import { getAuthUser } from './loginRequests';
 import type { OnLogin } from './loginShared';
+import { logger } from '../../utils/logger';
 
 // Detect if we're running inside an iframe (embedded in Nextcloud, etc.)
 const isEmbedded = (() => {
@@ -94,7 +95,7 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
                         onLogin(data.user);
                     }
                 }
-            } catch (_) { /* server unreachable, keep polling */ }
+            } catch (err) { logger.debug('server unreachable, keep polling', err); }
         }, 1500);
 
         // Stop polling after 5 minutes (safety net)

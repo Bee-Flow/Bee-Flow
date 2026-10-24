@@ -66,7 +66,7 @@ function makeRunComplianceReview(ctx) {
             try {
                 const row = await d.datatableStore.getDatatable(tableArt.datatableId, tableArt.datatableScope);
                 if (row && Number.isFinite(Number(row.rowCount))) table.rowCount = Number(row.rowCount);
-            } catch { /* the columns are the material that matters */ }
+            } catch (err) { log.debug('the columns are the material that matters', err); }
         }
         const automations = [];
         for (const p of phases) {
@@ -101,7 +101,7 @@ function makeRunComplianceReview(ctx) {
                         definition: a.definition || null,
                     });
                 }
-            } catch { /* an automation that cannot be read is simply not reviewed */ }
+            } catch (err) { log.debug('an automation that cannot be read is simply not reviewed', err); }
         }
         let app = null;
         let access = null;
@@ -133,7 +133,7 @@ function makeRunComplianceReview(ctx) {
                     const modelTables = (meta && meta.model && Array.isArray(meta.model.tables)) ? meta.model.tables : [];
                     app.scopedRoles = [...new Set(modelTables.flatMap((mt) => Object.keys((mt && mt.access && mt.access.rowFilters) || {})))];
                 }
-            } catch { /* reviewed without it */ }
+            } catch (err) { log.debug('reviewed without it', err); }
         }
 
         // ── which rules this organisation actually follows ──────────────
@@ -166,7 +166,7 @@ function makeRunComplianceReview(ctx) {
                     limit: SAMPLE_ROWS,
                 });
                 rows = Array.isArray(page && page.rows) ? page.rows : [];
-            } catch { /* the review still runs on what it has */ }
+            } catch (err) { log.debug('the review still runs on what it has', err); }
         }
         let enrichment = null;
         try {

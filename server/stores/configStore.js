@@ -113,14 +113,14 @@ async function _startInvalidationListener() {
         log.info('[ConfigStore] cross-replica cache invalidation listener active');
     } catch (e) {
         log.warn('[ConfigStore] invalidation listener connect failed:', e.message);
-        try { await client.end(); } catch (_) { /* already down */ }
+        try { await client.end(); } catch (err) { log.debug('already down', err); }
         _scheduleReconnect();
     }
 }
 
 function _scheduleReconnect() {
     if (_listenerClient) {
-        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch(() => {}); } catch (_) { /* noop */ }
+        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch(() => {}); } catch (err) { log.debug('noop', err); }
         _listenerClient = null;
     }
     if (_reconnectTimer) return;
@@ -133,7 +133,7 @@ function _scheduleReconnect() {
 function _stopInvalidationListener() {
     if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
     if (_listenerClient) {
-        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch(() => {}); } catch (_) { /* noop */ }
+        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch(() => {}); } catch (err) { log.debug('noop', err); }
         _listenerClient = null;
     }
 }
@@ -323,7 +323,7 @@ function _inferAuditFromKey(key) {
  */
 async function _auditCredentialChange(key, action, ctx) {
     try {
-        const { logAccessAudit } = require('./userStore');
+        const { logAccessAudit } = require('./user/audit');
         const inferred = _inferAuditFromKey(key);
         const orgId = ctx?.orgId || inferred.orgId || null;
         const integration = ctx?.integration || inferred.integration || 'unknown';
@@ -336,7 +336,7 @@ async function _auditCredentialChange(key, action, ctx) {
             { integration, action },
             orgId,
         );
-    } catch (_) { /* non-fatal */ }
+    } catch (err) { log.debug('non-fatal', err); }
 }
 
 /**
@@ -406,6 +406,10 @@ async function setSecretIfAbsent(key, value, auditCtx = null) {
     return await getSecret(key);
 }
 
+let _legacySecretResolver = null;
+/** Registered by integrationConnectionStore: key -> value | undefined (dual-read fallback for getSecret). */
+function setLegacySecretResolver(fn) { _legacySecretResolver = fn; }
+
 /**
  * Retrieve a sensitive value, decrypting if it was encrypted.
  * Transparently handles legacy plaintext values (returns as-is).
@@ -420,12 +424,13 @@ async function getSecret(key) {
     if (!row || !row.value) {
         // Dual-read: a legacy per-user key with no `config` row may be backed by
         // a named integration connection (configStore stays authoritative when a
-        // row IS present). Lazy require breaks the configStore↔connection cycle.
+        // row IS present). integrationConnectionStore registers its resolver via
+        // setLegacySecretResolver (it depends on us, not the other way round).
         // Not cached — a connection's value can change without busting this key.
         try {
-            const fromConn = await require('./integrationConnectionStore').getLegacySecretValue(key);
+            const fromConn = _legacySecretResolver ? await _legacySecretResolver(key) : undefined;
             if (fromConn !== undefined) return fromConn;
-        } catch (_) { /* fall through to null */ }
+        } catch (err) { log.debug('fall through to null', err); }
         _cacheSet(`__secret__${key}`, null);
         return null;
     }
@@ -661,6 +666,7 @@ reencryptLegacyPlaintextSecrets().catch(() => {});
 log.info('[ConfigStore] Initialized (PostgreSQL)');
 
 module.exports = {
+    setLegacySecretResolver,
     getConfig,
     getConfigFresh,
     getConfigsByKeys,

@@ -16,8 +16,7 @@ export default function SlideStep({ step }: { step: LessonStep }) {
         <div>
             <div className="flex items-start gap-3 mb-3">
                 <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)]"
                     aria-hidden="true"
                 >
                     {step.icon || '💡'}

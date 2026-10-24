@@ -15,6 +15,7 @@ const def = require('./definition');
 const { authOfRow, libraryDefinition, sharedGrantFor, listOrgGrants, providerOf, capIdOf } = require('./service');
 
 const deps = require('./deps');
+const log = require('../../../telemetry/log');
 
 const store = () => deps.store();
 const connStore = () => deps.connStore();
@@ -31,7 +32,7 @@ async function memberContext(req) {
     try {
         const snap = await entitlements().resolveEntitlements({ userId, orgId, session: req.session, req });
         effective = new Set((snap.effective && snap.effective.integration) || []);
-    } catch (_) { /* nothing is usable when the resolver is down */ }
+    } catch (err) { log.debug('nothing is usable when the resolver is down', err); }
     return { userId, orgId, effective };
 }
 
@@ -65,7 +66,7 @@ async function listForMember(req) {
         const entry = d.meta && d.meta.catalogId ? getCatalogEntry(d.meta.catalogId) : null;
         const cred = entry && entry.auth && entry.auth.credential;
         let host = null;
-        try { host = new URL(d.mcp.url).hostname; } catch (_) { /* unknown */ }
+        try { host = new URL(d.mcp.url).hostname; } catch (err) { log.debug('unknown', err); }
         servers.push({
             id: row.id,
             name: row.name,

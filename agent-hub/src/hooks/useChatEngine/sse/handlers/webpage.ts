@@ -1,4 +1,5 @@
 import type { SseHandlerMap } from '../handlerTypes';
+import { logger } from '../../../../utils/logger';
 
 /**
  * The webpage builder: file and source callbacks, DOM broadcasts for the DB
@@ -31,18 +32,18 @@ export const webpageHandlers: SseHandlerMap = {
     // viewer (if mounted) can refresh its schema/rows. Avoids drilling
     // a callback through the chat → IDE → viewer prop chain.
     webpage_db_update() {
-        try { window.dispatchEvent(new CustomEvent('webpage_db_update')); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent('webpage_db_update')); } catch (err) { logger.debug('DOM event dispatch failed', err); }
     },
 
     // The AI switched this project's framework / runtime tier. Re-broadcast
     // as a DOM event so the page can update settings + recompose the
     // preview without drilling a callback through the prop chain.
     webpage_framework_changed(_ctx, data) {
-        try { window.dispatchEvent(new CustomEvent('webpage_framework_changed', { detail: { framework: data.framework } })); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent('webpage_framework_changed', { detail: { framework: data.framework } })); } catch (err) { logger.debug('DOM event dispatch failed', err); }
     },
 
     webpage_runtime_changed(_ctx, data) {
-        try { window.dispatchEvent(new CustomEvent('webpage_runtime_changed', { detail: { runtime: data.runtime } })); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent('webpage_runtime_changed', { detail: { runtime: data.runtime } })); } catch (err) { logger.debug('DOM event dispatch failed', err); }
     },
 
     // Webpage plan proposal — attach to the in-flight assistant message

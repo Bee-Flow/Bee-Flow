@@ -30,6 +30,7 @@ import { syncDocToFragment } from './ySync';
 import { relativeFromPos, posFromRelative, encodeRelpos, decodeRelpos } from './relpos';
 import { createCursorPublisher, type CursorPublisher, type CursorState } from './awareness';
 import { textSelection, nodeSelection, cellSelection, pos, isText, isNode, isCell } from '../engine/selection.js';
+import { logger } from '../../utils/logger';
 
 type EditorViewLike = any;
 type Selection = any;
@@ -187,7 +188,7 @@ export class CollabBinding {
         } catch (e) {
             // Never let the editor and the shared document drift apart: show
             // what is shared (the keystroke is lost, the document is not).
-            try { this.opts.onError?.(e); } catch { /* noop */ }
+            try { this.opts.onError?.(e); } catch (err) { logger.debug('noop', err); }
             this.applyFromY('remote');
         }
     }
@@ -237,7 +238,7 @@ export class CollabBinding {
         if (!sel || this.destroyed) return;
         this.view.setSelection(sel);
         this.view.writeSelection();
-        try { this.view.onSelectionChange(this.view.state); } catch { /* noop */ }
+        try { this.view.onSelectionChange(this.view.state); } catch (err) { logger.debug('noop', err); }
     };
 
     /* ── presence ──────────────────────────────────────────── */

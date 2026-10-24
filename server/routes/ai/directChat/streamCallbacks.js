@@ -120,7 +120,7 @@ function persistStreamedImage(turn, data) {
             require('fs').writeFileSync(require('path').join(genDir, filename), Buffer.from(data.data, 'base64'));
             imgEntry.url = `/uploads/generated/${filename}`;
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) { log.debug('ignore', e); }
 }
 
 function createStreamCallbacks(turn) {

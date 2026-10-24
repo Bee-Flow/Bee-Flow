@@ -99,10 +99,10 @@ const GoogleDrivePicker = ({ isOpen, onClose, onFilesSelected, apiBase = '' }: G
 
             {/* File info */}
             <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate" style={{ color: '#202124' }}>
+                <div className="text-sm font-medium truncate [color:#202124]!">
                     {file.name}
                 </div>
-                <div className="text-xs flex items-center gap-1.5 mt-0.5" style={{ color: '#5f6368' }}>
+                <div className="text-xs flex items-center gap-1.5 mt-0.5 [color:#5f6368]!">
                     <span>{file.type}</span>
                     <span>·</span>
                     <span>{formatRelativeDate(file.modifiedTime)}</span>

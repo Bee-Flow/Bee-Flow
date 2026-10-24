@@ -244,7 +244,7 @@ async function incr(key, ttlMs) {
             // window no matter where a failure lands.
             await r.set(key, 0, 'PX', ttlMs, 'NX');
             return await r.incr(key);
-        } catch (_) { /* fall through to memory */ }
+        } catch (err) { log.debug('fall through to memory', err); }
     }
     const now = Date.now();
     const cur = _mem.get(key);
@@ -263,7 +263,7 @@ async function get(key) {
         try {
             const v = await r.get(key);
             return v === null || v === undefined ? 0 : (parseInt(v, 10) || 0);
-        } catch (_) { /* fall through to memory */ }
+        } catch (err) { log.debug('fall through to memory', err); }
     }
     const cur = _mem.get(key);
     if (!cur || cur.expiresAt <= Date.now()) return 0;
@@ -277,7 +277,7 @@ async function ttl(key) {
         try {
             const ms = await r.pttl(key);
             return ms > 0 ? ms : 0;
-        } catch (_) { /* fall through to memory */ }
+        } catch (err) { log.debug('fall through to memory', err); }
     }
     const cur = _mem.get(key);
     if (!cur) return 0;
@@ -290,7 +290,7 @@ async function set(key, value, ttlMs) {
         try {
             await r.set(key, String(value), 'PX', ttlMs);
             return;
-        } catch (_) { /* fall through to memory */ }
+        } catch (err) { log.debug('fall through to memory', err); }
     }
     _mem.set(key, { value, expiresAt: Date.now() + ttlMs });
     if (_mem.size > MEM_MAX_KEYS) memSweep();
@@ -299,7 +299,7 @@ async function set(key, value, ttlMs) {
 async function del(...keys) {
     const r = redis();
     if (r) {
-        try { await r.del(...keys); } catch (_) { /* best-effort */ }
+        try { await r.del(...keys); } catch (err) { log.debug('best-effort', err); }
     }
     for (const k of keys) _mem.delete(k);
 }

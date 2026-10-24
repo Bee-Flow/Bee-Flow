@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import useNow from '../../../../hooks/useNow';
 import { bucketHistory, formatDelta, type HistoryRow } from './miniBarsMath';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { TONES, toneOfScore, type Tone } from '../../../shared/statusTone';
@@ -47,9 +48,10 @@ export default function MiniBars({
     history, frameworkId, days = 90, bars = 12, tone, caption, now, className = '', testId = 'mini-bars',
 }: MiniBarsProps) {
     const { t } = useTranslation();
+    const clock = useNow(60_000);
     const buckets = useMemo(
-        () => bucketHistory(history, { days, bars, frameworkId, now: now ?? Date.now() }),
-        [history, days, bars, frameworkId, now],
+        () => bucketHistory(history, { days, bars, frameworkId, now: now ?? clock }),
+        [history, days, bars, frameworkId, now, clock],
     );
 
     const resolvedTone = TONES[tone as string] ? tone : toneOfScore(buckets.last);

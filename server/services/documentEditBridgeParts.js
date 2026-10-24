@@ -9,6 +9,8 @@
  */
 
 /* global document, window, parent, NodeFilter, CSS, Highlight */
+const log = require('../telemetry/log');
+
 function bridgeCore(B) {
     var timers = {};
     var lastCaret;
@@ -17,7 +19,7 @@ function bridgeCore(B) {
     var PAGE_PX = 297 * MM;
 
     // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- runs in the editor's sandboxed srcdoc frame (opaque origin, frame-ancestors 'self'); the editor checks event.source
-    function post(message) { try { parent.postMessage(message, '*'); } catch (_) { /* parent gone */ } }
+    function post(message) { try { parent.postMessage(message, '*'); } catch (err) { log.debug('parent gone', err); } }
     function later(name, ms, fn) { clearTimeout(timers[name]); timers[name] = setTimeout(fn, ms); }
 
     function style() {

@@ -1,10 +1,10 @@
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
-import { describeAction } from './actionLabels';
 import {
     CARD_COPY, EDITOR_BY_KIND, KIND_OPTIONS, NOT_OFFERED_HERE, PRIMARY_KINDS,
     defaultActionForKind,
 } from './actionKindCatalog';
+import { describeAction } from './actionLabels';
 import { ACTION_KINDS as EDITABLE_ACTION_KINDS } from './styleKnobMeta';
 
 const require = createRequire(import.meta.url);

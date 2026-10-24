@@ -112,7 +112,7 @@ export default function AccessMatrix({ appId, definition = null, onCommit = null
                 <table className="w-full border-collapse text-sm">
                     <thead>
                         <tr>
-                            <th className="sticky left-0 z-10 px-2 py-2 text-left text-xs font-semibold" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                            <th className="sticky left-0 z-10 px-2 py-2 text-left text-xs font-semibold [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
                                 {t('studio_apps_edit.access_matrix.screen_component', 'Screen / component')}
                             </th>
                             {roles.map((r) => (

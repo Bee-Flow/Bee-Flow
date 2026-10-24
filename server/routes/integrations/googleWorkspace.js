@@ -184,7 +184,7 @@ router.get('/callback', async (req, res) => {
                 const info = await infoRes.json();
                 if (info.email_verified !== false) email = info.email || '';
             }
-        } catch (_) { /* non-fatal — status just shows no email */ }
+        } catch (err) { log.debug('non-fatal — status just shows no email', err); }
 
         // Persist into the encrypted vault (same home as SSO-acquired tokens).
         const userStore = require('../../stores/userStore');
@@ -326,7 +326,7 @@ function callbackHTML(message, success) {
 </div>
 <script>
   if (window.opener) {
-    try { window.opener.postMessage({ type: 'google-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch(e) {}
+    try { window.opener.postMessage({ type: 'google-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch (e) { console.debug("opener gone", e); }
     setTimeout(() => window.close(), 1500);
   }
 </script>

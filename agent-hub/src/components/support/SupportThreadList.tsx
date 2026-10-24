@@ -72,8 +72,7 @@ function SupportThreadFilters({ search, setSearch, onSearch, statusFilter, setSt
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                     onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && onSearch()}
                     placeholder={t('support.support_inbox_search_subject_or_email', 'Search subject or email...')}
-                    className="flex-1 px-3 py-1.5 rounded-md border text-sm"
-                    style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="flex-1 px-3 py-1.5 rounded-md border text-sm [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 />
             </div>
             <div className="px-3 py-2 border-b flex gap-1 overflow-x-auto border-[var(--border-default)]">
@@ -136,7 +135,7 @@ function SupportThreadRow({ th, selected, checked, onSelect, onToggle }: Support
                     {STATUS_LABELS[th.status] || th.status}
                 </span>
                 {th.source === 'marketing' && (
-                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb' }}>{t('support.support_inbox_marketing', 'marketing')}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded [background:rgba(59,130,246,0.12)] [color:#2563eb]!">{t('support.support_inbox_marketing', 'marketing')}</span>
                 )}
                 {PRIORITY_BADGES[th.priority] && th.priority !== 'normal' && (
                     <span className="text-xs px-1.5 py-0.5 rounded" style={PRIORITY_BADGES[th.priority] && { background: PRIORITY_BADGES[th.priority].bg, color: PRIORITY_BADGES[th.priority].fg }}>

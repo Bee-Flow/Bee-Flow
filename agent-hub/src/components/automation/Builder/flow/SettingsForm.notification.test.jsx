@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { editor, typeInEditor } from '../../../../test/refEditor';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 /**
  * The notification step's delivery target. `channels` was honoured by the

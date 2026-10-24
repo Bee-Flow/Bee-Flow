@@ -5,6 +5,7 @@ import { pillStatusOf } from './pipelineModel';
 import { fmt, kindLabel, StatusPill, statusLabel } from './stageText';
 import { useStageLabel } from './StageSwitcher';
 import { getStage, type DeploymentSummary, type StageKey, type StageSettingsSummary } from './stagesApi';
+import { logger } from '../../../../../utils/logger';
 
 /** The lower sections of the Status tab: last deployment and the addresses of a stage. */
 
@@ -16,7 +17,7 @@ function CopyButton({ value }: { value: string }) {
             await navigator.clipboard.writeText(value);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch { /* the address is on screen; copying by hand still works */ }
+        } catch (err) { logger.debug('the address is on screen; copying by hand still works', err); }
     };
     return (
         <button

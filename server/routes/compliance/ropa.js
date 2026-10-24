@@ -92,7 +92,7 @@ async function _buildRopa(orgId) {
                        is_published
                 FROM agents WHERE is_published = TRUE
             `);
-        } catch { /* fresh */ }
+        } catch (err) { log.debug('fresh', err); }
         agents = agents.filter(a => !a.organization_id || a.organization_id === orgId);
 
         let processors = [];
@@ -100,7 +100,7 @@ async function _buildRopa(orgId) {
             // The ledger's processors over 180 days, the 'default' bucket
             // included (compliance/ropa/ledgerProcessors.js says why).
             processors = await ledgerProcessors(orgId);
-        } catch { /* fresh */ }
+        } catch (err) { log.debug('fresh', err); }
 
         const activities = agents.map(a => ({
             activity_id: a.id,
@@ -268,7 +268,7 @@ async function _buildRopa(orgId) {
             try {
                 titles = await require('../../compliance/aiAct/signals')
                     .titlesFor(orgId, automationAssessments.map(r => ({ target_kind: 'automation', target_id: r.target_id })));
-            } catch { /* titles are a nicety, the register is not */ }
+            } catch (err) { log.debug('titles are a nicety, the register is not', err); }
         }
         const ai_systems = automationAssessments
             .map(r => ({

@@ -19,6 +19,7 @@ const { automationForRun, isTestRun } = require('./definitionForRun');
 // Solution stages (design 4.2, D17): the project's variable values over
 // definition.vars, and whether an automation is managed by a stage.
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
+const log = require('../../telemetry/log');
 
 /**
  * Which organisation a run belongs to: the automation's own, else its OWNER's.
@@ -179,7 +180,7 @@ async function createRunVault(deps, { parentRunId, run, runOrgId, automation, ef
                     action_taken: 'redacted',
                     is_dry_run: effectiveMode === 'dry_run',
                 }).catch(() => {});
-            } catch (_) { /* never fail a run on audit logging */ }
+            } catch (err) { log.debug('never fail a run on audit logging', err); }
         },
     });
     return tokenVault;

@@ -13,6 +13,7 @@ import type { DiagramDefinition, RunRow, Rf } from './diagramPaneTypes';
 import type { EdgeClick } from './useEdgeEditCallbacks';
 import type { NodeDropHit } from './useNodeDragWiring';
 import type { DropTarget } from './stepDrag';
+import { logger } from '../../../../utils/logger';
 
 interface RenderedGraphArgs {
     editable?: boolean;
@@ -122,9 +123,9 @@ export function useRenderedGraph({
         // Frame it once the new positions have rendered.
         requestAnimationFrame(() => {
             if (fitCanvas) { fitCanvas({ duration: 300 }); return; }
-            try { rf.fitView({ padding: 0.08, duration: 300 }); } catch { /* canvas gone */ }
+            try { rf.fitView({ padding: 0.08, duration: 300 }); } catch (err) { logger.debug('canvas gone', err); }
         });
-    }, [definition, onDefinitionChange, allowEdgeEdits, onExpandAllFlowlets, onCollapseAllFlowlets, rf, fitCanvas]);
+    }, [definition, onDefinitionChange, allowEdgeEdits, onExpandAllFlowlets, onCollapseAllFlowlets, rf, fitCanvas, isDraggingRef, wrapperRef]);
 
     // `onInspect` backs the run-data chip: it opens the SOURCE step's full
     // view, which is where the rows behind "201 records" actually are.

@@ -7,6 +7,7 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { fetchAgent } from '../../../../api/agentEditor';
 import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
+import { logger } from '../../../../utils/logger';
 
 // Agent rows are server JSON the editor passes through as is.
 type Loose = any;
@@ -91,6 +92,6 @@ export function createVersionRestore(d: VersionRestoreDeps) {
                 const fresh = await res.json();
                 applyRestoredAgent(d, fresh);
             }
-        } catch { /* ignore */ }
+        } catch (err) { logger.debug('ignore', err); }
     };
 }

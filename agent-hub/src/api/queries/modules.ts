@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { logger } from '../../utils/logger';
 
 export const moduleKeys = {
     all: ['admin-modules'] as const,
@@ -512,7 +513,7 @@ export function useSideloadModule() {
                 body: file,
             });
             let parsed: any = null;
-            try { parsed = await res.json(); } catch { /* not JSON */ }
+            try { parsed = await res.json(); } catch (err) { logger.debug('not JSON', err); }
             if (!res.ok) {
                 throw new ApiError(parsed?.error || `HTTP ${res.status}`, { status: res.status, body: parsed });
             }

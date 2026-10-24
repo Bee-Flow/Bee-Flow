@@ -6,6 +6,7 @@ import LessonPlayer from './player/LessonPlayer';
 import { useTranslation } from '../../hooks/useTranslation';
 import { lessonPlays } from '../../pages/settings/learning/curriculum';
 import { useLicenseContext } from '../licensing/LicenseContext';
+import { logger } from '../../utils/logger';
 
 /**
  * LessonPlayerHost — mounted once in App (beside OnboardingTour). Listens for
@@ -43,7 +44,7 @@ export default function LessonPlayerHost({ user, onNavigate }: LessonPlayerHostP
             // the return context with it: completion brings the learner back
             // here instead of the onboarding home-jump to Direct chat (BFSF-472).
             if (lessonIdIsPureTour(lessonId)) {
-                try { window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { lessonId, returnTo: 'settings/learning' } })); } catch (_) { /* ignore */ }
+                try { window.dispatchEvent(new CustomEvent(TOUR_START_EVENT, { detail: { lessonId, returnTo: 'settings/learning' } })); } catch (err) { logger.debug('ignore', err); }
                 return;
             }
             try {
@@ -80,7 +81,7 @@ export default function LessonPlayerHost({ user, onNavigate }: LessonPlayerHostP
         try {
             const now = xpFromProgress(completedMap, user, hasFeature, readMasteredMap(user));
             xp = { gained: Math.max(0, now.xp - beforeXpRef.current), total: now.xp, level: now.level, next: now.next, masteryBonus: XP_PER_MASTERY };
-        } catch (_) { /* celebration only */ }
+        } catch (err) { logger.debug('celebration only', err); }
 
         // The next not-complete lesson in the same course — offered right on
         // the end screen, beside the app when it has real-app steps.

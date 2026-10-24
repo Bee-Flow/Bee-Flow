@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The Relationships canvas — the behaviour that touches the MODEL, not the

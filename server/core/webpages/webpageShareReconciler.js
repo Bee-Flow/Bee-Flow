@@ -47,6 +47,7 @@
 
 'use strict';
 
+const { featureModule } = require('../featureModules');
 const bridgeGrants = require('../../stores/webpage/bridgeGrants');
 
 /**
@@ -62,7 +63,7 @@ const bridgeGrants = require('../../stores/webpage/bridgeGrants');
  */
 async function reSnapshotWebpageShares(webpageId, ownerId, deps = {}) {
     const publicShareStore = deps.publicShareStore || require('../../stores/webpagePublicShareStore');
-    const webpageSnapshot = deps.webpageSnapshot || require('../../services/webpageSnapshot');
+    const webpageSnapshot = deps.webpageSnapshot || featureModule('services/webpageSnapshot');
     const log = deps.log || console;
     let written = 0;
     try {

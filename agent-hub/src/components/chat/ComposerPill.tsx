@@ -93,7 +93,7 @@ export default function ComposerPill({
                     style={{ color: kindColorVar(kind), flexShrink: 0 }}
                 />
             )}
-            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="min-w-[0] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                 {label}
             </span>
             {showCount && (

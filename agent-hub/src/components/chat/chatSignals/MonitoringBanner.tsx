@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import scopedStorage from '../../../utils/scopedStorage';
 import { formatNoticeDate, type NoticeModel } from './chatSignalsModel';
+import { logger } from '../../../utils/logger';
 
 /**
  * A one-time banner above the chat-signals line, once per version: a new
@@ -26,9 +27,7 @@ function readSeen(): string | null {
 function writeSeen(version: string): void {
     try {
         scopedStorage.setItem(BANNER_SEEN_KEY, version);
-    } catch {
-        /* the banner simply shows again next time */
-    }
+    } catch (err) { logger.debug('the banner simply shows again next time', err); }
 }
 
 export default function MonitoringBanner({ notice }: { notice: NoticeModel | null }) {

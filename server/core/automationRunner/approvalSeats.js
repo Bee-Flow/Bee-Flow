@@ -141,7 +141,7 @@ async function panelRecipientIds(approvers, cap = GROUP_NOTIFY_CAP) {
                     if (out.size >= cap) break;
                     out.add(id);
                 }
-            } catch { /* the other seats still hear about it */ }
+            } catch (err) { log.debug('the other seats still hear about it', err); }
         }
     }
     return [...out];

@@ -119,7 +119,7 @@ async function runOnDecidedHook(approval) {
                 message: `The decision on "${approval.prompt || 'an approval'}" was recorded, but the app's record could not be updated: ${e.message}`,
                 link: require('../utils/appPaths').approvalPath(approval.id),
             });
-        } catch { /* the audit row still tells the story */ }
+        } catch (err) { log.debug('the audit row still tells the story', err); }
         return { ran: false, error: e.message };
     }
 }

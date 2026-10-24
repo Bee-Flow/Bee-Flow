@@ -445,7 +445,7 @@ function makeChatAssistant(deps = {}) {
         if (!turn) return { status: 'idle', threadId: null };
         let threadId = null;
         if (turn.runId?.startsWith('pc:')) {
-            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch { /* older lock */ }
+            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { log.debug('older lock', err); }
         }
         return { status: 'running', threadId, startedAt: turn.acquiredAt };
     }

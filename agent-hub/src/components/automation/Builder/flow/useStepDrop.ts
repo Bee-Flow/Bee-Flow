@@ -187,7 +187,7 @@ export function useStepDrop({
         // degraded `definition` can't produce a shapeless graph here either.
         onDefinitionChange?.(applyAddNode(definition, payload, point));
         onStepAdded?.(payload, null);
-    }, [editable, structuralEditsBlocked, definition, edges, onDropStep, onDefinitionChange, onStepAdded, rf, scopeAtPoint, catalog]);
+    }, [editable, structuralEditsBlocked, definition, edges, onDropStep, onDefinitionChange, onStepAdded, rf, scopeAtPoint, catalog, wrapperRef]);
 
     return { dropTarget, onDragOver, onDragLeave, onNodeDoubleClick, onDrop };
 }

@@ -30,6 +30,7 @@ const { checkDatatableCreate } = require('./datatableCreateAccess');
 const { stagePendingDatatable } = require('./pendingDatatables');
 const { choiceRequiredError } = require('./datatableApproval');
 const { normaliseKey } = require('./datatableRefs');
+const log = require('../../telemetry/log');
 
 const MAX_FIELDS = 40;
 const FIELD_TYPES = ['text', 'richtext', 'number', 'date', 'datetime', 'bool', 'select', 'multiselect', 'file'];
@@ -184,7 +185,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     try {
         const fresh = await deps.catalogFor(ownerId);
         if (Array.isArray(fresh) && fresh.some((t) => t.id === table.id)) draftWrap._datatables = fresh;
-    } catch { /* the in-place entry stands */ }
+    } catch (err) { log.debug('the in-place entry stands', err); }
     // The assistant made this table for the user's request, so binding steps
     // to it needs no further consent; the ids are remembered across turns.
     if (draftWrap._approvedDatatableIds instanceof Set) draftWrap._approvedDatatableIds.add(table.id);

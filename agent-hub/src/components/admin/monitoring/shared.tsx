@@ -129,10 +129,10 @@ export function Card({ title, icon: Icon, children, style: extraStyle, action }:
             ...extraStyle,
         }}>
             {(title || action) && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:14px]">
+                    <div className="[display:flex] [align-items:center] [gap:8px]">
                         {Icon && <Icon style={{ width: 16, height: 16, color: COLORS.primary }} />}
-                        {title && <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary, #fff)' }}>{title}</span>}
+                        {title && <span className="[font-size:14px] [font-weight:700] [color:var(--text-primary,#fff)]">{title}</span>}
                     </div>
                     {action}
                 </div>
@@ -144,11 +144,7 @@ export function Card({ title, icon: Icon, children, style: extraStyle, action }:
 
 export function Empty({ text }: EmptyProps) {
     return (
-        <div style={{
-            padding: '2.5rem 1rem', textAlign: 'center',
-            color: 'var(--text-muted, #666)', fontSize: '13px',
-            borderRadius: '10px', background: 'var(--bg-tertiary, rgba(255,255,255,0.02))',
-        }}>
+        <div className="[padding:2.5rem_1rem] [text-align:center] [color:var(--text-muted,#666)] [font-size:13px] [border-radius:10px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))]">
             {text}
         </div>
     );
@@ -158,27 +154,22 @@ export function MetricCard({ icon: Icon, label, value, color, subtitle, delta, d
     const deltaColor = (delta ?? 0) > 0 ? COLORS.green : (delta ?? 0) < 0 ? COLORS.rose : 'var(--text-muted, #888)';
     const DeltaIcon = (delta ?? 0) > 0 ? ArrowUp : (delta ?? 0) < 0 ? ArrowDown : Minus;
     return (
-        <div style={{
-            background: 'var(--bg-secondary, #1a1a2e)', borderRadius: '14px',
-            padding: '18px', border: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-            display: 'flex', flexDirection: 'column', gap: '6px',
-            transition: 'border-color 0.2s, transform 0.2s',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="[background:var(--bg-secondary,#1a1a2e)] [border-radius:14px] [padding:18px] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [display:flex] [flex-direction:column] [gap:6px] [transition:border-color_0.2s,transform_0.2s]">
+            <div className="[display:flex] [align-items:center] [gap:8px]">
                 <div style={{
                     width: '30px', height: '30px', borderRadius: '8px',
                     background: color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                     <Icon style={{ width: 16, height: 16, color }} />
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted, #888)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span className="[font-size:11px] [font-weight:600] [color:var(--text-muted,#888)] [text-transform:uppercase] [letter-spacing:0.04em]">
                     {label}
                 </span>
             </div>
-            <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary, #fff)', lineHeight: 1 }}>
+            <span className="[font-size:1.75rem] [font-weight:800] [color:var(--text-primary,#fff)] [line-height:1]">
                 {value}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '16px' }}>
+            <div className="[display:flex] [align-items:center] [gap:6px] min-h-[16px]">
                 {delta != null && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: 600, color: deltaColor }}>
                         <DeltaIcon style={{ width: 12, height: 12 }} />
@@ -186,7 +177,7 @@ export function MetricCard({ icon: Icon, label, value, color, subtitle, delta, d
                     </span>
                 )}
                 {(subtitle || deltaLabel) && (
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted, #888)' }}>
+                    <span className="[font-size:11px] [color:var(--text-muted,#888)]">
                         {subtitle || deltaLabel}
                     </span>
                 )}
@@ -212,12 +203,12 @@ export function InOutBar({ input, output, height = 5, style }: InOutBarProps) {
 export function InOutLabel({ input, output, inputCost, outputCost, showCost }: InOutLabelProps) {
     return (
         <div style={{ display: 'flex', gap: showCost ? 14 : 10, fontSize: '11px', color: 'var(--text-muted, #888)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span className="[display:flex] [align-items:center] [gap:3px]">
                 <span style={{ width: 6, height: 6, borderRadius: 2, background: COLORS.blue, display: 'inline-block' }} />
                 <span style={{ color: COLORS.blue, fontWeight: 600 }}>{fmt(input)}</span>
                 {showCost && inputCost != null && <span style={{ color: COLORS.blue, opacity: 0.7, fontWeight: 500 }}>({fmtCost(inputCost)})</span>}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span className="[display:flex] [align-items:center] [gap:3px]">
                 <span style={{ width: 6, height: 6, borderRadius: 2, background: COLORS.amber, display: 'inline-block' }} />
                 <span style={{ color: COLORS.amber, fontWeight: 600 }}>{fmt(output)}</span>
                 {showCost && outputCost != null && <span style={{ color: COLORS.amber, opacity: 0.7, fontWeight: 500 }}>({fmtCost(outputCost)})</span>}
@@ -241,7 +232,7 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', col
     const areaPath = `${linePath} L100,100 L0,100 Z`;
     return (
         <div style={{ position: 'relative', height }}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-[100%] h-[100%] [overflow:visible]">
                 <defs>
                     <linearGradient id={`grad-${yKey}-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={color} stopOpacity="0.25" />
@@ -261,7 +252,7 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', col
                         fill="transparent"
                         onMouseEnter={() => setHover(i)}
                         onMouseLeave={() => setHover(null)}
-                        style={{ cursor: 'crosshair' }}
+                        className="[cursor:crosshair]"
                     />
                 ))}
                 {/* Hover dot */}
@@ -284,15 +275,15 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', col
                     zIndex: 10,
                 }}>
                     <div style={{ color }}>{formatY(points[hover].d[yKey] || 0)}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)', marginTop: '1px' }}>
+                    <div className="[font-size:10px] [color:var(--text-muted,#888)] [margin-top:1px]">
                         {formatLabel ? formatLabel(points[hover].d) : points[hover].d.period || ''}
                     </div>
                 </div>
             )}
             {/* X-axis labels */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted, #666)' }}>{data[0]?.period?.slice(5) || ''}</span>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted, #666)' }}>{data[data.length - 1]?.period?.slice(5) || ''}</span>
+            <div className="[display:flex] [justify-content:space-between] [margin-top:6px]">
+                <span className="[font-size:10px] [color:var(--text-muted,#666)]">{data[0]?.period?.slice(5) || ''}</span>
+                <span className="[font-size:10px] [color:var(--text-muted,#666)]">{data[data.length - 1]?.period?.slice(5) || ''}</span>
             </div>
         </div>
     );
@@ -302,12 +293,12 @@ export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', col
 
 export function DonutChart({ items, size = 160, centerLabel, centerValue }: DonutChartProps) {
     const total = items.reduce((s, i) => s + (i.value || 0), 0) || 1;
-    let cumulative = 0;
+    const starts: number[] = [];
+    items.reduce((acc, i) => { starts.push(acc); return acc + (i.value || 0) / total; }, 0);
     const arcs = items.map((item, idx) => {
         const pct = (item.value || 0) / total;
-        const startAngle = cumulative * 360;
-        cumulative += pct;
-        const endAngle = cumulative * 360;
+        const startAngle = starts[idx] * 360;
+        const endAngle = (starts[idx] + pct) * 360;
         const large = pct > 0.5 ? 1 : 0;
         const r = 40;
         const cx = 50, cy = 50;
@@ -320,15 +311,15 @@ export function DonutChart({ items, size = 160, centerLabel, centerValue }: Donu
         return { ...item, path, pct, color: item.color || MODEL_COLORS[idx % MODEL_COLORS.length] };
     });
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div className="[display:flex] [align-items:center] [gap:20px]">
             <svg width={size} height={size} viewBox="0 0 100 100">
                 {arcs.map((arc, i) => (
                     <path key={i} d={arc.path} fill="none" stroke={arc.color} strokeWidth="14" strokeLinecap="round"
-                        style={{ transition: 'stroke-dashoffset 0.4s ease' }} />
+                        className="[transition:stroke-dashoffset_0.4s_ease]" />
                 ))}
                 {centerLabel && (
                     <>
-                        <text x="50" y="46" textAnchor="middle" fill="var(--text-muted, #888)" fontSize="6" fontWeight="600" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <text x="50" y="46" textAnchor="middle" fill="var(--text-muted, #888)" fontSize="6" fontWeight="600" className="[text-transform:uppercase] [letter-spacing:0.05em]">
                             {centerLabel}
                         </text>
                         <text x="50" y="58" textAnchor="middle" fill="var(--text-primary, #fff)" fontSize="12" fontWeight="800">
@@ -337,14 +328,14 @@ export function DonutChart({ items, size = 160, centerLabel, centerValue }: Donu
                     </>
                 )}
             </svg>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
+            <div className="[display:flex] [flex-direction:column] [gap:6px] min-w-[0]">
                 {arcs.map((arc, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+                    <div key={i} className="[display:flex] [align-items:center] [gap:6px] [font-size:11px]">
                         <span style={{ width: 8, height: 8, borderRadius: 2, background: arc.color, flexShrink: 0 }} />
-                        <span style={{ color: 'var(--text-secondary, #aaa)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '110px' }}>
+                        <span className="[color:var(--text-secondary,#aaa)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] max-w-[110px]">
                             {arc.label}
                         </span>
-                        <span style={{ color: 'var(--text-muted, #888)', fontWeight: 600, marginLeft: 'auto' }}>
+                        <span className="[color:var(--text-muted,#888)] [font-weight:600] [margin-left:auto]">
                             {(arc.pct * 100).toFixed(0)}%
                         </span>
                     </div>
@@ -358,7 +349,7 @@ export function DonutChart({ items, size = 160, centerLabel, centerValue }: Donu
 
 function FilterSelect({ icon: Icon, value, onChange, options, placeholder }: FilterSelectProps) {
     return (
-        <div style={{ position: 'relative' }}>
+        <div className="[position:relative]">
             <div style={{
                 display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 10px', borderRadius: '8px',
                 background: value ? `${COLORS.primary}15` : 'var(--bg-primary, #0f0f1a)',
@@ -371,12 +362,7 @@ function FilterSelect({ icon: Icon, value, onChange, options, placeholder }: Fil
                 <select
                     value={value || ''}
                     onChange={(e) => onChange(e.target.value || null)}
-                    style={{
-                        background: 'transparent', border: 'none', outline: 'none',
-                        color: 'inherit', fontSize: '12px', fontWeight: 500,
-                        cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none',
-                        minWidth: '60px', paddingRight: '14px',
-                    }}
+                    className="[background:transparent] [border:none] [outline:none] [color:inherit] [font-size:12px] [font-weight:500] [cursor:pointer] [appearance:none] [-webkit-appearance:none] min-w-[60px] [padding-right:14px]"
                 >
                     <option value="">{placeholder}</option>
                     {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -392,27 +378,17 @@ export function FilterBar({ filters, setFilters, userOptions = [], agentOptions 
     const hasFilters = filters.user || filters.agent || filters.model || filters.source;
     const clear = () => setFilters({ user: null, agent: null, model: null, source: null });
     return (
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap',
-            padding: '8px 12px', borderRadius: '10px',
-            background: 'var(--bg-secondary, #1a1a2e)',
-            border: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-            marginBottom: '16px',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '4px' }}>
+        <div className="[display:flex] [align-items:center] [gap:6px] [flex-wrap:wrap] [padding:8px_12px] [border-radius:10px] [background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [margin-bottom:16px]">
+            <div className="[display:flex] [align-items:center] [gap:4px] [margin-right:4px]">
                 <Filter style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted, #888)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('admin_monitoring.shared_filters', 'Filters')}</span>
+                <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted,#888)] [text-transform:uppercase] [letter-spacing:0.05em]">{t('admin_monitoring.shared_filters', 'Filters')}</span>
             </div>
             <FilterSelect icon={Users} value={filters.user} onChange={v => setFilters(f => ({ ...f, user: v }))} options={userOptions} placeholder={t('admin_monitoring.shared_all_users', 'All Users')} />
             <FilterSelect icon={Bot} value={filters.agent} onChange={v => setFilters(f => ({ ...f, agent: v }))} options={agentOptions} placeholder={t('admin_monitoring.shared_all_agents', 'All Agents')} />
             <FilterSelect icon={Cpu} value={filters.model} onChange={v => setFilters(f => ({ ...f, model: v }))} options={modelOptions} placeholder={t('admin_monitoring.all_models', 'All Models')} />
             <FilterSelect icon={Activity} value={filters.source} onChange={v => setFilters(f => ({ ...f, source: v }))} options={sourceOptions} placeholder={t('admin_monitoring.all_sources', 'All Sources')} />
             {hasFilters && (
-                <button onClick={clear} style={{
-                    display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px', borderRadius: '6px',
-                    border: 'none', background: 'var(--bg-tertiary, rgba(255,255,255,0.04))',
-                    fontSize: '10px', fontWeight: 600, color: 'var(--text-muted, #888)', cursor: 'pointer',
-                }}>
+                <button onClick={clear} className="[display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px] [border:none] [background:var(--bg-tertiary,rgba(255,255,255,0.04))] [font-size:10px] [font-weight:600] [color:var(--text-muted,#888)] [cursor:pointer]">
                     <X style={{ width: 10, height: 10 }} /> {t('admin_monitoring.shared_clear', 'Clear')}
                 </button>
             )}
@@ -475,7 +451,7 @@ export function SortableTable<Row extends object>({ columns, data, onRowClick, e
                     >
                         {col.label}
                         {sortCol === col.key && (
-                            <span style={{ fontSize: '8px', opacity: 0.7 }}>{sortDir === 'desc' ? '▼' : '▲'}</span>
+                            <span className="[font-size:8px] [opacity:0.7]">{sortDir === 'desc' ? '▼' : '▲'}</span>
                         )}
                     </span>
                 ))}
@@ -518,29 +494,26 @@ export function ModelRow({ model: m, index, maxTokens, cost }: ModelRowProps) {
     const cached = m.cached_tokens || 0;
     const reasoning = m.reasoning_tokens || 0;
     return (
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '10px 0', borderBottom: '1px solid var(--border-default, rgba(255,255,255,0.05))',
-        }}>
+        <div className="[display:flex] [align-items:center] [gap:10px] [padding:10px_0] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))]">
             <div style={{
                 width: '6px', height: '6px', borderRadius: '50%',
                 background: MODEL_COLORS[index % MODEL_COLORS.length], flexShrink: 0,
             }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary, #fff)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div className="[flex:1] min-w-[0]">
+                <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                     {shortModel(m.model || 'unknown')}
                 </div>
                 <InOutBar input={m.prompt_tokens} output={m.completion_tokens} height={3} style={{ marginTop: '4px', maxWidth: '120px' }} />
                 {(cached > 0 || reasoning > 0) && (
-                    <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)', marginTop: '2px', display: 'flex', gap: '8px' }}>
+                    <div className="[font-size:10px] [color:var(--text-muted,#888)] [margin-top:2px] [display:flex] [gap:8px]">
                         {cached > 0 && <span title={t('admin_monitoring.shared_cached_title', 'Cached input tokens')}>💾 {fmt(cached)}</span>}
                         {reasoning > 0 && <span title={t('admin_monitoring.shared_reasoning_title', 'Reasoning / thinking tokens (billed at output rate)')}>🧠 {fmt(reasoning)}</span>}
                     </div>
                 )}
             </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div className="[text-align:right] [flex-shrink:0]">
                 <div style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>{fmt(m.total_tokens)}</div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)' }}>
+                <div className="[font-size:10px] [color:var(--text-muted,#888)]">
                     {t('admin_monitoring.shared_n_calls', '{n} calls', { n: m.calls })}{cost ? ` · ${fmtCost(cost)}` : ''}
                 </div>
             </div>
@@ -552,11 +525,8 @@ export function AgentRow({ agent: a, index, detailed }: { agent: UsageRecord; in
     const { t } = useTranslation();
     const style = getAgentStyle(a.agent_type);
     return (
-        <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '10px 0', borderBottom: '1px solid var(--border-default, rgba(255,255,255,0.05))',
-        }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <div className="[display:flex] [justify-content:space-between] [align-items:center] [padding:10px_0] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))]">
+            <div className="[display:flex] [align-items:center] [gap:8px] min-w-[0]">
                 <span style={{
                     padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
                     background: style.bg, color: style.text, flexShrink: 0,
@@ -566,12 +536,12 @@ export function AgentRow({ agent: a, index, detailed }: { agent: UsageRecord; in
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: detailed ? '200px' : '130px',
                 }}>{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', flexShrink: 0 }}>
+            <div className="[display:flex] [align-items:center] [gap:16px] [font-size:12px] [flex-shrink:0]">
                 {detailed && (
-                    <span style={{ color: 'var(--text-muted, #888)' }}>{t('admin_monitoring.shared_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}</span>
+                    <span className="[color:var(--text-muted,#888)]">{t('admin_monitoring.shared_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}</span>
                 )}
                 <span style={{ color: COLORS.green, fontWeight: 600 }}>{t('admin_monitoring.shared_n_tok', '{n} tok', { n: fmt(a.total_tokens) })}</span>
-                <span style={{ color: 'var(--text-muted, #888)' }}>{t('admin_monitoring.shared_n_calls', '{n} calls', { n: a.calls })}</span>
+                <span className="[color:var(--text-muted,#888)]">{t('admin_monitoring.shared_n_calls', '{n} calls', { n: a.calls })}</span>
                 <span style={{ color: COLORS.amber, fontWeight: 600, minWidth: '50px', textAlign: 'right' }}>{fmtCost(a.estimated_cost || 0)}</span>
             </div>
         </div>

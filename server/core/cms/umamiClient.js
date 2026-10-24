@@ -23,6 +23,7 @@
  */
 
 const configStore = require('../../stores/configStore');
+const log = require('../../telemetry/log');
 
 // ── Config keys ──────────────────────────────────────────────────────
 const KEY_URL       = 'cms_analytics_url';
@@ -58,7 +59,7 @@ async function getEndpoint() {
         username = await configStore.getSecret(KEY_USERNAME) || '';
         password = await configStore.getSecret(KEY_PASSWORD) || '';
         apiToken = await configStore.getSecret(KEY_API_TOKEN) || '';
-    } catch (_) { /* fall through to env */ }
+    } catch (err) { log.debug('fall through to env', err); }
     // Server→Umami API base: prefer UMAMI_URL (an internal container hostname
     // like http://umami:3000 in compose) over the operator-set public URL, so
     // server calls work even when the public stats domain isn't routable from

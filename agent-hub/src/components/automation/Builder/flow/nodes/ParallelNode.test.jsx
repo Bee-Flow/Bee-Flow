@@ -2,9 +2,9 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import ParallelNode, { parallelSummary, parallelStepCount, parallelBranches } from './ParallelNode';
+import { PALETTE_ABSENT, NODE_DEFS } from '../nodeDefs';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 import { NODE_TYPES } from '../nodeTypes';
-import { PALETTE_ABSENT, NODE_DEFS } from '../nodeDefs';
 
 /**
  * The parallel card.

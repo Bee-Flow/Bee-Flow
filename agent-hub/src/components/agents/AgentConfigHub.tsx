@@ -53,12 +53,12 @@ const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', 
             truncateLabel
         >
             {active === 'chat' && (
-                <div style={{ position: 'absolute', inset: 0 }}>
+                <div className="[position:absolute] [inset:0]">
                     <AgentDesigner onBack={null} hasPermission={hasPermission} />
                 </div>
             )}
             {active === 'system' && (
-                <div style={{ position: 'absolute', inset: 0 }}>
+                <div className="[position:absolute] [inset:0]">
                     <AgentDesigner key="system-agents" onBack={null} systemMode={true} hasPermission={hasPermission} />
                 </div>
             )}

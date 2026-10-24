@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { READ } from '../canUse/canUseFacts';
 import type { ReadState } from '../agentEditor.types';
+import { logger } from '../../../../utils/logger';
 
 /** The persona column of an agent; the editor reads its language. */
 export interface ConceptPersona { language?: string | null; [key: string]: unknown }
@@ -81,7 +82,7 @@ export default function useAgentConceptFacts(agentId: string | null) {
                 return undefined;
             }
         })();
-        return () => { alive = false; try { ctrl.abort(); } catch (_) { /* noop */ } };
+        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [agentId]);
 
     // Feiten van een VORIGE agent horen niet bij deze; tijdens het wisselen is

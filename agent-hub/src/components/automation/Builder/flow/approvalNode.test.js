@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 
 import { NODE_DEFS, PALETTE_ABSENT } from './nodeDefs';
 import { NODE_TYPES } from '../DiagramPane';
-import { buildSearchResults } from './stepPalette';
 import { approvalSummary, approvalDeadline } from './nodeSummaries';
 import { extractFormState, buildPatch } from './settings/formState';
+import { buildSearchResults } from './stepPalette';
 
 /**
  * Approvals were engine-only for a long time: the runner paused, resumed and

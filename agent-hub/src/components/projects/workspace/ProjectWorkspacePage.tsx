@@ -9,7 +9,7 @@ import { registerNavigationGuard } from '../../../utils/unsavedNavigation';
 // sections are separate chunks, loaded when first opened.
 
 import { AlertTriangle, History, Package } from 'lucide-react';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
 import { ApiError } from '../../../api/client';
 import { useProjectVisitQuery, type ChangeItemType } from '../../../api/queries/projectChanges';
 import {
@@ -236,7 +236,9 @@ function Workspace(props: WorkspaceProps) {
     const onSettingsDirty = useCallback((dirty: boolean) => { settingsDirty.current = dirty; }, []);
     const plainRoute = useWorkspaceRoute(initialTab, initialSub, onRouteChange);
     const routeNow = useRef(plainRoute);
-    routeNow.current = plainRoute;
+    useLayoutEffect(() => {
+        routeNow.current = plainRoute;
+    });
     // One question for every way out of unsaved Settings: the rail, the app's
     // navigation guard, the back button. Resolves true when the reader leaves.
     const leave = useCallback((): boolean | Promise<boolean> => {

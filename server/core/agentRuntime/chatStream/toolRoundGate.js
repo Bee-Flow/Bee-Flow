@@ -91,7 +91,7 @@ async function dispatchToolRound({
         // grant is keyed on the automation id, the tool on its
         // name), so it is rebuilt per round like the policy itself.
         _automationConfirms = automationConfirmsFor(tools, agent.config);
-    } catch (_) { /* no overrides is the pre-grant behaviour */ }
+    } catch (err) { log.debug('no overrides is the pre-grant behaviour', err); }
     try {
         _roundPolicy = buildToolPolicy({
             agentConfig: agent.config, tools, unattended,

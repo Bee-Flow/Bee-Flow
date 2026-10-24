@@ -266,7 +266,7 @@ router.post('/organizations/:id/encryption/backfill', validate({ body: Encryptio
             'org.encryption.backfill', 'organization', id, actorId,
             null, { dryRun, tier: policy.tier }, id,
         );
-    } catch (_) { /* logAccessAudit already swallows; belt and braces */ }
+    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
 
     res.status(202).json(job);
 });
@@ -372,7 +372,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
 
     // ── Make the change take effect ──────────────────────────────────────────
     invalidatePolicyCache(id);
-    try { require('../orgEscrow').invalidateOrgKeyCache(id); } catch (_) { /* non-fatal */ }
+    try { require('../orgEscrow').invalidateOrgKeyCache(id); } catch (err) { log.debug('non-fatal', err); }
 
     // Switching INTO zk must force a re-auth. The zero-knowledge tier has no
     // escrow, so the only source of a key is the per-user DEK derived at login.
@@ -402,7 +402,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
             { tier: updates.encryptionTier ?? prevPolicy.tier, scope: updates.encryptionScope ?? null },
             id,
         );
-    } catch (_) { /* logAccessAudit already swallows; belt and braces */ }
+    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
 
     const fresh = await userStore.getOrganization(id);
     const policy = policyFromRow({

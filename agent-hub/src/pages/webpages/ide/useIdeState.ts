@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import scopedStorage from '../../../utils/scopedStorage';
 import type { FileKey } from './ideFiles';
+import { logger } from '../../../utils/logger';
 
 // Below this container width the 3-pane layout is too cramped, so the chat
 // collapses to a top-bar toggle and the preview takes the full width.
@@ -24,7 +25,7 @@ export function useDevMode(devModeProp: boolean | undefined, onDevModeChange?: (
         const next = !devMode;
         // The preference is remembered either way: whichever surface the user
         // last chose is the one that opens next time.
-        try { scopedStorage.setItem('webpages_dev_mode', String(next)); } catch { /* storage unavailable */ }
+        try { scopedStorage.setItem('webpages_dev_mode', String(next)); } catch (err) { logger.debug('storage unavailable', err); }
         if (controlled) { onDevModeChange?.(next); return; }
         setOwnDevMode(next);
     };

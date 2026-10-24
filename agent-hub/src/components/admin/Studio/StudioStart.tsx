@@ -2,7 +2,8 @@ import { Lock } from 'lucide-react';
 import AttentionList from './attention/AttentionList';
 import StudioMap from './map/StudioMap';
 import RecentWorkList from './recent/RecentWorkList';
-import { groupStudioApps, STUDIO_APPS, studioLockHint } from './studioApps';
+import { groupStudioApps, studioLockHint } from './studioGates';
+import { STUDIO_SECTIONS } from './studioSections';
 import StudioHomeHeader from './StudioHomeHeader';
 import { studioGateContext, studioNavSections, studioSectionLabel, type StudioLabelled } from './studioNav';
 import { useStudioCounts } from '../../../hooks/useStudioCounts';
@@ -70,7 +71,7 @@ export default function StudioStart({ user, onNavigate, hasPermission = () => tr
         user, hasLicenseFeature, hasPermission, can, lockReason,
         entitlementsLoading, entitlementsError,
     });
-    const sections = studioNavSections([...STUDIO_APPS, ...runtimeStudioApps], ctx);
+    const sections = studioNavSections([...STUDIO_SECTIONS, ...runtimeStudioApps], ctx);
     const groups = groupStudioApps(sections);
 
     // Runtime modules carry a locale-aware label() fn; built-ins an i18n key.

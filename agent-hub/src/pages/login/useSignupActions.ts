@@ -6,6 +6,7 @@ import { clearedSignupData } from './loginShared';
 import { validateSubmit } from './signupValidation';
 import type { SignupData } from './signupValidation';
 import type { InviteInfo } from './useInviteToken';
+import { logger } from '../../utils/logger';
 
 interface SignupActionsDeps {
     t: TranslateFn;
@@ -141,7 +142,7 @@ export function useSignupActions(deps: SignupActionsDeps) {
         setResending(true);
         try {
             await postResendVerification(target);
-        } catch { /* still show the neutral confirmation */ }
+        } catch (err) { logger.debug('still show the neutral confirmation', err); }
         setResendDone(true);
         setResending(false);
     };

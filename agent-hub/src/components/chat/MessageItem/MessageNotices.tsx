@@ -21,22 +21,16 @@ export const CompactionDivider = ({ t }: { t: TranslateFn }) => (
 export const RemovedUserMessage = ({ t }: { t: TranslateFn }) => (
     <div className="flex justify-end mb-2 animate-fade-in">
         <div
-            className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl select-none"
-            style={{
-                background: 'linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%)',
-                border: '1px dashed var(--border-subtle)',
-                opacity: 0.7,
-            }}
+            className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl select-none [background:linear-gradient(135deg,var(--bg-tertiary)_0%,var(--bg-secondary)_100%)] [border:1px_dashed_var(--border-subtle)] [opacity:0.7]"
         >
             <div
-                className="flex items-center justify-center w-6 h-6 rounded-full"
-                style={{ background: 'var(--bg-tertiary)', flexShrink: 0 }}
+                className="flex items-center justify-center w-6 h-6 rounded-full [background:var(--bg-tertiary)] [flex-shrink:0]"
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--text-muted)]">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
             </div>
-            <span className="text-xs" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            <span className="text-xs [color:var(--text-muted)]! [font-style:italic]">
                 {t('chat.message_removed', 'Message removed by security policy')}
             </span>
         </div>

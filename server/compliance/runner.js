@@ -458,7 +458,7 @@ async function _runCustom(orgId, runType) {
 function _invalidateCounts(orgId) {
     // routes/compliance/counts.js caches /counts for 60 s per org; bust it so
     // the rail reflects this sweep. The module lands in Wave 1 — best-effort.
-    try { require('./countsCache').invalidate(orgId); } catch { /* not shipped yet */ }
+    try { require('./countsCache').invalidate(orgId); } catch (err) { log.debug('not shipped yet', err); }
 }
 
 /**

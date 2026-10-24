@@ -125,7 +125,7 @@ async function _resolveIntegrationCtx({ userId, orgId, session, toolName = null 
         if (userId && typeof configStore.getSecret === 'function') {
             ctx.youtrackUrl = (await configStore.getSecret(`youtrack_url_user_${userId}`)) || null;
         }
-    } catch (_) { /* endpoint resolution is best-effort */ }
+    } catch (err) { log.debug('endpoint resolution is best-effort', err); }
     _ctxCache.set(key, { ctx, at: Date.now() });
     if (_ctxCache.size > 500) _ctxCache.delete(_ctxCache.keys().next().value);
     return { ...ctx, ...custom };
@@ -247,7 +247,7 @@ function logToolEgress(o) {
                     const { scanOutputForPii } = require('./integrationToolMap');
                     const quick = scanOutputForPii(payloadText);
                     if (quick) categories.push(...quick.split(','));
-                } catch (_) { /* sniff is best-effort */ }
+                } catch (err) { log.debug('sniff is best-effort', err); }
                 try {
                     const threshold = typeof shield?.piiDetectionConfidenceThreshold === 'number'
                         ? shield.piiDetectionConfidenceThreshold : 0.7;
@@ -265,7 +265,7 @@ function logToolEgress(o) {
                             categories.push(e.category || e.label);
                         }
                     }
-                } catch (_) { /* GLiNER unavailable → stay at 'basic' */ }
+                } catch (err) { log.debug('GLiNER unavailable → stay at \'basic\'', err); }
             }
 
             const probe = _probeForRow(o.probe, o.toolName, meta, !!o.blocked);

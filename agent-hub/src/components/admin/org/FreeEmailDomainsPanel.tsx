@@ -109,7 +109,7 @@ export default function FreeEmailDomainsPanel() {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary, #6b7280)', padding: '1rem' }}>
+            <div className="[display:flex] [align-items:center] [gap:0.5rem] [color:var(--text-secondary,#6b7280)] [padding:1rem]">
                 <Loader2 size={18} className="animate-spin" />
                 {t('admin.fed_loading', 'Loading email domains…')}
             </div>
@@ -117,7 +117,7 @@ export default function FreeEmailDomainsPanel() {
     }
 
     return (
-        <div style={{ maxWidth: 760 }}>
+        <div className="max-w-[760px]">
             {message && (
                 <div style={{
                     position: 'sticky', top: 0, zIndex: 10, marginBottom: '1rem',
@@ -130,18 +130,18 @@ export default function FreeEmailDomainsPanel() {
                 </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+            <div className="[display:flex] [align-items:center] [gap:0.6rem] [margin-bottom:0.35rem]">
                 <AtSign size={20} style={{ color: '#8b5cf6' }} />
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
+                <h2 className="[font-size:1.15rem] [font-weight:600] [margin:0]">
                     {t('admin.fed_title', 'Free email-provider domains')}
                 </h2>
             </div>
-            <p style={{ color: 'var(--text-secondary, #6b7280)', fontSize: '0.9rem', lineHeight: 1.5, marginTop: 0, marginBottom: '1.25rem' }}>
+            <p className="[color:var(--text-secondary,#6b7280)] [font-size:0.9rem] [line-height:1.5] [margin-top:0] [margin-bottom:1.25rem]">
                 {t('admin.fed_desc', 'Users signing in with an address at one of these domains are never automatically added to an organisation by email-domain matching. This stops a shared consumer domain (like gmail.com) from binding a stranger into someone else’s workspace. The built-in list always applies; add any extra domains your organisation should also treat as public.')}
             </p>
 
             {/* Add domain */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <div className="[display:flex] [gap:0.5rem] [margin-bottom:1.25rem]">
                 <input
                     type="text"
                     value={newDomain}
@@ -149,11 +149,7 @@ export default function FreeEmailDomainsPanel() {
                     onKeyDown={onKeyDown}
                     placeholder={t('admin.fed_placeholder', 'e.g. proton.me or someone@proton.me')}
                     disabled={saving}
-                    style={{
-                        flex: 1, padding: '0.55rem 0.75rem', borderRadius: 8,
-                        border: '1px solid var(--border-color, #d1d5db)', fontSize: '0.9rem',
-                        background: 'var(--bg-tertiary)', color: 'var(--text-primary, #111827)',
-                    }}
+                    className="[flex:1] [padding:0.55rem_0.75rem] [border-radius:8px] [border:1px_solid_var(--border-color,#d1d5db)] [font-size:0.9rem] [background:var(--bg-tertiary)] [color:var(--text-primary,#111827)]"
                 />
                 <button
                     onClick={addDomain}
@@ -172,29 +168,24 @@ export default function FreeEmailDomainsPanel() {
             </div>
 
             {/* Extra (editable) domains */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', color: 'var(--text-secondary, #6b7280)', marginBottom: '0.5rem' }}>
+            <div className="[margin-bottom:1.5rem]">
+                <div className="[font-size:0.8rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.03em] [color:var(--text-secondary,#6b7280)] [margin-bottom:0.5rem]">
                     {t('admin.fed_custom', 'Custom domains')} ({extra.length})
                 </div>
                 {extra.length === 0 ? (
-                    <div style={{ color: 'var(--text-secondary, #9ca3af)', fontSize: '0.875rem', fontStyle: 'italic' }}>
+                    <div className="[color:var(--text-secondary,#9ca3af)] [font-size:0.875rem] [font-style:italic]">
                         {t('admin.fed_none', 'No custom domains added.')}
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div className="[display:flex] [flex-wrap:wrap] [gap:0.5rem]">
                         {extra.map(domain => (
-                            <span key={domain} style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                                padding: '0.35rem 0.6rem', borderRadius: 999, fontSize: '0.85rem',
-                                background: 'rgba(139,92,246,0.12)', color: '#7c3aed',
-                                border: '1px solid rgba(139,92,246,0.3)',
-                            }}>
+                            <span key={domain} className="[display:inline-flex] [align-items:center] [gap:0.4rem] [padding:0.35rem_0.6rem] [border-radius:999px] [font-size:0.85rem] [background:rgba(139,92,246,0.12)] [color:#7c3aed] [border:1px_solid_rgba(139,92,246,0.3)]">
                                 {domain}
                                 <button
                                     onClick={() => removeDomain(domain)}
                                     disabled={saving}
                                     title={t('admin.fed_remove', 'Remove')}
-                                    style={{ display: 'inline-flex', border: 'none', background: 'transparent', cursor: 'pointer', color: '#7c3aed', padding: 0 }}
+                                    className="[display:inline-flex] [border:none] [background:transparent] [cursor:pointer] [color:#7c3aed] [padding:0]"
                                 >
                                     <Trash2 size={14} />
                                 </button>
@@ -208,25 +199,16 @@ export default function FreeEmailDomainsPanel() {
             <div>
                 <button
                     onClick={() => setShowBuiltin(v => !v)}
-                    style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                        border: 'none', background: 'transparent', cursor: 'pointer',
-                        fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase',
-                        letterSpacing: '0.03em', color: 'var(--text-secondary, #6b7280)', padding: 0,
-                    }}
+                    className="[display:inline-flex] [align-items:center] [gap:0.4rem] [border:none] [background:transparent] [cursor:pointer] [font-size:0.8rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.03em] [color:var(--text-secondary,#6b7280)] [padding:0]"
                 >
                     {showBuiltin ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     <ShieldCheck size={14} />
                     {t('admin.fed_builtin', 'Built-in domains')} ({builtin.length})
                 </button>
                 {showBuiltin && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}>
+                    <div className="[display:flex] [flex-wrap:wrap] [gap:0.4rem] [margin-top:0.6rem]">
                         {builtin.map(domain => (
-                            <span key={domain} style={{
-                                padding: '0.3rem 0.55rem', borderRadius: 999, fontSize: '0.8rem',
-                                background: 'var(--surface-2, #f3f4f6)', color: 'var(--text-secondary, #6b7280)',
-                                border: '1px solid var(--border-color, #e5e7eb)',
-                            }}>
+                            <span key={domain} className="[padding:0.3rem_0.55rem] [border-radius:999px] [font-size:0.8rem] [background:var(--surface-2,#f3f4f6)] [color:var(--text-secondary,#6b7280)] [border:1px_solid_var(--border-color,#e5e7eb)]">
                                 {domain}
                             </span>
                         ))}

@@ -76,11 +76,10 @@ export default function AppInputMultiselect({ node }: NodeProps<InputMultiselect
                         {selected.map((v) => (
                             <li
                                 key={v}
-                                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium"
-                                style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
+                                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium [background:var(--app-primary-soft)] [color:var(--app-primary)]! [border-radius:var(--app-radius)]"
                             >
                                 {labelFor(v)}
-                                <button type="button" onClick={() => remove(v)} aria-label={`Remove ${labelFor(v)}`} style={{ color: 'inherit' }}>
+                                <button type="button" onClick={() => remove(v)} aria-label={`Remove ${labelFor(v)}`} className="[color:inherit]">
                                     <X className="w-3 h-3" aria-hidden="true" />
                                 </button>
                             </li>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
 import * as api from '../lib/transcriptionsApi';
 import type { MeetingNote } from '../detail/meetingDetailTypes';
 
@@ -14,7 +14,9 @@ export default function useTranscription(id: string | null | undefined) {
     const mounted = useRef<boolean>(true);
     // The id the view shows now; a refresh that started for an older one is dropped.
     const idRef = useRef(id);
-    idRef.current = id;
+    useLayoutEffect(() => {
+        idRef.current = id;
+    });
 
     // React 18 Strict Mode runs effects mount → unmount → mount in dev. Resetting
     // `mounted.current` on every mount keeps the guard correct for the *current*

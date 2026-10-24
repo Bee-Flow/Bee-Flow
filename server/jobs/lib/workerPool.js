@@ -71,7 +71,7 @@ function createLockedTick({ pool, lockKey, job, label, run }) {
             log.warn(`[${label}] tick error:`, /** @type {any} */ (e).message);
         } finally {
             if (client) {
-                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [lockKey]); } catch (_) { /* best-effort */ }
+                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [lockKey]); } catch (err) { log.debug('best-effort', err); }
                 client.release();
             }
             if (acquired) metrics.recordJobRun({ job, status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

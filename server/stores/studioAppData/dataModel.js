@@ -232,7 +232,7 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         await client.query('COMMIT');
         // Row counts can drift across a migration (table drops/recreates) —
         // take an authoritative recount, best-effort (the save is committed).
-        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (_) { /* advisory */ }
+        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { log.debug('advisory', err); }
         return { ok: true, version: nextVersion };
     } catch (e) {
         await client.query('ROLLBACK').catch(() => {});

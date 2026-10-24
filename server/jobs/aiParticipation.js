@@ -81,7 +81,7 @@ function makeParticipationJob(deps = {}) {
                     log.warn(`[AiParticipation] watch ${watch.id} not closed; the reaper will: ${err && err.message}`);
                 }
                 inFlight -= 1;
-                try { recordJobRun({ job: 'ai_participation', status, durationMs: now() - started }); } catch (_) { /* metrics are optional */ }
+                try { recordJobRun({ job: 'ai_participation', status, durationMs: now() - started }); } catch (err) { log.debug('metrics are optional', err); }
             }
         })();
         running.add(work);

@@ -80,7 +80,7 @@ async function getPipeline() {
                 if (env.backends?.onnx?.wasm) {
                     env.backends.onnx.wasm.numThreads = LOCAL_WHISPER_WASM_THREADS;
                 }
-            } catch (_) { /* older versions: ignore */ }
+            } catch (err) { log.debug('older versions: ignore', err); }
 
             const transcriber = await pipeline(
                 'automatic-speech-recognition',
@@ -144,7 +144,7 @@ async function decodeAudioToFloat32(audioPath) {
         // unsupported codec) leaves a partial raw dump behind. At 16 kHz mono
         // float that is ~64 KB per audio-second — a long meeting failing on
         // every retry filled the pod's tmpfs.
-        try { await fs.promises.unlink(tmpRaw); } catch (_) { /* never created */ }
+        try { await fs.promises.unlink(tmpRaw); } catch (err) { log.debug('never created', err); }
         throw err;
     }
 
@@ -152,7 +152,7 @@ async function decodeAudioToFloat32(audioPath) {
     try {
         audioBuf = await fs.promises.readFile(tmpRaw);
     } finally {
-        try { fs.unlinkSync(tmpRaw); } catch (_) {}
+        try { fs.unlinkSync(tmpRaw); } catch (_) { log.debug('raw temp file already gone', _); }
     }
 
     // Buffer → Float32Array via underlying ArrayBuffer (no copy).

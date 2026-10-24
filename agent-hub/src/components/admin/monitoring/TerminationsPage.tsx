@@ -107,12 +107,12 @@ function StackedBarChart({ data }: { data: TimelineRow[] }) {
     const periods = Object.values(buckets).sort((a, b) => a.period.localeCompare(b.period));
     const maxTotal = Math.max(...periods.map(p => TYPE_ORDER.reduce((s, ty) => s + Number(p[ty] || 0), 0)), 1);
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140, padding: '8px 0' }}>
+        <div className="[display:flex] [align-items:flex-end] [gap:4px] h-[140px] [padding:8px_0]">
             {periods.map(p => {
                 const total = TYPE_ORDER.reduce((s, ty) => s + Number(p[ty] || 0), 0);
                 const heightPct = (total / maxTotal) * 100;
                 return (
-                    <div key={p.period} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 8 }}>
+                    <div key={p.period} className="[flex:1] [display:flex] [flex-direction:column] [align-items:center] [gap:4px] min-w-[8px]">
                         <div title={`${p.period} · ${total} terminations`} style={{
                             width: '100%', height: `${heightPct}%`, minHeight: total > 0 ? 2 : 0,
                             display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
@@ -129,7 +129,7 @@ function StackedBarChart({ data }: { data: TimelineRow[] }) {
                                 );
                             })}
                         </div>
-                        <span style={{ fontSize: 9, color: 'var(--text-muted, #888)', whiteSpace: 'nowrap' }}>
+                        <span className="[font-size:9px] [color:var(--text-muted,#888)] [white-space:nowrap]">
                             {p.period.slice(5)}
                         </span>
                     </div>
@@ -200,7 +200,7 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
     if (loading) {
         return (
             <Card>
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted, #888)' }}>
+                <div className="[padding:40px] [text-align:center] [color:var(--text-muted,#888)]">
                     {t('admin_monitoring.term_loading', 'Loading terminations…')}
                 </div>
             </Card>
@@ -211,9 +211,9 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
     const by: Record<string, number> = summary?.by_type || {};
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeIn 0.3s ease' }}>
+        <div className="[display:flex] [flex-direction:column] [gap:16px] [animation:fadeIn_0.3s_ease]">
             {/* KPI cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))] [gap:12px]">
                 <MetricCard icon={AlertTriangle}  label={t('admin_monitoring.col_total', 'Total')}          value={fmt(total)}                       color={COLORS.rose} />
                 <MetricCard icon={ZapOff}          label={typeLabel(t, 'max_tokens')}    value={fmt(by.max_tokens || 0)}          color={COLORS.amber}
                     subtitle={total ? t('admin_monitoring.term_pct_stops', '{pct}% of stops', { pct: Math.round(((by.max_tokens || 0) / total) * 100) }) : ''} />
@@ -229,9 +229,9 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
 
             {/* Timeline chart */}
             <Card title={t('admin_monitoring.term_over_time', 'Terminations over time')} icon={Clock}>
-                <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-muted, #888)', marginBottom: 6 }}>
+                <div className="[display:flex] [gap:12px] [font-size:11px] [color:var(--text-muted,#888)] [margin-bottom:6px]">
                     {TYPE_ORDER.map(ty => (
-                        <span key={ty} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span key={ty} className="[display:flex] [align-items:center] [gap:4px]">
                             <span style={{ width: 8, height: 8, borderRadius: 2, background: TYPE_META[ty].color }} />
                             {typeLabel(t, ty)}
                         </span>
@@ -243,23 +243,18 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
             {/* By agent */}
             {byAgent.length > 0 && (
                 <Card title={t('admin_monitoring.term_by_agent', 'By agent')} icon={Bot}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px', gap: 8, padding: '6px 4px',
-                        fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted, #666)' }}>
+                    <div className="[display:grid] [grid-template-columns:1fr_80px_80px_80px_80px_80px] [gap:8px] [padding:6px_4px] [font-size:10px] [font-weight:700] [text-transform:uppercase] [color:var(--text-muted,#666)]">
                         <span>{t('admin_monitoring.col_agent', 'Agent')}</span>
-                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_total', 'Total')}</span>
-                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_max_tok', 'Max tok.')}</span>
-                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_max_iter', 'Max iter.')}</span>
-                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_errors', 'Errors')}</span>
-                        <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_aborted', 'Aborted')}</span>
+                        <span className="[text-align:right]">{t('admin_monitoring.col_total', 'Total')}</span>
+                        <span className="[text-align:right]">{t('admin_monitoring.col_max_tok', 'Max tok.')}</span>
+                        <span className="[text-align:right]">{t('admin_monitoring.col_max_iter', 'Max iter.')}</span>
+                        <span className="[text-align:right]">{t('admin_monitoring.col_errors', 'Errors')}</span>
+                        <span className="[text-align:right]">{t('admin_monitoring.col_aborted', 'Aborted')}</span>
                     </div>
                     {byAgent.map(a => (
-                        <div key={a.agent_id || 'unknown'} style={{
-                            display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px', gap: 8,
-                            padding: '8px 4px', borderTop: '1px solid var(--border-default, rgba(255,255,255,0.06))',
-                            fontSize: 12, color: 'var(--text-primary, #fff)', alignItems: 'center'
-                        }}>
+                        <div key={a.agent_id || 'unknown'} className="[display:grid] [grid-template-columns:1fr_80px_80px_80px_80px_80px] [gap:8px] [padding:8px_4px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))] [font-size:12px] [color:var(--text-primary,#fff)] [align-items:center]">
                             <span>{a.agent_name || a.agent_id || '—'}</span>
-                            <span style={{ textAlign: 'right', fontWeight: 700 }}>{a.total}</span>
+                            <span className="[text-align:right] [font-weight:700]">{a.total}</span>
                             <span style={{ textAlign: 'right', color: COLORS.amber }}>{a.max_tokens || 0}</span>
                             <span style={{ textAlign: 'right', color: COLORS.orange }}>{a.max_iterations || 0}</span>
                             <span style={{ textAlign: 'right', color: COLORS.rose }}>{a.errors || 0}</span>
@@ -272,18 +267,14 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
             {/* Detail table */}
             <Card>
                 {/* Filter row */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-                        borderRadius: 8, background: 'var(--bg-primary, #0f0f1a)',
-                        border: '1px solid var(--border-default, rgba(255,255,255,0.08))', flex: '0 1 220px',
-                    }}>
+                <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
+                    <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [flex:0_1_220px]">
                         <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
                         <input
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder={t('admin_monitoring.term_search', 'Search agent / model / error...')}
-                            style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary, #fff)', width: '100%' }}
+                            className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary,#fff)] w-[100%]"
                         />
                     </div>
                     <div style={filterSelectWrapper}>
@@ -300,28 +291,22 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                             {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                         </select>
                     </div>
-                    <div style={{ flex: 1 }} />
-                    <span style={{ fontSize: 11, color: 'var(--text-muted, #888)' }}>
+                    <div className="[flex:1]" />
+                    <span className="[font-size:11px] [color:var(--text-muted,#888)]">
                         {filtered.length === 1 ? t('admin_monitoring.term_event_one', '{n} event', { n: filtered.length }) : t('admin_monitoring.term_event_other', '{n} events', { n: filtered.length })}
                     </span>
                 </div>
 
                 {/* Table header */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '110px 1fr 1fr 130px 100px 60px 70px 70px 24px',
-                    gap: 8, padding: '8px',
-                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                    color: 'var(--text-muted, #666)',
-                }}>
+                <div className="[display:grid] [grid-template-columns:110px_1fr_1fr_130px_100px_60px_70px_70px_24px] [gap:8px] [padding:8px] [font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.05em] [color:var(--text-muted,#666)]">
                     <span>{t('admin_monitoring.col_time', 'Time')}</span>
                     <span>{t('admin_monitoring.col_agent', 'Agent')}</span>
                     <span>{t('admin_monitoring.col_model', 'Model')}</span>
                     <span>{t('admin_monitoring.col_type', 'Type')}</span>
                     <span>{t('admin_monitoring.term_col_error_code', 'Error code')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.term_col_iter', 'Iter.')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.term_col_duration', 'Duration')}</span>
-                    <span style={{ textAlign: 'right' }}>{t('admin_monitoring.col_tokens', 'Tokens')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.term_col_iter', 'Iter.')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.term_col_duration', 'Duration')}</span>
+                    <span className="[text-align:right]">{t('admin_monitoring.col_tokens', 'Tokens')}</span>
                     <span></span>
                 </div>
 
@@ -334,32 +319,25 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                         <div key={r.id}>
                             <div
                                 onClick={() => setExpanded(isOpen ? null : r.id)}
-                                style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '110px 1fr 1fr 130px 100px 60px 70px 70px 24px',
-                                    gap: 8, padding: '10px 8px',
-                                    borderTop: '1px solid var(--border-default, rgba(255,255,255,0.06))',
-                                    fontSize: 12, color: 'var(--text-primary, #fff)',
-                                    alignItems: 'center', cursor: 'pointer',
-                                }}
+                                className="[display:grid] [grid-template-columns:110px_1fr_1fr_130px_100px_60px_70px_70px_24px] [gap:8px] [padding:10px_8px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))] [font-size:12px] [color:var(--text-primary,#fff)] [align-items:center] [cursor:pointer]"
                             >
-                                <span style={{ color: 'var(--text-muted, #888)', fontSize: 11 }}>{fmtTime(r.timestamp)}</span>
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {r.agent_name || r.agent_id || <span style={{ color: 'var(--text-muted, #666)' }}>—</span>}
+                                <span className="[color:var(--text-muted,#888)] [font-size:11px]">{fmtTime(r.timestamp)}</span>
+                                <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
+                                    {r.agent_name || r.agent_id || <span className="[color:var(--text-muted,#666)]">—</span>}
                                 </span>
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted, #aaa)' }}>
+                                <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [color:var(--text-muted,#aaa)]">
                                     {shortModel(r.model)}
                                 </span>
-                                <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span className="[display:flex] [align-items:center] [flex-wrap:wrap]">
                                     <TypeBadge type={r.termination_type} />
                                     {isLargeInput(r) && <LargeInputBadge />}
                                 </span>
                                 <span style={{ fontSize: 11, color: r.error_code ? COLORS.rose : 'var(--text-muted, #666)' }}>
                                     {r.error_code || '—'}
                                 </span>
-                                <span style={{ textAlign: 'right', color: 'var(--text-muted, #aaa)' }}>{r.iteration_count || 0}</span>
-                                <span style={{ textAlign: 'right', color: 'var(--text-muted, #aaa)' }}>{fmtDuration(r.duration_ms)}</span>
-                                <span style={{ textAlign: 'right', color: 'var(--text-muted, #aaa)', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                <span className="[text-align:right] [color:var(--text-muted,#aaa)]">{r.iteration_count || 0}</span>
+                                <span className="[text-align:right] [color:var(--text-muted,#aaa)]">{fmtDuration(r.duration_ms)}</span>
+                                <span className="[text-align:right] [color:var(--text-muted,#aaa)] [display:inline-flex] [align-items:center] [justify-content:flex-end] [gap:4px]">
                                     {r.attachment_count > 0 && (
                                         <Paperclip
                                             style={{ width: 11, height: 11, color: COLORS.amber }}
@@ -374,13 +352,7 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                                 </span>
                             </div>
                             {isOpen && (
-                                <div style={{
-                                    padding: '12px 16px',
-                                    background: 'var(--bg-primary, #0f0f1a)',
-                                    fontSize: 12, color: 'var(--text-muted, #aaa)',
-                                    display: 'flex', flexDirection: 'column', gap: 6,
-                                    borderTop: '1px solid var(--border-default, rgba(255,255,255,0.06))',
-                                }}>
+                                <div className="[padding:12px_16px] [background:var(--bg-primary,#0f0f1a)] [font-size:12px] [color:var(--text-muted,#aaa)] [display:flex] [flex-direction:column] [gap:6px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))]">
                                     <DetailRow label="Source"      value={r.source} />
                                     <DetailRow label={t('admin_monitoring.term_d_conversation', 'Conversation')} value={r.conversation_id} mono />
                                     <DetailRow label={t('admin_monitoring.term_d_user', 'User')}        value={r.user_id} mono />
@@ -418,7 +390,7 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
                                             </span>
                                         </div>
                                     )}
-                                    <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted, #666)', fontStyle: 'italic' }}>
+                                    <div className="[margin-top:4px] [font-size:10px] [color:var(--text-muted,#666)] [font-style:italic]">
                                         {t('admin_monitoring.term_privacy_note', 'Privacy: messages are not logged. Only sanitised metadata is visible here.')}
                                     </div>
                                 </div>
@@ -433,8 +405,8 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
 
 function DetailRow({ label, value, mono }: DetailRowProps) {
     return (
-        <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-            <span style={{ minWidth: 110, fontSize: 11, color: 'var(--text-muted, #666)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+        <div className="[display:flex] [gap:12px] [align-items:baseline]">
+            <span className="min-w-[110px] [font-size:11px] [color:var(--text-muted,#666)] [text-transform:uppercase] [letter-spacing:0.04em]">{label}</span>
             <span style={{
                 fontFamily: mono ? 'var(--font-mono, ui-monospace, monospace)' : 'inherit',
                 wordBreak: 'break-all', flex: 1,

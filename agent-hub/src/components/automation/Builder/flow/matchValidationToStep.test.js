@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildIssuesByStep, matchValidationToStep } from './matchValidationToStep';
 import { composeInlineGraph } from './inlineFlowlets';
+import { buildIssuesByStep, matchValidationToStep } from './matchValidationToStep';
 
 /**
  * A node inside an expanded container carries a PREFIXED id (`lp1/a`, `cl1/s1`)

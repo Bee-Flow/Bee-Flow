@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AgentListRow } from './agentCardFacts';
 import { fetchAgentList } from '../../../api/agentStudio';
 import { isAbortError, messageOf } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 export interface AgentList {
     agents: AgentListRow[];
@@ -32,14 +33,14 @@ export default function useAgentList(systemMode: boolean): AgentList {
         return () => {
             mountedRef.current = false;
             if (listAbortRef.current) {
-                try { listAbortRef.current.abort(); } catch (_) { /* noop */ }
+                try { listAbortRef.current.abort(); } catch (err) { logger.debug('noop', err); }
             }
         };
     }, []);
 
     const fetchAgents = useCallback(async () => {
         if (listAbortRef.current) {
-            try { listAbortRef.current.abort(); } catch (_) { /* noop */ }
+            try { listAbortRef.current.abort(); } catch (err) { logger.debug('noop', err); }
         }
         const ctrl = new AbortController();
         listAbortRef.current = ctrl;

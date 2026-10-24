@@ -63,7 +63,7 @@ function prewarm() {
 function _kill(state) {
     if (_state === state) _state = null;
     state.worker.terminate().catch(() => { /* already gone */ });
-    try { state.port.close(); } catch (_) { /* closed */ }
+    try { state.port.close(); } catch (err) { log.debug('closed', err); }
 }
 
 /**

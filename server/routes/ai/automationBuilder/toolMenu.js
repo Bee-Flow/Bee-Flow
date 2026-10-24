@@ -10,6 +10,7 @@ const { CORE_TOOL_NAMES } = require('../../../automation/builderModelProfiles');
 const { projectToolSchemas } = require('../../../automation/builderTools/schemaProjection');
 const { PLAN_TOOL, QUESTIONS_TOOL, toolAllowed } = require('./workMode');
 const { INSPECTION_TOOLS } = require('./inspectionTools');
+const log = require('../../../telemetry/log');
 
 async function buildToolMenu(turn) {
     const {
@@ -41,7 +42,7 @@ async function buildToolMenu(turn) {
     try {
         const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
         webpageInspectorEnabled = await userHasBetaFeature(userId, 'webpages', req.session);
-    } catch (_) { /* default false */ }
+    } catch (err) { log.debug('default false', err); }
     if (webpageInspectorEnabled) {
         const { WEBPAGE_AUTOMATION_TOOLS } = require('../../../integrations/webpageAutomationTools');
         const { resolveUserGroups } = require('../../../auth/audience');

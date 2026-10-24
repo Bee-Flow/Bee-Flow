@@ -109,7 +109,7 @@ export default function NotificationPanel(p: NotificationPanelProps) {
         <div data-surface="opaque" style={panelStyle(p.isMobile, p.isIcon)}>
             <PanelHeader unreadCount={p.unreadCount} filter={p.filter} setFilter={p.setFilter} onMarkAllRead={p.onMarkAllRead} />
             {/* Notification list */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '2px 0' }}>
+            <div className="[flex:1] [overflow-y:auto] [padding:2px_0]">
                 {body}
             </div>
         </div>
@@ -122,38 +122,18 @@ function PanelHeader({ unreadCount, filter, setFilter, onMarkAllRead }: {
     const { t } = useTranslation();
     const filters: Array<{ id: NotifFilter; label: string }> = [{ id: 'all', label: 'All' }, { id: 'unread', label: 'Unread' }];
     return (
-        <div style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid var(--border-subtle, rgba(0,0,0,0.06))',
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: 'var(--bg-card, #ffffff)',
-        }}>
-            <div style={{
-                width: 32, height: 32, borderRadius: 9,
-                background: 'rgba(59,130,246,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: '1px solid rgba(59,130,246,0.15)',
-                flexShrink: 0,
-            }}>
+        <div className="[padding:12px_16px] [border-bottom:1px_solid_var(--border-subtle,rgba(0,0,0,0.06))] [display:flex] [align-items:center] [gap:10px] [background:var(--bg-card,#ffffff)]">
+            <div className="w-[32px] h-[32px] [border-radius:9px] [background:rgba(59,130,246,0.08)] [display:flex] [align-items:center] [justify-content:center] [border:1px_solid_rgba(59,130,246,0.15)] [flex-shrink:0]">
                 <Bell style={{ width: 15, height: 15, color: '#3b82f6' }} />
             </div>
-            <div style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #0f172a)' }}>
+            <div className="[flex:1] [font-size:14px] [font-weight:700] [color:var(--text-primary,#0f172a)]">
                 {t('notifications.title', 'Notifications')}
                 {unreadCount > 0 && (
-                    <span style={{
-                        marginLeft: 8,
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        color: '#fff', fontSize: 10, fontWeight: 700,
-                        borderRadius: 10, padding: '2px 7px', lineHeight: 1.3,
-                    }}>{unreadCount}</span>
+                    <span className="[margin-left:8px] [background:linear-gradient(135deg,#ef4444,#dc2626)] [color:#fff] [font-size:10px] [font-weight:700] [border-radius:10px] [padding:2px_7px] [line-height:1.3]">{unreadCount}</span>
                 )}
             </div>
             {/* Filter toggle */}
-            <div style={{
-                display: 'flex', gap: 2,
-                background: 'var(--bg-secondary, rgba(0,0,0,0.03))',
-                borderRadius: 8, padding: 2,
-            }}>
+            <div className="[display:flex] [gap:2px] [background:var(--bg-secondary,rgba(0,0,0,0.03))] [border-radius:8px] [padding:2px]">
                 {filters.map(f => (
                     <button
                         key={f.id}
@@ -173,12 +153,7 @@ function PanelHeader({ unreadCount, filter, setFilter, onMarkAllRead }: {
             {unreadCount > 0 && (
                 <button
                     onClick={onMarkAllRead}
-                    style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: 11, color: '#3b82f6', fontWeight: 500,
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '4px 8px', borderRadius: 6,
-                    }}
+                    className="[background:none] [border:none] [cursor:pointer] [font-size:11px] [color:#3b82f6] [font-weight:500] [display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px]"
                     title={t('notifications.mark_all_read_title', 'Mark all as read')}
                 >
                     <CheckCheck style={{ width: 13, height: 13 }} />
@@ -191,17 +166,8 @@ function PanelHeader({ unreadCount, filter, setFilter, onMarkAllRead }: {
 function LoadingState() {
     const { t } = useTranslation();
     return (
-        <div style={{
-            padding: 40, textAlign: 'center',
-            color: 'var(--text-muted, #94a3b8)', fontSize: 13,
-        }}>
-            <div style={{
-                width: 28, height: 28, margin: '0 auto 10px',
-                border: '2px solid rgba(59,130,246,0.2)',
-                borderTopColor: '#3b82f6',
-                borderRadius: '50%',
-                animation: 'notifSpin 0.8s linear infinite',
-            }} />
+        <div className="[padding:40px] [text-align:center] [color:var(--text-muted,#94a3b8)] [font-size:13px]">
+            <div className="w-[28px] h-[28px] [margin:0_auto_10px] [border:2px_solid_rgba(59,130,246,0.2)] [border-top-color:#3b82f6] [border-radius:50%] [animation:notifSpin_0.8s_linear_infinite]" />
             {t('notifications.loading', 'Loading notifications...')}
         </div>
     );
@@ -210,24 +176,17 @@ function LoadingState() {
 function EmptyState({ filter }: { filter: NotifFilter }) {
     const unread = filter === 'unread';
     return (
-        <div style={{
-            padding: '48px 32px', textAlign: 'center',
-            color: 'var(--text-muted, #94a3b8)',
-        }}>
-            <div style={{
-                width: 52, height: 52, margin: '0 auto 14px',
-                borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'rgba(59,130,246,0.06)',
-            }}>
+        <div className="[padding:48px_32px] [text-align:center] [color:var(--text-muted,#94a3b8)]">
+            <div className="w-[52px] h-[52px] [margin:0_auto_14px] [border-radius:16px] [display:flex] [align-items:center] [justify-content:center] [background:rgba(59,130,246,0.06)]">
                 {unread
                     ? <Check style={{ width: 24, height: 24, color: '#22c55e', opacity: 0.6 }} />
                     : <BellOff style={{ width: 24, height: 24, color: '#3b82f6', opacity: 0.4 }} />
                 }
             </div>
-            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #64748b)' }}>
+            <p className="[margin:0_0_4px] [font-size:14px] [font-weight:600] [color:var(--text-secondary,#64748b)]">
                 {unread ? 'All caught up!' : 'No notifications yet'}
             </p>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted, #94a3b8)' }}>
+            <p className="[margin:0] [font-size:12px] [color:var(--text-muted,#94a3b8)]">
                 {unread ? 'You\'ve read all your notifications' : 'Notifications will appear here'}
             </p>
         </div>
@@ -237,15 +196,7 @@ function EmptyState({ filter }: { filter: NotifFilter }) {
 function GroupHeader({ label }: { label: string }) {
     return (
         <div
-            style={{
-                padding: '8px 18px 4px',
-                fontSize: 10, fontWeight: 700,
-                color: 'var(--text-muted, #94a3b8)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                background: 'var(--bg-secondary, rgba(0,0,0,0.015))',
-                borderBottom: '1px solid var(--border-subtle, rgba(0,0,0,0.04))',
-            }}
+            className="[padding:8px_18px_4px] [font-size:10px] [font-weight:700] [color:var(--text-muted,#94a3b8)] [text-transform:uppercase] [letter-spacing:0.08em] [background:var(--bg-secondary,rgba(0,0,0,0.015))] [border-bottom:1px_solid_var(--border-subtle,rgba(0,0,0,0.04))]"
         >
             {label}
         </div>

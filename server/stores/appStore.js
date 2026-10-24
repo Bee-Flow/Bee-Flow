@@ -14,6 +14,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl, CODES } = require('./lib/_ddl');
 const { randomUUID } = require('crypto');
+const log = require('../telemetry/log');
 
 const initDB = makeStoreInit('AppStore', _initDB);
 
@@ -101,7 +102,8 @@ async function getPublishedAppsForUser(userOrgIds, userGroups = [], userId = nul
         if (!(userOrgIds instanceof Set) || !userOrgIds.has(app.organization_id)) return false;
         // Group restriction
         let groups = [];
-        try { groups = JSON.parse(app.shared_groups || '[]'); } catch (_) { /* */ }
+        // Unreadable restriction: fail closed (the owner already passed above).
+        try { groups = JSON.parse(app.shared_groups || '[]'); } catch (err) { log.warn('shared_groups is not valid JSON, hiding the app', err); return false; }
         if (!Array.isArray(groups) || groups.length === 0) return true;
         return groups.some(g => userGroups.includes(g));
     });

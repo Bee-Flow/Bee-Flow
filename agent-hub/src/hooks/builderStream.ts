@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import { logger } from '../utils/logger';
 
 /** One reasoning block, from `thinking_start` to `thinking_stop`. */
 export interface ThinkingPart {
@@ -265,7 +266,7 @@ export function usePatchAssistant(setMessages: Dispatch<SetStateAction<BuilderMe
 /** Abort an in-flight stream on unmount. */
 export function useAbortOnUnmount(abortRef: MutableRefObject<AbortController | null>) {
     useEffect(() => () => {
-        try { abortRef.current?.abort(); } catch { /* already settled */ }
+        try { abortRef.current?.abort(); } catch (err) { logger.debug('already settled', err); }
     }, [abortRef]);
 }
 

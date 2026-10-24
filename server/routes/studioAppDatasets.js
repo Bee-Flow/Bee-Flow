@@ -134,6 +134,7 @@ const {
     datasetInitLimiter, datasetPartLimiter, datasetCompleteLimiter, datasetStatusLimiter,
 } = require('./studioAppRateLimits');
 const { SHARD_COUNT, shardName } = require('../core/datasets/rsidIndex');
+const log = require('../telemetry/log');
 
 // ── Sizing (env-tunable; a NEW quota axis, deliberately not MAX_ATTACHMENT_BYTES) ──
 const PART_BYTES = parseInt(process.env.DATASET_PART_BYTES, 10) || 32 * 1024 * 1024;
@@ -264,7 +265,7 @@ async function deleteArtifacts(app, ds) {
         }
     }
     for (const key of keys) {
-        try { await storageStore.deleteFile(key); } catch (_) { /* best-effort — absent shards are normal */ }
+        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort — absent shards are normal', err); }
     }
 }
 

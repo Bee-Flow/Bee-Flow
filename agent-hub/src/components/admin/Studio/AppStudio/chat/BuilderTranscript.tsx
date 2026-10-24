@@ -26,11 +26,7 @@ export function TranscriptEmptyState() {
     return (
         <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
             <span
-                className="flex h-10 w-10 items-center justify-center rounded-full"
-                style={{
-                    background: 'color-mix(in srgb, var(--accent-primary) 12%, transparent)',
-                    color: 'var(--accent-primary)',
-                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full [background:color-mix(in_srgb,var(--accent-primary)_12%,transparent)] [color:var(--accent-primary)]"
             >
                 <Sparkles size={18} aria-hidden="true" />
             </span>

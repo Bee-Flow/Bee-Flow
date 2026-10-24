@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ok } from '@/test/http';
 import AccessTab from './AccessTab';
 import { authFetch } from '../../../../utils/helpers';
-import { ok } from '@/test/http';
 
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
@@ -45,7 +45,7 @@ describe('AccessTab', () => {
         fireEvent.click(await screen.findByText('Tier-1'));
         // Debounced autosave (700ms) — wait for the PUT to fire.
         await waitFor(() => {
-            const putCall = authFetch.mock.calls.find(([url, opts]) => opts && opts.method === 'PUT');
+            const putCall = authFetch.mock.calls.find(([, opts]) => opts && opts.method === 'PUT');
             expect(putCall).toBeTruthy();
             expect(JSON.parse(putCall[1].body)).toEqual({ sharedGroups: ['g1'] });
         }, { timeout: 2000 });

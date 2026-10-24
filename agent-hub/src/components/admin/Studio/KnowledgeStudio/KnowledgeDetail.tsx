@@ -287,12 +287,12 @@ export default function KnowledgeDetail({
             />
 
             {error && (
-                <p className="px-7 pt-3" role="alert" style={{ color: 'var(--error)', fontSize: 12 }}>{error}</p>
+                <p className="px-7 pt-3 [color:var(--error)] [font-size:12px]" role="alert">{error}</p>
             )}
 
             <div className="flex-1 overflow-y-auto px-7 py-6">
                 {tab === 'sources' && (
-                    <div className="grid gap-5" style={{ gridTemplateColumns: 'minmax(0, 1fr) 400px' }}>
+                    <div className="grid gap-5 [grid-template-columns:minmax(0,1fr)_400px]">
                         <SourcesTab
                             sources={sources}
                             totals={totals}

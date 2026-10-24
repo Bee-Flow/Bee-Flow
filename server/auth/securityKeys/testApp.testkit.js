@@ -11,6 +11,7 @@
 
 const http = require('http');
 const express = require('express');
+const log = require('../../telemetry/log');
 
 const silentLog = { info() {}, warn() {}, error() {}, debug() {} };
 
@@ -96,7 +97,7 @@ async function serve(router, { mount = '/', session, errorHandler }) {
                 res.on('end', () => {
                     const raw = Buffer.concat(chunks).toString('utf8');
                     let parsed = raw;
-                    try { parsed = JSON.parse(raw); } catch (_) { /* keep raw */ }
+                    try { parsed = JSON.parse(raw); } catch (err) { log.debug('keep raw', err); }
                     resolve({ status: res.statusCode, body: parsed });
                 });
             });

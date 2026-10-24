@@ -87,8 +87,7 @@ export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>
                                     key={ai}
                                     type="button"
                                     onClick={() => { if (mode === 'run' && a.actionId) runAction(a.actionId, { formValues: item, item }); }}
-                                    className="px-2 py-0.5 text-xs font-medium border"
-                                    style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
+                                    className="px-2 py-0.5 text-xs font-medium border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]!"
                                 >
                                     {a.label}
                                 </button>

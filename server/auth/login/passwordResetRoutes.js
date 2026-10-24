@@ -119,7 +119,7 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
         await loginThrottle.clearIdentifier(user.id);
         if (user.username) await loginThrottle.clearIdentifier(user.username);
         if (user.email) await loginThrottle.clearIdentifier(user.email);
-    } catch (_) { /* best-effort */ }
+    } catch (err) { log.debug('best-effort', err); }
     log.info(`[Auth] Password reset completed for user ${user.id}`);
     return res.json({ success: true });
 });

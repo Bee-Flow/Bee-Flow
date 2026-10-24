@@ -77,7 +77,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
                 if (existingConv && existingConv.hiveMind && typeof existingConv.hiveMind === 'object') {
                     hiveMind = existingConv.hiveMind;
                 }
-            } catch (_) { /* ignore — proceed with fresh state */ }
+            } catch (err) { log.debug('ignore — proceed with fresh state', err); }
         }
 
         try {

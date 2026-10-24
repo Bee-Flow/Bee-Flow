@@ -9,6 +9,7 @@ import { Field } from '../uiBits';
 import useDatasetUpload from '../useDatasetUpload';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * App Studio runtime — 'input_dataset'. Spec: server/appStudio/componentSpecs.js.
@@ -80,7 +81,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
             if (res.ok && Array.isArray(data.datasets)) {
                 setExisting(data.datasets.filter((d: { status: string; }) => d.status === 'ready'));
             }
-        } catch { /* the picker just stays empty */ }
+        } catch (err) { logger.debug('the picker just stays empty', err); }
     }, [appId, live, allowExisting]);
 
     useEffect(() => { refreshExisting(); }, [refreshExisting]);
@@ -112,7 +113,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
                     return;
                 }
                 setProgress({ pct: ds.progressPct, note: ds.progressNote || 'indexing' });
-            } catch { /* transient — keep polling */ }
+            } catch (err) { logger.debug('transient — keep polling', err); }
             pollRef.current = setTimeout(tick, POLL_MS);
         };
         tick();
@@ -151,8 +152,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
                             const ds = existing.find((d) => d.id === e.target.value);
                             commit(ds || null);
                         }}
-                        className="px-3 py-2 text-sm border outline-none"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
+                        className="px-3 py-2 text-sm border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
                     >
                         <option value="">{t('studio_apps_runtime.dataset_upload.pick', 'Pick a dataset…')}</option>
                         {existing.map((d) => (
@@ -196,8 +196,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
 
                 {selected && !busy ? (
                     <div
-                        className="flex items-center gap-2 p-1.5 text-xs border w-fit"
-                        style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                        className="flex items-center gap-2 p-1.5 text-xs border w-fit [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                     >
                         <Dna className="w-3.5 h-3.5 shrink-0" aria-hidden="true" style={{ color: 'var(--app-primary)' }} />
                         <span className="truncate text-[var(--text-primary)]">
@@ -207,8 +206,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
                             type="button"
                             onClick={() => commit(null)}
                             aria-label={t('studio_apps_runtime.dataset_upload.clear', 'Clear {name}', { name: selected.name })}
-                            className="ml-1 shrink-0"
-                            style={{ color: 'var(--text-muted)' }}
+                            className="ml-1 shrink-0 [color:var(--text-muted)]"
                         >
                             <X className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>

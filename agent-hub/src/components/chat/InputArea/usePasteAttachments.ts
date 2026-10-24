@@ -79,7 +79,7 @@ export default function usePasteAttachments({ processFiles, textareaRef }: UsePa
                     console.warn('[Paste] clipboard-read permission denied — skipping async API, letting text paste proceed');
                     permissionOk = false;
                 }
-            } catch (_) { /* permissions API not available — proceed optimistically */ }
+            } catch (err) { logger.debug('permissions API not available — proceed optimistically', err); }
 
             if (permissionOk) {
                 // Must preventDefault BEFORE the async call to avoid the textarea inserting garbage
@@ -130,7 +130,7 @@ export default function usePasteAttachments({ processFiles, textareaRef }: UsePa
                 try {
                     const perm = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
                     if (perm.state === 'denied') permissionOk = false;
-                } catch (_) { /* proceed */ }
+                } catch (err) { logger.debug('proceed', err); }
 
                 if (permissionOk) {
                     e.preventDefault();

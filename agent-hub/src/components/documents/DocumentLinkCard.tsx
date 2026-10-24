@@ -47,18 +47,11 @@ export default function DocumentLinkCard({ href, label }: { href: string; label?
     return (
         <button
             onClick={handleClick}
-            className="inline-flex items-center gap-2 my-1 px-3 py-2 rounded-xl border text-left transition-all hover:shadow-md"
-            style={{
-                background: 'var(--bg-secondary)',
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-primary)',
-                maxWidth: 320,
-            }}
+            className="inline-flex items-center gap-2 my-1 px-3 py-2 rounded-xl border text-left transition-all hover:shadow-md [background:var(--bg-secondary)] [border-color:var(--border-subtle)] [color:var(--text-primary)]! max-w-[320px]"
             data-testid="document-link-card"
         >
             <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: 'var(--brand-gradient, var(--accent-primary))' }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 [background:var(--brand-gradient,var(--accent-primary))]"
             >
                 <FileText size={14} color="white" />
             </div>

@@ -277,7 +277,7 @@ export default function WorkspaceNotebook({
                             png ? `<div style="text-align:center;margin:16px 0;"><img src="${png}" style="max-width:100%;border-radius:8px;" alt="${diagramAlt}" /></div>`
                                 : `<div style="text-align:center;margin:16px 0;">${svg}</div>`);
                     }
-                } catch (_) {}
+                } catch (err) { logger.debug('diagram could not be rendered to PNG, keep the original', err); }
             }
 
             htmlContent = await embedImagesAsBase64(htmlContent);
@@ -307,7 +307,7 @@ export default function WorkspaceNotebook({
         } finally {
             setExporting(null);
         }
-    }, [notebookId, ensureNotebook, getHTML]);
+    }, [notebookId, ensureNotebook, getHTML, t]);
 
     // Open in full notebook. The pane's text is synced first, as a
     // compare-and-set write over the version the notebook holds right now:

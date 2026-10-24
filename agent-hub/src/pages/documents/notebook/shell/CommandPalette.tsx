@@ -42,10 +42,13 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
         return list.filter((c: PaletteCommand) => `${c.label} ${c.keywords || ''} ${c.group || ''}`.toLowerCase().includes(q));
     }, [commands, query]);
 
-    useEffect(() => { setActiveIdx(0); }, [query]);
-    useEffect(() => {
-        if (activeIdx >= filtered.length) setActiveIdx(Math.max(0, filtered.length - 1));
-    }, [filtered, activeIdx]);
+    const [prevQuery, setPrevQuery] = useState(query);
+    if (prevQuery !== query) {
+        setPrevQuery(query);
+        setActiveIdx(0);
+    }
+    const lastIdx = Math.max(0, filtered.length - 1);
+    if (activeIdx > lastIdx) setActiveIdx(lastIdx);
 
     if (!open) return null;
 
@@ -61,7 +64,6 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
         else if (e.key === 'Enter') { e.preventDefault(); run(filtered[activeIdx]); }
     };
 
-    let lastGroup: string | undefined | null = null;
 
     return (
         <Modal
@@ -75,8 +77,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
             className="max-w-[560px]"
         >
             <div
-                className="w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col"
-                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', maxHeight: '70vh' }}
+                className="w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col [background:var(--bg-primary)] [border-color:var(--border-default)] max-h-[70vh]"
             >
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--border-subtle)]">
                     <Search className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" />
@@ -90,8 +91,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                         aria-expanded="true"
                         aria-controls="bf-cmd-list"
                         aria-activedescendant={filtered[activeIdx] ? `bf-cmd-${filtered[activeIdx].id}` : undefined}
-                        className="flex-1 bg-transparent outline-none text-sm"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="flex-1 bg-transparent outline-none text-sm [color:var(--text-primary)]!"
                     />
                 </div>
                 <div id="bf-cmd-list" role="listbox" className="flex-1 overflow-y-auto custom-scrollbar py-1">
@@ -99,8 +99,7 @@ export default function CommandPalette({ open, onClose, commands = [], placehold
                         <div className="px-4 py-6 text-center text-xs text-[var(--text-tertiary)]">{emptyText}</div>
                     )}
                     {filtered.map((cmd: PaletteCommand, i: number) => {
-                        const showGroup = cmd.group && cmd.group !== lastGroup;
-                        lastGroup = cmd.group;
+                        const showGroup = cmd.group && cmd.group !== filtered[i - 1]?.group;
                         const Icon = cmd.icon;
                         const active = i === activeIdx;
                         return (

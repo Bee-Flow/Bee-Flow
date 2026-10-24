@@ -5,6 +5,7 @@ import type { RowAnswer } from './unwrapRow';
 import type { BuilderSnapshot } from '../../../hooks/builderStream';
 import type { AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /**
  * The persisted row behind the builder — an automation, or a reusable Step.
@@ -93,7 +94,7 @@ export default function useBuilderHydration({
                     const j: { snapshot?: BuilderSnapshot } | null = await r.json();
                     if (j?.snapshot) hydrate(j.snapshot);
                 }
-            } catch { /* silent — snapshot is optional */ }
+            } catch (err) { logger.debug('silent — snapshot is optional', err); }
             if (alive) setHasHydrated(true);
         })();
         return () => { alive = false; };

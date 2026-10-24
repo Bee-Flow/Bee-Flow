@@ -56,13 +56,12 @@ export default function StatusBar({
     const { t } = useTranslation();
     return (
         <div
-            className="flex items-center shrink-0 px-2 gap-3 text-[11px] select-none"
-            style={{ height: 22, background: 'var(--vsc-statusbar-bg)', color: 'var(--vsc-statusbar-fg)' }}
+            className="flex items-center shrink-0 px-2 gap-3 text-[11px] select-none h-[22px] [background:var(--vsc-statusbar-bg)] [color:var(--vsc-statusbar-fg)]!"
         >
             {/* Save state */}
             <SaveStatus saveState={saveState} lastSavedAt={lastSavedAt} onRetry={onRetrySave} size={11} />
 
-            <span style={{ opacity: 0.4 }}>|</span>
+            <span className="[opacity:0.4]">|</span>
 
             {/* Cursor / file metadata — hidden when no file is open */}
             {activeFile ? (
@@ -72,7 +71,7 @@ export default function StatusBar({
                     <span>{fmtSize(fileSize ?? 0)}</span>
                 </>
             ) : (
-                <span style={{ opacity: 0.85 }}>{t('webpages.status_preview_hint', 'Preview · click a file to edit')}</span>
+                <span className="[opacity:0.85]">{t('webpages.status_preview_hint', 'Preview · click a file to edit')}</span>
             )}
 
             {/* Spacer */}

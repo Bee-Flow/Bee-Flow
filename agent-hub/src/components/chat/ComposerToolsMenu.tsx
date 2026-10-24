@@ -141,25 +141,16 @@ function Row({ item, onPick, onHover, t }: RowProps) {
                 {typeof Icon === 'string' ? Icon : Icon ? <Icon className="w-4 h-4" /> : null}
             </span>
 
-            <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span className="[flex:1] min-w-[0] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
                 {item.label}
             </span>
 
             {item.beta && (
-                <span style={{
-                    fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
-                    padding: '1px 4px', borderRadius: '4px', flexShrink: 0,
-                    background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)',
-                }}>{t('chat.composer.beta_badge', 'beta')}</span>
+                <span className="[font-size:9px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.04em] [padding:1px_4px] [border-radius:4px] [flex-shrink:0] [background:var(--bg-tertiary)] [color:var(--text-tertiary)]">{t('chat.composer.beta_badge', 'beta')}</span>
             )}
 
             {Number(item.badge) > 0 && (
-                <span style={{
-                    fontSize: '10px', fontWeight: 700, lineHeight: '15px',
-                    minWidth: '15px', height: '15px', padding: '0 4px', borderRadius: '9999px',
-                    textAlign: 'center', flexShrink: 0,
-                    background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)',
-                }}>{item.badge}</span>
+                <span className="[font-size:10px] [font-weight:700] [line-height:15px] min-w-[15px] h-[15px] [padding:0_4px] [border-radius:9999px] [text-align:center] [flex-shrink:0] [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]">{item.badge}</span>
             )}
 
             {item.kind === 'toggle' && <Switch on={!!item.on} />}
@@ -192,14 +183,18 @@ export default function ComposerToolsMenu({ items = [], className = '', children
     // applied — switching pickers measures the new one, not the old placement.
     const [flyoutNudge, setFlyoutNudge] = useState({ x: 0, y: 0 });
     const nudgeRef = useRef({ x: 0, y: 0 });
-    nudgeRef.current = flyoutNudge;
+    useLayoutEffect(() => {
+        nudgeRef.current = flyoutNudge;
+    });
 
     const openPanelId = rows.find(r => r.kind === 'panel' && r.open)?.id || null;
 
     // The open rows, in a ref, so the close-everything paths don't have to be
     // rebuilt (and re-bound) on every render of a fresh `items` array.
     const rowsRef = useRef(rows);
-    rowsRef.current = rows;
+    useLayoutEffect(() => {
+        rowsRef.current = rows;
+    });
 
     const closePanels = useCallback((except: ToolRow | null = null) => {
         rowsRef.current.forEach((r) => {
@@ -339,12 +334,7 @@ export default function ComposerToolsMenu({ items = [], className = '', children
                     <span
                         aria-hidden="true"
                         data-testid="composer-tools-dot"
-                        style={{
-                            position: 'absolute', top: '2px', right: '2px',
-                            width: '6px', height: '6px', borderRadius: '9999px',
-                            background: 'var(--accent-primary)',
-                            boxShadow: '0 0 0 2px var(--bg-primary)',
-                        }}
+                        className="[position:absolute] [top:2px] [right:2px] w-[6px] h-[6px] [border-radius:9999px] [background:var(--accent-primary)] [box-shadow:0_0_0_2px_var(--bg-primary)]"
                     />
                 )}
             </button>
@@ -368,7 +358,7 @@ export default function ComposerToolsMenu({ items = [], className = '', children
                     {groups.map((group, gi) => (
                         <React.Fragment key={group[0].id}>
                             {gi > 0 && (
-                                <div style={{ height: '1px', margin: '5px 9px', background: 'var(--border-subtle)' }} />
+                                <div className="h-[1px] [margin:5px_9px] [background:var(--border-subtle)]" />
                             )}
                             {group.map(item => <Row key={item.id} item={item} onPick={pick} onHover={hover} t={t} />)}
                         </React.Fragment>

@@ -64,7 +64,7 @@ const KbSourcesPanel = ({ msg, t: tProp }: KbSourcesPanelProps) => {
                                 </span>
                                 <svg className="w-3 h-3 transition-transform group-open/doc:rotate-90 ml-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </summary>
-                            <div className="px-2 pb-2 space-y-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                            <div className="px-2 pb-2 space-y-1 [border-top:1px_solid_var(--border-subtle)]">
                                 {chunks.map((source, ci) => {
                                     const sectionLabel = source.section
                                         || t('chat.msg.kb_chunk_n', 'Chunk {n}', { n: ci + 1 });
@@ -84,7 +84,7 @@ const KbSourcesPanel = ({ msg, t: tProp }: KbSourcesPanelProps) => {
                                                 </div>
                                                 <svg className="w-3 h-3 transition-transform group-open/src:rotate-90 opacity-40 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                                             </summary>
-                                            <div className="px-3 pb-3 pt-2 text-xs leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar" style={{ color: 'var(--text-secondary)', borderTop: '1px solid var(--border-subtle)' }}>
+                                            <div className="px-3 pb-3 pt-2 text-xs leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar [color:var(--text-secondary)]! [border-top:1px_solid_var(--border-subtle)]">
                                                 {source.content}
                                             </div>
                                         </details>

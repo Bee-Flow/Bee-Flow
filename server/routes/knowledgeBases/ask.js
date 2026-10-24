@@ -110,7 +110,7 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, re
         try {
             const rows = await require('../../stores/kbSources').listByKb(kb.id);
             sourcesById = new Map((rows || []).map(s => [s.id, s]));
-        } catch (_) { /* no kb_sources on this install */ }
+        } catch (err) { log.debug('no kb_sources on this install', err); }
 
         const citations = toCitations(chunks, { kind: 'kb_chunk' }).map(c => ({
             ...c,

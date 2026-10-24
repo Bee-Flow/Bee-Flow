@@ -224,11 +224,11 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
                 // 'tool_use'. Not counted in emittedAny — nothing the model
                 // said is on the wire yet, so a retry stays safe.
                 if (typeof onToolArgsDelta === 'function') {
-                    try { onToolArgsDelta(data || {}); } catch (_) { /* a visualisation never kills a build */ }
+                    try { onToolArgsDelta(data || {}); } catch (err) { log.debug('a visualisation never kills a build', err); }
                 }
             } else if (type === 'prompt_progress') {
                 if (typeof onPromptProgress === 'function') {
-                    try { onPromptProgress(data || {}); } catch (_) { /* a visualisation never kills a build */ }
+                    try { onPromptProgress(data || {}); } catch (err) { log.debug('a visualisation never kills a build', err); }
                 }
             }
         };

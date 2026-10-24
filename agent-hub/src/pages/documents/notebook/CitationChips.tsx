@@ -219,8 +219,7 @@ export default function CitationChips<S extends ChipSource>({ sources, onCitatio
                         role="listitem"
                         data-testid="citation-chip"
                         onClick={() => onCitationClick?.({ ...s, index: i + 1 })}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium transition-colors hover:bg-[var(--accent-primary)]/10"
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', background: 'var(--bg-tertiary)' }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-medium transition-colors hover:bg-[var(--accent-primary)]/10 [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [background:var(--bg-tertiary)]!"
                         title={passages ? `${chipTitle(s, label)} (${passages})` : chipTitle(s, label)}
                         aria-label={passages ? `${label}, ${passages}` : label}
                     >

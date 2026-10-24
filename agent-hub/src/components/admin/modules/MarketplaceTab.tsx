@@ -293,7 +293,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
             </div>
 
             {stale && (
-                <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }} data-testid="marketplace-stale">
+                <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 [background:rgba(245,158,11,0.12)] [color:#f59e0b]!" data-testid="marketplace-stale">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> {t('modules.marketplace_stale')}
                 </div>
             )}
@@ -305,8 +305,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder={t('modules.marketplace_search')}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                 />
             </div>
 

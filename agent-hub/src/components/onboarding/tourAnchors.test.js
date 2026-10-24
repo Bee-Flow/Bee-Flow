@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { LESSONS } from './lessons';
-import { TOUR_STEPS } from './tourSteps';
-import { KNOWN_SELECTORS, TOUR_ANCHORS } from './tourAnchors';
 import { COURSES, CERTIFICATES, unknownLessonRefs } from './courses';
+import { LESSONS } from './lessons';
 import { stepType, STEP_TYPES } from './stepTypes';
+import { KNOWN_SELECTORS, TOUR_ANCHORS } from './tourAnchors';
+import { TOUR_STEPS } from './tourSteps';
 
 // Every selector a tour step points at, across the intro tour and all lessons.
 function collectTargets() {

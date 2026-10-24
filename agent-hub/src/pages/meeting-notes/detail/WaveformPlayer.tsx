@@ -6,6 +6,7 @@ import { formatDuration } from '../lib/format';
 import { buildSpeakerRows, buildSpeakerColorMap, normalizeChapters } from '../lib/playerData';
 import TimelineStack from './player/TimelineStack';
 import type { PlayerSegment, TimelineMarker } from './player/player.types';
+import { logger } from '../../../utils/logger';
 
 interface WaveformPlayerProps {
     audioSrc: string;
@@ -169,7 +170,7 @@ export default function WaveformPlayer({ audioSrc, onReady, markers = [], mentio
     const cycleRate = () => {
         const next = RATES[(RATES.indexOf(rate) + 1) % RATES.length];
         setRate(next);
-        try { localStorage.setItem(RATE_STORAGE_KEY, String(next)); } catch { /* private mode */ }
+        try { localStorage.setItem(RATE_STORAGE_KEY, String(next)); } catch (err) { logger.debug('private mode', err); }
     };
 
     // Keyboard on the player container only — global handlers would steal

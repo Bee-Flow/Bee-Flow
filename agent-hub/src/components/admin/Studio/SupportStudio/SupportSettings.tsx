@@ -67,7 +67,7 @@ export default function SupportSettings({ inboxes = [], onChanged, user, onOpenT
     return (
         <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* Pill-tab bar — identical treatment to Organisation Settings. */}
-            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0 [border-color:var(--border-subtle)]! [background:var(--bg-secondary)]">
                 <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('support.settings.heading', 'Support settings')}</h2>
                 <div className="flex gap-1 p-1 rounded-lg overflow-x-auto bg-[var(--bg-tertiary)]">
                     {TABS.map((tb) => (

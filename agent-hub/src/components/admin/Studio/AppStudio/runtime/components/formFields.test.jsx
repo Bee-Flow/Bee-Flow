@@ -6,7 +6,6 @@ import AppInputDate from './AppInputDate';
 import AppInputDatetime from './AppInputDatetime';
 import AppInputFile, { entryName, entryHref } from './AppInputFile';
 import AppInputMultiselect from './AppInputMultiselect';
-import AppInputRelation from './AppInputRelation';
 import AppInputRichtext from './AppInputRichtext';
 import AppInputSelect from './AppInputSelect';
 import AppInputText from './AppInputText';
@@ -14,6 +13,7 @@ import { nowLocalIso, todayIso } from './localDate';
 import { authFetch } from '../../../../../../utils/helpers';
 import { DataProvider } from '../DataContext';
 import { dataCacheKey } from '../resolveBinding';
+import AppInputRelation from './AppInputRelation';
 import { CANDIDATE_LIMIT } from './AppInputRelation';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
 

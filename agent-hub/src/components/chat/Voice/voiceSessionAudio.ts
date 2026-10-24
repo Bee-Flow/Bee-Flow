@@ -1,5 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { VoiceState, VoiceStates } from './useVoiceSession.types';
+import { logger } from '../../../utils/logger';
 
 export const VOICE_STATES: VoiceStates = {
     IDLE: 'idle',           // mic hot, waiting for speech
@@ -119,11 +120,11 @@ export interface ReleaseRefs extends PipelineRefs {
 
 /** Stop the recorder, mic tracks, audio context, in-flight turn and playback, then clear every ref (in that order). */
 export function releaseVoiceResources(r: ReleaseRefs): void {
-    try { r.recorderRef.current?.stop(); } catch (_) { /* noop */ }
-    try { r.mediaStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch (_) { /* noop */ }
-    try { r.audioCtxRef.current?.close(); } catch (_) { /* noop */ }
-    try { r.abortRef.current?.abort(); } catch (_) { /* noop */ }
-    try { r.audioElRef.current?.pause(); } catch (_) { /* noop */ }
+    try { r.recorderRef.current?.stop(); } catch (err) { logger.debug('noop', err); }
+    try { r.mediaStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop()); } catch (err) { logger.debug('noop', err); }
+    try { r.audioCtxRef.current?.close(); } catch (err) { logger.debug('noop', err); }
+    try { r.abortRef.current?.abort(); } catch (err) { logger.debug('noop', err); }
+    try { r.audioElRef.current?.pause(); } catch (err) { logger.debug('noop', err); }
     r.recorderRef.current = null;
     r.mediaStreamRef.current = null;
     r.audioCtxRef.current = null;

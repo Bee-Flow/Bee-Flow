@@ -5,9 +5,9 @@ import type { CsatStarsProps, SlaBadgeProps, TagChipsProps } from './SupportInbo
 // the due time, red once breached. Pauses (grey) when the thread waits on the
 // customer or is already resolved/closed.
 export function SlaBadge({ thread }: SlaBadgeProps) {
-    const [, force] = useState(0);
+    const [now, setNow] = useState(() => Date.now());
     useEffect(() => {
-        const t = setInterval(() => force(n => n + 1), 30000);
+        const t = setInterval(() => setNow(Date.now()), 30000);
         return () => clearInterval(t);
     }, []);
     const dueAt = thread.sla_first_response_due_at && !thread.first_response_at
@@ -23,7 +23,7 @@ export function SlaBadge({ thread }: SlaBadgeProps) {
     } else if (thread.sla_paused) {
         bg = 'var(--bg-tertiary)'; fg = 'var(--text-muted)'; label = 'SLA paused';
     } else {
-        const ms = new Date(dueAt as string).getTime() - Date.now();
+        const ms = new Date(dueAt as string).getTime() - now;
         const mins = Math.round(ms / 60000);
         if (mins <= 30) { bg = 'rgba(245,158,11,0.15)'; fg = '#b45309'; }
         if (mins < 0) { label = 'SLA breached'; bg = 'rgba(239,68,68,0.15)'; fg = '#dc2626'; }
@@ -39,8 +39,7 @@ export function TagChips({ tags, onRemove }: TagChipsProps) {
     return (
         <div className="flex items-center gap-1 flex-wrap">
             {tags.map(t => (
-                <span key={t} className="text-xs px-1.5 py-0.5 rounded inline-flex items-center gap-1"
-                    style={{ background: 'rgba(99,102,241,0.0)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                <span key={t} className="text-xs px-1.5 py-0.5 rounded inline-flex items-center gap-1 [background:rgba(99,102,241,0.0)] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)]!">
                     #{t}
                     {onRemove && (
                         <button onClick={() => onRemove(t)} className="opacity-60 hover:opacity-100 text-[var(--text-muted)]">×</button>
@@ -54,7 +53,7 @@ export function TagChips({ tags, onRemove }: TagChipsProps) {
 export function CsatStars({ score }: CsatStarsProps) {
     if (!score) return null;
     return (
-        <span className="text-xs inline-flex items-center" title={`Customer rated ${score}/5`} style={{ color: '#f59e0b' }}>
+        <span className="text-xs inline-flex items-center [color:#f59e0b]!" title={`Customer rated ${score}/5`}>
             {'★'.repeat(score)}<span className="text-[var(--text-muted)]">{'★'.repeat(5 - score)}</span>
         </span>
     );

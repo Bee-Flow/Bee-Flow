@@ -116,14 +116,7 @@ export default function SourcePicker({ value = [], onChange, disabled = false }:
                 aria-haspopup="menu"
                 aria-expanded={open}
                 data-testid="webpages-source-picker"
-                className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs transition-colors hover:bg-[var(--bg-secondary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                style={{
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border-default)',
-                    color: 'var(--text-secondary)',
-                    background: 'transparent',
-                }}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs transition-colors hover:bg-[var(--bg-secondary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] [padding:6px_10px] [border-radius:8px] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)]! [background:transparent]!"
             >
                 <Table size={13} aria-hidden="true" style={{ color: kindColorVar('datatable') }} />
                 {t('webpages.build.pick_source', 'Pick a source')}

@@ -51,8 +51,7 @@ export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, di
     if (!Array.isArray(openFiles) || openFiles.length === 0) return null;
     return (
         <div
-            className="flex items-end shrink-0 overflow-x-auto"
-            style={{ height: 35, background: 'var(--vsc-tab-inactive-bg)', borderBottom: '1px solid var(--vsc-border)' }}
+            className="flex items-end shrink-0 overflow-x-auto h-[35px] [background:var(--vsc-tab-inactive-bg)] [border-bottom:1px_solid_var(--vsc-border)]"
         >
             {openFiles.map((key) => {
                 const { label, Icon, title } = metaForKey(key);
@@ -73,8 +72,7 @@ export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, di
                         <button
                             onClick={() => onSelect(key)}
                             onAuxClick={(e) => { if (e.button === 1) onClose?.(key); }}
-                            className="flex items-center gap-1.5 pl-3 pr-2 h-full text-[12px]"
-                            style={{ color: 'inherit' }}
+                            className="flex items-center gap-1.5 pl-3 pr-2 h-full text-[12px] [color:inherit]!"
                         >
                             <Icon size={13} />
                             <span>{label}</span>

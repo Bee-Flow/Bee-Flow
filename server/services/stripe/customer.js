@@ -87,7 +87,7 @@ async function pushOrgBillingToStripe(orgId, { stripeCustomerId } = {}) {
             try {
                 const sub = await userStore.getOrgSubscription(orgId);
                 customerId = sub?.stripe_customer_id || null;
-            } catch (e) { /* no subscription row yet */ }
+            } catch (e) { log.debug('no subscription row yet', e); }
         }
         if (!customerId) return; // nothing attached — checkout will set it
 

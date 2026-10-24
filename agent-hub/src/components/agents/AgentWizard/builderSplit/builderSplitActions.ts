@@ -2,6 +2,7 @@ import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
 import type { EditorSnapshot, Ref, Setter } from './agentSaveTypes';
 import type { CategoryRow } from '../agentEditor.types';
+import { logger } from '../../../../utils/logger';
 
 export interface FieldUpdaterDeps {
     setName: (value: string) => void;
@@ -165,7 +166,7 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
             // the user could still cancel.)
             if (reassignTo && stateRef.current.categoryId === id) {
                 updateCategory(reassignTo !== 'none' ? reassignTo : null);
-                try { await flush(); } catch (_) { /* best-effort */ }
+                try { await flush(); } catch (err) { logger.debug('best-effort', err); }
             }
             const qs = reassignTo ? `?reassignTo=${encodeURIComponent(reassignTo)}` : '';
             const res = await authFetch(`${API_BASE}/agents/categories/${id}${qs}`, { method: 'DELETE' });

@@ -7,6 +7,7 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import type { Organization } from './useOrgDirectory';
 import type { AdminCurrentUser } from './userManagement/types';
+import { logger } from '../../../utils/logger';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -52,7 +53,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
                 body: JSON.stringify({ orgId: id }),
             });
             reloadEntitlements?.();
-        } catch (_) { /* picker still works for viewing other orgs */ }
+        } catch (err) { logger.debug('picker still works for viewing other orgs', err); }
     }, [reloadEntitlements]);
 
     const selectOrg = useCallback((id: string | null) => { setOrgId(id); persistSelectedOrg(id); }, [persistSelectedOrg]);
@@ -95,7 +96,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const renderBody = () => {
         if (noOrg) {
             return (
-                <div className="rounded-2xl p-5 text-sm" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                <div className="rounded-2xl p-5 text-sm [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-muted)]!">
                     {t('admin_org.access_panel_no_orgs', 'No organisations found.')}
                 </div>
             );
@@ -128,7 +129,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        <div className="[display:flex] [flex-direction:column] h-[100%] [overflow:hidden]">
             {/* ── Org picker bar (super-admin) ── */}
             {isSuperAdmin && orgs && orgs.length > 0 ? (
                 <div className="flex items-center gap-2.5 px-4 py-2.5 border-b flex-shrink-0 bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
@@ -137,17 +138,16 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
                     <select
                         value={orgId || ''}
                         onChange={e => selectOrg(e.target.value)}
-                        className="text-sm rounded-lg px-3 py-1.5 outline-none flex-1 max-w-sm"
-                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}
+                        className="text-sm rounded-lg px-3 py-1.5 outline-none flex-1 max-w-sm [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [color:var(--text-primary)]!"
                     >
                         {orgs.map(o => <option key={o.id} value={o.id}>{o.name || o.id}</option>)}
                     </select>
                 </div>
             ) : null}
 
-            <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <div className="[display:flex] [flex:1] min-h-[0] [overflow:hidden]">
                 {/* ── Left rail ── */}
-                <div style={{ width: 56, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2, padding: '8px 0', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-default)' }}>
+                <div className="w-[56px] [flex-shrink:0] [display:flex] [flex-direction:column] [gap:2px] [padding:8px_0] [background:var(--bg-secondary)] [border-right:1px_solid_var(--border-default)]">
                     {sections.map(sec => {
                         const Icon = sec.icon;
                         const isActive = active === sec.id;
@@ -172,8 +172,8 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
                 </div>
 
                 {/* ── Main panel ── */}
-                <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', inset: 0, overflow: 'auto' }} className="p-6">
+                <div className="[flex:1] [position:relative] [overflow:hidden]">
+                    <div className="p-6 [position:absolute] [inset:0] [overflow:auto]">
                         <div className="mx-auto max-w-5xl">
                             {renderBody()}
                         </div>

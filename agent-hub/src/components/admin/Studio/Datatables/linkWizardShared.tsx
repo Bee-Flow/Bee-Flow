@@ -200,7 +200,7 @@ export function RelationsStep({ t, tables, locked = [], lockedLabel = '', sugges
             {tables.length >= 2 && (
                 <div className="p-3 space-y-2" style={CARD}>
                     <span className="block text-xs font-medium text-[var(--text-primary)]">{t('datatables.nc_relation_add', 'Add a relation')}</span>
-                    <div className="grid gap-2 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) auto minmax(0,1fr) minmax(0,1fr)' }}>
+                    <div className="grid gap-2 items-center [grid-template-columns:minmax(0,1fr)_minmax(0,1fr)_auto_minmax(0,1fr)_minmax(0,1fr)]">
                         <select value={draft.from} onChange={(e) => setDraft({ ...draft, from: e.target.value, local: '' })} className={SELECT} style={INPUT_STYLE} aria-label={t('datatables.nc_rel_from', 'Table')}>
                             <option value="">{t('datatables.nc_rel_from', 'Table')}</option>
                             {tables.map(s => <option key={s.refKey} value={s.refKey}>{s.name}</option>)}

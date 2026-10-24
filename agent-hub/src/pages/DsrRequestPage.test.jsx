@@ -1,6 +1,6 @@
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 /**
  * The PUBLIC data-subject page (no account, no auth header). Pinned here:

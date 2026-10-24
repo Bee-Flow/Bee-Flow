@@ -58,12 +58,12 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
             labelFor={(sec) => t(sec.labelKey)}
         >
             {active === 'users' && (
-                <div style={{ position: 'absolute', inset: 0 }}>
+                <div className="[position:absolute] [inset:0]">
                     <UserManagement activeSection={userSection} onNavigate={onNavigate} user={user} />
                 </div>
             )}
             {active === 'guardrails' && (
-                <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: '1.5rem' }}>
+                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
                     {/* `userSection` is the third admin path segment — the same one
                         ConnectorHealthPanel receives. Threading it here is what makes
                         /app/admin/security/guardrails/<section> a real, bookmarkable
@@ -72,17 +72,17 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                 </div>
             )}
             {active === 'sso' && (
-                <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: '1.5rem' }}>
+                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
                     <SSOConfigPanel />
                 </div>
             )}
             {active === 'email-domains' && (
-                <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: '1.5rem' }}>
+                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
                     <FreeEmailDomainsPanel />
                 </div>
             )}
             {active === 'connector-health' && (
-                <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: '1.5rem' }}>
+                <div className="[position:absolute] [inset:0] [overflow:auto] [padding:1.5rem]">
                     <ConnectorHealthPanel initialOrgId={userSection} onNavigate={onNavigate} />
                 </div>
             )}

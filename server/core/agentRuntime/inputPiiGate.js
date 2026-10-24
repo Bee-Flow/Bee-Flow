@@ -44,7 +44,7 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
         let existingTokenMap = null;
         try {
             existingTokenMap = await d.dlpRunner().getConversationTokenMapAsync(conversationId);
-        } catch (_) { /* non-fatal — worst case we start fresh, as before */ }
+        } catch (err) { log.debug('non-fatal — worst case we start fresh, as before', err); }
 
         // Same status line the direct-chat path shows: a big paste is scanned
         // window by window and takes minutes, and the agent path reported
@@ -90,7 +90,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
     // whenever DLP itself is disabled.
     try {
         d.dlpRunner().mergeTokenMap(conversationId, piiResult.tokenMap);
-    } catch (_) { /* non-fatal — missing dlpRunner just means no restoration */ }
+    } catch (err) { log.debug('non-fatal — missing dlpRunner just means no restoration', err); }
 
     // Let the LLM know that the placeholders in the user's message are
     // redaction tokens and it should echo them back unchanged. Match the

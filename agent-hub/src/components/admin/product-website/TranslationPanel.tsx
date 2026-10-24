@@ -74,8 +74,7 @@ function TranslationRow({ label, source, value, onChange, onFocus, disabled }: T
         <div className="px-4 py-2 border-b border-[var(--border-subtle)]">
             <div className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">{label}</div>
             <div
-                className="text-[11px] text-[var(--text-secondary)] mb-1 whitespace-pre-wrap"
-                style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                className="text-[11px] text-[var(--text-secondary)] mb-1 whitespace-pre-wrap [display:-webkit-box] [-webkit-line-clamp:3px] [-webkit-box-orient:vertical] [overflow:hidden]"
                 title={source}
             >
                 {source}

@@ -11,6 +11,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { apiClient } from '../client';
 import { projectErrorFromResponse, toProjectError } from './projectErrors';
 import { projectKeys, useProjectResourcesQuery } from './projects';
+import { logger } from '../../utils/logger';
 
 // ── Shapes ──────────────────────────────────────────────────────────────────
 
@@ -261,7 +262,7 @@ export function useUploadProjectFile(projectId: string) {
                 throw new Error('Could not upload the file');
             }
             let body: { file?: ProjectFile; error?: string } | null = null;
-            try { body = await res.json(); } catch { /* not JSON */ }
+            try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
             if (!res.ok) {
                 throw projectErrorFromResponse(res.status, body,
                     res.status === 413 ? 'This file is larger than the upload limit' : 'Could not upload the file');

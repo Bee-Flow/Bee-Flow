@@ -30,7 +30,7 @@ function redirectUriFor(req) {
         host = req.get('X-Forwarded-Host') || null;
         if (!host) {
             const ref = req.get('Referer');
-            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch { /* ignore */ } }
+            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { log.debug('ignore', err); } }
         }
         if (!host) host = req.get('host');
     }

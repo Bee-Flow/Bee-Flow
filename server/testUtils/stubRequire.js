@@ -20,6 +20,13 @@
  */
 
 const Module = require('module');
+const { registerFeatureModules, _featureModuleGetter, _clearFeatureModulesForTests } = require('../core/featureModules');
+const log = require('../telemetry/log');
+
+// A key that names a feature module core looks up by name (core/featureModules.js)
+// is stubbed there too: core no longer `require`s it by that string, so the
+// resolve hook alone would never see the call. Same stub, same meaning.
+const FEATURE_KEY = /^(?:\.\.?\/)+((?:integrations|services|automation|agents|projects)\/[\w/.-]+?)(?:\.js)?$/;
 
 /**
  * Redirect the given require requests to in-memory stub exports.
@@ -48,11 +55,23 @@ function installResolveStub(map) {
         return original.call(this, request, parent, ...rest);
     };
 
+    const featureStubs = [];
+    for (const [request, exportsObj] of Object.entries(map)) {
+        const name = FEATURE_KEY.exec(request)?.[1];
+        if (!name) continue;
+        featureStubs.push([name, _featureModuleGetter(name)]);
+        registerFeatureModules({ [name]: () => exportsObj });
+    }
+
     let restored = false;
     return function restore() {
         if (restored) return;
         restored = true;
         Module._resolveFilename = original;
+        for (const [name, previous] of featureStubs) {
+            if (previous) registerFeatureModules({ [name]: previous });
+            else _clearFeatureModulesForTests(name);
+        }
         for (const id of idFor.values()) delete require.cache[id];
     };
 }
@@ -68,7 +87,7 @@ function evictModule(absolutePath) {
     try {
         const resolved = require.resolve(absolutePath);
         delete require.cache[resolved];
-    } catch (_) { /* not cached / not resolvable — nothing to evict */ }
+    } catch (err) { log.debug('not cached or not resolvable, nothing to evict', err); }
 }
 
 /**

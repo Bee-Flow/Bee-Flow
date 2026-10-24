@@ -56,13 +56,13 @@ async function ensureApprovalForRun(run, automation) {
         const steps = await automationStore.getRunSteps(run.id);
         const awaiting = (steps || []).find(s => s.stepId === run.awaitingStepId && s.status === 'awaiting_approval');
         prompt = awaiting?.output?.prompt || '';
-    } catch { /* plain row without the question beats no row */ }
+    } catch (err) { log.debug('plain row without the question beats no row', err); }
     let organizationId = automation?.organizationId || null;
     if (!organizationId) {
         try {
             const userStore = require('../stores/userStore');
             organizationId = (await userStore.getUser(run.userId))?.organizationId || null;
-        } catch { /* consumer account */ }
+        } catch (err) { log.debug('consumer account', err); }
     }
     const project = await require('./approvalProject').projectStamp(automation?.projectId);
     const row = await automationStore.createApproval({

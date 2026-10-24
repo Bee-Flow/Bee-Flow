@@ -44,7 +44,7 @@ function _emit(event, inboxId, data = {}) {
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });
-    } catch { /* never block sync on the event bus */ }
+    } catch (err) { log.debug('never block sync on the event bus', err); }
 }
 
 /**
@@ -264,7 +264,7 @@ async function ingestNormalized(inbox, n) {
             if (due && (due.first || due.resolution)) {
                 await supportStore.setThreadSla(thread.id, { firstDueAt: due.first, resolutionDueAt: due.resolution });
             }
-        } catch { /* SLA is best-effort */ }
+        } catch (err) { log.debug('SLA is best-effort', err); }
     }
 
     const bodyText = n.text || supportMailer.htmlToText(n.html) || '(no content)';

@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, it, expect } from 'vitest';
 
 /**
  * A destructive action may never be hidden behind hover.

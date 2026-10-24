@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildStudioScope, sampleForInputType, VALUE_GROUP } from './StudioScopeProvider';
 import studioFieldOptions from './studioFieldOptions';
+import { buildStudioScope, sampleForInputType, VALUE_GROUP } from './StudioScopeProvider';
 
 /**
  * The picker's view of the app's scope.

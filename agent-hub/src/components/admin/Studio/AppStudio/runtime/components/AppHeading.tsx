@@ -29,13 +29,7 @@ export default function AppHeading({ node }: NodeProps<{ text?: string; level?: 
             <Tag className={`${LEVEL_CLASSES[lvl]} break-words app-heading--bar flex items-center gap-2`}>
                 <span
                     aria-hidden="true"
-                    style={{
-                        width: '0.25rem',
-                        height: '1.1em',
-                        borderRadius: '999px',
-                        background: 'var(--app-primary)',
-                        flexShrink: 0,
-                    }}
+                    className="w-[0.25rem] h-[1.1em] [border-radius:999px] [background:var(--app-primary)] [flex-shrink:0]"
                 />
                 {text}
             </Tag>

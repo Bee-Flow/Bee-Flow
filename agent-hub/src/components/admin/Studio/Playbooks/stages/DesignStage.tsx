@@ -97,7 +97,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
         >
                 {design && (
                     <div className="flex flex-wrap items-center gap-2" style={{ fontSize: type.meta, color: 'var(--text-secondary)' }} data-testid="playbook-design-look">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ border: '1px solid var(--border-default)' }}>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full [border:1px_solid_var(--border-default)]">
                             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 999, background: accent }} />
                             {t('playbooks.design.look_words', 'Look {preset}{mood}', { preset: design.look.preset, mood: design.look.mood ? ` · ${design.look.mood}` : '' })}
                         </span>
@@ -117,9 +117,9 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                                     style={{ '--pbk-delay': `${slot ? slot.delayMs : 0}ms`, ...panelCard(presenter), padding: 0, boxShadow: 'var(--shadow-md)', overflow: 'hidden' } as CSSProperties}
                                     data-testid="playbook-design-screen"
                                 >
-                                    <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}>
+                                    <div className="flex items-center gap-2 px-3 py-2 [border-bottom:1px_solid_var(--border-default)] [background:var(--bg-primary)]">
                                         <span className="flex gap-1" aria-hidden="true">
-                                            {[0, 1, 2].map((k) => <span key={k} style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--border-default)' }} />)}
+                                            {[0, 1, 2].map((k) => <span key={k} className="w-[6px] h-[6px] [border-radius:999px] [background:var(--border-default)]" />)}
                                         </span>
                                         <span className="font-semibold truncate" style={{ fontSize: type.body, color: 'var(--text-primary)' }}>{s.name}</span>
                                     </div>
@@ -134,7 +134,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                 )}
 
                 {design && status === 'awaiting' && (
-                    <section className="mt-5 rounded-xl p-3" style={{ border: '1px solid var(--border-default)', background: 'var(--bg-card)' }} data-testid="playbook-design-revise">
+                    <section className="mt-5 rounded-xl p-3 [border:1px_solid_var(--border-default)] [background:var(--bg-card)]" data-testid="playbook-design-revise">
                         <div className="flex items-center gap-2 mb-1.5">
                             <Wand2 className="w-3.5 h-3.5" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
                             <span className="text-xs font-semibold text-[var(--text-primary)]">{t('playbooks.design.revise_label', 'Ask for a change')}</span>
@@ -148,8 +148,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                                 maxLength={800}
                                 disabled={revising}
                                 placeholder={t('playbooks.design.revise_placeholder', 'Put the totals on top, give every supplier its own screen…')}
-                                className="flex-1 min-w-0 rounded-lg px-2.5 py-2 text-xs resize-y"
-                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                                className="flex-1 min-w-0 rounded-lg px-2.5 py-2 text-xs resize-y [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                                 data-testid="playbook-design-revise-input"
                                 aria-label={t('playbooks.design.revise_label', 'Ask for a change')}
                             />
@@ -179,7 +178,7 @@ export default function DesignStage({ phase, dispatch, t, reducedMotion = false,
                 {design && Array.isArray(design.principles) && design.principles.length > 0 && (
                     <ul className="mt-5 flex flex-wrap gap-2" data-testid="playbook-design-principles">
                         {design.principles.map((p: string, i: number) => (
-                            <li key={i} className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                            <li key={i} className="inline-flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-lg [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [color:var(--text-secondary)]!">
                                 <LayoutTemplate className="w-3 h-3" aria-hidden="true" />{p}
                             </li>
                         ))}
@@ -218,7 +217,7 @@ function Element({ element, accent, type, grow }: { element: DesignElement; acce
         case 'chart':
             return (
                 <div style={box} data-kind="chart">{label}
-                    <span className="flex items-end gap-1" style={{ height: 34 }} aria-hidden="true">
+                    <span className="flex items-end gap-1 h-[34px]" aria-hidden="true">
                         {[40, 70, 55, 90, 65, 80].map((h: number, i: number) => <span key={i} style={{ flex: 1, height: `${h}%`, borderRadius: 3, background: i === 3 ? accent : 'color-mix(in srgb, currentColor 18%, transparent)', color: accent }} />)}
                     </span>
                 </div>

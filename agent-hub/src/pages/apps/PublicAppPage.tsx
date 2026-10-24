@@ -9,6 +9,7 @@ import EmptyState from '../../components/shared/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
 import { errorMessage, errorStatus } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 /** A load failure; `status` is the HTTP status when the server answered. */
 type PublicAppError = Error & { status?: number };
@@ -63,7 +64,7 @@ function readStoredVisitor(token: string) {
 }
 
 function storeVisitor(token: string, visitorToken: string) {
-    try { window.sessionStorage.setItem(storageKey(token), visitorToken); } catch { /* private mode — in-memory is fine */ }
+    try { window.sessionStorage.setItem(storageKey(token), visitorToken); } catch (err) { logger.debug('private mode — in-memory is fine', err); }
 }
 
 function LoadingSkeleton() {

@@ -43,6 +43,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
+const log = require('../telemetry/log');
 
 const DEFAULT_TTL_SECONDS = 60;
 
@@ -198,9 +199,7 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
                 rowCount: result.rows.length,
                 ttlSeconds,
             });
-        } catch {
-            /* cache write is advisory — a failed memoise must never fail the read */
-        }
+        } catch (err) { log.debug('cache write is advisory — a failed memoise must never fail the read', err); }
     }
 
     return { ...result, cached: false };

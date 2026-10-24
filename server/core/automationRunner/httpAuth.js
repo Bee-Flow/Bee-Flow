@@ -39,6 +39,7 @@
 // The custom-integration auth renderer is integrations/', reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { toolIdentity } = require('./toolIdentity');
+const log = require('../../telemetry/log');
 
 const MASK_VALUES = Symbol.for('beeflow.automation.maskValues');
 
@@ -203,7 +204,7 @@ async function getOAuth2Token(conn, secret, { blockPrivateTargets = true } = {},
 async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
     const meta = conn.secretMeta || {};
     let tokenUrl = null;
-    try { tokenUrl = new URL(String(meta.tokenUrl || '')); } catch (_) { /* handled below */ }
+    try { tokenUrl = new URL(String(meta.tokenUrl || '')); } catch (err) { log.debug('handled below', err); }
     if (!tokenUrl || (tokenUrl.protocol !== 'http:' && tokenUrl.protocol !== 'https:')) {
         throw new Error(`http_request: HTTP credential "${conn.label}" has an invalid OAuth2 token URL — fix it in Settings → Connections.`);
     }
@@ -251,18 +252,18 @@ async function fetchOAuth2Token(conn, secret, { blockPrivateTargets }, deps) {
         try {
             const j = JSON.parse(text);
             if (typeof j.error === 'string' && /^[a-z0-9_]+$/i.test(j.error)) code = j.error;
-        } catch (_) { /* body stays out of the message */ }
+        } catch (err) { log.debug('body stays out of the message', err); }
         try {
             const store = deps.store || require('../../stores/integrationConnectionStore');
             await store.markNeedsReauth(conn.id, `OAuth2 token endpoint rejected the client credentials (HTTP ${resp.status})`);
-        } catch (_) { /* best effort */ }
+        } catch (err) { log.debug('best effort', err); }
         throw new Error(`http_request: could not obtain an OAuth2 access token for credential "${conn.label}" (token endpoint returned ${resp.status}${code ? `, error "${code}"` : ''}). Check the token URL and client credentials in Settings.`);
     }
     if (!resp.ok) {
         throw new Error(`http_request: the OAuth2 token endpoint for credential "${conn.label}" returned HTTP ${resp.status}.`);
     }
     let json = null;
-    try { json = JSON.parse(text); } catch (_) { /* handled below */ }
+    try { json = JSON.parse(text); } catch (err) { log.debug('handled below', err); }
     if (!json || typeof json.access_token !== 'string' || !json.access_token) {
         throw new Error(`http_request: the OAuth2 token endpoint for credential "${conn.label}" did not return an access_token.`);
     }

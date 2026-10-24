@@ -11,6 +11,7 @@ import Section from '../../../shared/Section';
 import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import type { SupportAgent, SupportInbox, SupportKb } from './supportStudio.types';
+import { logger } from '../../../../utils/logger';
 
 interface InboxesTabProps {
     inboxes?: SupportInbox[];
@@ -118,7 +119,7 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
             if (!isTrustedOAuthOrigin(ev.origin, API_BASE)) return;
             if (ev?.data && typeof ev.data === 'string' && ev.data.includes('support-mailbox-oauth')) {
                 window.removeEventListener('message', onMsg);
-                try { popup && popup.close(); } catch (_) {}
+                try { popup && popup.close(); } catch (err) { logger.debug('OAuth popup already closed', err); }
                 setTimeout(() => onChanged?.(), 600);
             }
         };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { settingsPathForTab } from '../../../authedApp/settingsRoutes';
 import { API_BASE, authFetch } from '../../../utils/helpers';
+import { logger } from '../../../utils/logger';
 
 /** One notification as GET /api/notifications returns it. */
 export interface AppNotification {
@@ -66,7 +67,7 @@ export async function startReconnect(provider: string): Promise<void> {
                 window.open(data.url, 'google-oauth', `width=${w},height=${h},left=${(screen.width - w) / 2},top=${(screen.height - h) / 2}`);
                 return;
             }
-        } catch (_) { /* fall through to the settings page below */ }
+        } catch (err) { logger.debug('fall through to the settings page below', err); }
         // A path, not ?tab=: the settings router reads the pathname only, so
         // the query form opened Preferences.
         window.open(settingsPathForTab('integrations'), '_blank', 'noopener');
@@ -97,7 +98,7 @@ export function useNotifications() {
                 setNotifications(list);
                 setUnreadCount(list.filter(n => !n.read).length);
             }
-        } catch { /* silent */ }
+        } catch (err) { logger.debug('silent', err); }
         setLoading(false);
     }, []);
 
@@ -117,7 +118,7 @@ export function useNotifications() {
                     return newCount;
                 });
             }
-        } catch { /* silent */ }
+        } catch (err) { logger.debug('silent', err); }
     }, []);
 
     useEffect(() => {

@@ -34,6 +34,7 @@
 
 const { once } = require('events');
 const { startSseHeartbeat } = require('./sseHelpers');
+const telemetryLog = require('../../telemetry/log');
 
 const STREAM_HEADERS = Object.freeze({
     'Content-Type': 'text/event-stream',
@@ -105,7 +106,7 @@ async function openCursorStream(req, res, opts) {
     /** @type {() => void} */
     let unsubscribe = () => {};
 
-    const onSocketDrain = () => { for (const fn of drainHandlers) { try { fn(); } catch (_) { /* a listener's problem */ } } };
+    const onSocketDrain = () => { for (const fn of drainHandlers) { try { fn(); } catch (err) { telemetryLog.debug('a listener\'s problem', err); } } };
     res.on('drain', onSocketDrain);
 
     function writable() {
@@ -124,7 +125,7 @@ async function openCursorStream(req, res, opts) {
     function write(frame) {
         if (ending) {
             if (res.writableEnded || res.destroyed) return false;
-            try { res.write(frame); } catch (_) { /* the socket is going anyway */ }
+            try { res.write(frame); } catch (err) { telemetryLog.debug('the socket is going anyway', err); }
             return false;
         }
         if (!writable()) return false;
@@ -144,7 +145,7 @@ async function openCursorStream(req, res, opts) {
     function endSlowConsumer() {
         if (closed || ending) return;
         ending = true;
-        try { if (opts.onSlowConsumer) opts.onSlowConsumer(stream); } catch (_) { /* best effort */ }
+        try { if (opts.onSlowConsumer) opts.onSlowConsumer(stream); } catch (err) { telemetryLog.debug('best effort', err); }
         close('slow_consumer');
     }
 
@@ -160,7 +161,7 @@ async function openCursorStream(req, res, opts) {
 
     /** One step of closing; a failing step never keeps the next from running. @param {() => void} fn */
     function step(fn) {
-        try { fn(); } catch (_) { /* keep closing */ }
+        try { fn(); } catch (err) { telemetryLog.debug('keep closing', err); }
     }
 
     /**
@@ -260,7 +261,7 @@ async function openCursorStream(req, res, opts) {
                     stream.send('forbidden', { reason: 'access_revoked' });
                     close('access_revoked');
                 }
-            } catch (_) { /* a transient failure keeps the stream; next tick tries again */ }
+            } catch (err) { telemetryLog.debug('a transient failure keeps the stream; next tick tries again', err); }
         }, recheckMs);
         if (recheckTimer.unref) recheckTimer.unref();
     }

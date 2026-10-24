@@ -15,6 +15,7 @@
 
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf } = require('./index');
+const log = require('../../../../../telemetry/log');
 const {
     provider, DATE_FORMAT_RE, TIME_FORMAT_RE,
     colLetter, parseAddress, markerEquals, graphError, workbookValue, needsTextFormat, workbookFormat,
@@ -79,7 +80,7 @@ async function listSheets(g, file) {
             const a = parseAddress(used.address);
             rowCount = a ? a.last.row : (used.rowCount != null ? used.rowCount : null);
             colCount = a ? a.last.col + 1 : (used.columnCount != null ? used.columnCount : null);
-        } catch (_) { /* an empty sheet answers 404 for usedRange */ }
+        } catch (err) { log.debug('an empty sheet answers 404 for usedRange', err); }
         out.push({ id: ws.id, name: ws.name, index: ws.position || 0, rowCount, colCount, hidden: ws.visibility !== undefined && ws.visibility !== 'Visible' });
     }
     return out;

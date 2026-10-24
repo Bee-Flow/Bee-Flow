@@ -176,7 +176,7 @@ router.get('/health', requireSuperAdmin, async (req, res) => {
     const perModule = [];
     for (const r of remoteRows) {
         let ledgerRows = [];
-        try { ledgerRows = await pkgStore.listForModule(r.moduleId); } catch (_) {}
+        try { ledgerRows = await pkgStore.listForModule(r.moduleId); } catch (_) { log.warn('package ledger lookup failed, listing without it', _); }
         perModule.push(await moduleHealthRow(r.moduleId, runtimeHealth, ledgerRows, r));
     }
     res.json({
@@ -203,9 +203,9 @@ router.get('/:id/health', requireSuperAdmin, async (req, res) => {
     const runtimeHealth = packageLoader.getRuntimeHealth();
     const pkgStore = require('../../stores/platformModulePackageStore');
     let ledgerRows = [];
-    try { ledgerRows = await pkgStore.listForModule(id); } catch (_) {}
+    try { ledgerRows = await pkgStore.listForModule(id); } catch (_) { log.warn('package ledger lookup failed, listing without it', _); }
     let stateRow = null;
-    try { stateRow = await platformModuleStore.getState(id); } catch (_) {}
+    try { stateRow = await platformModuleStore.getState(id); } catch (_) { log.warn('module state lookup failed, listing without it', _); }
     if (!ledgerRows.length && !stateRow && !(runtimeHealth.modules && runtimeHealth.modules[id])) {
         return res.status(404).json({ error: 'not_found' });
     }
@@ -261,11 +261,11 @@ router.get('/marketplace/:id', requireSuperAdmin, async (req, res, next) => {
         if (!hm || !hm.module_id) return res.status(404).json({ error: 'not_found' });
 
         let row = null;
-        try { row = await platformModuleStore.getState(id); } catch (_) {}
+        try { row = await platformModuleStore.getState(id); } catch (_) { log.warn('module state lookup failed, marketplace row built without it', _); }
         const base = remoteCatalog.marketplaceRow({ ...hm, versions: detail.versions || hm.versions }, row);
 
         let ledgerVersions = [];
-        try { ledgerVersions = await packageLoader.listVersions(id); } catch (_) {}
+        try { ledgerVersions = await packageLoader.listVersions(id); } catch (_) { log.warn('version ledger lookup failed, listing without it', _); }
 
         res.json({
             ...base,

@@ -58,8 +58,7 @@ function PlanCta({ plan, billing, hasActiveSub }: { plan: ConsumerPlan; billing:
                         type="checkbox"
                         checked={!!waiverAccepted[plan.id]}
                         onChange={e => billing.setWaiver(plan.id, e.target.checked)}
-                        className="mt-0.5 w-3.5 h-3.5 shrink-0"
-                        style={{ accentColor: 'var(--accent-primary)' }}
+                        className="mt-0.5 w-3.5 h-3.5 shrink-0 [accent-color:var(--accent-primary)]"
                     />
                     <span className="text-[10px] leading-snug text-[var(--text-muted)]">
                         {t('checkout.withdrawal_waiver_label', 'I request that the service start immediately and acknowledge that I lose my 14-day right of withdrawal once the service has been fully performed.')}
@@ -127,8 +126,7 @@ function PlanOption({ plan, billing, isCurrentPlan, isPreselected, hasActiveSub,
                     <h4 className="text-sm font-bold text-[var(--text-primary)]">{plan.name}</h4>
                     {isCurrentPlan && (
                         <span
-                            className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase"
-                            style={{ color: 'var(--success)', background: 'color-mix(in srgb, var(--success) 12%, transparent)' }}
+                            className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase [color:var(--success)]! [background:color-mix(in_srgb,var(--success)_12%,transparent)]"
                         >
                             {t('billing.current_plan', 'Current plan')}
                         </span>
@@ -138,13 +136,7 @@ function PlanOption({ plan, billing, isCurrentPlan, isPreselected, hasActiveSub,
                 {isCurrentPlan ? (
                     <button
                         disabled
-                        className="w-full py-2 rounded-lg text-xs font-semibold border"
-                        style={{
-                            color: 'var(--success)',
-                            borderColor: 'color-mix(in srgb, var(--success) 30%, transparent)',
-                            background: 'color-mix(in srgb, var(--success) 6%, transparent)',
-                            cursor: 'default',
-                        }}
+                        className="w-full py-2 rounded-lg text-xs font-semibold border [color:var(--success)]! [border-color:color-mix(in_srgb,var(--success)_30%,transparent)] [background:color-mix(in_srgb,var(--success)_6%,transparent)] [cursor:default]"
                     >
                         <Check className="w-3.5 h-3.5 inline mr-1" /> {t('billing.your_plan', 'Your plan')}
                     </button>

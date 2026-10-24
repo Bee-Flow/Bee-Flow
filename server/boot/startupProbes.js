@@ -53,7 +53,7 @@ function startBootProbes() {
             if (installedModel === 'urchade/gliner_multi_pii-v1') {
                 log.warn('[PiiGuard] Old model in config (urchade/gliner_multi_pii-v1). Reinstall the guard service from Admin → Guardrails for improved Dutch + medical recall (E3-JSI/gliner-multi-pii-domains-v1).');
             }
-        } catch (_) { /* fail-quiet */ }
+        } catch (err) { log.debug('fail-quiet', err); }
     });
 
     // PII Guard reachability — one loud line at boot, non-blocking.

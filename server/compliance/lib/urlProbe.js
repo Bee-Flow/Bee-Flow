@@ -23,6 +23,7 @@
  */
 
 const { safeFetch, isPrivateHostname, isPrivateAddressError } = require('../../utils/ssrfGuard');
+const log = require('../../telemetry/log');
 
 const DEFAULT_MAX_BYTES = 64_000;
 const DEFAULT_TIMEOUT_MS = 8_000;
@@ -64,7 +65,7 @@ async function _readBounded(body, maxBytes) {
             total += value.byteLength;
         }
     } finally {
-        if (truncated) { try { await reader.cancel(); } catch { /* stream already gone */ } }
+        if (truncated) { try { await reader.cancel(); } catch (err) { log.debug('stream already gone', err); } }
     }
     return { text: Buffer.concat(chunks.map(c => Buffer.from(c))).toString('utf8'), truncated, bytes: total };
 }

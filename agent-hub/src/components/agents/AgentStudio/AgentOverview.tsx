@@ -91,7 +91,7 @@ export default function AgentOverview<T extends AgentListRow>({
     return (
         <div className="h-full flex flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto">
-                <div className="mx-auto px-6 py-8 space-y-4" style={{ maxWidth: 1100 }}>
+                <div className="mx-auto px-6 py-8 space-y-4 max-w-[1100px]">
                     <div className="flex items-end gap-3 flex-wrap">
                         <div className="flex-1 min-w-0">
                             <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
@@ -213,18 +213,14 @@ export default function AgentOverview<T extends AgentListRow>({
 /** Het zoekveld, op elke lijstlengte aanwezig — zie DatatablesStudio's SearchBox. */
 function SearchBox({ t, value, onChange }: { t: TranslateFn; value: string; onChange: (value: string) => void }) {
     return (
-        <label className="relative block shrink-0" style={{ width: 200 }}>
+        <label className="relative block shrink-0 w-[200px]">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-tertiary)]" aria-hidden="true" />
             <input
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={t('agent_studio.search_short', 'Search an agent…')}
                 aria-label={t('agent_studio.search', 'Search agents by name, purpose or category')}
-                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                style={{
-                    background: 'var(--bg-card)', borderColor: 'var(--border-default)',
-                    color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)',
-                }}
+                className="w-full pl-8 pr-2 py-1.5 rounded-lg text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-card)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
             />
         </label>
     );

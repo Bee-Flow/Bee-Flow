@@ -44,7 +44,7 @@
 
 const safety = require('../automationRunner/safety');
 const { isPrivateHostname } = require('../../utils/ssrfGuard');
-const { HTTP_RESPONSE_CAP } = require('../../automation/httpResponseLimits');
+const { HTTP_RESPONSE_CAP } = require('../http/httpResponseLimits');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 

@@ -9,6 +9,7 @@ import type { GridColumn } from './grid/useGridColumns';
 import type React from 'react';
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import type { CellColumn, ToneForCellArgs, LabelForCellArgs, PillProps, CellFlagProps, MonogramProps, RenderMainValueArgs, CellValueProps } from './cellValue.types';
+import { logger } from '../../../../../../utils/logger';
 export type { CellColumn } from './cellValue.types';
 
 /**
@@ -219,9 +220,7 @@ function asTags(value: unknown) {
             if (Array.isArray(parsed)) {
                 return parsed.filter((v) => v != null && v !== '').map((v) => String(v));
             }
-        } catch {
-            // Not JSON after all — fall through to the comma split below.
-        }
+        } catch (err) { logger.debug('Not JSON after all — fall through to the comma split below.', err); }
     }
     return str.split(',').map((s) => s.trim()).filter(Boolean);
 }

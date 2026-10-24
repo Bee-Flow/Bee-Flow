@@ -303,7 +303,7 @@ async function consumerBetaAllow(_userId) {
         const cfg = await configStore().getConfig('default_consumer_beta_features');
         if (Array.isArray(cfg)) return cfg;
         if (typeof cfg === 'string') { try { return JSON.parse(cfg); } catch (_) { return []; } }
-    } catch (_) { /* none */ }
+    } catch (err) { log.debug('none', err); }
     return [];
 }
 
@@ -349,7 +349,7 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     // org subset exactly as integrationTools does today. MCP servers (mcp:<id>)
     // flow through this same path now.
     let orgInt = new Set();
-    try { orgInt = new Set(await userStore().getOrgEnabledIntegrations(orgId)); } catch (_) {}
+    try { orgInt = new Set(await userStore().getOrgEnabledIntegrations(orgId)); } catch (_) { log.warn('org enabled integrations lookup failed, treating as none', _); }
     // Transition read-compat: surviving legacy MCP grants written before the
     // unification — mcp:<id> in the old org_granted_capabilities column, and
     // mcp:<id> historically stored in org.enabledIntegrations. Bounded by the
@@ -358,13 +358,13 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     try {
         const legacyGranted = await userStore().getOrgGrantedCapabilities(orgId);
         for (const id of legacyGranted) if (typeof id === 'string' && id.startsWith('mcp:')) orgInt.add(id);
-    } catch (_) {}
+    } catch (_) { log.warn('legacy MCP grants lookup failed, skipping the compatibility read', _); }
     try {
         const org = await userStore().getOrganization(orgId);
         let raw = org?.enabledIntegrations;
         if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch (_) { raw = null; } }
         if (Array.isArray(raw)) for (const id of raw) if (typeof id === 'string' && id.startsWith('mcp:')) orgInt.add(id);
-    } catch (_) {}
+    } catch (_) { log.warn('org enabledIntegrations lookup failed, skipping the legacy MCP read', _); }
     for (const id of ceiling.integration) {
         // NC capabilities bypass the org-grant list: they are gated by the NC
         // binding, not by the integrations menu.
@@ -419,7 +419,7 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
         try {
             const r = await userStore().getOrgEveryoneRevoked(orgId);
             if (Array.isArray(r)) revoked = new Set(r);
-        } catch (_) { /* fail open */ }
+        } catch (err) { log.debug('fail open', err); }
     }
     for (const id of ceiling.beta) {
         const cap = registry.getCapability(id);
@@ -437,7 +437,7 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
     // granted to everyone implicitly in BOTH modes: no per-group surface, never
     // org-narrowed, never revocable.
     let orgGranted = new Set();
-    try { orgGranted = new Set(await userStore().getOrgGrantedCapabilities(orgId)); } catch (_) {}
+    try { orgGranted = new Set(await userStore().getOrgGrantedCapabilities(orgId)); } catch (_) { log.warn('org granted capabilities lookup failed, treating as none', _); }
     for (const id of ceiling.core) {
         const cap = registry.getCapability(id);
         if (cap && !cap.groupTogglable) { g.core.add(id); continue; }
@@ -526,7 +526,7 @@ async function resolveEntitlements({ userId = null, orgId = null, session = null
             const u = (session?.user?.id === userId && session.user.organizationId)
                 ? session.user : await userStore().getUser(userId);
             orgId = u?.organizationId || null;
-        } catch (_) { /* genuine consumer / lookup failure → stay null */ }
+        } catch (err) { log.debug('genuine consumer / lookup failure → stay null', err); }
     }
 
     const tc = await resolveTierContext({ userId, orgId, session, req, tierHint });
@@ -553,7 +553,7 @@ async function resolveEntitlements({ userId = null, orgId = null, session = null
         governingOrgId = session?.adminSelectedOrgId || await singleOrgId();
     }
     let availStored = null;
-    if (governingOrgId) { try { availStored = await userStore().getOrgAvailableCapabilities(governingOrgId); } catch (_) {} }
+    if (governingOrgId) { try { availStored = await userStore().getOrgAvailableCapabilities(governingOrgId); } catch (_) { log.warn('org available capabilities lookup failed, not narrowing by them', _); } }
     const orgAvailable = buildOrgAvailable({ ceiling, storedList: availStored });
 
     let effectiveSets, orgGrant, groupGrant;

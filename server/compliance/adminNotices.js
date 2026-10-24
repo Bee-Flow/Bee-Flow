@@ -91,7 +91,7 @@ function makeAdminNotices(deps = {}) {
                 try {
                     await store.createNotification({ userId, category, title, message, link });
                     sent++;
-                } catch { /* one failed insert must not cost the others their notice */ }
+                } catch (err) { log.debug('one failed insert must not cost the others their notice', err); }
             }
             return sent;
         } catch (e) {

@@ -104,8 +104,7 @@ export default function NowRunningStrip({ facets = null, loading = false, failed
 
     return (
         <section
-            className="rounded-xl border p-4 flex flex-col gap-2.5"
-            style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
+            className="rounded-xl border p-4 flex flex-col gap-2.5 [border-color:var(--border-subtle)] [background:var(--bg-card)]"
             data-testid="now-running"
         >
             <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">

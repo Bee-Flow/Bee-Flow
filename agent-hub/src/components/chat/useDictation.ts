@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { errorName, messageOf } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 /**
  * Press-to-talk dictation for a composer.
@@ -24,7 +25,7 @@ function pickMimeType(): string {
     // Ordered by how well the server's ffmpeg handles them; every browser
     // supports at least one. An empty string lets the browser choose.
     for (const t of ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']) {
-        try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (_) { /* older browsers */ }
+        try { if (MediaRecorder.isTypeSupported(t)) return t; } catch (err) { logger.debug('older browsers', err); }
     }
     return '';
 }
@@ -57,7 +58,7 @@ export default function useDictation({ onText, language = 'nl' }: UseDictationOp
         // Releasing the tracks is what turns the browser's recording indicator
         // off. Leaving them live reads as "this page is still listening".
         if (streamRef.current) {
-            for (const track of streamRef.current.getTracks()) { try { track.stop(); } catch (_) { /* already ended */ } }
+            for (const track of streamRef.current.getTracks()) { try { track.stop(); } catch (err) { logger.debug('already ended', err); } }
             streamRef.current = null;
         }
         recorderRef.current = null;

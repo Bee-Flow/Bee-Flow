@@ -1,7 +1,8 @@
 import ProjectCaptureProvider from './components/projects/workspace/content/ProjectCaptureProvider';
 import { whenMayNavigate } from './utils/unsavedNavigation';
-import React, { Suspense, useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef, useEffectEvent } from 'react';
 import { lazy } from './utils/lazyWithReload';
+import { logger } from './utils/logger';
 
 /**
  * The authenticated product, behind ONE lazy boundary.
@@ -151,7 +152,7 @@ function App() {
     // and consumed once the billing surface renders.
     useEffect(() => { capturePendingPlanFromUrl(); }, []);
 
-    useEffect(() => {
+    const runUserEffect = useEffectEvent(() => {
         // Device-level browser-state migrations first (dead keys, stale
         // build-stamped caches), then the per-user pass once whoami has
         // resolved. Both are idempotent, version-gated and never throw, so
@@ -168,7 +169,8 @@ function App() {
         const identity = identityKey(user);
         if (shouldResetCache(_prevIdentityRef.current, identity)) queryClient.clear();
         _prevIdentityRef.current = identity;
-    }, [user?.id, user?.organizationId, user?.orgId]);
+    });
+    useEffect(() => { return runUserEffect(); }, [user?.id, user?.organizationId, user?.orgId]);
 
     const [isLoading, setIsLoading] = useState(true);
     const [deploymentMode, setDeploymentMode] = useState('cloud');
@@ -533,7 +535,7 @@ function App() {
                             const data = await res.json();
                             setMfaSetupRequired(!!data.mfaSetupRequired);
                         }
-                    } catch (_) { /* leave cleared */ }
+                    } catch (err) { logger.debug('leave cleared', err); }
                 }}
             />
         );
@@ -678,7 +680,7 @@ function App() {
         <RecorderProvider>
         <CaptureProvider>
         <ProjectCaptureProvider key={user?.id || 'anonymous'} onNavigate={navigateToPage}>
-        <div className="flex flex-col" style={{ height: 'var(--app-height)' }}>
+        <div className="flex flex-col h-[var(--app-height)]">
 
             {/* Deployment warning. Above everything, in the layout flow rather
                 than floating: a rollout severs open SSE streams, so an answer

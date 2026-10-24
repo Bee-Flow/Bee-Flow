@@ -18,6 +18,7 @@
  * config read (60 s cache, failure → no override).
  */
 const configStore = require('../../stores/configStore');
+const log = require('../../telemetry/log');
 
 const AI_STEP_MODEL_KEY = 'ai_step_model';
 
@@ -38,9 +39,7 @@ async function resolveAiStepModelOverride({ requestedTier } = {}) {
     let configured = null;
     try {
         configured = await configStore.getConfig(AI_STEP_MODEL_KEY);
-    } catch (_) {
-        // A config-store hiccup must never fail an automation step: no override.
-    }
+    } catch (err) { log.debug('A config-store hiccup must never fail an automation step: no override.', err); }
     return aiStepOverrideFor({ configured, requestedTier });
 }
 

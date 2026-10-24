@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { markdownToAst } from './mdToAst';
-import { astToMarkdown } from './astToMd';
 import { astToHtml } from './astToHtml.js';
+import { astToMarkdown } from './astToMd';
 import { htmlToAst } from './htmlToAst';
+import { markdownToAst } from './mdToAst';
 
 const SPEC = '{"type":"bar","title":"Sales","labels":["Q1","Q2"],"series":[{"name":"Revenue","data":[10,20]}]}';
 const MD = '```chart\n' + SPEC + '\n```\n';

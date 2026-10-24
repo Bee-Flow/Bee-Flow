@@ -52,10 +52,10 @@ async function ensureScalewayFormat(filePath) {
     } catch (err) {
         // ffmpeg writes as it goes, so a failed transcode leaves a partial mp3
         // behind and the caller never gets a `cleanup` to call.
-        try { fs.unlinkSync(outPath); } catch { /* never created */ }
+        try { fs.unlinkSync(outPath); } catch (err) { log.debug('never created', err); }
         throw err;
     }
-    return { path: outPath, cleanup: () => { try { fs.unlinkSync(outPath); } catch { /* ignore */ } } };
+    return { path: outPath, cleanup: () => { try { fs.unlinkSync(outPath); } catch (err) { log.debug('ignore', err); } } };
 }
 
 /**
@@ -80,9 +80,9 @@ async function splitForScaleway(filePath, chunkSeconds) {
         const [fname, start] = line.split(',');
         return { path: path.join(dir, fname), start: parseFloat(start) || 0 };
     });
-    return { chunks, cleanup: () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ } } };
+    return { chunks, cleanup: () => { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); } } };
     } catch (err) {
-        try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ }
+        try { fs.rmSync(dir, { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); }
         throw err;
     }
 }

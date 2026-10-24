@@ -25,6 +25,7 @@ const crypto = require('crypto');
 const fsp = require('fs/promises');
 const { Readable } = require('stream');
 const { createTtlCache } = require('../utils/ttlCache');
+const log = require('../telemetry/log');
 
 const DEFAULT_HUB_URL = 'https://hub.beeflow.nl';
 const HUB_URL_KEY = 'beeflow_hub_url';
@@ -79,7 +80,7 @@ function _trimUrl(u) { return String(u || '').trim().replace(/\/+$/, ''); }
 async function resolveHubUrl() {
     let url = process.env.BEEFLOW_HUB_URL;
     if (!url) {
-        try { url = await configStore().getConfig(HUB_URL_KEY); } catch (_) { /* default below */ }
+        try { url = await configStore().getConfig(HUB_URL_KEY); } catch (err) { log.debug('default below', err); }
     }
     url = _trimUrl(url) || DEFAULT_HUB_URL;
     if (isProd() && !/^https:\/\//i.test(url)) {
@@ -177,14 +178,14 @@ async function _accessToken({ force = false } = {}) {
 // ── Connect / disconnect ──────────────────────────────────────────────────
 async function _defaultConnectParams() {
     const out = { license_token: null, product_version: null, hostname: null, contact_email: null };
-    try { out.hostname = require('os').hostname(); } catch (_) { /* leave null */ }
+    try { out.hostname = require('os').hostname(); } catch (err) { log.debug('leave null', err); }
     // The stamped release version only; the frozen server/package.json version would misreport it.
     out.product_version = process.env.APP_VERSION || null;
     try {
         const lic = require('../license/store');
         const active = await lic.getActiveLicenseForServer();
         if (active && active.rawToken) out.license_token = active.rawToken;
-    } catch (_) { /* unlicensed / community — connect anonymously */ }
+    } catch (err) { log.debug('unlicensed / community — connect anonymously', err); }
     return out;
 }
 
@@ -253,9 +254,9 @@ async function disconnect() {
 async function getConnection() {
     const installId = await getInstallId();
     let hubUrl = DEFAULT_HUB_URL;
-    try { hubUrl = await resolveHubUrl(); } catch (_) { /* keep default */ }
+    try { hubUrl = await resolveHubUrl(); } catch (err) { log.debug('keep default', err); }
     let meta = {};
-    try { meta = (await configStore().getConfig(CONNECTION_META_KEY)) || {}; } catch (_) { /* none */ }
+    try { meta = (await configStore().getConfig(CONNECTION_META_KEY)) || {}; } catch (err) { log.debug('none', err); }
     return {
         connected: !!installId,
         hubUrl,
@@ -298,7 +299,7 @@ async function fetchMeta() {
         try {
             const lastGood = await configStore().getConfig(META_LASTGOOD_KEY);
             if (lastGood && typeof lastGood === 'object') return lastGood;
-        } catch (_) { /* fall through */ }
+        } catch (err) { log.debug('fall through', err); }
         return { hub_api: 1, features: [] };
     }
 }
@@ -485,7 +486,7 @@ async function rebindLicense() {
     try {
         const active = await require('../license/store').getActiveLicenseForServer();
         token = active && active.rawToken;
-    } catch (_) { /* unlicensed */ }
+    } catch (err) { log.debug('unlicensed', err); }
     if (!token) return { ok: false, rebound: false, reason: 'no_license' };
     const base = await resolveHubUrl();
     try {

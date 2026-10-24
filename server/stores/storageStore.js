@@ -390,7 +390,7 @@ async function copyObject(sourceKey, destKey) {
         // same MIME on the copy. Best-effort — missing sidecars are fine.
         for (const ext of ['.meta', '.tags']) {
             if (fs.existsSync(src + ext)) {
-                try { fs.copyFileSync(src + ext, dst + ext); } catch (_) { /* ignore */ }
+                try { fs.copyFileSync(src + ext, dst + ext); } catch (err) { log.debug('ignore', err); }
             }
         }
         return;
@@ -424,11 +424,11 @@ async function uploadFile(key, buffer, contentType, metadata = null) {
         // MIME without re-guessing from the extension.
         if (contentType) {
             try { fs.writeFileSync(filePath + '.meta', String(contentType), 'utf8'); }
-            catch (_) { /* non-fatal — extension fallback covers this */ }
+            catch (err) { log.debug('non-fatal — extension fallback covers this', err); }
         }
         if (metadata && typeof metadata === 'object' && Object.keys(metadata).length > 0) {
             try { fs.writeFileSync(filePath + '.tags', JSON.stringify(metadata), 'utf8'); }
-            catch (_) { /* non-fatal */ }
+            catch (err) { log.debug('non-fatal', err); }
         }
         log.info(`[StorageStore:local] Uploaded: ${key} (${(buffer.length / 1024).toFixed(1)} KB)`);
         return { key };
@@ -542,8 +542,8 @@ async function completeMultipartUpload(key, uploadId, parts) {
             out.end();
         }
         let contentType = 'application/octet-stream';
-        try { contentType = fs.readFileSync(path.join(dir, 'content-type'), 'utf8').trim() || contentType; } catch (_) { /* default */ }
-        try { fs.writeFileSync(filePath + '.meta', contentType, 'utf8'); } catch (_) { /* non-fatal */ }
+        try { contentType = fs.readFileSync(path.join(dir, 'content-type'), 'utf8').trim() || contentType; } catch (err) { log.debug('default', err); }
+        try { fs.writeFileSync(filePath + '.meta', contentType, 'utf8'); } catch (err) { log.debug('non-fatal', err); }
         fs.rmSync(dir, { recursive: true, force: true });
         log.info(`[StorageStore:local] Multipart complete: ${key} (${parts.length} parts)`);
         return { key };
@@ -567,7 +567,7 @@ async function abortMultipartUpload(key, uploadId) {
         try {
             const filePath = localPathFor(key);
             fs.rmSync(MPU_PART_DIR(filePath, uploadId), { recursive: true, force: true });
-        } catch (_) { /* already gone */ }
+        } catch (err) { log.debug('already gone', err); }
         return;
     }
     if (!s3) throw new Error('StorageStore not initialized');
@@ -610,8 +610,8 @@ async function deleteFile(key) {
     if (mode === 'local') {
         const filePath = localPathFor(key);
         try { fs.unlinkSync(filePath); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-        try { fs.unlinkSync(filePath + '.meta'); } catch (_) { /* ignore */ }
-        try { fs.unlinkSync(filePath + '.tags'); } catch (_) { /* ignore */ }
+        try { fs.unlinkSync(filePath + '.meta'); } catch (err) { log.debug('ignore', err); }
+        try { fs.unlinkSync(filePath + '.tags'); } catch (err) { log.debug('ignore', err); }
         log.info(`[StorageStore:local] Deleted: ${key}`);
         return;
     }
@@ -654,7 +654,7 @@ async function streamFile(key, { range = null, signal = undefined } = {}) {
         try {
             const meta = fs.readFileSync(filePath + '.meta', 'utf8').trim();
             if (meta) contentType = meta;
-        } catch (_) { /* no sidecar */ }
+        } catch (err) { log.debug('no sidecar', err); }
         if (contentType === 'application/octet-stream') {
             const ext = path.extname(filePath).toLowerCase();
             if (MIME_BY_EXT[ext]) contentType = MIME_BY_EXT[ext];
@@ -664,7 +664,7 @@ async function streamFile(key, { range = null, signal = undefined } = {}) {
             const raw = fs.readFileSync(filePath + '.tags', 'utf8');
             const parsed = JSON.parse(raw);
             if (parsed && typeof parsed === 'object') metadata = parsed;
-        } catch (_) { /* no sidecar */ }
+        } catch (err) { log.debug('no sidecar', err); }
         // A byte range makes <audio> seeking work and is what Safari/iOS
         // require before they will start playing a media resource at all.
         const readOpts = range ? { start: range.start, end: range.end } : {};
@@ -723,7 +723,7 @@ async function headFile(key) {
         try {
             const meta = fs.readFileSync(filePath + '.meta', 'utf8').trim();
             if (meta) contentType = meta;
-        } catch (_) { /* no sidecar */ }
+        } catch (err) { log.debug('no sidecar', err); }
         if (contentType === 'application/octet-stream') {
             const ext = path.extname(filePath).toLowerCase();
             if (MIME_BY_EXT[ext]) contentType = MIME_BY_EXT[ext];

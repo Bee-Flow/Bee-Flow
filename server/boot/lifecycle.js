@@ -103,11 +103,11 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
                 await automationRunner.stop({ timeoutMs: parseInt(process.env.AUTOMATION_DRAIN_TIMEOUT_MS, 10) || 25_000 });
             }
         } catch (e) { log.warn('[Server] automation runner drain failed:', e.message); }
-        try { (deps.usageOpenObservePush || require('../jobs/usageOpenObservePush')).stop(); } catch (_) { /* best-effort */ }
-        try { (deps.opsMetricsPush || require('../jobs/opsMetricsPush')).stop(); } catch (_) { /* best-effort */ }
+        try { (deps.usageOpenObservePush || require('../jobs/usageOpenObservePush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
+        try { (deps.opsMetricsPush || require('../jobs/opsMetricsPush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
-        try { await Promise.race([(deps.chatSignals || require('../core/privacy/chatSignals')).flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (_) { /* best-effort */ }
-        try { (deps.configStore || require('../stores/configStore'))._stopInvalidationListener(); } catch (_) { /* best-effort */ }
+        try { await Promise.race([(deps.chatSignals || require('../core/privacy/chatSignals')).flush(), new Promise(r => setTimeout(r, 2000).unref())]); } catch (err) { defaultLog.debug('best-effort', err); }
+        try { (deps.configStore || require('../stores/configStore'))._stopInvalidationListener(); } catch (err) { defaultLog.debug('best-effort', err); }
         await disconnectRedis(); // shared ioredis client (caching and the session cache)
         // Flush the SQLite blob engines' dirty handles BEFORE exiting. Their own
         // SIGTERM listeners fire concurrently, but the process.exit() below used

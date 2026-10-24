@@ -106,7 +106,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     }), [rows]);
 
     if (sessions.loading) {
-        return <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}><Skeleton height={100} /><Skeleton height={320} /></div>;
+        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={100} /><Skeleton height={320} /></div>;
     }
     if (sessions.error) return <ErrorNote message={sessions.error} onRetry={sessions.reload} />;
 
@@ -114,7 +114,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     const websiteId = site?.websiteId;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="[display:flex] [flex-direction:column] [gap:14px]">
             <RecordingStrip recording={recording} totals={totals} site={site} onOpenSettings={onOpenSettings} />
 
             <StatGrid>
@@ -127,7 +127,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
             </StatGrid>
 
             <Card title={t('cms_site.analytics.replays.visits', 'Visits')} icon={Users} action={
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div className="[display:flex] [gap:4px]">
                     {FILTERS.map(f => (
                         <button key={f.id} onClick={() => setFilter(f.id)} style={{
                             fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
@@ -143,21 +143,21 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
                         ? t('cms_site.analytics.replays.no_sessions', 'No sessions in this period.')
                         : t('cms_site.analytics.replays.no_match', 'No sessions match that filter in this period.')} />
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 560, overflowY: 'auto' }}>
+                    <div className="[display:flex] [flex-direction:column] [gap:5px] max-h-[560px] [overflow-y:auto]">
                         {shown.slice(0, 100).map(r => (
                             <SessionRow key={r.session.id} row={r} base={base} websiteId={websiteId} onDrill={onDrill} />
                         ))}
                     </div>
                 )}
                 {shown.length > 100 && (
-                    <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: '10px 0 0' }}>
+                    <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:10px_0_0]">
                         {t('cms_site.analytics.replays.showing', 'Showing the 100 most notable of {n} — narrow the date range to see the rest.', { n: fmt(shown.length) })}
                     </p>
                 )}
             </Card>
 
             {recording && (
-                <p style={{ fontSize: 11, color: 'var(--text-muted, #777)', margin: 0 }}>
+                <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:0]">
                     {t('cms_site.analytics.replays.playback', 'Playback opens in Umami — the player itself is not embedded here.')}
                 </p>
             )}
@@ -178,32 +178,24 @@ function SessionRow({ row, base, websiteId, onDrill }: { row: SessionListRow; ba
             background: 'var(--bg-tertiary, rgba(255,255,255,0.03))',
             borderLeft: `2px solid ${events > 0 ? ACCENT : 'transparent'}`,
         }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-primary, #fff)' }}>
+            <div className="[flex:1] min-w-[0]">
+                <div className="[display:flex] [gap:8px] [align-items:baseline] [flex-wrap:wrap]">
+                    <span className="[font-size:12px] [color:var(--text-primary,#fff)]">
                         {fmtAgo(s.lastAt, undefined, t)}
                     </span>
                     {reasons.map(rs => (
-                        <span key={rs} style={{
-                            fontSize: 10, padding: '1px 6px', borderRadius: 5,
-                            background: 'var(--bg-secondary, rgba(255,255,255,0.05))',
-                            color: 'var(--text-muted, #999)',
-                        }}>{rs}</span>
+                        <span key={rs} className="[font-size:10px] [padding:1px_6px] [border-radius:5px] [background:var(--bg-secondary,rgba(255,255,255,0.05))] [color:var(--text-muted,#999)]">{rs}</span>
                     ))}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted, #888)', display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 2 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <div className="[font-size:11px] [color:var(--text-muted,#888)] [display:flex] [gap:10px] [flex-wrap:wrap] [margin-top:2px]">
+                    <span className="[display:inline-flex] [align-items:center] [gap:4px]">
                         <Monitor style={{ width: 11, height: 11 }} />
                         {[s.browser, s.os, s.device].filter(Boolean).join(' · ') || t('cms_site.analytics.replays.unknown_device', 'unknown device')}
                         {s.screen ? ` · ${s.screen}` : ''}
                     </span>
                     {s.country && (
                         <button onClick={() => onDrill?.('country', s.country)}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent',
-                                border: 'none', padding: 0, cursor: 'pointer', fontSize: 11,
-                                color: 'var(--text-muted, #888)',
-                            }}>
+                            className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:none] [padding:0] [cursor:pointer] [font-size:11px] [color:var(--text-muted,#888)]">
                             <Globe style={{ width: 11, height: 11 }} />{s.country}
                         </button>
                     )}
@@ -222,7 +214,7 @@ function SessionRow({ row, base, websiteId, onDrill }: { row: SessionListRow; ba
                     {t('cms_site.analytics.replays.play', 'Play')} <ExternalLink style={{ width: 11, height: 11 }} />
                 </a>
             ) : (
-                <span style={{ fontSize: 10, color: 'var(--text-muted, #666)', flexShrink: 0 }}>{t('cms_site.analytics.replays.not_recorded', 'not recorded')}</span>
+                <span className="[font-size:10px] [color:var(--text-muted,#666)] [flex-shrink:0]">{t('cms_site.analytics.replays.not_recorded', 'not recorded')}</span>
             )}
         </div>
     );
@@ -243,38 +235,26 @@ function RecordingStrip({ recording, totals, site, onOpenSettings }: RecordingSt
     const { t } = useTranslation();
     if (!recording) {
         return (
-            <div style={{
-                display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 15px',
-                borderRadius: 10, background: 'rgba(245,158,11,0.08)',
-                border: '1px solid rgba(245,158,11,0.25)', fontSize: 12, color: '#fcd34d',
-            }}>
+            <div className="[display:flex] [gap:10px] [align-items:flex-start] [padding:12px_15px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
                 <ShieldAlert style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0 }} />
-                <span style={{ flex: 1 }}>
+                <span className="[flex:1]">
                     <strong>{site?.name
                         ? t('cms_site.analytics.replays.off_named', 'Session recording is off for “{name}”.', { name: site.name })
                         : t('cms_site.analytics.replays.off_site', 'Session recording is off for this site.')}</strong>{' '}
                     {t('cms_site.analytics.replays.off_body', 'Every visit below is still being counted — recording only adds replay and heatmaps on top. It captures clicks, scrolling and page structure, so it runs only for visitors who accepted your cookie banner, in every consent mode, and form inputs are masked.')}
                 </span>
-                <button onClick={onOpenSettings} style={{
-                    flexShrink: 0, padding: '6px 12px', borderRadius: 8, background: '#f59e0b',
-                    color: '#2a1a00', border: 'none', fontSize: 11, fontWeight: 800, cursor: 'pointer',
-                }}>{t('cms_site.analytics.replays.turn_on', 'Turn it on')}</button>
+                <button onClick={onOpenSettings} className="[flex-shrink:0] [padding:6px_12px] [border-radius:8px] [background:#f59e0b] [color:#2a1a00] [border:none] [font-size:11px] [font-weight:800] [cursor:pointer]">{t('cms_site.analytics.replays.turn_on', 'Turn it on')}</button>
             </div>
         );
     }
 
     const pct = totals.sessions ? Math.round((totals.recorded / totals.sessions) * 100) : 0;
     return (
-        <div style={{
-            display: 'flex', gap: 10, alignItems: 'center', padding: '9px 14px', borderRadius: 10,
-            background: 'var(--bg-secondary, #1a1a2e)',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            fontSize: 12, color: 'var(--text-secondary, #aaa)',
-        }}>
+        <div className="[display:flex] [gap:10px] [align-items:center] [padding:9px_14px] [border-radius:10px] [background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [font-size:12px] [color:var(--text-secondary,#aaa)]">
             <span style={{ width: 7, height: 7, borderRadius: 99, background: ACCENT, flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>
+            <span className="[flex:1]">
                 {rich(t('cms_site.analytics.replays.on_status', 'Recording on, inputs masked · {count} sessions recorded ({pct}%). The rest declined the cookie banner — that is expected, not a fault.'), {
-                    count: <strong style={{ color: 'var(--text-primary, #fff)' }}>
+                    count: <strong className="[color:var(--text-primary,#fff)]">
                         {t('cms_site.analytics.replays.on_count', '{recorded} of {total}', { recorded: fmt(totals.recorded), total: fmt(totals.sessions) })}
                     </strong>,
                     pct,

@@ -69,7 +69,7 @@ const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {
     return (
         <div className="mb-6 p-5 rounded-xl border bg-[var(--bg-tertiary)] border-[var(--border-default)]">
             <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg, rgba(66,133,244,0.2), rgba(52,168,83,0.2))' }}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-xl [background:linear-gradient(135deg,rgba(66,133,244,0.2),rgba(52,168,83,0.2))]">
                     ☁️
                 </div>
                 <div className="flex-1">
@@ -91,16 +91,14 @@ const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {
                         value={project}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProject(e.target.value)}
                         placeholder={hasProject ? '••••••••••••••••' : t('admin_ai_config.vertex_project_placeholder', 'GCP Project ID')}
-                        className="flex-1 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="flex-1 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                     />
                     <input
                         type="text"
                         value={location}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)}
                         placeholder={t('admin_ai_config.vertex_location_placeholder', 'europe-west4')}
-                        className="w-40 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm"
-                        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                        className="w-40 px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                         title={t('admin_ai_config.vertex_location_title', 'GCP Location (e.g. europe-west4, us-central1)')}
                     />
                 </div>
@@ -109,8 +107,7 @@ const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {
                 {!showKeyInput ? (
                     <button
                         onClick={() => setShowKeyInput(true)}
-                        className="text-xs px-3 py-1.5 rounded-lg transition-all hover:bg-white/10"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}
+                        className="text-xs px-3 py-1.5 rounded-lg transition-all hover:bg-white/10 [background:var(--bg-secondary)]! [color:var(--text-muted)]! [border:1px_solid_var(--border-default)]"
                     >
                         {hasKey ? t('admin_ai_config.vertex_update_key', '🔑 Update Service Account Key') : t('admin_ai_config.vertex_add_key', '🔑 Add Service Account Key')}
                     </button>
@@ -124,8 +121,7 @@ const GoogleVertexConfigCard = ({ onMessage }: ProviderCardProps) => {
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setServiceAccountKey(e.target.value)}
                             placeholder={t('admin_ai_config.vertex_key_placeholder', 'Paste your service account JSON key here...')}
                             rows={4}
-                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-xs font-mono resize-y"
-                            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] text-xs font-mono resize-y [background:var(--bg-secondary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                         />
                         <p className="text-[10px] mt-1 text-[var(--text-muted)]">
                             {t('admin_ai_config.vertex_key_hint', 'GCP Console → IAM → Service Accounts → Keys → Add Key → JSON')}

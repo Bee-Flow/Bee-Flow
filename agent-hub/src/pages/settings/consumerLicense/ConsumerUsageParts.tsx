@@ -124,12 +124,7 @@ export function PlanSummaryCard({ planName, trialing, hasActiveSub, daysLeft, sh
                         <button
                             onClick={onPortal}
                             disabled={portalLoading}
-                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-                            style={{
-                                color: '#3b82f6',
-                                borderColor: 'rgba(59,130,246,0.3)',
-                                background: 'rgba(59,130,246,0.05)',
-                            }}
+                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors [color:#3b82f6]! [border-color:rgba(59,130,246,0.3)] [background:rgba(59,130,246,0.05)]"
                         >
                             {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
                             {t('license.manage_billing', 'Manage billing')}

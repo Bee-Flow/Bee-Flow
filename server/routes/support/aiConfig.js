@@ -182,7 +182,7 @@ function register(router) {
         if (Array.isArray(body.knowledgeBaseIds)) {
             try {
                 await configStore.setConfig('support_ai_kb_ids', JSON.stringify(body.knowledgeBaseIds));
-            } catch {}
+            } catch (err) { log.warn('could not store the support AI knowledge base ids', err); }
         }
         const updated = await agentStore.getAgent(SUPPORT_AGENT_ID);
         res.json({ ok: true, agent: updated });

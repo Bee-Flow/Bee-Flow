@@ -17,6 +17,7 @@
  */
 import { useCallback, useState } from 'react';
 import { resolveSection, resolveTab, sectionForRegulation } from '../sections';
+import { logger } from '../../../../utils/logger';
 
 /** `admin/compliance/<canonical>[/<encoded id>][?tab=<tab>]`. */
 export function compliancePath(sectionId: string, subId: string | null = null, tab: string | null = null) {
@@ -112,7 +113,7 @@ export function useUrlQueryParam(name: string, fallback: string | null = null) {
             const url = new URL(window.location.href);
             if (next && next !== fallback) url.searchParams.set(name, next); else url.searchParams.delete(name);
             window.history.replaceState(window.history.state, '', url.toString());
-        } catch { /* a host without a real URL (tests, demo) keeps the state only */ }
+        } catch (err) { logger.debug('a host without a real URL (tests, demo) keeps the state only', err); }
     }, [name, fallback]);
     const setLocal = useCallback((next: string | null) => { setValue(next || fallback); }, [fallback]);
     return [value, set, setLocal];

@@ -278,7 +278,7 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
         throw new HttpError(500, 'enroll_failed', 'Could not record your voice profile');
     } finally {
         // Unconditional: the enrollment recording must not survive the request.
-        if (tempPath) { try { await fs.promises.unlink(tempPath); } catch (_) {} }
+        if (tempPath) { try { await fs.promises.unlink(tempPath); } catch (_) { log.warn('enrollment recording could not be removed', _); } }
         if (req.file) req.file.buffer = null;
     }
 });

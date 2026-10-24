@@ -211,8 +211,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
             <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
                 {t('studio_apps_tables.paste.instructions', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
                 <textarea
-                    className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs"
-                    style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                    className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs [background:var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
                     rows={6}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
@@ -295,7 +294,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                                 </table>
                             </div>
                             {badRows > 0 ? (
-                                <p className="flex items-start gap-1.5 text-xs" style={{ color: '#d97706' }}>
+                                <p className="flex items-start gap-1.5 text-xs [color:#d97706]!">
                                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                     {parsed.rows.length === 1
                                         ? t('studio_apps_tables.paste.bad_rows_one', '{bad} of {total} row will be skipped — fix them in the spreadsheet and paste again, or import the rest now.', { bad: badRows, total: parsed.rows.length })

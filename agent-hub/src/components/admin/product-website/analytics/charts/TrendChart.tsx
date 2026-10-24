@@ -98,7 +98,7 @@ export default function TrendChart({
     const label = (i: number) => (formatLabel ? formatLabel(i) : labels[i]);
 
     return (
-        <div style={{ position: 'relative' }}>
+        <div className="[position:relative]">
             <svg
                 viewBox="0 0 100 100" preserveAspectRatio="none"
                 style={{ width: '100%', height, display: 'block', overflow: 'visible' }}
@@ -159,10 +159,7 @@ export default function TrendChart({
                 ))}
             </svg>
 
-            <div style={{
-                display: 'flex', justifyContent: 'space-between', marginTop: 4,
-                fontSize: 10, color: 'var(--text-muted, #777)',
-            }}>
+            <div className="[display:flex] [justify-content:space-between] [margin-top:4px] [font-size:10px] [color:var(--text-muted,#777)]">
                 <span>{label(0)}</span>
                 <span>{label(n - 1)}</span>
             </div>
@@ -176,15 +173,15 @@ export default function TrendChart({
                     border: '1px solid var(--border-default, rgba(255,255,255,0.14))',
                     fontSize: 11, whiteSpace: 'nowrap', zIndex: 2,
                 }}>
-                    <div style={{ color: 'var(--text-muted, #888)', marginBottom: 3 }}>{label(hover)}</div>
+                    <div className="[color:var(--text-muted,#888)] [margin-bottom:3px]">{label(hover)}</div>
                     {series.map((s, si) => (
-                        <div key={s.key || si} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <div key={s.key || si} className="[display:flex] [gap:8px] [align-items:center]">
                             <span style={{
                                 width: 7, height: 7, borderRadius: 2,
                                 background: s.color || (si === 0 ? ACCENT : '#3b82f6'),
                             }} />
-                            <span style={{ color: 'var(--text-muted, #999)' }}>{s.label}</span>
-                            <span style={{ color: 'var(--text-primary, #fff)', fontWeight: 700, marginLeft: 'auto' }}>
+                            <span className="[color:var(--text-muted,#999)]">{s.label}</span>
+                            <span className="[color:var(--text-primary,#fff)] [font-weight:700] [margin-left:auto]">
                                 {s.data[hover] == null ? 'no data' : formatY(s.data[hover])}
                             </span>
                         </div>
@@ -193,19 +190,19 @@ export default function TrendChart({
             )}
 
             {series.length > 1 && (
-                <div style={{ display: 'flex', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+                <div className="[display:flex] [gap:14px] [margin-top:6px] [flex-wrap:wrap]">
                     {series.map((s, si) => (
-                        <span key={s.key || si} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                        <span key={s.key || si} className="[display:inline-flex] [align-items:center] [gap:6px] [font-size:11px]">
                             <span style={{
                                 width: 10, height: 3, borderRadius: 2,
                                 background: s.color || (si === 0 ? ACCENT : '#3b82f6'),
                                 opacity: s.style === 'dashed' ? 0.6 : 1,
                             }} />
-                            <span style={{ color: 'var(--text-muted, #888)' }}>{s.label}</span>
+                            <span className="[color:var(--text-muted,#888)]">{s.label}</span>
                         </span>
                     ))}
                     {partialLast && (
-                        <span style={{ fontSize: 11, color: 'var(--text-muted, #777)' }}>
+                        <span className="[font-size:11px] [color:var(--text-muted,#777)]">
                             {tr('cms_site.analytics.trend_chart.partial_legend', 'dashed = period still in progress')}
                         </span>
                     )}

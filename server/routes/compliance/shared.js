@@ -14,6 +14,7 @@ const soaStore = require('../../stores/soaStore');
 const ismsDocStore = require('../../stores/ismsDocStore');
 const registry = require('../../compliance/registry');
 const { orgScope } = require('../../auth/orgScope');
+const log = require('../../telemetry/log');
 
 // The HOME org, read through auth/orgScope.js. 'default' is the single-tenant
 // install's org key, not an error signal — see resolveOrgIdStrict for the
@@ -127,13 +128,13 @@ async function _buildClauseConformity(orgId) {
     // ISMS process stores land later in the ISO build; read them lazily so
     // this statement upgrades itself the moment they exist.
     let risks = [], audits = [], reviews = [], ncs = [];
-    try { risks = await require('../../stores/riskStore').listRisks(orgId); } catch { /* not shipped yet */ }
+    try { risks = await require('../../stores/riskStore').listRisks(orgId); } catch (err) { log.debug('not shipped yet', err); }
     try {
         const auditStore = require('../../stores/isoAuditStore');
         audits = await auditStore.listAudits(orgId);
         reviews = await auditStore.listReviews(orgId);
         ncs = await auditStore.listNonconformities(orgId);
-    } catch { /* not shipped yet */ }
+    } catch (err) { log.debug('not shipped yet', err); }
 
     const fmtDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
     const clauses = [];

@@ -62,7 +62,7 @@ export default function useSitemapDrag(containerRef: RefObject<HTMLDivElement | 
             offsetX: mouse.x - pos.x,
             offsetY: mouse.y - pos.y,
         });
-    }, [positions]);
+    }, [containerRef, positions]);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         if (!candidate && !dragging) return;
@@ -89,7 +89,7 @@ export default function useSitemapDrag(containerRef: RefObject<HTMLDivElement | 
                 },
             }));
         }
-    }, [candidate, dragging]);
+    }, [candidate, containerRef, dragging]);
 
     const handleMouseUp = useCallback(() => {
         setCandidate(null);

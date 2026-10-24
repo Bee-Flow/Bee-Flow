@@ -6,6 +6,7 @@
 // (the exercise is a soft gate, so the learner can always retry or skip).
 
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { logger } from '../../utils/logger';
 
 export interface ExerciseGrade {
     score: number | null;
@@ -57,7 +58,7 @@ export async function gradeExercise({ exerciseId, submission, modelTier = 'fast'
             body: JSON.stringify({ exerciseId, mode: 'grade', submission, modelTier, locale }),
         });
         let body = null;
-        try { body = await res.json(); } catch (_) { /* ignore */ }
+        try { body = await res.json(); } catch (err) { logger.debug('ignore', err); }
         if (res.status === 429) {
             return { score: null, passed: false, feedback: 'You\'re going quickly! Wait a moment, then try again — or skip ahead.', strengths: [], improvements: [], error: 'rate_limited' };
         }

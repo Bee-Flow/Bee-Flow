@@ -77,14 +77,14 @@ async function getEmbedding(text, opts = {}) {
                 if (Array.isArray(vec)) return vec;
             }
         }
-    } catch (_) { /* try next tier */ }
+    } catch (err) { log.debug('try next tier', err); }
 
     // (2) CPU embedder — in-process, no external call.
     try {
         const { cpuEmbed } = require('../core/embed/cpuEmbed');
         const vecs = await cpuEmbed([text], { kind: opts.kind || 'passage' });
         if (vecs.length > 0) return vecs[0];
-    } catch (_) { /* try next tier */ }
+    } catch (err) { log.debug('try next tier', err); }
 
     // (3) Legacy self-hosted GPU service (`EMBED_API_URL`).
     if (EMBED_API_URL) {
@@ -99,7 +99,7 @@ async function getEmbedding(text, opts = {}) {
                 const data = /** @type {{ data?: Array<{ embedding?: number[] }> }} */ (await res.json());
                 return data?.data?.[0]?.embedding || null;
             }
-        } catch (_) { /* fall through */ }
+        } catch (err) { log.debug('fall through', err); }
     }
 
     return null;

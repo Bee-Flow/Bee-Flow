@@ -8,6 +8,7 @@ import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
 import { parseSseStream } from '../sseStream';
 import { messageOf } from '../../../../../../utils/caughtError';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * App Studio runtime — 'ai_chat'. Spec: server/appStudio/componentSpecs.js.
@@ -86,7 +87,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
             });
             if (!res.ok || !res.body) {
                 let body: { error?: string } | null = null;
-                try { body = await res.json(); } catch { /* not JSON */ }
+                try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
                 throw new Error(body?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: res.status }));
             }
 
@@ -122,8 +123,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
 
     return (
         <div
-            className="flex flex-col h-full min-h-[18rem] overflow-hidden border"
-            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+            className="flex flex-col h-full min-h-[18rem] overflow-hidden border [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
             data-app-ai-chat="true"
         >
             <div ref={listRef} className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
@@ -136,8 +136,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                     </div>
                 ) : messages.map((m, i) => (
                     m.role === 'user' ? (
-                        <div key={i} className="self-end max-w-[85%] px-3 py-2 text-sm"
-                            style={{ background: 'var(--bg-tertiary)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}>
+                        <div key={i} className="self-end max-w-[85%] px-3 py-2 text-sm [background:var(--bg-tertiary)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!">
                             {m.content}
                         </div>
                     ) : (
@@ -158,8 +157,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                             type="button"
                             onClick={() => send(s)}
                             disabled={!live || busy}
-                            className="px-2.5 py-1 text-xs border transition-colors disabled:opacity-50"
-                            style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
+                            className="px-2.5 py-1 text-xs border transition-colors disabled:opacity-50 [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]!"
                         >
                             {s}
                         </button>
@@ -168,12 +166,11 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
             )}
 
             {error && (
-                <p className="px-3 pb-1 text-xs" style={{ color: 'var(--error)' }} role="alert">{error}</p>
+                <p className="px-3 pb-1 text-xs [color:var(--error)]!" role="alert">{error}</p>
             )}
 
             <form
-                className="flex items-center gap-2 p-2 border-t"
-                style={{ borderColor: 'var(--border-default)' }}
+                className="flex items-center gap-2 p-2 border-t [border-color:var(--border-default)]!"
                 onSubmit={(e) => { e.preventDefault(); send(input); }}
             >
                 <input
@@ -183,8 +180,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                     placeholder={props.placeholder || t('studio_apps_runtime.ai_chat.placeholder', 'Ask a question…')}
                     disabled={!live || busy}
                     aria-label={t('studio_apps_runtime.ai_chat.message', 'Message')}
-                    className="flex-1 px-3 py-2 text-sm border outline-none disabled:opacity-60"
-                    style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
+                    className="flex-1 px-3 py-2 text-sm border outline-none disabled:opacity-60 [background:var(--bg-secondary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
                 />
                 <button
                     type="submit"
@@ -194,12 +190,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
                     // app's own primary and its paired foreground — not the
                     // platform accent, which is a light grey in the default
                     // themes and left a white icon on it at about 2.5:1.
-                    className="p-2 disabled:opacity-50"
-                    style={{
-                        background: 'var(--app-primary)',
-                        color: 'var(--app-primary-contrast)',
-                        borderRadius: 'var(--app-radius)',
-                    }}
+                    className="p-2 disabled:opacity-50 [background:var(--app-primary)] [color:var(--app-primary-contrast)] [border-radius:var(--app-radius)]"
                 >
                     <Send className="w-4 h-4" />
                 </button>

@@ -72,12 +72,11 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error }:
             className="max-w-xl"
         >
             <div
-                className="w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', maxHeight: '85vh', animation: 'overlayContentIn .2s ease-out' }}
+                className="w-full rounded-2xl border shadow-2xl overflow-hidden flex flex-col [background:var(--bg-card)] [border-color:var(--border-default)] max-h-[85vh] [animation:overlayContentIn_.2s_ease-out]"
             >
                 {/* Header */}
                 <div className="px-5 py-4 border-b flex items-start gap-3 shrink-0 border-[var(--border-subtle)]">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'rgba(234, 88, 12, 0.12)' }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 [background:rgba(234,88,12,0.12)]">
                         <ShieldAlert className="w-5 h-5" style={{ color: '#ea580c' }} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -90,7 +89,7 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error }:
                             {t('dlp.preview_subtitle', 'This prompt will be sent to')}{' '}
                             <strong className="text-[var(--text-primary)]">{providerLabel}</strong>
                             {provider.isExternal !== false && (
-                                <span className="ml-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(234, 88, 12, 0.12)', color: '#ea580c' }}>
+                                <span className="ml-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded [background:rgba(234,88,12,0.12)] [color:#ea580c]!">
                                     <Lock className="w-2.5 h-2.5" />
                                     {t('dlp.external_badge', 'external')}
                                 </span>
@@ -115,7 +114,7 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error }:
                     </label>
 
                     {error && (
-                        <div className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626' }}>
+                        <div className="text-xs px-3 py-2 rounded-lg [background:rgba(239,68,68,0.1)] [color:#dc2626]!">
                             {error}
                         </div>
                     )}
@@ -126,8 +125,7 @@ export default function DlpReviewShell({ pending, onSubmit, submitting, error }:
                     <button
                         onClick={() => onSubmit('block')}
                         disabled={submitting}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
-                        style={{ color: '#dc2626', background: 'rgba(239, 68, 68, 0.08)' }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 [color:#dc2626]! [background:rgba(239,68,68,0.08)]"
                     >
                         <X className="w-3.5 h-3.5" />
                         {t('dlp.action_block', 'Block')}

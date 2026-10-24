@@ -74,16 +74,7 @@ export default function DatatableCard({ t, table, onOpen }: {
             <button
                 type="button"
                 onClick={onOpen}
-                className="w-full text-left grid items-center gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                style={{
-                    gridTemplateColumns: '36px minmax(0,1fr) auto',
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-default)',
-                    boxShadow: 'var(--shadow-sm)',
-                    outlineColor: 'var(--accent-primary)',
-                }}
+                className="w-full text-left grid items-center gap-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [grid-template-columns:36px_minmax(0,1fr)_auto] [padding:14px_16px] [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)] [outline-color:var(--accent-primary)]!"
             >
                 <span style={tile} aria-hidden="true">{glyphType ? React.createElement(glyphType, { style: glyph }) : null}</span>
 

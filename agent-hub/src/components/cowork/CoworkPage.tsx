@@ -289,11 +289,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                     {inFlightCount > 0 && (
                         <span
                             data-testid="cowork-running-count"
-                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0"
-                            style={{
-                                background: 'color-mix(in srgb, var(--type-ai) 14%, transparent)',
-                                color: 'var(--type-ai)',
-                            }}
+                            className="px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 [background:color-mix(in_srgb,var(--type-ai)_14%,transparent)] [color:var(--type-ai)]!"
                         >
                             {t('cowork.list.running_count', '{count} running', { count: inFlightCount })}
                         </span>
@@ -392,8 +388,7 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
                                                 type="button"
                                                 onClick={() => { setBrief(text); textareaRef.current?.focus(); }}
                                                 data-testid="cowork-starter"
-                                                className="text-left px-3.5 py-2.5 rounded-xl border text-[12.5px] transition-colors hover:bg-[var(--bg-secondary)]"
-                                                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)' }}
+                                                className="text-left px-3.5 py-2.5 rounded-xl border text-[12.5px] transition-colors hover:bg-[var(--bg-secondary)] [background:var(--bg-card)]! [border-color:var(--border-subtle)] [color:var(--text-secondary)]!"
                                             >
                                                 {text}
                                             </button>

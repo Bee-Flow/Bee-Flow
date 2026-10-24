@@ -3,6 +3,7 @@ import type { DryRun } from '../builderStream';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { AutomationBuilderState } from './types';
 import { GATEWAY_DROP, awaitRunAfterDrop, markStepFailed, settleRunStub, stepRowUnchanged } from './dryRun';
+import { logger } from '../../utils/logger';
 
 /**
  * The run controls of the automation builder: discovering an active run,
@@ -57,12 +58,12 @@ export default function useRunControls(
                     onFound?.(run.runId);
                     setState(s => ({ ...s, dryRun: { id: run.runId, status: 'running', startedAt: run.startedAt } }));
                 }
-            } catch { /* transient — keep trying until stopped */ }
+            } catch (err) { logger.debug('transient — keep trying until stopped', err); }
         };
         const handle = setInterval(discover, 350);
         discover();
         return () => { alive = false; clearInterval(handle); };
-    }, [state.automationId]);
+    }, [setState, state.automationId]);
 
     /**
      * n8n-style "Execute step" — run a single step and merge the resulting
@@ -161,7 +162,7 @@ export default function useRunControls(
             partialRunRef.current = false;
             stopWatch();
         }
-    }, [state.automationId, watchActiveRun]);
+    }, [setState, state.automationId, watchActiveRun]);
 
     const retryFromStep = useCallback(
         (stepId: string, opts: { triggerPayload?: unknown; seedRunId?: string | null; confirmSideEffects?: boolean } = {}) => executeStep(stepId, { ...opts, mode: 'from' }),
@@ -260,12 +261,12 @@ export default function useRunControls(
         } catch {
             return null;
         }
-    }, []);
+    }, [setState]);
 
     /** Dismiss the dry-run preview drawer (clears the result + step rows). */
     const clearDryRun = useCallback(() => {
         setState(s => ({ ...s, dryRun: null, steps: [] }));
-    }, []);
+    }, [setState]);
 
     /**
      * Release a 'running'/'queued' progress stub that will never reach a
@@ -281,7 +282,7 @@ export default function useRunControls(
         setState(s => (s.dryRun && (s.dryRun.status === 'running' || s.dryRun.status === 'queued')
             ? { ...s, dryRun: { ...s.dryRun, status: 'error' } }
             : s));
-    }, []);
+    }, [setState]);
 
     /**
      * Restore the most recent run's step rows after a reload. Run output
@@ -311,7 +312,7 @@ export default function useRunControls(
         } catch {
             return null;
         }
-    }, [state.automationId]);
+    }, [setState, state.automationId]);
 
     /**
      * Push a completed full-flow run (dry-run or live) into state so every
@@ -325,7 +326,7 @@ export default function useRunControls(
             dryRun: run || s.dryRun,
             steps: Array.isArray(steps) ? steps : s.steps,
         }));
-    }, []);
+    }, [setState]);
 
     return { watchActiveRun, executeStep, retryFromStep, stopRun, pollRunProgress, clearDryRun, settleRun, hydrateLastRun, setRunResult };
 }

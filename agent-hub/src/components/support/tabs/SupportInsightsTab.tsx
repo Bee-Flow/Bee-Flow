@@ -53,7 +53,7 @@ export default function SupportInsightsTab() {
         })();
     }, []);
 
-    if (error) return <div className="p-6 text-sm" style={{ color: '#dc2626' }}>{error}</div>;
+    if (error) return <div className="p-6 text-sm [color:#dc2626]!">{error}</div>;
     if (!data) return <div className="p-6 text-sm text-[var(--text-muted)]">{t('support.support_insights_loading_insights', 'Loading insights…')}</div>;
 
     const { csat, handling } = data;

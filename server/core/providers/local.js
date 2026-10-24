@@ -616,7 +616,7 @@ class LocalProvider extends BaseProvider {
         try {
             const props = await this._getJson(`${root}/props`, this.getHeaders(apiKey), RUNTIME_PROBE_TIMEOUT_MS);
             if (props && (props.build_info !== undefined || props.chat_template !== undefined)) runtime = "llamacpp";
-        } catch (_) { /* not llama-server, or not up — either way: send nothing extra */ }
+        } catch (err) { log.debug('not llama-server, or not up — either way: send nothing extra', err); }
         runtimeByRoot.set(root, runtime);
         return runtime;
     }
@@ -822,7 +822,7 @@ class LocalProvider extends BaseProvider {
                     if (!res.ok) continue;
                     const data = /** @type {{ capabilities?: string[] }} */ (await res.json());
                     if (Array.isArray(data?.capabilities)) out.set(entry.id, data.capabilities);
-                } catch (_) { /* keep the pattern guess for this one */ }
+                } catch (err) { log.debug('keep the pattern guess for this one', err); }
             }
         };
         await Promise.all(
@@ -868,7 +868,7 @@ class LocalProvider extends BaseProvider {
             try {
                 const v = await this._getJson(`${this._root(baseUrl)}/api/version`, headers, DETAIL_TIMEOUT_MS);
                 result.version = v?.version || null;
-            } catch (_) { /* version is decoration, not the health signal */ }
+            } catch (err) { log.debug('version is decoration, not the health signal', err); }
         }
 
         try {

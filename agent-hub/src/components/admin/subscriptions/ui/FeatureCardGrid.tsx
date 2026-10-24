@@ -61,7 +61,7 @@ export function FeatureCardGrid({
     const restrictLabelText = restrictLabel ?? t('admin_subscriptions.ui_restrict_label', 'Restrict to selected items');
     const restrictDescriptionText = restrictDescription ?? t('admin_subscriptions.ui_restrict_desc', 'When off, every option is included automatically.');
     const restricted = Array.isArray(value);
-    const arrValue = Array.isArray(value) ? value : [];
+    const arrValue = useMemo(() => Array.isArray(value) ? value : [], [value]);
     const selected = useMemo(
         // Unrestricted (null) = all CATALOG options included; MCP servers excluded
         // (they are opt-in and only count when explicitly listed in restricted mode).

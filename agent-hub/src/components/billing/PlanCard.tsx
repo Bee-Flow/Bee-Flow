@@ -87,8 +87,7 @@ export default function PlanCard({
         >
             {current && (
                 <span
-                    className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-                    style={{ background: 'var(--success)', color: '#fff' }}
+                    className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide [background:var(--success)] [color:#fff]!"
                 >
                     {t('billing.current_plan', 'Current plan')}
                 </span>

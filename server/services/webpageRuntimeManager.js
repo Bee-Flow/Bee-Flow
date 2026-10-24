@@ -235,7 +235,7 @@ async function hydrateProject(webpageId, userId, workdir) {
             const f = await webpageStore.readExtraFile({ webpageId, userId, path: meta.path });
             if (!f) continue;
             await writeFile(meta.path, f.meta.isText ? f.text : f.bytes);
-        } catch (_) { /* skip individual file failures */ }
+        } catch (err) { log.debug('skip individual file failures', err); }
     }
     return count;
 }
@@ -390,7 +390,7 @@ async function waitForReady(reachableHost) {
             const res = await fetch(url, { signal: ctrl.signal });
             clearTimeout(t);
             if (res.status > 0) return true;
-        } catch (_) { /* not up yet */ }
+        } catch (err) { log.debug('not up yet', err); }
         await new Promise(r => setTimeout(r, 750));
     }
     throw new Error('dev server did not become ready in time');
@@ -408,9 +408,9 @@ async function stopRuntime(webpageId) {
     const e = runtimes.get(webpageId);
     runtimes.delete(webpageId);
     if (!(await dockerAvailable())) return;
-    try { await removeContainerIfExists(getDocker(), containerName(webpageId)); } catch (_) { /* ignore */ }
+    try { await removeContainerIfExists(getDocker(), containerName(webpageId)); } catch (err) { log.debug('ignore', err); }
     if (e) {
-        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (_) { /* ignore */ }
+        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); }
     }
 }
 
@@ -461,14 +461,14 @@ async function reapIdle() {
             if (shouldReap({ state: c.State, born, entry, now })) {
                 try {
                     const cont = docker.getContainer(c.Id);
-                    try { await cont.stop({ t: 3 }); } catch (_) {}
+                    try { await cont.stop({ t: 3 }); } catch (_) { log.debug('container already stopped', _); }
                     await cont.remove({ force: true });
                     if (webpageId) {
                         runtimes.delete(webpageId);
-                        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (_) {}
+                        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (_) { log.debug('work directory already removed', _); }
                     }
                     reaped++;
-                } catch (_) { /* already gone */ }
+                } catch (err) { log.debug('already gone', err); }
             }
         }
     } catch (e) {

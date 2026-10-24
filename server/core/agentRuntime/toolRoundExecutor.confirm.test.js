@@ -21,6 +21,7 @@
  * Run: node --test --test-force-exit core/agentRuntime/toolRoundExecutor.confirm.test.js
  */
 
+require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
 const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');

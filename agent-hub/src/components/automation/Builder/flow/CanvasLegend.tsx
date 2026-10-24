@@ -34,8 +34,7 @@ export default function CanvasLegend() {
     const row = 'flex items-center gap-2';
     return (
         <div
-            className="w-[232px] px-3 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] flex flex-col gap-2"
-            style={{ boxShadow: 'var(--shadow-popover)' }}
+            className="w-[232px] px-3 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] flex flex-col gap-2 [box-shadow:var(--shadow-popover)]"
             data-testid="canvas-legend"
         >
             <div className="text-[10px] font-semibold uppercase tracking-[.08em] text-[var(--text-tertiary)]">

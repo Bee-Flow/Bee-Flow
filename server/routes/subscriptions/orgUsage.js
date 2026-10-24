@@ -21,6 +21,7 @@ const usageStore = require('../../stores/usageStore');
 const { getAdminId, requireAuthOrOrgMember } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const log = require('../../telemetry/log');
 
 const router = express.Router();
 
@@ -106,7 +107,7 @@ router.get('/orgs/:orgId/effective-access', requireAuthOrOrgMember, async (req, 
     // not surface here either (same contract as /registries — the
     // capability behaves as if it doesn't exist on the instance).
     let inactiveModuleCaps = new Set();
-    try { inactiveModuleCaps = await require('../../modules').listInactiveCapabilityIds(); } catch (_) {}
+    try { inactiveModuleCaps = await require('../../modules').listInactiveCapabilityIds(); } catch (_) { log.warn('inactive module lookup failed, no capabilities hidden', _); }
 
     const features = listCompoundGatedFeatures().filter(g => !inactiveModuleCaps.has(g.id)).map(g => {
         const hasLicense = licenseTiers.tierHasFeature(tier, g.licenseFeature) || granted.has(g.licenseFeature);

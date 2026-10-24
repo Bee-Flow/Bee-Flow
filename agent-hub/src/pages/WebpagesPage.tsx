@@ -10,6 +10,7 @@ import { RequireTier } from '../components/licensing/LicenseContext';
 import useTranslation from '../hooks/useTranslation';
 import { API_BASE, authFetch } from '../utils/helpers';
 import type { WebpageRow } from './webpages/webpageEditorTypes';
+import { logger } from '../utils/logger';
 
 /**
  * The URL segment Studio's "New → Webpage" launcher navigates to
@@ -54,7 +55,7 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
             try {
                 const list = await readOrgGroups();
                 if (list) setOrgGroups(list);
-            } catch { /* ignore */ }
+            } catch (err) { logger.debug('ignore', err); }
         })();
     }, []);
 
@@ -107,7 +108,7 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
         // manual edits made within the save debounce window aren't lost on a
         // fast page switch. flushNow() captures its snapshot synchronously and
         // no-ops when nothing is dirty. Never let a flush failure block the load.
-        try { await flushRef.current?.(); } catch { /* best-effort flush */ }
+        try { await flushRef.current?.(); } catch (err) { logger.debug('best-effort flush', err); }
         try {
             const bundle = await fetchWebpageBundle(id);
             setEditMode(edit);

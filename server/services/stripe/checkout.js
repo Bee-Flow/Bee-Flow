@@ -117,9 +117,7 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
                         limit: 1,
                     });
                     if (found?.data?.[0]?.id) effectiveCustomerId = found.data[0].id;
-                } catch (e) {
-                    // Search API unavailable or index lag — fall through to create.
-                }
+                } catch (e) { log.debug('Search API unavailable or index lag — fall through to create.', e); }
             }
             if (!effectiveCustomerId) {
                 const created = await stripe.customers.create({
@@ -131,7 +129,7 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
             }
             if (effectiveCustomerId) {
                 try { await userStore.setOrgSubscription(orgId, { stripe_customer_id: effectiveCustomerId }); }
-                catch (e) { /* non-fatal — webhook will also persist it */ }
+                catch (e) { log.debug('non-fatal — webhook will also persist it', e); }
             }
 
             // Attach the org's VAT id (idempotent) so Stripe Tax can apply EU

@@ -84,7 +84,7 @@ function makeLifecycleEmitter({ run, automation, effectiveMode }) {
                 rootRunId: run.rootRunId || run.id,
                 ...extra,
             });
-        } catch (_) { /* never break a run on telemetry */ }
+        } catch (err) { log.debug('never break a run on telemetry', err); }
     };
     return emitLifecycle;
 }
@@ -177,7 +177,7 @@ function makeRunMarkerToucher(deps, { ownsMarker, automation }) {
         // Capability-checked: a store build without the marker touch keeps the
         // old behaviour rather than throwing on every heartbeat tick.
         try { automationStore.touchAutomationRunning?.(automation.id, INSTANCE_ID)?.catch?.(() => {}); }
-        catch (_) { /* the marker refresh must never break a run */ }
+        catch (err) { log.debug('the marker refresh must never break a run', err); }
     };
     return touchRunMarker;
 }

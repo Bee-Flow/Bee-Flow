@@ -6,6 +6,7 @@
 'use strict';
 
 const { isPlainObject } = require('./shared');
+const { planRetention } = require('./retentionPlan');
 const {
     CONNECTOR_KINDS,
     MAX_CONNECTOR_ROWS,
@@ -456,11 +457,11 @@ function validateConnectors(model, errors) {
         // A retention promise the purge cannot keep is worse than no promise: the
         // app tells its users data is deleted after N days and it is not. Decided
         // with the SAME pure function the purge runs on, so the gate and the
-        // behaviour cannot drift apart. Lazily required — connectorSync requires
-        // this module, so a top-level import would be a cycle.
+        // behaviour cannot drift apart. It lives in ./retentionPlan (a pure leaf),
+        // so neither this module nor connectorSync has to require the other.
         if (isPlainObject(c.sync) && Number.isInteger(c.sync.retentionDays) && c.sync.retentionDays > 0) {
             let plan = null;
-            try { plan = require('../connectorSync').planRetention(model, c); } catch { plan = null; }
+            try { plan = planRetention(model, c); } catch { plan = null; }
             if (plan && plan.unreachable.length) {
                 errors.push(`${where}.sync.retentionDays promises data is deleted after ${plan.days} days, but nothing would ever delete rows from ${plan.unreachable.join(', ')} — give the table a date column, or set retentionCascade on the child so it is removed with its parent`);
             }

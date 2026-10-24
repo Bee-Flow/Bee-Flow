@@ -39,7 +39,7 @@ export default function RecordPanel({ onComplete }: { onComplete?: () => void })
         <div className="flex flex-col items-center gap-6 py-2">
             <CaptureControls />
 
-            <div className="relative flex items-center justify-center" style={{ height: 220 }}>
+            <div className="relative flex items-center justify-center h-[220px]">
                 {recording && (
                     <span
                         aria-hidden
@@ -128,8 +128,7 @@ export default function RecordPanel({ onComplete }: { onComplete?: () => void })
 
             {Boolean(uploadError) && (
                 <div
-                    className="w-full flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs"
-                    style={{ background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))', borderColor: 'var(--error)', color: 'var(--text-primary)' }}
+                    className="w-full flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs [background:color-mix(in_srgb,var(--error)_8%,var(--bg-secondary))] [border-color:var(--error)] [color:var(--text-primary)]!"
                 >
                     <div className="font-semibold">{t('meetings.failed_title', 'Transcription failed')}</div>
                     <div className="text-[var(--text-secondary)]">{errorMessage(uploadError)}</div>

@@ -384,7 +384,7 @@ function FromConversationPicker({ skillId, onClose, onAdded, t }: FromConversati
                     <ul className="list-none p-0 m-0 flex flex-col gap-1 overflow-y-auto max-h-[22rem]">
                         {conversations === null && <Busy t={t} />}
                         {conversations === false && (
-                            <li className="text-xs py-4" style={{ color: 'var(--warning-ink, var(--warning))' }}>
+                            <li className="text-xs py-4 [color:var(--warning-ink,var(--warning))]!">
                                 {t('skills_studio.examples.conversations_unreadable', 'Your conversations could not be read just now, so none are listed. That is not “you have none”.')}
                             </li>
                         )}
@@ -421,7 +421,7 @@ function FromConversationPicker({ skillId, onClose, onAdded, t }: FromConversati
                         <ul className="list-none p-0 m-0 flex flex-col gap-1 overflow-y-auto max-h-[22rem]">
                             {messages === null && <Busy t={t} />}
                             {messages === false && (
-                                <li className="text-xs py-4" style={{ color: 'var(--warning-ink, var(--warning))' }}>
+                                <li className="text-xs py-4 [color:var(--warning-ink,var(--warning))]!">
                                     {t('skills_studio.examples.messages_unreadable', 'This conversation could not be read just now. That is not “there is nothing in it”.')}
                                 </li>
                             )}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, useEffectEvent } from 'react';
 import followToBottom from './followToBottom';
 import { buildSidePanelPayload } from './sidePanelPayload';
 import useChatSignals from '../components/chat/chatSignals/useChatSignals';
@@ -21,6 +21,7 @@ import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { ConversationRow, ConversationLabel } from './useConversationMeta';
 import type { TurnConversation } from './useProjectChatStart';
 import type { IdRef, AgentLike, HubUser, UseAgentHubDataArgs } from './useAgentHubData.types';
+import { logger } from '../utils/logger';
 export type { IdRef, AgentLike, HubUser } from './useAgentHubData.types';
 
 // The data/engine core of AgentHub, moved verbatim from AgentHub.jsx: the
@@ -365,7 +366,7 @@ const useAgentHubData = ({
             if (params.get('themePreview') !== '1') return;
             if (params.get('overlay') === 'search') setShowSearch(true);
             if (params.get('sidebar') === 'collapsed') setSidebarOpen(false);
-        } catch (_) { /* search params unavailable */ }
+        } catch (err) { logger.debug('search params unavailable', err); }
     }, [setSidebarOpen]);
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
     // Message rows (the "Memory used" and "Remembered" lines) ask for the panel
@@ -467,9 +468,10 @@ const useAgentHubData = ({
         const container = messagesContainerRef.current;
         return container ? followToBottom(container) : undefined;
     }, [openAtLatestTick]);
-    useEffect(() => {
+    const runSendMessageEffect = useEffectEvent(() => {
         sendMessageRef.current = (text: string) => sendMessage(text, []);
-    }, [selectedAgent, isLoading]);
+    });
+    useEffect(() => { return runSendMessageEffect(); }, [selectedAgent, isLoading]);
 
     // Global Cmd/Ctrl+K to open Search
     useEffect(() => {
@@ -522,7 +524,7 @@ const useAgentHubData = ({
             console.error("Failed to refresh agents", err);
         }
         return null;
-    }, [user, setAgents, setAgentCategories]);
+    }, [setAgents, setAgentCategories]);
 
     // Refresh agents whenever the Agent Store (marketplace) opens
     useEffect(() => {
@@ -564,7 +566,7 @@ const useAgentHubData = ({
     }, [showMarketplace, showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel, setShowProjectsStore, setActiveProjectId]);
 
     // Load Agents and Handle Startup Logic
-    useEffect(() => {
+    const runInitialAgentIdEffect = useEffectEvent(() => {
         const loadAgents = async () => {
             const data = await refreshAgents();
             if (!data) return;
@@ -649,7 +651,8 @@ const useAgentHubData = ({
             }
         };
         loadAgents();
-    }, []);
+    });
+    useEffect(() => { return runInitialAgentIdEffect(); }, []);
 
     // Load Conversations when Agent Selected
     const loadConversations = useCallback(async (agentId: string) => {
@@ -664,7 +667,7 @@ const useAgentHubData = ({
             console.error("Failed to load conversations", err);
         }
     }, [setConversations]);
-    useEffect(() => {
+    const runSelectConversationEffect = useEffectEvent(() => {
         if (selectedAgent) {
             loadConversations(selectedAgent.id).then(async () => {
                 // Auto-select conversation from URL on initial load
@@ -695,7 +698,8 @@ const useAgentHubData = ({
             setShowNotebook(false);
             setNotebookLinkedId(null);
         }
-    }, [selectedAgent, loadConversations]);
+    });
+    useEffect(() => { return runSelectConversationEffect(); }, [selectedAgent, loadConversations]);
 
     // Generation counter for selectConversation — same guard as
     // NotebooksPage.selectNotebook. Two sequential awaits (the conversation

@@ -18,9 +18,9 @@ export default function ClaudeSettingsSection({
 }: ClaudeSettingsSectionProps) {
     const { t } = useTranslation();
     return (
-            <div className="p-4 sm:p-6 rounded-xl border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}>
+            <div className="p-4 sm:p-6 rounded-xl border [background:var(--bg-secondary)] [border-color:var(--border-default)]">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(217, 119, 6, 0.15)' }}>🧠</div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl [background:rgba(217,119,6,0.15)]">🧠</div>
                     <div className="flex-1">
                         <h3 className="text-base font-semibold text-[var(--text-primary)]">{t('admin_ai_config.claude_title', 'Claude Settings')}</h3>
                         <p className="text-xs text-[var(--text-muted)]">
@@ -112,7 +112,7 @@ export default function ClaudeSettingsSection({
                 </p>
 
                 {/* Robustness toggles */}
-                <div className="rounded-xl border p-4" style={{ background: 'var(--bg-tertiary)', borderColor: 'var(--border-default)' }}>
+                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
                     <div className="flex items-start gap-3">
                         <div
                             className="flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer shrink-0 bg-[var(--bg-secondary)] border-[var(--border-default)]"

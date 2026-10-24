@@ -9,7 +9,7 @@ import { itemTab } from './ProjectDiscovery';
 // per editing session, with the item's title as the reader may see it now.
 
 import { Activity, Sparkles } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useEffectEvent } from 'react';
 import { useProjectChangeLogQuery } from '../../../api/queries/projectChanges';
 import {
     useProjectActivityQuery, useProjectMembersQuery, type ProjectMembers,
@@ -135,7 +135,8 @@ function ActivityBody({ items, names, filter, feed, openItem }: {
 export default function ActivityTab({ projectId, currentUser, onOpenTab, onOpenThread }: WorkspaceTabProps & { onOpenThread?: (thread: OpenThreadTarget) => void }) {
     const { t } = useTranslation();
     const catalogue = useProjectSearch(projectId, '', '', true);
-    useEffect(() => { if (catalogue.hasNextPage && !catalogue.isFetchingNextPage) void catalogue.fetchNextPage(); }, [catalogue.hasNextPage, catalogue.isFetchingNextPage, catalogue.fetchNextPage]);
+    const runCatalogueEffect = useEffectEvent(() => { if (catalogue.hasNextPage && !catalogue.isFetchingNextPage) void catalogue.fetchNextPage(); });
+    useEffect(() => { runCatalogueEffect(); }, [catalogue.hasNextPage, catalogue.isFetchingNextPage, catalogue.fetchNextPage]);
     const openItem = (entry: ActivityEntry) => {
         const type = entry.targetType === 'project_task' ? 'task' : ['project_chat', 'direct', 'agent'].includes(entry.targetType || '') ? 'chat' : entry.targetType;
         const item = catalogue.data?.pages.flatMap(page => page?.items || []).find(item => item.type === type && item.id === entry.targetId);

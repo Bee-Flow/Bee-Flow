@@ -11,6 +11,7 @@ import { firstDescriptor } from './AppFilePreview';
 import { entryHref, entryIsImage } from './AppInputFile';
 import type { NodeProps } from './appNode.types';
 import type { BindingInput } from '../resolveBinding.types';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * App Studio runtime — 'file_gallery'. Spec: server/appStudio/componentSpecs.js.
@@ -111,7 +112,7 @@ function useThumbnails(rows: GalleryRow[], fileKey: string, appId: string | null
                     if (!alive) { URL.revokeObjectURL(url); return; }
                     madeRef.current.set(fileId, url);
                     setUrls((prev) => ({ ...prev, [fileId]: url }));
-                } catch { /* icon is a fine fallback */ }
+                } catch (err) { logger.debug('icon is a fine fallback', err); }
             }
         })();
         return () => { alive = false; };
@@ -221,8 +222,7 @@ export default function AppFileGallery({ node }: NodeProps<FileGalleryProps>) {
                         alt=""
                         aria-hidden="true"
                         loading="lazy"
-                        className="shrink-0 rounded object-cover"
-                        style={{ width: 56, height: 56, background: 'var(--bg-secondary)' }}
+                        className="shrink-0 rounded object-cover w-[56px] h-[56px] [background:var(--bg-secondary)]"
                     />
                 ) : (
                     <span className="app-file-card-icon shrink-0" aria-hidden="true">

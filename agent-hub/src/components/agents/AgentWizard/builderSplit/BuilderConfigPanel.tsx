@@ -15,6 +15,7 @@ import type { ModelTierMap } from '../../../../api/queries/modelTiers';
 import type { Skill } from '../../../../api/queries/skills';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { Schedule } from './useAgentSchedules';
+import { logger } from '../../../../utils/logger';
 
 type OpenSetter = Dispatch<SetStateAction<boolean>>;
 
@@ -167,13 +168,13 @@ export default function BuilderConfigPanel({
                             try {
                                 await authFetch(`${API_BASE}/api/cowork/${r.id}/toggle`, { method: 'POST' });
                                 await refreshAgentSchedules();
-                            } catch (_) { /* non-fatal */ }
+                            } catch (err) { logger.debug('non-fatal', err); }
                         }}
                         onRunNow={async (r: Schedule) => {
                             try {
                                 await authFetch(`${API_BASE}/api/cowork/${r.id}/run-now`, { method: 'POST' });
                                 await refreshAgentSchedules();
-                            } catch (_) { /* non-fatal */ }
+                            } catch (err) { logger.debug('non-fatal', err); }
                         }}
                         onDelete={(r: Schedule) => {
                             // Route through the in-app modal so the styling,

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
-import { collectVariableUsage, declarableUnknowns, describeSite } from './variableUsage';
 import { KITCHEN_SINK, V2_RICH } from './sampleDefinitions';
+import { collectVariableUsage, declarableUnknowns, describeSite } from './variableUsage';
 
 const require = createRequire(import.meta.url);
 const { collectVariableWrites } = require('../../../../../../../server/appStudio/collectVariableRefs.js');

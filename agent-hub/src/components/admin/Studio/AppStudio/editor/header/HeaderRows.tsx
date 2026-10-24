@@ -26,13 +26,8 @@ export function PreviewRoleBanner({ previewRole, previewRoleName, onExit }: Prev
     const { t } = useTranslation();
     return (
         <div
-            className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-xs"
+            className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b px-3 py-1.5 text-xs [border-color:var(--border-default)]! [background:color-mix(in_srgb,var(--accent-primary)_10%,transparent)] [color:var(--text-secondary)]!"
             data-preview-role-banner={previewRole}
-            style={{
-                borderColor: 'var(--border-default)',
-                background: 'color-mix(in srgb, var(--accent-primary) 10%, transparent)',
-                color: 'var(--text-secondary)',
-            }}
         >
             <Eye className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
             <span>

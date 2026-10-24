@@ -21,6 +21,7 @@
  */
 
 const { requestCancel } = require('./automationRunner/cancellation');
+const { setAutomationExecutor } = require('./tools/automationExecutorPort');
 
 // §WS5 — execution primitives live in ./automationRunner/engine.js.
 const {
@@ -61,6 +62,11 @@ const { runStepAsTool } = require('./automationRunner/stepAsTool');
 const { runPartial, planPartialRun } = require('./automationRunner/partialRuns');
 const { reapStuckAutomations } = require('./automationRunner/scheduler/reapers');
 const { start, stop, isStopping, processDueAutomations } = require('./automationRunner/scheduler/ticks');
+
+// core/tools starts runs for skills linked to an automation without requiring
+// this file (the runner dispatches tools through core/tools). Late-bound, so
+// replacing executeAutomation on the exports (tests) is still what a skill reaches.
+setAutomationExecutor((...args) => module.exports.executeAutomation(...args));
 
 module.exports = {
     start,

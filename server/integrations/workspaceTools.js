@@ -278,7 +278,7 @@ async function setWorkspace(convId, content, workspace, { expectSeq = null } = {
         // while these tools keep reading Markdown back out.
         const { markdownToHtml } = require('../core/markdown');
         let html = content;
-        try { html = markdownToHtml(content); } catch (_) { /* fall back to raw */ }
+        try { html = markdownToHtml(content); } catch (err) { log.debug('fall back to raw', err); }
         // While the notebook is co-edited, the live document is the
         // co-editing state: the edit goes in there (everyone's editor
         // follows) instead of onto the row, where the next materialisation

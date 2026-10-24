@@ -144,7 +144,7 @@ function _evalOrgAdmin(user, allGroups, orgId, { strictOrgRole = false } = {}) {
 
     let groupIds = [];
     if (Array.isArray(user.groups)) groupIds = user.groups;
-    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { /* leave [] */ } }
+    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { log.debug('leave []', err); } }
 
     for (const gid of groupIds) {
         const group = (allGroups || []).find(g => g.id === gid);
@@ -212,7 +212,7 @@ function requireOrgAdmin(paramName = 'id') {
         // Check group-based membership as fallback
         let groupIds = [];
         if (Array.isArray(user.groups)) groupIds = user.groups;
-        else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { } }
+        else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); } }
 
         const allGroups = await userStore.getAllGroups();
         const isMember = groupIds.some(gid => {

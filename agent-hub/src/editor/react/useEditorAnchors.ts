@@ -14,6 +14,7 @@ import { buildTextIndex } from '../engine/textIndex';
 import { anchorFromSelection, resolveAnchor, type CommentAnchor, type RelResolver } from './anchors';
 import { collectHeadings } from './toc';
 import type { RangeLayer } from './RangeOverlay';
+import { logger } from '../../utils/logger';
 
 interface PositionSource {
     posToRel(p: { path: number[]; offset: number }, assoc?: number): string | null;
@@ -33,7 +34,7 @@ function scrollElementFor(range: Range | null): Element | null {
 }
 
 function scrollIntoViewSafe(el: Element | null, block: ScrollLogicalPosition) {
-    try { el?.scrollIntoView?.({ block, behavior: 'smooth' }); } catch { /* old engines */ }
+    try { el?.scrollIntoView?.({ block, behavior: 'smooth' }); } catch (err) { logger.debug('old engines', err); }
 }
 
 export default function useEditorAnchors(viewRef: { current: any }, binding: PositionSource | null) {

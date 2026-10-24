@@ -74,8 +74,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
             </button>
             {open && (
                 <div
-                    className="absolute left-0 top-full mt-1 z-30 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] w-[420px] max-h-[50vh] overflow-y-auto"
-                    style={{ boxShadow: 'var(--shadow-popover)' }}
+                    className="absolute left-0 top-full mt-1 z-30 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] w-[420px] max-h-[50vh] overflow-y-auto [box-shadow:var(--shadow-popover)]"
                 >
                     <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-default)]">
                         <div className="text-xs uppercase tracking-wide font-semibold text-[var(--text-tertiary)]">
@@ -91,7 +90,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
                     </div>
                     <div className="p-2 space-y-1.5 text-xs">
                         {fatalError && (
-                            <div className="rounded px-2.5 py-2 flex items-start gap-2" style={{ background: 'color-mix(in srgb, var(--error) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--error) 30%, transparent)', color: 'var(--error)' }}>
+                            <div className="rounded px-2.5 py-2 flex items-start gap-2 [background:color-mix(in_srgb,var(--error)_10%,transparent)] [border:1px_solid_color-mix(in_srgb,var(--error)_30%,transparent)] [color:var(--error)]">
                                 <AlertCircle size={13} className="flex-shrink-0 mt-px" />
                                 <div className="flex-1 min-w-0">
                                     <div>{fatalErrorText}</div>
@@ -104,7 +103,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
                             </div>
                         )}
                         {aborted && (
-                            <div className="rounded px-2.5 py-2 flex items-start gap-2" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)', color: 'var(--warning)' }}>
+                            <div className="rounded px-2.5 py-2 flex items-start gap-2 [background:color-mix(in_srgb,var(--warning)_10%,transparent)] [border:1px_solid_color-mix(in_srgb,var(--warning)_30%,transparent)] [color:var(--warning)]">
                                 <AlertTriangle size={13} className="flex-shrink-0 mt-px" />
                                 <div className="flex-1">
                                     {/* The server ends a turn early when one step was

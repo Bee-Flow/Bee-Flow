@@ -1,8 +1,8 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import LoopNode from './LoopNode';
 import LoopItemNode from './LoopItemNode';
+import LoopNode from './LoopNode';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 import { statusVar } from '../nodeTypeColors';
 

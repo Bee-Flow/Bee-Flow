@@ -130,7 +130,7 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
         (cost === 1 ? redis.incr(redisKey) : redis.incrby(redisKey, cost))
             .then(async (count) => {
                 if (count === cost) {
-                    try { await redis.pexpire(redisKey, windowMs + 1000); } catch (_) {}
+                    try { await redis.pexpire(redisKey, windowMs + 1000); } catch (_) { log.warn('could not set the rate-limit window expiry', _); }
                 }
                 if (count > max) {
                     const windowEnd = (windowStart + 1) * windowMs;

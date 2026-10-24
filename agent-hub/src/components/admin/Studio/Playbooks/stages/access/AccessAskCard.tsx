@@ -20,7 +20,7 @@ interface AccessAskCardProps {
 export default function AccessAskCard({ said, setSaid, asking, askError, ask, plan, presenter, t }: AccessAskCardProps) {
     // Say it — the way in, not a note field.
     return (
-        <section className="rounded-xl p-3" style={{ border: '1px solid var(--type-ai)', background: 'color-mix(in srgb, var(--type-ai) 4%, transparent)' }}>
+        <section className="rounded-xl p-3 [border:1px_solid_var(--type-ai)] [background:color-mix(in_srgb,var(--type-ai)_4%,transparent)]">
             <p className="flex items-center gap-1.5 font-semibold mb-1.5" style={{ fontSize: presenter ? 15 : 13, color: 'var(--text-primary)' }}>
                 <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--type-ai)' }} aria-hidden="true" />
                 {t('playbooks.access.ask_title', 'Say who should use it')}
@@ -33,8 +33,7 @@ export default function AccessAskCard({ said, setSaid, asking, askError, ask, pl
                     rows={2}
                     maxLength={2000}
                     disabled={asking}
-                    className="flex-1 min-w-0 rounded-lg px-2.5 py-2 text-xs resize-y"
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}
+                    className="flex-1 min-w-0 rounded-lg px-2.5 py-2 text-xs resize-y [background:var(--bg-primary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!"
                     placeholder={t('playbooks.access.ask_placeholder', 'e.g. Finance may look at it, Ann approves, nobody else.')}
                     aria-label={t('playbooks.access.ask_label', 'Say who should use this app')}
                     data-testid="playbook-access-ask"
@@ -58,8 +57,7 @@ export default function AccessAskCard({ said, setSaid, asking, askError, ask, pl
                             key={eg.key}
                             type="button"
                             onClick={() => setSaid(t(eg.key, eg.en))}
-                            className="text-[11px] px-2 py-[3px] rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                            style={{ border: '1px dashed var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--type-ai)' }}
+                            className="text-[11px] px-2 py-[3px] rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border:1px_dashed_var(--border-default)] [color:var(--text-secondary)]! [outline-color:var(--type-ai)]!"
                         >
                             {t(eg.key, eg.en)}
                         </button>
@@ -67,7 +65,7 @@ export default function AccessAskCard({ said, setSaid, asking, askError, ask, pl
                 </div>
             )}
             {plan.note && <p className="mt-2 text-xs text-[var(--text-secondary)]" data-testid="playbook-access-note">{plan.note}</p>}
-            {askError && <p role="alert" className="mt-1 text-[11px]" style={{ color: 'var(--error-ink, var(--error))' }}>{askError}</p>}
+            {askError && <p role="alert" className="mt-1 text-[11px] [color:var(--error-ink,var(--error))]!">{askError}</p>}
             {plan.roles.length > 0 && (
                 <ul className="mt-2 space-y-1" data-testid="playbook-access-roles">
                     {plan.roles.map((r) => (

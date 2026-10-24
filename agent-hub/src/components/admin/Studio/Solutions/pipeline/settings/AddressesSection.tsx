@@ -1,6 +1,7 @@
 import { Check, Copy } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { logger } from '../../../../../../utils/logger';
 
 /**
  * The addresses that reach this stage from outside (design 3.3): the pages it
@@ -25,7 +26,7 @@ function CopyButton({ value }: { value: string }) {
             await navigator.clipboard.writeText(value);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
-        } catch { /* the address is on screen; copying by hand still works */ }
+        } catch (err) { logger.debug('the address is on screen; copying by hand still works', err); }
     };
     return (
         <button type="button" onClick={copy} aria-label={t('stage_settings.copy_address', 'Copy address')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">

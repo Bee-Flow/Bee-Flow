@@ -11,6 +11,8 @@
 // into an app table. It is a connector rather than a bespoke subsystem so it
 // inherits scheduling, watermarking, RLS-safe writes, runAs owner/viewer, the
 // viewer connect-prompt UI and the rate limits for free.
+const log = require('../../telemetry/log');
+
 const CONNECTOR_KINDS = Object.freeze(['integration_tool', 'automation', 'rest', 'mailbox']);
 
 // Viewer-param hygiene + bounded output. Kept local — these are runtime caps on
@@ -198,7 +200,7 @@ function integrationIdsFor(connector) {
     if (typeof connector?.integrationId === 'string' && connector.integrationId) ids.add(connector.integrationId);
 
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch { /* optional */ }
+    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
 
     const addForTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;

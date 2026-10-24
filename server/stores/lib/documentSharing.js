@@ -1,6 +1,7 @@
 'use strict';
 
-const { getAll, run, withTransaction } = require('../../db');
+const { getAll, withTransaction } = require('../../db');
+const { revokeGroupShares } = require('./groupShareRevoke');
 const { HttpError } = require('../../shared/httpErrors');
 
 // Null keeps the existing team-template audience until its owner changes it.
@@ -127,16 +128,6 @@ async function sharingDirectory(type, id, userId) {
         getAll('SELECT id, name FROM groups WHERE "organizationId" = $1 ORDER BY name', [organizationId]),
     ]);
     return { users: users.filter((u) => u.id !== userId), groups };
-}
-
-async function revokeGroupShares(groupId) {
-    // Stores are initialized independently; only touch installed sharing columns.
-    const tables = await getAll(`SELECT table_name FROM information_schema.columns
-        WHERE table_schema = 'public' AND table_name IN ('studio_documents', 'notebooks')
-        AND column_name = 'shared_groups'`);
-    for (const { table_name: table } of tables) {
-        await run(`UPDATE ${table} SET shared_groups = shared_groups - $1::text WHERE shared_groups ? $1`, [groupId]);
-    }
 }
 
 module.exports = { sharingDdl, sharingSql, editSharingSql, visibilitySql, sharingOf, getSharing, setSharing, sharingDirectory, revokeGroupShares };

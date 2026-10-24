@@ -174,7 +174,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
             if (shield?.enabled) {
                 // Hydrate any existing notebook map first so a second source in the
                 // same dossier reuses tokens (one [person_1] across all sources).
-                try { await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); } catch (_) { /* best-effort */ }
+                try { await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); } catch (err) { log.debug('best-effort', err); }
                 // Warm the scan ledger with this source's segments.
                 //
                 // Ingestion already reads every byte of the source; recording the

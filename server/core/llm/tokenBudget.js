@@ -48,7 +48,7 @@ function estimateTokens(text) {
     if (!text) return 0;
     const enc = maybeLoadTiktoken();
     if (enc) {
-        try { return enc.encode(text).length; } catch (_) { /* fall through */ }
+        try { return enc.encode(text).length; } catch (err) { log.debug('fall through', err); }
     }
     return Math.ceil(text.length / CHARS_PER_TOKEN);
 }

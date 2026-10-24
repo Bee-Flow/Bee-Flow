@@ -168,7 +168,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
             const serverTier = await license.getServerLicenseTier();
             if (serverTier && serverTier !== license.COMMUNITY_FALLBACK) return null;
         }
-    } catch (_) { /* licence module unavailable — fall through to subscription check */ }
+    } catch (err) { log.debug('licence module unavailable — fall through to subscription check', err); }
 
     if (!orgId) {
         // Consumer account — check per-user limits
@@ -213,7 +213,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
     try {
         const org = await userStore.getOrganization(orgId);
         pooled = (org?.usage_pooled ?? '1') !== '0' && org?.usagePooled !== false;
-    } catch (_) { /* keep pooled = true */ }
+    } catch (err) { log.debug('keep pooled = true', err); }
 
     // Check total messages limit
     if (limits.max_messages_per_month !== null && limits.max_messages_per_month !== undefined) {
@@ -340,7 +340,7 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
             if (seatCap !== null && (max === null || max === undefined || seatCap < max)) {
                 max = seatCap;
             }
-        } catch (_) { /* license module unavailable — don't fail open in production but don't crash either */ }
+        } catch (err) { log.debug('license module unavailable — don\'t fail open in production but don\'t crash either', err); }
     }
 
     // Inclusive-cap convention: `max` means "you may have up to N", so the

@@ -14,6 +14,7 @@ import {
 } from 'y-protocols/awareness';
 import { fromBase64, toBase64 } from 'lib0/buffer';
 import { AWARENESS_MS, REMOTE_ORIGIN } from './providerSupport';
+import { logger } from '../../utils/logger';
 
 export interface PresenceHost {
     /** POST a body to the document's awareness endpoint (never throws). */
@@ -60,7 +61,7 @@ export class PresenceChannel {
     /** A `doc.awareness` frame. */
     apply(encoded: unknown) {
         if (typeof encoded !== 'string' || this.stopped) return;
-        try { applyAwarenessUpdate(this.awareness, fromBase64(encoded), REMOTE_ORIGIN); } catch { /* ignore a bad frame */ }
+        try { applyAwarenessUpdate(this.awareness, fromBase64(encoded), REMOTE_ORIGIN); } catch (err) { logger.debug('ignore a bad frame', err); }
     }
 
     /** Best-effort goodbye; the 30 s timeout covers a lost one. */
@@ -77,7 +78,7 @@ export class PresenceChannel {
         this.cancel();
         this.stopped = true;
         this.awareness.off('update', this.onUpdate);
-        try { removeAwarenessStates(this.awareness, [this.clientId], 'local'); } catch { /* noop */ }
+        try { removeAwarenessStates(this.awareness, [this.clientId], 'local'); } catch (err) { logger.debug('noop', err); }
         this.awareness.destroy();
     }
 }

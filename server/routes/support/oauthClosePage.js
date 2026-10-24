@@ -27,7 +27,7 @@ function closePage({ type, title, okText }, ok, message) {
     return `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title></head>
 <body style="font-family:system-ui,sans-serif;padding:40px;text-align:center;color:#0f172a">
 <p>${esc(text)}</p>
-<script>try{window.opener&&window.opener.postMessage(${scriptString(payload)},'*');}catch(e){}setTimeout(function(){window.close();},800);</script>
+<script>try{window.opener&&window.opener.postMessage(${scriptString(payload)},'*');}catch (e) { console.debug("opener gone", e); }setTimeout(function(){window.close();},800);</script>
 </body></html>`;
 }
 

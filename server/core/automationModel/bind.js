@@ -466,7 +466,7 @@ function jsonBareValue(v) {
         if (parsed !== undefined) return JSON.stringify(parsed);
         const t = v.trim();
         if (t) {
-            try { JSON.parse(t); return t; } catch { /* plain text */ }
+            try { JSON.parse(t); return t; } catch (err) { log.debug('plain text', err); }
         }
         return JSON.stringify(v);
     }

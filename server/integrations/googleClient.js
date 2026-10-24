@@ -107,7 +107,7 @@ async function googleFetch(url, session, options = {}) {
         try {
             const parsed = JSON.parse(errorBody);
             errorMsg = parsed.error?.message || parsed.error_description || errorMsg;
-        } catch (_) { /* non-JSON */ }
+        } catch (err) { log.debug('non-JSON', err); }
         throw new Error(errorMsg);
     }
 

@@ -57,8 +57,8 @@ async function ensureKBChunksTable(vectorDim) {
                 if (rows === 0) {
                     log.info(`[LocalKBIngest] kb_chunks dim mismatch (${currentDim} → ${vectorDim}), table is empty — ALTERing column`);
                     await exec(`ALTER TABLE kb_chunks ALTER COLUMN embedding TYPE VECTOR(${vectorDim})`);
-                    try { await exec(`DROP INDEX IF EXISTS idx_kb_chunks_embedding`); } catch (_) {}
-                    try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) {}
+                    try { await exec(`DROP INDEX IF EXISTS idx_kb_chunks_embedding`); } catch (_) { log.debug('index absent or not droppable, it is recreated next', _); }
+                    try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) { log.debug('hnsw index needs pgvector, search falls back to a scan', _); }
                 } else {
                     // A configured model switch is migrated before any ingest
                     // gets here (core/kb/embeddingMigration.js). What remains
@@ -118,24 +118,24 @@ async function ensureKBChunksTable(vectorDim) {
     }
 
     // Create indexes
-    try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tsv ON kb_chunks USING GIN (tsv)'); } catch (_) {}
+    try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tsv ON kb_chunks USING GIN (tsv)'); } catch (_) { log.warn('tsv index could not be created', _); }
     if (pgvectorAvailable) {
-        try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) {}
+        try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) { log.debug('hnsw index needs pgvector, search falls back to a scan', _); }
     }
-    try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb ON kb_chunks (tenant_id, knowledge_base_id)'); } catch (_) {}
-    try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb_doc ON kb_chunks (tenant_id, knowledge_base_id, document_id)'); } catch (_) {}
+    try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb ON kb_chunks (tenant_id, knowledge_base_id)'); } catch (_) { log.warn('tenant_kb index could not be created', _); }
+    try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb_doc ON kb_chunks (tenant_id, knowledge_base_id, document_id)'); } catch (_) { log.warn('tenant_kb_doc index could not be created', _); }
 
     // Ensure chunk_type column exists (safe migration for existing tables)
-    try { await exec("ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS chunk_type TEXT DEFAULT 'content'"); } catch (_) {}
+    try { await exec("ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS chunk_type TEXT DEFAULT 'content'"); } catch (_) { log.warn('chunk_type column could not be added', _); }
 
     // The page a chunk's text starts on, for a citation that can be checked
     // (K6). NULL for everything ingested before this existed — those bytes
     // were never kept, so the page cannot be recovered and the chip simply
     // says less. A source that re-fetches fills it in on its next refresh.
-    try { await exec('ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS page_start INT'); } catch (_) {}
+    try { await exec('ALTER TABLE kb_chunks ADD COLUMN IF NOT EXISTS page_start INT'); } catch (_) { log.warn('page_start column could not be added', _); }
 
     // Issue #11: Ensure documents table has original_content column for reindexing
-    try { await exec("ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_content TEXT"); } catch (_) {}
+    try { await exec("ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_content TEXT"); } catch (_) { log.warn('original_content column could not be added', _); }
 
     schemaInitialized = true;
     log.info('[LocalKBIngest] kb_chunks table ensured');

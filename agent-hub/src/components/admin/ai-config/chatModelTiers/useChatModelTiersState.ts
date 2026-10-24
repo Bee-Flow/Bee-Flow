@@ -3,7 +3,7 @@
 // single-model settings) and runs their loads once on mount. Called first
 // (and only) in the panel so all state stays owned by the panel's fiber; the
 // section components receive these bindings by explicit threading.
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import { buildChatModelCatalog, useHiddenModels } from './chatModelCatalog';
 import type { CatalogModel } from './tierTypes';
 import useClaudeSettings from './useClaudeSettings';
@@ -27,7 +27,7 @@ export default function useChatModelTiersState(allModels: CatalogModel[]) {
     const hidden = useHiddenModels();
     const claude = useClaudeSettings(tiers.config, tiers.setConfig);
 
-    useEffect(() => {
+    const runAiStepEffect = useEffectEvent(() => {
         tiers.loadConfig();
         tiers.loadEuConfig();
         custom.loadCustomTiers();
@@ -38,7 +38,8 @@ export default function useChatModelTiersState(allModels: CatalogModel[]) {
         dataExtraction.load();
         hidden.loadHiddenModels();
         claude.loadClaudeSettings();
-    }, []);
+    });
+    useEffect(() => { return runAiStepEffect(); }, []);
 
     const { chatModels, isLocal, reasoningCapable, byProvider } = buildChatModelCatalog(allModels);
 

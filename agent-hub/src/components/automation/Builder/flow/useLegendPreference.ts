@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import scopedStorage from '../../../../utils/scopedStorage';
+import { logger } from '../../../../utils/logger';
 
 /**
  * Whether the canvas legend (north-east) is open.
@@ -38,7 +39,7 @@ export function useLegendPreference(paneWidth: number, paneHeight: number): [boo
     const toggle = useCallback(() => {
         const next = !open;
         setChoice(next);
-        try { scopedStorage.setItem(CHOICE_KEY, next ? 'open' : 'closed'); } catch { /* storage unavailable */ }
+        try { scopedStorage.setItem(CHOICE_KEY, next ? 'open' : 'closed'); } catch (err) { logger.debug('storage unavailable', err); }
     }, [open]);
     return [open, toggle];
 }

@@ -19,6 +19,7 @@ import type { ChatMessage } from '../../../../hooks/useChatEngine/types';
 import { apiClient } from '../../../../api/client';
 import { useClearNotebookChat, useNotebookConversation, type ChatHistoryMessage } from '../notebookQueries';
 import type { NotebookEditorHandle } from './editorHandle';
+import { logger } from '../../../../utils/logger';
 
 export interface SelectionPayload { text: string; from: number | null; to: number | null; action: string }
 
@@ -104,17 +105,16 @@ export default function useNotebookChat({
     const { setMessages, sendMessage } = engine;
 
     // The private history, once per open.
-    const hydrated = useRef(false);
-    useEffect(() => {
-        if (hydrated.current || !conversation.data) return;
-        hydrated.current = true;
+    const [hydrated, setHydrated] = useState(false);
+    if (!hydrated && conversation.data) {
+        setHydrated(true);
         setLocked(conversation.data.locked);
         setMessages(toMessages(notebookId, conversation.data.messages));
-    }, [conversation.data, notebookId, setMessages]);
+    }
 
     // Typing still inside the editor's save debounce is saved first, so the
     // AI reads (and edits over) what the user sees.
-    const flushEditor = useCallback(() => { try { editorRef.current?.flush?.(); } catch { /* the save path reports */ } }, [editorRef]);
+    const flushEditor = useCallback(() => { try { editorRef.current?.flush?.(); } catch (err) { logger.debug('the save path reports', err); } }, [editorRef]);
 
     const send = useCallback((text: string, attachments?: unknown[]) => {
         if (!text?.trim() && !attachments?.length) return;

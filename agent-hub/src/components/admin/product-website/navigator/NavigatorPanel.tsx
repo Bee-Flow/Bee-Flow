@@ -80,7 +80,7 @@ export default function NavigatorPanel({
                 </div>
             ) : (<>
             {/* PAGES — own scroll region, capped so blocks keep room */}
-            <div className="border-t border-[var(--border-subtle)] mt-2 flex flex-col min-h-0 shrink-0" style={{ maxHeight: '45%' }}>
+            <div className="border-t border-[var(--border-subtle)] mt-2 flex flex-col min-h-0 shrink-0 max-h-[45%]">
                 <div className="flex-1 min-h-0 overflow-hidden">
                     <PageList {...pageListProps} />
                 </div>

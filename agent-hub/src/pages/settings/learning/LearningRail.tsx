@@ -86,13 +86,12 @@ export default function LearningRail({
 
     return (
         <aside
-            className="flex-shrink-0 flex flex-col min-h-0 h-full"
-            style={{ width: 300, borderRight: '1px solid var(--border-default)', fontSize: 13, color: 'var(--text-primary)', background: 'var(--bg-primary)' }}
+            className="flex-shrink-0 flex flex-col min-h-0 h-full w-[300px] [border-right:1px_solid_var(--border-default)] [font-size:13px] [color:var(--text-primary)] [background:var(--bg-primary)]"
             data-testid="learning-rail"
         >
             {/* Header */}
-            <div className="flex items-center gap-2 flex-shrink-0 px-3.5" style={{ height: 48, borderBottom: '1px solid var(--border-default)' }}>
-                <div className="grid place-items-center flex-shrink-0" style={{ width: 28, height: 28, borderRadius: 8, background: 'color-mix(in srgb, var(--accent-primary) 18%, transparent)', color: 'var(--accent-primary)' }}>
+            <div className="flex items-center gap-2 flex-shrink-0 px-3.5 h-[48px] [border-bottom:1px_solid_var(--border-default)]">
+                <div className="grid place-items-center flex-shrink-0 w-[28px] h-[28px] [border-radius:8px] [background:color-mix(in_srgb,var(--accent-primary)_18%,transparent)] [color:var(--accent-primary)]">
                     <GraduationCap style={{ width: 15, height: 15 }} aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
@@ -104,22 +103,21 @@ export default function LearningRail({
                 </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 text-[12px]" style={{ padding: '10px 12px' }}>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 text-[12px] [padding:10px_12px]">
                 {/* Search */}
-                <label className="flex items-center gap-2 rounded-lg" style={{ padding: '6px 8px', border: '1px solid var(--border-default)', background: 'var(--bg-card)', color: 'var(--text-tertiary)' }}>
+                <label className="flex items-center gap-2 rounded-lg [padding:6px_8px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [color:var(--text-tertiary)]">
                     <Search style={{ width: 13, height: 13, flexShrink: 0 }} aria-hidden="true" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder={t('learn.rail.search', 'Search lesson, course or badge…')}
                         aria-label={t('learn.rail.search', 'Search lesson, course or badge…')}
-                        className="flex-1 min-w-0 bg-transparent outline-none text-[12px]"
-                        style={{ color: 'var(--text-primary)' }}
+                        className="flex-1 min-w-0 bg-transparent outline-none text-[12px] [color:var(--text-primary)]!"
                     />
                 </label>
 
                 {/* All / Available */}
-                <div role="radiogroup" aria-label={t('learn.rail.filter', 'Filter courses')} className="flex font-medium" style={{ background: 'var(--bg-tertiary)', borderRadius: 8, padding: 2, gap: 2 }}>
+                <div role="radiogroup" aria-label={t('learn.rail.filter', 'Filter courses')} className="flex font-medium [background:var(--bg-tertiary)] [border-radius:8px] [padding:2px] [gap:2px]">
                     {([['all', t('learn.rail.filter_all', 'All'), null], ['available', t('learn.rail.filter_available', 'Available'), availableCount]] as const).map(([id, label, count]) => {
                         const on = filter === id;
                         return (
@@ -201,7 +199,7 @@ export default function LearningRail({
 
             {/* Footer: level line */}
             {lvl && (
-                <div className="flex-shrink-0 flex flex-col gap-[5px] text-[11px]" style={{ padding: '10px 14px', borderTop: '1px solid var(--border-default)', color: 'var(--text-tertiary)' }}>
+                <div className="flex-shrink-0 flex flex-col gap-[5px] text-[11px] [padding:10px_14px] [border-top:1px_solid_var(--border-default)] [color:var(--text-tertiary)]!">
                     <div className="flex items-center gap-1.5">
                         <span className="text-[12px]" aria-hidden="true">🐝</span>
                         <span className="font-semibold text-[var(--text-primary)]">{t(`learn.level.${lvl.key}`, lvl.titleFallback)}</span>
@@ -211,7 +209,7 @@ export default function LearningRail({
                                 : t('learn.xp.max', '{xp} XP · top level!').replace('{xp}', String(xp))}
                         </span>
                     </div>
-                    <div className="overflow-hidden" style={{ height: 4, borderRadius: 2, background: 'var(--bg-tertiary)' }}>
+                    <div className="overflow-hidden h-[4px] [border-radius:2px] [background:var(--bg-tertiary)]">
                         <div style={{ width: `${Math.round(pct * 100)}%`, height: '100%', background: 'var(--accent-primary)' }} />
                     </div>
                 </div>
@@ -222,7 +220,7 @@ export default function LearningRail({
 
 function SectionHeading({ children }: { children?: ReactNode }) {
     return (
-        <div className="uppercase font-semibold" style={{ fontSize: 10, letterSpacing: '.08em', color: 'var(--text-tertiary)', padding: '10px 8px 4px' }}>
+        <div className="uppercase font-semibold [font-size:10px] [letter-spacing:.08em] [color:var(--text-tertiary)] [padding:10px_8px_4px]">
             {children}
         </div>
     );

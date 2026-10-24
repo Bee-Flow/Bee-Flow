@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { API_BASE } from '../../api/mutate';
 import { errorMessage } from '../../utils/caughtError';
+import { logger } from '../../utils/logger';
 
 interface StreamDeps {
     selectedId: string | null;
@@ -22,7 +23,7 @@ export function useSupportStream({ selectedId, setSelectedId, fetchThreads, fetc
                 try {
                     const payload = JSON.parse(e.data || '{}');
                     if (selectedId && payload.threadId === selectedId) fetchThread(selectedId);
-                } catch {}
+                } catch (err) { logger.debug('event payload is not JSON, refresh anyway', err); }
                 refresh();
             };
             // Another super-admin disconnected the mailbox: the open thread may
@@ -33,10 +34,10 @@ export function useSupportStream({ selectedId, setSelectedId, fetchThreads, fetc
             es.addEventListener('threads_purged', purged);
             es.onerror = () => { /* let EventSource auto-retry */ };
             return () => {
-                try { es.close(); } catch {}
+                try { es.close(); } catch (err) { logger.debug('event stream already closed', err); }
             };
         } catch (e) {
             console.warn('[Support] SSE failed:', errorMessage(e));
         }
-    }, [fetchThreads, fetchThread, fetchMailbox, selectedId]);
+    }, [fetchThreads, fetchThread, fetchMailbox, selectedId, setSelectedId]);
 }

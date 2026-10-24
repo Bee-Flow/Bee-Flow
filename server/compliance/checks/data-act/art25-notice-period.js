@@ -22,6 +22,7 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const configStore = require('../../../stores/configStore');
+const log = require('../../../telemetry/log');
 
 const MAX_NOTICE_DAYS = 60; // "two months" (Art. 25(2)(d))
 const RANK = { pass: 0, warn: 1, fail: 2 };
@@ -43,7 +44,7 @@ function _deploymentMode() {
         const license = require('../../../license');
         if (typeof license.deploymentMode === 'function') return license.deploymentMode();
         if (typeof license.serverLicenseGovernsOrgs === 'function') return license.serverLicenseGovernsOrgs() ? 'self-hosted' : 'cloud';
-    } catch { /* licence module unavailable — fall through */ }
+    } catch (err) { log.debug('licence module unavailable — fall through', err); }
     const mode = process.env.DEPLOYMENT_MODE || 'cloud';
     return mode === 'private-cloud' ? 'self-hosted' : mode;
 }

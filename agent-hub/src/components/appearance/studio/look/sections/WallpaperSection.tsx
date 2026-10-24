@@ -187,8 +187,7 @@ export default function WallpaperSection({ form, setForm, saving }: LookSectionP
                 />
                 {!wallpaperFullUrl && !form.preset.startsWith('glass') && (
                     <p
-                        className="text-[11px] mt-3 px-3 py-2 rounded-lg inline-flex items-center gap-2"
-                        style={{ background: 'rgba(245,158,11,0.08)', color: 'var(--warning, #f59e0b)' }}
+                        className="text-[11px] mt-3 px-3 py-2 rounded-lg inline-flex items-center gap-2 [background:rgba(245,158,11,0.08)] [color:var(--warning,#f59e0b)]!"
                     >
                         <AlertCircle className="w-3.5 h-3.5" />
                         {t('appearance.wallpaper_moods_only_show_under_glass_themes', 'Moods only show under Glass themes. Pick one anyway — it activates when you switch.')}

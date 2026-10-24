@@ -201,7 +201,7 @@ async function isOrgAdminForOrg(req, orgId) {
     // Check group-based membership as fallback
     let groupIds = [];
     if (Array.isArray(user.groups)) groupIds = user.groups;
-    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { } }
+    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); } }
 
     const allGroups = await userStore.getAllGroups();
     return groupIds.some(gid => {

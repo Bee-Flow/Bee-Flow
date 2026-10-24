@@ -1,6 +1,6 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // NDV fetches the tool catalog on mount — stub the API.
 const { api } = vi.hoisted(() => ({
@@ -17,8 +17,8 @@ const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }
 vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
-import NodeDetailView, { resolveInSummary, resolveLoopContext } from './NodeDetailView';
 import { composeInlineGraph } from './flow/inlineFlowlets';
+import NodeDetailView, { resolveInSummary, resolveLoopContext } from './NodeDetailView';
 
 /**
  * The three pills that make a claim about a LOOP, and the one function all of

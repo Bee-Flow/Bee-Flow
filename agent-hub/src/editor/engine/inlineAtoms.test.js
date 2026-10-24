@@ -12,10 +12,10 @@
  * Run: cd agent-hub && npx vitest run src/editor/engine/inlineAtoms.test.js
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { markdownToAst } from '../serialization/mdToAst';
 import { createState } from './state.js';
-import { EditorView } from './view';
 import { findInlineNode } from './transforms.js';
+import { EditorView } from './view';
+import { markdownToAst } from '../serialization/mdToAst';
 
 let views = [];
 const make = (md, opts = {}) => {

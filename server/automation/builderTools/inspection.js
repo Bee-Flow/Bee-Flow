@@ -6,6 +6,7 @@
  */
 
 const { compactSample } = require('./modelPayload');
+const log = require('../../telemetry/log');
 
 /**
  * Reshape an OpenAI-format `parameters` block into the model-facing
@@ -73,7 +74,7 @@ function inspectGateError(tool, rawInputs, draftWrap) {
         const { describeShape, iterableFieldsOf } = require('../outputSchemas');
         shape = describeShape(tool) || null;
         iterableFields = iterableFieldsOf(tool);
-    } catch (_) { /* curated shape is best-effort */ }
+    } catch (err) { log.debug('curated shape is best-effort', err); }
     return {
         error: `"${tool}" was added without its input schema. The exact schema is inlined below — resend the SAME builder call now with the correct param names/bindings; do NOT call builder_inspect_tool for this tool.${required.length ? ` Required params: ${required.join(', ')}.` : ''}`,
         _needsInspect: tool,
@@ -131,7 +132,7 @@ async function inspectOne(tool, draftWrap, { includeSample = true } = {}) {
             shapeHint = shapeCache.renderShapeHint(cached);
             source = 'runtime';
         }
-    } catch (_) {}
+    } catch (_) { log.debug('no runtime-cached output shape, fall back to the curated one', _); }
     if (!shapeHint) {
         shapeHint = describeShape(tool);
     }

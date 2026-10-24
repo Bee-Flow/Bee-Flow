@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { resolveModelForTier } = require('../core/llm/modelResolver');
+const log = require('../telemetry/log');
 
 const PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'browse-web-prompt.md');
 const DEFAULT_MAX_STEPS = parseInt(process.env.BROWSER_AGENT_MAX_STEPS || '8', 10);
@@ -219,7 +220,7 @@ async function _executeTool(page, name, input, { extracted, allowedHosts = null 
             // the secure PDF path as well (which never hits the route hook).
             if (allowedHosts) {
                 let host = null;
-                try { host = new URL(url).hostname; } catch { /* goto will fail it */ }
+                try { host = new URL(url).hostname; } catch (err) { log.debug('goto will fail it', err); }
                 if (host && !hostAllowed(host, allowedHosts)) {
                     return { ok: false, error: `domain_not_allowed: ${host}. This app only permits: ${allowedHosts.join(', ')}.` };
                 }
@@ -326,7 +327,7 @@ function _makeFrameEmitter(page, onFrame) {
         try {
             const buf = await page.screenshot({ type: 'jpeg', quality: 55, fullPage: false, timeout: 5000 });
             onFrame(buf.toString('base64'));
-        } catch (_) { /* page may have navigated — drop the frame */ }
+        } catch (err) { log.debug('page may have navigated — drop the frame', err); }
     };
 }
 
@@ -520,8 +521,8 @@ async function runBrowseTask({ task, startUrl = null, userId = null, orgId = nul
     } catch (e) {
         return { status: 'error', answer: _finalize(extracted), visitedUrls: [...new Set(visitedUrls)], steps: 0, error: e.message };
     } finally {
-        try { await page?.close(); } catch (_) {}
-        try { await ctx?.close(); } catch (_) {}
+        try { await page?.close(); } catch (_) { log.debug('page already closed', _); }
+        try { await ctx?.close(); } catch (_) { log.debug('browser context already closed', _); }
     }
 }
 

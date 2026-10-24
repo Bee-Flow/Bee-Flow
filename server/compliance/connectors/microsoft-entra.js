@@ -23,6 +23,8 @@
  * first-page sampling honest for tenants above 500 users.
  */
 
+const log = require('../../telemetry/log');
+
 const LOGIN_BASE = 'https://login.microsoftonline.com';
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const DORMANT_MS = 90 * 86400000;
@@ -112,7 +114,7 @@ module.exports = {
                 const n = parseInt((await res.text()).trim(), 10);
                 if (Number.isFinite(n)) userCount = n;
             }
-        } catch { /* keep the sampled count */ }
+        } catch (err) { log.debug('keep the sampled count', err); }
 
         // Global Administrator member count — needs RoleManagement.Read.Directory
         // or Directory.Read.All; null when not granted.
@@ -126,7 +128,7 @@ module.exports = {
             } else {
                 admins = 0; // role never activated in this tenant
             }
-        } catch { /* permission missing — stay null */ }
+        } catch (err) { log.debug('permission missing — stay null', err); }
 
         // MFA-capable count — needs AuditLog.Read.All + Entra ID P1/P2;
         // null when the report is not accessible.
@@ -136,7 +138,7 @@ module.exports = {
             if (Array.isArray(reg?.value)) {
                 mfaCapable = reg.value.filter(r => r.isMfaCapable).length;
             }
-        } catch { /* licence or permission missing — stay null */ }
+        } catch (err) { log.debug('licence or permission missing — stay null', err); }
 
         return [{
             subject_id: 'summary',

@@ -13,18 +13,20 @@
  * happening during the seconds before the first LLM token streams.
  */
 
+const log = require('../../telemetry/log');
+
 function emitPhase(send, stage, detail) {
     if (typeof send !== 'function' || !stage) return;
     try {
         send('phase', { stage, status: 'start', detail: detail || undefined });
-    } catch (_) { /* never block the chat on telemetry failures */ }
+    } catch (err) { log.debug('never block the chat on telemetry failures', err); }
 }
 
 function emitPhaseEnd(send, stage, durationMs) {
     if (typeof send !== 'function' || !stage) return;
     try {
         send('phase', { stage, status: 'end', durationMs: Number.isFinite(durationMs) ? durationMs : undefined });
-    } catch (_) { /* swallow */ }
+    } catch (err) { log.debug('swallow', err); }
 }
 
 async function withPhase(send, stage, detail, fn) {
@@ -59,7 +61,7 @@ function startPrivacyScanPhase(send, text) {
     let total = 1;
     try {
         total = require('../privacy/piiDetection').windowCountFor(text || '');
-    } catch (_) { /* scanner unavailable → treat as a single part */ }
+    } catch (err) { log.debug('scanner unavailable → treat as a single part', err); }
     const stage = total > 1 ? 'privacy_scan_large' : 'privacy_scan';
     const startedAt = Date.now();
     // The detail is the part being worked on, not the count finished — so the

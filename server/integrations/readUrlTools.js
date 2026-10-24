@@ -15,6 +15,7 @@
 
 const { safeFetch, isPrivateAddressError } = require('../utils/ssrfGuard');
 const { stripHtml, PAGE_FETCH_TIMEOUT_MS, PAGE_BYTE_CAP } = require('./nodeSearchTools');
+const log = require('../telemetry/log');
 
 const MAX_TEXT_CHARS = 60000;
 const PASSAGE_RADIUS = 1000; // ~2000 characters around each hit
@@ -131,7 +132,7 @@ async function readBody(res) {
         out += decoder.decode(value, { stream: true });
         if (bytes >= PAGE_BYTE_CAP) {
             capped = true;
-            try { await reader.cancel(); } catch (_) { /* already closed */ }
+            try { await reader.cancel(); } catch (err) { log.debug('already closed', err); }
             break;
         }
     }

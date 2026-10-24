@@ -21,10 +21,9 @@
 
 const { walkSteps: walkGraphSteps } = require('./stepContract');
 
-// The step types that call a model. `summarize` is NOT one of them — it is an
-// aggregate op over a collection (automation/validate/stepRules.js), and the
-// client fallback in ComplianceBlock must agree (CONTRACTS.md).
-const AI_STEP_TYPES = Object.freeze(['ai_step', 'data_extraction', 'ai_tool']);
+// The step types that call a model (defined in core/automationModel/constants.js,
+// where core/privacy/dataFlow.js reads them too).
+const { AI_STEP_TYPES } = require('../core/automationModel/constants');
 const _AI = new Set(AI_STEP_TYPES);
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }

@@ -1,12 +1,12 @@
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import SettingsForm from './SettingsForm';
-import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import scopedStorage from '../../../../utils/scopedStorage';
 import { extractFormState, buildPatch } from './settings/formState';
-import { computeUpstreamGroups } from '../mapping/upstream';
-import { buildStepFromPayload } from '../DiagramPane';
+import SettingsForm from './SettingsForm';
 import { INTEGRATION_ITEMS } from './stepPalette';
+import scopedStorage from '../../../../utils/scopedStorage';
+import { buildStepFromPayload } from '../DiagramPane';
+import { computeUpstreamGroups } from '../mapping/upstream';
+import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
 // HttpAuthPicker loads the credential list via useAutomationApi on mount
 // (only when the Authentication section is expanded).

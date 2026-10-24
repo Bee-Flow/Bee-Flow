@@ -6,6 +6,7 @@ import {
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { readEventStream } from '../../../../utils/sseStream';
 import { READ, type ReadState } from '../canUse/canUseFacts';
+import { logger } from '../../../../utils/logger';
 
 /**
  * De lezingen en de acties achter de testset-kaart (A4 deel D).
@@ -127,7 +128,7 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
                 setLastRunUnknown(true);
             }
         })();
-        return () => { alive = false; try { ctrl.abort(); } catch (_) { /* noop */ } };
+        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
     }, [enabled, agentId, nonce]);
 
     const refetch = useCallback(() => setNonce(n => n + 1), []);

@@ -1,8 +1,8 @@
 /**
  * The Studio registry, held to the web's (textual lockstep).
  *
- * agent-hub/src/components/admin/Studio/studioRegistry.tsx (STUDIO_APPS) and
- * studioGates.ts (STUDIO_CATEGORIES) are the single source of truth for which
+ * agent-hub/src/components/admin/Studio/studioSections.ts (STUDIO_SECTIONS, the
+ * data half of studioRegistry's STUDIO_APPS) and studioGates.ts (STUDIO_CATEGORIES) are the single source of truth for which
  * sections Studio has, in what order, under which heading, behind which gate
  * and with which "New" entry; studioApps.jsx, where both used to live,
  * re-exports them. The phone's port (registry.ts) must say the same, section
@@ -23,13 +23,13 @@ import { STUDIO_CATEGORIES, STUDIO_SECTIONS } from './registry';
 
 const WEB_STUDIO = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio');
 const readStudio = (file: string) => fs.readFileSync(path.join(WEB_STUDIO, file), 'utf8');
-const src = readStudio('studioRegistry.tsx');
+const src = readStudio('studioSections.ts');
 const gatesSrc = readStudio('studioGates.ts');
 const barrel = readStudio('studioApps.tsx');
 
-/** The body of `export const STUDIO_APPS = [ … ];`, split into one string per descriptor. */
+/** The body of `export const STUDIO_SECTIONS = [ … ];`, split into one string per descriptor. */
 function webDescriptors(): string[] {
-    const start = src.indexOf('export const STUDIO_APPS: StudioAppDescriptor[] = [');
+    const start = src.indexOf('export const STUDIO_SECTIONS: StudioSectionDescriptor[] = [');
     const end = src.indexOf('\n];', start);
     const body = src.slice(start, end);
     return body.split(/\n {4}\{\n/).slice(1).map((chunk) => chunk.split(/\n {4}\},?\n?/)[0] ?? chunk);

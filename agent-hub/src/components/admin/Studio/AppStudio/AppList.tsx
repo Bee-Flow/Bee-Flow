@@ -145,11 +145,10 @@ export default function AppList({ onOpen }: AppListProps) {
     const isEmpty = !loading && !error && apps.length === 0;
 
     return (
-        <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
+        <div className="flex flex-col h-full [background:var(--bg-primary)]">
             {/* Toolbar */}
             <div
-                className="shrink-0 px-4 py-3 border-b flex items-center gap-3"
-                style={{ borderColor: 'var(--border-subtle)' }}
+                className="shrink-0 px-4 py-3 border-b flex items-center gap-3 [border-color:var(--border-subtle)]!"
             >
                 <div className="flex-1 flex items-center gap-2 min-w-0">
                     <LayoutGrid className="w-5 h-5 shrink-0 text-[var(--accent-primary)]" />
@@ -158,8 +157,7 @@ export default function AppList({ onOpen }: AppListProps) {
                 <button
                     type="button"
                     onClick={() => setShowCreate(true)}
-                    className="px-3 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5"
-                    style={{ background: 'var(--accent-primary)' }}
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 [background:var(--accent-primary)]"
                 >
                     <Plus className="w-3.5 h-3.5" />
                     {t('studio_apps_bi.list.new_app', 'New app')}
@@ -168,8 +166,7 @@ export default function AppList({ onOpen }: AppListProps) {
 
             {error && (
                 <div
-                    className="shrink-0 px-4 py-2 text-xs flex items-center gap-2"
-                    style={{ background: 'rgba(239,68,68,0.1)', color: '#991b1b' }}
+                    className="shrink-0 px-4 py-2 text-xs flex items-center gap-2 [background:rgba(239,68,68,0.1)] [color:#991b1b]!"
                     role="alert"
                 >
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
@@ -260,8 +257,7 @@ export default function AppList({ onOpen }: AppListProps) {
                             type="button"
                             onClick={() => setRenameTarget(null)}
                             disabled={renameBusy}
-                            className="px-4 py-2 rounded-lg text-sm bg-white/5 hover:bg-[var(--bg-card-hover)] disabled:opacity-50"
-                            style={{ color: 'var(--text-primary)' }}
+                            className="px-4 py-2 rounded-lg text-sm bg-white/5 hover:bg-[var(--bg-card-hover)] disabled:opacity-50 [color:var(--text-primary)]!"
                         >
                             {t('studio_apps_bi.common.cancel', 'Cancel')}
                         </button>
@@ -269,8 +265,7 @@ export default function AppList({ onOpen }: AppListProps) {
                             type="button"
                             onClick={submitRename}
                             disabled={renameBusy || !renameValue.trim()}
-                            className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 disabled:opacity-50"
-                            style={{ background: 'var(--accent-primary)' }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-1.5 disabled:opacity-50 [background:var(--accent-primary)]"
                         >
                             {renameBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                             {t('studio_apps_bi.list.save', 'Save')}
@@ -286,12 +281,7 @@ export default function AppList({ onOpen }: AppListProps) {
                         aria-label={t('studio_apps_bi.list.app_name', 'App name')}
                         maxLength={120}
                         autoFocus
-                        className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
-                        style={{
-                            borderColor: 'var(--border-subtle)',
-                            background: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                        }}
+                        className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 [border-color:var(--border-subtle)] [background:var(--bg-primary)] [color:var(--text-primary)]!"
                     />
                 </form>
             </Modal>

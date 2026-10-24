@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { errorMessage, isAbortError, messageOf } from '../../../utils/caughtError';
+import { logger } from '../../../utils/logger';
 
 /** The selection the preview's bridge script posts back. */
 export interface PreviewSelection {
@@ -89,7 +90,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
                 try {
                     // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- targetOrigin '*' is intended: the sandboxed preview's opaque origin cannot be named; the reply goes to event.source, which isFromPreviewIframe checks above
                     (event.source as Window | null)?.postMessage({ __beeflowTokenResponse: true, requestId: reqId, ...body }, '*');
-                } catch { /* ignore */ }
+                } catch (err) { logger.debug('ignore', err); }
             };
             try {
                 const body = await mintToken(currentId);
