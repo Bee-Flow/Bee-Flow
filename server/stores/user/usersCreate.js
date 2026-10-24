@@ -3,8 +3,9 @@ const { run, getOne, getClient } = require('../../db');
 const { initDB } = require('./schema');
 const { getEffectiveLimits } = require('./subscriptions');
 const log = require('../../telemetry/log');
+const { unavailable } = require('../../shared/httpErrors');
 const { syncSeatQuantity } = require('./seatSyncPort');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Strip markup from the three free-text name fields on a user row.
@@ -128,14 +129,20 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
     }
 
     let max = null;
+    // A cap that cannot be read is not "no cap": refuse rather than create past a seat licence.
+    let capUnknown = false;
     try {
         const limits = await getEffectiveLimits(orgId);
         max = limits?.max_users ?? null;
-    } catch (err) { fallback('stores/user/usersCreate:createUserWithSeatCheck', err); /* ignore */ }
+    } catch (err) { log.warn(`[seat.cap] plan limit lookup failed org=${orgId}: ${err.message}`); capUnknown = true; }
     try {
         const seatCap = await require('../../license/seats').getMaxSeatsForOrg(orgId);
         if (seatCap != null && (max == null || seatCap < max)) max = seatCap;
-    } catch (err) { log.debug('license module optional during early boot', err); }
+    } catch (err) { log.warn(`[seat.cap] licence seat cap lookup failed org=${orgId}: ${err.message}`); capUnknown = true; }
+    if (capUnknown) {
+        if (strict) throw unavailable('seat_cap_unavailable', 'Seat limit could not be checked');
+        return { created: false, reason: 'limit_check_failed' };
+    }
 
     const insertParams = (() => {
         const mwDek = userData.masterWrappedDEK

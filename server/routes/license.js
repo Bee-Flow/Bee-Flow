@@ -239,7 +239,7 @@ router.post('/refresh', validate({ body: NoBody }), async (req, res) => {
     let refreshOne;
     try {
         ({ refreshOne } = require('../license/refresh'));
-    } catch (err) { log.debug('refresh module not present', err); }
+    } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; }
     if (typeof refreshOne !== 'function') {
         throw new HttpError(503, 'refresh_unavailable', 'Refresh subsystem unavailable');
     }
@@ -260,7 +260,7 @@ router.get('/health', async (req, res) => {
         if (typeof refresh.getRefresherHealth === 'function') {
             refresherHealth = refresh.getRefresherHealth();
         }
-    } catch (err) { log.debug('refresh module not present', err); }
+    } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; }
 
     let dunning = { past_due_count: 0, suspended_count: 0 };
     try {

@@ -17,6 +17,7 @@ const license = require('../../license/index');
 // silent "org can't chat" state visible per org in the admin dashboard.
 const orgHealth = require('../../services/orgHealth');
 const log = require('../../telemetry/log');
+const { unavailable } = require('../../shared/httpErrors');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // One-shot 80 %-of-cap notification. Sends a single email to the org's
@@ -171,7 +172,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
             const serverTier = await license.getServerLicenseTier();
             if (serverTier && serverTier !== license.COMMUNITY_FALLBACK) return null;
         }
-    } catch (err) { log.debug('licence module unavailable — fall through to subscription check', err); }
+    } catch (err) { fallback('core/entitlements/limits:serverLicenseTier', err); /* subscription check still applies */ }
 
     if (!orgId) {
         // Consumer account — check per-user limits
@@ -343,7 +344,11 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
             if (seatCap !== null && (max === null || max === undefined || seatCap < max)) {
                 max = seatCap;
             }
-        } catch (err) { log.debug('license module unavailable — don\'t fail open in production but don\'t crash either', err); }
+        } catch (err) {
+            // An unreadable seat cap must not read as "no cap": a seat-licensed org could add users past it.
+            log.warn(`[Limits] seat cap lookup failed: ${err.message}`);
+            throw unavailable('seat_cap_unavailable', 'Seat limit could not be checked');
+        }
     }
 
     // Inclusive-cap convention: `max` means "you may have up to N", so the

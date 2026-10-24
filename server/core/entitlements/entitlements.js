@@ -420,7 +420,7 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
         try {
             const r = await userStore().getOrgEveryoneRevoked(orgId);
             if (Array.isArray(r)) revoked = new Set(r);
-        } catch (err) { log.debug('fail open', err); }
+        } catch (err) { fallback('core/entitlements/entitlements:orgEveryoneRevoked', err); }
     }
     for (const id of ceiling.beta) {
         const cap = registry.getCapability(id);

@@ -228,7 +228,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
         for (const [appId, toolset] of NEXTCLOUD_FAMILIES) {
             if (scopeOn(appId) && isAppOn(appId)) addTools(T[toolset]);
         }
-    } catch (e) { log.debug('ignore — credentials missing or store unavailable', e); }
+    } catch (e) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools', e); /* no Nextcloud tools offered */ }
 }
 
 /** The org id the `automations` capability is resolved against. */

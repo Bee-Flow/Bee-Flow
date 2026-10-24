@@ -19,7 +19,7 @@
 const crypto = require('crypto');
 const store = require('./store');
 const tiers = require('./tiers');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const ADMIN_ISSUER = 'beeflow.admin.console';
 const BLOB_PREFIX = 'beeflow-admin-v1.';
@@ -165,7 +165,7 @@ async function issueAdminLicense({
             max_seats: metadata.max_seats,
             billing_interval: billingInterval,
         });
-    } catch (err) { log.debug('audit best-effort', err); }
+    } catch (err) { bestEffort('license/adminIssuance:audit', err); }
 
     return { license: publicLicenseShape(lic), blob };
 }

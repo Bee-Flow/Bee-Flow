@@ -25,7 +25,7 @@ const verify = require('./verify');
 const tiers = require('./tiers');
 const adminIssuance = require('./adminIssuance');
 const { tierFromPlanName } = require('./tierResolution');
-const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const COMMUNITY_FALLBACK = 'community';
 
@@ -319,7 +319,7 @@ async function getOrgGrantedFeatures(organizationId) {
             for (const f of compound) {
                 if (allowSet === null || allowSet.has(f.id)) set.add(f.licenseFeature);
             }
-        } catch (err) { log.debug('benign — preserve existing behaviour', err); }
+        } catch (err) { bestEffort('license/index:compoundBetaFeatures', err); /* feature stays off */ }
     }
     return [...set];
 }
@@ -451,7 +451,7 @@ async function getLicenseStatus({ organizationId = null, userId = null, orgIds =
         let bestSubTier = COMMUNITY_FALLBACK;
         let bestSubRow = null;
         for (const orgId of candidateOrgIds) {
-            const sub = await getUserStore().getOrgSubscription(orgId).catch(() => null);
+            const sub = await getUserStore().getOrgSubscription(orgId).catch((e) => fallback('license/index:orgSubscription', e, null));
             const t = resolveTierFromSubscription(sub);
             if (t && tiers.tierRank(t) > tiers.tierRank(bestSubTier)) {
                 bestSubTier = t;
@@ -460,7 +460,7 @@ async function getLicenseStatus({ organizationId = null, userId = null, orgIds =
             }
         }
         if (bestSubTier === COMMUNITY_FALLBACK && userId) {
-            const sub = await getUserStore().getConsumerSubscription(userId).catch(() => null);
+            const sub = await getUserStore().getConsumerSubscription(userId).catch((e) => fallback('license/index:consumerSubscription', e, null));
             const t = resolveTierFromSubscription(sub);
             if (t && tiers.tierRank(t) > tiers.tierRank(bestSubTier)) {
                 bestSubTier = t;
@@ -565,10 +565,8 @@ function publicLicenseShape(lic) {
 async function _noteServerLicenseReplaced(newLicenseId) {
     try {
         const prev = await store.getActiveLicenseForServer();
-        if (prev && prev.id && prev.id !== newLicenseId) {
-            await require('../modules/subjects').recordSupersededLicenseId(prev.id);
-        }
-    } catch (err) { log.debug('best effort', err); }
+        if (prev && prev.id && prev.id !== newLicenseId) await require('../modules/subjects').recordSupersededLicenseId(prev.id);
+    } catch (err) { bestEffort('license/index:noteServerLicenseReplaced', err); }
 }
 // Listeners for a changed server licence. modules/entitlementRefresh registers
 // itself (modules sit above the licence module, so it is not required from
@@ -579,7 +577,7 @@ function onServerLicenseChanged(listener) {
 }
 function _nudgeEntitlementRefresh() {
     for (const listener of _serverLicenseListeners) {
-        try { listener(); } catch (err) { log.debug('not booted', err); }
+        try { listener(); } catch (err) { bestEffort('license/index:serverLicenseListener', err); }
     }
 }
 

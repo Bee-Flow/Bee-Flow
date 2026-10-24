@@ -13,6 +13,7 @@
 
 'use strict';
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Lazy requires (cycle-safety + test require.cache overrides).
 let _hubClient, _licenseStore, _configStore;
@@ -30,17 +31,17 @@ const HISTORY_MAX = 5;
  */
 async function subjectIds() {
     const ids = [];
-    try { const iid = await hubClient().getInstallId(); if (iid) ids.push(iid); } catch (err) { log.debug('not connected', err); }
+    try { const iid = await hubClient().getInstallId(); if (iid) ids.push(iid); } catch (err) { bestEffort('modules/subjects:installId', err); }
     try {
         const active = await licenseStore().getActiveLicenseForServer();
         if (active && active.id && !ids.includes(active.id)) ids.push(active.id);
-    } catch (err) { log.debug('unlicensed', err); }
+    } catch (err) { bestEffort('modules/subjects:activeLicense', err); }
     try {
         const history = await configStore().getConfig(LICENSE_ID_HISTORY_KEY);
         for (const id of (Array.isArray(history) ? history : [])) {
             if (id && !ids.includes(id)) ids.push(id);
         }
-    } catch (err) { log.debug('no history', err); }
+    } catch (err) { bestEffort('modules/subjects:licenseHistory', err); }
     return ids;
 }
 

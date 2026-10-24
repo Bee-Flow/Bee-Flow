@@ -25,7 +25,6 @@ const crypto = require('crypto');
 const fsp = require('fs/promises');
 const { Readable } = require('stream');
 const { createTtlCache } = require('../utils/ttlCache');
-const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_HUB_URL = 'https://hub.beeflow.nl';
@@ -186,7 +185,7 @@ async function _defaultConnectParams() {
         const lic = require('../license/store');
         const active = await lic.getActiveLicenseForServer();
         if (active && active.rawToken) out.license_token = active.rawToken;
-    } catch (err) { log.debug('unlicensed / community — connect anonymously', err); }
+    } catch (err) { bestEffort('modules/hubClient:connectLicense', err); /* connect anonymously */ }
     return out;
 }
 
@@ -487,7 +486,7 @@ async function rebindLicense() {
     try {
         const active = await require('../license/store').getActiveLicenseForServer();
         token = active && active.rawToken;
-    } catch (err) { log.debug('unlicensed', err); }
+    } catch (err) { bestEffort('modules/hubClient:rebindLicense', err); }
     if (!token) return { ok: false, rebound: false, reason: 'no_license' };
     const base = await resolveHubUrl();
     try {

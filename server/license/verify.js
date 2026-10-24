@@ -24,6 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const { isValidTier, TIER_HIERARCHY } = require('./tiers');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const EXPECTED_ISSUER = 'license.beeflow.nl';
 const FULL_TIER_ISSUER = 'license.beeflow.nl/internal';
@@ -73,7 +74,7 @@ async function _writeKnownKeys(map) {
             .sort((a, b) => Date.parse(b[1].lastUsedAt || 0) - Date.parse(a[1].lastUsedAt || 0))
             .slice(0, KNOWN_KEYS_MAX);
         await configStore().setConfig(KNOWN_KEYS_CONFIG_KEY, Object.fromEntries(entries));
-    } catch (err) { log.debug('cache write is never load-bearing', err); }
+    } catch (err) { bestEffort('license/verify:writeKnownKeys', err); }
 }
 
 /** Persist freshly-seen JWKS keys + apply the hub's revocation list. */
@@ -88,7 +89,7 @@ async function _persistKnownKeys(keysByKid, revokedKids) {
         }
         for (const kid of (revokedKids || [])) delete map[kid];
         await _writeKnownKeys(map);
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('license/verify:persistKnownKeys', err); }
 }
 
 /**
@@ -141,7 +142,7 @@ function loadPublicKey() {
             _cachedKeySource = 'bundled';
             return { key: _cachedKey, source: _cachedKeySource };
         }
-    } catch (e) { log.debug('unreadable bundled key — treat as missing', e); }
+    } catch (e) { bestEffort('license/verify:loadBundledKey', e); /* treated as missing */ }
 
     return { key: null, source: null };
 }
@@ -193,7 +194,7 @@ async function getJwksKeys() {
         const revokedKids = Array.isArray(body.revoked_kids) ? body.revoked_kids : [];
         _jwksCache = { fetchedAt: now, keysByKid, revokedKids };
         // Fire-and-forget: remember every good kid for rotation resilience.
-        _persistKnownKeys(keysByKid, revokedKids).catch(() => {});
+        _persistKnownKeys(keysByKid, revokedKids).catch((e) => bestEffort('license/verify:persistKnownKeys', e));
     } catch (e) {
         const reason = e.name === 'AbortError' ? `timeout_${timeoutMs}ms` : e.message;
         log.warn(`[License Verify] license.jwks.fetch_failed reason=${reason}`);
@@ -329,11 +330,11 @@ async function resolvePublicKeyByKid(kid) {
                 const entry = known[kid];
                 if (entry && entry.pem) {
                     entry.lastUsedAt = new Date().toISOString();
-                    _writeKnownKeys(known).catch(() => {});
+                    _writeKnownKeys(known).catch((e) => bestEffort('license/verify:writeKnownKeys', e));
                     return entry.pem;
                 }
             }
-        } catch (err) { log.debug('cache miss is fine', err); }
+        } catch (err) { bestEffort('license/verify:readKnownKeys', err); }
         return bundled || null; // best effort — verify fails if key doesn't match
     }
     return bundled || null;

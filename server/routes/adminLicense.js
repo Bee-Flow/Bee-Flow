@@ -36,6 +36,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
@@ -201,7 +202,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
                 try {
                     const userStore = require('../stores/userStore');
                     await userStore.logSubscriptionAudit('email_send_failed', 'license', result.license.id, actorId(req), null, { to: deliverEmail, reason: delivery?.error || 'unknown' });
-                } catch (err) { log.debug('audit best-effort', err); }
+                } catch (err) { bestEffort('routes/adminLicense:emailFailedAudit', err); }
             }
         }
 

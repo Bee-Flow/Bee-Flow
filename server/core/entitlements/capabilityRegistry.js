@@ -43,7 +43,6 @@
 const tiers = require('../../license/tiers');
 const featureMap = require('../../license/featureMap');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('../../utils/ncIntegrationCatalog');
-const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const CapabilityKind = Object.freeze({
@@ -239,7 +238,7 @@ async function refreshMcpIntegrationDescriptors() {
                 groupTogglable: true,
                 _mcpServer: true,
             })));
-    } catch (err) { log.debug('mcpStore unavailable — keep whatever was last cached (or empty).', err); }
+    } catch (err) { bestEffort('core/entitlements/capabilityRegistry:mcpServers', err); /* keep the last cache */ }
 }
 
 // ── Org-scoped custom-integration projection (AI Integration Builder) ───

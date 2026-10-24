@@ -48,6 +48,12 @@ const { TOOL_REGISTRY, ALL_TOOL_APPS } = require('../../automation/toolRegistry'
 const { listByKind } = require('../entitlements/capabilityRegistry');
 const { getUserPermittedApps, isIntegrationPermittedForUser } = require('./integrationTools');
 
+// The gate denies when the user lookup fails; there is no DB here, so answer it:
+// a user without an organisation or groups, the widest shape the gate sees.
+const userStore = require('../../stores/userStore');
+userStore.getUser = async () => ({ id: 'u1', groups: [] });
+userStore.getAllGroups = async () => [];
+
 const registryApps = new Set(TOOL_REGISTRY.map((e) => e.app));
 const USER = { userId: 'u1', session: { user: { id: 'u1' } }, isAdmin: false };
 

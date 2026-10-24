@@ -24,7 +24,6 @@
  * first-page sampling honest for tenants above 500 users.
  */
 
-const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
 const LOGIN_BASE = 'https://login.microsoftonline.com';
@@ -116,7 +115,7 @@ module.exports = {
                 const n = parseInt((await res.text()).trim(), 10);
                 if (Number.isFinite(n)) userCount = n;
             }
-        } catch (err) { log.debug('keep the sampled count', err); }
+        } catch (err) { fallback('compliance/connectors/microsoft-entra:userCount', err); /* keep the sampled count */ }
 
         // Global Administrator member count — needs RoleManagement.Read.Directory
         // or Directory.Read.All; null when not granted.

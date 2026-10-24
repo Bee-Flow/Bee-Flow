@@ -93,6 +93,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         // Inputs for the webpages rule, resolved the way getIntegrationTools does.
         let webpageGroupIds = [];
         let webpageOrgId = null;
+        let identityUnknown = false;
         try {
             const userStore = lazy.userStore();
             const currentUser = await userStore.getUser(userId);
@@ -122,7 +123,11 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
                     if (userGroupDisableLists.every(lst => lst.length === 0)) userGroupDisableLists = null;
                 }
             }
-        } catch (err) { log.debug('fail open', err); }
+        } catch (err) {
+            // The org allow-list and group deny-lists are unknown: deny, not "no restrictions".
+            fallback('core/integrations/userAppGate:identity', err);
+            identityUnknown = true;
+        }
 
         // `webpages` is a beta capability, not an org integration: no org
         // allow-list can name it, so judging it by one refused webpage steps the
@@ -141,6 +146,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         }
 
         const isAppOn = (appId) => {
+            if (identityUnknown) return false;
             if (userEnabledApps) {
                 if (AUTO_ENABLED_APPS.includes(appId)) {
                     // auto-enabled — bypass user list
