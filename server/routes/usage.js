@@ -46,26 +46,16 @@ const UsageQuery = queryOf({
 // responses. Admin callers see raw figures; org / consumer callers see
 // total_estimated_cost × (1 + markup_percent/100) and have token / message
 // counts stripped from the payload.
+// A failed lookup propagates (500): a 0% markup would show the customer the
+// raw provider cost as if it were their bill.
 async function getCustomerMarkup(req) {
-    try {
-        const orgIds = await resolveUserOrgIds(req);
-        if (orgIds === null || orgIds.size === 0) {
-            const userId = req.session?.user?.id;
-            const sub = userId ? await userStore.getConsumerSubscription(userId) : null;
-            if (sub?.plan_id) {
-                const plan = await userStore.getPlan(sub.plan_id);
-                return Number(plan?.markup_percent) || 0;
-            }
-            return 0;
-        }
-        const orgId = Array.from(orgIds)[0];
-        const sub = await userStore.getOrgSubscription(orgId);
-        if (sub?.plan_id) {
-            const plan = await userStore.getPlan(sub.plan_id);
-            return Number(plan?.markup_percent) || 0;
-        }
-    } catch (err) { bestEffort('routes/usage:getCustomerMarkup', err); /* fall through */ }
-    return 0;
+    const orgIds = await resolveUserOrgIds(req);
+    const sub = orgIds === null || orgIds.size === 0
+        ? (req.session?.user?.id ? await userStore.getConsumerSubscription(req.session.user.id) : null)
+        : await userStore.getOrgSubscription(Array.from(orgIds)[0]);
+    if (!sub?.plan_id) return 0;
+    const plan = await userStore.getPlan(sub.plan_id);
+    return Number(plan?.markup_percent) || 0;
 }
 
 async function isAdminCaller(req) {
@@ -692,7 +682,6 @@ module.exports = router;
 // AZURE SERVICE COST MONITORING ENDPOINTS
 // ════════════════════════════════════════════════════════════════════════════
 const azureServiceUsageStore = require('../stores/azureServiceUsageStore');
-const { bestEffort } = require('../utils/bestEffort');
 
 // 28. Azure Service Summary
 router.get('/azure-services/summary', async (req, res) => {
