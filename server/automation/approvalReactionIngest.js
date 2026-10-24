@@ -47,6 +47,7 @@
 
 const automationStore = require('../stores/automationStore');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Emoji that mean yes / no. Compared after normalisation, so 👍🏽 and 👍️ are
@@ -173,7 +174,7 @@ async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
         const uid = ncUid || payload?.actor || null;
         if (!uid) return verdict('no_actor');
         const userStore = require('../stores/userStore');
-        const user = await userStore.getUserByNcUid(orgId, uid).catch(() => null);
+        const user = await userStore.getUserByNcUid(orgId, uid).catch((e) => fallback('automation/approvalReactionIngest:handleTalkReaction', e, null));
         if (!user?.id) return verdict('actor_not_a_beeflow_user');
 
         // (4) Do they hold a seat that may act now?
@@ -198,7 +199,7 @@ async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
 
         // ── The decision. THE existing path, not a parallel one. ─────────
         const approvalService = require('./approvalService');
-        const run = approval.runId ? await automationStore.getRun(approval.runId).catch(() => null) : null;
+        const run = approval.runId ? await automationStore.getRun(approval.runId).catch((e) => fallback('automation/approvalReactionIngest:handleTalkReaction#2', e, null)) : null;
         const { code, body } = await approvalService.decide({
             approval,
             run,
@@ -272,7 +273,7 @@ async function pollTalkReactions({ limit = 200, budgetMs = 20_000, now = () => D
         const messageId = d.externalRef?.messageId;
         if (!roomToken || messageId == null) continue;
         if (!contexts.has(d.userId)) {
-            contexts.set(d.userId, await resolveNcContext(d.userId).catch(() => null));
+            contexts.set(d.userId, await resolveNcContext(d.userId).catch((e) => fallback('automation/approvalReactionIngest:pollTalkReactions', e, null)));
         }
         const ctx = contexts.get(d.userId);
         if (!ctx) continue;

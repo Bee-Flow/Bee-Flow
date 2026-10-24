@@ -13,6 +13,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 // Module-scoped cache of the Nextcloud activity feed per-user. Five
 // triggers (file.new / file.changed / share.received / activity.new /
@@ -251,7 +252,7 @@ function createNextcloudPollers(ctx) {
                 const items = Array.isArray(result?.events) ? result.events : [];
 
                 let cursor = { firedIds: [] };
-                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { log.debug('ignore', err); }
+                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { fallback('automation/triggerBus/pollers/nextcloud:calendar.event.upcoming', err); /* ignore */ }
                 const fired = new Set(Array.isArray(cursor.firedIds) ? cursor.firedIds : []);
 
                 const events = [];

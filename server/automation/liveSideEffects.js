@@ -19,6 +19,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {object} [deps]
@@ -128,7 +129,7 @@ function makeLiveSideEffects(deps = {}) {
             // question, so the owner is only read when it does not.
             let orgId = a.organizationId || null;
             if (!orgId && a.userId) {
-                const owner = await userStore().getUser(a.userId).catch(() => null);
+                const owner = await userStore().getUser(a.userId).catch((e) => fallback('automation/liveSideEffects:wakeNow', e, null));
                 orgId = owner?.organizationId || null;
             }
             // No organisation: no per-source check can match this automation (their

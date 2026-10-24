@@ -46,6 +46,7 @@ const { AI_STEP_TYPES } = require('../automationGraph');
 const outputDiffers = require('./outputDiffers');
 const { diffJson } = require('./jsonDiff');
 const { summarizeFile, readCapped } = require('./fileSummary');
+const { fallback } = require('../../utils/bestEffort');
 
 const caps = () => ({
     maxSteps: envCap('AUTOMATION_RUN_COMPARE_MAX_STEPS', 2000),
@@ -97,7 +98,7 @@ async function outputOf(entry, side, store) {
     const ref = fullOutputRefOf(out);
     // A reference to a run outside this side's readable legs is never followed.
     if (!ref || !side.runIds.includes(ref.runId)) return { ok: false };
-    const full = await Promise.resolve(store.getRunFullOutput(ref.runId, ref.stepId, ref.attempts)).catch(() => null);
+    const full = await Promise.resolve(store.getRunFullOutput(ref.runId, ref.stepId, ref.attempts)).catch((e) => fallback('automation/testing/runCompare:outputOf', e, null));
     return full == null ? { ok: false } : { ok: true, value: full };
 }
 
@@ -173,7 +174,7 @@ const byCreated = (x, y) => String(x.createdAt).localeCompare(String(y.createdAt
 /** FileCompare entries per stepId: the two sides' files paired in creation order. */
 async function compareFiles(sideA, sideB, env) {
     const list = async (side) => {
-        const files = await Promise.resolve(env.store.listGeneratedFilesForRuns(side.runIds)).catch(() => []);
+        const files = await Promise.resolve(env.store.listGeneratedFilesForRuns(side.runIds)).catch((e) => fallback('automation/testing/runCompare:list', e, []));
         const own = (files || []).filter(f => f.automationId === side.run.automationId).sort(byCreated);
         return env.caps.maxFiles > 0 ? own.slice(0, env.caps.maxFiles) : own;
     };
@@ -233,7 +234,7 @@ async function compareRuns(input, deps = {}) {
     // A handle resolves to a file of ITS OWN side's journey only.
     const loadFileSummary = async (fileId, which) => {
         const side = which === 'a' ? sideA : sideB;
-        const file = await Promise.resolve(store.getGeneratedFileForRuns(fileId, side.runIds)).catch(() => null);
+        const file = await Promise.resolve(store.getGeneratedFileForRuns(fileId, side.runIds)).catch((e) => fallback('automation/testing/runCompare:loadFileSummary', e, null));
         if (!file || file.automationId !== side.run.automationId) return null;
         return (which === 'a' ? loadA : loadB)(file);
     };

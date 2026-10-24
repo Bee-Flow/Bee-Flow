@@ -32,6 +32,7 @@ const fs = require('fs');
 const path = require('path');
 const { validateTriggerSource, KNOWN_SOURCE_KINDS } = require('./validate');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const _global = new Map();   // id → declaration (static, bundled, global push)
 const _byOrg = new Map();    // orgId → Map<id, declaration>
@@ -142,7 +143,7 @@ function getEventDef(provider, event) {
     try {
         const { isAutoEventId, deriveEventDef } = require('./autoDerive');
         if (isAutoEventId(event)) return deriveEventDef(event);
-    } catch (err) { log.debug('auto-derivation unavailable', err); }
+    } catch (err) { bestEffort('automation/triggerSources/index:getEventDef', err); /* auto-derivation unavailable */ }
     return null;
 }
 

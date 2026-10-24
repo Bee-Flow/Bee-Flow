@@ -30,6 +30,7 @@
 const automationStore = require('../stores/automationStore');
 const log = require('../telemetry/log');
 const { scanTemplate, parsePath, walkTokens } = require('./expr');
+const { bestEffort } = require('../utils/bestEffort');
 
 function hookScope(approval) {
     return {
@@ -102,14 +103,14 @@ async function runOnDecidedHook(approval) {
             decision: 'hook_ran',
             comment: `Updated ${table.key || hook.tableId} · ${recordId}`,
             source: 'hook',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalHooks:runOnDecidedHook', e));
         return { ran: true };
     } catch (e) {
         log.warn(`[ApprovalHooks] on_decided failed for ${approval.id}: ${e.message}`);
         await automationStore.appendApprovalAudit({
             approvalId: approval.id, decidedBy: null,
             decision: 'hook_failed', comment: e.message, source: 'hook',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalHooks:runOnDecidedHook#2', e));
         // The decision stands; the OWNER hears their app did not react.
         try {
             const notificationStore = require('../stores/notificationStore');
@@ -120,7 +121,7 @@ async function runOnDecidedHook(approval) {
                 message: `The decision on "${approval.prompt || 'an approval'}" was recorded, but the app's record could not be updated: ${e.message}`,
                 link: require('../utils/appPaths').approvalPath(approval.id),
             });
-        } catch (err) { log.debug('the audit row still tells the story', err); }
+        } catch (err) { bestEffort('automation/approvalHooks:runOnDecidedHook#3', err); /* the audit row still tells the story */ }
         return { ran: false, error: e.message };
     }
 }

@@ -54,6 +54,7 @@ const {
 const { createFormWork } = require('./formQueueWork');
 const { createFormLeases } = require('./formQueueLeases');
 const { createFormRecovery } = require('./formQueueRecovery');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * One queue with its own state. The server uses the single instance this
@@ -144,7 +145,7 @@ function createFormQueue(overrides = {}) {
                 throw e;
             }
             if (!lostToConcurrency(run)) {
-                if (sessionId && run?.id) await automationStore.attachFormSessionRun(sessionId, run.id).catch(() => {});
+                if (sessionId && run?.id) await automationStore.attachFormSessionRun(sessionId, run.id).catch((e) => bestEffort('automation/formQueue:runQueued', e));
                 await clearPending(sessionId);
                 return;
             }

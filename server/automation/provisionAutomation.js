@@ -22,6 +22,7 @@ const { validateDefinition } = require('./validate');
 const { getDeliverableEvents } = require('./deliverableEvents');
 const { TOOL_REGISTRY, loadTools } = require('./toolRegistry');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Build the permitted-tool catalog so activation rejects unknown/unpermitted tools. */
 async function buildToolCatalog({ userId, session, isAdmin = false }) {
@@ -154,7 +155,7 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
 /** Tear down a provisioned automation: remove its subscriptions, then delete it. */
 async function teardownAutomation(automationId) {
     if (!automationId) return false;
-    try { await automationStore.deleteSubscriptionsForAutomation(automationId); } catch (err) { log.debug('ignore', err); }
+    try { await automationStore.deleteSubscriptionsForAutomation(automationId); } catch (err) { bestEffort('automation/provisionAutomation:teardownAutomation', err); /* ignore */ }
     return automationStore.deleteAutomation(automationId).catch(() => false);
 }
 

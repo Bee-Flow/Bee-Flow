@@ -12,6 +12,7 @@ const { syncDatatableUsage } = require('../datatableUsageSync');
 const { syncKbSources } = require('../../core/kb/kbSourceSync');
 const log = require('../../telemetry/log');
 const { collectPendingRefs } = require('./pendingDatatables');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Persist the draft to the automations table. Creates a row on the first
@@ -123,7 +124,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                 const u = await userStore.getUser(draftWrap.userId);
                 orgId = u?.organizationId || null;
                 if (orgId) draftWrap.orgId = orgId; // memoize for subsequent updates
-            } catch (err) { log.debug('keep null', err); }
+            } catch (err) { fallback('automation/builderTools/persistence:persistDraft', err); /* keep null */ }
         }
         // Create a draft row.
         const a = await automationStore.createAutomation({
@@ -153,7 +154,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
     // automation is ACTIVE the trigger config below has to be compared against
     // what its subscriptions and schedule rows were built from.
     let prior = null;
-    try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (err) { log.debug('treated as unchanged', err); }
+    try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (err) { fallback('automation/builderTools/persistence:persistDraft#2', err); /* treated as unchanged */ }
     const updates = {
         title: draftWrap.title || undefined,
         description: draftWrap.description || undefined,

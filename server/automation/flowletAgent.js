@@ -33,6 +33,7 @@ const {
 } = require('./builderTools');
 const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock, renderAgentsBlock, renderKnowledgeBasesBlock } = require('./builderPrompt');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_LAYER_AGENT_ROUNDS = 12;
 const DEFAULT_PARALLEL_CAP = 3;
@@ -372,7 +373,7 @@ async function resolveLayerAgentModel({ userOrgId = null, userId = null } = {}) 
     try {
         const m = await resolveModelForTierName('thinking', { userOrgId, userId });
         if (m) return m;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('automation/flowletAgent:resolveLayerAgentModel', err); /* fall through */ }
     try {
         return await resolveModelForTierName('fast', { userOrgId, userId });
     } catch (_) {

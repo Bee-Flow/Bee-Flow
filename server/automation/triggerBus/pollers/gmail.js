@@ -13,6 +13,7 @@
 
 const { walkGmailHistory } = require('./gmailHistory');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /** @param {any} ctx */
 function createGmailPollers(ctx) {
@@ -64,7 +65,7 @@ function createGmailPollers(ctx) {
                     }
                     const events = [];
                     for (const { id, threadId } of ids) {
-                        const enriched = await fetchGmailMessageMetadata(ctx, gmail, id).catch(() => null);
+                        const enriched = await fetchGmailMessageMetadata(ctx, gmail, id).catch((e) => fallback('automation/triggerBus/pollers/gmail:mail.new', e, null));
                         events.push({ messageId: id, threadId, ...(enriched || {}) });
                     }
                     if (walk.nextCursor) await ctx.store().updateSubscription(sub.id, { lastCursor: String(walk.nextCursor) });
@@ -175,7 +176,7 @@ function createGmailPollers(ctx) {
                     // moved past all of their records, so none may be dropped.
                     const events = [];
                     for (const ev of byMsg.values()) {
-                        const enriched = await fetchGmailMessageMetadata(ctx, gmail, ev.messageId).catch(() => null);
+                        const enriched = await fetchGmailMessageMetadata(ctx, gmail, ev.messageId).catch((e) => fallback('automation/triggerBus/pollers/gmail:label.added', e, null));
                         events.push({ ...ev, ...(enriched || {}) });
                     }
                     if (walk.nextCursor) await ctx.store().updateSubscription(sub.id, { lastCursor: String(walk.nextCursor) });

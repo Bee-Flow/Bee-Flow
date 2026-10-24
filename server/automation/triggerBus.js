@@ -37,6 +37,7 @@ const { createNextcloudPollers, _ncNormaliseActivity } = require('./triggerBus/p
 const { POLL_FAILURE_THRESHOLD, escalateSubscriptionFailure: escalateWithCtx } = require('./triggerBus/escalation');
 const { getPublicBaseUrl, buildClientState, provisionSubscription, revokeSubscription, renewExpiringSubscriptions: renewWithCtx } = require('./triggerBus/msGraphSubscriptions');
 const latestMatch = require('./triggerBus/latestMatch');
+const { fallback } = require('../utils/bestEffort');
 
 // Test seam (_setDepsForTests): the credential lookups, the Google client
 // factory and the per-subscription dispatcher the polling pass goes through,
@@ -237,7 +238,7 @@ async function loadSession(userId) {
     let connectorFields = null;
     try {
         const userStore = _deps.userStore();
-        const u = await userStore.getUser(userId).catch(() => null);
+        const u = await userStore.getUser(userId).catch((e) => fallback('automation/triggerBus:loadSession', e, null));
         if (u && u.provider === 'nextcloud_connector') {
             connectorFields = {
                 connectorOrgId: u.organizationId || null,
@@ -245,7 +246,7 @@ async function loadSession(userId) {
                 user: { id: userId, provider: 'nextcloud_connector', organizationId: u.organizationId || null, ncUid: u.nc_uid || null },
             };
         }
-    } catch (err) { log.debug('non-fatal — fall through to token paths', err); }
+    } catch (err) { fallback('automation/triggerBus:loadSession#2', err); /* non-fatal — fall through to token paths */ }
 
     // 1) Vault first.
     try {

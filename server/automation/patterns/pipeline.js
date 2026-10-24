@@ -34,6 +34,7 @@ const { patternSignature, suppressCandidates } = require('./suppress');
 const { toDraft, normaliseApp } = require('./builderMapping');
 const { toEvidenceCard } = require('./evidenceCard');
 const { maskNames, tokenize } = require('./templating');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const DAY = 86_400_000;
 const WINDOW_DAYS = 90;
@@ -133,7 +134,7 @@ function automationShape(a, appOfTool) {
     if (typeof trig.appEvent?.provider === 'string') apps.push(trig.appEvent.provider);
     for (const s of Array.isArray(def.steps) ? def.steps : []) {
         if (typeof s?.tool === 'string' && s.tool) {
-            try { apps.push(appOfTool(s.tool)); } catch (err) { log.debug('an unknown tool names no app', err); }
+            try { apps.push(appOfTool(s.tool)); } catch (err) { fallbackSwallowed('automation/patterns/pipeline:automationShape', err); /* an unknown tool names no app */ }
         }
     }
     return { title: a?.title, triggerKind: trig.kind || a?.triggerType || null, apps: uniq(apps.map(String)) };

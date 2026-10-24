@@ -35,6 +35,7 @@ const { makeAutomationAccess } = require('./access');
 const log = require('../telemetry/log');
 // The tool name is declared by the builder too, so the rule lives in one place.
 const { sanitizeToolName, MAX_TOOL_DESCRIPTION_LEN } = require('./agentCallContract');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Convert an automation into the OpenAI/Anthropic-shaped function
@@ -339,7 +340,7 @@ function stepToTool(step) {
  */
 async function getStepToolsForUser(userId) {
     if (!userId) return [];
-    const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch(() => []);
+    const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch((e) => fallback('automation/agentCallableTools:getStepToolsForUser', e, []));
     const tools = [];
     for (const s of callable) {
         if (s.ownerId !== userId || !s.exposeAsTool) continue;

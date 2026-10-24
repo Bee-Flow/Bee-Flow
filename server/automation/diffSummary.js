@@ -105,6 +105,7 @@ function summarizeDefinitionDiffLine(prevDef, nextDef) {
 const { sortedKeysJson } = require('../utils/stableJson');
 const { fieldDiff, describeChange, describeVersion, describeText, isLayoutOnlyChange, stepIdsOf } = require('./fieldDiff');
 const { SETTINGS_KEYS } = require('../core/automationRunner/definitionForRun');
+const { fallback } = require('../utils/bestEffort');
 
 /** The definition without its SETTINGS keys (notificationSettings, runPolicy). */
 function withoutSettings(def) {
@@ -166,7 +167,7 @@ function planVersionWrite(prevDef, nextDef, { versionMeta = null, forceVersion =
     }
     let changeSummary = null;
     try { changeSummary = summarizeDefinitionDiffLine(prevDef, nextDef); }
-    catch (err) { log.debug('best-effort, like the description', err); }
+    catch (err) { fallback('automation/diffSummary:planVersionWrite', err); /* best-effort, like the description */ }
     const ownEntries = settingsOnly ? SETTINGS_CHANGED.map(e => ({ ...e, params: {} })) : (desc?.entries || []);
     const descriptionJson = meta.descriptionJson != null
         ? meta.descriptionJson

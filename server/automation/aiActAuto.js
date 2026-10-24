@@ -40,6 +40,7 @@ const { classificationInput } = require('./aiActClassify');
 const assess = require('../compliance/aiAct/assess');
 const annexIii = require('../compliance/aiAct/annexIii');
 const texts = require('./aiActTexts');
+const { fallback } = require('../utils/bestEffort');
 
 const BEE = 'bee';
 const EVIDENCE_VERSION = 1;
@@ -207,7 +208,7 @@ function makeAiActAuto(deps) {
     const now = () => (deps.now ? deps.now() : Date.now());
 
     async function detectFor(automation, definition, { orgId, row, wantAll }) {
-        const blocks = deps.loadBlocks ? await deps.loadBlocks(definition).catch(() => null) : null;
+        const blocks = deps.loadBlocks ? await deps.loadBlocks(definition).catch((e) => fallback('automation/aiActAuto:detectFor', e, null)) : null;
         const ai = detect.detectAiUse(definition, { blocks });
         const title = automation.title || '';
         const description = automation.description || '';
@@ -223,7 +224,7 @@ function makeAiActAuto(deps) {
                 verdict = verdict ? { ...verdict, hash: input.hash } : { available: false, hash: input.hash };
             }
         }
-        const internalDomains = deps.internalDomainsOf ? await deps.internalDomainsOf(automation).catch(() => []) : [];
+        const internalDomains = deps.internalDomainsOf ? await deps.internalDomainsOf(automation).catch((e) => fallback('automation/aiActAuto:detectFor#2', e, [])) : [];
         const detection = detect.detectQuestions({ definition, title, description, internalDomains, blocks, verdict });
         detection.verdict = verdict;
         detection.hintText = detect.hintText({ definition, title, description });
@@ -338,7 +339,7 @@ async function defaultSignalsFor(automation, orgId, definition) {
 
 /** The mail domains that count as inside: the owner's. Best effort. */
 async function defaultInternalDomainsOf(automation) {
-    const owner = await require('../stores/userStore').getUser(automation.userId).catch(() => null);
+    const owner = await require('../stores/userStore').getUser(automation.userId).catch((e) => fallback('automation/aiActAuto:defaultInternalDomainsOf', e, null));
     const email = typeof owner?.email === 'string' ? owner.email : '';
     const at = email.lastIndexOf('@');
     return at > 0 ? [email.slice(at + 1).toLowerCase()] : [];
@@ -358,7 +359,7 @@ async function loadBlocksWith(store, definition) {
     if (!ids.size) return null;
     const out = {};
     for (const id of ids) {
-        const b = await store.getAutomation(id).catch(() => null);
+        const b = await store.getAutomation(id).catch((e) => fallback('automation/aiActAuto:loadBlocksWith', e, null));
         out[id] = b && isObject(b.definition) ? b.definition : null;
     }
     return out;

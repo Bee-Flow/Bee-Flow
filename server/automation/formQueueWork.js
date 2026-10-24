@@ -9,6 +9,7 @@
  */
 
 const { lostToConcurrency, answersRefOf } = require('./formQueueShared');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 /**
  * @param {{ automationStore: any, runner: () => any, formAnswers: () => any }} deps
@@ -32,13 +33,13 @@ function createFormWork({ automationStore, runner, formAnswers }) {
      * before the child had a chance to serve the next page.
      */
     async function finaliseResumedParent(session, parentRunId, child) {
-        if (session?.id) await automationStore.attachFormSessionRun(session.id, child.id).catch(() => {});
+        if (session?.id) await automationStore.attachFormSessionRun(session.id, child.id).catch((e) => bestEffort('automation/formQueueWork:finaliseResumedParent', e));
         await automationStore.updateRun(parentRunId, {
             status: 'success',
             summary: `Resumed from the form — see child run ${child.id}`,
             finishedAt: new Date().toISOString(),
             awaitingStepId: null,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/formQueueWork:finaliseResumedParent#2', e));
     }
 
     // ── The work itself ───────────────────────────────────
@@ -70,7 +71,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
             onRunCreated: async (r) => {
                 await automationStore.attachFormSessionRun(session.id, r.id);
                 // FRM-08: who submitted, on the run — and the run, on the row.
-                if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch(() => {});
+                if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch((e) => bestEffort('automation/formQueueWork:onRunCreated', e));
                 if (answers) await formAnswers().attachRun({ automation, datatableId: answers.datatableId, rowId: answers.rowId, run: r });
             },
             // No more pages to answer: the journey is complete (an error is
@@ -85,7 +86,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
 
     /** Stop handing the answered page back while its resume is in flight (see formPublic.js). */
     function stopServingPage(parentRunId) {
-        return automationStore.updateRun(parentRunId, { awaitingStepId: null }).catch(() => {});
+        return automationStore.updateRun(parentRunId, { awaitingStepId: null }).catch((e) => fallback('automation/formQueueWork:stopServingPage', e));
     }
 
     /** A later page: resume the paused run with this page's answers. */
@@ -94,12 +95,12 @@ function createFormWork({ automationStore, runner, formAnswers }) {
         const submitterId = work.submitterId || null;
         const parentRunId = work.parentRunId;
         const stepId = work.stepId;
-        const serveAgain = () => automationStore.updateRun(parentRunId, { awaitingStepId: stepId }).catch(() => {});
+        const serveAgain = () => automationStore.updateRun(parentRunId, { awaitingStepId: stepId }).catch((e) => fallback('automation/formQueueWork:serveAgain', e));
         // The session is pointed at the child as soon as it exists (below), so
         // a resume that never completed has to hand the pointer BACK — else the
         // poll reads a dead child and shows a failure for an answer that is
         // about to be retried.
-        const pointAtParent = () => automationStore.attachFormSessionRun(session.id, parentRunId).catch(() => {});
+        const pointAtParent = () => automationStore.attachFormSessionRun(session.id, parentRunId).catch((e) => fallback('automation/formQueueWork:pointAtParent', e));
         return async () => {
             await stopServingPage(parentRunId);   // idempotent: runQueued may retry this thunk
             let child;
@@ -114,7 +115,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
                     // is DONE, which is far too late to show progress.
                     onRunCreated: async (r) => {
                         await automationStore.attachFormSessionRun(session.id, r.id);
-                        if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch(() => {});
+                        if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch((e) => bestEffort('automation/formQueueWork:onRunCreated#2', e));
                     },
                     onRunFinished: answersRef
                         ? (r, { status }) => ((status === 'success' || status === 'error')

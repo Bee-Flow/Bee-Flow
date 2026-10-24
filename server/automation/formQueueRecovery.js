@@ -8,6 +8,7 @@
 
 const log = require('../telemetry/log');
 const { lostToConcurrency, LEASE_MS, MAX_RECOVERIES, RECOVERY_BATCH } = require('./formQueueShared');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /**
  * @param {{
@@ -38,9 +39,9 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
         }
         const restorePage = async () => {
             if (work.kind !== 'resume') return;
-            const parent = await automationStore.getRun(work.parentRunId).catch(() => null);
+            const parent = await automationStore.getRun(work.parentRunId).catch((e) => fallback('automation/formQueueRecovery:restorePage', e, null));
             if (parent?.status === 'awaiting_form' && session.runId === work.parentRunId) {
-                await automationStore.updateRun(work.parentRunId, { awaitingStepId: work.stepId }).catch(() => {});
+                await automationStore.updateRun(work.parentRunId, { awaitingStepId: work.stepId }).catch((e) => bestEffort('automation/formQueueRecovery:restorePage#2', e));
             }
         };
         if ((session.pendingAttempts || 0) > MAX_RECOVERIES) {

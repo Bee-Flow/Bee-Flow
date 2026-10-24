@@ -12,6 +12,7 @@ const automationStore = require('../stores/automationStore');
 const { redactRunForViewer } = require('../core/automationModel/callerRunVisibility');
 const log = require('../telemetry/log');
 const { isRunless, voteSummary } = require('./approvalRulebook');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Small typed outcome so routes stay one-line thin. */
 function outcome(code, body) { return { code, body }; }
@@ -76,7 +77,7 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
         approvalId: approval.id, runId: run?.id || null, stepId: approval.stepId,
         decidedBy: deciderId, decision: decision === 'approve' ? 'approved' : 'rejected',
         comment: trimmedReason || null, source,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalDecision:finalizeDecision', e));
     // The general-purpose reaction channel — automations subscribed to
     // approval.decided fire whatever the source. Fire-and-forget: fan-out
     // must never delay or fail the decision the caller just made.
@@ -105,7 +106,7 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
                 : `⛔ Declined by ${decidedByName || 'a colleague'}: ${approval.automationTitle || 'automation'}`,
             message: trimmedReason ? `"${trimmedReason}"` : (approval.prompt || ''),
             card: false,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalDecision:finalizeDecision#2', e));
     }
 
     // Run-less: there is no run to resume or fail — the decided row IS the
@@ -139,7 +140,7 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
     await automationStore.updateRun(run.id, {
         awaitingStepId: null,
         approvalToken: null,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalDecision:finalizeDecision#3', e));
 
     const resumePromise = runner.resumeFromStep(run.id, approval.stepId, {
         decision: {
@@ -163,7 +164,7 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
             ? `Resumed via approval — see child run ${newRun.id}`
             : 'Resumed via approval — continuation running (see run history).',
         finishedAt: decidedAt,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalDecision:finalizeDecision#4', e));
 
     if (timedOut || !newRun) {
         return outcome(202, { accepted: true, pending: true, approval: decided, message: 'Resume started; check run history.' });

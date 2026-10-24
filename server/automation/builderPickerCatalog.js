@@ -26,6 +26,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Collaborators, resolved lazily and overridable per call (`opts.deps`): the
@@ -169,25 +170,25 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
             const inboxes = await d.listInboxes(orgId);
             supportOk = Array.isArray(inboxes) && inboxes.length > 0;
         }
-    } catch (err) { log.debug('fail closed', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor', err); /* fail closed */ }
 
     // Meeting Notes is a composite capability (licence + beta + module); the
     // provider declares `availability: {kind:'check', check:'meeting_notes'}`.
     let meetingNotesOk = false;
     try {
         meetingNotesOk = await d.hasFeature(userId, 'meeting_notes', session) === true;
-    } catch (err) { log.debug('fail closed', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#2', err); /* fail closed */ }
 
     // msgraph is webhook-only: without a public base URL it can never fire.
     let publicBaseUrl = false;
-    try { publicBaseUrl = !!d.publicBaseUrl(); } catch (err) { log.debug('fail closed', err); }
+    try { publicBaseUrl = !!d.publicBaseUrl(); } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#3', err); /* fail closed */ }
 
     // MCP servers have no TOOL_REGISTRY row; resolve them from the same
     // userToolNames authority plus a per-user credential check.
     let availableMcpServerIds = new Set();
     try {
         availableMcpServerIds = await d.availableMcpServerIds(userToolNames, userId);
-    } catch (err) { log.debug('fail closed — no MCP providers', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#4', err); /* fail closed — no MCP providers */ }
 
     // Integrations with no trigger declaration still expose their read-only
     // list tools as watchable sources.
@@ -196,7 +197,7 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
         const labels = new Map((apps || []).map(a => [a.id, a.label]));
         derivedProviders = require('./triggerSources/autoDerive')
             .deriveProviders(userToolDefs || [], { labels, mcpServerIds: availableMcpServerIds });
-    } catch (err) { log.debug('declared providers only', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#5', err); /* declared providers only */ }
 
     return buildAppEventProviders({
         availableAppIds,

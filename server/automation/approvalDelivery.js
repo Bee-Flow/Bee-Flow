@@ -44,6 +44,7 @@ const log = require('../telemetry/log');
 const {
     APPROVE_EMOJI, REJECT_EMOJI, approvalAnnouncement, renderTalkCard, renderBell,
 } = require('./approvalAnnouncement');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /** Org-level default conversation for approval cards (plain config, not a secret). */
 function talkRoomConfigKey(orgId) {
@@ -127,7 +128,7 @@ async function resolveNcContext(userId) {
     if (!userId) return null;
     try {
         const { resolveUserSession } = require('../core/automationRunner/engine');
-        const session = await resolveUserSession(userId).catch(() => null);
+        const session = await resolveUserSession(userId).catch((e) => fallback('automation/approvalDelivery:resolveNcContext', e, null));
         const ncClient = require('../integrations/nextcloudClient');
         const ctx = await ncClient.resolveAuth(session, userId);
         return ctx && ctx.baseUrl && typeof ctx.fetch === 'function' ? ctx : null;
@@ -217,7 +218,7 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
             userId: ownerId, orgId,
         });
         if (denial) return { ok: false, via: 'user', error: 'that conversation is outside this user’s Nextcloud access scope' };
-    } catch (err) { log.debug('guard unavailable → the post below still carries user auth', err); }
+    } catch (err) { bestEffort('automation/approvalDelivery:postTalkCard', err); /* guard unavailable → the post below still carries user auth */ }
 
     try {
         const { TALK_V1 } = talkBot;
@@ -307,7 +308,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
                             messageId: res.messageId, reaction: APPROVE_EMOJI,
                         });
                     }
-                } catch (err) { log.debug('the card stands without it', err); }
+                } catch (err) { bestEffort('automation/approvalDelivery:deliverApprovalToNextcloud', err); /* the card stands without it */ }
             }
         }
     }
@@ -317,7 +318,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
         const userStore = require('../stores/userStore');
         const bell = renderBell(announcement);
         for (const userId of Array.isArray(recipientIds) ? recipientIds : []) {
-            const user = await userStore.getUser(userId).catch(() => null);
+            const user = await userStore.getUser(userId).catch((e) => fallback('automation/approvalDelivery:deliverApprovalToNextcloud#2', e, null));
             const ncUid = user?.nc_uid || user?.ncUid || null;
             if (!ncUid) continue;
             const res = ctx
@@ -337,7 +338,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
                 externalRef: { ncUid, ...(res.apiVersion ? { apiVersion: res.apiVersion } : {}) },
                 status: res.ok ? 'sent' : 'failed',
                 error: res.ok ? null : (res.error || 'delivery failed'),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('automation/approvalDelivery:deliverApprovalToNextcloud#3', e));
         }
     }
 

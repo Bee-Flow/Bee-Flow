@@ -14,6 +14,7 @@ const {
 const { describePayload, placeholderize } = require('./mcpRunReadShape');
 const { errorLine, valueFreeErrorLine, fileNameShape, relativePathTokens } = require('./mcpRunReadScrub');
 const { text } = require('./mcpRunReadAccess');
+const { fallback } = require('../utils/bestEffort');
 
 async function listRuns(acc, userId, args) {
     const { loadOwnedAutomation, requireRawAllowed, auditRawRead, store } = acc;
@@ -129,7 +130,7 @@ async function getStepOutput(acc, userId, args) {
     const { fullOutputRefOf } = require('../core/automationModel/payloadTruncation');
     const ref = fullOutputRefOf(output);
     if (ref) {
-        const full = await store().getRunFullOutput(ref.runId, ref.stepId, ref.attempts).catch(() => null);
+        const full = await store().getRunFullOutput(ref.runId, ref.stepId, ref.attempts).catch((e) => fallback('automation/mcpRunReadHandlers:getStepOutput', e, null));
         if (full != null) output = full;
     }
     if (output === undefined || output === null) {

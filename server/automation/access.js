@@ -43,6 +43,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const ROLES = Object.freeze(['run', 'view', 'edit']);
 const RANK = Object.freeze({ run: 1, view: 2, edit: 3, owner: 4 });
@@ -98,7 +99,7 @@ function makeAutomationAccess(overrides = {}) {
     async function organisationOf(automation, ownerRow = undefined) {
         if (automation?.organizationId) return automation.organizationId;
         if (!automation?.userId) return null;
-        const owner = ownerRow !== undefined ? ownerRow : await getUser(automation.userId).catch(() => null);
+        const owner = ownerRow !== undefined ? ownerRow : await getUser(automation.userId).catch((e) => fallback('automation/access:organisationOf', e, null));
         return owner?.organizationId || null;
     }
 
@@ -173,7 +174,7 @@ function makeAutomationAccess(overrides = {}) {
     async function runGuard(req, res, run, need) {
         const me = req.session.user.id;
         if (run.userId === me) return { role: 'owner', via: 'owner' };
-        const a = await store().getAutomation(run.automationId).catch(() => null);
+        const a = await store().getAutomation(run.automationId).catch((e) => fallback('automation/access:runGuard', e, null));
         const acc = a ? await roleFor(a, me, { session: req.session }) : NONE;
         const own = acc.role === 'run' && isOwnRun(run, me);
         const ok = need === 'edit' ? roleSatisfies(acc.role, 'edit')

@@ -39,6 +39,7 @@ const { resolveDatatablePrincipalForUser } = require('../../auth/datatableAccess
 const derive = require('./derive');
 const provision = require('./provision');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 const TAG = '[form answers]';
@@ -88,7 +89,7 @@ async function clearWriteError(table, scope) {
     if (!table?.source?.lastWriteError) return;
     try {
         await datatableStore.setDefinitionSource(table.id, scope, { ...table.source, lastWriteError: null });
-    } catch (err) { log.debug('cosmetic', err); }
+    } catch (err) { bestEffort('automation/formAnswers/write:clearWriteError', err); /* cosmetic */ }
 }
 
 /**

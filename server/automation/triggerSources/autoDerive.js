@@ -25,6 +25,7 @@
 const { isSideEffect } = require('../sideEffectMap');
 const { listTriggerSources } = require('./index');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const AUTO_PREFIX = 'auto.';
 const AUTO_SUFFIX = '.changed';
@@ -174,7 +175,7 @@ function deriveEventDef(eventId) {
     let integrationId = null;
     try {
         integrationId = require('../../core/integrations/integrationToolMap').resolveIntegration(tool)?.integration || null;
-    } catch (err) { log.debug('name-based capability still works for MCP', err); }
+    } catch (err) { fallback('automation/triggerSources/autoDerive:deriveEventDef', err); /* name-based capability still works for MCP */ }
     const capability = capabilityForTool(tool, integrationId);
     if (!capability) return null;   // nothing to re-check ⇒ refuse to poll
     return autoEventDef(tool, capability);
@@ -194,10 +195,10 @@ function deriveProviders(toolDefs = [], { labels = new Map(), mcpServerIds = nul
     let declaredIds = new Set();
     try {
         declaredIds = new Set(listTriggerSources({ includeHidden: true }).map(s => s.id));
-    } catch (err) { log.debug('derive for everything', err); }
+    } catch (err) { fallback('automation/triggerSources/autoDerive:deriveProviders', err); /* derive for everything */ }
 
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
+    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { bestEffort('automation/triggerSources/autoDerive:deriveProviders#2', err); /* optional */ }
 
     const knownServers = mcpServerIds instanceof Set ? mcpServerIds : null;
 

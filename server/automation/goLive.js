@@ -27,6 +27,7 @@
 
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TZ = 'Europe/Amsterdam';
 
@@ -153,7 +154,7 @@ async function knownConnectionsFor(def, ownerId, deps) {
     try {
         const userStore = deps.userStore || require('../stores/userStore');
         const connStore = deps.connectionStore || require('../stores/integrationConnectionStore');
-        const owner = await userStore.getUser(ownerId).catch(() => null);
+        const owner = await userStore.getUser(ownerId).catch((e) => fallback('automation/goLive:knownConnectionsFor', e, null));
         const accessible = await connStore.listAccessibleConnections({
             userId: ownerId,
             orgId: connStore.resolveOrgId(owner?.organizationId),

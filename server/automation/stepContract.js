@@ -18,6 +18,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
@@ -87,7 +88,7 @@ function stepContract(definition) {
 function requiredIntegrations(definition) {
     if (!isObject(definition)) return [];
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
+    try { ({ resolveIntegration } = require('../core/integrations/integrationToolMap')); } catch (err) { bestEffort('automation/stepContract:requiredIntegrations', err); /* optional */ }
     const ids = new Set();
     const addTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;

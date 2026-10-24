@@ -23,6 +23,7 @@
 
 const { depsWith } = require('./depsWith');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const LOADERS = {
     executeTool: () => require('../../core/tools/toolDispatcher').executeTool,
@@ -87,7 +88,7 @@ function makeScanReader(ctx, overrides = null) {
                 ...(call.ok ? { result: call.value } : { error: call.error }),
                 probe: call.probe, policy: ctx.policy, auditBase: ctx.auditBase, mode: 'live', durationMs: Date.now() - t0,
             }));
-        } catch (err) { log.debug('never fail a scan on audit logging', err); }
+        } catch (err) { bestEffort('automation/patterns/scanReader:read', err); /* never fail a scan on audit logging */ }
         return call.ok ? { ok: true, value: call.value } : { ok: false, error: call.error };
     }
 

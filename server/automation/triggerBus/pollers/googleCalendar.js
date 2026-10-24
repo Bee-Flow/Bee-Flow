@@ -11,6 +11,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /** @param {any} ctx */
 function createGoogleCalendarPollers(ctx) {
@@ -112,7 +113,7 @@ function createGoogleCalendarPollers(ctx) {
                 });
 
                 let cursor = { firedIds: [] };
-                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { log.debug('ignore', err); }
+                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { fallback('automation/triggerBus/pollers/googleCalendar:event.upcoming', err); /* ignore */ }
                 const fired = new Set(Array.isArray(cursor.firedIds) ? cursor.firedIds : []);
 
                 const events = [];

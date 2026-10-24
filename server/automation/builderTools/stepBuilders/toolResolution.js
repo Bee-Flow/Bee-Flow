@@ -26,6 +26,7 @@
  * it" — the distinction buildCatalogForUser now refuses to blur.
  */
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 function availableListHint(available) {
     if (!available) return '';
@@ -121,7 +122,7 @@ function unknownToolError(tool, draftWrap, { label = null } = {}) {
         if (!isStepType(tool)) {
             const { findOwnerOfTool } = require('../../toolRegistry');
             let owner = null;
-            try { owner = findOwnerOfTool(tool); } catch (err) { log.debug('registry hiccup — treat as unknown', err); }
+            try { owner = findOwnerOfTool(tool); } catch (err) { fallback('automation/builderTools/stepBuilders/toolResolution:unknownToolError', err); /* registry hiccup — treat as unknown */ }
             const list = availableListHint(available);
             if (owner) {
                 return {

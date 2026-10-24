@@ -26,6 +26,7 @@
  */
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const OUTCOME_CODES = Object.freeze([
     'success', 'stopped_at', 'waiting_approval', 'waiting_form', 'waiting_confirm', 'cancelled',
@@ -417,7 +418,7 @@ async function resolveRunOutcome(input, deps = {}) {
                     ? (deps.nameOfUser ? await deps.nameOfUser(seat.userId) : null)
                     : (deps.nameOfGroup ? await deps.nameOfGroup(seat.groupId) : null);
                 if (name) waitingOn.push(name);
-            } catch (err) { log.debug('a name we cannot read is left out, not guessed', err); }
+            } catch (err) { fallback('automation/runOutcome:resolveRunOutcome', err); /* a name we cannot read is left out, not guessed */ }
         }
     }
     try {

@@ -10,6 +10,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Failure escalation ──────────────────────────────────
 //
@@ -37,7 +38,7 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
         const lastNotified = errorNotifiedAt ? Date.parse(errorNotifiedAt) : 0;
         if (Number.isFinite(lastNotified) && Date.now() - lastNotified < FAILURE_NOTIFY_DEBOUNCE_MS) return;
 
-        const automation = await ctx.store().getAutomation(sub.automationId).catch(() => null);
+        const automation = await ctx.store().getAutomation(sub.automationId).catch((e) => fallback('automation/triggerBus/escalation:escalateSubscriptionFailure', e, null));
         if (!automation) return;
         try {
             const notificationStore = ctx.notificationStore();
@@ -50,7 +51,7 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
         } catch (e) {
             log.warn(`[TriggerBus] notify failure for sub ${sub.id} failed: ${e.message}`);
         }
-        await ctx.store().updateSubscription(sub.id, { errorNotifiedAt: new Date().toISOString() }).catch(() => {});
+        await ctx.store().updateSubscription(sub.id, { errorNotifiedAt: new Date().toISOString() }).catch((e) => bestEffort('automation/triggerBus/escalation:escalateSubscriptionFailure#2', e));
     } catch (e) {
         log.warn(`[TriggerBus] escalateSubscriptionFailure error: ${e.message}`);
     }

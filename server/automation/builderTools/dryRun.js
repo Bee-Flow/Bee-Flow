@@ -23,6 +23,7 @@
 
 const { prepareDryRunPayload } = require('./dryRunTrigger');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function defaultDeps() {
     return {
@@ -73,7 +74,7 @@ async function applyRequestDryRun(draftWrap, args, deps) {
     // as the run takes — a 32-file fan-out is minutes. Absent on the
     // MCP surface, where nobody is watching.
     const onRunCreated = typeof draftWrap._onDryRunStarted === 'function'
-        ? (created) => { try { draftWrap._onDryRunStarted(created); } catch (err) { log.debug('a watcher never fails the run', err); } }
+        ? (created) => { try { draftWrap._onDryRunStarted(created); } catch (err) { bestEffort('automation/builderTools/dryRun:applyRequestDryRun', err); /* a watcher never fails the run */ } }
         : null;
     const rootTrigger = rootStepId
         ? (Array.isArray(draft.triggers) ? draft.triggers : []).find(t => t && t.id === rootStepId)

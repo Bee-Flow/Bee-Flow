@@ -28,6 +28,7 @@ const {
 } = require('./approvalRulebook');
 const { outcome, recordDeploymentOutcome, userDisplayName, deciderName, finalizeDecision } = require('./approvalDecision');
 const { castStageVote, castPanelVote, nextStageRemindAt } = require('./approvalVotes');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /**
  * Lazy backfill: a run paused before the approvals table existed (or whose
@@ -57,13 +58,13 @@ async function ensureApprovalForRun(run, automation) {
         const steps = await automationStore.getRunSteps(run.id);
         const awaiting = (steps || []).find(s => s.stepId === run.awaitingStepId && s.status === 'awaiting_approval');
         prompt = awaiting?.output?.prompt || '';
-    } catch (err) { log.debug('plain row without the question beats no row', err); }
+    } catch (err) { fallback('automation/approvalService:ensureApprovalForRun', err); /* plain row without the question beats no row */ }
     let organizationId = automation?.organizationId || null;
     if (!organizationId) {
         try {
             const userStore = require('../stores/userStore');
             organizationId = (await userStore.getUser(run.userId))?.organizationId || null;
-        } catch (err) { log.debug('consumer account', err); }
+        } catch (err) { fallback('automation/approvalService:ensureApprovalForRun#2', err); /* consumer account */ }
     }
     const project = await require('./approvalProject').projectStamp(automation?.projectId);
     const row = await automationStore.createApproval({
@@ -82,7 +83,7 @@ async function ensureApprovalForRun(run, automation) {
         await automationStore.appendApprovalAudit({
             approvalId: row.id, runId: run.id, stepId: run.awaitingStepId,
             decidedBy: null, decision: 'requested', source: 'backfill',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalService:ensureApprovalForRun#3', e));
     }
     return row;
 }
@@ -115,7 +116,7 @@ async function decide({ approval, run, deciderId, decision, reason = null, answe
         await automationStore.appendApprovalAudit({
             approvalId: approval.id, runId: approval.runId, stepId: approval.stepId,
             decidedBy: null, decision: 'expired', source,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalService:decide', e));
         if (flipped) {
             require('./approvalEvents').dispatchApprovalDecided(flipped);
             await require('./approvalHooks').runOnDecidedHook(flipped);
@@ -223,7 +224,7 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
         approvalId: approval.id, runId: approval.runId, stepId: approval.stepId,
         decidedBy: deciderId, decision: 'cancelled',
         comment: trimmedReason || null, source,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalService:withdraw', e));
     require('./approvalEvents').dispatchApprovalDecided(cancelled);
     await require('./approvalHooks').runOnDecidedHook(cancelled);
     // A withdrawn deployment gate cancels the deployment it guarded.
@@ -231,7 +232,7 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
 
     // Close the paused run — it is the withdrawn question's mechanism.
     if (approval.runId) {
-        const run = await automationStore.getRun(approval.runId).catch(() => null);
+        const run = await automationStore.getRun(approval.runId).catch((e) => fallback('automation/approvalService:withdraw#2', e, null));
         if (run && run.status === 'awaiting_approval' && run.awaitingStepId === approval.stepId) {
             await automationStore.updateRun(run.id, {
                 status: 'cancelled',
@@ -239,7 +240,7 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
                 finishedAt: new Date().toISOString(),
                 awaitingStepId: null,
                 approvalToken: null,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('automation/approvalService:withdraw#3', e));
         }
     }
 
@@ -264,7 +265,7 @@ async function withdraw({ approval, deciderId, reason = null, source = 'studio' 
             title: `↩️ Approval withdrawn: ${cancelled.automationTitle || 'approval request'}`,
             message: trimmedReason || cancelled.prompt || 'The request was withdrawn before a decision.',
             card: false,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalService:withdraw#4', e));
     } catch (e) {
         log.warn(`[approvalService] withdraw notify failed: ${e.message}`);
     }
@@ -293,14 +294,14 @@ async function validateApprovalAssignees(definition, ownerId) {
 
     const userStore = require('../stores/userStore');
     const { isMemberOfOrg } = require('../auth/orgMembership');
-    const owner = await userStore.getUser(ownerId).catch(() => null);
+    const owner = await userStore.getUser(ownerId).catch((e) => fallback('automation/approvalService:validateApprovalAssignees', e, null));
     const orgId = owner?.organizationId || null;
-    const groups = await userStore.getAllGroups().catch(() => []);
+    const groups = await userStore.getAllGroups().catch((e) => fallback('automation/approvalService:validateApprovalAssignees#2', e, []));
     const errors = [];
     for (const s of steps) {
         const a = s.approval.assignee;
         if (a.userId) {
-            const u = await userStore.getUser(a.userId).catch(() => null);
+            const u = await userStore.getUser(a.userId).catch((e) => fallback('automation/approvalService:validateApprovalAssignees#3', e, null));
             const ok = !!u && (!orgId ? a.userId === ownerId : isMemberOfOrg(u, groups, orgId));
             if (!ok) errors.push({ path: `steps.${s.id}.approval.assignee`, message: `Step ${s.id}: the chosen approver is not in your organisation.` });
         } else if (a.groupId) {

@@ -49,6 +49,7 @@ const { HTTP_RESPONSE_CAP, readBodyBounded } = require('./httpResponseLimits');
 const { acquireSlot } = require('./codeSandboxSlots');
 const log = require('../telemetry/log');
 const telemetryLog = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 let ivm = null;
 let ivmLoadError = null;
@@ -364,9 +365,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         let settleRef = null;
         const settle = (id, value) => {
             if (!settleRef) return;
-            settleRef.apply(undefined, [id, value], { arguments: { copy: true } }).catch(() => {
-                // The isolate was disposed (timeout, CPU, finished): nobody is waiting.
-            });
+            settleRef.apply(undefined, [id, value], { arguments: { copy: true } }).catch((e) => bestEffort('automation/codeSandbox:settle', e));
         };
         const answer = (id, work) => {
             Promise.resolve().then(work).then(
@@ -495,10 +494,10 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         if (wallTimer) clearTimeout(wallTimer);
         if (cpuWatch) clearInterval(cpuWatch);
         releaseSlot();
-        try { if (script) script.release(); } catch (err) { log.debug('script already released', err); }
-        try { if (bootScript) bootScript.release(); } catch (err) { log.debug('boot script already released', err); }
-        try { if (context) context.release(); } catch (err) { log.debug('context already released', err); }
-        try { if (!isolate.isDisposed) isolate.dispose(); } catch (err) { log.debug('isolate already disposed', err); }
+        try { if (script) script.release(); } catch (err) { bestEffort('automation/codeSandbox:runCode', err); /* script already released */ }
+        try { if (bootScript) bootScript.release(); } catch (err) { bestEffort('automation/codeSandbox:runCode#2', err); /* boot script already released */ }
+        try { if (context) context.release(); } catch (err) { bestEffort('automation/codeSandbox:runCode#3', err); /* context already released */ }
+        try { if (!isolate.isDisposed) isolate.dispose(); } catch (err) { bestEffort('automation/codeSandbox:runCode#4', err); /* isolate already disposed */ }
     }
 }
 

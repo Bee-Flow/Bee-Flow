@@ -20,6 +20,7 @@
  */
 
 const { HttpError } = require('../core/http/errors');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {{
@@ -43,16 +44,16 @@ function makeApprovalReminder(deps) {
         if (approval.ownerId && approval.ownerId === viewer.userId) return true;
         if (approval.organizationId && viewer.isOrgAdminOfOrg?.(approval.organizationId)) return true;
         if (!approval.automationId || !store.getAutomation) return false;
-        const automation = await store.getAutomation(approval.automationId).catch(() => null);
+        const automation = await store.getAutomation(approval.automationId).catch((e) => fallback('automation/approvalRemind:mayRemind', e, null));
         if (!automation) return false;
         const { role } = await roleFor(automation, viewer.userId, { session }).catch(() => ({ role: null }));
         if (role === 'owner' || role === 'edit' || role === 'view') return true;
         if (role === 'run' && approval.runId && store.getRun) {
             // A run-only member reminds for the runs they started. The
             // approval sits on the leg that paused; the person is on the head.
-            const leg = await store.getRun(approval.runId).catch(() => null);
+            const leg = await store.getRun(approval.runId).catch((e) => fallback('automation/approvalRemind:mayRemind#2', e, null));
             const head = leg && leg.rootRunId && leg.rootRunId !== leg.id
-                ? await store.getRun(leg.rootRunId).catch(() => null)
+                ? await store.getRun(leg.rootRunId).catch((e) => fallback('automation/approvalRemind:mayRemind#3', e, null))
                 : leg;
             return [leg, head].some(r => r && (r.startedByUserId === viewer.userId || r.submittedByUserId === viewer.userId));
         }

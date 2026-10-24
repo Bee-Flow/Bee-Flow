@@ -16,6 +16,7 @@
 const { HttpError } = require('../core/http/errors');
 const log = require('../telemetry/log');
 const { MAX_ID_CHARS } = require('./mcpRunReadCaps');
+const { fallback } = require('../utils/bestEffort');
 
 const RAW_READ_AUDIT_ACTION = 'mcp.automation_run_data.read';
 const RAW_POLICY_AUDIT_ACTION = 'mcp.automation_run_data.policy';
@@ -51,9 +52,9 @@ function makeAccess(overrides = {}) {
      * 404 either way: whether somebody else's automation exists is not told.
      */
     async function loadOwnedAutomation(automationId, userId, what = 'Automation') {
-        const a = automationId ? await store().getAutomation(automationId).catch(() => null) : null;
+        const a = automationId ? await store().getAutomation(automationId).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedAutomation', e, null)) : null;
         if (!a || a.userId !== userId) throw notFound(what);
-        const user = await getUser(userId).catch(() => null);
+        const user = await getUser(userId).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedAutomation#2', e, null));
         const userOrg = user?.organizationId || null;
         // An automation of another organisation is not reachable, whoever the owner column names.
         if (!user || (a.organizationId && a.organizationId !== userOrg)) throw notFound(what);
@@ -64,10 +65,10 @@ function makeAccess(overrides = {}) {
     async function loadOwnedRun(runId, userId) {
         const id = text(runId);
         if (!id || id.length > MAX_ID_CHARS) throw new HttpError(400, 'invalid_run_id', 'runId is required (an id from automations_list_runs).');
-        const run = await store().getRun(id).catch(() => null);
+        const run = await store().getRun(id).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedRun', e, null));
         if (!run) throw notFound('Run');
         const { automation, orgId } = await loadOwnedAutomation(run.automationId, userId, 'Run');
-        const legs = await store().getRunsInChain(run.id).catch(() => []);
+        const legs = await store().getRunsInChain(run.id).catch((e) => fallback('automation/mcpRunReadAccess:loadOwnedRun#2', e, []));
         return { run, automation, orgId, legs: Array.isArray(legs) && legs.length ? legs : [run] };
     }
 
