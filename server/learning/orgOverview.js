@@ -15,6 +15,7 @@ const { resolveCapabilitySet } = require('../core/entitlements/entitlements');
 const { COURSES, buildVisibleByCourse } = require('./courseCatalog');
 const { completedCourses, computeEarnedBadges, lessonDone } = require('./completion');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const CACHE_TTL_MS = 60_000;
 const cache = new Map(); // orgId → { value, ts }
@@ -34,7 +35,7 @@ async function orgMembers(orgId) {
         if (u.status === 'pending') return false;
         if (u.organizationId === orgId) return true;
         let groups = [];
-        try { groups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (err) { log.debug('ignore', err); }
+        try { groups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (err) { fallback('learning/orgOverview:orgMembers', err); /* ignore */ }
         return groups.some((gid) => orgGroupIds.has(gid));
     });
 }
@@ -66,7 +67,7 @@ async function buildOrgOverview(orgId) {
     try {
         const capSet = await resolveCapabilitySet({ orgId });
         if (capSet && !capSet.degraded) hasFeature = (id) => capSet.has(id);
-    } catch (err) { log.debug('strict fallback', err); }
+    } catch (err) { fallback('learning/orgOverview:buildOrgOverview', err); /* strict fallback */ }
     const visibleByUser = {};
     await Promise.all(members.map(async (u) => {
         try {
@@ -74,7 +75,7 @@ async function buildOrgOverview(orgId) {
             if (Array.isArray(perms) && hasFeature) {
                 visibleByUser[u.id] = buildVisibleByCourse(perms, hasFeature);
             }
-        } catch (err) { log.debug('strict fallback for this member', err); }
+        } catch (err) { fallback('learning/orgOverview:buildOrgOverview#2', err); /* strict fallback for this member */ }
     }));
 
     const totals = { members: members.length, coursesCompleted: 0, badges: 0, certificatesIssued: 0, activeLast30d: 0 };

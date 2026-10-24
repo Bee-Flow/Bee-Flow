@@ -25,6 +25,7 @@ const { resolveVisibleByCourse } = require('./visibility');
 const { readServerProgress } = require('./certificates');
 const { getUserPermissions } = require('../auth/permissions');
 const { hasCapability } = require('../core/entitlements/entitlements');
+const { fallback } = require('../utils/bestEffort');
 
 // Reads are never gated — see trainingGates.js. OPTIONS is CORS preflight.
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -105,9 +106,9 @@ async function evaluateForRequest(req, { extraCourses = [] } = {}) {
         if (!Object.keys(settings.areas).length) return {};
 
         const [perms, learningAvailable, progressMap, vis] = await Promise.all([
-            getUserPermissions(userId, req.session).catch(() => null),
+            getUserPermissions(userId, req.session).catch((e) => fallback('learning/requireTraining:evaluateForRequest', e, null)),
             hasCapability('learning_center', { userId, orgId, session: req.session, req }).catch(() => false),
-            readServerProgress(userId).catch(() => ({})),
+            readServerProgress(userId).catch((e) => fallback('learning/requireTraining:evaluateForRequest#2', e, {})),
             resolveVisibleByCourse({ userId, orgId, session: req.session, req })
                 .catch(() => ({ visibleByCourse: undefined })),
         ]);

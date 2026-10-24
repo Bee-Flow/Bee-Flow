@@ -10,6 +10,7 @@ const { createHash } = require('node:crypto');
 const fs = require('node:fs');
 const { Readable, Transform } = require('node:stream');
 const { pipeline } = require('node:stream/promises');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_REDIRECTS = 5;
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
@@ -28,7 +29,7 @@ async function openUrl(source, { fetchImpl = globalThis.fetch, what = 'download'
         if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback(url))) throw new Error(`${what} must be an https URL`);
         const res = await fetchImpl(url, { redirect: 'manual', signal });
         if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
-            if (res.body) await res.body.cancel().catch(() => {});
+            if (res.body) await res.body.cancel().catch((e) => bestEffort('learning/learnMediaDownload:openUrl', e));
             url = new URL(res.headers.get('location'), url);
             continue;
         }
