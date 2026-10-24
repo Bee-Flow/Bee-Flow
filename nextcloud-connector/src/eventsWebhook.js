@@ -18,6 +18,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const config = require('./config');
+const log = require('./log');
 
 // NC's event payload uses class names like OCP\User\Events\UserCreatedEvent.
 // Map them to the simplified events ncUserGroupSync.js understands.
@@ -80,10 +81,10 @@ router.post('/webhook/nc-events', express.json({ limit: '256kb' }), async (req, 
         });
         if (!r.ok) {
             const t = await r.text().catch(() => '');
-            console.warn(`[EventsWebhook] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
+            log.warn(`[EventsWebhook] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
         }
     } catch (err) {
-        console.warn(`[EventsWebhook] forward failed: ${err.message}`);
+        log.warn(`[EventsWebhook] forward failed: ${err.message}`);
     }
     res.json({ ok: true, event, ncUid });
 });

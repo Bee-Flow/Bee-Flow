@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseAllowedUrl } = require('./remoteHost');
+const log = require('./log');
 
 const FILE_NAME = 'setup-config.json';
 const VALID_MODES = ['cloud', 'self-hosted', 'custom'];
@@ -40,7 +41,7 @@ function init(persistentStorage) {
         try {
             cached = JSON.parse(fs.readFileSync(file, 'utf8'));
         } catch (err) {
-            console.warn(`[setupConfig] corrupted ${FILE_NAME}; ignoring (${err.message})`);
+            log.warn(`[setupConfig] corrupted ${FILE_NAME}; ignoring (${err.message})`);
             cached = null;
         }
     }

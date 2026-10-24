@@ -41,6 +41,7 @@ const crypto = require('crypto');
 const config = require('./config');
 const { ncHttpsAgent, ncTlsMode } = require('./ncTls');
 const rateLimit = require('./rateLimit');
+const log = require('./log');
 
 const ALLOWED_PREFIXES = ['/ocs/', '/remote.php/dav/', '/index.php/apps/'];
 
@@ -258,8 +259,8 @@ function buildNcProxy() {
                     proxyReq.end();
                 }
             },
-            error: (err, req, res) => {
-                console.error(`[NcProxy] ${req.method} ${req.url}: ${err.message}`);
+            error: (err, req, /** @type {any} */ res) => {
+                log.error(`[NcProxy] ${req.method} ${req.url}: ${err.message}`);
                 if (!res.headersSent) {
                     res.status(502).json({ error: 'Nextcloud is unreachable from the connector' });
                 }
@@ -335,7 +336,7 @@ function _recordSigFailure(req) {
     _sigFailures.lastReason = req.headers['x-beeflow-sig'] ? 'signature_mismatch_or_skew' : 'missing_signature';
     // Loud at the point a HaRP ban becomes plausible, quiet before that.
     if (_sigFailures.consecutive === 5 || _sigFailures.consecutive % 10 === 0) {
-        console.warn(
+        log.warn(
             `[ncProxy] ${_sigFailures.consecutive} consecutive signature rejections `
             + `(${_sigFailures.lastReason}). Under HaRP ~10 within 300s bans the caller's IP — `
             + 'check clock skew between the Bee Flow server and this host, and that the tenant key matches.'

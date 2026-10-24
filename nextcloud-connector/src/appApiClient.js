@@ -1,3 +1,4 @@
+const log = require('./log');
 /**
  * AppAPI control-plane warm-up tolerance.
  *
@@ -52,10 +53,11 @@ async function _isWarmupResponse(res) {
 const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * @param {() => Promise<Response>} fn  thunk performing one fetch (must build a
+ * @template T
+ * @param {() => Promise<T>} fn  thunk performing one fetch (must build a
  *        fresh AbortSignal each call — it is invoked once per attempt).
  * @param {{budgetMs?:number, label?:string, baseDelayMs?:number, maxDelayMs?:number}} [opts]
- * @returns {Promise<Response>} the first non-warm-up response (ok or not), or
+ * @returns {Promise<T>} the first non-warm-up response (ok or not), or
  *          the last warm-up response once the budget is exhausted. Network
  *          errors are retried within budget, then re-thrown.
  */
@@ -67,6 +69,7 @@ async function withWarmupRetry(fn, opts = {}) {
     const deadline = Date.now() + budgetMs;
 
     for (let attempt = 1; ; attempt++) {
+        /** @type {any} */
         let res = null;
         let netErr = null;
         try {
@@ -82,13 +85,13 @@ async function withWarmupRetry(fn, opts = {}) {
 
         if (Date.now() >= deadline) {
             if (netErr) throw netErr;
-            console.warn(`[AppApiWarmup] ${label}: still warming up after ${budgetMs}ms — giving up`);
+            log.warn(`[AppApiWarmup] ${label}: still warming up after ${budgetMs}ms — giving up`);
             return res; // hand the last (failed) response back for normal handling
         }
 
         const delay = Math.min(maxDelayMs, baseDelayMs * 2 ** (attempt - 1));
         const why = netErr ? netErr.message : `HTTP ${res.status} (AppAPI auth warming up)`;
-        console.warn(`[AppApiWarmup] ${label}: ${why} — retrying in ${delay}ms`);
+        log.warn(`[AppApiWarmup] ${label}: ${why} — retrying in ${delay}ms`);
         await _sleep(delay);
     }
 }
