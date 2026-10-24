@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { ExtraContents, ExtraFileMeta } from '../pages/webpages/webpageEditorTypes';
+import type { ExtraContents, ExtraFileMeta } from '../api/webpageEditorTypes';
 import { describeError } from './caughtError';
 
 /**

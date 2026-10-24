@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     createSheetTab, deleteSheetTab, getSheet, MAX_CELLS_PER_REQUEST, patchSheet, renameSheetTab,
-} from './sheetApi';
+} from '../../../api/sheetApi';
 import { evaluateSheet } from './sheetEngine';
 import { missingRefTabs, usedRowsOf } from './sheetModel';
 import useServerCells, { overlay } from './useServerCells';

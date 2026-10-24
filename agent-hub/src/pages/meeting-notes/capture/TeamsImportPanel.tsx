@@ -8,7 +8,7 @@ import {
     useInvalidateTeamsMeetingNotes,
     type TeamsRecordingItem,
 } from '../../../api/queries/teamsMeetingNotes';
-import { openMicrosoftOAuthPopup } from '../../../lib/microsoftOAuthPopup';
+import { openMicrosoftOAuthPopup } from '../../../api/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { errorMessage } from '../../../utils/caughtError';
 

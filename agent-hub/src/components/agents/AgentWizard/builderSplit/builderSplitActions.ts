@@ -1,6 +1,6 @@
 import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
 import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import type { EditorSnapshot, Ref, Setter } from './agentSaveTypes';
+import type { EditorSnapshot, Ref, Setter } from '../../../../api/agentSaveTypes';
 import type { CategoryRow } from '../agentEditor.types';
 import { logger } from '../../../../utils/logger';
 

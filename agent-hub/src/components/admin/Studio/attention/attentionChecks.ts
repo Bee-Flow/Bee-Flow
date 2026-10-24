@@ -58,7 +58,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { kindOf, type KindKey } from '../../../shared/kindColors';
 import { studioAppForKind, studioSectionLabel } from '../studioNav';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { LessonUser, HasFeature } from '../../../onboarding/lessons.types';
+import type { LessonUser, HasFeature } from '../../../../api/lessons.types';
 import type { AttentionFinding, RawAttentionRow, AttentionBody, AttentionVerdict, AttentionRun, AttentionCtx, AttentionGate, AttentionCheck, SourceLabel, AttentionItem } from './attentionChecks.types';
 export type { AttentionFinding, AttentionRun, AttentionItem } from './attentionChecks.types';
 

@@ -11,7 +11,7 @@ import { useStageLabel } from './StageSwitcher';
 import {
     deploy, getDeployment, isTerminal, missingFromError, newRequestKey, planDeployment, planFromError,
     type DeploymentKind, type DeploymentSummary, type Plan, type PlanAck, type StageKey,
-} from './stagesApi';
+} from '../../../../../api/stagesApi';
 
 /**
  * One dialog for deploy, promote, rollback and redeploy — it is always the same

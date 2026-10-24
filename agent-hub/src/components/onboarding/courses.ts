@@ -19,7 +19,7 @@
 
 import { LESSONS, getLesson, lessonVisible } from './lessons';
 import { GENERATED_COURSES } from './generated/courses';
-import type { Certificate, Course, CourseBadge, HasFeature, LessonDoc, LessonUser, ServerCatalog, Track } from './lessons.types';
+import type { Certificate, Course, CourseBadge, HasFeature, LessonDoc, LessonUser, ServerCatalog, Track } from '../../api/lessons.types';
 
 /* ── Tracks ──────────────────────────────────────────────────────────────── */
 export const TRACKS: Record<string, Track> = {

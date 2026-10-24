@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { PrimaryContent } from '../webpageEditorTypes';
-import { api } from '../webpagesApi';
+import type { PrimaryContent } from '../../../api/webpageEditorTypes';
+import { api } from '../../../api/webpagesApi';
 import { errorMessage } from '../../../utils/caughtError';
 
 /** One row of `GET /:id/versions` (routes/webpages.js + core/webpages/versionFacts.js). */

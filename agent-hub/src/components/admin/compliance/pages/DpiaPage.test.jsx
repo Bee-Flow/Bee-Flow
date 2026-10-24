@@ -10,7 +10,7 @@ vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationP
 // The drawer reads the full record (answers included): the register list
 // carries none (dpiaStore.listForOrg).
 const fetchJson = vi.fn();
-vi.mock('../data/api', async (importOriginal) => {
+vi.mock('../../../../api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, fetchJson: (...args) => fetchJson(...args) };
 });

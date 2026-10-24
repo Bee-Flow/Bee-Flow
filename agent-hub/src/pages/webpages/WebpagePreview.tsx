@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import PreviewToolbar, { type PreviewDevice } from './preview/PreviewToolbar';
 import { previewApiBase, usePreviewDocument } from './preview/usePreviewDocument';
 import { usePreviewToken, useSelectionBridge, type PreviewSelection } from './preview/usePreviewToken';
-import type { ExtraContents, ExtraFileMeta } from './webpageEditorTypes';
+import type { ExtraContents, ExtraFileMeta } from '../../api/webpageEditorTypes';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE } from '../../utils/helpers';
 

@@ -25,14 +25,14 @@
  */
 import { ChevronRight, History } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { listCoworkRuns } from './coworkApi';
+import { listCoworkRuns } from '../../api/coworkApi';
 import { formatDuration, fullTimestamp } from './coworkFormat';
 import { inertMarkdownComponents, neutraliseActiveFences } from './coworkRunMarkdown';
 import { runStatusToken } from './coworkStatus';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import { statusLabel } from '../shared/statusTokens';
-import type { CoworkRun } from './cowork.types';
+import type { CoworkRun } from '../../api/cowork.types';
 
 /**
  * The first line of text that carries anything, with its Markdown marks

@@ -8,7 +8,7 @@ import { useUrlQueryParam } from '../../hooks/useUrlTab';
 import AgentSkillsTab from './AgentSkillsTab';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
-import type { ModelEntry } from '../../utils/modelMeta';
+import type { ModelEntry } from '../../api/modelMeta';
 import type { AppUserLike } from '../projects/workspace/types';
 import type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory, AgentEditorUIProps } from './AgentEditorUI.types';
 import { logger } from '../../utils/logger';

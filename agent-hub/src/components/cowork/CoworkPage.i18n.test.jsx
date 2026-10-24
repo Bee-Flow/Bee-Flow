@@ -44,7 +44,7 @@ const api = vi.hoisted(() => ({
     listCoworkRuns: vi.fn(),
     listCoworkAgents: vi.fn(),
 }));
-vi.mock('./coworkApi', () => api);
+vi.mock('../../api/coworkApi', () => api);
 vi.mock('../licensing/EntitlementsContext', () => ({
     useEntitlements: () => ({ loading: false, can: () => false }),
 }));

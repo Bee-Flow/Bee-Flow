@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getInviteByToken, getPendingInvite } from './loginRequests';
+import { getInviteByToken, getPendingInvite } from '../../api/loginRequests';
 import type { Setter, StateSetter } from './loginShared';
 import type { SignupData } from './signupValidation';
 

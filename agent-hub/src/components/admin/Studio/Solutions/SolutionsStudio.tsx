@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { operatedStagesOf, type OperatedStage, type StageKey } from './pipeline/stagesApi';
+import { operatedStagesOf, type OperatedStage, type StageKey } from '../../../../api/stagesApi';
 import SolutionDetail from './SolutionDetail';
 import type { SolutionProject } from './SolutionDetail';
 import { readSummary } from './solutionOverviewModel';

@@ -46,7 +46,7 @@ vi.mock('../hooks/useTranscription', async () => {
     return { default: useTranscriptionStub };
 });
 
-vi.mock('../lib/transcriptionsApi', () => ({
+vi.mock('../../../api/transcriptionsApi', () => ({
     patchTranscription: (...a) => H.patchTranscription(...a),
     regenerateSummary: (...a) => H.regenerateSummary(...a),
     deleteTranscription: vi.fn(async () => ({ success: true })),

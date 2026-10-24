@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
-import { API, API_DSR, fetchJson, json, jsonInit, asArray } from './api';
+import { API, API_DSR, fetchJson, json, jsonInit, asArray } from '../../../../api/complianceApi';
 import useResource from './useResource';
 import type { DsrRequestRow } from './aggregates';
 import type { SoaControl } from '../pages/soa/SoaTable';

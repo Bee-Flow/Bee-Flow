@@ -2,7 +2,7 @@ import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { DryRun } from '../builderStream';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { AutomationBuilderState } from './types';
-import { GATEWAY_DROP, awaitRunAfterDrop, markStepFailed, settleRunStub, stepRowUnchanged } from './dryRun';
+import { GATEWAY_DROP, awaitRunAfterDrop, markStepFailed, settleRunStub, stepRowUnchanged } from '../../api/dryRun';
 import { logger } from '../../utils/logger';
 
 /**

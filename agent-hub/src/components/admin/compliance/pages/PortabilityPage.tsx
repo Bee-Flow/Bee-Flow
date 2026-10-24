@@ -5,7 +5,7 @@ import type { DataTableContext, RowLike, TableColumn } from '../../../shared/Dat
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import type { Tone } from '../../../shared/statusTone';
 import { TONES } from '../../../shared/statusTone';
-import { API, asArray } from '../data/api';
+import { API, asArray } from '../../../../api/complianceApi';
 import useResource from '../data/useResource';
 import type { SetHeaderActions } from './audits/useHeaderPrimary';
 

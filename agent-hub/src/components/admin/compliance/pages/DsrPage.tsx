@@ -25,7 +25,7 @@ import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslati
 import { useNow } from '../../../shared/DeadlineClock';
 import FilterPills from '../../../shared/FilterPills';
 import { toast } from '../../../shared/Toast';
-import { API_DSR, asArray, downloadUrl, fetchJson, json } from '../data/api';
+import { API_DSR, asArray, downloadUrl, fetchJson, json } from '../../../../api/complianceApi';
 import useDrawerMode from '../shared/useDrawerMode';
 import { PAGE_FRAME, RegisterLayout } from './audits/auditForms';
 import { FILTERS, countByFilter, matchesFilter, matchesQuery, sortByDeadline } from './dsr/dsrArticles';

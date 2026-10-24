@@ -4,7 +4,7 @@ import { BF_FAMILIES, buildBfDecorations, familyClass, familyOf, publishedFate, 
 import { buildCodeFiles, formatBytes, markFileKey, type CodeMark, type CodeFileEntry, type CodeExtraFile } from './webpageCodeFiles';
 import useTranslation from '../../hooks/useTranslation';
 import type { TranslateParams } from '../../hooks/useTranslation';
-import type { ExtraContents } from './webpageEditorTypes';
+import type { ExtraContents } from '../../api/webpageEditorTypes';
 import type { FileKey } from './ide/ideFiles';
 
 /**

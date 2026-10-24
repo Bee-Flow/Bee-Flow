@@ -17,7 +17,7 @@
  */
 import { tokenFor } from '../shared/statusTokens';
 import type { StatusToken } from '../shared/statusTokens';
-import type { CoworkItem } from './cowork.types';
+import type { CoworkItem } from '../../api/cowork.types';
 
 /**
  * `needs_reauth` is a cowork status the shared token table does not carry.

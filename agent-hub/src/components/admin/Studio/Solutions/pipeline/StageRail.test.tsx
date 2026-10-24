@@ -9,7 +9,7 @@ vi.mock('../../../../../utils/helpers', () => ({
 }));
 
 import StageRail, { type StageRailProps } from './StageRail';
-import type { Pipeline, PipelineStage } from './stagesApi';
+import type { Pipeline, PipelineStage } from '../../../../../api/stagesApi';
 
 /**
  * The strip under the header of a Solution: where each stage stands, the one

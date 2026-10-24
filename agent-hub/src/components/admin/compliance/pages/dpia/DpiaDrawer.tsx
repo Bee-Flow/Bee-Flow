@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import SideDrawerJs, { DrawerSection as DrawerSectionJs } from '../../../../shared/SideDrawer';
-import { API } from '../../data/api';
+import { API } from '../../../../../api/complianceApi';
 import useResourceJs from '../../data/useResource';
 import { formatDay as formatDayAt, useDateFormat } from '../../shared/formatDates';
 import StatusPillJs from '../../shared/StatusPill';

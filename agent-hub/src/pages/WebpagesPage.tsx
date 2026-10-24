@@ -2,13 +2,13 @@ import { Globe } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import WebpageDeleteDialog from './webpages/WebpageDeleteDialog';
 import WebpageEditorPage, { type WebpageEditorPageProps } from './webpages/WebpageEditorPage';
-import { api, fetchWebpageBundle } from './webpages/webpagesApi';
+import { api, fetchWebpageBundle } from '../api/webpagesApi';
 import WebpagesList from './webpages/WebpagesList';
 import { readOrgGroups, type OrgGroup } from '../api/queries/orgGroups';
 import { useCan } from '../components/licensing/Gate';
 import { RequireTier } from '../components/licensing/LicenseContext';
 import useTranslation from '../hooks/useTranslation';
-import type { WebpageRow } from './webpages/webpageEditorTypes';
+import type { WebpageRow } from '../api/webpageEditorTypes';
 import { logger } from '../utils/logger';
 import { useConfigChatModels } from '../api/queries/configModels';
 

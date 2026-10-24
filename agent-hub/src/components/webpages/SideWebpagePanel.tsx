@@ -3,7 +3,7 @@ import { Loader2, X, Pencil, Globe } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import WebpagePreview from '../../pages/webpages/WebpagePreview';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { ExtraFileMeta, PrimaryContent, WebpageRow } from '../../pages/webpages/webpageEditorTypes';
+import type { ExtraFileMeta, PrimaryContent, WebpageRow } from '../../api/webpageEditorTypes';
 import type { PreviewSelection } from '../../pages/webpages/preview/usePreviewToken';
 import { errorMessage } from '../../utils/caughtError';
 

@@ -36,7 +36,7 @@ import SlideStep from './SlideStep';
 import TutorPanel from './TutorPanel';
 import VideoStep, { type VideoStepDoc } from './VideoStep';
 import type { LessonStep } from './SimStep.types';
-import type { StepState, LessonUser, LessonDoc } from '../lessons.types';
+import type { StepState, LessonUser, LessonDoc } from '../../../api/lessons.types';
 import type { CelebrationBadge, CelebrationXp, Celebration, LessonPlayerProps, LessonPlayerViewProps, StepBodyProps, CompletionScreenProps } from './LessonPlayer.types';
 import { logger } from '../../../utils/logger';
 

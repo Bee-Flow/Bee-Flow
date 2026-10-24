@@ -11,7 +11,7 @@ import MistralApiKeyCard from './ProviderCards/MistralCard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { getModelMeta, CAT_COLORS } from '../../../utils/modelMeta';
+import { getModelMeta, CAT_COLORS } from '../../../api/modelMeta';
 
 import WebSearchInferenceConfig from './WebSearchInferenceConfig';
 

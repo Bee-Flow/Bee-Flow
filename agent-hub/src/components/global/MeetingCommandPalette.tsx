@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, Upload, Video, FileAudio, Search } from 'lucide-react';
 import { useCapture } from '../../pages/meeting-notes/capture/CaptureContext';
-import * as api from '../../pages/meeting-notes/lib/transcriptionsApi';
+import * as api from '../../api/transcriptionsApi';
 import { formatRelativeDate } from '../../pages/meeting-notes/lib/format';
 import Modal from '../shared/Modal';
 import useTranslation from '../../hooks/useTranslation';

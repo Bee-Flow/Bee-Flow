@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import type { MeetingNote } from '../detail/meetingDetailTypes';
 
 /** A new note, or a function of the current one (the callers only run once a note has loaded). */

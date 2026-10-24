@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { AGENT_TAB_IDS } from './AgentEditorHeader';
 import type { ChatMessage } from '../agentEditor.types';
-import type { LimitWarning } from './agentSaveTypes';
+import type { LimitWarning } from '../../../../api/agentSaveTypes';
 import type { EditorAgent, EditorPlan } from './editorTypes';
 import type { ScheduleDeleteTarget } from './ScheduleDeleteModal';
 import type { Schedule } from './useAgentSchedules';

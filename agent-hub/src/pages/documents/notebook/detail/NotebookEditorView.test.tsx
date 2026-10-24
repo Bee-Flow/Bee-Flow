@@ -64,7 +64,7 @@ vi.mock('../NotebookChat', () => ({
 }));
 vi.mock('../hooks/useModelTiers', () => ({ default: () => ({ modelTiers: {}, selectedTier: 'fast', setSelectedTier: vi.fn() }) }));
 vi.mock('../hooks/useExportTargets', () => ({ default: () => ({ signRequestConfigured: false, nextcloudConfigured: false }) }));
-vi.mock('../hooks/notebookApi', async (orig) => ({ ...(await orig<Record<string, unknown>>()), notebookApi: h.notebookApi }));
+vi.mock('../../../../api/notebookApi', async (orig) => ({ ...(await orig<Record<string, unknown>>()), notebookApi: h.notebookApi }));
 vi.mock('../../../../api/client', async (orig) => ({ ...(await orig<Record<string, unknown>>()), apiClient: h.api, default: h.api }));
 vi.mock('../../../../components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
 vi.mock('../../../meeting-notes/capture/CaptureContext', () => ({ useCapture: () => ({ openCapture: () => {} }) }));

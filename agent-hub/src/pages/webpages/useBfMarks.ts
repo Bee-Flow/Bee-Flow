@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api } from './webpagesApi';
+import { api } from '../../api/webpagesApi';
 import type { StripMark } from './WebpageCodeStrip';
 import { messageOf } from '../../utils/caughtError';
 

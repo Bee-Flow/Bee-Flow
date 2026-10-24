@@ -18,7 +18,7 @@ import useTranslation from '../../hooks/useTranslation';
 import AppsPicker from '../apps/AppsPicker';
 import { COWORK_REPEAT_OPTIONS, toDateInput, toTimeInput } from './coworkSchedule';
 import useCoworkApps from './useCoworkApps';
-import type { CoworkAgent, CoworkItem, CoworkUpdate } from './cowork.types';
+import type { CoworkAgent, CoworkItem, CoworkUpdate } from '../../api/cowork.types';
 
 /** The form's local draft; `enabledApps` is null until the item has a list of its own. */
 interface Draft {

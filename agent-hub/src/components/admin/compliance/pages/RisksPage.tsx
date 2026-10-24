@@ -5,7 +5,7 @@ import FilterPills, { type PillTone } from '../../../shared/FilterPills';
 import EmptyState from '../../../shared/EmptyState';
 import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import { API, fetchJson, jsonInit } from '../data/api';
+import { API, fetchJson, jsonInit } from '../../../../api/complianceApi';
 import RisksTable, { CATEGORIES, SCALE, RISK_STATUSES, scoreOf, isReviewOverdue, ownerName, RiskRecord } from './risks/RisksTable';
 import RiskDrawer, { type RiskTreatment } from './risks/RiskDrawer';
 import useDrawerMode from '../shared/useDrawerMode';

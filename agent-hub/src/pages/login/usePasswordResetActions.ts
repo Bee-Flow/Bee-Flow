@@ -1,5 +1,5 @@
 import type { TranslateFn } from '../../hooks/useTranslation';
-import { postForgotPassword, postResetPassword } from './loginRequests';
+import { postForgotPassword, postResetPassword } from '../../api/loginRequests';
 import type { AuthAnswer, Setter } from './loginShared';
 
 interface PasswordResetDeps {

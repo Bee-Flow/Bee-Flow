@@ -18,8 +18,8 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: () => true }),
 }));
-vi.mock('../../components/onboarding/catalogClient', () => ({ fetchCatalog: vi.fn(async () => null) }));
-vi.mock('../../components/onboarding/achievements', () => ({
+vi.mock('../../api/catalogClient', () => ({ fetchCatalog: vi.fn(async () => null) }));
+vi.mock('../../api/achievements', () => ({
     fetchAchievements: vi.fn(async () => ({
         badges: [],
         certificates: [

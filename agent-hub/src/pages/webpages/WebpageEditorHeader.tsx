@@ -10,7 +10,7 @@ import VisibilityCapsule from '../../components/shared/VisibilityCapsule';
 import useTranslation from '../../hooks/useTranslation';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
-import type { WebpageRow } from '../../components/webpages/webpageRow.types';
+import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
 
 /**
  * WebpageEditorHeader — the ONE 48px row an open webpage starts with (Bee Flow

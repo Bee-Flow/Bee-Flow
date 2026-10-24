@@ -3,7 +3,7 @@ import { securityKeyErrorCode, signInWithSecurityKey } from '../../api/queries/s
 import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { opaqueLogin } from '../../lib/opaque';
-import { postAdminLogin, postMfaVerifyLogin, postSetup } from './loginRequests';
+import { postAdminLogin, postMfaVerifyLogin, postSetup } from '../../api/loginRequests';
 import { messageOf } from '../../utils/caughtError';
 import type { AuthAnswer, OnLogin, Setter } from './loginShared';
 

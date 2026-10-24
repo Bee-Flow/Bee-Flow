@@ -12,7 +12,7 @@
 import { LEARNING_PATHS } from '../../../components/onboarding/learningPaths';
 import { defaultLayoutForSteps, LAYOUTS } from '../../../components/onboarding/player/playerLayout';
 import { stepType, STEP_TYPES } from '../../../components/onboarding/stepTypes';
-import type { LessonStep, StepState } from '../../../components/onboarding/lessons.types';
+import type { LessonStep, StepState } from '../../../api/lessons.types';
 
 interface HasId {
     id: string;

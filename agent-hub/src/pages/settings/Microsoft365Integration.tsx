@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { openMicrosoftOAuthPopup, type MicrosoftOAuthError } from '../../lib/microsoftOAuthPopup';
+import { openMicrosoftOAuthPopup, type MicrosoftOAuthError } from '../../api/microsoftOAuthPopup';
 import {
     type Microsoft365Status,
     useDisconnectMicrosoft365,

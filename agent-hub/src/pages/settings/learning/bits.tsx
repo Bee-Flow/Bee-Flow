@@ -3,7 +3,7 @@ import React from 'react';
 import { STEP_TYPES } from '../../../components/onboarding/stepTypes';
 import { PRIMARY_ACTION_STYLE } from '../../../components/shared/StudioSectionHeader';
 import type { TranslateParams } from '../../../hooks/useTranslation';
-import type { CourseBadge } from '../../../components/onboarding/lessons.types';
+import type { CourseBadge } from '../../../api/lessons.types';
 
 /** The translate function the Learning Center components receive. */
 export type TFn = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;

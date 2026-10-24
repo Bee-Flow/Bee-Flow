@@ -4,7 +4,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
 import { toast } from '../../../shared/Toast';
 import { newLocalId } from './skillModel';
-import { skillsApi } from './skillsApi';
+import { skillsApi } from '../../../../api/skillsApi';
 import type { Rule, Example } from './skillModel.types';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { JsonResourceError } from '../../../../api/client';

@@ -5,7 +5,7 @@ import DataTable, { TableRow, TableCell, type TableColumn } from '../../../../sh
 import Pager from '../../../../shared/Pager';
 import EmptyState from '../../../../shared/EmptyState';
 import { TONES } from '../../../../shared/statusTone';
-import { API, fetchJson, asArray, asObject } from '../../data/api';
+import { API, fetchJson, asArray, asObject } from '../../../../../api/complianceApi';
 import { rowKeyOf, shortHash, subjectLabel, toMs, type CheckRecord } from './checkSort';
 import type { RowCheck } from './CheckRow';
 

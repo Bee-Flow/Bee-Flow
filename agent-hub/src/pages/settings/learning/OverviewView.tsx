@@ -7,7 +7,7 @@ import { getActionCheck, runActionCheck, applicableCriteria } from '../../../com
 import { getLearningPath } from '../../../components/onboarding/learningPaths';
 import type { CheckVerdict } from '../../../components/onboarding/actionChecks.types';
 import type { SupportUser } from '../../../components/admin/Studio/SupportStudio/supportStudio.types';
-import type { Course, LessonDoc } from '../../../components/onboarding/lessons.types';
+import type { Course, LessonDoc } from '../../../api/lessons.types';
 
 /**
  * OverviewView — artboard 3a.

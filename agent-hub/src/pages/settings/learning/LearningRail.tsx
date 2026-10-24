@@ -2,7 +2,7 @@ import { GraduationCap, Search, Map, RotateCcw, Award, Lock, Check } from 'lucid
 import React, { useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { Course, LessonDoc } from '../../../components/onboarding/lessons.types';
+import type { Course, LessonDoc } from '../../../api/lessons.types';
 import type { CapstoneInfo, LearningNavTarget, LevelInfo, ReviewDue } from './learning.types';
 import CourseIcon from './courseIcons';
 import { buildCurriculumColumns, splitCapstone } from './curriculum';

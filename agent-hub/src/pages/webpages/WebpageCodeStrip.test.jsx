@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  */
 
 const api = vi.fn();
-vi.mock('./webpagesApi', () => ({
+vi.mock('../../api/webpagesApi', () => ({
     api: (...args) => api(...args),
     default: (...args) => api(...args),
 }));

@@ -17,7 +17,7 @@ import SkillStepEditor from './SkillStepEditor';
 import TestTab from './TestTab';
 import { nOf } from '../KnowledgeStudio/plural';
 import { buildSavePayload, draftOf, refKindKey } from './skillModel';
-import { skillsApi } from './skillsApi';
+import { skillsApi } from '../../../../api/skillsApi';
 import useSkillPickerData, { refOptionsOf } from './useSkillPickerData';
 import type { Skill, SkillDraft, StepRef } from './skillModel.types';
 import type { RefOptions } from './SkillStepEditor.types';

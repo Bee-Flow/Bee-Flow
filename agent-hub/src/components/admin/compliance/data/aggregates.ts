@@ -7,7 +7,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
-import { API, fetchJson, json, jsonInit, asObject, asArray } from './api';
+import { API, fetchJson, json, jsonInit, asObject, asArray } from '../../../../api/complianceApi';
 import useResource from './useResource';
 import { addCalendarMonths, clockState, DAY_MS, HOUR_MS } from '../../../shared/deadlineMath';
 

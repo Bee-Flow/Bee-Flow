@@ -12,7 +12,7 @@
  */
 
 import type { TranslateFn } from '../../hooks/useTranslation';
-import type { CoworkPayload, RepeatOption, WhenPreset, WhenPresetId } from './cowork.types';
+import type { CoworkPayload, RepeatOption, WhenPreset, WhenPresetId } from '../../api/cowork.types';
 
 interface ResolveWhenOptions {
     now?: Date;

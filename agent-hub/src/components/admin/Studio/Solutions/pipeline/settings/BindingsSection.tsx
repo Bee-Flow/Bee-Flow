@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../../../hooks/useTranslation';
 import { DirectoryOptions } from '../../../../../automation/Builder/flow/settings/approvalStages';
 import { newStageKey } from '../../../../../automation/Builder/flow/settings/formState';
 import Button from '../../../../../shared/Button';
-import type { StageKey } from '../stagesApi';
+import type { StageKey } from '../../../../../../api/stagesApi';
 import { ChainEditor } from './GateSection';
 import type { ConnectionOption, Directory } from './stageSettingsApi';
 import {

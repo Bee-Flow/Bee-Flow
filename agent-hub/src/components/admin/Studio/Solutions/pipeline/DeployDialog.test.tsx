@@ -9,7 +9,7 @@ vi.mock('../../../../../utils/helpers', () => ({
 }));
 
 import DeployDialog, { type DeployRequest } from './DeployDialog';
-import type { Plan } from './stagesApi';
+import type { Plan } from '../../../../../api/stagesApi';
 
 /**
  * The deploy dialog: an acknowledgement is required, a stale plan is re-planned

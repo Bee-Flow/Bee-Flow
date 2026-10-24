@@ -22,7 +22,7 @@
 // `stepType()` MUST default to 'tour'. Never read `step.type` directly anywhere
 // else — always go through stepType() so the default stays in one place.
 
-import type { StepLike } from './lessons.types';
+import type { StepLike } from '../../api/lessons.types';
 
 export const STEP_TYPES = {
     TOUR: 'tour',

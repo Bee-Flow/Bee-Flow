@@ -15,7 +15,7 @@ vi.mock('../../../agents/VersionHistory', () => ({ default: () => <div data-test
 import ComplianceBlock, { chipState } from './ComplianceBlock';
 import { authFetch } from '../../../../utils/helpers';
 import AdvancedDrawer from '../../../agents/AgentWizard/pickers/AdvancedDrawer';
-import { API } from '../data/api';
+import { API } from '../../../../api/complianceApi';
 
 const NOW = new Date(2026, 8, 14, 15, 30).getTime();
 

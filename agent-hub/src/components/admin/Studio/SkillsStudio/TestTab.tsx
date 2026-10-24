@@ -1,7 +1,7 @@
 import { Check, CircleAlert, FlaskConical, Play, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refKindKey } from './skillModel';
-import { skillsApi, type SkillTestPayload, type SkillTestRun, type SkillTestStepResult } from './skillsApi';
+import { skillsApi, type SkillTestPayload, type SkillTestRun, type SkillTestStepResult } from '../../../../api/skillsApi';
 import type { JsonResourceError } from '../../../../api/client';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
 import useTranslation from '../../../../hooks/useTranslation';

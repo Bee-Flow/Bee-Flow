@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { API_BASE, setSessionToken } from '../../utils/helpers';
-import { getAuthUser } from './loginRequests';
+import { getAuthUser } from '../../api/loginRequests';
 import type { OnLogin } from './loginShared';
 import { logger } from '../../utils/logger';
 

@@ -9,7 +9,7 @@ import {
 import { STAGE_ICON, STAGE_INK, STAGE_RULE, STAGE_TINT, useStageLabel } from './StageSwitcher';
 import { ReleasesList } from './StageHistory';
 import { errorText, findingText, statusLabel } from './StageStatus';
-import type { Pipeline, StageKey } from './stagesApi';
+import type { Pipeline, StageKey } from '../../../../../api/stagesApi';
 
 /**
  * The Pipeline tab of a Dev Solution: three columns (Dev, UAT, Production), the

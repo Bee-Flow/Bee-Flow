@@ -1,6 +1,6 @@
 import { FlaskConical, Hammer, Rocket, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { StageName } from './stagesApi';
+import type { StageName } from '../../../../../api/stagesApi';
 
 /**
  * What the three stages look like and are called: the dot, the ink and the border

@@ -37,7 +37,7 @@
  */
 
 /** navigateTo target → the gate the product puts on that screen. */
-import type { SurfaceGate } from './lessons.types';
+import type { SurfaceGate } from '../../api/lessons.types';
 
 export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
     'agentWizard':                             { feat: [], permView: [], permWrite: ['manage_agents'] },

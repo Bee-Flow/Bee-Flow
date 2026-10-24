@@ -1,7 +1,7 @@
 import React from 'react';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import { useTranslation } from '../../../hooks/useTranslation';
-import type { LessonStep } from '../lessons.types';
+import type { LessonStep } from '../../../api/lessons.types';
 
 /**
  * SlideStep — a teaching card inside the LessonPlayer. Renders the step's markdown

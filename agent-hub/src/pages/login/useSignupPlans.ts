@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { plansFor } from '../../components/billing/planModel';
-import { getPublicPlans } from './loginRequests';
+import { getPublicPlans } from '../../api/loginRequests';
 import type { SignupData } from './signupValidation';
 import { logger } from '../../utils/logger';
 

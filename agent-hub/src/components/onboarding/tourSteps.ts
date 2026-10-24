@@ -27,7 +27,7 @@
 //
 // Copy avoids the internal term "Direct chat" — to users this is just "chat".
 
-import type { LessonStep, LessonUser } from './lessons.types';
+import type { LessonStep, LessonUser } from '../../api/lessons.types';
 
 export const TOUR_STEPS: LessonStep[] = [
     {

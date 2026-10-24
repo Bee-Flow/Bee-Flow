@@ -1,6 +1,6 @@
 import { restoreAgentVersion } from '../../../../api/agentEditor';
 import type { ChatMessage } from '../agentEditor.types';
-import type { Ref, Setter } from './agentSaveTypes';
+import type { Ref, Setter } from '../../../../api/agentSaveTypes';
 import { logger } from '../../../../utils/logger';
 
 interface UndoRefineDeps {

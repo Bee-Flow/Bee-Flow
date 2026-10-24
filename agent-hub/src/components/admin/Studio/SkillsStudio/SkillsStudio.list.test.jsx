@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SkillsStudio from './index';
-import { skillsApi } from './skillsApi';
+import { skillsApi } from '../../../../api/skillsApi';
 import { queryWrapper } from '../../../../test/queryWrapper';
 import { authFetch } from '../../../../utils/helpers';
 
@@ -68,7 +68,7 @@ vi.mock('../../../automation/Builder/flow/settings/aiStepEditors', () => ({
     ),
 }));
 
-vi.mock('./skillsApi', () => {
+vi.mock('../../../../api/skillsApi', () => {
     const api = {
         list: vi.fn(), usageSummary: vi.fn(), get: vi.fn(), create: vi.fn(),
         update: vi.fn(), remove: vi.fn(), improve: vi.fn(), draft: vi.fn(),

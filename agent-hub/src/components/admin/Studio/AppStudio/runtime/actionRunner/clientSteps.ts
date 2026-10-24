@@ -9,7 +9,7 @@ import { closeAppModal, openAppModal } from '../components/AppModal';
 import { resetAppForm } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import type { ResolveResult } from '../resolveBinding.types';
-import { attachmentUrl, getAuthed } from './actionHttp';
+import { attachmentUrl, getAuthed } from '../../../../../../api/actionHttp';
 import { SEQ_ABORT, defaultConfirm, resolveNavParams, showToast } from './core';
 import type { RunStep } from './core';
 import type { RunnerContext } from './runnerContext';

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import type { WebpagePatch, WebpageRow, WebpageSettings } from '../webpageEditorTypes';
+import type { WebpagePatch, WebpageRow, WebpageSettings } from '../../../api/webpageEditorTypes';
 
 type Flush = () => Promise<unknown>;
 

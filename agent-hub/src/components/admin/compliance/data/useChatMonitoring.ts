@@ -14,7 +14,7 @@
  * recognise reads as hidden, never as a guess.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { chatMonitoringUrls, fetchJson, jsonInit } from './api';
+import { chatMonitoringUrls, fetchJson, jsonInit } from '../../../../api/complianceApi';
 import {
     DPIA_RISK_LEVELS, EMPLOYEE_SURFACES, LEGAL_BASES, RETENTION, SIGNALS, SURFACES, WORKS_COUNCIL, WORKS_COUNCIL_REASONS,
     type DpiaInfo, type PutBody, type StoredSettings, type Surface, type WorksCouncilScope,

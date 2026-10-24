@@ -16,7 +16,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { OrgSubscription } from '../admin/org/orgInfo/license/licenseShared';
 import { API_BASE } from '../../utils/helpers';
-import { cloudFetch } from '../../utils/cloudFetch';
+import { cloudFetch } from '../../api/cloudFetch';
 
 export interface Subscription extends OrgSubscription {
     status: string;

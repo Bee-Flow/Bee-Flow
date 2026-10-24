@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { RECENT_LIMIT, recentSourcesFor, runRecentWork, statusLabel, statuslessKinds } from './recentWork';
+import { RECENT_LIMIT, recentSourcesFor, runRecentWork, statusLabel, statuslessKinds } from '../../../../api/recentWork';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { formatRelativeTime } from '../../../../utils/dateFormatters';
 import { kindColorVar, kindIcon } from '../../../shared/kindColors';

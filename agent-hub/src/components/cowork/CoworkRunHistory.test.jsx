@@ -27,7 +27,7 @@ const api = vi.hoisted(() => ({
     listCoworkRuns: vi.fn(),
     listCoworkAgents: vi.fn(),
 }));
-vi.mock('./coworkApi', () => api);
+vi.mock('../../api/coworkApi', () => api);
 
 // Runs are dated RELATIVE to the day the suite runs. A fixed calendar date
 // would drift through "Today" → a weekday → a date as the weeks passed, and

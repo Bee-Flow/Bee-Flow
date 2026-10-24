@@ -5,7 +5,7 @@ import { useLicenseContext } from '../../../../../licensing/LicenseContext';
 import Button from '../../../../../shared/Button';
 import DeployDialog from '../DeployDialog';
 import { useStageLabel } from '../StageSwitcher';
-import type { ApiResult, PipelineStage, StageKey } from '../stagesApi';
+import type { ApiResult, PipelineStage, StageKey } from '../../../../../../api/stagesApi';
 import AccessSection from './AccessSection';
 import AddressesSection from './AddressesSection';
 import BindingsSection from './BindingsSection';

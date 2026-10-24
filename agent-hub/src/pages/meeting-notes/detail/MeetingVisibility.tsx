@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import VisibilityCapsule from '../../../components/shared/VisibilityCapsule';
 import { toast } from '../../../components/shared/Toast';
 import useTranslation from '../../../hooks/useTranslation';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import { errorMessage } from '../../../utils/caughtError';
 import type { OrgGroup } from '../../../components/shared/VisibilityCapsule.types';
 import type { MeetingNote } from './meetingDetailTypes';

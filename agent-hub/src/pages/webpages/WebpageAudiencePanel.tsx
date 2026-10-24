@@ -8,7 +8,7 @@ import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
-import type { WebpageRow } from '../../components/webpages/webpageRow.types';
+import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
 import type { ColumnGateTable, ColumnGate, ColumnChoice, AddressOptions, AudienceModel, PublicAiNotesProps, PublicRowProps, ColumnGateFormProps, AddressCardProps, WebpageAudiencePanelProps } from './WebpageAudiencePanel.types';
 import { logger } from '../../utils/logger';
 

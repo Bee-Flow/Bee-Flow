@@ -16,7 +16,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
     notebookApi, uploadSourceFile, getSourceContent, renameSource as renameSourceApi,
     reorderSourcesApi, bulkDeleteSourcesApi,
-} from './notebookApi';
+} from '../../../../api/notebookApi';
 import useTranslation from '../../../../hooks/useTranslation';
 import { errorMessage } from '../../../../utils/caughtError';
 

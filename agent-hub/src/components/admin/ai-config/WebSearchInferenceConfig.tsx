@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { getModelMeta, getModelDisplayName, type ModelEntry } from '../../../utils/modelMeta';
+import { getModelMeta, getModelDisplayName, type ModelEntry } from '../../../api/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import { mutate, ApiError } from '../../../api/mutate';

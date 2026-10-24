@@ -431,7 +431,7 @@ export function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
     // by hand is still a tag, and the server checks it either way.
     useEffect(() => {
         let alive = true;
-        import('../../../../pages/meeting-notes/lib/transcriptionsApi')
+        import('../../../../api/transcriptionsApi')
             .then(api => api.listTranscriptionTags())
             .then(list => { if (alive) setVocabulary(Array.isArray(list) ? list : []); })
             .catch(() => {});

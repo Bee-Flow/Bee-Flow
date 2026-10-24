@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
-import { MISTRAL_MODEL_META, CAT_COLORS, getModelMeta } from '../../utils/modelMeta';
+import { MISTRAL_MODEL_META, CAT_COLORS, getModelMeta } from '../../api/modelMeta';
 import useTranslation from '../../hooks/useTranslation';
 
 interface ModelOption {

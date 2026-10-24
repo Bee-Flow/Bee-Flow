@@ -1,7 +1,7 @@
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import StatusActionPillJs from '../../../../shared/StatusActionPill';
 import type { ErrorKind, SubmitBlock } from './pipelineModel';
-import { isTerminal, type DeploymentSummary, type PlanAck } from './stagesApi';
+import { isTerminal, type DeploymentSummary, type PlanAck } from '../../../../../api/stagesApi';
 
 /** The words for deployments, errors and blocks: one place, shared by every pipeline view. */
 

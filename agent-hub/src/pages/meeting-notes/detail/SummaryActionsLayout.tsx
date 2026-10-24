@@ -11,7 +11,7 @@ import { TABS } from './MeetingHeader';
 import useMediaQuery from '../hooks/useMediaQuery';
 import type { MeetingNote, MeetingActionItem } from './meetingDetailTypes';
 import type { DestinationRecord } from '../lib/actionDestinations';
-import type { RegenerateArg } from '../lib/transcriptionsApi.types';
+import type { RegenerateArg } from '../../../api/transcriptionsApi.types';
 import type { CustomTemplate, SummaryTemplates } from './summaryTemplates.types';
 import type { PlayerSegment } from './player/player.types';
 import type { UsageRow } from '../../../hooks/useUsage';

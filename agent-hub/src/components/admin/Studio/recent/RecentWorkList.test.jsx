@@ -20,7 +20,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { runMock } = vi.hoisted(() => ({ runMock: vi.fn() }));
 
-vi.mock('./recentWork', async (importOriginal) => ({
+vi.mock('../../../../api/recentWork', async (importOriginal) => ({
     ...(await importOriginal()),
     runRecentWork: (...args) => runMock(...args),
 }));

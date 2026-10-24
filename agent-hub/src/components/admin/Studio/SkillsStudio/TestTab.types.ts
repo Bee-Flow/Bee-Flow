@@ -1,5 +1,5 @@
 import type { Step } from './skillModel.types';
-import type { SkillTestStepResult, SkillTestRun } from './skillsApi';
+import type { SkillTestStepResult, SkillTestRun } from '../../../../api/skillsApi';
 import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 

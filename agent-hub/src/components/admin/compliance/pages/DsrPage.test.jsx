@@ -21,7 +21,7 @@ const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn(),
 vi.mock('../../../shared/Toast', () => ({ toast }));
 
 const fetchJson = vi.fn();
-vi.mock('../data/api', async (importOriginal) => {
+vi.mock('../../../../api/complianceApi', async (importOriginal) => {
     const real = await importOriginal();
     return { ...real, fetchJson: (...a) => fetchJson(...a) };
 });

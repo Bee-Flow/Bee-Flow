@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 import type { HubUser } from './useAgentHubData';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
 import type { PreviewSelection } from '../pages/webpages/preview/usePreviewToken';
-import type { WebpageRow } from '../pages/webpages/webpageEditorTypes';
+import type { WebpageRow } from '../api/webpageEditorTypes';
 
 const WorkspaceNotebook = lazy(() => import('../components/chat/WorkspaceNotebook'));
 const GammaPreviewPanel = lazy(() => import('../components/chat/GammaPreviewPanel'));

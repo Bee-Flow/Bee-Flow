@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import type { ExtraContents, PrimaryContent } from '../webpageEditorTypes';
+import type { ExtraContents, PrimaryContent } from '../../../api/webpageEditorTypes';
 import { errorMessage } from '../../../utils/caughtError';
 
 /** The /api/webpages client, as far as saving needs it. */

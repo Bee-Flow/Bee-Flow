@@ -18,7 +18,7 @@
 
 import { stepType, STEP_TYPES } from './stepTypes';
 import { GENERATED_PRACTICE_LESSON_IDS } from './generated/practiceLessonIds';
-import type { LessonDoc, LessonStep, PracticeItem, ProgressMap, StepOrigin, StepState } from './lessons.types';
+import type { LessonDoc, LessonStep, PracticeItem, ProgressMap, StepOrigin, StepState } from '../../api/lessons.types';
 
 export type GetLessonFn = (lessonId: string) => LessonDoc | null | undefined;
 

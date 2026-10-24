@@ -5,7 +5,7 @@ import FilterPills, { type PillTone } from '../../../shared/FilterPills';
 import Pager from '../../../shared/Pager';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import EmptyState from '../../../shared/EmptyState';
-import { API, fetchJson, asArray, jsonInit } from '../data/api';
+import { API, fetchJson, asArray, jsonInit } from '../../../../api/complianceApi';
 import { useDateFormat } from '../shared/formatDates';
 import useDrawerMode from '../shared/useDrawerMode';
 import SoaTable, { DecisionPill, type SoaControl } from './soa/SoaTable';

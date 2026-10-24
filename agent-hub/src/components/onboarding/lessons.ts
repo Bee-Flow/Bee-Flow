@@ -32,7 +32,7 @@ import {
 } from './tourSteps';
 import { stepType, STEP_TYPES } from './stepTypes';
 import { GENERATED_LESSONS } from './generated/lessons';
-import type { HasFeature, LessonDoc, LessonStep, LessonUser, ServerLessonDoc, SimItem } from './lessons.types';
+import type { HasFeature, LessonDoc, LessonStep, LessonUser, ServerLessonDoc, SimItem } from '../../api/lessons.types';
 
 export const DEFAULT_LESSON_ID = 'getting-started';
 

@@ -1,5 +1,5 @@
 import { SLOT_LANGUAGE } from '../webpageCodeFiles';
-import { isPrimaryFile, type ContentSetter, type ExtraContents, type ExtraFileMeta, type PrimaryContent } from '../webpageEditorTypes';
+import { isPrimaryFile, type ContentSetter, type ExtraContents, type ExtraFileMeta, type PrimaryContent } from '../../../api/webpageEditorTypes';
 
 /**
  * An editor tab key: a primary slot ('html' | 'css' | 'js') or

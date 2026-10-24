@@ -6,7 +6,7 @@ import {
 } from './pipelineModel';
 import { findingText } from './StageStatus';
 import { useStageLabel } from './StageSwitcher';
-import type { Plan, PlanAck, StageKey } from './stagesApi';
+import type { Plan, PlanAck, StageKey } from '../../../../../api/stagesApi';
 
 /** The body of the deploy dialog: every section of a plan, in reading order. */
 

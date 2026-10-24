@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AgentEditorUI from './AgentEditorUI';
 import type { ToolParamConfig, AgentFormData, EditorCategory, EditorGroup, EditorOrganization } from './AgentEditorUI';
 import type { HubUser } from '../../AgentHub/useAgentHubData';
-import { filterVisibleModels } from '../../utils/modelMeta';
+import { filterVisibleModels } from '../../api/modelMeta';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { toast } from '../shared/Toast';

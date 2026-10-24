@@ -12,7 +12,7 @@
 import scopedStorage from '../../utils/scopedStorage';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { isEphemeralLessonId } from './lessons';
-import type { LessonProgressEntry, LessonUser, ProgressMap, StepOrigin, StepState } from './lessons.types';
+import type { LessonProgressEntry, LessonUser, ProgressMap, StepOrigin, StepState } from '../../api/lessons.types';
 import { logger } from '../../utils/logger';
 
 export const LEARNING_PROGRESS_KEY = 'learningProgress';

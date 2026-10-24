@@ -10,7 +10,7 @@
 import React from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
-import { getModelDisplayName } from '../../../../utils/modelMeta';
+import { getModelDisplayName } from '../../../../api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 

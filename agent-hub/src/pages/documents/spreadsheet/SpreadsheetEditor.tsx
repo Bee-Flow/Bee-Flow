@@ -17,7 +17,7 @@ import SheetGrid from './SheetGrid';
 import SheetStatusBar from './SheetStatusBar';
 import SheetTabs from './SheetTabs';
 import { BUTTON, Notice, SheetLoadError, SheetSkeleton } from './SheetStates';
-import { SheetApiError } from './sheetApi';
+import { SheetApiError } from '../../../api/sheetApi';
 import { selectionFor } from './sheetModel';
 import useAssistantTier from './useAssistantTier';
 import useGridState from './useGridState';

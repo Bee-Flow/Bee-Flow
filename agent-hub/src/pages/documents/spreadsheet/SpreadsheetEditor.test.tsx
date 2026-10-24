@@ -18,7 +18,7 @@ const { sheetApi, docApi } = vi.hoisted(() => ({
     sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn(), downloadSheetXlsx: vi.fn() },
     docApi: { getDocument: vi.fn(), updateDocument: vi.fn() },
 }));
-vi.mock('./sheetApi', async (original) => ({ ...(await original<typeof import('./sheetApi')>()), ...sheetApi }));
+vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), ...sheetApi }));
 vi.mock('../documentsApi', () => docApi);
 
 const DOC = { id: 'doc-1', userId: 'u1', name: 'Budget', docType: 'spreadsheet', bodyHtml: '', versionId: 'v1' } as StudioDocument;

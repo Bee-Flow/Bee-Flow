@@ -2,13 +2,13 @@ import { Loader2, Plus } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import InstallBlueprintButton from './InstallBlueprintButton';
 import InstallBlueprintModal from './InstallBlueprintModal';
-import { operatedStagesOf } from './pipeline/stagesApi';
+import { operatedStagesOf } from '../../../../api/stagesApi';
 import { filterSolutions, partitionSolutions } from './solutionOverviewModel';
 import { CatalogueTab, EmptyOurs, GridSkeleton, OperatedStages, OverviewFilters, OverviewNotices, SolutionGrid } from './SolutionsOverviewParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import SegmentedControl, { type SegmentedOption } from '../../../shared/SegmentedControl';
-import type { OperatedStage } from './pipeline/stagesApi';
+import type { OperatedStage } from '../../../../api/stagesApi';
 
 /** One Solution row of GET /api/projects/summary; the model reads the rest. */
 export type SummaryRow = Record<string, unknown>;

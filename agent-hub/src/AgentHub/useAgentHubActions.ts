@@ -1,7 +1,7 @@
 import { API_BASE, authFetch } from '../utils/helpers';
 import { normalizeLoadedMessages } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
-import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
+import { loadWorkspaceNotebook } from '../api/workspaceNotebook';
 import type { Dispatch, SetStateAction } from 'react';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { ConfirmOptions } from '../components/shared/useConfirm';

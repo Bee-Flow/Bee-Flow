@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Check, X, RotateCcw, Loader2 } from 'lucide-react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import type { LessonStep, StepState } from '../lessons.types';
+import type { LessonStep, StepState } from '../../../api/lessons.types';
 import { gradePracticeItem } from '../practiceClient';
 
 /**

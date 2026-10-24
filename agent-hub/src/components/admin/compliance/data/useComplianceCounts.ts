@@ -19,7 +19,7 @@
  * next_sweep_at}, evidence:{rows,chain_ok,algorithm}, onboarded, setup_step }.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API, fetchJson, asObject } from './api';
+import { API, fetchJson, asObject } from '../../../../api/complianceApi';
 
 export const COMPLIANCE_COUNTS_POLL_MS = 30_000;
 

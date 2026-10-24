@@ -5,7 +5,7 @@ import StageSettingsTab from './pipeline/settings/StageSettingsTab';
 import VariablesDeclarations from './pipeline/settings/VariablesDeclarations';
 import StageHistory from './pipeline/StageHistory';
 import StageRail from './pipeline/StageRail';
-import { getPipeline, stageFromSearch, type PipelineStage, type Pipeline, type StageName, type StageKey } from './pipeline/stagesApi';
+import { getPipeline, stageFromSearch, type PipelineStage, type Pipeline, type StageName, type StageKey } from '../../../../api/stagesApi';
 import StageStatus from './pipeline/StageStatus';
 import { useStageLabel } from './pipeline/StageSwitcher';
 import Notice from './Notice';

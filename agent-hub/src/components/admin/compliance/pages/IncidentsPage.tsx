@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import EmptyState from '../../../shared/EmptyState';
 import FilterPills from '../../../shared/FilterPills';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import { API, fetchJson, jsonInit } from '../data/api';
+import { API, fetchJson, jsonInit } from '../../../../api/complianceApi';
 import useDrawerMode from '../shared/useDrawerMode';
 import { PAGE_FRAME } from './audits/auditForms';
 import { kindsOfSection, matchesSection, nextClock } from './incidents/incidentClocks';

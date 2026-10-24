@@ -1,8 +1,8 @@
-import { isActive, isTerminal } from './stagesApi';
+import { isActive, isTerminal } from '../../../../../api/stagesApi';
 import type {
     ApiResult, DeploymentKind, DeploymentStatus, DeploymentSummary, Pipeline, PipelineRelease, PipelineStage,
     Plan, PlanAck, StageKey, StageName,
-} from './stagesApi';
+} from '../../../../../api/stagesApi';
 
 /**
  * The pipeline's decisions, pure: which column is in which state, the ONE primary

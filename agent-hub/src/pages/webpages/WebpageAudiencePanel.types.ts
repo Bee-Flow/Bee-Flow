@@ -1,6 +1,6 @@
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type React from 'react';
-import type { WebpageRow } from '../../components/webpages/webpageRow.types';
+import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
 import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
 
 /**

@@ -4,7 +4,7 @@ import { invalidateShieldStatus } from './useShieldStatus';
 import { invalidateSkills } from './useSkills';
 import { invalidateTrainingGates } from './useTrainingGates';
 import { clearAppRefCache } from '../components/automation/Builder/flow/appRefLabel';
-import { invalidateAllowedModelsCache } from '../utils/modelMeta';
+import { invalidateAllowedModelsCache } from '../api/modelMeta';
 
 /**
  * Every MODULE-LEVEL cache that belongs to one signed-in account, dropped in

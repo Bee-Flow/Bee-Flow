@@ -2,7 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } fro
 import { findNameMentions } from '../lib/insightsData';
 import { parseTimestampToSeconds } from '../lib/format';
 import { buildMentionMarkers, buildTimelineMarkers } from '../lib/timelineMarkers';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import { TABS } from './MeetingHeader';
 import type { MeetingNote, SeriesPrevious } from './meetingDetailTypes';
 import type { CustomTemplate, SummaryTemplates } from './summaryTemplates.types';

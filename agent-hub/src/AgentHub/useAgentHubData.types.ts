@@ -4,7 +4,7 @@ import type { ConversationRow, ConversationLabel } from './useConversationMeta';
 import type { Project } from '../api/queries/projects';
 import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
-import type { WebpageRow } from '../components/webpages/webpageRow.types';
+import type { WebpageRow } from '../api/webpagesWebpageRow.types';
 import type { PreviewSelection } from '../pages/webpages/preview/usePreviewToken';
 
 /** A conversation the hub has open: the hub reads only its id. */

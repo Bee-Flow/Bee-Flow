@@ -10,7 +10,7 @@
  * `onChanged` is called after every mutation so the hub can bump the counts.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API, fetchJson, json, jsonInit } from './api';
+import { API, fetchJson, json, jsonInit } from '../../../../api/complianceApi';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import type { CheckRecord } from '../pages/framework/checkSort';

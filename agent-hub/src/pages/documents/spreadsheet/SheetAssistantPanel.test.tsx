@@ -13,7 +13,7 @@ const { sheetApi, assistantApi, tiers } = vi.hoisted(() => ({
     assistantApi: { askSheetAssistant: vi.fn() },
     tiers: { data: { fast: { modelId: 'm1' }, thinking: { modelId: 'm2' }, deep_thinking: { modelId: 'm3' } } as Record<string, unknown> },
 }));
-vi.mock('./sheetApi', async (original) => ({ ...(await original<typeof import('./sheetApi')>()), ...sheetApi }));
+vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), ...sheetApi }));
 vi.mock('./sheetAssistantApi', () => assistantApi);
 vi.mock('../documentsApi', () => ({ getDocument: vi.fn(), updateDocument: vi.fn() }));
 vi.mock('../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: tiers.data }) }));

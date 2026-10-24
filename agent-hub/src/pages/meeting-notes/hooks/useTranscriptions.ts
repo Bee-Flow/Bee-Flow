@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import type { MeetingNote, MeetingRowPatch } from '../detail/meetingDetailTypes';
 
 export default function useTranscriptions() {

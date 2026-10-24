@@ -4,7 +4,7 @@ import { useTranslation, type TranslateParams } from '../../../../../hooks/useTr
 import SideDrawer, { DrawerSection, DrawerId, type SideDrawerMode } from '../../../../shared/SideDrawer';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import { TONES } from '../../../../shared/statusTone';
-import { API, fetchJson } from '../../data/api';
+import { API, fetchJson } from '../../../../../api/complianceApi';
 
 /**
  * AttestDrawer — "I declare this item, and here is the evidence".

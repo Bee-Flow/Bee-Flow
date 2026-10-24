@@ -17,7 +17,7 @@
  * (today's hooks store `{ error }` or `[]` — each register keeps its habit).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchJson } from './api';
+import { fetchJson } from '../../../../api/complianceApi';
 
 interface UseResourceOptions<T> {
     enabled?: boolean;

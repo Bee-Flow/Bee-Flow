@@ -9,7 +9,7 @@ import { useTranslation, type TranslateParams } from '../../../../../hooks/useTr
 import { TableRow } from '../../../../shared/DataTable';
 import { TONES, toneOfCheckStatus } from '../../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import { API } from '../../data/api';
+import { API } from '../../../../../api/complianceApi';
 import type { DecideFinding } from './FindingDecision';
 
 /**

@@ -2,10 +2,10 @@ import { renderHook, act, render } from '@testing-library/react';
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./notebookApi', () => ({ notebookApi: vi.fn() }));
+vi.mock('../../../../api/notebookApi', () => ({ notebookApi: vi.fn() }));
 
 import useDocumentAutosave from './useDocumentAutosave';
-import { notebookApi } from './notebookApi';
+import { notebookApi } from '../../../../api/notebookApi';
 
 const api = notebookApi as unknown as ReturnType<typeof vi.fn>;
 type Call = [string, { method?: string; body?: string } | undefined];

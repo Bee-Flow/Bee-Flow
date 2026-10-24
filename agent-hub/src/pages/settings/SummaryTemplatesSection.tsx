@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import * as api from '../meeting-notes/lib/transcriptionsApi';
+import * as api from '../../api/transcriptionsApi';
 import TemplateManager from '../meeting-notes/detail/TemplateManager';
 import type { SummaryTemplates } from '../meeting-notes/detail/summaryTemplates.types';
 

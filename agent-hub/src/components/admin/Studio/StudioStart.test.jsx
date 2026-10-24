@@ -41,7 +41,7 @@ vi.mock('./attention/attentionChecks', async (importOriginal) => ({
 
 // "Laatst bewerkt" haalt tot negen lijsten op; hier afgevangen, want de regels
 // eromheen staan in recent/recentWork.test.js en recent/RecentWorkList.test.jsx.
-vi.mock('./recent/recentWork', async (importOriginal) => ({
+vi.mock('../../../api/recentWork', async (importOriginal) => ({
     ...(await importOriginal()),
     runRecentWork: (...args) => recentRun(...args),
 }));

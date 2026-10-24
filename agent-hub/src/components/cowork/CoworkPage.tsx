@@ -21,10 +21,10 @@ import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
 import CoworkRow from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
-import { deleteCowork, listCowork, listCoworkAgents, runCoworkNow, toggleCowork, updateCowork } from './coworkApi';
+import { deleteCowork, listCowork, listCoworkAgents, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
 import { isInFlight } from './coworkStatus';
 import useCoworkComposer from './useCoworkComposer';
-import type { CoworkAgent, CoworkItem, CoworkPageProps, CoworkUpdate } from './cowork.types';
+import type { CoworkAgent, CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
 import { errorMessage } from '../../utils/caughtError';
 
 export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {

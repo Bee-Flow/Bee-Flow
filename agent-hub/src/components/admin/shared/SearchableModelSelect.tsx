@@ -19,8 +19,8 @@
 
 import React, { useState, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { getModelMeta, getModelDisplayName, getModelFamily } from '../../../utils/modelMeta';
-import type { ModelEntry } from '../../../utils/modelMeta';
+import { getModelMeta, getModelDisplayName, getModelFamily } from '../../../api/modelMeta';
+import type { ModelEntry } from '../../../api/modelMeta';
 import Modal from '../../shared/Modal';
 import { useTranslation } from '../../../hooks/useTranslation';
 

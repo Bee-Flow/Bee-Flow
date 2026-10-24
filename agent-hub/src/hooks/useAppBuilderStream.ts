@@ -11,8 +11,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { studioAppsApi } from '../components/admin/Studio/AppStudio/studioAppsApi';
 import type { AppBuilderSendOptions, BuilderToolDraft, AppBuilderStreamDeps, UseAppBuilderStreamOptions } from './appBuilderStream/types';
 import { applyBuilderSnapshot, parseSendArgs, startBuilderAction } from './appBuilderStream/session';
-import { runBuilderTurn } from './appBuilderStream/turn';
-import type { RunTurnParams } from './appBuilderStream/turn';
+import { runBuilderTurn } from '../api/turn';
+import type { RunTurnParams } from '../api/turn';
 import { logger } from '../utils/logger';
 
 export type {

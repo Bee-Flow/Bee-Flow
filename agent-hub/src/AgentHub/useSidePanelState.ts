@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
 import type { PreviewSelection } from '../pages/webpages/preview/usePreviewToken';
-import type { WebpageRow } from '../pages/webpages/webpageEditorTypes';
+import type { WebpageRow } from '../api/webpageEditorTypes';
 
 // Side-panel state for the chat workspace: the notebook pane, the Gamma
 // preview, the webpage side panel and the document side panel (all mutually

@@ -7,7 +7,7 @@
 // falls back to bundled quiz items; grading shows a friendly retry note).
 
 import { API_BASE, authFetch } from '../../utils/helpers';
-import type { PracticeItem } from './lessons.types';
+import type { PracticeItem } from '../../api/lessons.types';
 
 export interface PracticeSet {
     practiceId: string;

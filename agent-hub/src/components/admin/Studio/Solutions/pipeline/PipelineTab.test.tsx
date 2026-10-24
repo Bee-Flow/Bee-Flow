@@ -9,7 +9,7 @@ vi.mock('../../../../../utils/helpers', () => ({
 }));
 
 import PipelineTab from './PipelineTab';
-import type { Pipeline, PipelineStage, Plan } from './stagesApi';
+import type { Pipeline, PipelineStage, Plan } from '../../../../../api/stagesApi';
 
 /**
  * The Pipeline tab in its three interesting states: no stages yet, Dev ahead of

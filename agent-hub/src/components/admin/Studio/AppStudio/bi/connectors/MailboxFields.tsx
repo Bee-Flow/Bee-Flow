@@ -1,6 +1,6 @@
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { postConnector } from './connectorHttp';
+import { postConnector } from '../../../../../../api/connectorHttp';
 import { TextField } from './ConnectorFields';
 import { INPUT, LABEL } from './connectorModel';
 import type { Connector } from './connectorModel';

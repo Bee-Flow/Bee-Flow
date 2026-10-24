@@ -1,7 +1,7 @@
 /** Shapes the Learning Center screens receive from LearningCenterSection. */
 import type { countReviewDue } from '../../../components/onboarding/reviewEngine';
 import type { xpFromProgress } from '../../../components/onboarding/courses';
-import type { Course } from '../../../components/onboarding/lessons.types';
+import type { Course } from '../../../api/lessons.types';
 
 /** What the review engine says is due. */
 export type ReviewDue = ReturnType<typeof countReviewDue>;

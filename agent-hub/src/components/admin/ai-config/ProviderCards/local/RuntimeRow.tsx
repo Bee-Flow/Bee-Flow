@@ -2,9 +2,9 @@
 // model-download panel (Ollama only) and the download progress bar.
 
 import React, { useState } from 'react';
-import { BTN_PRIMARY, BTN_GHOST, TIER_LABELS, testRuntime, pullModel } from './localRuntimeApi';
+import { BTN_PRIMARY, BTN_GHOST, TIER_LABELS, testRuntime, pullModel } from '../../../../../api/localRuntimeApi';
 import ProbeResult from './ProbeResult';
-import type { ProbeData, RuntimeInfo, RuntimeProvider, StarterModel, PullProgress } from './runtimeTypes';
+import type { ProbeData, RuntimeInfo, RuntimeProvider, StarterModel, PullProgress } from '../../../../../api/runtimeTypes';
 import DeleteConfirmButtons from '../shared/DeleteConfirmButtons';
 import type { ProviderMessage } from '../../../../../hooks/useProviderConfig';
 import { useTranslation } from '../../../../../hooks/useTranslation';

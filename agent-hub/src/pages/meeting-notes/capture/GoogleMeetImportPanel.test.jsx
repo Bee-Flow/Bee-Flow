@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./CaptureControls', () => ({ default: () => null }));
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../hooks/useGoogleMeetConnected', () => ({ default: vi.fn() }));
-vi.mock('../lib/transcriptionsApi', () => ({ listGoogleMeetRecordings: vi.fn() }));
+vi.mock('../../../api/transcriptionsApi', () => ({ listGoogleMeetRecordings: vi.fn() }));
 vi.mock('../../../lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
 
 const recorderMock = { current: null };
@@ -15,7 +15,7 @@ vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.cur
 import GoogleMeetImportPanel from './GoogleMeetImportPanel';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
-import { listGoogleMeetRecordings } from '../lib/transcriptionsApi';
+import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
 
 const ITEMS = [
     { eventId: 'e1', meetingCode: 'abc-defg-hij', title: 'Weekly sync', start: '2026-07-16T10:00:00Z', end: '2026-07-16T10:45:00Z', recordingState: 'available', importedNoteId: null },

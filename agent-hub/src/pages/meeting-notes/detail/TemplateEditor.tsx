@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import Modal from '../../../components/shared/Modal';
 import useConfirm from '../../../components/shared/useConfirm';
 import useTranslation from '../../../hooks/useTranslation';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
 import { errorMessage } from '../../../utils/caughtError';
 

@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { reportAppVersion } from './appVersionSignal';
-import { NOT_BATCHED, queueRead, unwrapReadResult } from './dataBatchClient';
+import { NOT_BATCHED, queueRead, unwrapReadResult } from '../../../../../api/dataBatchClient';
 import { useDataContext } from './DataContext';
-import { dataErrorFromResponse, isRateLimited, type DataError } from './dataErrors';
+import { dataErrorFromResponse, isRateLimited, type DataError } from '../../../../../api/dataErrors';
 import { dataCacheKey } from './resolveBinding';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import type { ConnectorBinding, DataBinding } from './resolveBinding.types';

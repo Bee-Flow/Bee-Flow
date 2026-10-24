@@ -4,7 +4,7 @@ import { useTranslation, type TranslateParams } from '../../../../hooks/useTrans
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import DeadlineClock from '../../../shared/DeadlineClock';
 import EmptyState from '../../../shared/EmptyState';
-import { API, asObject, fetchJson, json } from '../data/api';
+import { API, asObject, fetchJson, json } from '../../../../api/complianceApi';
 import useResource from '../data/useResource';
 import ArticleRef from '../shared/ArticleRef';
 import StatusPill from '../shared/StatusPill';

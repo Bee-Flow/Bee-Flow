@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { PROGRESS_STEPS, phaseOf, type Phase } from './pipelineModel';
 import { Addresses, LastDeployment } from './StageStatusParts';
 import { STAGE_DOT, STAGE_INK, STAGE_RULE, STAGE_TINT, useStageLabel } from './StageSwitcher';
-import type { PipelineStage, StageKey } from './stagesApi';
+import type { PipelineStage, StageKey } from '../../../../../api/stagesApi';
 
 export {
     StatusPill, ackText, blockTexts, errorText, findingText, footerLabels, kindLabel, outcomeText, statusLabel,

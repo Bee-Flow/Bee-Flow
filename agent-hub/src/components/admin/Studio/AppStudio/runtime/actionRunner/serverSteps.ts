@@ -2,7 +2,7 @@
  * The two ways a sequence step reaches the server: the plain JSON /step
  * dispatch, and ai_browse, which streams over its own SSE endpoint.
  */
-import { actionsUrl, postJson } from './actionHttp';
+import { actionsUrl, postJson } from '../../../../../../api/actionHttp';
 import { parseSseStream } from '../sseStream';
 import { BROWSE_STEP_DEADLINE_MS, STEP_DEADLINE_MS, quotaToast, readJson } from './core';
 import type { EffectObject, Translate, Vars } from './core';

@@ -8,7 +8,7 @@ import { nOf, pluralKey } from '../../components/admin/Studio/KnowledgeStudio/pl
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import type { ApiOptions } from './webpagesApi';
+import type { ApiOptions } from '../../api/webpagesApi';
 import { errorMessage } from '../../utils/caughtError';
 
 /**

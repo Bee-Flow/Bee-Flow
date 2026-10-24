@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CanUseCard from './CanUseCard';
 import ExamplesTab from './ExamplesTab';
-import { skillsApi } from './skillsApi';
+import { skillsApi } from '../../../../api/skillsApi';
 import { queryWrapper } from '../../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
@@ -30,7 +30,7 @@ vi.mock('../../../../utils/helpers', () => ({
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })),
 }));
 
-vi.mock('./skillsApi', () => {
+vi.mock('../../../../api/skillsApi', () => {
     const api = {
         list: vi.fn(), usageSummary: vi.fn(), get: vi.fn(), create: vi.fn(),
         update: vi.fn(), remove: vi.fn(), improve: vi.fn(), draft: vi.fn(),
