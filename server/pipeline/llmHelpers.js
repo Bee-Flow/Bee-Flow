@@ -6,6 +6,7 @@
 
 const { getAIConfig, getProviderForModel } = require('../core/aiAgent');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * Call the LLM with a system prompt, messages, and optional tools.
@@ -67,12 +68,12 @@ function extractJSON(text) {
     if (!text) return null;
     const codeBlockMatch = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
     if (codeBlockMatch) {
-        try { return JSON.parse(codeBlockMatch[1]); } catch (err) { log.debug('fenced block is not valid JSON, try the next strategy', err); }
+        try { return JSON.parse(codeBlockMatch[1]); } catch (err) { bestEffort('pipeline/llmHelpers:extractJSON', err); /* fenced block is not valid JSON, try the next strategy */ }
     }
-    try { return JSON.parse(text); } catch (err) { log.debug('text is not valid JSON, try the next strategy', err); }
+    try { return JSON.parse(text); } catch (err) { bestEffort('pipeline/llmHelpers:extractJSON#2', err); /* text is not valid JSON, try the next strategy */ }
     const objMatch = text.match(/\{[\s\S]*\}/);
     if (objMatch) {
-        try { return JSON.parse(objMatch[0]); } catch (err) { log.debug('brace-matched text is not valid JSON', err); }
+        try { return JSON.parse(objMatch[0]); } catch (err) { bestEffort('pipeline/llmHelpers:extractJSON#3', err); /* brace-matched text is not valid JSON */ }
     }
     return null;
 }
@@ -92,14 +93,14 @@ function extractComponentFromResponse(text) {
             if (parsed.id && parsed.name && parsed.code) {
                 return parsed;
             }
-        } catch (err) { log.debug('candidate is not valid JSON, try the next match', err); }
+        } catch (err) { bestEffort('pipeline/llmHelpers:extractComponentFromResponse', err); /* candidate is not valid JSON, try the next match */ }
     }
 
     // Try the full text as JSON
     try {
         const parsed = JSON.parse(text);
         if (parsed.id && parsed.name && parsed.code) return parsed;
-    } catch (err) { log.debug('text is not valid JSON', err); }
+    } catch (err) { bestEffort('pipeline/llmHelpers:extractComponentFromResponse#2', err); /* text is not valid JSON */ }
 
     return null;
 }
