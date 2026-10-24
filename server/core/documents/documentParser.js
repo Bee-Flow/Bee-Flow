@@ -10,6 +10,7 @@
 const mammoth = require('mammoth');
 const XLSX = require('@e965/xlsx');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Parse a document buffer into plain text based on its MIME type.
@@ -122,7 +123,7 @@ function readWorkbook(buffer) {
             const text = new TextDecoder('utf-8', { fatal: true }).decode(buffer).replace(/^\uFEFF/, '');
             return XLSX.read(text, { type: 'string' });
         } catch (e) {
-            log.debug(`[DocumentParser] CSV is not valid UTF-8, reading it as a legacy encoding: ${e.message}`);
+            bestEffort('core/documents/documentParser:readWorkbook', e); // [DocumentParser] CSV is not valid UTF-8, reading it as a legacy encoding:
         }
     }
     return XLSX.read(buffer, { type: 'buffer' });

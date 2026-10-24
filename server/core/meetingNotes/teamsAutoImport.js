@@ -50,6 +50,7 @@ const { deps: d, init } = lazyDeps({
 
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
@@ -97,7 +98,7 @@ async function listCandidateUsers() {
 async function discoverUser(userId) {
     let user = null;
     try { user = await d.userStore.getUser(userId); } catch (err) {
-        log.debug(`[TeamsAutoImport] user lookup failed for ${userId}: ${err.message}`);
+        fallbackSwallowed('core/meetingNotes/teamsAutoImport:discoverUser', err); // [TeamsAutoImport] user lookup failed for :
     }
     // A deleted or deactivated user keeps stale settings and marks; skip them.
     if (!user || (user.status ?? 'active') !== 'active') return;

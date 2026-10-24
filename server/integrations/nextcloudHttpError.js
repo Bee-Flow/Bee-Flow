@@ -15,6 +15,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_DETAIL = 200;
 
@@ -45,7 +46,7 @@ function extractReason(bodyText) {
         const msg = json?.ocs?.meta?.message || json?.ocs?.data?.message || json?.message;
         return typeof msg === 'string' && msg.toUpperCase() !== 'OK' ? clean(msg) : '';
     } catch (e) {
-        log.debug('[nextcloudHttpError] body is not JSON, trying the XML shape:', e.message);
+        bestEffort('integrations/nextcloudHttpError:extractReason', e); // [nextcloudHttpError] body is not JSON, trying the XML shape:
     }
     const sabre = text.match(/<s:message>([^<]*)<\/s:message>/i);
     return sabre ? clean(decodeXml(sabre[1])) : '';

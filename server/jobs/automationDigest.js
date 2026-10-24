@@ -54,7 +54,7 @@ function defaultDeps() {
             const emailService = require('../utils/emailService');
             const cfg = await emailService.getServiceEmailConfig().catch((e) => fallback('jobs/automationDigest:sendDigestEmail', e, null));
             if (!cfg?.configured) return { sent: false, reason: 'no_service_email' };
-            const user = await require('../stores/userStore').getUser(userId).catch(() => null);
+            const user = await require('../stores/userStore').getUser(userId).catch((e) => fallback('jobs/automationDigest:sendDigestEmail#2', e, null));
             if (!user?.email) return { sent: false, reason: 'no_owner_email' };
             await emailService.sendServiceEmail({ to: user.email, subject, text });
             return { sent: true };

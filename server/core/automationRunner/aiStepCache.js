@@ -175,7 +175,7 @@ function rememberAiAnswer(plan, { answer, userId }) {
     try {
         memo.store(memoK, value, memoTtlMs);
     } catch (e) {
-        log.debug(`[AiStepCache] run memo could not store (only a future miss): ${e.message}`);
+        bestEffort('core/automationRunner/aiStepCache:rememberAiAnswer#2', e); // [AiStepCache] run memo could not store (only a future miss):
     }
     // A read-only plan (dry run reusing stored answers) never writes the durable tier.
     if (!durable || plan.readOnly) return;

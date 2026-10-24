@@ -29,6 +29,7 @@ const { parseExpr, evaluate } = require('../shared/expr/index.mjs');
 const log = require('../telemetry/log');
 const { MAX_STRING_VALUE } = require('./appTriggerContract');
 const { formOptionsCap, isPlainObject, DATE_RE, MAX_TEXTAREA_LEN, MAX_SHOW_IF_LEN, MAX_PATTERN_LEN, MAX_PATTERN_MESSAGE_LEN } = require('./formFieldTypes');
+const { fallback } = require('../utils/bestEffort');
 
 /** The longest answer each text-like type accepts (see formCoerce.js). */
 const TEXT_MAX_LEN = Object.freeze({ text: MAX_STRING_VALUE, email: MAX_STRING_VALUE, textarea: MAX_TEXTAREA_LEN });
@@ -79,7 +80,7 @@ function compilePattern(pattern) {
         void new RE2(pattern, 'u');
         re = new RE2(`^(?:${pattern})$`, 'u');
     } catch (err) {
-        log.debug('form pattern does not compile', { error: String(err?.message || err).slice(0, 200) });
+        fallback('automation/formFieldRules:compilePattern', err); // form pattern does not compile
     }
     if (patternCache.size >= PATTERN_CACHE_MAX) patternCache.delete(patternCache.keys().next().value);
     patternCache.set(pattern, re);

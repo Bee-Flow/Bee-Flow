@@ -14,6 +14,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** @type {((conversationId: string) => Promise<Record<string, string>>) | null} */
 let tokenMapReader = null;
@@ -77,7 +78,7 @@ function _restoreTokensInMessages(messages, convTokenMap = null) {
                 return { ...m, content: restoreTokens(m.content, userMap) };
             } catch (e) {
                 // Showing the placeholders beats failing the whole read.
-                log.debug(`[Conversations] user tokens not restored for display: ${e.message}`);
+                bestEffort('stores/agent/tokenDisplay:_restoreTokensInMessages', e); // [Conversations] user tokens not restored for display:
             }
         }
         // Assistant messages: use the conversation-level token map. Assistant
@@ -89,7 +90,7 @@ function _restoreTokensInMessages(messages, convTokenMap = null) {
             try {
                 return { ...m, content: restoreTokens(m.content, convTokenMap) };
             } catch (e) {
-                log.debug(`[Conversations] assistant tokens not restored for display: ${e.message}`);
+                bestEffort('stores/agent/tokenDisplay:_restoreTokensInMessages#2', e); // [Conversations] assistant tokens not restored for display:
             }
         }
         return m;

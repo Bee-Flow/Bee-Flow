@@ -16,6 +16,7 @@
 
 const { metrics } = require('@opentelemetry/api');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const meter = metrics.getMeter('beeflow-server', process.env.APP_BUILD_SHA || 'dev');
 
 // ── LLM ─────────────────────────────────────────────────────────────────────
@@ -152,7 +153,7 @@ try {
             obs.observe(Number(s.total) || 0, { state: 'total' });
             obs.observe(Number(s.idle) || 0, { state: 'idle' });
             obs.observe(Number(s.waiting) || 0, { state: 'waiting' });
-        } catch (err) { log.debug('db not ready yet — skip this tick', err); }
+        } catch (err) { bestEffort('telemetry/metrics:anon', err); /* db not ready yet — skip this tick */ }
     });
 
     const eldGauge = meter.createObservableGauge('nodejs.eventloop.delay', {
@@ -163,9 +164,9 @@ try {
             const { eventLoopDelayMs } = require('./httpMetrics');
             const d = eventLoopDelayMs() || {};
             for (const q of ['p50', 'p99', 'max', 'mean']) obs.observe(Number(d[q]) || 0, { quantile: q });
-        } catch (err) { log.debug('skip', err); }
+        } catch (err) { bestEffort('telemetry/metrics:anon#2', err); /* skip */ }
     });
-} catch (err) { log.debug('createObservableGauge unavailable on no-op meter — ignore', err); }
+} catch (err) { bestEffort('telemetry/metrics:anon#3', err); /* createObservableGauge unavailable on no-op meter — ignore */ }
 
 module.exports = {
     providerFromModel,

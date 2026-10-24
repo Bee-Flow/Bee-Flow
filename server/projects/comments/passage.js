@@ -30,6 +30,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const SECTION_CHARS = 6000;
 const WHOLE_ITEM_CHARS = 6000;
@@ -189,7 +190,7 @@ function sectionHtmlOf(html, sectionId, domParser) {
             if (el.getAttribute('data-doc-section') === sectionId) return el.innerHTML;
         }
     } catch (err) {
-        log.debug(`[ProjectComments] section lookup failed: ${err && err.message}`);
+        bestEffort('projects/comments/passage:sectionHtmlOf', err); // [ProjectComments] section lookup failed:
     }
     return '';
 }

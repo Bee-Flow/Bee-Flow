@@ -35,7 +35,7 @@ const HTTP_RESPONSE_CAP = 1024 * 1024;
 
 /** Cancel a body or reader we are done with; a failure to cancel changes nothing for the caller. */
 async function cancelQuietly(target) {
-    try { await target?.cancel?.(); } catch (e) { log.debug(`[httpResponseLimits] cancel failed: ${e.message}`); }
+    try { await target?.cancel?.(); } catch (e) { bestEffort('core/http/httpResponseLimits:cancelQuietly', e); /* [httpResponseLimits] cancel failed: */ }
 }
 
 // Longest UTF-8 encoding of one character. A body of at most cap*4 bytes can be

@@ -220,6 +220,8 @@ function messageOf(ts, call) {
  * @returns {Array<{ file: string, line: number, kind: string, bucket: string, reason: string, fn: string, start: number, end: number, ... }>}
  */
 export function scanText(text, file) {
+    // A generated bundle is rebuilt, not edited.
+    if (/GENERATED|do not edit/i.test(text.slice(0, 400)) && /^\s*\/[*/]/.test(text)) return [];
     const ts = loadTs();
     const sf = parse(text, file);
     const r = rel(file);
@@ -259,8 +261,8 @@ export function scanText(text, file) {
             site.reason = securityPath ? 'path' : 'try body decides access or touches personal data';
         } else if (!empty && stmts.length > 1) {
             site.reason = 'several log.debug statements';
-        } else if (!empty && !(bind && call.arguments.length >= 1 && call.arguments.some((a) => ts.isIdentifier(a) && a.text === bind))) {
-            site.reason = 'log.debug does not pass the caught error';
+        } else if (!empty && !bind) {
+            site.reason = 'log.debug in a catch without a binding';
         } else if (empty && node.block.getText(sf).replace(/\s/g, '') !== '{}') {
             site.reason = 'empty catch carrying a comment';
         } else if (EXPECTED_NOOP.test(site.msg)) {
@@ -330,42 +332,71 @@ function sanitizeLabel(s) {
     return s.replace(/[^\w/.:#$-]/g, '');
 }
 
+const helperSpec = (file, mod) => {
+    const spec = path.relative(path.dirname(file), path.join(SERVER, mod)).split(path.sep).join('/');
+    return spec.startsWith('.') ? spec : `./${spec}`;
+};
+const declFor = (spec) => {
+    const specRe = spec.replace(/[./]/g, '\\$&');
+    return new RegExp(`(const \\{)([^}]*)(\\} = require\\(['"]${specRe}['"]\\))|(import \\{)([^}]*)(\\} from ['"]${specRe}(?:\\.js)?['"])`);
+};
+
+/** helper name -> the local name it already has through an import of server/utils/<helper module> in this file. */
+function existingImports(text, file) {
+    const out = new Map();
+    for (const mod of new Set(Object.values(HELPER_MODULE))) {
+        const m = text.match(declFor(helperSpec(file, mod)));
+        if (!m) continue;
+        for (const part of (m[2] ?? m[5]).split(',').map((x) => x.trim()).filter(Boolean)) {
+            const [name, alias] = part.split(/\s*(?::|\sas\s)\s*/);
+            out.set(name, alias || name);
+        }
+    }
+    return out;
+}
+
 /** Insert (or extend) the require/import of the helpers a rewrite uses. Returns the new text, or null when unsafe. */
 function addImports(ts, text, file, sf, names, local) {
     const esm = /\.mjs$|\.mts$/.test(file) || (!/\brequire\s*\(/.test(text) && sf.statements.some((s) => ts.isImportDeclaration(s)));
-    const dir = path.dirname(file);
+    const have = existingImports(text, file);
     const byModule = new Map();
     for (const n of names) {
+        if (have.has(n)) continue;
         const mod = HELPER_MODULE[n];
         if (!byModule.has(mod)) byModule.set(mod, new Set());
         byModule.get(mod).add(n);
     }
-    let out = text;
-    const lines = [];
+    const specOf = (n) => (local(n) === n ? n : esm ? `${n} as ${local(n)}` : `${n}: ${local(n)}`);
+    const fresh = [];
+    const extend = [];
     for (const [mod, set] of byModule) {
-        let spec = path.relative(dir, path.join(SERVER, mod)).split(path.sep).join('/');
-        if (!spec.startsWith('.')) spec = `./${spec}`;
-        const already = new RegExp(`(?:require\\(|from\\s+)['"]${spec.replace(/[./]/g, '\\$&')}(?:\\.js)?['"]`).test(text);
-        if (already) return { text: null, reason: `${mod} already imported` };
-        const parts = [];
-        for (const n of set) parts.push(local(n) === n ? n : `${n}: ${local(n)}`);
-        lines.push(esm
-            ? `import { ${parts.map((p) => p.replace(': ', ' as ')).join(', ')} } from '${spec}.js';`
-            : `const { ${parts.join(', ')} } = require('${spec}');`);
+        const spec = helperSpec(file, mod);
+        if (declFor(spec).test(text)) extend.push([spec, [...set].map(specOf)]);
+        else fresh.push(esm
+            ? `import { ${[...set].map(specOf).join(', ')} } from '${spec}.js';`
+            : `const { ${[...set].map(specOf).join(', ')} } = require('${spec}');`);
     }
-    // After the last top-level require/import statement, else after the directive prologue / leading comments.
-    let at = -1;
-    for (const s of sf.statements) {
-        const t = s.getText(sf);
-        if (ts.isImportDeclaration(s) || (ts.isVariableStatement(s) && /\brequire\s*\(/.test(t) && !/=>|function/.test(t))) at = s.getEnd();
-        else if (at >= 0 && !ts.isImportDeclaration(s)) { /* keep scanning: requires may follow a statement */ }
+    let out = text;
+    if (fresh.length) {
+        // After the last top-level require/import statement, else after the directive prologue.
+        let at = -1;
+        for (const s of sf.statements) {
+            if (ts.isImportDeclaration(s) || (ts.isVariableStatement(s) && /\brequire\s*\(/.test(s.getText(sf)) && !/=>|function/.test(s.getText(sf)))) at = s.getEnd();
+        }
+        if (at >= 0) {
+            out = `${text.slice(0, at)}\n${fresh.join('\n')}${text.slice(at)}`;
+        } else {
+            const first = sf.statements.find((s) => !(ts.isExpressionStatement(s) && ts.isStringLiteral(s.expression)));
+            if (!first) return { text: null, reason: 'no insertion point' };
+            out = `${text.slice(0, first.getStart(sf))}${fresh.join('\n')}\n${text.slice(first.getStart(sf))}`;
+        }
     }
-    if (at < 0) {
-        const first = sf.statements.find((s) => !(ts.isExpressionStatement(s) && ts.isStringLiteral(s.expression)));
-        if (!first) return { text: null, reason: 'no insertion point' };
-        out = `${text.slice(0, first.getStart(sf))}${lines.join('\n')}\n${text.slice(first.getStart(sf))}`;
-    } else {
-        out = `${text.slice(0, at)}\n${lines.join('\n')}${text.slice(at)}`;
+    for (const [spec, add] of extend) {
+        const decl = declFor(spec);
+        out = out.replace(decl, (_, a1, body1, c1, a2, body2, c2) => {
+            const cur = (body1 ?? body2).split(',').map((x) => x.trim()).filter(Boolean);
+            return `${a1 ?? a2} ${[...cur, ...add].join(', ')} ${c1 ?? c2}`;
+        });
     }
     return { text: out };
 }
@@ -380,10 +411,12 @@ export function rewriteText(text, file, buckets) {
     const sf = sites[0]?.sf ?? parse(text, file);
     const used = new Set();
     // A helper name that already means something else in the file is imported under an alias, never shadowed.
+    const have = existingImports(text, file);
     const taken = new Set();
     const collect = (n) => { if (ts.isIdentifier(n)) taken.add(n.text); ts.forEachChild(n, collect); };
     collect(sf);
-    const local = (h) => (taken.has(h) ? `${h}Swallowed` : h);
+    for (const local of have.values()) taken.delete(local);
+    const local = (h) => have.get(h) ?? (taken.has(h) ? `${h}Swallowed` : h);
     const edits = [];
     const applied = [];
     const skipped = [];
@@ -631,5 +664,5 @@ async function main(argv) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-    process.exit(await main(process.argv.slice(2)));
+    process.exitCode = await main(process.argv.slice(2));
 }

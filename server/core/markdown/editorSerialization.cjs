@@ -2,7 +2,6 @@
 /* inputs-sha256: 919320bb2d9c2bcc8bd5943f6222b9c1fe0aa3f035c8500aaa2f995b0c2f3626 */
 /* inputs: ../agent-hub/src/editor/engine/doc.ts ../agent-hub/src/editor/engine/formula.ts ../agent-hub/src/editor/engine/formulaRefs.ts ../agent-hub/src/editor/engine/formulaRemap.ts ../agent-hub/src/editor/engine/inline.ts ../agent-hub/src/editor/engine/selection.ts ../agent-hub/src/editor/engine/tables.ts ../agent-hub/src/editor/model/marks.ts ../agent-hub/src/editor/model/nodes.ts ../agent-hub/src/editor/model/schema.ts ../agent-hub/src/editor/serialization/astToHtml.ts ../agent-hub/src/editor/serialization/astToMd.ts ../agent-hub/src/editor/serialization/htmlToAst.ts ../agent-hub/src/editor/serialization/index.ts ../agent-hub/src/editor/serialization/mdToAst.ts ../agent-hub/src/editor/serialization/util.ts */
 "use strict";
-const { bestEffort } = require('../../utils/bestEffort');
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -154,7 +153,8 @@ function decodeFromAttr(str) {
   try {
     const decoded = decodeURIComponent(escape(atob(str)));
     if (decoded && !decoded.includes("\uFFFD")) return decoded;
-  } catch (e) { bestEffort('core/markdown/editorSerialization:decodeFromAttr', e); }
+  } catch {
+  }
   return String(str).replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 }
 function escapeHtml(str) {

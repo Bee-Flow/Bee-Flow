@@ -12,6 +12,7 @@
  */
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const MAX_SHAPE_DEPTH = 24;
 // List elements merged into one `items` shape: enough to see optional keys
@@ -123,7 +124,7 @@ function describePayload(value, limits) {
     }
     const shape = shapeOf(value, limits, counts);
     let bytes = null;
-    try { bytes = Buffer.byteLength(JSON.stringify(value), 'utf8'); } catch (e) { log.debug(`[automations-mcp] payload size unknown (unserialisable): ${e.message}`); }
+    try { bytes = Buffer.byteLength(JSON.stringify(value), 'utf8'); } catch (e) { fallback('automation/mcpRunReadShape:describePayload', e); /* [automations-mcp] payload size unknown (unserialisable): */ }
     return { present: true, shape, counts, bytes };
 }
 

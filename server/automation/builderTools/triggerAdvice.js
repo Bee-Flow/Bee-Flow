@@ -12,6 +12,7 @@
 
 const log = require('../../telemetry/log');
 const { PUSH_PENDING } = require('../deliverableEvents');
+const { fallback } = require('../../utils/bestEffort');
 
 // Keys the rich filter DSL (triggers/dslFilters.js) adds on top of any event.
 const DSL_KEYS = ['any', 'none', 'expr', 'age'];
@@ -101,7 +102,7 @@ function appEventWarnings(appEvent) {
         const ts = require('../triggerSources');
         registryLoaded = ts.listTriggerSources().length > 0;
         source = ts.getTriggerSource(provider) || null;
-    } catch (e) { log.debug(`[triggerAdvice] trigger registry unavailable: ${e.message}`); }
+    } catch (e) { fallback('automation/builderTools/triggerAdvice:appEventWarnings', e); /* [triggerAdvice] trigger registry unavailable: */ }
     if (registryLoaded) {
         const offered = (source?.events || []).map(e => e.id);
         if (!source) {
