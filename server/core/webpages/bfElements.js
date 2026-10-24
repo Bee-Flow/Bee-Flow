@@ -845,8 +845,8 @@ function vocabularyPromptLines() {
 
 // ── de gegenereerde client-spiegel ────────────────────────────────────
 
-const CLIENT_MIRROR_BEGIN = '// >>> BF-ELEMENTS: BEGIN GEGENEREERDE SPIEGEL <<<';
-const CLIENT_MIRROR_END = '// >>> BF-ELEMENTS: EINDE GEGENEREERDE SPIEGEL <<<';
+const CLIENT_MIRROR_BEGIN = '// >>> BF-ELEMENTS: BEGIN GENERATED MIRROR <<<';
+const CLIENT_MIRROR_END = '// >>> BF-ELEMENTS: END GENERATED MIRROR <<<';
 
 /**
  * The block that belongs literally between the markers in
@@ -862,9 +862,9 @@ const CLIENT_MIRROR_END = '// >>> BF-ELEMENTS: EINDE GEGENEREERDE SPIEGEL <<<';
 function renderClientMirror() {
     return [
         CLIENT_MIRROR_BEGIN,
-        '// Gegenereerd uit server/core/webpages/bfElements.js — NIET met de hand',
-        '// bijwerken. bfElements.drift.test.js vergelijkt dit blok teken voor teken',
-        '// met renderClientMirror() en zet de vervangende tekst in zijn foutmelding.',
+        '// Generated from server/core/webpages/bfElements.js — do NOT edit by',
+        '// hand. bfElements.drift.test.js compares this block character by character',
+        '// with renderClientMirror() and puts the replacement text in its failure message.',
         `export const BF_ELEMENTS = ${JSON.stringify(BF_ELEMENTS, null, 4)};`,
         CLIENT_MIRROR_END,
     ].join('\n');

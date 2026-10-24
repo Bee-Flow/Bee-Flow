@@ -41,7 +41,7 @@ import DocumentLinkCard from '../documents/DocumentLinkCard';
  */
 const BlockLoading = ({ label }: { label: string }) => (
     <div className="my-2 flex items-center gap-3 p-4 rounded-xl bg-[var(--bg-tertiary)]">
-        <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin [border-color:var(--accent-primary)]! [border-top-color:transparent]!" />
+        <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent-primary)', borderTopColor: 'transparent' }} />
         <span className="text-sm text-[var(--text-muted)]">{label}</span>
     </div>
 );
@@ -177,7 +177,8 @@ const CollapsibleCodeBlock = ({ className, children, ...props }: import('./Markd
     if (isCompact) {
         return (
             <code
-                className="inline-code [display:inline]"
+                className="inline-code"
+                style={{ display: 'inline' }}
             >
                 {codeText}
             </code>
@@ -185,11 +186,25 @@ const CollapsibleCodeBlock = ({ className, children, ...props }: import('./Markd
     }
 
     return (
-        <div className="[border-radius:8px] [overflow:hidden] [margin:0.4rem_0] [border:1px_solid_rgba(255,255,255,0.08)] [background:#1e1e2e]">
+        <div style={{
+            borderRadius: '8px',
+            overflow: 'hidden',
+            margin: '0.4rem 0',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: '#1e1e2e',
+        }}>
             {/* Header bar */}
-            <div className="[display:flex] [align-items:center] [justify-content:space-between] [padding:4px_10px] [background:rgba(255,255,255,0.05)] [border-bottom:1px_solid_rgba(255,255,255,0.06)] [font-size:11px] [font-weight:600] [color:#94a3b8] [user-select:none]">
-                <span className="[display:flex] [align-items:center] [gap:5px]">
-                    <span className="[opacity:0.6]">●</span>
+            <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '4px 10px',
+                background: 'rgba(255,255,255,0.05)',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                fontSize: '11px', fontWeight: 600,
+                color: '#94a3b8',
+                userSelect: 'none',
+            }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <span style={{ opacity: 0.6 }}>●</span>
                     {displayLang || 'Code'}
                 </span>
                 <button
@@ -225,7 +240,7 @@ const CollapsibleCodeBlock = ({ className, children, ...props }: import('./Markd
             </div>
 
             {/* Code content */}
-            <div className="[position:relative]">
+            <div style={{ position: 'relative' }}>
                 <pre ref={codeRef} className="hljs" style={{
                     maxHeight: needsCollapse && !expanded ? `${COLLAPSE_HEIGHT}px` : 'none',
                     overflow: 'auto',
@@ -246,12 +261,24 @@ const CollapsibleCodeBlock = ({ className, children, ...props }: import('./Markd
                     )}
                 </pre>
                 {needsCollapse && !expanded && (
-                    <div className="[position:absolute] [bottom:0] [left:0] [right:0] h-[50px] [background:linear-gradient(transparent,#1e1e2e)] [pointer-events:none]" />
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: '50px',
+                        background: 'linear-gradient(transparent, #1e1e2e)',
+                        pointerEvents: 'none',
+                    }} />
                 )}
             </div>
             {needsCollapse && (
                 <button onClick={() => setExpanded((e: boolean) => !e)}
-                    className="[display:flex] [align-items:center] [gap:4px] w-[100%] [padding:3px_0] [border:none] [background:rgba(255,255,255,0.03)] [cursor:pointer] [font-size:11px] [font-weight:600] [color:var(--accent-primary)] [justify-content:center] [border-top:1px_solid_var(--border-subtle)]">
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                        width: '100%', padding: '3px 0',
+                        border: 'none', background: 'rgba(255,255,255,0.03)', cursor: 'pointer',
+                        fontSize: '11px', fontWeight: 600,
+                        color: 'var(--accent-primary)',
+                        justifyContent: 'center',
+                        borderTop: '1px solid var(--border-subtle)',
+                    }}>
                     {expanded ? '▲ Show less' : '▼ Show more'}
                 </button>
             )}
@@ -306,7 +333,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
         try {
             JSON.parse(codeString);
             return (
-                <div className="w-[100%] max-w-[100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
+                <div style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'normal', // Override parent <pre> whitespace
+                    fontFamily: 'var(--font-sans)' // Reset font from monospace
+                }}>
                     <PageRenderer
                         code={codeString}
                         // Stub handler: page actions have no chat-side behavior yet;
@@ -337,7 +370,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
         try {
             const researchData = JSON.parse(codeString);
             return (
-                <div className="w-[100%] max-w-[100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
+                <div style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'normal',
+                    fontFamily: 'var(--font-sans)'
+                }}>
                     <ResearchRenderer data={researchData} />
                 </div>
             );
@@ -362,7 +401,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
         try {
             const testData = JSON.parse(codeString);
             return (
-                <div className="w-[100%] max-w-[100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
+                <div style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'normal',
+                    fontFamily: 'var(--font-sans)'
+                }}>
                     <TestReportRenderer data={testData} />
                 </div>
             );
@@ -388,7 +433,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
         try {
             JSON.parse(codeString);
             return (
-                <div className="w-[100%] max-w-[100%] [overflow:visible] [white-space:normal] [font-family:var(--font-sans)]">
+                <div style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'visible',
+                    whiteSpace: 'normal',
+                    fontFamily: 'var(--font-sans)'
+                }}>
                     <Suspense fallback={null}><VegaLiteRenderer spec={codeString} /></Suspense>
                 </div>
             );
@@ -410,7 +461,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
             );
         }
         return (
-            <div className="w-[100%] max-w-[100%] [overflow:visible] [white-space:normal] [font-family:var(--font-sans)]">
+            <div style={{
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'visible',
+                whiteSpace: 'normal',
+                fontFamily: 'var(--font-sans)'
+            }}>
                 <Suspense fallback={null}><MermaidRenderer code={codeString} /></Suspense>
             </div>
         );
@@ -430,7 +487,13 @@ const CodeRenderer = ({ node, className, children, isLoading = false, ...props }
         try {
             const mapData = JSON.parse(codeString);
             return (
-                <div className="w-[100%] max-w-[100%] [overflow:hidden] [white-space:normal] [font-family:var(--font-sans)]">
+                <div style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'normal',
+                    fontFamily: 'var(--font-sans)'
+                }}>
                     <MapEmbedRenderer
                         embedUrl={mapData.embedUrl}
                         title={mapData.title || 'Map'}

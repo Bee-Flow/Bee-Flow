@@ -57,9 +57,9 @@ export interface BfElementDef {
 }
 
 // >>> BF-ELEMENTS: BEGIN GENERATED MIRROR <<<
-// Generated from server/core/webpages/bfElements.js — do NOT update by hand.
-// bfElements.drift.test.js compares this block character for character
-// with renderClientMirror() and puts the replacement text in its error message.
+// Generated from server/core/webpages/bfElements.js — do NOT edit by
+// hand. bfElements.drift.test.js compares this block character by character
+// with renderClientMirror() and puts the replacement text in its failure message.
 export const BF_ELEMENTS = [
     {
         "tag": "bf-table",
@@ -330,4 +330,4 @@ export const BF_ELEMENTS = [
         }
     }
 ];
-// >>> BF-ELEMENTS: EINDE GEGENEREERDE SPIEGEL <<<
+// >>> BF-ELEMENTS: END GENERATED MIRROR <<<
