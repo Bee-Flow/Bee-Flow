@@ -56,7 +56,7 @@ export default function PublicFormTab({ publicUrl, onOpenSettings, onCopied, tes
         <div className="flex flex-col gap-3 max-w-[720px]" data-testid={testId}>
             <div className={CARD}>
                 <div className="flex items-center gap-2">
-                    <Globe size={14} aria-hidden="true" style={{ color: 'var(--kind-compliance)' }} />
+                    <Globe size={14} aria-hidden="true" className="[color:var(--kind-compliance)]" />
                     <span className="font-semibold text-[13px]">{t('compliance.dsr_pf_title', 'Public request form')}</span>
                 </div>
                 <p className="m-0 text-[12px] text-[var(--text-secondary)] leading-5">
@@ -86,7 +86,7 @@ export default function PublicFormTab({ publicUrl, onOpenSettings, onCopied, tes
                         <dt className="font-medium">{t('compliance.dsr_pf_identity_title', 'Identity via e-mail link')}</dt>
                         <dd className="m-0 text-[var(--text-secondary)]">{t('compliance.dsr_pf_identity_body', 'The acknowledgement e-mail carries a single-use link (valid 7 days). Clicking it marks the request "identity confirmed" — nothing is sent to the address before that.')}</dd>
                     </div>
-                    <ShieldCheck size={14} aria-hidden="true" className="mt-0.5" style={{ color: 'var(--kind-compliance)' }} />
+                    <ShieldCheck size={14} aria-hidden="true" className="mt-0.5 [color:var(--kind-compliance)]" />
                     <div>
                         <dt className="font-medium">{t('compliance.dsr_pf_privacy_title', 'What the form stores')}</dt>
                         <dd className="m-0 text-[var(--text-secondary)]">{t('compliance.dsr_pf_privacy_body', 'E-mail address, kind of request and the free-text note. The register shows the address masked; the full address is visible only to the DPO and the handler.')}</dd>

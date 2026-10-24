@@ -447,7 +447,7 @@ function PersonalNotice({ t, canMove, onMove, busy }: PersonalNoticeProps) {
             data-testid="kb-personal-notice"
         >
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
-                <Building2 style={{ width: 14, height: 14 }} aria-hidden="true" />
+                <Building2 className="w-[14px] h-[14px]" aria-hidden="true" />
                 {t('knowledge.settings.personal_title', 'Personal — only you can see this')}
             </div>
             <p className="text-[11px] text-[var(--text-tertiary)]">

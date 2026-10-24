@@ -101,7 +101,7 @@ function OwnCodeCard({ t, call, onNavigate }: OwnCodeCardProps) {
     return (
         <Card tone="warning">
             <div className="flex items-center gap-2 flex-wrap">
-                <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />
+                <AlertTriangle size={14} className="[color:var(--warning)]" />
                 <span className="text-sm font-medium">{call.host}</span>
                 <Chip label={t('webpages.actions.own_code', 'Does something in its own code')} tone="muted" dashed />
             </div>
@@ -166,7 +166,7 @@ function OwnCodeSection({ t, code, onNavigate, onRetry }: OwnCodeSectionProps) {
         return (
             <Card tone="warning">
                 <div className="flex items-center gap-2">
-                    <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />
+                    <AlertTriangle size={14} className="[color:var(--warning)]" />
                     <span className="text-sm font-medium">
                         {t('webpages.actions.code_unreadable', 'This page\'s own code could not be read')}
                     </span>
@@ -235,7 +235,7 @@ function FormsCard({ t, forms, uses, elements, onNavigate }: FormsCardProps) {
     return (
         <Card>
             <div className="flex items-center gap-2">
-                <FileText size={14} style={{ color: 'var(--kind-kb)' }} />
+                <FileText size={14} className="[color:var(--kind-kb)]" />
                 <span className="text-sm font-medium">{t('webpages.actions.forms', 'Forms and buttons')}</span>
             </div>
             {!scanned ? (
@@ -289,7 +289,7 @@ function AgentCard({ t, agent }: AgentCardProps) {
     return (
         <Card>
             <div className="flex items-center gap-2 flex-wrap">
-                <Sparkles size={14} style={{ color: 'var(--type-ai, #8b5cf6)' }} />
+                <Sparkles size={14} className="[color:var(--type-ai,#8b5cf6)]" />
                 <span className="text-sm font-medium">{t('webpages.actions.agent', 'Agent on this page')}</span>
                 <Chip label={t('webpages.actions.agent_internal_only', 'Signed-in readers only')} tone="muted" />
             </div>

@@ -136,13 +136,7 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }: 
                 <div
                     role="dialog"
                     aria-label={t('studio_apps_runtime.view_menu.settings', 'Table view settings')}
-                    className="absolute right-0 z-20 mt-1 flex flex-col gap-3 border p-3 shadow-lg"
-                    style={{
-                        background: 'var(--bg-card)',
-                        borderColor: 'var(--border-default)',
-                        borderRadius: 'var(--app-radius)',
-                        minWidth: 260,
-                    }}
+                    className="absolute right-0 z-20 mt-1 flex flex-col gap-3 border p-3 shadow-lg [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] min-w-[260px]"
                 >
                     {LABEL_KEYS.map((key) => (
                         <Segmented key={key} groupKey={key} value={view[key]} onChange={(v) => onChange(key, v)} />

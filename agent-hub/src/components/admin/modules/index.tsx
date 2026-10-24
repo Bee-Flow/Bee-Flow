@@ -89,7 +89,7 @@ export default function ModulesPanel() {
             {/* Header */}
             <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                    <Boxes className="w-5 h-5" style={{ color: '#f59e0b' }} />
+                    <Boxes className="w-5 h-5 [color:#f59e0b]" />
                     {t('modules.title')}
                     {importedCount > 0 && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">

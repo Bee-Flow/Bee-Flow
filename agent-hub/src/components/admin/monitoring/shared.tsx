@@ -172,7 +172,7 @@ export function MetricCard({ icon: Icon, label, value, color, subtitle, delta, d
             <div className="[display:flex] [align-items:center] [gap:6px] min-h-[16px]">
                 {delta != null && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '11px', fontWeight: 600, color: deltaColor }}>
-                        <DeltaIcon style={{ width: 12, height: 12 }} />
+                        <DeltaIcon className="w-[12px] h-[12px]" />
                         {fmtPct(delta)}
                     </span>
                 )}
@@ -358,7 +358,7 @@ function FilterSelect({ icon: Icon, value, onChange, options, placeholder }: Fil
                 color: value ? COLORS.primary : 'var(--text-secondary, #aaa)',
                 transition: 'all 0.15s ease',
             }}>
-                {Icon && <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />}
+                {Icon && <Icon className="w-[12px] h-[12px] [flex-shrink:0]" />}
                 <select
                     value={value || ''}
                     onChange={(e) => onChange(e.target.value || null)}
@@ -367,7 +367,7 @@ function FilterSelect({ icon: Icon, value, onChange, options, placeholder }: Fil
                     <option value="">{placeholder}</option>
                     {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <ChevronDown style={{ width: 11, height: 11, position: 'absolute', right: 8, pointerEvents: 'none', opacity: 0.5 }} />
+                <ChevronDown className="w-[11px] h-[11px] [position:absolute] [right:8px] [pointer-events:none] [opacity:0.5]" />
             </div>
         </div>
     );
@@ -380,7 +380,7 @@ export function FilterBar({ filters, setFilters, userOptions = [], agentOptions 
     return (
         <div className="[display:flex] [align-items:center] [gap:6px] [flex-wrap:wrap] [padding:8px_12px] [border-radius:10px] [background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [margin-bottom:16px]">
             <div className="[display:flex] [align-items:center] [gap:4px] [margin-right:4px]">
-                <Filter style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                <Filter className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                 <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted,#888)] [text-transform:uppercase] [letter-spacing:0.05em]">{t('admin_monitoring.shared_filters', 'Filters')}</span>
             </div>
             <FilterSelect icon={Users} value={filters.user} onChange={v => setFilters(f => ({ ...f, user: v }))} options={userOptions} placeholder={t('admin_monitoring.shared_all_users', 'All Users')} />
@@ -389,7 +389,7 @@ export function FilterBar({ filters, setFilters, userOptions = [], agentOptions 
             <FilterSelect icon={Activity} value={filters.source} onChange={v => setFilters(f => ({ ...f, source: v }))} options={sourceOptions} placeholder={t('admin_monitoring.all_sources', 'All Sources')} />
             {hasFilters && (
                 <button onClick={clear} className="[display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px] [border:none] [background:var(--bg-tertiary,rgba(255,255,255,0.04))] [font-size:10px] [font-weight:600] [color:var(--text-muted,#888)] [cursor:pointer]">
-                    <X style={{ width: 10, height: 10 }} /> {t('admin_monitoring.shared_clear', 'Clear')}
+                    <X className="w-[10px] h-[10px]" /> {t('admin_monitoring.shared_clear', 'Clear')}
                 </button>
             )}
         </div>

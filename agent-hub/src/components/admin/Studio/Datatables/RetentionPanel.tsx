@@ -139,9 +139,8 @@ export default function RetentionPanel({ table, canEdit, columns = [], onChanged
     return (
         <div className="space-y-3">
             {managed && (
-                <p className="flex items-start gap-2 text-xs"
-                    style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                    <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                <p className="flex items-start gap-2 text-xs [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
+                    <ShieldAlert className="w-3.5 h-3.5 mt-0.5 shrink-0 [color:var(--warning)]" aria-hidden="true" />
                     {/* The same sentence managedTables.js MANAGED_KINDS
                         .http_cache.warning states on create, kept as a
                         translated key so a Dutch workspace reads it in Dutch —

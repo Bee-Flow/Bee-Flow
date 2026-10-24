@@ -90,7 +90,7 @@ function TableCard({ t, table }: TableCardProps) {
     return (
         <Card>
             <div className="flex items-center gap-2 flex-wrap">
-                <Table2 size={14} style={{ color: 'var(--type-data, #10b981)' }} />
+                <Table2 size={14} className="[color:var(--type-data,#10b981)]" />
                 <span className="text-sm font-medium">{table.name || table.datatableId}</span>
                 <Chip
                     label={table.mode === 'readwrite'
@@ -124,7 +124,7 @@ function AutomationCard({ t, automation }: AutomationCardProps) {
     return (
         <Card>
             <div className="flex items-center gap-2 flex-wrap">
-                <Workflow size={14} style={{ color: 'var(--type-trigger)' }} />
+                <Workflow size={14} className="[color:var(--type-trigger)]" />
                 <span className="text-sm font-medium">
                     {automation.title || t('webpages.data.automation_untitled', 'Untitled automation')}
                 </span>
@@ -166,7 +166,7 @@ function WarningCard({ t, warning, onNavigate }: WarningCardProps) {
     return (
         <Card tone="warning">
             <div className="flex items-start gap-2">
-                <AlertTriangle size={14} style={{ color: 'var(--warning)', marginTop: 2 }} />
+                <AlertTriangle size={14} className="[color:var(--warning)] [margin-top:2px]" />
                 <div className="flex-1">
                     <p className="text-sm">
                         {t('webpages.data.warn_writes_directly',
@@ -200,7 +200,7 @@ function KnowledgeCard({ t, sources }: KnowledgeCardProps) {
     return (
         <Card>
             <div className="flex items-center gap-2">
-                <FileText size={14} style={{ color: 'var(--kind-kb)' }} />
+                <FileText size={14} className="[color:var(--kind-kb)]" />
                 <span className="text-sm font-medium">{t('webpages.data.knowledge', 'Knowledge sources')}</span>
             </div>
             <div className="text-[11px] text-[var(--text-secondary)]">

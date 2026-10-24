@@ -36,8 +36,7 @@ export default function NewDatatableFooter({ nextcloud, spreadsheet, effectiveKe
                     </>
                 )}
             </span>
-            <button type="button" onClick={onClose} className={`${BTN} border`}
-                style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+            <button type="button" onClick={onClose} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                 {t('datatables.cancel', 'Cancel')}
             </button>
             {/* type=button + the same handler, not a form-associated

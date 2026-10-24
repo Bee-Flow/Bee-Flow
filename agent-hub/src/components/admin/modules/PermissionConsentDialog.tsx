@@ -41,7 +41,7 @@ export default function PermissionConsentDialog({ module, permissions, mode = 'i
             zIndex={60}
             title={
                 <span className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4" style={{ color: '#f59e0b' }} aria-hidden="true" />
+                    <ShieldCheck className="w-4 h-4 [color:#f59e0b]" aria-hidden="true" />
                     {title}
                 </span>
             }

@@ -172,14 +172,12 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
         <div className="space-y-3.5">
             {confirmDialog}
             {answers ? (
-                <p className="text-xs flex items-start gap-2"
-                    style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                <p className="text-xs flex items-start gap-2 [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
                     <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                     <span>{t('datatables.frm_columns_locked', 'These columns are the questions on the form. Add, rename or remove questions on the form — the table follows. A column whose question was removed stays here, marked “no longer on the form”, and can be removed from this tab.')}</span>
                 </p>
             ) : schemaLocked ? (
-                <p className="text-xs flex items-start gap-2"
-                    style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                <p className="text-xs flex items-start gap-2 [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
                     <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                     <span>{t('datatables.src_columns_locked', 'These columns come from {source} and cannot be added to, removed, renamed or retyped here. Change them in {source} — the next refresh brings them here.', { source: sourceName })}</span>
                 </p>
@@ -193,8 +191,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
             )}
 
             {managedKind && canEdit && (
-                <p className="text-xs flex items-start gap-2"
-                    style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                <p className="text-xs flex items-start gap-2 [padding:8px_12px] [border-radius:8px] [background:var(--bg-secondary)] [color:var(--text-secondary)]!">
                     <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
                     <span>{t('datatables.columns_managed', 'The locked columns are filled in automatically and cannot be removed, renamed or retyped. Columns of your own can be added alongside them.')}</span>
                 </p>
@@ -288,13 +285,12 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
 
             {canEdit && (
                 <button type="button" onClick={add}
-                    className="text-xs inline-flex items-center gap-1.5 rounded px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                    style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    className="text-xs inline-flex items-center gap-1.5 rounded px-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
                     <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.column_add', 'Add a column')}
                 </button>
             )}
             {canEdit && fields.length > 1 && (
-                <p className="text-xs m-0" style={{ color: 'var(--text-tertiary)', lineHeight: '18px' }} data-testid="columns-hint">
+                <p className="text-xs m-0 [color:var(--text-tertiary)]! [line-height:18px]" data-testid="columns-hint">
                     {t('datatables.columns_hint', 'Drag the handle to reorder. Columns an automation writes to are marked; removing one breaks that step until you fix it there.')}
                 </p>
             )}
@@ -322,13 +318,11 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
             </div>
 
             {canEdit && dirty && (
-                <div className="sticky bottom-0 flex items-center gap-2 py-3 -mx-1 px-1"
-                    style={{ background: 'var(--bg-primary)', borderTop: '1px solid var(--border-default)' }}>
+                <div className="sticky bottom-0 flex items-center gap-2 py-3 -mx-1 px-1 [background:var(--bg-primary)] [border-top:1px_solid_var(--border-default)]">
                     <span className="text-xs mr-auto text-[var(--text-tertiary)]">
                         {t('datatables.columns_unsaved', 'Unsaved column changes')}
                     </span>
-                    <button type="button" onClick={() => setFields(saved)} className={`${BTN} border`}
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={() => setFields(saved)} className={`${BTN} border [border-color:var(--border-default)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         {t('datatables.discard', 'Discard')}
                     </button>
                     <button
@@ -506,8 +500,7 @@ function ColumnRow({
                         onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', label); } catch (err) { logger.debug('jsdom', err); } drag.start(); }}
                         onDragEnd={drag.end}
                         onKeyDown={onHandleKey}
-                        className="grid place-items-center w-6 h-6 rounded cursor-grab active:cursor-grabbing focus-visible:outline focus-visible:outline-2"
-                        style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}
+                        className="grid place-items-center w-6 h-6 rounded cursor-grab active:cursor-grabbing focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
                         aria-label={t('datatables.column_reorder', 'Reorder {name} — drag, or use the arrow keys', { name: label })}
                         title={t('datatables.column_reorder_hint', 'Drag to reorder · ↑ ↓')}
                         data-testid="column-grip"
@@ -515,8 +508,7 @@ function ColumnRow({
                         <GripVertical className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                 ) : (
-                    <GripVertical className="w-3.5 h-3.5 justify-self-center" aria-hidden="true"
-                        style={{ color: 'var(--text-tertiary)', opacity: 0.25 }} />
+                    <GripVertical className="w-3.5 h-3.5 justify-self-center [color:var(--text-tertiary)] [opacity:0.25]" aria-hidden="true" />
                 )}
 
                 <span className="min-w-0 flex items-center gap-2">
@@ -533,8 +525,7 @@ function ColumnRow({
                             onChange(field.key ? { name } : { name, key: keyFromName(name) });
                         }}
                         placeholder={t('datatables.column_name', 'Column name')}
-                        className="min-w-0 flex-1 bg-transparent text-sm font-medium rounded px-1 -mx-1 border border-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-100"
-                        style={{ color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' }}
+                        className="min-w-0 flex-1 bg-transparent text-sm font-medium rounded px-1 -mx-1 border border-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 disabled:opacity-100 [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                     />
                     {marked.length > 0 && (
                         <Tooltip content={<UsageSummary t={t} readers={readers} />}>
@@ -552,7 +543,7 @@ function ColumnRow({
                 </span>
 
                 {field.type === 'relation' ? (
-                    <span className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs border" style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', opacity: 0.6 }}>
+                    <span className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs border [border-color:var(--border-default)] [color:var(--text-primary)]! [opacity:0.6]">
                         <ColumnKindIcon kind="relation" size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
                         <span className="truncate">{kindWord(t, 'relation')}</span>
                     </span>
@@ -569,16 +560,14 @@ function ColumnRow({
                 {needsOptions ? (
                     <span className="flex items-center gap-1 min-w-0 overflow-hidden" data-testid="column-options">
                         {options.slice(0, 6).map(o => (
-                            <span key={o} className="text-[11px] whitespace-nowrap shrink-0"
-                                style={{ padding: '2px 7px', borderRadius: 999, background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' }}>
+                            <span key={o} className="text-[11px] whitespace-nowrap shrink-0 [padding:2px_7px] [border-radius:999px] [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)] [color:var(--text-primary)]!">
                                 {o}
                             </span>
                         ))}
                         {options.length > 6 && <span className="text-[11px] shrink-0 text-[var(--text-tertiary)]">+{options.length - 6}</span>}
                         {editable && (
                             <button type="button" onClick={() => setOptionsOpen(o => !o)} aria-expanded={optionsOpen}
-                                className="grid place-items-center shrink-0 rounded-full focus-visible:outline focus-visible:outline-2"
-                                style={{ width: 22, height: 22, border: '1px dashed var(--border-default)', color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}
+                                className="grid place-items-center shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 w-[22px] h-[22px] [border:1px_dashed_var(--border-default)] [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
                                 aria-label={t('datatables.column_options_edit', 'Edit the choices of {name}', { name: label })}
                                 data-testid="column-options-edit">
                                 {optionsOpen ? <X className="w-[11px] h-[11px]" aria-hidden="true" /> : <Plus className="w-[11px] h-[11px]" aria-hidden="true" />}
@@ -595,10 +584,9 @@ function ColumnRow({
 
                 <span className="justify-self-end">
                     {onRemoveRetired ? (
-                        <button type="button" onClick={onRemoveRetired} className="p-1 rounded focus-visible:outline focus-visible:outline-2"
+                        <button type="button" onClick={onRemoveRetired} className="p-1 rounded focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
                             aria-label={t('datatables.frm_remove_retired', 'Remove {name}', { name: label })}
-                            title={t('datatables.frm_remove_retired', 'Remove {name}', { name: label })}
-                            style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }} data-testid="remove-retired">
+                            title={t('datatables.frm_remove_retired', 'Remove {name}', { name: label })} data-testid="remove-retired">
                             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                     ) : (canEdit || ncColumn) && (locked ? (
@@ -607,9 +595,8 @@ function ColumnRow({
                             <span className="sr-only">{t('datatables.column_locked', 'Filled in automatically — this column cannot be removed, renamed or retyped.')}</span>
                         </span>
                     ) : (
-                        <button type="button" onClick={onRemove} className="p-1 rounded focus-visible:outline focus-visible:outline-2"
-                            aria-label={t('datatables.column_remove_named', 'Remove {name}', { name: label })}
-                            style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}>
+                        <button type="button" onClick={onRemove} className="p-1 rounded focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
+                            aria-label={t('datatables.column_remove_named', 'Remove {name}', { name: label })}>
                             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                     ))}
@@ -617,24 +604,20 @@ function ColumnRow({
             </div>
 
             {hint && (
-                <div className="text-[11px] truncate" style={{ color: 'var(--text-tertiary)', padding: '0 14px 8px 50px', marginTop: -4 }}>
+                <div className="text-[11px] truncate [color:var(--text-tertiary)]! [padding:0_14px_8px_50px] [margin-top:-4px]">
                     {hint}
                 </div>
             )}
 
             {needsOptions && (optionsOpen || (editable && options.length === 0)) && (
-                <div className="pb-2.5 -mt-1" style={{ padding: '0 14px 10px 50px' }}>
+                <div className="pb-2.5 -mt-1 [padding:0_14px_10px_50px]!">
                     <input
                         value={(field.options || []).join(', ')}
                         disabled={!editable}
                         aria-label={t('datatables.column_options', 'Options for {name}', { name: label })}
                         onChange={(e) => onChange({ options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                         placeholder={t('datatables.column_options_ph', 'Option one, Option two, Option three')}
-                        className="w-full px-2 py-1 rounded text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                        style={{
-                            background: 'var(--bg-primary)', borderColor: 'var(--border-default)',
-                            color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)',
-                        }}
+                        className="w-full px-2 py-1 rounded text-xs border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]! [outline-color:var(--accent-primary)]!"
                     />
                 </div>
             )}
@@ -657,7 +640,7 @@ function DestructiveConfirm({ t, changes, rowCount, usage, busy, onCancel, onCon
             size="md"
             title={
                 <span className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--error)' }} aria-hidden="true" />
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 [color:var(--error)]" aria-hidden="true" />
                     {t('datatables.destructive_title', 'This throws away data')}
                 </span>
             }
@@ -683,13 +666,11 @@ function DestructiveConfirm({ t, changes, rowCount, usage, busy, onCancel, onCon
                     </p>
                 )}
                 <div className="flex justify-end gap-2 pt-1">
-                    <button type="button" onClick={onCancel} className={`${BTN} border`}
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={onCancel} className={`${BTN} border [border-color:var(--border-default)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         {t('datatables.destructive_keep', 'Keep them')}
                     </button>
                     <button type="button" onClick={onConfirm} disabled={busy}
-                        className={`${BTN} font-medium text-white disabled:opacity-50 inline-flex items-center gap-1.5`}
-                        style={{ background: 'var(--error)', outlineColor: 'var(--error)' }}>
+                        className={`${BTN} font-medium text-white disabled:opacity-50 inline-flex items-center gap-1.5 [background:var(--error)] [outline-color:var(--error)]`}>
                         {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />}
                         {t('datatables.destructive_confirm', 'Save anyway')}
                     </button>

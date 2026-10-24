@@ -36,20 +36,7 @@ vi.mock('../../../../hooks/useStudioCounts', async (importOriginal) => {
     };
 });
 
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let value = typeof fallback === 'string' ? fallback : key;
-            const p = typeof fallback === 'string' ? params : fallback;
-            if (p && typeof p === 'object') {
-                for (const [k, v] of Object.entries(p)) value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-            }
-            return value;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import { MAP_BLOCKS, MAP_EDGES, edgesOf, scopeSentence } from './studioMap';
 import StudioMap from './StudioMap';

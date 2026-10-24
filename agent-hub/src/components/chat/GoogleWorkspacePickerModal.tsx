@@ -188,7 +188,7 @@ const GoogleWorkspacePickerModal = ({
                         {/* Search bar */}
                         <div className="px-4 py-3 [border-bottom:1px_solid_#e0e0e0] [background:#f8f9fa]">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: '#9aa0a6' }} />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 [color:#9aa0a6]" />
                                 {/* Takes the focus as it mounts, on open or once the
                                     account connects; Modal leaves it there. */}
                                 <input
@@ -197,13 +197,7 @@ const GoogleWorkspacePickerModal = ({
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     placeholder={searchPlaceholder}
-                                    className={`w-full pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 ${searchFocusRingClass} transition-all`}
-                                    style={{
-                                        background: '#fff',
-                                        border: '1px solid #dfe1e5',
-                                        color: '#202124',
-                                        fontSize: '14px',
-                                    }}
+                                    className={`w-full pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 ${searchFocusRingClass} transition-all [background:#fff] [border:1px_solid_#dfe1e5] [color:#202124]! [font-size:14px]!`}
                                 />
                             </div>
                         </div>

@@ -141,8 +141,7 @@ export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpa
                 align="left"
                 width={240}
                 role="menu"
-                className="p-2"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="p-2 [background:var(--bg-card)]! [border-color:var(--border-default)]! [color:var(--text-primary)]!"
             >
                 <button
                     type="button"
@@ -150,7 +149,7 @@ export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpa
                     onClick={confirmMark}
                     className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium hover:bg-[var(--bg-tertiary)]"
                 >
-                    <Plus className="w-3.5 h-3.5" style={{ color: 'var(--pii-cat-8)' }} />
+                    <Plus className="w-3.5 h-3.5 [color:var(--pii-cat-8)]" />
                     {t('dlp.mark_as_pii', 'Mark as personal data')}
                 </button>
             </AnchoredMenu>
@@ -163,8 +162,7 @@ export default function DlpHighlightedText({ text, spans, onAddSpan, onRemoveSpa
                 align="left"
                 width={220}
                 role="menu"
-                className="p-2 space-y-2"
-                style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                className="p-2 space-y-2 [background:var(--bg-card)]! [border-color:var(--border-default)]! [color:var(--text-primary)]!"
             >
                 {openSpan && (
                     <>

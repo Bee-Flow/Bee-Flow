@@ -85,7 +85,7 @@ function RowLine({ row: r, columns, pages, writes, table, mirror, canWrite, rete
         return next;
     });
     return (
-        <tr style={{ borderTop: '1px solid var(--border-default)' }}>
+        <tr className="[border-top:1px_solid_var(--border-default)]">
             {canWrite && (
                 <td className="px-3 py-2.5 align-top">
                     <input
@@ -184,8 +184,7 @@ export default function RowsTable({ pages, writes, table, mirror, canWrite, full
             </table>
             {fullPage && canWrite && !writes.adding && (
                 <button type="button" onClick={() => { writes.setAdding(true); writes.setImporting(false); }}
-                    className="w-full text-left text-xs font-medium inline-flex items-center gap-1.5 px-4 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px]"
-                    style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }} data-testid="rows-add-ghost">
+                    className="w-full text-left text-xs font-medium inline-flex items-center gap-1.5 px-4 py-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!" data-testid="rows-add-ghost">
                     <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.add_row', 'Add a row')}
                 </button>
             )}

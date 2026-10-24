@@ -28,26 +28,7 @@ vi.mock('../../../../../utils/helpers', () => ({
     authFetch: vi.fn(),
 }));
 
-vi.mock('../../../../../hooks/useTranslation', () => ({
-    // Mirrors the real `t(key, fallbackOrParams?, params?)`, INCLUDING `{x}`
-    // interpolation. A mock that drops the params renders raw "{n}"
-    // placeholders, so any assertion on a sentence that counts something
-    // tests the mock rather than the screen.
-    useTranslation: () => ({
-        t: (key, fallbackOrParams, paramsArg) => {
-            const hasStringFallback = typeof fallbackOrParams === 'string';
-            const params = hasStringFallback ? paramsArg : fallbackOrParams;
-            let out = hasStringFallback ? fallbackOrParams : key;
-            if (params && typeof params === 'object') {
-                for (const [k, v] of Object.entries(params)) {
-                    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), () => String(v));
-                }
-            }
-            return out;
-        },
-    }),
-    __esModule: true,
-}));
+vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 vi.mock('../../../../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ tier: 'enterprise', hasFeature: () => true, hasTier: () => true }),

@@ -73,7 +73,7 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
                 <div className="flex items-start gap-3">
                     {stopped
                         ? <Square className="w-6 h-6 mt-0.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
-                        : <CheckCircle2 className="w-6 h-6 mt-0.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />}
+                        : <CheckCircle2 className="w-6 h-6 mt-0.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />}
                     <div className="min-w-0">
                         <h2 className="font-semibold" style={{ fontSize: presenter ? 22 : 18, color: 'var(--text-primary)' }}>
                             {stopped ? t('playbooks.done.stopped_title', 'Stopped — this is what landed') : t('playbooks.done.title', '{title} is ready', { title: playbook.title })}
@@ -99,7 +99,7 @@ export default function DoneCard({ playbook, onNavigate, onBack, onResume = null
 
                 {access && access.artifacts && access.artifacts.accessApplied && (
                     <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]" data-testid="playbook-done-access">
-                        <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--kind-playbook)' }} aria-hidden="true" />
+                        <ShieldCheck className="w-3.5 h-3.5 shrink-0 [color:var(--kind-playbook)]" aria-hidden="true" />
                         {access.summary || t('playbooks.fact.access', 'Access set')}
                     </p>
                 )}

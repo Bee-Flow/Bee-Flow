@@ -11,15 +11,7 @@ import DeadlinesCardJs, { URGENT_BELOW_MS } from './DeadlinesCard';
  * identical "no open vulnerability" rows, and a subject kind printed as if it
  * were an identifier ("training · Annual refresher").
  */
-vi.mock('../../../../../hooks/useTranslation', () => {
-    const t = (key: string, fallback?: unknown, vars?: Record<string, unknown>) => {
-        let s = typeof fallback === 'string' ? fallback : key;
-        for (const [k, v] of Object.entries(vars || {})) s = s.split(`{${k}}`).join(String(v));
-        return s;
-    };
-    const hook = () => ({ t, locale: 'en', resolvedLocale: 'en' });
-    return { useTranslation: hook, default: hook };
-});
+vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 interface DeadlineItem {
     id: string; kind: string; ref?: string; title?: string; meta?: { article?: string | null };

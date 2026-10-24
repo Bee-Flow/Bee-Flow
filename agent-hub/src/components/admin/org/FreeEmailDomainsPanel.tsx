@@ -131,7 +131,7 @@ export default function FreeEmailDomainsPanel() {
             )}
 
             <div className="[display:flex] [align-items:center] [gap:0.6rem] [margin-bottom:0.35rem]">
-                <AtSign size={20} style={{ color: '#8b5cf6' }} />
+                <AtSign size={20} className="[color:#8b5cf6]" />
                 <h2 className="[font-size:1.15rem] [font-weight:600] [margin:0]">
                     {t('admin.fed_title', 'Free email-provider domains')}
                 </h2>

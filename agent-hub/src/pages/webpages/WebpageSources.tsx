@@ -105,16 +105,16 @@ function SourceCard({ source, onDelete, onRetry, onCancel }: SourceCardProps) {
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
                 {canRetry && (
                     <button onClick={() => onRetry(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.knowledge.retry', 'Retry')}>
-                        <RotateCw className="w-3 h-3" style={{ color: '#3b82f6' }} />
+                        <RotateCw className="w-3 h-3 [color:#3b82f6]" />
                     </button>
                 )}
                 {isProcessing && (
                     <button onClick={() => onCancel(source.id)} className="p-1 rounded hover:bg-white/40" title={t('common.cancel', 'Cancel')}>
-                        <XCircle className="w-3 h-3" style={{ color: '#92400e' }} />
+                        <XCircle className="w-3 h-3 [color:#92400e]" />
                     </button>
                 )}
                 <button onClick={() => onDelete(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.card.delete', 'Delete')}>
-                    <Trash2 className="w-3 h-3" style={{ color: '#ef4444' }} />
+                    <Trash2 className="w-3 h-3 [color:#ef4444]" />
                 </button>
             </div>
         </div>

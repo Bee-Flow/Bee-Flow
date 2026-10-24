@@ -9,7 +9,7 @@ export function SupportFollowupBanner({ thread, onClear }: { thread: SupportThre
     return (
         <div className="px-4 py-2 border-b flex items-center justify-between gap-3 [border-color:var(--border-default)]! [background:rgba(245,158,11,0.10)]">
             <div className="flex items-start gap-2 min-w-0 text-xs">
-                <BellRing className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: '#b45309' }} />
+                <BellRing className="w-3.5 h-3.5 mt-0.5 shrink-0 [color:#b45309]" />
                 <span className="text-[var(--text-primary)]">
                     <strong>{t('support.support_inbox_needs_a_follow_up', 'Needs a follow-up.')}</strong> {thread.followup_reason}
                     <span className="text-[var(--text-muted)]"> {t('support.support_inbox_the_customer_has_not_been_told', '— the customer has not been told.')}</span>

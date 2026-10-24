@@ -226,7 +226,7 @@ function PageRail({
             <div className="[display:flex] [gap:6px]">
                 {MODES.map(m => (
                     <button key={m.id} onClick={() => onSelectMode(m.id)} style={chipStyle(mode === m.id)}>
-                        <m.icon style={{ width: 12, height: 12 }} /> {t(m.labelKey, m.label)}
+                        <m.icon className="w-[12px] h-[12px]" /> {t(m.labelKey, m.label)}
                     </button>
                 ))}
             </div>
@@ -270,7 +270,7 @@ function PageRail({
                         </div>
 
                         <a href={urlPath} target="_blank" rel="noreferrer" style={linkStyle}>
-                            {t('cms_site.analytics.heatmap.open_live', 'Open live page')} <ExternalLink style={{ width: 11, height: 11 }} />
+                            {t('cms_site.analytics.heatmap.open_live', 'Open live page')} <ExternalLink className="w-[11px] h-[11px]" />
                         </a>
                     </div>
                 )}
@@ -282,7 +282,7 @@ function StaleNotice({ liveH, recordedH }: StaleNoticeProps) {
     const { t } = useTranslation();
     return (
         <div style={warnStyle}>
-            <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle className="w-[14px] h-[14px] [flex-shrink:0] [margin-top:1px]" />
             <span>
                 {rich(t('cms_site.analytics.heatmap.stale', 'This page is {live} tall today, but these clicks were recorded on a {recorded} page. It has been edited since — positions below the first screen may not line up with what visitors actually saw.'), {
                     live: <strong>{fmt(Math.round(liveH))}px</strong>,
@@ -418,7 +418,7 @@ function RecordingOff({ site, settings, onOpenSettings }: RecordingOffProps) {
                         : t('cms_site.analytics.heatmap.off_site', 'Heatmaps need session recording, which is off for this site.')}
                 </p>
                 <div className="[display:flex] [gap:8px] [align-items:flex-start] [font-size:12px] [color:var(--text-muted,#888)]">
-                    <ShieldAlert style={{ width: 14, height: 14, marginTop: 1, flexShrink: 0, color: '#f59e0b' }} />
+                    <ShieldAlert className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0] [color:#f59e0b]" />
                     <span>
                         {t('cms_site.analytics.heatmap.off_body', 'Recording captures clicks, scrolling and page structure from real visitors, so it only ever runs for people who accepted your cookie banner — in every consent mode. Form inputs are masked.')}
                     </span>

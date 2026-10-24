@@ -127,7 +127,7 @@ function OrgAdminRow() {
     return (
         <li className="px-3 py-2 flex items-center justify-between text-xs">
             <span className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                <Crown className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
+                <Crown className="w-3.5 h-3.5 [color:#f59e0b]" />
                 {t('settings.n8n.org_admins', 'Organisation Admins')}
                 <span className="text-[10px] px-1.5 py-0.5 rounded font-medium [background:rgba(245,158,11,0.12)] [color:#f59e0b]!">
                     {t('settings.n8n.always', 'always')}

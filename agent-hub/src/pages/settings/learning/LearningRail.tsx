@@ -92,7 +92,7 @@ export default function LearningRail({
             {/* Header */}
             <div className="flex items-center gap-2 flex-shrink-0 px-3.5 h-[48px] [border-bottom:1px_solid_var(--border-default)]">
                 <div className="grid place-items-center flex-shrink-0 w-[28px] h-[28px] [border-radius:8px] [background:color-mix(in_srgb,var(--accent-primary)_18%,transparent)] [color:var(--accent-primary)]">
-                    <GraduationCap style={{ width: 15, height: 15 }} aria-hidden="true" />
+                    <GraduationCap className="w-[15px] h-[15px]" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
                     <div className="font-semibold leading-4 text-[14px]">{t('settings.learning_center', 'Learning Center')}</div>
@@ -106,7 +106,7 @@ export default function LearningRail({
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 text-[12px] [padding:10px_12px]">
                 {/* Search */}
                 <label className="flex items-center gap-2 rounded-lg [padding:6px_8px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)] [color:var(--text-tertiary)]">
-                    <Search style={{ width: 13, height: 13, flexShrink: 0 }} aria-hidden="true" />
+                    <Search className="w-[13px] h-[13px] [flex-shrink:0]" aria-hidden="true" />
                     <input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
@@ -132,11 +132,11 @@ export default function LearningRail({
 
                 <nav className="flex flex-col gap-[2px] mt-[2px]" aria-label={t('settings.learning_center', 'Learning Center')}>
                     <button type="button" onClick={() => onNavigate({ view: 'overview' })} style={rowStyle(view === 'overview')} aria-current={view === 'overview' ? 'page' : undefined}>
-                        <Map style={{ width: 14, height: 14 }} aria-hidden="true" />
+                        <Map className="w-[14px] h-[14px]" aria-hidden="true" />
                         {t('learn.rail.overview', 'Overview')}
                     </button>
                     <button type="button" onClick={() => onNavigate({ view: 'review' })} style={rowStyle(view === 'review')} aria-current={view === 'review' ? 'page' : undefined}>
-                        <RotateCcw style={{ width: 14, height: 14 }} aria-hidden="true" />
+                        <RotateCcw className="w-[14px] h-[14px]" aria-hidden="true" />
                         {t('learn.rail.review', 'Review')}
                         {reviewDue?.due ? (
                             <span className="ml-auto text-[11px] font-semibold tabular-nums text-[var(--accent-primary)]">
@@ -145,7 +145,7 @@ export default function LearningRail({
                         ) : null}
                     </button>
                     <button type="button" onClick={() => onNavigate({ view: 'achievements' })} style={rowStyle(view === 'achievements')} aria-current={view === 'achievements' ? 'page' : undefined}>
-                        <Award style={{ width: 14, height: 14 }} aria-hidden="true" />
+                        <Award className="w-[14px] h-[14px]" aria-hidden="true" />
                         {t('learn.rail.achievements', 'Achievements')}
                     </button>
 
@@ -241,8 +241,8 @@ interface RailStatusProps {
  * next to a truncated title, it was texture.
  */
 function RailStatus({ t, locked, complete, done, total }: RailStatusProps) {
-    if (complete) return <Check style={{ width: 14, height: 14, color: 'var(--learn-complete)' }} aria-label={t('learn.state.complete', 'complete')} />;
-    if (locked) return <Lock style={{ width: 12, height: 12 }} aria-hidden="true" />;
+    if (complete) return <Check className="w-[14px] h-[14px] [color:var(--learn-complete)]" aria-label={t('learn.state.complete', 'complete')} />;
+    if (locked) return <Lock className="w-[12px] h-[12px]" aria-hidden="true" />;
     if (done > 0) return <>{t('learn.course.n_of_m', '{a} of {b}').replace('{a}', String(done)).replace('{b}', String(total))}</>;
     return null;
 }

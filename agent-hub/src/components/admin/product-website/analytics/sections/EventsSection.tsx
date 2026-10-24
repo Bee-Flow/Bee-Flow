@@ -145,7 +145,7 @@ function CtaTable({ rows }: { rows: CtaRow[] }) {
                             <span className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{r.label}</span>
                             {r.href && (
                                 <span className="[display:inline-flex] [align-items:center] [gap:3px] [flex-shrink:0] [font-size:10px] [color:var(--text-muted,#777)]">
-                                    <ExternalLink style={{ width: 9, height: 9 }} />
+                                    <ExternalLink className="w-[9px] h-[9px]" />
                                     {shortHref(r.href)}
                                 </span>
                             )}

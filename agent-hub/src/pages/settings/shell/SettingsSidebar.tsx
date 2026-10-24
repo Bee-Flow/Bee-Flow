@@ -55,8 +55,7 @@ export function SettingsSidebar({
     // opened it's hidden in favour of the content panel.
     return (
     <div
-            className={`flex-shrink-0 flex-col w-full md:w-[180px] xl:w-[220px] ${mobileDetail ? 'hidden md:flex' : 'flex'}`}
-            style={{ background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)' }}
+            className={`flex-shrink-0 flex-col w-full md:w-[180px] xl:w-[220px] ${mobileDetail ? 'hidden md:flex' : 'flex'} [background:var(--bg-secondary)] [border-right:1px_solid_var(--border-subtle)]`}
         >
             {/* User mini-card */}
             <button

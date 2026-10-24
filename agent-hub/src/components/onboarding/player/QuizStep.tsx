@@ -211,8 +211,8 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
                                 style={{ borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-default)' }}
                                 aria-hidden="true"
                             >
-                                {showCorrect && <Check className="w-3 h-3" style={{ color: '#15803d' }} />}
-                                {showWrong && <X className="w-3 h-3" style={{ color: '#b91c1c' }} />}
+                                {showCorrect && <Check className="w-3 h-3 [color:#15803d]" />}
+                                {showWrong && <X className="w-3 h-3 [color:#b91c1c]" />}
                                 {!showCorrect && !showWrong && isSelected && (
                                     <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
                                 )}

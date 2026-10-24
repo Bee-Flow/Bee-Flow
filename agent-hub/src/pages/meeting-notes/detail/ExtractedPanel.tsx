@@ -102,8 +102,7 @@ export default function ExtractedPanel({
 
     return (
         <aside
-            className={`flex flex-col gap-4 rounded-xl border px-3 py-3 h-fit ${className}`}
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-default)' }}
+            className={`flex flex-col gap-4 rounded-xl border px-3 py-3 h-fit ${className} [background:var(--bg-secondary)] [border-color:var(--border-default)]`}
             aria-label={t('meetings.extracted_title', 'Pulled from this transcript')}
             data-testid="extracted-panel"
         >

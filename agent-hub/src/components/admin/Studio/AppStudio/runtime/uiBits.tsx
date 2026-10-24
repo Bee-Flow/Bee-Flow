@@ -87,8 +87,7 @@ export function EmptyText({ text, icon: Icon = null, title = null, art = null }:
                 </span>
             ) : Icon ? (
                 <span
-                    className="inline-flex h-9 w-9 items-center justify-center"
-                    style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
+                    className="inline-flex h-9 w-9 items-center justify-center [background:var(--app-primary-soft)] [color:var(--app-primary)] [border-radius:var(--app-radius)]"
                     aria-hidden="true"
                 >
                     <Icon className="w-4 h-4" />
@@ -123,12 +122,12 @@ export function Field({ id, label, required, error, children }: FieldProps) {
             {label ? (
                 <label htmlFor={id} className="text-sm font-medium text-[var(--text-primary)]">
                     {label}
-                    {required ? <span aria-hidden="true" style={{ color: 'var(--error)' }}> *</span> : null}
+                    {required ? <span aria-hidden="true" className="[color:var(--error)]"> *</span> : null}
                 </label>
             ) : null}
             {children}
             {error ? (
-                <p id={id ? `${id}-error` : undefined} className="text-xs" role="alert" style={{ color: 'var(--error)' }}>{error}</p>
+                <p id={id ? `${id}-error` : undefined} className="text-xs [color:var(--error)]!" role="alert">{error}</p>
             ) : null}
         </div>
     );
@@ -277,7 +276,7 @@ export function ErrorText({ error, errorCode = null, onRetry = null }: ErrorText
             role="alert"
             data-app-error="true"
         >
-            <span className="text-sm" style={{ color: 'var(--error)' }}>
+            <span className="text-sm [color:var(--error)]!">
                 {needsConnection
                     ? t('studio_apps_runtime.ui.needs_connection', 'This needs a connection first.')
                     : t('studio_apps_runtime.ui.could_not_load', 'This could not be loaded.')}
@@ -289,8 +288,7 @@ export function ErrorText({ error, errorCode = null, onRetry = null }: ErrorText
                 <button
                     type="button"
                     onClick={onRetry}
-                    className={`mt-1 px-2.5 py-1 text-xs border ${FOCUS_OUTLINE}`}
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-primary)', borderRadius: 'var(--app-radius)' }}
+                    className={`mt-1 px-2.5 py-1 text-xs border ${FOCUS_OUTLINE} [border-color:var(--border-default)] [color:var(--text-primary)]! [border-radius:var(--app-radius)]`}
                 >
                     {t('studio_apps_runtime.ui.try_again', 'Try again')}
                 </button>

@@ -379,7 +379,7 @@ function FirstColumns({ t, fields, problems, onChange }: FirstColumnsProps) {
                 </span>
             </div>
             {fields.map((f, i) => (
-                <div key={i} className="grid gap-2 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) 160px 28px' }}>
+                <div key={i} className="grid gap-2 items-center [grid-template-columns:minmax(0,1fr)_160px_28px]">
                     <input
                         value={f.name}
                         onChange={(e) => set(i, { name: e.target.value, key: keyFromName(e.target.value) })}
@@ -391,8 +391,7 @@ function FirstColumns({ t, fields, problems, onChange }: FirstColumnsProps) {
                     <TypeSelect t={t} value={f.type} onChange={(type) => set(i, { type })} />
                     <button type="button" onClick={() => onChange(fields.filter((_, j) => j !== i))}
                         aria-label={t('datatables.column_remove', 'Remove this column')}
-                        className="p-1 rounded justify-self-center focus-visible:outline focus-visible:outline-2"
-                        style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}>
+                        className="p-1 rounded justify-self-center focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!">
                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                 </div>
@@ -400,8 +399,7 @@ function FirstColumns({ t, fields, problems, onChange }: FirstColumnsProps) {
             <button
                 type="button"
                 onClick={() => onChange([...fields, { key: '', name: '', type: 'text' }])}
-                className="text-xs inline-flex items-center gap-1.5 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}
+                className="text-xs inline-flex items-center gap-1.5 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
             >
                 <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.column_add', 'Add a column')}
             </button>

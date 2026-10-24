@@ -37,11 +37,7 @@ export default function AddRowForm({ columns: allColumns, onCancel, onAdd, requi
 
     return (
         <form
-            className="p-3 space-y-2"
-            style={{
-                borderRadius: 12, background: 'var(--bg-card)',
-                border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)',
-            }}
+            className="p-3 space-y-2 [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]"
             onSubmit={(e) => { e.preventDefault(); onAdd(values); }}
         >
             {columns.map(c => (
@@ -65,8 +61,7 @@ export default function AddRowForm({ columns: allColumns, onCancel, onAdd, requi
                     {t('datatables.add_row_submit', 'Add row')}
                 </button>
                 <button type="button" onClick={onCancel}
-                    className="px-3 py-1.5 rounded-[10px] text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    className="px-3 py-1.5 rounded-[10px] text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-default)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
                     {t('datatables.cancel', 'Cancel')}
                 </button>
             </div>

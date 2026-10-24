@@ -25,20 +25,7 @@ vi.mock('./recentWork', async (importOriginal) => ({
     runRecentWork: (...args) => runMock(...args),
 }));
 
-vi.mock('../../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, params) => {
-            let value = typeof fallback === 'string' ? fallback : key;
-            const p = typeof fallback === 'string' ? params : fallback;
-            if (p && typeof p === 'object') {
-                for (const [k, v] of Object.entries(p)) value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-            }
-            return value;
-        },
-        locale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import RecentWorkList from './RecentWorkList';
 import { RECENT_STATUS } from '../../../../utils/studioRecentSources';

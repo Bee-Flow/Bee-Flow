@@ -53,10 +53,7 @@ vi.mock('../../../utils/helpers', async (importOriginal) => ({
     authFetch: (...args) => authFetchMock(...args),
 }));
 
-vi.mock('../../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => fallback || key, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('../../../moduleRuntime/registry', () => ({ useRuntimeStudioApps: () => [] }));
 vi.mock('../../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),

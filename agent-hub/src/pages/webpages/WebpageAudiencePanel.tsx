@@ -124,7 +124,7 @@ function PublicRow({ t, model, busy, onOpen, onTurnOff, disabled }: PublicRowPro
     return (
         <Card tone={known ? 'default' : 'warning'}>
             <div className="flex items-center gap-2 flex-wrap">
-                <Globe size={14} style={{ color: 'var(--kind-web)' }} />
+                <Globe size={14} className="[color:var(--kind-web)]" />
                 <span className="text-sm font-medium">{t('webpages.visibility.public', 'Public')}</span>
                 {!known
                     ? <Chip label={t('webpages.audience.public_unknown', 'Could not be checked')} tone="muted" dashed />

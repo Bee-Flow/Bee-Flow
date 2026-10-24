@@ -75,12 +75,12 @@ const FilterPill = ({ icon: Icon, value, onChange, options, placeholder }: Filte
             border: `1px solid ${value ? 'var(--accent-primary)' : 'var(--border-subtle)'}`,
             fontSize: 12, fontWeight: 500, color: value ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s ease',
         }}>
-            {Icon && <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />}
+            {Icon && <Icon className="w-[12px] h-[12px] [flex-shrink:0]" />}
             <select value={value || ''} onChange={(e) => onChange(e.target.value || null)} className="[background:transparent] [border:none] [outline:none] [color:inherit] [font-size:12px] [font-weight:500] [cursor:pointer] [appearance:none] [-webkit-appearance:none] min-w-[60px] [padding-right:14px]">
                 <option value="">{placeholder}</option>
                 {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <ChevronDown style={{ width: 11, height: 11, position: 'absolute', right: 8, pointerEvents: 'none', opacity: 0.5 }} />
+            <ChevronDown className="w-[11px] h-[11px] [position:absolute] [right:8px] [pointer-events:none] [opacity:0.5]" />
         </div>
     </div>
 );
@@ -284,7 +284,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                 padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)',
             }}>
                 <div className="[display:flex] [align-items:center] [gap:4px] [margin-right:2px]">
-                    <Filter style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
+                    <Filter className="w-[12px] h-[12px] [color:var(--text-muted)]" />
                     <span className="[font-size:10px] [font-weight:700] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.05em]">{t('usage.filters')}</span>
                 </div>
                 <FilterPill icon={Users} value={filterUser} onChange={setFilterUser} options={userOptions} placeholder={t('usage.all_users')} />
@@ -296,7 +296,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
                 <FilterPill icon={Activity} value={filterSource} onChange={setFilterSource} options={sourceOptions} placeholder={t('usage.all_sources')} />
                 {hasFilters && (
                     <button onClick={clearFilters} className="[display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px] [border:none] [background:var(--bg-tertiary)] [font-size:10px] [font-weight:600] [color:var(--text-muted)] [cursor:pointer]">
-                        <X style={{ width: 10, height: 10 }} /> {t('usage.clear')}
+                        <X className="w-[10px] h-[10px]" /> {t('usage.clear')}
                     </button>
                 )}
             </div>

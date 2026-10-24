@@ -85,7 +85,7 @@ function VerifyIdentity({ token, id }: { token: string; id: string | null }) {
     if (state === 'ok') {
         return (
             <div style={successBox} data-testid="dsr-verify-ok">
-                <BadgeCheck size={28} style={{ color: '#10b981' }} />
+                <BadgeCheck size={28} className="[color:#10b981]" />
                 <div className="[font-size:15px] [font-weight:700]">{t('dsr_public.verify_ok_title', 'Identity confirmed')}</div>
                 <div className="[font-size:13px] [color:#555] [line-height:1.5]">
                     {t('dsr_public.verify_ok_body', 'Thank you. Your request will be handled within the legal deadline; you will hear from us by e-mail.')}
@@ -95,7 +95,7 @@ function VerifyIdentity({ token, id }: { token: string; id: string | null }) {
     }
     return (
         <div style={{ ...successBox, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.08)' }} data-testid="dsr-verify-failed">
-            <CircleAlert size={28} style={{ color: '#666' }} />
+            <CircleAlert size={28} className="[color:#666]" />
             <div className="[font-size:15px] [font-weight:700]">{t('dsr_public.verify_failed_title', 'This link could not be used')}</div>
             <div className="[font-size:13px] [color:#555] [line-height:1.5]">
                 {t('dsr_public.verify_failed_body', 'The link may have expired or already been used. Your request itself is unaffected — check its status below, or submit a new request if you did not receive an acknowledgement.')}
@@ -183,7 +183,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
         <div style={page}>
             <div style={card}>
                 <div className="[display:flex] [align-items:center] [gap:10px] [margin-bottom:6px]">
-                    <ShieldCheck size={26} style={{ color: '#10b981' }} />
+                    <ShieldCheck size={26} className="[color:#10b981]" />
                     <h1 className="[margin:0] [font-size:22px]">
                         {t('dsr_public.title', 'Privacy request')}
                     </h1>
@@ -196,7 +196,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
                     <VerifyIdentity token={verify.token} id={verify.id} />
                 ) : result ? (
                     <div style={successBox}>
-                        <CheckCircle2 size={28} style={{ color: '#10b981' }} />
+                        <CheckCircle2 size={28} className="[color:#10b981]" />
                         <div className="[font-size:15px] [font-weight:700]">
                             {t('dsr_public.submitted_title', 'Request received')}
                         </div>
@@ -248,7 +248,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
             {/* Status check */}
             <div style={{ ...card, marginTop: 16 }}>
                 <div className="[display:flex] [align-items:center] [gap:8px] [margin-bottom:10px]">
-                    <Search size={16} style={{ color: '#666' }} />
+                    <Search size={16} className="[color:#666]" />
                     <h2 className="[margin:0] [font-size:15px]">
                         {t('dsr_public.check_title', 'Check an existing request')}
                     </h2>

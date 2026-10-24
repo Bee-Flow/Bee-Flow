@@ -185,7 +185,7 @@ function ActivityRow({ n, row, tc, active, live = false, onFocusStep = null, t =
                     {active
                         ? <Loader2 size={12} className="flex-shrink-0 animate-spin" style={{ color: typeColorVar(row.family) }} />
                         : failedTone
-                            ? <TriangleAlert size={12} className="flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                            ? <TriangleAlert size={12} className="flex-shrink-0 [color:var(--warning)]" />
                             : <Check size={12} className="flex-shrink-0 text-emerald-500" />}
                     <ChevronRight size={11} className="flex-shrink-0 opacity-40 transition-transform group-open/act:rotate-90" />
                 </span>

@@ -222,8 +222,7 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                                             setMenuFor(menuFor === screen.id ? null : screen.id);
                                         }}
                                         onPointerDown={(e) => e.stopPropagation()}
-                                        className={`mr-1 rounded p-0.5 transition-opacity hover:bg-[var(--bg-card-hover)] disabled:opacity-0 ${active || menuFor === screen.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`}
-                                        style={{ color: 'var(--text-tertiary)' }}
+                                        className={`mr-1 rounded p-0.5 transition-opacity hover:bg-[var(--bg-card-hover)] disabled:opacity-0 ${active || menuFor === screen.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'} [color:var(--text-tertiary)]`}
                                     >
                                         <MoreHorizontal className="h-3 w-3" />
                                     </button>
@@ -252,8 +251,7 @@ export default function ScreenTabs({ onCommit, inline = false }: ScreenTabsProps
                 align="left"
                 role="menu"
                 minWidth={176}
-                className="py-1"
-                style={{ background: 'var(--bg-secondary)' }}
+                className="py-1 [background:var(--bg-secondary)]!"
             >
                 {menuScreen ? (
                     <>

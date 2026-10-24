@@ -12,18 +12,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  *     check, with the Art. 12(3) extension named when there is one.
  */
 
-vi.mock('../hooks/useTranslation', () => {
-    const useTranslation = () => ({
-        t: (key, fallback, vars) => {
-            const base = typeof fallback === 'string' ? fallback : key;
-            const params = typeof fallback === 'string' ? vars : fallback;
-            return params ? Object.entries(params).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), base) : base;
-        },
-        locale: 'en',
-        resolvedLocale: 'en',
-    });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const { default: DsrRequestPage, readVerifyParams, formatDueDate } = await import('./DsrRequestPage');
 

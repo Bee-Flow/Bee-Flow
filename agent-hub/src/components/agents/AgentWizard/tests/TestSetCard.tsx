@@ -146,7 +146,7 @@ function RefusalNotice({ t, refusal, onRetry }: RefusalNoticeProps) {
             data-kind={refusal.kind}
             className="flex items-start gap-2 px-4 py-3 text-[12px] [background:color-mix(in_srgb,var(--warning)_8%,transparent)]"
         >
-            <AlertTriangle size={14} aria-hidden="true" style={{ color: 'var(--warning)', flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle size={14} aria-hidden="true" className="[color:var(--warning)] [flex-shrink:0] [margin-top:1px]" />
             <span className="flex-1 text-[var(--text-secondary)]">{refusalSentence(t, refusal)}</span>
             {refusal.retryable && onRetry && (
                 <button

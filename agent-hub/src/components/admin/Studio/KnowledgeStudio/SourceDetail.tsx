@@ -313,8 +313,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) 
                             <Ellipsis className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                         <AnchoredMenu open={menuOpen} onClose={() => setMenuOpen(false)} anchorRef={menuRef} align="right" width={180} role="menu"
-                            className="py-1"
-                            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className="py-1 [background:var(--bg-card)]! [border-color:var(--border-default)]! [color:var(--text-primary)]!"
                         >
                             <button
                                 type="button"

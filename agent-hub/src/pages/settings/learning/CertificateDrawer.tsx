@@ -79,7 +79,7 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                         <div className="font-semibold text-[14px] leading-[18px] truncate">{cert.title}</div>
                     </div>
                     <button type="button" onClick={onClose} aria-label={t('common.close', 'Close')} className="grid place-items-center w-7 h-7 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                        <X style={{ width: 14, height: 14 }} />
+                        <X className="w-[14px] h-[14px]" />
                     </button>
                 </div>
 
@@ -97,10 +97,10 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                                 </div>
                                 <div className="text-[22px] font-bold leading-[26px]">{cert.level || cert.title}</div>
                                 <div className="text-[11px] mt-1 text-[var(--text-tertiary)]">
-                                    {imgError ? t('learn.cert.preview_failed', 'Could not load the preview — the download still works.') : <span className="inline-flex items-center gap-1.5"><Loader2 className="animate-spin" style={{ width: 12, height: 12 }} />{t('learn.cert.preview_loading', 'Rendering the preview…')}</span>}
+                                    {imgError ? t('learn.cert.preview_failed', 'Could not load the preview — the download still works.') : <span className="inline-flex items-center gap-1.5"><Loader2 className="animate-spin w-[12px] h-[12px]" />{t('learn.cert.preview_loading', 'Rendering the preview…')}</span>}
                                 </div>
                                 <div className="absolute grid place-items-center rounded-full [right:18px] [bottom:16px] w-[44px] h-[44px] [border:2px_solid_var(--accent-primary)] [color:var(--accent-primary)]" aria-hidden="true">
-                                    <Award style={{ width: 20, height: 20 }} />
+                                    <Award className="w-[20px] h-[20px]" />
                                 </div>
                             </div>
                         )}
@@ -108,10 +108,10 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
 
                     <div className="flex gap-2">
                         <SecondaryButton className="flex-1" onClick={() => downloadAsset(cert.imageUrl as string, `beeflow-certificate-${cert.serial || 'cert'}.png`)}>
-                            <ImageDown style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.cert.download_png_full', 'Download PNG')}
+                            <ImageDown className="w-[13px] h-[13px]" aria-hidden="true" />{t('learn.cert.download_png_full', 'Download PNG')}
                         </SecondaryButton>
                         <SecondaryButton className="flex-1" onClick={() => downloadAsset(cert.pdfUrl as string, `beeflow-certificate-${cert.serial || 'cert'}.pdf`)}>
-                            <FileDown style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.cert.download_pdf_full', 'Download PDF')}
+                            <FileDown className="w-[13px] h-[13px]" aria-hidden="true" />{t('learn.cert.download_pdf_full', 'Download PDF')}
                         </SecondaryButton>
                     </div>
 
@@ -131,16 +131,16 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
                         {cert.isPublic && cert.verifyUrl && (
                             <>
                                 <div className="flex items-center gap-2 rounded-lg [padding:7px_10px] [border:1px_solid_var(--border-default)] [background:var(--bg-secondary)]">
-                                    <Link style={{ width: 12, height: 12, color: 'var(--text-tertiary)', flexShrink: 0 }} aria-hidden="true" />
+                                    <Link className="w-[12px] h-[12px] [color:var(--text-tertiary)] [flex-shrink:0]" aria-hidden="true" />
                                     <span className="flex-1 min-w-0 truncate text-[11px] [font-family:ui-monospace,SFMono-Regular,monospace] [color:var(--text-secondary)]!">{cert.verifyUrl.replace(/^https?:\/\//, '')}</span>
                                     <button type="button" onClick={copyVerify} className="inline-flex items-center gap-1 text-[11px] font-medium whitespace-nowrap rounded-md [padding:3px_8px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)]">
-                                        {copied ? <Check style={{ width: 11, height: 11, color: 'var(--learn-complete)' }} /> : <Copy style={{ width: 11, height: 11 }} aria-hidden="true" />}
+                                        {copied ? <Check className="w-[11px] h-[11px] [color:var(--learn-complete)]" /> : <Copy className="w-[11px] h-[11px]" aria-hidden="true" />}
                                         {copied ? t('learn.cert.copied', 'Copied') : t('learn.cert.copy', 'Copy')}
                                     </button>
                                 </div>
                                 {cert.linkedInUrl && (
                                     <PrimaryButton onClick={() => window.open(cert.linkedInUrl, '_blank', 'noopener')}>
-                                        <Share2 style={{ width: 13, height: 13 }} aria-hidden="true" />{t('learn.cert.add_linkedin', 'Add to LinkedIn')}
+                                        <Share2 className="w-[13px] h-[13px]" aria-hidden="true" />{t('learn.cert.add_linkedin', 'Add to LinkedIn')}
                                     </PrimaryButton>
                                 )}
                             </>

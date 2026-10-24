@@ -74,7 +74,7 @@ function ErrorCard({ label, onRetry }: ErrorCardProps) {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center justify-center w-full h-full py-16 px-6 text-center" data-testid="module-error-card">
-            <AlertTriangle className="w-8 h-8 mb-3" style={{ color: '#f59e0b' }} />
+            <AlertTriangle className="w-8 h-8 mb-3 [color:#f59e0b]" />
             <p className="text-sm font-medium text-[var(--text-primary)]">
                 {t('modules.runtime_error_title', { name: label })}
             </p>

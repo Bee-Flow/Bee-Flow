@@ -6,9 +6,7 @@ import SSOConfigPanel from './SSOConfigPanel';
 import { authFetch } from '../../../utils/helpers';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 const hasFeature = vi.fn(() => true);
 vi.mock('../../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ hasFeature }) }));
 vi.mock('./MicrosoftIdentityPanel', () => ({ default: () => <div data-testid="ms-identity" /> }));

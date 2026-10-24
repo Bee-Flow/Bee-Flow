@@ -279,7 +279,7 @@ function UtmBuilder() {
                         borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
                         background: ACCENT, color: '#06241f',
                     }}>
-                        {copied ? <Check style={{ width: 12, height: 12 }} /> : <Copy style={{ width: 12, height: 12 }} />}
+                        {copied ? <Check className="w-[12px] h-[12px]" /> : <Copy className="w-[12px] h-[12px]" />}
                         {copied ? t('cms_site.analytics.sources.copied', 'Copied') : t('cms_site.analytics.sources.copy', 'Copy')}
                     </button>
                 </div>

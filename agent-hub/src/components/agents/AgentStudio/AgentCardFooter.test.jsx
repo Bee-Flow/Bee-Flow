@@ -12,22 +12,8 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 
-// Its own factory instead of the shared stub: that one returns the fallback WITHOUT filling in `{count}`, and then every assertion below would be about a literal "{count} conversations". This is the provider-less branch of the real hook, including interpolation.
-vi.mock('../../../hooks/useTranslation', () => ({
-    default: () => ({
-        t: (key, fallbackOrParams, paramsArg) => {
-            const hasFallback = typeof fallbackOrParams === 'string';
-            const params = hasFallback ? paramsArg : fallbackOrParams;
-            let value = hasFallback ? fallbackOrParams : key;
-            if (params && typeof params === 'object') {
-                for (const [k, v] of Object.entries(params)) {
-                    value = value.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-                }
-            }
-            return value;
-        },
-    }),
-}));
+// The shared params mock fills in `{count}`, so the assertions below see real interpolation.
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import AgentCardFooter from './AgentCardFooter';
 

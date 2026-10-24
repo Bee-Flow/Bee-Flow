@@ -102,7 +102,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                 {/* Header */}
                 <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--border-subtle)]">
                     <div className="p-2 rounded-xl [background:rgba(34,197,94,0.1)]">
-                        <PenTool className="w-5 h-5" style={{ color: '#22c55e' }} />
+                        <PenTool className="w-5 h-5 [color:#22c55e]" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <h3 className="text-base font-semibold text-[var(--text-primary)]">
@@ -126,7 +126,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                     {result ? (
                         /* ── Success state ── */
                         <div className="flex flex-col items-center gap-3 py-6">
-                            <CheckCircle className="w-12 h-12" style={{ color: '#22c55e' }} />
+                            <CheckCircle className="w-12 h-12 [color:#22c55e]" />
                             <h4 className="text-base font-semibold text-[var(--text-primary)]">
                                 {t('notebooks.sign_sent_title', 'Document sent for signing!')}
                             </h4>

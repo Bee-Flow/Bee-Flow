@@ -47,7 +47,7 @@ export function SaveStatusChip({ status, version = null }: SaveStatusChipProps) 
         >
             {saving
                 ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-                : <Check className="h-3 w-3" style={{ color: 'var(--success)' }} aria-hidden="true" />}
+                : <Check className="h-3 w-3 [color:var(--success)]" aria-hidden="true" />}
             {label}
         </span>
     );
@@ -141,8 +141,7 @@ export function SaveNoticesPanel<N extends PanelNotice>({ open, anchorRef, notic
             width={320}
             role="dialog"
             aria-label={t('app_studio.header.notices_aria', 'What the last save reported')}
-            className="p-2"
-            style={{ background: 'var(--bg-secondary)' }}
+            className="p-2 [background:var(--bg-secondary)]!"
         >
             <div className="flex items-center justify-between gap-2 px-1 pb-1.5">
                 <span className="text-[11px] font-semibold text-[var(--text-tertiary)]">

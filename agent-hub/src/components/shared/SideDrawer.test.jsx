@@ -15,10 +15,7 @@ import SideDrawer, { DrawerFooter, DrawerId, DrawerSection } from './SideDrawer'
  *   - DrawerFooter: secondaries left, ONE primary right, "Save" by default.
  */
 
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (key, fallback) => (typeof fallback === 'string' ? fallback : key), locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 function Host({ open: initial = true, mode = 'inline', onClose = () => {}, footer = null, children = 'body' }) {
     const [open, setOpen] = React.useState(initial);

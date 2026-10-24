@@ -69,7 +69,7 @@ export function AudioNotBackedUp({ downloadUrl }: { downloadUrl?: string | null 
         <div
             className="flex items-center gap-2 rounded-lg border px-3 py-2 text-[11px] [background:var(--bg-secondary)] [border-color:#f59e0b] [color:var(--text-muted)]!"
         >
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0" style={{ color: '#f59e0b' }} />
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 [color:#f59e0b]" />
             <span className="flex-1">{t('meeting_notes.audio_no_backup', 'This recording doesn’t have a durable backup yet.')}</span>
             {downloadUrl && (
                 <a

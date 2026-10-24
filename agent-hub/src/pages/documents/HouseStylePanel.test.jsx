@@ -19,10 +19,7 @@ const { api } = vi.hoisted(() => ({
     },
 }));
 vi.mock('./documentsApi', () => api);
-vi.mock('../../hooks/useTranslation', () => {
-    const useTranslation = () => ({ t: (k, fb) => fb || k, locale: 'en' });
-    return { default: useTranslation, useTranslation };
-});
+vi.mock('../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 const HouseStylePanel = (await import('./HouseStylePanel')).default;
 

@@ -3,9 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => ({
-    useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key), locale: 'en' }),
-}));
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 import MediaGallery from './MediaGallery';
 import RemoveModuleDialog from './RemoveModuleDialog';

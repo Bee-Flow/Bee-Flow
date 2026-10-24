@@ -164,7 +164,7 @@ export default function MeetingLibrary({
                     first", which reads as "your recordings are gone". */}
                 {!loading && error && meetings.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-4 py-8" role="alert">
-                        <AlertTriangle className="w-7 h-7" style={{ color: 'var(--error)' }} aria-hidden="true" />
+                        <AlertTriangle className="w-7 h-7 [color:var(--error)]" aria-hidden="true" />
                         <p className="text-sm font-semibold text-[var(--text-primary)]">
                             {t('meetings.list_failed', 'Couldn’t load your meetings')}
                         </p>

@@ -39,7 +39,7 @@ export default function AppBuilderActivity({ toolCalls, running = false, t = nul
         >
             <div className="mb-1.5 flex items-center gap-1.5 text-[var(--text-secondary)]">
                 {running
-                    ? <Loader2 size={13} className="flex-shrink-0 animate-spin motion-reduce:animate-none" style={{ color: 'var(--editor-accent, var(--accent))' }} />
+                    ? <Loader2 size={13} className="flex-shrink-0 animate-spin motion-reduce:animate-none [color:var(--editor-accent,var(--accent))]" />
                     : <Hammer size={13} className="flex-shrink-0" />}
                 <span className="font-medium">
                     {running ? tr('app_studio.builder.act.building', 'Building') : tr('app_studio.builder.act.built', 'Built')}
@@ -109,9 +109,9 @@ function ActivityRow({ n, row, tc, active }: { n: number; row: AppToolCallRow; t
                         )}
                     </span>
                     {active
-                        ? <Loader2 size={12} className="flex-shrink-0 animate-spin motion-reduce:animate-none" style={{ color: 'var(--editor-accent, var(--accent))' }} />
+                        ? <Loader2 size={12} className="flex-shrink-0 animate-spin motion-reduce:animate-none [color:var(--editor-accent,var(--accent))]" />
                         : failed
-                            ? <TriangleAlert size={12} className="flex-shrink-0" style={{ color: 'var(--warning)' }} />
+                            ? <TriangleAlert size={12} className="flex-shrink-0 [color:var(--warning)]" />
                             : <Check size={12} className="flex-shrink-0 text-emerald-500" />}
                     <ChevronRight size={11} className="flex-shrink-0 opacity-40 transition-transform group-open/act:rotate-90" />
                 </span>

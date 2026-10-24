@@ -36,7 +36,7 @@ interface SettingsContentPanelProps {
 /** The content column next to the sidebar; sections that own their viewport get the full width. */
 export function SettingsContentPanel({ mobileDetail, activeTab, isOrgSubTab, children }: SettingsContentPanelProps) {
     return (
-        <div className={`flex-1 overflow-auto ${mobileDetail ? 'block' : 'hidden md:block'}`} style={{ background: 'var(--bg-primary)' }}>
+        <div className={`flex-1 overflow-auto ${mobileDetail ? 'block' : 'hidden md:block'} [background:var(--bg-primary)]`}>
             <div
                 // Every organisation page and every consumer account
                 // page gets the wide column: the consumer licence page

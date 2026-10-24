@@ -83,8 +83,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }: NewF
             )}
             footer={(
                 <>
-                    <button type="button" onClick={onClose} className={`${BTN} border`}
-                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                    <button type="button" onClick={onClose} className={`${BTN} border [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`}>
                         {t('forms.new.cancel', 'Cancel')}
                     </button>
                     <button
@@ -159,8 +158,7 @@ export default function NewFormDialog({ user = null, onClose, onNavigate }: NewF
                             rows={3}
                             maxLength={12000}
                             placeholder={t('forms.new.brief_placeholder', 'What should the form ask? A sentence is enough — or paste the checklist, e-mail or policy it should be based on.')}
-                            className={`${INPUT} resize-y`}
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                            className={`${INPUT} resize-y [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]`}
                             data-testid="new-form-brief"
                         />
                         <span className="block text-[11px] mt-1 text-[var(--text-tertiary)]">

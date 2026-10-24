@@ -290,8 +290,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: Compos
             />
             <button
                 type="button" onClick={onRun} disabled={ideas.busy}
-                className={`${smallButton} self-start`}
-                style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
+                className={`${smallButton} self-start [border-color:var(--accent-primary)] [color:var(--accent-primary)]`}
                 data-testid="rules-composer-run"
             >
                 {ideas.busy
@@ -322,8 +321,7 @@ function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: Compos
                     )}
                     <button
                         type="button" onClick={() => onUseIdea(idea)} disabled={creating}
-                        className={`${smallButton} self-start`}
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+                        className={`${smallButton} self-start [border-color:var(--border-default)] [color:var(--text-secondary)]`}
                     >
                         {t('meetings.rules_idea_build', 'Start this rule')}
                     </button>
@@ -561,7 +559,7 @@ export default function RulesPanel({
                     could count. */}
                 {!loading && !rules.error && !runs.loading && runsUnreadable && (
                     <div className="flex items-start gap-2 px-3 py-2 mb-1 rounded-lg border text-[11px]" style={WARN_BANNER} data-testid="rules-runs-error">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--warning)' }} aria-hidden="true" />
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
                         <span>{t('meetings.rules_runs_unreadable', 'Couldn’t read how often these ran, so no rule shows a count.')}</span>
                     </div>
                 )}

@@ -66,7 +66,7 @@ function FeedbackFilterBar({ filter, onFilter, search, onSearch }: FilterBarProp
             ))}
             <div className="[flex:1]" />
             <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))]">
-                <Search style={{ width: 12, height: 12, color: 'var(--text-muted, #888)' }} />
+                <Search className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
                 <input
                     value={search} onChange={e => onSearch(e.target.value)}
                     placeholder={t('admin_monitoring.feedback_search', 'Search feedback...')}

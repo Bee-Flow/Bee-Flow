@@ -60,7 +60,7 @@ export function ChangePlanPicker({ plans, pickerRef, ...state }: PickerState & {
     return (
         <div ref={pickerRef} className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-3">
             <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-4 h-4" style={{ color: '#3b82f6' }} />
+                <Zap className="w-4 h-4 [color:#3b82f6]" />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('org.change_plan', 'Change plan')}</h3>
             </div>
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">

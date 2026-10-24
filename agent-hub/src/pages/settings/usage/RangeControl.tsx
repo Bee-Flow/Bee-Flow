@@ -69,7 +69,7 @@ export default function RangeControl({ range, onChange, t, presets }: {
                             boxShadow: active ? '0 1px 4px rgba(16,185,129,0.35)' : 'none',
                             display: 'inline-flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
                         }}>
-                            {p.id === 'custom' && <Calendar style={{ width: 11, height: 11 }} />}
+                            {p.id === 'custom' && <Calendar className="w-[11px] h-[11px]" />}
                             {tr(p.key, p.label)}
                         </button>
                     );

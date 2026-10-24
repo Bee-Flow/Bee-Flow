@@ -311,7 +311,7 @@ export default function ServerLicensePanel() {
             {/* Warning panel */}
             <div className="rounded-xl border p-4 text-xs [background:rgba(245,158,11,0.06)] [border-color:rgba(245,158,11,0.25)] [color:var(--text-secondary)]!">
                 <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#f59e0b' }} />
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:#f59e0b]" />
                     <div>
                         <div className="font-semibold mb-1 text-[var(--text-primary)]">
                             {t('admin.server_license.warn_title', 'Override semantics')}

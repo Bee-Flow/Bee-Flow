@@ -72,9 +72,8 @@ const SidebarFooter = ({
                     ) : (user?.avatarType === 'image' || user?.avatarType === 'url') && user?.avatar ? (
                         <img src={user.avatar.startsWith('/') ? `${API_BASE}${user.avatar}` : user.avatar} alt="" className={`rounded-full object-cover flex-shrink-0 ${isOpen ? 'w-8 h-8' : 'w-10 h-10'}`} />
                     ) : (
-                        <div className={`rounded-full flex items-center justify-center flex-shrink-0 ${isOpen ? 'w-8 h-8' : 'w-10 h-10'}`}
-                            style={{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-primary-hover))' }}>
-                            <User className={`${isOpen ? 'w-4 h-4' : 'w-5 h-5'}`} style={{ color: 'var(--accent-primary-fg, #fff)' }} />
+                        <div className={`rounded-full flex items-center justify-center flex-shrink-0 ${isOpen ? 'w-8 h-8' : 'w-10 h-10'} [background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary-hover))]`}>
+                            <User className={`${isOpen ? 'w-4 h-4' : 'w-5 h-5'} [color:var(--accent-primary-fg,#fff)]`} />
                         </div>
                     )}
                     {isOpen && (
@@ -92,12 +91,7 @@ const SidebarFooter = ({
                 {showProfileMenu && (
                     <div
                         id={PROFILE_MENU_ID}
-                        className={`absolute rounded-2xl border overflow-hidden z-50 ${isOpen ? 'bottom-full left-3 right-3 -mb-px' : 'bottom-full left-14 -mb-px w-64'}`}
-                        style={{
-                            borderColor: 'var(--border-default)',
-                            boxShadow: 'var(--shadow-popover, 0 20px 60px rgba(15,23,42,0.18))',
-                            animation: 'sidebarMenuIn .18s cubic-bezier(0.16, 1, 0.3, 1)',
-                        }}
+                        className={`absolute rounded-2xl border overflow-hidden z-50 ${isOpen ? 'bottom-full left-3 right-3 -mb-px' : 'bottom-full left-14 -mb-px w-64'} [border-color:var(--border-default)] [box-shadow:var(--shadow-popover,0_20px_60px_rgba(15,23,42,0.18))] [animation:sidebarMenuIn_.18s_cubic-bezier(0.16,1,0.3,1)]`}
                         data-testid="profile-menu"
                         data-surface="opaque"
                     >
@@ -107,8 +101,7 @@ const SidebarFooter = ({
                                     href={PAGE_ROUTES.admin}
                                     onClick={() => setShowProfileMenu(false)}
                                     onNavigate={() => { setShowProfileMenu(false); onNavigate('admin'); }}
-                                    className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left relative ${currentPage === 'admin' ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}
-                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                    className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left relative ${currentPage === 'admin' ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'} [text-decoration:none]! [color:inherit]!`}
                                     data-testid="profile-menu-admin"
                                 >
                                     {currentPage === 'admin' && <div className={ACCENT_BAR} />}
@@ -124,8 +117,7 @@ const SidebarFooter = ({
                                 href={PAGE_ROUTES.settings}
                                 onClick={() => setShowProfileMenu(false)}
                                 onNavigate={() => { setShowProfileMenu(false); onNavigate('settings'); }}
-                                className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left relative ${showSettings ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'}`}
-                                style={{ textDecoration: 'none', color: 'inherit' }}
+                                className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-all duration-150 text-left relative ${showSettings ? 'bg-[var(--item-active-bg)]' : 'hover:bg-[var(--item-hover-bg)]'} [text-decoration:none]! [color:inherit]!`}
                                 data-testid="profile-menu-settings"
                             >
                                 {showSettings && <div className={ACCENT_BAR} />}

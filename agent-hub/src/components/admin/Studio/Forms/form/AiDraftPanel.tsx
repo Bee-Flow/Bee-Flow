@@ -183,7 +183,7 @@ export default function AiDraftPanel({ form, onApply, seed = null }: AiDraftPane
                     </span>
                 )}
                 {result?.before && (
-                    <button type="button" onClick={undo} disabled={busy} className={`${BTN} inline-flex items-center gap-1.5`} style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }} data-testid="form-ai-undo">
+                    <button type="button" onClick={undo} disabled={busy} className={`${BTN} inline-flex items-center gap-1.5 [border-color:var(--border-subtle)] [color:var(--text-secondary)] [outline-color:var(--accent-primary)]`} data-testid="form-ai-undo">
                         <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />{t('forms.ai.undo', 'Undo')}
                     </button>
                 )}

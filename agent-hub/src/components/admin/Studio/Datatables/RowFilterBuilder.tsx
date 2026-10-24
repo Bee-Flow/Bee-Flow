@@ -50,10 +50,7 @@ export default function RowFilterBuilder({
     const ready = filterDescriptor(rows).length;
 
     return (
-        <div className="p-3 space-y-2" style={{
-            borderRadius: 12, background: 'var(--bg-card)',
-            border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)',
-        }}>
+        <div className="p-3 space-y-2 [border-radius:12px] [background:var(--bg-card)] [border:1px_solid_var(--border-default)] [box-shadow:var(--shadow-sm)]">
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                 <span>{t('datatables.filter_rows_that', 'Show rows that match')}</span>
                 <select
@@ -120,8 +117,7 @@ export default function RowFilterBuilder({
                             type="button"
                             onClick={() => onRows(rows.filter((_, j) => j !== i))}
                             aria-label={t('datatables.filter_remove', 'Remove this condition')}
-                            className="p-1 rounded shrink-0 focus-visible:outline focus-visible:outline-2"
-                            style={{ color: 'var(--text-tertiary)', outlineColor: 'var(--accent-primary)' }}
+                            className="p-1 rounded shrink-0 focus-visible:outline focus-visible:outline-2 [color:var(--text-tertiary)] [outline-color:var(--accent-primary)]!"
                         >
                             <X className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
@@ -134,16 +130,14 @@ export default function RowFilterBuilder({
                     type="button"
                     onClick={addRow}
                     disabled={!fields.length}
-                    className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                    style={{ color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}
+                    className="text-xs inline-flex items-center gap-1.5 rounded disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!"
                 >
                     <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('datatables.filter_add', 'Add a condition')}
                 </button>
                 <span className="flex-1" />
                 {(appliedCount > 0 || rows.length > 0) && (
                     <button type="button" onClick={onClear}
-                        className="text-xs px-2.5 py-1.5 rounded-lg border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)', outlineColor: 'var(--accent-primary)' }}>
+                        className="text-xs px-2.5 py-1.5 rounded-lg border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [border-color:var(--border-default)] [color:var(--text-secondary)]! [outline-color:var(--accent-primary)]!">
                         {t('datatables.filter_clear', 'Clear')}
                     </button>
                 )}

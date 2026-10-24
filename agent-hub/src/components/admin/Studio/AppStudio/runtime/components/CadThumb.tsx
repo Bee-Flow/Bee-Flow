@@ -165,7 +165,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
             >
                 {kind === 'pdf'
                     ? <FileText className="mx-auto h-5 w-5 text-[var(--text-secondary)]" aria-hidden="true" />
-                    : <img src={url} alt="" className="h-full w-full" style={{ objectFit: 'cover' }} />}
+                    : <img src={url} alt="" className="h-full w-full [object-fit:cover]" />}
             </button>
 
             <Modal
@@ -177,8 +177,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
                 className="overflow-hidden"
             >
                 <div
-                    className="mx-auto flex flex-1 min-h-0 flex-col overflow-hidden"
-                    style={{ background: 'var(--bg-card)', borderRadius: 'var(--app-radius)', width: 'min(96vw, 1600px)', height: 'min(92vh, 1400px)' }}
+                    className="mx-auto flex flex-1 min-h-0 flex-col overflow-hidden [background:var(--bg-card)] [border-radius:var(--app-radius)] w-[min(96vw,1600px)] h-[min(92vh,1400px)]"
                 >
                         <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-2">
                             <span className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</span>
@@ -188,8 +187,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
                                     onClick={() => setZoom((z) => (z === 'fit' ? 'full' : 'fit'))}
                                     aria-label={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size', 'Show at full size') : t('studio_apps_runtime.cad.fit', 'Fit to window')}
                                     title={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size_space', 'Full size (space)') : t('studio_apps_runtime.cad.fit_space', 'Fit to window (space)')}
-                                    className="p-1"
-                                    style={{ color: 'var(--text-secondary)' }}
+                                    className="p-1 [color:var(--text-secondary)]"
                                 >
                                     {zoom === 'fit'
                                         ? <Maximize2 className="h-4 w-4" aria-hidden="true" />
@@ -199,8 +197,7 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
                                     type="button"
                                     onClick={() => setOpen(false)}
                                     aria-label={t('studio_apps_runtime.cad.close', 'Close')}
-                                    className="p-1"
-                                    style={{ color: 'var(--text-secondary)' }}
+                                    className="p-1 [color:var(--text-secondary)]"
                                 >
                                     <X className="h-4 w-4" aria-hidden="true" />
                                 </button>

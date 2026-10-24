@@ -26,7 +26,7 @@ function ConnectorRow({ c, active, catalog, disabled, onSelect, onRemove }: Conn
                 <Plug className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                 <span className="truncate">{c.name || c.id}</span>
                 {connectorProblem(c, catalog.lookup(c.tool)?.action || null, t) ? (
-                    <AlertTriangle className="ml-auto h-3 w-3 shrink-0" style={{ color: '#d97706' }} aria-label={t('studio_apps_bi.connectors.not_finished', 'Not finished yet')} />
+                    <AlertTriangle className="ml-auto h-3 w-3 shrink-0 [color:#d97706]" aria-label={t('studio_apps_bi.connectors.not_finished', 'Not finished yet')} />
                 ) : c.sync ? (
                     <Database className="ml-auto h-3 w-3 shrink-0 text-[var(--accent-primary)]" aria-label={t('studio_apps_bi.connectors.fills_table', 'Fills a table')} />
                 ) : (

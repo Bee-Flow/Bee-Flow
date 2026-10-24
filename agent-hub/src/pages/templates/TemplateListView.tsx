@@ -108,7 +108,7 @@ function ListContent({ loading, templates, searchQuery, dragOver, setDragOver, f
                 <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl flex items-center justify-center [background:rgba(99,102,241,0.08)]">
-                            <FileText className="w-10 h-10" style={{ color: '#6366f1', opacity: 0.6 }} />
+                            <FileText className="w-10 h-10 [color:#6366f1] [opacity:0.6]" />
                         </div>
                         <h3 className="text-base font-semibold mb-1 text-[var(--text-primary)]">
                             {searchQuery ? 'No templates found' : 'No templates yet'}

@@ -220,7 +220,7 @@ export default function GroupAccessMatrix({ orgId: orgIdProp = null, kinds = nul
                     ) : null}
                 </div>
                 {locked
-                    ? <Lock className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
+                    ? <Lock className="w-4 h-4 flex-shrink-0 [color:var(--text-muted)] [opacity:0.5]" />
                     : <Toggle checked={checked} readOnly={readOnly} accent={scopeAccent} onToggle={() => toggle(cap)} />}
             </div>
         );

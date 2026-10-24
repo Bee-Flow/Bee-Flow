@@ -41,7 +41,7 @@ export default function BehaviorSection({ scope, onDrill }: BehaviorSectionProps
                             border: `1px solid ${active ? `${ACCENT}66` : 'var(--border-default, rgba(255,255,255,0.1))'}`,
                             color: active ? ACCENT : 'var(--text-muted, #888)',
                         }}>
-                            <Icon style={{ width: 13, height: 13 }} /> {t(tb.labelKey, tb.label)}
+                            <Icon className="w-[13px] h-[13px]" /> {t(tb.labelKey, tb.label)}
                         </button>
                     );
                 })}
@@ -140,7 +140,7 @@ function FunnelPanel({ scope }: FunnelPanelProps) {
                             <button onClick={() => setStepsFrom(list => list.filter((_, j) => j !== i))}
                                 aria-label={t('cms_site.analytics.behavior.remove_step', 'Remove step {n}', { n: i + 1 })}
                                 className="[background:transparent] [border:none] [color:var(--text-muted,#888)] [cursor:pointer]">
-                                <X style={{ width: 13, height: 13 }} />
+                                <X className="w-[13px] h-[13px]" />
                             </button>
                         </div>
                     ))}

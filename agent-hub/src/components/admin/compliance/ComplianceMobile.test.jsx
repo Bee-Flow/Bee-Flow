@@ -18,16 +18,7 @@ import { attentionTarget } from './mobile/MobileHomeOverview';
  * Nothing here fetches: the hub owns the data and hands the same object every
  * page gets. So the fixtures below ARE the contract with fe-1.
  */
-vi.mock('../../../hooks/useTranslation', () => {
-    const t = (key, fallback, vars) => {
-        let s = typeof fallback === 'string' ? fallback : key;
-        for (const [k, v] of Object.entries((typeof fallback === 'object' ? fallback : vars) || {})) {
-            s = s.replace(`{${k}}`, String(v));
-        }
-        return s;
-    };
-    return { useTranslation: () => ({ t }), default: () => ({ t }) };
-});
+vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const COUNTS = {
     attention_open: 3,

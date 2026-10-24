@@ -16,7 +16,7 @@ export default function SupportMailboxBanner({ mailbox, disconnecting, onDisconn
             className="px-6 py-3 border-b flex items-center justify-between gap-4 [border-color:var(--border-default)]! [background:rgba(245,158,11,0.08)]"
         >
             <div className="flex items-start gap-3 min-w-0">
-                <Mail className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#b45309' }} />
+                <Mail className="w-4 h-4 mt-0.5 shrink-0 [color:#b45309]" />
                 <div className="min-w-0">
                     <div className="text-sm font-medium text-[var(--text-primary)]">
                         {t('support.support_inbox_an_email_box_is_feeding_this_inbox', 'An email box is feeding this inbox')}

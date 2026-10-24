@@ -255,8 +255,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                                     className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
                                         ? 'bg-[var(--accent-primary)] text-white shadow-sm'
                                         : 'text-muted hover:text-primary hover:bg-white/5'
-                                        }`}
-                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                        } [text-decoration:none]! [color:inherit]!`}
                                 >
                                     {tab.label}
                                 </NavLink>

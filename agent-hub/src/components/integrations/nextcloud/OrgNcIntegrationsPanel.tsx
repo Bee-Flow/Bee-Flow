@@ -131,7 +131,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
     return (
         <div className="space-y-5">
             <header className="flex items-center gap-2">
-                <Cloud className="w-5 h-5" style={{ color: '#0082C9' }} />
+                <Cloud className="w-5 h-5 [color:#0082C9]" />
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_nextcloud_integrations', 'Nextcloud integrations')}</h2>
             </header>
             <p className="text-sm text-[var(--text-muted)]">
