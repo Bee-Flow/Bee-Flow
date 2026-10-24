@@ -20,7 +20,7 @@
 
 const crypto = require('crypto');
 const { run, getOne, getAll, withTransaction } = require('../db');
-const { rollback } = require('../txRollback');
+const { rollback } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 // Same '__default_org__' sentinel funnel as named connections — custom
 // integrations and their credentials must agree on the org id.

@@ -40,23 +40,22 @@ const datatableRuntime = require('../../core/dataEngine/datatableRuntime');
 const datatableStore = require('../../stores/datatableStore');
 const webpageBindings = require('./webpageBindings');
 
-/** Modi uit de usage-index die de tabel VERANDEREN. */
+/** Modes from the usage index that CHANGE the table. */
 const WRITING_MODES = new Set(['write', 'readwrite']);
 
 /**
- * Noemt de eigen code van de pagina deze tabel?
+ * Does the page's own code mention this table?
  *
- * Een grove tekstzoektocht op het tabel-id in ALLE eigen tekstbestanden van de
- * pagina — de drie slots én de extra's, want een react-mui-pagina heeft haar
- * hele app onder `src/` staan en zou anders elke gebonden tabel als "niet
- * gebruikt" gestempeld krijgen. Dat is precies wat er te weten valt zonder de
- * parser die W4 bouwt, en het is
- * eerlijk over zijn grens: een `<bf-table source="tbl_x">` en een
- * `beeflowTables.query("tbl_x")` worden allebei gevonden, een id dat uit een
- * variabele komt niet. Vandaar dat "niet gevonden" in de UI een zachte,
- * gestippelde mededeling is en geen fout.
+ * A coarse text search for the table id in ALL of the page's own text files:
+ * the three slots and the extras, because a react-mui page keeps its whole app
+ * under `src/` and would otherwise get every bound table stamped "not used".
+ * That is exactly what can be known without the parser W4 builds, and it is
+ * honest about its limit: a `<bf-table source="tbl_x">` and a
+ * `beeflowTables.query("tbl_x")` are both found, an id that comes from a
+ * variable is not. Hence "not found" is a soft, dotted notice in the UI and
+ * not an error.
  *
- * @returns {Promise<Map<string, boolean>|null>} null als de bestanden niet leesbaar waren
+ * @returns {Promise<Map<string, boolean>|null>} null when the files could not be read
  */
 async function scanCodeForTables(userId, webpageId, datatableIds) {
     if (!datatableIds.length) return new Map();
@@ -72,7 +71,7 @@ async function scanCodeForTables(userId, webpageId, datatableIds) {
     return out;
 }
 
-/** Eén rij per automatisering: de ruimste modus wint, de kolommen worden samengevoegd. */
+/** One row per automation: the widest mode wins, the columns are merged. */
 function foldAutomations(usageRows, { datatableId, tableName }) {
     const byId = new Map();
     for (const u of usageRows) {
@@ -101,7 +100,7 @@ function foldAutomations(usageRows, { datatableId, tableName }) {
  *
  * @param {object} args
  * @param {string} args.webpageId
- * @param {string} args.userId   de EIGENAAR (de route is eigenaar-only)
+ * @param {string} args.userId   the OWNER (the route is owner-only)
  */
 async function buildDataCards({ webpageId, userId }) {
     const grants = await bridgeGrants.getBridgeGrants(webpageId);

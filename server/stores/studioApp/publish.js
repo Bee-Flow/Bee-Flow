@@ -8,7 +8,7 @@
 const { buildUpdate } = require('../lib/sqlBuilder');
 const { guardOf, serializeDefinition } = require('./shared');
 const { createVersionSnapshot } = require('./versions');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 
 /**
  * Toggle published state + sharing scope. When sharedGroups is undefined,

@@ -22,4 +22,19 @@ function rollback(value) {
     return new TransactionRollback(value);
 }
 
-module.exports = { TransactionRollback, rollback };
+/**
+ * COMMIT a finished withTransaction callback, or ROLLBACK when it returned
+ * `rollback(value)`; resolves to the callback's value either way.
+ * @param {import('pg').PoolClient} client
+ * @param {any} result
+ */
+async function settleTransaction(client, result) {
+    if (result instanceof TransactionRollback) {
+        await client.query('ROLLBACK');
+        return result.value;
+    }
+    await client.query('COMMIT');
+    return result;
+}
+
+module.exports = { TransactionRollback, rollback, settleTransaction };

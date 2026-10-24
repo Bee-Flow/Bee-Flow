@@ -6,7 +6,7 @@
  * Run: node --test --test-force-exit stores/playbookStore.test.js
  */
 
-const { TransactionRollback } = require('../txRollback');
+const { TransactionRollback } = require('../utils/txRollback');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');

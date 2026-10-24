@@ -48,7 +48,7 @@ const SLOT_FILES = Object.freeze({
     js: 'script.js',
 });
 
-/** De vaste samenvatting van een handmatige bewerking in de Code-tab. */
+/** The fixed summary of a manual edit in the Code tab. */
 const MANUAL_EDIT_SUMMARY = 'Edited in code';
 
 /**
@@ -136,19 +136,18 @@ function restoreSummary(seq) {
 }
 
 /**
- * Wie de versie maakte, zoals de geschiedenislijst hem mag tonen.
+ * Who made the version, as the history list may show it.
  *
- * @param {string|null} actorUserId  de kolomwaarde
+ * @param {string|null} actorUserId  the column value
  * @param {object} [opts]
- * @param {string|null} [opts.viewerId]  wie er kijkt (voor `isYou`)
- * @param {Map<any, any>|Record<string, any>|null} [opts.names] id → weergavenaam, door de route
- *        opgezocht. Een id dat er niet in staat is een account dat niet meer
- *        te lezen is.
+ * @param {string|null} [opts.viewerId]  who is looking (for `isYou`)
+ * @param {Map<any, any>|Record<string, any>|null} [opts.names] id → display name, looked up by the
+ *        route. An id that is not in it is an account that can no longer be
+ *        read.
  * @returns {null | { id: string, name: string|null, isYou: boolean }}
- *          `null` = nooit vastgelegd. `name: null` = vastgelegd maar niet te
- *          lezen. Beide gevallen tekent de UI als "onbekend"; het onderscheid
- *          blijft staan omdat alleen het tweede geval een spoor heeft om op
- *          door te zoeken.
+ *          `null` = never recorded. `name: null` = recorded but not
+ *          readable. The UI draws both as "unknown"; the distinction is kept
+ *          because only the second case has a trail to follow.
  */
 function actorOf(actorUserId, { viewerId = null, names = null } = {}) {
     const id = typeof actorUserId === 'string' && actorUserId.trim() ? actorUserId.trim() : null;

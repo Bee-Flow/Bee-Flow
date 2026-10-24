@@ -34,7 +34,6 @@ const express = require('express');
 const { fetchConfiguredEndpoint } = require('../../core/http/configuredEndpointFetch');
 const log = require('../../telemetry/log');
 const router = express.Router();
-
 const modules = require('../../modules');
 const { importModule, removeModule } = require('../../modules/moduleLifecycle');
 const hubClient = require('../../modules/hubClient');

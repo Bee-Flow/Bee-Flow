@@ -109,15 +109,15 @@ const { usageLogFields } = require('../providers/usageNormalizer');
 
 /** Boundaries. Everything that comes through here is typed by a human or a model. */
 const LIMITS = Object.freeze({
-    /** Regels per pass. `persona.doesNot` mag er meer hebben; de pass niet. */
+    /** Rules per pass. `persona.doesNot` may have more; the pass may not. */
     rules: 8,
     /** Tekens per regel — dezelfde orde als personaPrompt's bullet-clamp. */
     rule: 200,
     /** What the pass sees of the answer. The tail counts: that is where the slip is. */
     answer: 4000,
-    /** Wat de pass van de vraag ziet — genoeg om "kwam het ter sprake" te wegen. */
+    /** What the pass sees of the question — enough to weigh "did it come up". */
     question: 500,
-    /** Antwoordruimte van de pass zelf. Het antwoordt met nummers. */
+    /** Answer room of the pass itself. It answers with numbers. */
     maxTokens: 300,
     /** Above this time the chip is not worth the wait. */
     timeoutMs: 8000,
@@ -270,7 +270,7 @@ function _forPass(answer, max = LIMITS.answer) {
     return `${s.slice(0, max - 500)}\n…[trimmed]…\n${s.slice(-400)}`;
 }
 
-/** De twee berichten van de pass. `rules` is de lijst die ook de chip vult. */
+/** The two messages of the pass. `rules` is the list that also fills the chip. */
 function buildAttributionMessages({ rules, question, answer }) {
     const numbered = (Array.isArray(rules) ? rules : [])
         .map((r, i) => `${i + 1}. ${r}`)
@@ -335,21 +335,21 @@ function withTimeout(promise, ms, label) {
 }
 
 /**
- * De hele pass voor één beurt: gepoort, gebeld, gelezen.
+ * The whole pass for one turn: gated, called, read.
  *
  * @param {object} p
- * @param {boolean} p.testChat     `testChat.isTestChat(messageMetadata)`. Alles
- *                                 wat niet letterlijk `true` is, is geen pass —
- *                                 zie de kop over waarom die vlag hier hangt.
- * @param {object} p.persona       de CONCEPT-persona (`getAgent(id).persona`)
- * @param {object} p.configInfo    `testChat.testChatConfigInfo(agent)`, of de
- *                                 `versionInfo(views)` van routes/agents/tests.js
- * @param {string} p.answer        het antwoord van de agent
- * @param {string} [p.question]    de vraag die eraan voorafging
+ * @param {boolean} p.testChat     `testChat.isTestChat(messageMetadata)`. Anything
+ *                                 that is not literally `true` is not a pass —
+ *                                 see the header on why this flag lives here.
+ * @param {object} p.persona       the DRAFT persona (`getAgent(id).persona`)
+ * @param {object} p.configInfo    `testChat.testChatConfigInfo(agent)`, or the
+ *                                 `versionInfo(views)` of routes/agents/tests.js
+ * @param {string} p.answer        the agent's answer
+ * @param {string} [p.question]    the question that preceded it
  * @param {string|null} [p.orgId]
  * @param {string|null} [p.userId]
- * @param {any} [deps]          injectiepunten voor de test
- * @returns {Promise<{rules: Array<{rule: string}>}|null>} null = geen chip
+ * @param {any} [deps]          injection points for the test
+ * @returns {Promise<{rules: Array<{rule: string}>}|null>} null = no chip
  */
 async function attributeTurn({ testChat, persona, configInfo, answer, question, orgId = null, userId = null }, deps = {}) {
     // The money tap, before everything. See the header: no `if` in a route guards this,

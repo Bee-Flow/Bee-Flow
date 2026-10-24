@@ -7,10 +7,7 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
-const {
-    getAIConfig,
-    saveAIConfig,
-} = require('../../../core/aiAgent');
+const { getAIConfig, saveAIConfig } = require('../../../core/aiAgent');
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
 const { safeFetch } = require('../../../utils/ssrfGuard');

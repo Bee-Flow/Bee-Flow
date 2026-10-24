@@ -17,6 +17,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { safeFetch } = require('../../utils/ssrfGuard');
+const { HttpError } = require('../../core/http/errors');
 
 // Graph hands out pre-authenticated download URLs on these hosts only; anything
 // else is not a Microsoft download and is never fetched (SSRF defence in depth,
@@ -145,7 +146,7 @@ router.get('/export/:fileId', requireAuth, validate({ params: ExportParams }), a
     if (isText && item.size < 500000) {
         // Download and return text content
         if (!isMicrosoftDownloadUrl(item['@microsoft.graph.downloadUrl'])) {
-            return res.status(502).json({ error: 'Unexpected download host' });
+            throw new HttpError(502, 'unexpected_download_host', 'Unexpected download host');
         }
         const contentResponse = await safeFetch(item['@microsoft.graph.downloadUrl'], { redirect: 'error' });
         const text = await contentResponse.text();
@@ -169,5 +170,4 @@ router.get('/export/:fileId', requireAuth, validate({ params: ExportParams }), a
     });
 });
 
-module.exports = router;
-module.exports.isMicrosoftDownloadUrl = isMicrosoftDownloadUrl;
+module.exports = Object.assign(router, { isMicrosoftDownloadUrl });

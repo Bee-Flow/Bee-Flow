@@ -9,7 +9,7 @@
 // What stores/lib/_ddl.js wraps around its statements once the fake offers withTransaction.
 const DDL_CONTROL = /^\s*(SELECT pg_advisory_xact_lock|SET LOCAL lock_timeout|SAVEPOINT|RELEASE SAVEPOINT|ROLLBACK TO SAVEPOINT)/i;
 const log = require('../telemetry/log');
-const { TransactionRollback } = require('../txRollback');
+const { TransactionRollback } = require('../utils/txRollback');
 
 function withTransactionVia(getClient) {
     return async (fn) => {

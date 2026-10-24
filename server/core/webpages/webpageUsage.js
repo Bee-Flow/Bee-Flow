@@ -222,9 +222,9 @@ async function scanAutomation(webpage, db) {
             kind: 'automation',
             id: row.id,
             title: row.title || null,
-            // Een automatisering LEEST de pagina en schrijft in haar database
-            // (`webpage_db_exec`, `webpage_file_write`) — dezelfde rol die de
-            // index voor een schrijvende binding gebruikt.
+            // An automation READS the page and writes into its database
+            // (`webpage_db_exec`, `webpage_file_write`) — the same role the
+            // index uses for a writing binding.
             role: 'readwrite',
             ownerId: row.owner_id || null,
             lastAt: row.last_at || null,
@@ -265,20 +265,20 @@ const SCANS = Object.freeze({
 });
 
 /**
- * Alles wat aan deze webpagina hangt.
+ * Everything that hangs on this webpage.
  *
- * @param {Record<string, any>} webpage  de PAGINARIJ zoals de store hem teruggeeft, niet
- *                          alleen haar id: `projectId` is wat `scanSolution`
- *                          leest, en zonder die eigenschap meldt hij
- *                          "gecontroleerd, nul rijen" voor een pagina die wél
- *                          in een Oplossing ligt — een echte afhankelijkheid
- *                          die als een BEVESTIGDE nul uit de lijst valt in
- *                          plaats van als een gat. `id` draagt de rest.
+ * @param {Record<string, any>} webpage  the page ROW as the store returns it, not
+ *                          just its id: `projectId` is what `scanSolution`
+ *                          reads, and without that property it reports
+ *                          "checked, zero rows" for a page that DOES sit in a
+ *                          Solution — a real dependency that drops out of the
+ *                          list as a CONFIRMED zero instead of as a gap. `id`
+ *                          carries the rest.
  * @param {object} [opts]
- * @param {object} [opts.db]  injectiepunt voor de tests
+ * @param {object} [opts.db]  injection point for the tests
  * @returns {Promise<{rows: Array, partial: string[], sources: object, complete: boolean}>}
- *          `partial` noemt de soorten die NIET beantwoord konden worden. Niet
- *          leeg betekent "ik weet het niet" — nooit "er is niets".
+ *          `partial` names the kinds that could NOT be answered. Non-empty
+ *          means "I do not know" — never "there is nothing".
  */
 async function usageForWebpage(webpage, { db = pool } = {}) {
     const rows = [];

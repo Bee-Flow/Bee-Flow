@@ -8,7 +8,7 @@ const { dep } = require('./deps');
 const { parseJSONObject: parseJSON } = require('../lib/json');
 const { initDB } = require('./schema');
 const { guardOf } = require('./shared');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 
 const { run, getOne } = dep('db');
 

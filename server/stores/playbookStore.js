@@ -15,7 +15,7 @@
 
 const crypto = require('crypto');
 const { getOne, getAll, run, withTransaction } = require('../db');
-const { rollback } = require('../txRollback');
+const { rollback } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { parseJSONObject: parseJSON } = require('./lib/json');

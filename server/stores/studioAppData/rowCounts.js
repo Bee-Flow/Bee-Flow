@@ -6,7 +6,7 @@
  */
 
 const { getOne, withTransaction } = require('../../db');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 const queryCompiler = require('../../appStudio/queryCompiler');
 const { deps } = require('./cycleDeps');
 const { parseJSON } = require('../lib/json');

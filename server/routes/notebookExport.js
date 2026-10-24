@@ -402,10 +402,8 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
         let walked = '';
         for (const seg of folderSegments) {
             walked += '/' + encodeURIComponent(seg);
-            const mkRes = await fetchConfiguredEndpoint(`${davRoot}${walked}`, { redirect: 'follow',
-                method: 'MKCOL',
-                headers: { 'Authorization': auth },
-                signal: AbortSignal.timeout(15000),
+            const mkRes = await fetchConfiguredEndpoint(`${davRoot}${walked}`, {
+                redirect: 'follow', method: 'MKCOL', headers: { 'Authorization': auth }, signal: AbortSignal.timeout(15000),
             });
             if (mkRes.status === 401) throw new HttpError(502, 'nextcloud_auth_rejected', 'Nextcloud rejected credentials. Re-save your app password.');
             if (mkRes.status !== 201 && mkRes.status !== 405 /* already exists */) {

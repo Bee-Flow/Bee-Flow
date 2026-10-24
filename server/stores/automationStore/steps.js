@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 const { initDB, run, getAll, withTransaction } = require('./core');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 const { rowToAutomation, safeParse } = require('./rowMappers');
 const { getAutomation } = require('./automations');
 

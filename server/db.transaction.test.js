@@ -8,7 +8,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { rollback, _runTransaction, _instrumentClient, makeStoreInit, isSqlStateError } = require('./db');
+const { rollback } = require('./utils/txRollback');
+const { _runTransaction, _instrumentClient, makeStoreInit, isSqlStateError } = require('./db');
 
 function fakeClient() {
     const calls = [];

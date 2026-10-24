@@ -604,9 +604,7 @@ async function probeScript(publicUrl) {
     try {
         const r = await fetchConfiguredEndpoint(url, { redirect: 'manual', signal: controller.signal });
         const type = r.headers.get('content-type') || '';
-        if (r.status >= 300 && r.status < 400) {
-            return ['warn', `${url} redirects (${r.status}). Point the URL at the final origin.`];
-        }
+        if (r.status >= 300 && r.status < 400) return ['warn', `${url} redirects (${r.status}). Point the URL at the final origin.`];
         if (!r.ok) return ['fail', `${url} returned ${r.status}. Visitors' browsers will get the same.`];
         if (!/javascript|ecmascript/i.test(type)) {
             return ['warn', `${url} answered ${r.status} but as "${type || 'no content-type'}" — probably not the tracker.`];

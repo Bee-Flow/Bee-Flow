@@ -4,7 +4,7 @@
  */
 
 const { initDB, run, getOne, withTransaction } = require('./core');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 const { safeParse } = require('./rowMappers');
 
 // ── Builder session snapshot ───────────────────────────────────────────

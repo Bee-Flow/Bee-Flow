@@ -2,6 +2,7 @@ import React, { useEffect, useState, type CSSProperties, type FormEvent } from '
 import { ShieldCheck, CheckCircle2, Search, BadgeCheck, CircleAlert } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';
+import { logger } from '../utils/logger';
 
 const API = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
 
@@ -133,7 +134,7 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
             params.delete('token');
             const rest = params.toString();
             window.history.replaceState(window.history.state, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash);
-        } catch { /* a locked-down history API: the token just stays in the URL */ }
+        } catch (err) { logger.debug('history API locked down: the token just stays in the URL', err); }
     }, [verify]);
     const [email, setEmail] = useState('');
     const [type, setType] = useState('access');

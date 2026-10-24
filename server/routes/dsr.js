@@ -49,7 +49,6 @@ const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, typeError } = require('../core/http/schemaParts');
 const { onEvidenceWriteFailed } = require('../compliance/evidence/writeFailures');
 const appPaths = require('../utils/appPaths');
-
 const complianceStore = (() => { try { return require('../stores/complianceStore'); } catch { return null; } })();
 const emailService = (() => { try { return require('../utils/emailService'); } catch { return null; } })();
 
@@ -417,8 +416,7 @@ function idFromUnverifiedToken(token) {
  * logged (BFSF-441) — `row` travels no further than `req.dsrVerified`.
  */
 async function requireVerifyToken(req, res, next) {
-    res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('Cache-Control', 'no-store');
+    res.set({ 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' });
     const invalid = () => res.status(400).json({ error: 'invalid_token' });
     try {
         const token = req.body?.token;

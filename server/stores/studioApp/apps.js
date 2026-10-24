@@ -13,7 +13,7 @@ const { changedKeysOf } = require('../lib/managedParts');
 const { initDB } = require('./schema');
 const { guardOf, inTx, serializeDefinition } = require('./shared');
 const { META_COLS, mapAppMetaRow, mapAppRow } = require('./rowMappers');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 
 const { run, getOne, getAll } = dep('db');
 const log = dep('log');

@@ -12,7 +12,7 @@ const { guardOf } = require('./shared');
 const { mapAppRow, mapVersionMetaRow, mapVersionRow } = require('./rowMappers');
 
 const { getOne, getAll, withTransaction } = dep('db');
-const { rollback } = require('../../txRollback');
+const { rollback } = require('../../utils/txRollback');
 
 // Publish snapshots kept per app (oldest pruned beyond this).
 const MAX_VERSIONS_PER_APP = 20;

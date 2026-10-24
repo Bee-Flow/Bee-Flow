@@ -31,7 +31,7 @@
  */
 
 const log = require('../telemetry/log');
-const { TransactionRollback } = require('../txRollback');
+const { TransactionRollback } = require('../utils/txRollback');
 
 /**
  * @param {object} [opts]
