@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useEffectEvent, useRef } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { mutate, errorBody, RefusedError, type JsonBody } from '../../api/mutate';
 import beeFlowIcon from '../../assets/bee-flow-logo.svg';
 
 interface EmailVerificationScreenProps {
     verification?: { organizationName?: string } | null;
     t?: (key: string, fallback: string) => string;
+}
+
+/** POST and read the JSON body whatever the status: the screen acts on the body's `code`, a refusal included. */
+async function postForBody(url: string, init: Parameters<typeof mutate>[1]): Promise<{ ok: boolean; body: JsonBody }> {
+    try {
+        const res = await mutate(url, init);
+        return { ok: true, body: await res.json().catch(() => ({})) };
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return { ok: false, body: errorBody(err) ?? {} };
+    }
 }
 
 /**
@@ -52,9 +64,8 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
         setInfo(null);
         setAttemptsLeft(null);
         try {
-            const res = await authFetch(`${API_BASE}/setup/request-verification-code`, { method: 'POST' });
-            const body = await res.json().catch(() => ({}));
-            if (res.ok && body.ok) {
+            const { ok, body } = await postForBody(`${API_BASE}/setup/request-verification-code`, { method: 'POST' });
+            if (ok && body.ok) {
                 setMaskedEmail(body.maskedEmail || null);
                 setExpiresAt(body.expiresAt || null);
                 setPhase('ready');
@@ -112,13 +123,12 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
         setError(null);
         setInfo(null);
         try {
-            const res = await authFetch(`${API_BASE}/setup/verify-email-code`, {
+            const { ok, body } = await postForBody(`${API_BASE}/setup/verify-email-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (res.ok && body.ok) {
+            if (ok && body.ok) {
                 window.location.reload();
                 return;
             }

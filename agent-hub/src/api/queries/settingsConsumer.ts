@@ -5,12 +5,15 @@
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { errorMessage } from '../../utils/caughtError';
+import { request, RefusedError } from '../mutate';
 
 const consumerKeys = {
     betaFeatures: ['settings', 'consumer-beta-features'] as const,
     userSettings: ['settings', 'consumer-user-settings'] as const,
     shield: ['settings', 'consumer-shield'] as const,
     guardStatus: ['settings', 'consumer-guard-status'] as const,
+    billing: ['settings', 'consumer-billing'] as const,
     usage: (days: number) => ['settings', 'consumer-usage', days] as const,
 };
 
@@ -122,6 +125,48 @@ export function useConsumerUsage<S, R, C>(days: number) {
             }
         },
         placeholderData: keepPreviousData,
+        ...READ,
+    });
+}
+
+interface BillingSnapshot<U, P> {
+    data: U | null;
+    stripeEnabled: boolean;
+    plans: P[];
+    /** Set when a step failed; what was read before it stays in the snapshot. */
+    error: string | null | undefined;
+}
+
+/** Consumer usage, whether Stripe is on, and the consumer plans: the three reads of Settings → Licence. */
+export function useConsumerBillingData<U, P>() {
+    return useQuery<BillingSnapshot<U, P>, Error>({
+        queryKey: consumerKeys.billing,
+        queryFn: async () => {
+            const snapshot: BillingSnapshot<U, P> = { data: null, stripeEnabled: false, plans: [], error: null };
+            try {
+                const [usageRes, statusRes] = await Promise.all([
+                    authFetch(`${API_BASE}/api/subscriptions/consumer/usage`),
+                    authFetch(`${API_BASE}/api/stripe/status`),
+                ]);
+                if (usageRes.ok) snapshot.data = await usageRes.json();
+                else throw new Error('Failed to load usage data');
+                if (statusRes.ok) {
+                    const status = await statusRes.json();
+                    snapshot.stripeEnabled = status.enabled;
+                    if (status.enabled) {
+                        const plansRes = await request(`${API_BASE}/api/stripe/plans?type=consumer`).catch((err: unknown) => {
+                            if (err instanceof RefusedError) return null;
+                            throw err;
+                        });
+                        if (plansRes) snapshot.plans = await plansRes.json();
+                    }
+                }
+            } catch (e) {
+                console.error('[ConsumerLicense] fetch error:', e);
+                snapshot.error = errorMessage(e);
+            }
+            return snapshot;
+        },
         ...READ,
     });
 }

@@ -9,7 +9,8 @@ import Modal from '../../../components/shared/Modal';
 import { projectErrorInfo } from '../../../api/queries/projectErrors';
 import useTranslation from '../../../hooks/useTranslation';
 import { apiClient } from '../../../api/client';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { mutate } from '../../../api/mutate';
 import EncryptionSetupJs from '../../EncryptionSetup';
 import { logger } from '../../../utils/logger';
 
@@ -53,7 +54,7 @@ export default function EncryptionUnlock({ open, onUnlocked, onClose }: Encrypti
     }, [open]);
 
     const signInAgain = async () => {
-        try { await authFetch(`${API_BASE}/auth/logout`, { method: 'POST' }); } catch (err) { logger.debug('the reload below shows the sign-in either way', err); }
+        try { await mutate(`${API_BASE}/auth/logout`, { method: 'POST' }); } catch (err) { logger.debug('the reload below shows the sign-in either way', err); }
         window.location.reload();
     };
 
