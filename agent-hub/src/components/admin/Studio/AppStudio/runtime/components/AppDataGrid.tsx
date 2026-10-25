@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
 import { ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import { GridBodyRow, GridGroupHeaderRow, groupPageRows, type GridGroup } from './grid/GridBody';
 import { CellPeek } from './grid/gridCells';

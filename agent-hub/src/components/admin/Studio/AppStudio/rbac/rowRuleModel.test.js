@@ -1,22 +1,7 @@
 import { createRequire } from 'module';
 import { describe, it, expect } from 'vitest';
-import {
-    BASE_SCOPES,
-    blankCondition,
-    buildRowRule,
-    conditionProblem,
-    describeAccessOutcome,
-    describeRowRule,
-    matchBaseScope,
-    operatorsForField,
-    ownRowsCondition,
-    parseRowRule,
-    resolveAccessEntry,
-    retypeCondition,
-    ruleFields,
-    scopeToEntry,
-    serializeCondition,
-} from './rowRuleModel';
+import { blankCondition, buildRowRule, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, operatorsForField, ownRowsCondition, parseRowRule, resolveAccessEntry, retypeCondition, ruleFields, scopeToEntry, serializeCondition } from './rowRuleModel';
+import { BASE_SCOPES } from './rowRuleModel.constants';
 
 // The gateway the expression actually has to survive. Required through Node so
 // the picker output is checked against the SAME translator the server runs.

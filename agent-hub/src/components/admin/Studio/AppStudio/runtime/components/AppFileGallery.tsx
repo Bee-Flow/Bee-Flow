@@ -5,7 +5,7 @@ import { authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
 import { EmptyText, ErrorText, Skeleton } from '../uiBits';
 import { firstDescriptor } from './AppFilePreview';
 import { entryHref, entryIsImage } from './AppInputFile';

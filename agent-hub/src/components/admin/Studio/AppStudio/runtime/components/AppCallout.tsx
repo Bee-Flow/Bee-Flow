@@ -5,7 +5,7 @@ import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
 import type { BindingInput } from '../resolveBinding.types';
-import { ROLE_COLORS } from '../styleResolver';
+import { ROLE_COLORS } from '../styleResolver.constants';
 
 /** App Studio runtime — 'callout'. Spec: server/appStudio/componentSpecs.js. */
 

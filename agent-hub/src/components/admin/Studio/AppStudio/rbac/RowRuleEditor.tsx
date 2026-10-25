@@ -2,19 +2,8 @@ import { AlertTriangle, Database, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { validateRowFilterExpr } from './rowFilterSubset';
 import RowRuleBuilder from './RowRuleBuilder';
-import {
-    BASE_SCOPES,
-    buildRowRule,
-    compareSourceLabel,
-    conditionProblem,
-    describeAccessOutcome,
-    describeRowRule,
-    matchBaseScope,
-    parseRowRule,
-    resolveAccessEntry,
-    ruleFields,
-    scopeToEntry,
-} from './rowRuleModel';
+import { buildRowRule, compareSourceLabel, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, parseRowRule, resolveAccessEntry, ruleFields, scopeToEntry } from './rowRuleModel';
+import { BASE_SCOPES } from './rowRuleModel.constants';
 import useAppRoles from './useAppRoles';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { insertAtCursor } from '../../../../../utils/bindingHelpers';

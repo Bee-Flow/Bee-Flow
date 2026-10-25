@@ -121,7 +121,7 @@ test('run: splits a file in a git sandbox, keeps the program, and reverts a spli
     g('add', '-A');
     g('commit', '-qm', 'base');
     const before = sb.read('src/Page.tsx');
-    const report = await run([sb.at('src/Page.tsx')], { limit: 150, repo: sb.root, pkgRel: 'agent-hub', scc: false, typecheck: false, tests: false, budget: false, log: () => {} });
+    const report = await run([sb.at('src/Page.tsx')], { limit: 150, repo: sb.root, pkgRel: 'agent-hub', scc: false, typecheck: false, tests: false, budget: false, commit: false, log: () => {} });
     assert.equal(report.reverted.length, 0, JSON.stringify(report.reverted));
     assert.equal(report.done.length, 1);
     const entry = report.done[0];
@@ -146,7 +146,7 @@ test('run: a split that fails a gate is reverted, nothing is left behind', async
     g('add', '-A');
     g('commit', '-qm', 'base');
     const before = sb.read('src/Page.tsx');
-    const report = await run([sb.at('src/Page.tsx')], { limit: 150, repo: sb.root, pkgRel: 'agent-hub', scc: false, typecheck: false, tests: false, budget: false, log: () => {}, check: () => 'forced by the test' });
+    const report = await run([sb.at('src/Page.tsx')], { limit: 150, repo: sb.root, pkgRel: 'agent-hub', scc: false, typecheck: false, tests: false, budget: false, commit: false, log: () => {}, check: () => 'forced by the test' });
     assert.deepEqual(report.reverted.map((r) => r.reason), ['forced by the test']);
     assert.equal(report.done.length, 0);
     assert.equal(sb.read('src/Page.tsx'), before);

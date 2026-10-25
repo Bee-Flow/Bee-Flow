@@ -1,15 +1,17 @@
-import { AlertTriangle, CheckCircle2, ExternalLink, Info, LayoutGrid, Loader2, Stethoscope } from 'lucide-react';
+import { CheckCircle2, ExternalLink, LayoutGrid, Loader2, Stethoscope } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import AudiencePicker from './AudiencePicker';
-import dryRunIssues, { type DryRunIssue, type ResolveTargetFn } from './dryRunIssues';
-import type { BlockerListProps, Findings, IssuePanelProps, IssueRowProps, IssueTarget, PublishModalProps, PublishPayload, TranslateFn } from './PublishModal.types';
+import dryRunIssues, { type DryRunIssue } from './dryRunIssues';
+import type { Findings, IssueTarget, PublishModalProps, PublishPayload } from './PublishModal.types';
 import { GROUPS, ORG, PRIVATE } from './publishAccessSummary';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { errorBodyRecord, errorStatus, messageOf } from '../../../../../utils/caughtError';
 import Modal from '../../../../shared/Modal';
-import { resolveTarget } from '../../../../shared/resolveTarget';
 import toast from '../../../../shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
+import { audienceOf, sharedGroupsOf, formatWhen, audienceLabel, resolveIssueTarget, asIssueList, resolveNodeScreen, ncMenuToast } from './PublishModal.helpers';
+import { BlockerList } from './BlockerList';
+export { resolveIssueTarget } from './PublishModal.helpers';
 /**
  * Publish modal — the three-way audience picker for an App Studio app.
  *
@@ -32,90 +34,6 @@ import { studioAppsApi } from '../studioAppsApi';
  * The audience choice and what it hands people in the app's tables live in
  * AudiencePicker — the modal only owns the payload and the server's answer.
  */
-
-/** Which audience the app is CURRENTLY published to. */
-function audienceOf(app: PublishModalProps['app'] | null | undefined): string {
-    const published = !!(app?.isPublished ?? app?.is_published);
-    if (!published) return PRIVATE;
-    const groups = sharedGroupsOf(app);
-    return groups.length > 0 ? GROUPS : ORG;
-}
-
-function sharedGroupsOf(app: PublishModalProps['app'] | null | undefined): string[] {
-    const g = app?.sharedGroups ?? app?.shared_groups;
-    return Array.isArray(g) ? g.map((x) => String(x)).filter(Boolean) : [];
-}
-
-function formatWhen(iso: string | null | undefined): string | null {
-    if (!iso) return null;
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleString();
-}
-
-/**
- * Which audience the status line names. A function of t() rather than a
- * lookup table: a table of English is a sentence the Languages panel cannot
- * reach. The three cases are exhaustive — audienceOf() returns nothing else.
- */
-function audienceLabel(t: TranslateFn, audience: string): string {
-    switch (audience) {
-        case PRIVATE: return t('app_studio.publish.audience_private', 'Private draft');
-        case ORG: return t('app_studio.publish.audience_org', 'Everyone in your organization');
-        case GROUPS: return t('app_studio.publish.audience_groups', 'Specific groups');
-        default: return '';
-    }
-}
-
-/**
- * Walk a validator `path` ("screens[0].sections[1].children[2].props.title")
- * down the definition to the thing the editor can actually select: the
- * deepest addressed section/element id, plus the page it sits on. Trailing
- * segments that aren't a screen/section/child step (props, filters, …) stop
- * the walk — they address a field inside the node we already found.
- * Returns null when the path doesn't start at a real screen.
- *
- * The walk itself lives in shared/resolveTarget.js — the one deep-link
- * resolver every "Show me" goes through; this keeps the modal's shape.
- */
-export function resolveIssueTarget(definition: PublishModalProps['definition'], path: unknown): IssueTarget | null {
-    if (typeof path !== 'string') return null;
-    const hit = (resolveTarget as ResolveTargetFn)(definition, { path, kind: 'app' });
-    return hit ? { screenId: hit.screenId, screenName: hit.screenName, nodeId: hit.nodeId } : null;
-}
-
-function asIssueList(value: unknown): DryRunIssue[] {
-    return Array.isArray(value) ? value.filter((e) => e && typeof e === 'object') : [];
-}
-/**
- * The screen a node id sits on, in the { nodeId, screenId, screenName } shape
- * "Show me" wants. resolveIssueTarget walks a validator PATH; the dry run
- * reports the component it actually executed, which only has an id. Same
- * resolver, other direction.
- */
-function resolveNodeScreen(definition: PublishModalProps['definition'], nodeId: string | null | undefined): IssueTarget | null {
-    if (!definition || !nodeId) return null;
-    const hit = (resolveTarget as ResolveTargetFn)(definition, { nodeId, kind: 'app' });
-    return hit ? { nodeId, screenId: hit.screenId, screenName: hit.screenName } : null;
-}
-
-/**
- * What the dialog says after the Nextcloud-menu toggle. The server waited for
- * the org's connector, so the toast can be exact: "reload Nextcloud" only when
- * the icon is really there (or really gone); otherwise the connector's own
- * periodic check picks it up — "within a few minutes".
- */
-function ncMenuToast(t: TranslateFn, ncRes: { ncConnected?: boolean; ncSync?: string } | null | undefined, enabled: boolean) {
-    if (ncRes?.ncConnected === false) {
-        toast.info(t('app_studio.publish.nc_menu_not_connected', 'Saved — the app icon appears once your organization’s Nextcloud is connected to Bee Flow.'));
-    } else if (ncRes?.ncSync === 'synced') {
-        toast.success(enabled
-            ? t('app_studio.publish.nc_menu_synced', 'Added to the Nextcloud app menu — reload Nextcloud to see it.')
-            : t('app_studio.publish.nc_menu_removed', 'Removed from the Nextcloud app menu — reload Nextcloud to update it.'));
-    } else {
-        toast.info(t('app_studio.publish.nc_menu_pending', 'Saved — the icon appears in Nextcloud within a few minutes.'));
-    }
-}
 
 export default function PublishModal({ open, onClose, app, onPublished, definition, onRevealNode, managed = false }: PublishModalProps) {
     const { t } = useTranslation();
@@ -455,111 +373,6 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                 ) : null}
             </div>
         </Modal>
-    );
-}
-
-/**
- * `context` distinguishes the two ways this list appears. A refused publish
- * has to say what happened to the readers; a check the author asked for has
- * not changed anything, so saying so would be noise — and it may have no
- * errors at all, only things worth a look.
- */
-function BlockerList({ errors, warnings, revealTarget, onReveal, context = 'publish' }: BlockerListProps) {
-    const { t } = useTranslation();
-    const isCheck = context === 'check';
-    // Four headings, not two halves of one: "{n} things ${isCheck ? 'are
-    // broken' : 'to fix'}" glues an English predicate onto a count, which no
-    // translation can take apart. Singular and plural are a key each (§2.1),
-    // and both carry {n} so the count sits where the language wants it.
-    const errorTitle = isCheck
-        ? (errors.length === 1
-            ? t('app_studio.publish.check_errors_title', '{n} thing is broken', { n: errors.length })
-            : t('app_studio.publish.check_errors_title_plural', '{n} things are broken', { n: errors.length }))
-        : (errors.length === 1
-            ? t('app_studio.publish.errors_title', '{n} thing to fix before publishing', { n: errors.length })
-            : t('app_studio.publish.errors_title_plural', '{n} things to fix before publishing', { n: errors.length }));
-    return (
-        <div className="space-y-3">
-            {errors.length > 0 ? (
-                <IssuePanel
-                    issues={errors}
-                    icon={<AlertTriangle className="h-4 w-4 shrink-0 [color:#b45309]" aria-hidden="true" />}
-                    title={errorTitle}
-                    note={isCheck
-                        ? t('app_studio.publish.check_errors_note', 'These stop the app working for the people you share it with.')
-                        : t('app_studio.publish.errors_note', 'Nothing changed for your readers — they still see the version you published last.')}
-                    panelStyle={{ borderColor: '#b45309', background: 'color-mix(in srgb, #b45309 8%, transparent)' }}
-                    revealTarget={revealTarget}
-                    onReveal={onReveal}
-                />
-            ) : null}
-            {warnings.length > 0 ? (
-                <IssuePanel
-                    issues={warnings}
-                    icon={<Info className="h-4 w-4 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />}
-                    title={warnings.length === 1
-                        ? t('app_studio.publish.warnings_title', '{n} thing worth a look', { n: warnings.length })
-                        : t('app_studio.publish.warnings_title_plural', '{n} things worth a look', { n: warnings.length })}
-                    note={t('app_studio.publish.warnings_note', 'These do not stop you publishing.')}
-                    panelStyle={{ borderColor: 'var(--border-subtle)' }}
-                    revealTarget={revealTarget}
-                    onReveal={onReveal}
-                />
-            ) : null}
-        </div>
-    );
-}
-
-function IssuePanel({ issues, icon, title, note, panelStyle, revealTarget, onReveal }: IssuePanelProps) {
-    return (
-        <div className="rounded-lg border p-3" style={panelStyle}>
-            <div className="flex items-center gap-2">
-                {icon}
-                <strong className="text-sm text-[var(--text-primary)]">{title}</strong>
-            </div>
-            <p className="mt-1 text-xs text-[var(--text-tertiary)]">{note}</p>
-            <ul className="mt-2.5 space-y-2">
-                {issues.map((issue, i) => (
-                    <IssueRow
-                        key={`${issue.code || 'issue'}-${issue.path || i}`}
-                        issue={issue}
-                        target={revealTarget(issue)}
-                        onReveal={onReveal}
-                    />
-                ))}
-            </ul>
-        </div>
-    );
-}
-
-function IssueRow({ issue, target, onReveal }: IssueRowProps) {
-    const { t } = useTranslation();
-    // The save-notices panel's own button, same words and the same job
-    // (SaveStatusPill) — one key, not two.
-    const showMe = t('app_studio.header.show_me', 'Show me');
-    return (
-        <li className="text-xs">
-            <span className="block text-[var(--text-primary)]">{issue.message}</span>
-            {issue.hint ? (
-                <span className="mt-0.5 block text-[var(--text-tertiary)]">{issue.hint}</span>
-            ) : null}
-            {target ? (
-                <span className="mt-1 flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => onReveal(target)}
-                        className="rounded-md bg-white/5 px-2 py-1 font-medium hover:bg-[var(--bg-card-hover)] text-[var(--accent-primary)]"
-                    >
-                        {showMe}
-                    </button>
-                    {target.screenName ? (
-                        <span className="text-[var(--text-tertiary)]">
-                            {t('app_studio.publish.on_screen', 'on “{screen}”', { screen: target.screenName })}
-                        </span>
-                    ) : null}
-                </span>
-            ) : null}
-        </li>
     );
 }
 

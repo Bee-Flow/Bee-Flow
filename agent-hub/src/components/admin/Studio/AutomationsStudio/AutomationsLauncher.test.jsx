@@ -24,7 +24,7 @@ vi.mock('./FindRepeatingWorkTab', () => ({
     ),
 }));
 vi.mock('./TemplatesTab', () => ({ default: () => <div data-testid="panel-templates">templates</div> }));
-vi.mock('./AutomationsOverview', () => ({
+vi.mock('./AutomationsOverview/index', () => ({
     default: ({ automations, onCreateBlock }) => (
         <div data-testid="panel-overview">
             overview:{automations.length}

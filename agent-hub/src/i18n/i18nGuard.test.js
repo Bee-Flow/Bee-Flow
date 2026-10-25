@@ -394,7 +394,7 @@ const KEY_TABLE_FILES = [
     // those keys travelled unchecked — an `en` beside a key is exactly what
     // hides a missing one, which is the reason this check exists.
     'components/admin/Studio/AppStudio/inspector/ActionsSection.tsx',
-    'components/admin/Studio/SkillsStudio/SkillStepEditor.tsx',
+    'components/admin/Studio/SkillsStudio/StepCard.tsx',
     'components/admin/Studio/SkillsStudio/SkillsOverview.tsx',
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de

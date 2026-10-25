@@ -1,4 +1,3 @@
-import React from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { TextField, TextAreaField, IconField } from './panels/kit';
 import { SCREEN_DEFAULTS, SCREEN_ENUMS, THEME_ENUMS } from './styleKnobMeta';
@@ -10,10 +9,11 @@ import { NAV_STYLES, NAV_DEFAULT_STYLE, DESIGN_ENUMS, DESIGN_DEFAULTS } from '..
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateAiBrowsing } from '../state/definitionOps';
 import DesignPresetGallery from './DesignPresetGallery';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { DesignPreset } from './DesignPresetGallery';
 import type { AppDefinition, AppScreen } from './appDefinition';
-import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, SectionTitleProps, ScreenSettingsProps, ThemePanelProps, AiBrowsingSettingsProps } from './ThemePanel.types';
+import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
+import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
+import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';
 
 /**
  * ThemePanel — shown when nothing is selected: the whole-app knobs.
@@ -29,65 +29,9 @@ import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, Sec
  * looking at". No new selection semantics, no reducer change.
  */
 
-const enumLabels = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Record<string, string> => ({
-    none: t('studio_apps_insp.theme.enum_none', 'None'), sm: 'S', md: 'M', lg: 'L', xl: 'XL',
-    compact: t('studio_apps_insp.theme.enum_compact', 'Compact'),
-    comfortable: t('studio_apps_insp.theme.enum_comfortable', 'Comfy'),
-    spacious: t('studio_apps_insp.theme.enum_spacious', 'Spacious'),
-    light: t('studio_apps_insp.theme.enum_light', 'Light'),
-    dark: t('studio_apps_insp.theme.enum_dark', 'Dark'),
-    auto: t('studio_apps_insp.theme.enum_auto', 'Auto'),
-    // App Design v2
-    hairline: t('studio_apps_insp.theme.enum_hairline', 'Outline'),
-    flat: t('studio_apps_insp.theme.enum_flat', 'Flat'),
-    soft: t('studio_apps_insp.theme.enum_soft', 'Soft'),
-    elevated: t('studio_apps_insp.theme.enum_elevated', 'Raised'),
-    subtle: t('studio_apps_insp.theme.enum_subtle', 'Subtle'),
-    full: t('studio_apps_insp.theme.enum_full', 'Full'),
-    classic: t('studio_apps_insp.theme.enum_classic', 'Classic'),
-    brand: t('studio_apps_insp.theme.enum_brand', 'Brand'),
-});
-
-const designFields = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Array<{ key: 'surface' | 'motion' | 'chartPalette'; label: string; hint: string }> => [
-    { key: 'surface', label: t('studio_apps_insp.theme.design_surface', 'Surfaces'), hint: t('studio_apps_insp.theme.design_surface_hint', 'How cards, stats and grids sit on the page.') },
-    { key: 'motion', label: t('studio_apps_insp.theme.design_motion', 'Motion'), hint: t('studio_apps_insp.theme.design_motion_hint', 'Animation level. Viewers who ask for reduced motion always get none.') },
-    { key: 'chartPalette', label: t('studio_apps_insp.theme.design_chart_colours', 'Chart colours'), hint: t('studio_apps_insp.theme.design_chart_colours_hint', 'Brand derives chart colours from the primary colour.') },
-];
-
-// Typeface pairings. Self-hosted families load from our own server — no
-// request to Google — which is worth saying out loud in a privacy product.
-const fontLabels = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Record<string, string> => ({
-    system: t('studio_apps_insp.theme.font_system', 'System'), inter: 'Inter',
-    satoshi: t('studio_apps_insp.theme.font_satoshi', 'Satoshi (local)'),
-    'general-sans': t('studio_apps_insp.theme.font_general_sans', 'General Sans (local)'),
-    cabinet: t('studio_apps_insp.theme.font_cabinet', 'Cabinet Grotesk (local)'),
-    geist: 'Geist', plex: 'IBM Plex Sans', poppins: 'Poppins',
-});
-
 // Light grounds for the canvas picker — the platform's own off-white first,
 // then warm/cool paper tones. A brand yellow is a custom hex away.
 const CANVAS_PRESETS = ['#fafafa', '#f5f5f4', '#fef9c3', '#fff7ed', '#ecfdf5', '#eff6ff'];
-
-const widthLabels = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Record<string, string> => ({ narrow: 'S', medium: 'M', wide: 'L', full: t('studio_apps_insp.theme.enum_full', 'Full') });
-const refreshLabels = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Record<number, string> => ({ 0: t('studio_apps_insp.theme.refresh_off', 'Off'), 15: '15s', 30: '30s', 60: '1m', 300: '5m' });
-const navStyleLabels = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Record<string, string> => ({
-    tabs: t('studio_apps_insp.theme.nav_tabs', 'Tabs'),
-    sidebar: t('studio_apps_insp.theme.nav_sidebar', 'Sidebar'),
-    mega: t('studio_apps_insp.theme.nav_mega', 'Mega'),
-    rail: t('studio_apps_insp.theme.nav_rail', 'Rail'),
-});
-
-function options(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, values: string[]) {
-    const labels = enumLabels(t);
-    return values.map((v) => ({ value: v, label: labels[v] || v }));
-}
-
-const themeFields = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
-    { key: 'radius', label: t('studio_apps_insp.theme.field_corners', 'Corners') },
-    { key: 'density', label: t('studio_apps_insp.theme.field_density', 'Density') },
-    { key: 'fontScale', label: t('studio_apps_insp.theme.field_text_size', 'Text size') },
-    { key: 'appearance', label: t('studio_apps_insp.theme.field_appearance', 'Appearance') },
-];
 
 // Mirror of THEME_SPEC defaults (componentSpecs.js, authoritative).
 const THEME_DEFAULTS: Record<string, string> = { radius: 'md', density: 'comfortable', fontScale: 'md', appearance: 'auto' };
@@ -118,15 +62,6 @@ function OptionalColorField({ label, hint, value, fallback, presets, onChange, d
                 ) : null}
             </div>
         </FormField>
-    );
-}
-
-function SectionTitle({ children }: SectionTitleProps) {
-    return (
-        <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{children}</span>
-            <div className="flex-1 h-px bg-[var(--border-subtle)]" />
-        </div>
     );
 }
 
@@ -392,60 +327,3 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
     );
 }
 
-function AiBrowsingSettings({ value, onCommit, disabled }: AiBrowsingSettingsProps) {
-    const { t } = useTranslation();
-    const enabled = value?.enabled === true;
-    const domains: string[] = Array.isArray(value?.allowedDomains) ? value.allowedDomains : [];
-    const [draft, setDraft] = React.useState(domains.join('\n'));
-    // Re-sync when the definition changes underneath (undo, another surface).
-    React.useEffect(() => { setDraft(domains.join('\n')); }, [domains.join('\n')]);
-
-    const commitDomains = () => {
-        const list = draft
-            .split(/[\n,]/)
-            .map((d) => d.trim().toLowerCase())
-            .filter(Boolean);
-        onCommit({ allowedDomains: list });
-    };
-
-    return (
-        <div>
-            <SectionTitle>{t('studio_apps_insp.theme.ai_browsing', 'AI browsing')}</SectionTitle>
-            <div className="flex flex-col gap-3">
-                <Toggle
-                    label={t('studio_apps_insp.theme.ai_browsing_toggle', 'Let this app browse the web')}
-                    checked={enabled}
-                    onChange={(v) => onCommit({ enabled: v })}
-                    disabled={disabled}
-                    size="sm"
-                />
-                <p className="text-xs text-[var(--text-muted)]">
-                    {t('studio_apps_insp.theme.ai_browsing_explainer', 'An AI browsing step opens a real browser as you, and viewers watch it work. Only you can switch this on — the app builder cannot. Your organisation can revoke it at any time by turning off the Browse Web integration.')}
-                </p>
-                {enabled ? (
-                    <FormField
-                        label={t('studio_apps_insp.theme.sites_label', 'Sites it may open')}
-                        hint={t('studio_apps_insp.theme.sites_hint', 'One per line. Subdomains are included. Leave empty to allow any public site — rarely what you want.')}
-                    >
-                        <textarea
-                            className="w-full rounded-lg text-sm p-2 outline-none focus:ring-2"
-                            style={{
-                                background: 'var(--bg-primary)',
-                                border: '1px solid var(--border-default)',
-                                color: 'var(--text-primary)',
-                                '--tw-ring-color': 'var(--accent-primary)',
-                            } as React.CSSProperties}
-                            rows={4}
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            onBlur={commitDomains}
-                            placeholder={'nhs.uk\nwho.int'}
-                            disabled={disabled}
-                            aria-label={t('studio_apps_insp.theme.sites_label', 'Sites it may open')}
-                        />
-                    </FormField>
-                ) : null}
-            </div>
-        </div>
-    );
-}

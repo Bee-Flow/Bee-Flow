@@ -5,7 +5,7 @@ import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
-import { ROLE_COLORS } from '../styleResolver';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import { request, RefusedError } from '../../../../../../api/mutate';
 
 /**

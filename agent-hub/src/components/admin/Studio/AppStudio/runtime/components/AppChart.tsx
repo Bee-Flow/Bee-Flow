@@ -13,7 +13,7 @@ import useMeasuredBox from '../../../../../shared/charts/useMeasuredBox';
 import { brandPalette } from '../appDesign';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 import type { BindingInput } from '../resolveBinding.types';

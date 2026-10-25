@@ -5,7 +5,9 @@ import AppIcon from '../../../../../icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime, type ExpressionScope } from '../RuntimeContext';
-import { isFill, ROLE_COLORS, roleTextColor } from '../styleResolver';
+import { roleTextColor } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import type { BindingInput, FormulaBinding } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 
