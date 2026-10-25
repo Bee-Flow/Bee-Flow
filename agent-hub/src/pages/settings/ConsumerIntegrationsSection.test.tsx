@@ -2,7 +2,8 @@
 // the AI may call, pressed = on. Pinned: a click on the switch picture inside a
 // tile toggles it exactly once (a nested label + checkbox used to toggle it
 // twice, so the switch looked dead), and the choice is saved.
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
+import { renderWithClient as render } from '../../test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

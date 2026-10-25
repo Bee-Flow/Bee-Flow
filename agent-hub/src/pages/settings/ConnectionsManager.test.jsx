@@ -1,7 +1,8 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ConnectionsManager from './ConnectionsManager';
+import { renderWithClient as render } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
 vi.mock('../../utils/helpers', () => ({
@@ -272,7 +273,7 @@ describe('ConnectionsManager — i18n', () => {
         // Title, description and the add button all go through t().
         expect(await screen.findByText('NL:connections.title')).toBeTruthy();
         expect(screen.getByText('NL:connections.description')).toBeTruthy();
-        expect(screen.getByText(/NL:connections.add/)).toBeTruthy();
+        expect(await screen.findByText(/NL:connections.add/)).toBeTruthy();
         vi.doUnmock('../../hooks/useTranslation');
         vi.resetModules();
     });

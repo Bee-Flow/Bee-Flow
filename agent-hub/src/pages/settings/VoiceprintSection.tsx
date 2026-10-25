@@ -1,10 +1,11 @@
 import { Fingerprint, Check, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Row } from './shared/settingsPrimitives';
 import VoiceprintEnrollModal from './VoiceprintEnrollModal';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { request, RefusedError } from '../../api/mutate';
+import { API_BASE } from '../../utils/helpers';
+import { mutate, RefusedError } from '../../api/mutate';
+import { useVoiceprintAvailability } from '../../api/queries/settingsOptionalRead';
 
 interface Voiceprint {
     status?: string;
@@ -36,36 +37,19 @@ interface VoiceprintAvailability {
  */
 export default function VoiceprintSection() {
     const { t, locale } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [state, setState] = useState<VoiceprintAvailability | null>(null); // the /availability payload
+    const query = useVoiceprintAvailability<VoiceprintAvailability>();
+    const state = query.data ?? null; // the /availability payload
+    const loading = query.isPending;
+    const load = async () => { await query.refetch(); };
     const [enrollOpen, setEnrollOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
 
-    const load = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/voiceprints/availability`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setState(null);
-                return;
-            }   // 403/404 → not licensed
-            setState(await res.json());
-        } catch (_) {
-            setState(null);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
-
     const remove = async () => {
         setBusy(true);
         try {
-            await authFetch(`${API_BASE}/api/voiceprints/me`, { method: 'DELETE' });
+            // A refusal was never surfaced here (the list below re-reads the truth either way).
+            try { await mutate(`${API_BASE}/api/voiceprints/me`, { method: 'DELETE' }); } catch (err) { if (!(err instanceof RefusedError)) throw err; }
             setConfirmDelete(false);
             await load();
         } finally {
