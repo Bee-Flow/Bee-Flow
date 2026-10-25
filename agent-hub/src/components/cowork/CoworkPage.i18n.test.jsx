@@ -23,6 +23,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { withQueryClient } from '../../test/queryWrapper';
 
 const echoT = (key, _english, params) => (params
     ? `«${key}»${JSON.stringify(params)}`
@@ -84,7 +85,7 @@ beforeEach(() => {
 describe('CoworkPage — the delete confirmation', () => {
     async function openConfirm() {
         seed([ITEM]);
-        render(<CoworkPage />);
+        render(withQueryClient(<CoworkPage />));
         fireEvent.click(await screen.findByTestId('cowork-row'));
         fireEvent.click(await screen.findByTestId('cowork-delete'));
         return screen.findByTestId('cowork-confirm-delete');
@@ -113,7 +114,7 @@ describe('CoworkPage — the delete confirmation', () => {
 describe('CoworkPage — the starters', () => {
     it('shows the TRANSLATED sentence, the same as the chat welcome does', async () => {
         seed([]);
-        render(<CoworkPage />);
+        render(withQueryClient(<CoworkPage />));
         const starters = await screen.findAllByTestId('cowork-starter');
         expect(starters).toHaveLength(4);
         for (const s of starters) {
@@ -125,7 +126,7 @@ describe('CoworkPage — the starters', () => {
     it('fills the box with the translated sentence, not the English behind it', async () => {
         const user = userEvent.setup();
         seed([]);
-        render(<CoworkPage />);
+        render(withQueryClient(<CoworkPage />));
         const starters = await screen.findAllByTestId('cowork-starter');
         await user.click(starters[0]);
         await waitFor(() => expect(screen.getByTestId('cowork-brief-input').value)
@@ -139,7 +140,7 @@ describe('CoworkPage — the way back on a phone', () => {
         // isMobile is a prop, not a media query: the phone layout is what the
         // shell hands down.
         seed([ITEM]);
-        render(<CoworkPage isMobile />);
+        render(withQueryClient(<CoworkPage isMobile />));
         await user.click(await screen.findByTestId('cowork-row'));
         expect(await screen.findByLabelText('«cowork.list.back»')).toBeInTheDocument();
         expect(screen.queryByLabelText('Back to the list')).not.toBeInTheDocument();

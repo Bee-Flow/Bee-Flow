@@ -74,7 +74,8 @@ import { clearSessionCaches } from './hooks/sessionCaches';
 import { useAppHeight } from './hooks/useAppHeight';
 import { useTranslation } from './hooks/useTranslation';
 import { useViewport } from './hooks/useViewport';
-import { API_BASE, authFetch, setSessionToken } from './utils/helpers';
+import { API_BASE, setSessionToken } from './utils/helpers';
+import { fetchAuthUser, fetchMyPermissions, postLogout } from './api/queries/coreAuthSession';
 import { identityKey, shouldResetCache } from './utils/identityCache';
 import { parseProjectUrl, projectRoutePath } from './utils/projectRoutes';
 // Storage identity plumbing for the effect below: pin the scoped namespace to
@@ -357,10 +358,10 @@ function App() {
         // the freshly-computed featureFlags / org / capability data, which is
         // why login previously showed a stale subset until a manual refresh.
         try {
-            const userRes = await authFetch(`${API_BASE}/auth/user`, { cache: 'no-store' });
+            const userRes = await fetchAuthUser();
             const data = userRes.ok ? await userRes.json() : null;
             if (data?.authenticated && data.user) {
-                const permsRes = await authFetch(`${API_BASE}/auth/my-permissions`);
+                const permsRes = await fetchMyPermissions();
                 const permsData = permsRes.ok ? await permsRes.json() : null;
                 applyAuthSession(data, permsData);
             } else {
@@ -389,9 +390,7 @@ function App() {
     const handleLogout = async () => {
         const prevUserId = user?.id || null;
         try {
-            await authFetch(`${API_BASE}/auth/logout`, {
-                method: 'POST',
-            });
+            await postLogout();
         } catch (err) {
             console.error('Logout error:', err);
         }

@@ -38,10 +38,10 @@ import { useCallback, useEffect, useEffectEvent, useState, type ChangeEvent } fr
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
-import { API_BASE, authFetch, mutate, ApiError, request, RefusedError, errorBody } from '../api/mutate';
+import { API_BASE, mutate, ApiError, request, RefusedError, errorBody } from '../api/mutate';
 import { errorMessage } from '../utils/caughtError';
-import { logger } from '../utils/logger';
 import { useN8nIngestible } from '../api/queries/knowledgeBases';
+import { useDriveConnected, useAzureDocProcessing } from '../api/queries/coreKnowledgeBases';
 
 /** A knowledge base row. Consumers render more of it than this hook reads. */
 export interface KnowledgeBase {
@@ -196,8 +196,8 @@ export default function useKnowledgeBases({
     // ── n8n / Drive / Azure ──────────────────────────────────────────
     const [n8nIngestMode, setN8nIngestMode] = useState('data'); // 'data' | 'definition'
     const [drivePickerOpen, setDrivePickerOpen] = useState(false);
-    const [driveConnected, setDriveConnected] = useState(false);
-    const [useAzureKB, setUseAzureKB] = useState(false);
+    const driveConnected = useDriveConnected(!!enableDrive);
+    const useAzureKB = useAzureDocProcessing(!!enableAzureInfo);
 
     // ── Effects ──────────────────────────────────────────────────────
     // fetchKBs/fetchKBDocs are plain functions (a new one per render), so the
@@ -217,26 +217,6 @@ export default function useKnowledgeBases({
     useEffect(() => { loadSelected(selectedKB?.id); }, [selectedKB?.id]);
 
     const n8nWorkflows = useN8nIngestible(kbInputMode).data ?? EMPTY_N8N_WORKFLOWS;
-
-    useEffect(() => {
-        if (!enableDrive) return;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/integrations/gdrive/status`);
-                if (res.ok) { const d = await res.json(); setDriveConnected(!!d.connected); }
-            } catch (err) { logger.debug('ignore', err); }
-        })();
-    }, [enableDrive]);
-
-    useEffect(() => {
-        if (!enableAzureInfo) return;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/config`);
-                if (res.ok) { const d = await res.json(); setUseAzureKB(!!d.useAzureDocProcessing); }
-            } catch (err) { logger.debug('ignore', err); }
-        })();
-    }, [enableAzureInfo]);
 
     // ── KB API calls ─────────────────────────────────────────────────
     async function fetchKBs() {

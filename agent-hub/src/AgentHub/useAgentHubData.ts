@@ -6,7 +6,8 @@ import { directChatKbList, type KbRow } from '../components/chat/knowledgeBaseCl
 import useChatEngine from '../hooks/useChatEngine';
 import { chatSignalsSurfaceFor, resolveTurnEndpoint, type ChatSignalsTurnSurface } from '../hooks/useChatEngine/turnEndpoint';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
-import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
+import { API_BASE, generateMessageId } from '../utils/helpers';
+import { fetchAgentConversation, fetchAgentFavorites, fetchOwnAgents, fetchPublishedAgents, postAgentFavoritesBulk } from '../api/queries/hubDataFetches';
 import { memoryLockOf, OPEN_MEMORY_PANEL_EVENT } from '../utils/memoryMode';
 import { hasRenderableContent, normalizeLoadedMessages, type ShapedMessage } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
@@ -81,7 +82,7 @@ const useAgentHubData = ({
         let cancelled = false;
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/agents/favorites`);
+                const res = await fetchAgentFavorites();
                 if (!res.ok) return;
                 const serverFavs = await res.json();
                 if (cancelled) return;
@@ -100,11 +101,7 @@ const useAgentHubData = ({
                     // Background: replace the list with the merged result once
                     // the bulk upload comes back. Errors don't roll the UI back
                     // — the server state we just rendered is still correct.
-                    authFetch(`${API_BASE}/agents/favorites/bulk`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ agentIds: legacy }),
-                    }).then(async (bulkRes) => {
+                    postAgentFavoritesBulk(legacy).then(async (bulkRes) => {
                         if (cancelled || !bulkRes.ok) return;
                         const merged = await bulkRes.json();
                         if (cancelled) return;
@@ -502,8 +499,8 @@ const useAgentHubData = ({
     const refreshAgents = useCallback(async () => {
         try {
             const [publishedRes, ownRes] = await Promise.all([
-                authFetch(`${API_BASE}/agents/published?t=${Date.now()}`, { cache: 'no-store' }),
-                authFetch(`${API_BASE}/agents?t=${Date.now()}`, { cache: 'no-store' }),
+                fetchPublishedAgents(),
+                fetchOwnAgents(),
             ]);
             if (publishedRes.ok || ownRes.ok) {
                 const published = publishedRes.ok ? await publishedRes.json() : [];
@@ -741,7 +738,7 @@ const useAgentHubData = ({
         const gen = ++selectConvGenRef.current;
         const isStale = () => selectConvGenRef.current !== gen;
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/conversations/${convId}`);
+            const res = await fetchAgentConversation(agentId, convId);
             if (isStale()) return;
             if (res.ok) {
                 const data = await res.json();
