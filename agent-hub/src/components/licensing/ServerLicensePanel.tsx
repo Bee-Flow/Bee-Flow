@@ -1,7 +1,7 @@
 import { ShieldCheck, Key, AlertCircle, Loader2, X, Globe } from 'lucide-react';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLicenseContext } from './LicenseContext';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
@@ -184,19 +184,7 @@ export default function ServerLicensePanel() {
     return (
         <div className="space-y-5">
             {/* Heading */}
-            <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:rgba(16,185,129,0.10)] [color:#10b981]">
-                    <Globe className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                    <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                        {t('admin.server_license.title', 'Server licence')}
-                    </h2>
-                    <p className="text-sm mt-1 text-[var(--text-muted)]">
-                        {t('admin.server_license.intro', 'One licence key applied install-wide. Every organisation on this server runs at the tier this licence carries; per-organisation licences are ignored while this is active.')}
-                    </p>
-                </div>
-            </div>
+            <ServerLicensePanelSection2 t={t} />
 
             {/* Active state card */}
             <div className="rounded-2xl border p-5 bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
@@ -315,23 +303,43 @@ export default function ServerLicensePanel() {
             </div>
 
             {/* Warning panel */}
-            <div className="rounded-xl border p-4 text-xs [background:rgba(245,158,11,0.06)] [border-color:rgba(245,158,11,0.25)] [color:var(--text-secondary)]!">
-                <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:#f59e0b]" />
-                    <div>
-                        <div className="font-semibold mb-1 text-[var(--text-primary)]">
-                            {t('admin.server_license.warn_title', 'Override semantics')}
-                        </div>
-                        <ul className="list-disc pl-4 space-y-0.5 opacity-90">
-                            <li>{t('admin.server_license.warn_override', 'Every organisation on this install will resolve to the server-wide tier.')}</li>
-                            <li>{t('admin.server_license.warn_per_org_hidden', 'Per-organisation activation is disabled in Org Settings while a server-wide licence is active.')}</li>
-                            <li>{t('admin.server_license.warn_rollback', 'Per-organisation licences are preserved — deactivating restores them.')}</li>
-                            <li>{t('admin.server_license.warn_tier_min', 'Community-tier licences are rejected: Community is the default floor already.')}</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+            <ServerLicensePanelSection t={t} />
             {confirmDialog}
         </div>
     );
+}
+
+function ServerLicensePanelSection2({ t }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:rgba(16,185,129,0.10)] [color:#10b981]">
+            <Globe className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                {t('admin.server_license.title', 'Server licence')}
+            </h2>
+            <p className="text-sm mt-1 text-[var(--text-muted)]">
+                {t('admin.server_license.intro', 'One licence key applied install-wide. Every organisation on this server runs at the tier this licence carries; per-organisation licences are ignored while this is active.')}
+            </p>
+        </div>
+    </div>;
+}
+
+function ServerLicensePanelSection({ t }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div className="rounded-xl border p-4 text-xs [background:rgba(245,158,11,0.06)] [border-color:rgba(245,158,11,0.25)] [color:var(--text-secondary)]!">
+        <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 [color:#f59e0b]" />
+            <div>
+                <div className="font-semibold mb-1 text-[var(--text-primary)]">
+                    {t('admin.server_license.warn_title', 'Override semantics')}
+                </div>
+                <ul className="list-disc pl-4 space-y-0.5 opacity-90">
+                    <li>{t('admin.server_license.warn_override', 'Every organisation on this install will resolve to the server-wide tier.')}</li>
+                    <li>{t('admin.server_license.warn_per_org_hidden', 'Per-organisation activation is disabled in Org Settings while a server-wide licence is active.')}</li>
+                    <li>{t('admin.server_license.warn_rollback', 'Per-organisation licences are preserved — deactivating restores them.')}</li>
+                    <li>{t('admin.server_license.warn_tier_min', 'Community-tier licences are rejected: Community is the default floor already.')}</li>
+                </ul>
+            </div>
+        </div>
+    </div>;
 }

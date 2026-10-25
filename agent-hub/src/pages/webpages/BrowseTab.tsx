@@ -3,7 +3,7 @@ import type { BrowseTabProps, DbColumn, DbRow, DbTable, EditState } from './Webp
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { ApiOptions } from '../../api/webpagesApi';
 import { errorMessage } from '../../utils/caughtError';
@@ -166,50 +166,7 @@ export function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
 
     return (
         <div className="flex flex-col h-full text-[var(--vsc-fg)]">
-            <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0 border-[var(--vsc-border)]">
-                <Table2 size={14} className="[color:var(--vsc-fg-muted)]" />
-                <select
-                    value={tableName || ''}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTableName(e.target.value)}
-                    className="px-2 py-1 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
-                >
-                    {tables.length === 0 && <option value="">{t('webpages.db.no_tables_option', '— no tables —')}</option>}
-                    {tables.map((tbl: DbTable) => <option key={tbl.name} value={tbl.name}>{tbl.name}</option>)}
-                </select>
-                <button onClick={load} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('webpages.refresh', 'Refresh')}>
-                    <RefreshCw size={13} />
-                </button>
-                <div className="flex-1" />
-                <span className="text-[11px] text-[var(--vsc-fg-muted)]">
-                    {nOf(t, 'webpages.db.rows', total, '{count} row', '{count} rows')}
-                </span>
-                <button
-                    onClick={() => setPage((p: number) => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
-                    title={t('webpages.db.prev_page', 'Previous page')}
-                >
-                    <ChevronLeft size={14} />
-                </button>
-                <span className="text-[11px] text-[var(--vsc-fg-muted)]">
-                    {page + 1} / {totalPages}
-                </span>
-                <button
-                    onClick={() => setPage((p: number) => p + 1 < totalPages ? p + 1 : p)}
-                    disabled={page + 1 >= totalPages}
-                    className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
-                    title={t('webpages.db.next_page', 'Next page')}
-                >
-                    <ChevronRight size={14} />
-                </button>
-                <button
-                    onClick={() => { setInserting(true); setInsertValues({}); }}
-                    disabled={!tableMeta}
-                    className="flex items-center gap-1 px-2 py-1 rounded text-[11px] disabled:opacity-50 [background:var(--vsc-accent)] [color:#fff]!"
-                >
-                    <Plus size={12} /> {t('webpages.db.insert_row', 'Insert row')}
-                </button>
-            </div>
+            <BrowseTabSection2 tableName={tableName} setTableName={setTableName} tables={tables} t={t} load={load} total={total} setPage={setPage} page={page} totalPages={totalPages} setInserting={setInserting} setInsertValues={setInsertValues} tableMeta={tableMeta} />
 
             {inserting && tableMeta && (
                 <div className="shrink-0 border-b p-3 border-[var(--vsc-border)] bg-[var(--vsc-sidebar-bg)]">
@@ -241,69 +198,119 @@ export function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
                 </div>
             )}
 
-            <div className="flex-1 overflow-auto">
-                {loading ? (
-                    <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" /></div>
-                ) : !tableName ? (
-                    <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.no_table_selected', 'No table selected.')}</div>
-                ) : rows.length === 0 ? (
-                    <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.empty_table', 'Empty table.')}</div>
-                ) : (
-                    <table className="w-full text-[12px] [border-collapse:collapse] [table-layout:auto]">
-                        <thead className="[position:sticky] [top:0] [background:var(--vsc-sidebar-bg)]">
-                            <tr className="[border-bottom:1px_solid_var(--vsc-border)]">
-                                <th className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">rowid</th>
-                                {dataColumns.map((c: string) => (
-                                    <th key={c} className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
-                                ))}
-                                <th className="w-[32px]"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((row: DbRow, rowidx: number) => (
-                                <tr key={row.rowid ?? rowidx} className="hover:bg-[var(--vsc-hover-bg)] [border-bottom:1px_solid_var(--vsc-border)]">
-                                    <td className="px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{row.rowid}</td>
-                                    {dataColumns.map((c: string) => {
-                                        const isEditing = editing && editing.rowidx === rowidx && editing.col === c;
-                                        const v = row[c];
-                                        return (
-                                            <td key={c} className="px-2 py-1 font-mono [cursor:text]" onDoubleClick={() => startEdit(rowidx, c, v)}>
-                                                {isEditing ? (
-                                                    <input
-                                                        autoFocus
-                                                        value={editing.value}
-                                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditing((s: EditState | null) => ({ ...s, value: e.target.value }) as EditState)}
-                                                        onBlur={commitEdit}
-                                                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                                            if (e.key === 'Enter') commitEdit();
-                                                            else if (e.key === 'Escape') setEditing(null);
-                                                        }}
-                                                        className="w-full px-1 py-0.5 text-[12px] rounded border outline-none [border-color:var(--vsc-accent)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
-                                                    />
-                                                ) : v === null || v === undefined ? (
-                                                    <span className="[color:var(--vsc-fg-muted)] [font-style:italic]">NULL</span>
-                                                ) : (
-                                                    <span className="block max-w-[400px] truncate" title={formatCell(v)}>{formatCell(v)}</span>
-                                                )}
-                                            </td>
-                                        );
-                                    })}
-                                    <td className="px-1">
-                                        <button
-                                            onClick={() => deleteRow(rowidx)}
-                                            className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
-                                            title={t('webpages.db.delete_row', 'Delete row')}
-                                        >
-                                            <Trash2 size={12} className="[color:#ef4444]" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
+            <BrowseTabSection loading={loading} tableName={tableName} t={t} rows={rows} dataColumns={dataColumns} editing={editing} startEdit={startEdit} setEditing={setEditing} commitEdit={commitEdit} deleteRow={deleteRow} />
             {confirmDialog}
         </div>
     );
+}
+
+function BrowseTabSection2({ tableName, setTableName, tables, t, load, total, setPage, page, totalPages, setInserting, setInsertValues, tableMeta }: { tableName: string | null; setTableName: React.Dispatch<React.SetStateAction<string | null>>; tables: DbTable[]; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; load: () => Promise<void>; total: number; setPage: React.Dispatch<React.SetStateAction<number>>; page: number; totalPages: number; setInserting: React.Dispatch<React.SetStateAction<boolean>>; setInsertValues: React.Dispatch<React.SetStateAction<Record<string, string>>>; tableMeta: DbTable | undefined; }) {
+    return <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0 border-[var(--vsc-border)]">
+        <Table2 size={14} className="[color:var(--vsc-fg-muted)]" />
+        <select
+            value={tableName || ''}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTableName(e.target.value)}
+            className="px-2 py-1 text-[12px] rounded border outline-none [border-color:var(--vsc-border)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!"
+        >
+            {tables.length === 0 && <option value="">{t('webpages.db.no_tables_option', '— no tables —')}</option>}
+            {tables.map((tbl: DbTable) => <option key={tbl.name} value={tbl.name}>{tbl.name}</option>)}
+        </select>
+        <button onClick={load} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('webpages.refresh', 'Refresh')}>
+            <RefreshCw size={13} />
+        </button>
+        <div className="flex-1" />
+        <span className="text-[11px] text-[var(--vsc-fg-muted)]">
+            {nOf(t, 'webpages.db.rows', total, '{count} row', '{count} rows')}
+        </span>
+        <button
+            onClick={() => setPage((p: number) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
+            title={t('webpages.db.prev_page', 'Previous page')}
+        >
+            <ChevronLeft size={14} />
+        </button>
+        <span className="text-[11px] text-[var(--vsc-fg-muted)]">
+            {page + 1} / {totalPages}
+        </span>
+        <button
+            onClick={() => setPage((p: number) => p + 1 < totalPages ? p + 1 : p)}
+            disabled={page + 1 >= totalPages}
+            className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
+            title={t('webpages.db.next_page', 'Next page')}
+        >
+            <ChevronRight size={14} />
+        </button>
+        <button
+            onClick={() => { setInserting(true); setInsertValues({}); } }
+            disabled={!tableMeta}
+            className="flex items-center gap-1 px-2 py-1 rounded text-[11px] disabled:opacity-50 [background:var(--vsc-accent)] [color:#fff]!"
+        >
+            <Plus size={12} /> {t('webpages.db.insert_row', 'Insert row')}
+        </button>
+    </div>;
+}
+
+function BrowseTabSection({ loading, tableName, t, rows, dataColumns, editing, startEdit, setEditing, commitEdit, deleteRow }: { loading: boolean; tableName: string | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; rows: DbRow[]; dataColumns: string[]; editing: EditState | null; startEdit: (rowidx: number, col: string, value: unknown) => void; setEditing: React.Dispatch<React.SetStateAction<EditState | null>>; commitEdit: () => Promise<void>; deleteRow: (rowidx: number) => Promise<void>; }) {
+    return <div className="flex-1 overflow-auto">
+        {loading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 size={16} className="animate-spin" /></div>
+        ) : !tableName ? (
+            <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.no_table_selected', 'No table selected.')}</div>
+        ) : rows.length === 0 ? (
+            <div className="px-3 py-8 text-[12px] text-[var(--vsc-fg-muted)]">{t('webpages.db.empty_table', 'Empty table.')}</div>
+        ) : (
+            <table className="w-full text-[12px] [border-collapse:collapse] [table-layout:auto]">
+                <thead className="[position:sticky] [top:0] [background:var(--vsc-sidebar-bg)]">
+                    <tr className="[border-bottom:1px_solid_var(--vsc-border)]">
+                        <th className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">rowid</th>
+                        {dataColumns.map((c: string) => (
+                            <th key={c} className="text-left px-2 py-1.5 font-mono text-[var(--vsc-fg-muted)]">{c}</th>
+                        ))}
+                        <th className="w-[32px]"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map((row: DbRow, rowidx: number) => (
+                        <tr key={row.rowid ?? rowidx} className="hover:bg-[var(--vsc-hover-bg)] [border-bottom:1px_solid_var(--vsc-border)]">
+                            <td className="px-2 py-1 font-mono text-[var(--vsc-fg-muted)]">{row.rowid}</td>
+                            {dataColumns.map((c: string) => {
+                                const isEditing = editing && editing.rowidx === rowidx && editing.col === c;
+                                const v = row[c];
+                                return (
+                                    <td key={c} className="px-2 py-1 font-mono [cursor:text]" onDoubleClick={() => startEdit(rowidx, c, v)}>
+                                        {isEditing ? (
+                                            <input
+                                                autoFocus
+                                                value={editing.value}
+                                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditing((s: EditState | null) => ({ ...s, value: e.target.value }) as EditState)}
+                                                onBlur={commitEdit}
+                                                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                                    if (e.key === 'Enter') commitEdit();
+                                                    else if (e.key === 'Escape') setEditing(null);
+                                                } }
+                                                className="w-full px-1 py-0.5 text-[12px] rounded border outline-none [border-color:var(--vsc-accent)] [background:var(--vsc-editor-bg)] [color:var(--vsc-fg)]!" />
+                                        ) : v === null || v === undefined ? (
+                                            <span className="[color:var(--vsc-fg-muted)] [font-style:italic]">NULL</span>
+                                        ) : (
+                                            <span className="block max-w-[400px] truncate" title={formatCell(v)}>{formatCell(v)}</span>
+                                        )}
+                                    </td>
+                                );
+                            })}
+                            <td className="px-1">
+                                <button
+                                    onClick={() => deleteRow(rowidx)}
+                                    className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
+                                    title={t('webpages.db.delete_row', 'Delete row')}
+                                >
+                                    <Trash2 size={12} className="[color:#ef4444]" />
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        )}
+    </div>;
 }

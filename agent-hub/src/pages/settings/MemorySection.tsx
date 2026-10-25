@@ -7,7 +7,7 @@ import { exportMemories } from '../../components/knowledge/memory/useMemories';
 import Toggle from '../../components/shared/Toggle';
 import { toast } from '../../components/shared/Toast';
 import useConfirm from '../../components/shared/useConfirm';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import { API_BASE } from '../../utils/helpers';
 import { mutate, ApiError } from '../../api/mutate';
@@ -331,36 +331,7 @@ export default function MemorySection({
                 </div>
             </div>
 
-            <div className="space-y-1.5">
-                <p className={HEADING}>{t('settings.memory_import_title', 'Import memory from other AI providers')}</p>
-                <div className={CARD}>
-                    <div className="flex items-center gap-4 bg-[var(--bg-secondary)] px-5 py-4">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--accent-primary)]">
-                            <Download className="h-4 w-4" aria-hidden="true" />
-                        </div>
-                        <div className="flex-1">
-                            {/* The group heading above already says "Import memory from other AI providers". */}
-                            <p className="text-[12px] text-[var(--text-secondary)]">
-                                {t('settings.memory_import_desc', "Bring relevant context and data from another AI provider. We'll provide a prompt you can use from your other account.")}
-                            </p>
-                            {!orgOff && !enabled && (
-                                <p data-testid="memory-import-paused" className="mt-1 text-[11px] text-[var(--text-secondary)]">
-                                    {t('settings.memory_import_paused', 'Importing is not available while memory is paused. Turn memory on to import.')}
-                                </p>
-                            )}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setShowImport(true)}
-                            disabled={orgOff || !enabled}
-                            data-testid="memory-import-button"
-                            className="rounded-lg bg-[var(--accent-primary)] px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50"
-                        >
-                            {t('settings.memory_import_button', 'Import')}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <MemorySectionSection t={t} orgOff={orgOff} enabled={enabled} setShowImport={setShowImport} />
 
             <div className="space-y-1.5">
                 <p className={HEADING}>{t('settings.memory_about_title', 'About')}</p>
@@ -375,4 +346,37 @@ export default function MemorySection({
             {confirmDialog}
         </div>
     );
+}
+
+function MemorySectionSection({ t, orgOff, enabled, setShowImport }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; orgOff: boolean; enabled: boolean; setShowImport: React.Dispatch<React.SetStateAction<boolean>>; }) {
+    return <div className="space-y-1.5">
+        <p className={HEADING}>{t('settings.memory_import_title', 'Import memory from other AI providers')}</p>
+        <div className={CARD}>
+            <div className="flex items-center gap-4 bg-[var(--bg-secondary)] px-5 py-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] text-[var(--accent-primary)]">
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                </div>
+                <div className="flex-1">
+                    {/* The group heading above already says "Import memory from other AI providers". */}
+                    <p className="text-[12px] text-[var(--text-secondary)]">
+                        {t('settings.memory_import_desc', "Bring relevant context and data from another AI provider. We'll provide a prompt you can use from your other account.")}
+                    </p>
+                    {!orgOff && !enabled && (
+                        <p data-testid="memory-import-paused" className="mt-1 text-[11px] text-[var(--text-secondary)]">
+                            {t('settings.memory_import_paused', 'Importing is not available while memory is paused. Turn memory on to import.')}
+                        </p>
+                    )}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setShowImport(true)}
+                    disabled={orgOff || !enabled}
+                    data-testid="memory-import-button"
+                    className="rounded-lg bg-[var(--accent-primary)] px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50"
+                >
+                    {t('settings.memory_import_button', 'Import')}
+                </button>
+            </div>
+        </div>
+    </div>;
 }

@@ -377,24 +377,28 @@ export function ScheduleModal({ t, agent, initialSchedule, onClose, onSaved }: S
 
                     {error && <div className="text-xs text-red-500">{error}</div>}
                 </div>
-                <div className="pt-4 mt-4 border-t border-[var(--border-default)] flex justify-end gap-2">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-full text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
-                    >
-                        {t('agent_schedules.cancel', 'Cancel')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={submit}
-                        disabled={busy}
-                        className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
-                    >
-                        {busy ? '…' : (isEdit ? (t('agent_schedules.save_changes', 'Save changes')) : (t('agent_schedules.add', 'Add schedule')))}
-                    </button>
-                </div>
+                <ScheduleModalSection onClose={onClose} t={t} submit={submit} busy={busy} isEdit={isEdit} />
             </div>
         </Modal>
     );
+}
+
+function ScheduleModalSection({ onClose, t, submit, busy, isEdit }: { onClose: () => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string; submit: () => Promise<void>; busy: boolean; isEdit: boolean; }) {
+    return <div className="pt-4 mt-4 border-t border-[var(--border-default)] flex justify-end gap-2">
+        <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-full text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
+        >
+            {t('agent_schedules.cancel', 'Cancel')}
+        </button>
+        <button
+            type="button"
+            onClick={submit}
+            disabled={busy}
+            className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+        >
+            {busy ? '…' : (isEdit ? (t('agent_schedules.save_changes', 'Save changes')) : (t('agent_schedules.add', 'Add schedule')))}
+        </button>
+    </div>;
 }

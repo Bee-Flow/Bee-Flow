@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { mutate, ApiError } from '../../../api/mutate';
 
 // Theme tokens only, so every card, pill and control stays readable in the
@@ -171,47 +171,9 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
             </header>
 
             {/* Connection-health stat row — at-a-glance status of the NC binding. */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className={STAT_CARD}>
-                    <div className={STAT_LABEL}>{t('integ.nextcloud_sync_instance', 'Instance')}</div>
-                    <div className="text-[12px] font-medium truncate text-[var(--text-primary)]" title={config.ncBaseUrl}>
-                        {config.ncBaseUrl ? config.ncBaseUrl.replace(/^https?:\/\//, '') : '—'}
-                    </div>
-                </div>
-                <div className={STAT_CARD}>
-                    <div className={STAT_LABEL}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</div>
-                    <div className="text-[12px] font-medium text-[var(--text-primary)]">{modeLabel}</div>
-                </div>
-                <div className={STAT_CARD}>
-                    <div className={STAT_LABEL}>{t('integ.nextcloud_sync_active_users', 'Active users')}</div>
-                    <div className="text-[12px] font-medium text-[var(--text-primary)]">{activeUsers} <span className="opacity-60 font-normal">/ {users.length}</span></div>
-                </div>
-                <div className={STAT_CARD}>
-                    <div className={STAT_LABEL}>{t('integ.nextcloud_sync_last_sync', 'Last sync')}</div>
-                    <div className="text-[12px] font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
-                        <span className={`w-1.5 h-1.5 rounded-full ${isFresh ? 'bg-[var(--success)]' : config.lastSyncAt ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
-                        {formatLastSync(config.lastSyncAt)}
-                    </div>
-                </div>
-            </div>
+            <NextcloudSyncPanelSection t={t} config={config} modeLabel={modeLabel} activeUsers={activeUsers} users={users} isFresh={isFresh} formatLastSync={formatLastSync} />
 
-            <section className={`${SECTION} space-y-3`}>
-                <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</h3>
-                {[
-                    { v: 'mirror_all', t: 'Mirror everything', d: 'Every Nextcloud user is automatically created in Bee Flow.' },
-                    { v: 'selective_groups', t: 'Selective groups', d: 'Only users in the chosen NC groups are mirrored.' },
-                    { v: 'manual', t: 'Manual only', d: 'New NC users are not auto-created — invite manually.' },
-                ].map(opt => (
-                    <label key={opt.v} className="flex items-start gap-2">
-                        <input type="radio" name="mode" value={opt.v} checked={config.mode === opt.v}
-                            onChange={() => update({ mode: opt.v })} className="mt-1" />
-                        <div>
-                            <div className="text-sm font-medium text-[var(--text-primary)]">{opt.t}</div>
-                            <div className="text-xs text-[var(--text-muted)]">{opt.d}</div>
-                        </div>
-                    </label>
-                ))}
-            </section>
+            <NextcloudSyncPanelSection2 t={t} config={config} update={update} />
 
             <section className={`${SECTION} space-y-3`}>
                 <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_new_user_default_status', 'New user default status')}</h3>
@@ -281,3 +243,49 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
 };
 
 export default NextcloudSyncPanel;
+
+function NextcloudSyncPanelSection2({ t, config, update }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: NcSyncConfig; update: (patch: Partial<NcSyncConfig>) => void; }) {
+    return <section className={`${SECTION} space-y-3`}>
+        <h3 className={SECTION_TITLE}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</h3>
+        {[
+            { v: 'mirror_all', t: 'Mirror everything', d: 'Every Nextcloud user is automatically created in Bee Flow.' },
+            { v: 'selective_groups', t: 'Selective groups', d: 'Only users in the chosen NC groups are mirrored.' },
+            { v: 'manual', t: 'Manual only', d: 'New NC users are not auto-created — invite manually.' },
+        ].map(opt => (
+            <label key={opt.v} className="flex items-start gap-2">
+                <input type="radio" name="mode" value={opt.v} checked={config.mode === opt.v}
+                    onChange={() => update({ mode: opt.v })} className="mt-1" />
+                <div>
+                    <div className="text-sm font-medium text-[var(--text-primary)]">{opt.t}</div>
+                    <div className="text-xs text-[var(--text-muted)]">{opt.d}</div>
+                </div>
+            </label>
+        ))}
+    </section>;
+}
+
+function NextcloudSyncPanelSection({ t, config, modeLabel, activeUsers, users, isFresh, formatLastSync }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: NcSyncConfig; modeLabel: string | undefined; activeUsers: number; users: NcSyncUser[]; isFresh: string | boolean | undefined; formatLastSync: (iso: string | number | Date | undefined) => string; }) {
+    return <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className={STAT_CARD}>
+            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_instance', 'Instance')}</div>
+            <div className="text-[12px] font-medium truncate text-[var(--text-primary)]" title={config.ncBaseUrl}>
+                {config.ncBaseUrl ? config.ncBaseUrl.replace(/^https?:\/\//, '') : '—'}
+            </div>
+        </div>
+        <div className={STAT_CARD}>
+            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_sync_mode', 'Sync mode')}</div>
+            <div className="text-[12px] font-medium text-[var(--text-primary)]">{modeLabel}</div>
+        </div>
+        <div className={STAT_CARD}>
+            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_active_users', 'Active users')}</div>
+            <div className="text-[12px] font-medium text-[var(--text-primary)]">{activeUsers} <span className="opacity-60 font-normal">/ {users.length}</span></div>
+        </div>
+        <div className={STAT_CARD}>
+            <div className={STAT_LABEL}>{t('integ.nextcloud_sync_last_sync', 'Last sync')}</div>
+            <div className="text-[12px] font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
+                <span className={`w-1.5 h-1.5 rounded-full ${isFresh ? 'bg-[var(--success)]' : config.lastSyncAt ? 'bg-[var(--warning)]' : 'bg-[var(--text-muted)]'}`} />
+                {formatLastSync(config.lastSyncAt)}
+            </div>
+        </div>
+    </div>;
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { Activity, RefreshCw, ChevronRight, Calendar } from 'lucide-react';
 import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
 import { COLORS } from './shared/SvgAreaChart';
@@ -152,38 +152,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     return (
         <div style={styles.container}>
             {/* ── Sidebar ── */}
-            <div style={styles.sidebar}>
-                <div style={styles.sidebarHeader}>
-                    <Activity style={{ width: 20, height: 20, color: COLORS.primary }} />
-                    <span style={styles.sidebarTitle}>{t('admin_monitoring.title', 'AI Monitor')}</span>
-                </div>
-
-                <nav style={styles.nav}>
-                    {PAGES.map(p => (
-                        <button
-                            key={p.id}
-                            onClick={() => { if (onNavigate) onNavigate(`admin/monitoring/${p.id}`); }}
-                            style={{
-                                ...styles.navItem,
-                                ...(page === p.id ? styles.navItemActive : {}),
-                            }}
-                        >
-                            <p.icon style={{
-                                width: 18, height: 18,
-                                color: page === p.id ? COLORS.primary : 'var(--text-muted, #666)',
-                                flexShrink: 0
-                            }} />
-                            <div className="[flex:1] [text-align:left]">
-                                <div style={{
-                                    fontSize: '13px', fontWeight: page === p.id ? 600 : 500,
-                                    color: page === p.id ? 'var(--text-primary, #fff)' : 'var(--text-secondary, #aaa)',
-                                }}>{t(p.labelKey)}</div>
-                            </div>
-                            {page === p.id && <ChevronRight style={{ width: 14, height: 14, color: COLORS.primary, flexShrink: 0 }} />}
-                        </button>
-                    ))}
-                </nav>
-            </div>
+            <MonitoringPanelSection t={t} onNavigate={onNavigate} page={page} />
 
             {/* ── Main Content ── */}
             <div style={styles.main}>
@@ -302,3 +271,38 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     );
 }
 
+
+function MonitoringPanelSection({ t, onNavigate, page }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigate: ((path: string) => void) | undefined; page: string; }) {
+    return <div style={styles.sidebar}>
+        <div style={styles.sidebarHeader}>
+            <Activity style={{ width: 20, height: 20, color: COLORS.primary }} />
+            <span style={styles.sidebarTitle}>{t('admin_monitoring.title', 'AI Monitor')}</span>
+        </div>
+
+        <nav style={styles.nav}>
+            {PAGES.map(p => (
+                <button
+                    key={p.id}
+                    onClick={() => { if (onNavigate) onNavigate(`admin/monitoring/${p.id}`); } }
+                    style={{
+                        ...styles.navItem,
+                        ...(page === p.id ? styles.navItemActive : {}),
+                    }}
+                >
+                    <p.icon style={{
+                        width: 18, height: 18,
+                        color: page === p.id ? COLORS.primary : 'var(--text-muted, #666)',
+                        flexShrink: 0
+                    }} />
+                    <div className="[flex:1] [text-align:left]">
+                        <div style={{
+                            fontSize: '13px', fontWeight: page === p.id ? 600 : 500,
+                            color: page === p.id ? 'var(--text-primary, #fff)' : 'var(--text-secondary, #aaa)',
+                        }}>{t(p.labelKey)}</div>
+                    </div>
+                    {page === p.id && <ChevronRight style={{ width: 14, height: 14, color: COLORS.primary, flexShrink: 0 }} />}
+                </button>
+            ))}
+        </nav>
+    </div>;
+}

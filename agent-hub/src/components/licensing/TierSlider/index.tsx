@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { MetaFor, TierSliderProps } from '../TierSlider.types';
-import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS } from '../tierMeta';
+import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, DEPTH_TIER_KEYS, TierMeta } from '../tierMeta';
 import scopedStorage from '../../../utils/scopedStorage';
 import MemoryModeControl from '../../chat/memory/MemoryModeControl';
 import AppEmoji from '../../icons/AppEmoji';
@@ -234,29 +234,7 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
                 and the composer's icon row is where this belongs; the tier name
                 is stated in full inside the panel. The name still reaches
                 hover and assistive tech via title/aria-label. */}
-            <button
-                type="button"
-                onClick={() => setOpen(o => !o)}
-                className="model-tier-trigger"
-                data-open={open ? '1' : '0'}
-                style={{
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: '34px', height: '34px', borderRadius: '9999px',
-                    background: open ? 'var(--bg-secondary)' : 'transparent',
-                    border: '1px solid',
-                    borderColor: open ? 'var(--border-subtle)' : 'transparent',
-                    color: 'var(--text-secondary)', cursor: 'pointer',
-                    transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
-                    boxShadow: open ? 'var(--shadow-sm)' : 'none',
-                }}
-                title={`${currentMeta.label} — ${currentMeta.desc || ''}`.trim()}
-                aria-label={`Response depth: ${currentMeta.label}`}
-                aria-haspopup="dialog"
-                aria-expanded={open}
-                data-testid="tier-slider-trigger"
-            >
-                <TierGauge fraction={depthFraction} auto={isAuto} size={21} />
-            </button>
+            <TierSliderSection setOpen={setOpen} open={open} currentMeta={currentMeta} depthFraction={depthFraction} isAuto={isAuto} />
 
             {open && (
                 <div
@@ -316,4 +294,30 @@ export default function TierSlider({ tiers = {}, value = 'fast', onChange, varia
             )}
         </div>
     );
+}
+
+function TierSliderSection({ setOpen, open, currentMeta, depthFraction, isAuto }: { setOpen: React.Dispatch<React.SetStateAction<boolean>>; open: boolean; currentMeta: TierMeta; depthFraction: number | null; isAuto: boolean; }) {
+    return <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="model-tier-trigger"
+        data-open={open ? '1' : '0'}
+        style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '34px', height: '34px', borderRadius: '9999px',
+            background: open ? 'var(--bg-secondary)' : 'transparent',
+            border: '1px solid',
+            borderColor: open ? 'var(--border-subtle)' : 'transparent',
+            color: 'var(--text-secondary)', cursor: 'pointer',
+            transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
+            boxShadow: open ? 'var(--shadow-sm)' : 'none',
+        }}
+        title={`${currentMeta.label} — ${currentMeta.desc || ''}`.trim()}
+        aria-label={`Response depth: ${currentMeta.label}`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        data-testid="tier-slider-trigger"
+    >
+        <TierGauge fraction={depthFraction} auto={isAuto} size={21} />
+    </button>;
 }

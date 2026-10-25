@@ -120,57 +120,7 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
                 be a bordered card inside a bordered card is now just the page:
                 an eyebrow saying which automation asked, the ask itself as the
                 heading, and the facts that qualify it on one quiet line. */}
-            <div className="mt-6">
-                <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
-                    {sourceInfo ? (
-                        <a
-                            href={sourceInfo.href}
-                            className="hover:underline"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                window.history.pushState({}, '', sourceInfo.href);
-                                window.dispatchEvent(new PopStateEvent('popstate'));
-                            }}
-                        >
-                            {sourceInfo.label}
-                        </a>
-                    ) : (approval.automationTitle || t('approvals.automation', 'Automation'))}
-                </div>
-                <h1
-                    className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words [font-size:clamp(19px,3vw,24px)]! [font-weight:600] [letter-spacing:-0.02em] [line-height:1.3]"
-                >
-                    {approval.prompt || t('approvals.untitled', 'Approval requested')}
-                </h1>
-                <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[12px] text-[var(--text-tertiary)]">
-                    <span className="inline-flex items-center gap-1.5"><User size={12} />
-                        {chain
-                            ? t('approvals.chain_of', 'Chain of {n} stages', { n: String(chain.total) })
-                            : Array.isArray(approval.approvers) && approval.approvers.length
-                            ? t('approvals.panel_of', 'Panel of {n}').replace('{n}', String(approval.approvers.length))
-                            : (approval.assigneeUserId || approval.assigneeGroupId
-                                ? (approval.assigneeGroupId ? t('approvals.assigned_group', 'Assigned to a group') : t('approvals.assigned', 'Assigned'))
-                                : t('approvals.owner_decides', 'Owner decides'))}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5"><Clock size={12} />
-                        {approval.status === 'pending'
-                            ? (approval.expiresAt ? `${t('approvals.decide_before_cap', 'Decide before')} ${formatWhen(approval.expiresAt)}` : t('approvals.no_deadline', 'No deadline'))
-                            : `${t('approvals.requested', 'Requested')} ${formatWhen(approval.createdAt)}`}
-                    </span>
-                    {runLink && (
-                        <a
-                            href={runLink}
-                            className="inline-flex items-center gap-1.5 text-[var(--accent-primary,#2563eb)] hover:underline"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                window.history.pushState({}, '', runLink);
-                                window.dispatchEvent(new PopStateEvent('popstate'));
-                            }}
-                        >
-                            <ExternalLink size={12} /> {t('approvals.open_run', 'Open the run')}
-                        </a>
-                    )}
-                </div>
-            </div>
+            <ApprovalDetailSection sourceInfo={sourceInfo} approval={approval} t={t} chain={chain} runLink={runLink} />
 
             {/* The snapshot, as prose rather than as a grey slab. Nothing is
                 dropped — FormRichText renders the same markdown it always
@@ -261,6 +211,60 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
             {confirmDialog}
         </div>
     );
+}
+
+function ApprovalDetailSection({ sourceInfo, approval, t, chain, runLink }: { sourceInfo: { source: "deployment"; label: string; text: string; target: string; href: string; } | null; approval: ApprovalRecord; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; chain: { total: number; index: number | null; name: string | null; description: string | null; } | null; runLink: string | null | undefined; }) {
+    return <div className="mt-6">
+        <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
+            {sourceInfo ? (
+                <a
+                    href={sourceInfo.href}
+                    className="hover:underline"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.history.pushState({}, '', sourceInfo.href);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                    } }
+                >
+                    {sourceInfo.label}
+                </a>
+            ) : (approval.automationTitle || t('approvals.automation', 'Automation'))}
+        </div>
+        <h1
+            className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words [font-size:clamp(19px,3vw,24px)]! [font-weight:600] [letter-spacing:-0.02em] [line-height:1.3]"
+        >
+            {approval.prompt || t('approvals.untitled', 'Approval requested')}
+        </h1>
+        <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[12px] text-[var(--text-tertiary)]">
+            <span className="inline-flex items-center gap-1.5"><User size={12} />
+                {chain
+                    ? t('approvals.chain_of', 'Chain of {n} stages', { n: String(chain.total) })
+                    : Array.isArray(approval.approvers) && approval.approvers.length
+                        ? t('approvals.panel_of', 'Panel of {n}').replace('{n}', String(approval.approvers.length))
+                        : (approval.assigneeUserId || approval.assigneeGroupId
+                            ? (approval.assigneeGroupId ? t('approvals.assigned_group', 'Assigned to a group') : t('approvals.assigned', 'Assigned'))
+                            : t('approvals.owner_decides', 'Owner decides'))}
+            </span>
+            <span className="inline-flex items-center gap-1.5"><Clock size={12} />
+                {approval.status === 'pending'
+                    ? (approval.expiresAt ? `${t('approvals.decide_before_cap', 'Decide before')} ${formatWhen(approval.expiresAt)}` : t('approvals.no_deadline', 'No deadline'))
+                    : `${t('approvals.requested', 'Requested')} ${formatWhen(approval.createdAt)}`}
+            </span>
+            {runLink && (
+                <a
+                    href={runLink}
+                    className="inline-flex items-center gap-1.5 text-[var(--accent-primary,#2563eb)] hover:underline"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.history.pushState({}, '', runLink);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                    } }
+                >
+                    <ExternalLink size={12} /> {t('approvals.open_run', 'Open the run')}
+                </a>
+            )}
+        </div>
+    </div>;
 }
 
 function StatusLabel({ status, t }: StatusLabelProps) {

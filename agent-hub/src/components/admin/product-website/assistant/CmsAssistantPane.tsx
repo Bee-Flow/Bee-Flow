@@ -1,14 +1,14 @@
-import { useMemo, useRef, useState , useLayoutEffect } from 'react';
-import useCmsBuilderStream from '../../../../hooks/useCmsBuilderStream';
+import { useMemo, useRef, useState , useLayoutEffect, SetStateAction, RefObject, Dispatch } from 'react';
+import useCmsBuilderStream, { UseCmsBuilderStreamReturn } from '../../../../hooks/useCmsBuilderStream';
 import useModelTierSelection from '../../../../hooks/useModelTierSelection';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { MessageBubble } from '../../../automation/Builder/chat/index';
 import AppIcon from '../../../icons/AppIcon';
 import ModelTierSelector from '../../../licensing/ModelTierSelector';
 import { HEADER_VIRTUAL_ID, DESIGN_VIRTUAL_ID } from '../sentinels';
 import type { BuilderMessage } from '../../../../hooks/builderStream';
 import type useCmsBuilderBridge from '../panel/useCmsBuilderBridge';
-import type { BuilderDraftEvent } from '../panel/useCmsBuilderBridge';
+import type { BuilderDraftEvent, BuilderTurnInfo } from '../panel/useCmsBuilderBridge';
 
 /** The panel bridge the assistant drives (see ProductWebsitePanel). */
 type CmsBuilderBridge = ReturnType<typeof useCmsBuilderBridge>['builderBridge'];
@@ -230,92 +230,7 @@ export default function CmsAssistantPane({
             </div>
 
             {/* transcript */}
-            <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
-                {stream.messages.length === 0 ? (
-                    <div className="pt-6 text-center">
-                        <AppIcon name="Sparkles" className="w-7 h-7 mx-auto mb-2 text-[var(--text-muted)]" />
-                        <p className="text-xs text-[var(--text-secondary)] mb-1 font-medium">
-                            {t('cms_site.site.assistant.empty_title', 'Build pages by describing them')}
-                        </p>
-                        <p className="text-[11px] text-[var(--text-muted)] mb-4 px-2">
-                            {t('cms_site.site.assistant.empty_body', 'The assistant creates and edits pages, blocks and SEO on this site. Publishing always stays in your hands.')}
-                        </p>
-                        <div className="flex flex-col gap-1.5 px-1">
-                            {QUICK_ACTIONS.map(([qKey, qDefault]) => {
-                                const q = t(qKey, qDefault);
-                                return (
-                                <button
-                                    key={qKey}
-                                    type="button"
-                                    onClick={() => setInput(q)}
-                                    className="px-2.5 py-1.5 rounded-md border border-[var(--border-subtle)] text-[11px] text-left text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/50 hover:text-[var(--text-primary)]"
-                                >
-                                    {q}
-                                </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ) : stream.messages.map((m, i) => {
-                    if (m.kind === 'tool') return <ToolChip key={i} item={m} />;
-                    if (m.kind === 'error') {
-                        return <ErrorItem key={i} item={m} onRetry={!stream.running ? retryLast : undefined} />;
-                    }
-                    return <MessageBubble key={i} msg={m} />;
-                })}
-
-                {/* What changed + Undo turn */}
-                {lastTurn && !stream.running && chips.length > 0 && (
-                    <div className="mt-2 p-2.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
-                        <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.assistant.what_changed', 'What changed')}</span>
-                            {canUndoTurn && (
-                                <button
-                                    type="button"
-                                    onClick={() => bridgeRef.current?.undoTurn()}
-                                    className="text-[10px] text-[var(--text-muted)] hover:text-red-400"
-                                    title={t('cms_site.site.assistant.undo_title', 'Revert everything this turn changed (deletes pages it created)')}
-                                >
-                                    {t('cms_site.site.assistant.undo', 'Undo turn')}
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                            {chips.map(c => (
-                                <button
-                                    key={c.id}
-                                    type="button"
-                                    onClick={() => bridgeRef.current?.selectPage(c.id)}
-                                    className="px-2 py-0.5 rounded-full text-[10px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/60"
-                                    title={t('cms_site.site.assistant.show_editor', 'Show in the editor')}
-                                >
-                                    {c.kind === 'created' ? '+ ' : '✎ '}
-                                    {c.label || pageById.get(c.id)?.title || pageById.get(c.id)?.slug || c.id}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* validation strip */}
-                {stream.lastValidation && stream.lastValidation.errors?.length > 0 && !stream.running && (
-                    <div className="mt-2 p-2.5 rounded-md border border-amber-500/30 bg-amber-500/10">
-                        <p className="text-[10px] uppercase tracking-wider text-amber-500 mb-1">{t('cms_site.site.assistant.needs_attention', 'Needs attention')}</p>
-                        {(stream.lastValidation.errors as ValidationIssue[]).slice(0, 5).map((issue, i) => (
-                            <div key={i} className="flex items-center gap-2 py-0.5">
-                                <span className="flex-1 text-[11px] text-[var(--text-secondary)]">{issue.message}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => startTurn(`Fix: ${issue.message}`)}
-                                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/15"
-                                >
-                                    {t('cms_site.site.assistant.fix', 'Fix')}
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <CmsAssistantPaneSection scrollRef={scrollRef} stream={stream} t={t} setInput={setInput} retryLast={retryLast} lastTurn={lastTurn} chips={chips} canUndoTurn={canUndoTurn} bridgeRef={bridgeRef} pageById={pageById} startTurn={startTurn} />
 
             {/* composer */}
             <div className="shrink-0 border-t border-[var(--border-subtle)] p-2">
@@ -374,4 +289,93 @@ export default function CmsAssistantPane({
             </div>
         </div>
     );
+}
+
+function CmsAssistantPaneSection({ scrollRef, stream, t, setInput, retryLast, lastTurn, chips, canUndoTurn, bridgeRef, pageById, startTurn }: { scrollRef: RefObject<HTMLDivElement | null>; stream: UseCmsBuilderStreamReturn; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setInput: Dispatch<SetStateAction<string>>; retryLast: () => void; lastTurn: LastTurn | null; chips: { id: string; kind: string; label?: string; }[]; canUndoTurn: boolean; bridgeRef: RefObject<{ beginTurn: () => Promise<void>; applyExternalDraft: (evt: BuilderDraftEvent | null | undefined) => void; endTurn: (info?: BuilderTurnInfo) => void; undoTurn: () => Promise<void>; context: () => { activePageId: string | null; activeBlockId: string | null; activeLocale: string; }; selectPage: (id: string | null) => void; } | undefined>; pageById: Map<string, { id: string; slug?: string; title?: string; }>; startTurn: (text: string, extraContext?: Record<string, unknown>) => Promise<void>; }) {
+    return <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
+        {stream.messages.length === 0 ? (
+            <div className="pt-6 text-center">
+                <AppIcon name="Sparkles" className="w-7 h-7 mx-auto mb-2 text-[var(--text-muted)]" />
+                <p className="text-xs text-[var(--text-secondary)] mb-1 font-medium">
+                    {t('cms_site.site.assistant.empty_title', 'Build pages by describing them')}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)] mb-4 px-2">
+                    {t('cms_site.site.assistant.empty_body', 'The assistant creates and edits pages, blocks and SEO on this site. Publishing always stays in your hands.')}
+                </p>
+                <div className="flex flex-col gap-1.5 px-1">
+                    {QUICK_ACTIONS.map(([qKey, qDefault]) => {
+                        const q = t(qKey, qDefault);
+                        return (
+                            <button
+                                key={qKey}
+                                type="button"
+                                onClick={() => setInput(q)}
+                                className="px-2.5 py-1.5 rounded-md border border-[var(--border-subtle)] text-[11px] text-left text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/50 hover:text-[var(--text-primary)]"
+                            >
+                                {q}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        ) : stream.messages.map((m, i) => {
+            if (m.kind === 'tool') return <ToolChip key={i} item={m} />;
+            if (m.kind === 'error') {
+                return <ErrorItem key={i} item={m} onRetry={!stream.running ? retryLast : undefined} />;
+            }
+            return <MessageBubble key={i} msg={m} />;
+        })}
+
+        {/* What changed + Undo turn */}
+        {lastTurn && !stream.running && chips.length > 0 && (
+            <div className="mt-2 p-2.5 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
+                <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{t('cms_site.site.assistant.what_changed', 'What changed')}</span>
+                    {canUndoTurn && (
+                        <button
+                            type="button"
+                            onClick={() => bridgeRef.current?.undoTurn()}
+                            className="text-[10px] text-[var(--text-muted)] hover:text-red-400"
+                            title={t('cms_site.site.assistant.undo_title', 'Revert everything this turn changed (deletes pages it created)')}
+                        >
+                            {t('cms_site.site.assistant.undo', 'Undo turn')}
+                        </button>
+                    )}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                    {chips.map(c => (
+                        <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => bridgeRef.current?.selectPage(c.id)}
+                            className="px-2 py-0.5 rounded-full text-[10px] border border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/60"
+                            title={t('cms_site.site.assistant.show_editor', 'Show in the editor')}
+                        >
+                            {c.kind === 'created' ? '+ ' : '✎ '}
+                            {c.label || pageById.get(c.id)?.title || pageById.get(c.id)?.slug || c.id}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        )}
+
+        {/* validation strip */}
+        {stream.lastValidation && stream.lastValidation.errors?.length > 0 && !stream.running && (
+            <div className="mt-2 p-2.5 rounded-md border border-amber-500/30 bg-amber-500/10">
+                <p className="text-[10px] uppercase tracking-wider text-amber-500 mb-1">{t('cms_site.site.assistant.needs_attention', 'Needs attention')}</p>
+                {(stream.lastValidation.errors as ValidationIssue[]).slice(0, 5).map((issue, i) => (
+                    <div key={i} className="flex items-center gap-2 py-0.5">
+                        <span className="flex-1 text-[11px] text-[var(--text-secondary)]">{issue.message}</span>
+                        <button
+                            type="button"
+                            onClick={() => startTurn(`Fix: ${issue.message}`)}
+                            className="shrink-0 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/40 text-amber-500 hover:bg-amber-500/15"
+                        >
+                            {t('cms_site.site.assistant.fix', 'Fix')}
+                        </button>
+                    </div>
+                ))}
+            </div>
+        )}
+    </div>;
 }

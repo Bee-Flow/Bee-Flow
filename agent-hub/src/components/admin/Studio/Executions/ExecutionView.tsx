@@ -4,7 +4,7 @@ import RunProblemBanner from './RunProblemBanner';
 import RunStepTimeline from './RunStepTimeline';
 import useRunStream from './useRunStream';
 import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import ApprovalActionBar from '../../../automation/Builder/approvals/ApprovalActionBar';
 import RunExecutionView from '../../../automation/Builder/RunExecutionView';
 import type { ApprovalField } from '../Approvals/ApprovalDecisionControls';
@@ -261,27 +261,29 @@ export default function ExecutionView({
                     />
                 </div>
             )}
-            <div className="flex-1 min-h-0 flex">
-                <aside className="w-[280px] flex-shrink-0 border-r border-[var(--border-default)] min-h-0">
-                    <RunStepTimeline
-                        steps={steps}
-                        definition={definition}
-                        selectedStepId={selectedStepId}
-                        onSelectStep={selectStep}
-                        runStatus={run?.status || null}
-                    />
-                </aside>
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-                    <RunExecutionView
-                        key={runId}
-                        definition={definition}
-                        steps={steps}
-                        selectedStepId={selectedStepId}
-                        onSelectStep={selectStep}
-                        emptyDefinitionMessage={loading ? t('studio_misc.runview.loading', 'Loading the run…') : t('studio_misc.runview.definition_unavailable', 'Definition unavailable for this run.')}
-                    />
-                </div>
-            </div>
+            <ExecutionViewSection steps={steps} definition={definition} selectedStepId={selectedStepId} selectStep={selectStep} run={run} runId={runId} loading={loading} t={t} />
         </div>
     );
+}
+
+function ExecutionViewSection({ steps, definition, selectedStepId, selectStep, run, runId, loading, t }: { steps: StepRow[]; definition: RunDefinition | null; selectedStepId: string | null; selectStep: (sid: string | null) => void; run: ExecutionRun | null; runId: string; loading: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div className="flex-1 min-h-0 flex">
+        <aside className="w-[280px] flex-shrink-0 border-r border-[var(--border-default)] min-h-0">
+            <RunStepTimeline
+                steps={steps}
+                definition={definition}
+                selectedStepId={selectedStepId}
+                onSelectStep={selectStep}
+                runStatus={run?.status || null} />
+        </aside>
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+            <RunExecutionView
+                key={runId}
+                definition={definition}
+                steps={steps}
+                selectedStepId={selectedStepId}
+                onSelectStep={selectStep}
+                emptyDefinitionMessage={loading ? t('studio_misc.runview.loading', 'Loading the run…') : t('studio_misc.runview.definition_unavailable', 'Definition unavailable for this run.')} />
+        </div>
+    </div>;
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, type MouseEvent } from 'react';
-import useTranslation from '../../hooks/useTranslation';
+import { useState, useEffect, useCallback, type MouseEvent, SetStateAction, Dispatch } from 'react';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { mutate } from '../../api/mutate';
 import { formatRelativeTime } from '../../utils/dateFormatters';
@@ -276,19 +276,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
 
     return (
         <div className="mt-4">
-            <button
-                onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors w-full"
-            >
-                {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                <Clock className="w-4 h-4" />
-                <span>{t('agent.version_history_version_history', 'Version History')}</span>
-                {versions.length > 0 && (
-                    <span className="ml-auto text-xs bg-[var(--bg-tertiary)] px-2 py-0.5 rounded-full text-[var(--text-tertiary)]">
-                        {versions.length}
-                    </span>
-                )}
-            </button>
+            <VersionHistorySection setExpanded={setExpanded} expanded={expanded} t={t} versions={versions} />
 
             {expanded && (
                 <div className="mt-3 space-y-1 max-h-[400px] overflow-y-auto">
@@ -354,4 +342,20 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
             {confirmDialog}
         </div>
     );
+}
+
+function VersionHistorySection({ setExpanded, expanded, t, versions }: { setExpanded: Dispatch<SetStateAction<boolean>>; expanded: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; versions: { id: string; version_number: number; created_at: string; change_summary: string; }[]; }) {
+    return <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors w-full"
+    >
+        {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        <Clock className="w-4 h-4" />
+        <span>{t('agent.version_history_version_history', 'Version History')}</span>
+        {versions.length > 0 && (
+            <span className="ml-auto text-xs bg-[var(--bg-tertiary)] px-2 py-0.5 rounded-full text-[var(--text-tertiary)]">
+                {versions.length}
+            </span>
+        )}
+    </button>;
 }

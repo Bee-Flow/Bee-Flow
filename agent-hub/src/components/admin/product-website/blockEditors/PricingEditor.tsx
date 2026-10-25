@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextField, Toggle } from '../fields';
 import { InlineHint, CollapsibleCard, FieldSelect } from '../primitives';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
 import type { PublicPlan } from '../../../../marketing/sections/PricingSection';
@@ -106,52 +106,7 @@ export function PricingEditor({ data = {}, onChange }: BlockEditorProps<PricingD
                 />
             </CollapsibleCard>
 
-            <CollapsibleCard title={t('cms_site.blocks.pricing.audience', 'Audience')} persistKey="blk.pricing.audience">
-                <FieldSelect
-                    label={t('cms_site.blocks.pricing.show_plans_for', 'Show plans for')}
-                    value={planType}
-                    options={pricingPlanTypes(t)}
-                    onChange={v => setField('planType', v)}
-                />
-
-                {/* Live preview list — tells the admin exactly which plans
-                    will show up for this audience right now. */}
-                <div className="mt-3 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                            {t('cms_site.blocks.pricing.plans_the_visitor_will_see', 'Plans the visitor will see')}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={reloadPreview}
-                            className="text-xs underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                        >
-                            {t('cms_site.blocks.pricing.refresh', 'Refresh')}
-                        </button>
-                    </div>
-                    {preview.loading ? (
-                        <div className="text-xs text-[var(--text-muted)]">{t('cms_site.blocks.pricing.loading', 'Loading…')}</div>
-                    ) : preview.error ? (
-                        <div className="text-xs text-red-500">{t('cms_site.blocks.pricing.failed_error', 'Failed: {error}', { error: preview.error })}</div>
-                    ) : matchingPlans.length === 0 ? (
-                        <div className="text-xs text-[var(--text-muted)]">
-                            {t('cms_site.blocks.pricing.no_public_plans_for_this_audience', 'No public plans for this audience. Create one at /app/admin/subscriptions.')}
-                        </div>
-                    ) : (
-                        <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc pl-4">
-                            {matchingPlans.map(p => (
-                                <li key={p.id}>
-                                    <strong>{p.name}</strong>
-                                    {p.price != null
-                                        ? t('cms_site.blocks.pricing.plan_price_line', ' — {currency} {price} / {interval}', { currency: p.currency || 'EUR', price: p.price, interval: p.billingInterval || '—' })
-                                        : t('cms_site.blocks.pricing.plan_custom_pricing', ' — Custom pricing')}
-                                    {p.trialDays > 0 ? t('cms_site.blocks.pricing.plan_trial_line', ' · {days}d trial', { days: p.trialDays }) : ''}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            </CollapsibleCard>
+            <PricingEditorCollapsibleCard t={t} planType={planType} setField={setField} reloadPreview={reloadPreview} preview={preview} matchingPlans={matchingPlans} />
 
             <CollapsibleCard title={t('cms_site.blocks.pricing.billing_interval_toggle', 'Billing interval toggle')} persistKey="blk.pricing.interval">
                 <Toggle
@@ -260,4 +215,52 @@ export function PricingEditor({ data = {}, onChange }: BlockEditorProps<PricingD
             </CollapsibleCard>
         </>
     );
+}
+
+function PricingEditorCollapsibleCard({ t, planType, setField, reloadPreview, preview, matchingPlans }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; planType: string; setField: (key: string, value: unknown) => void; reloadPreview: () => void; preview: PricingPreview; matchingPlans: PreviewPlan[]; }) {
+    return <CollapsibleCard title={t('cms_site.blocks.pricing.audience', 'Audience')} persistKey="blk.pricing.audience">
+        <FieldSelect
+            label={t('cms_site.blocks.pricing.show_plans_for', 'Show plans for')}
+            value={planType}
+            options={pricingPlanTypes(t)}
+            onChange={v => setField('planType', v)} />
+
+        {/* Live preview list — tells the admin exactly which plans
+            will show up for this audience right now. */}
+        <div className="mt-3 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
+            <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                    {t('cms_site.blocks.pricing.plans_the_visitor_will_see', 'Plans the visitor will see')}
+                </div>
+                <button
+                    type="button"
+                    onClick={reloadPreview}
+                    className="text-xs underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                    {t('cms_site.blocks.pricing.refresh', 'Refresh')}
+                </button>
+            </div>
+            {preview.loading ? (
+                <div className="text-xs text-[var(--text-muted)]">{t('cms_site.blocks.pricing.loading', 'Loading…')}</div>
+            ) : preview.error ? (
+                <div className="text-xs text-red-500">{t('cms_site.blocks.pricing.failed_error', 'Failed: {error}', { error: preview.error })}</div>
+            ) : matchingPlans.length === 0 ? (
+                <div className="text-xs text-[var(--text-muted)]">
+                    {t('cms_site.blocks.pricing.no_public_plans_for_this_audience', 'No public plans for this audience. Create one at /app/admin/subscriptions.')}
+                </div>
+            ) : (
+                <ul className="text-xs text-[var(--text-secondary)] space-y-1 list-disc pl-4">
+                    {matchingPlans.map(p => (
+                        <li key={p.id}>
+                            <strong>{p.name}</strong>
+                            {p.price != null
+                                ? t('cms_site.blocks.pricing.plan_price_line', ' — {currency} {price} / {interval}', { currency: p.currency || 'EUR', price: p.price, interval: p.billingInterval || '—' })
+                                : t('cms_site.blocks.pricing.plan_custom_pricing', ' — Custom pricing')}
+                            {p.trialDays > 0 ? t('cms_site.blocks.pricing.plan_trial_line', ' · {days}d trial', { days: p.trialDays }) : ''}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    </CollapsibleCard>;
 }

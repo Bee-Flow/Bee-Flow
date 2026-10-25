@@ -4,7 +4,7 @@ import {
     Plug, Plus, RefreshCw, Trash2, Workflow, X,
 } from 'lucide-react';
 import useAutomationApi from '../../hooks/useAutomationApi';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { authFetch } from '../../utils/helpers';
 import type { CatalogApp } from '../../components/automation/Builder/flow/stepPalette.types';
 import type { AutomationOption, GrantedIntegration, GrantedAutomation, Grants, AutomationApi, StatusPillProps, AddAutomationFormProps, WebpageAppsPanelProps } from './WebpageAppsPanel.types';
@@ -187,20 +187,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
 
     return (
         <div className="flex flex-col h-full overflow-y-auto p-2 gap-3 text-[12px] text-[var(--vsc-fg)]">
-            <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
-                    {t('webpages.apps.title', 'Apps & data')}
-                </span>
-                <button
-                    type="button"
-                    onClick={load}
-                    title={t('webpages.refresh', 'Refresh')}
-                    aria-label={t('webpages.apps.refresh_aria', 'Refresh apps and grants')}
-                    className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] text-[var(--vsc-fg-muted)]"
-                >
-                    <RefreshCw size={13} />
-                </button>
-            </div>
+            <WebpageAppsPanelSection t={t} load={load} />
 
             <p className="text-[11px] -mt-1 text-[var(--vsc-fg-muted)]">
                 {t('webpages.apps.subtitle', 'What this page may call, running as you. Visitors never need their own accounts.')}
@@ -364,4 +351,21 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
             )}
         </div>
     );
+}
+
+function WebpageAppsPanelSection({ t, load }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; load: () => Promise<void>; }) {
+    return <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
+            {t('webpages.apps.title', 'Apps & data')}
+        </span>
+        <button
+            type="button"
+            onClick={load}
+            title={t('webpages.refresh', 'Refresh')}
+            aria-label={t('webpages.apps.refresh_aria', 'Refresh apps and grants')}
+            className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] text-[var(--vsc-fg-muted)]"
+        >
+            <RefreshCw size={13} />
+        </button>
+    </div>;
 }

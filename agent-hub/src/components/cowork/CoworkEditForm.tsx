@@ -14,7 +14,7 @@
 import { Bot, Calendar, Clock, LayoutGrid, Repeat, Save, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import AppsPicker from '../apps/AppsPicker';
 import { COWORK_REPEAT_OPTIONS, toDateInput, toTimeInput } from './coworkSchedule';
 import useCoworkApps from './useCoworkApps';
@@ -162,60 +162,11 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                 />
             </Field>
 
-            <Field
-                label={t('cowork.edit.what_it_does', 'What it does')}
-                hint={t('cowork.edit.what_it_does_hint', 'This is the instruction Bee Flow runs, unattended, at the scheduled moment.')}
-            >
-                <textarea
-                    value={draft.prompt}
-                    onChange={e => set({ prompt: e.target.value })}
-                    rows={5}
-                    aria-label={t('cowork.edit.what_it_does', 'What it does')}
-                    data-testid="cowork-edit-prompt"
-                    className={`${inputClass} resize-y leading-relaxed`}
-                    style={inputStyle}
-                />
-            </Field>
+            <CoworkEditFormField t={t} draft={draft} set={set} />
 
-            <div className="grid grid-cols-2 gap-3">
-                <Field label={t('cowork.edit.next_run', 'Next run')} icon={Calendar}>
-                    <input
-                        type="date"
-                        value={draft.date}
-                        onChange={e => set({ date: e.target.value })}
-                        aria-label={t('cowork.edit.next_run_date_aria', 'Next run date')}
-                        data-testid="cowork-edit-date"
-                        className={inputClass}
-                        style={inputStyle}
-                    />
-                </Field>
-                <Field label={t('cowork.edit.at', 'At')} icon={Clock}>
-                    <input
-                        type="time"
-                        value={draft.time}
-                        onChange={e => set({ time: e.target.value })}
-                        aria-label={t('cowork.edit.next_run_time_aria', 'Next run time')}
-                        data-testid="cowork-edit-time"
-                        className={inputClass}
-                        style={inputStyle}
-                    />
-                </Field>
-            </div>
+            <CoworkEditFormSection t={t} draft={draft} set={set} />
 
-            <Field label={t('cowork.edit.repeat', 'Repeat')} icon={Repeat}>
-                <select
-                    value={draft.repeatInterval}
-                    onChange={e => set({ repeatInterval: e.target.value })}
-                    aria-label={t('cowork.edit.repeat', 'Repeat')}
-                    data-testid="cowork-edit-repeat"
-                    className={inputClass}
-                    style={inputStyle}
-                >
-                    {COWORK_REPEAT_OPTIONS.map(o => (
-                        <option key={o.value || 'once'} value={o.value}>{t(o.labelKey, o.label)}</option>
-                    ))}
-                </select>
-            </Field>
+            <CoworkEditFormField2 t={t} draft={draft} set={set} />
 
             {draft.repeatInterval && (
                 <Field
@@ -351,25 +302,87 @@ export default function CoworkEditForm({ item, agents = [], onSave, onCancel, sa
                 <p className="text-[12px] text-red-600 dark:text-red-400" role="alert">{error}</p>
             )}
 
-            <div className="flex items-center gap-2">
-                <button
-                    type="submit"
-                    disabled={!canSave}
-                    data-testid="cowork-edit-save"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                >
-                    <Save className="w-3.5 h-3.5" />
-                    {t(saving ? 'cowork.edit.saving' : 'cowork.edit.save', saving ? 'Saving…' : 'Save')}
-                </button>
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    data-testid="cowork-edit-cancel"
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[13px] font-medium border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                >
-                    <X className="w-3.5 h-3.5" />{t('cowork.edit.cancel', 'Cancel')}
-                </button>
-            </div>
+            <CoworkEditFormSection2 canSave={canSave} t={t} saving={saving} onCancel={onCancel} />
         </form>
     );
+}
+
+function CoworkEditFormField2({ t, draft, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: Draft; set: (patch: Partial<Draft>) => void; }) {
+    return <Field label={t('cowork.edit.repeat', 'Repeat')} icon={Repeat}>
+        <select
+            value={draft.repeatInterval}
+            onChange={e => set({ repeatInterval: e.target.value })}
+            aria-label={t('cowork.edit.repeat', 'Repeat')}
+            data-testid="cowork-edit-repeat"
+            className={inputClass}
+            style={inputStyle}
+        >
+            {COWORK_REPEAT_OPTIONS.map(o => (
+                <option key={o.value || 'once'} value={o.value}>{t(o.labelKey, o.label)}</option>
+            ))}
+        </select>
+    </Field>;
+}
+
+function CoworkEditFormField({ t, draft, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: Draft; set: (patch: Partial<Draft>) => void; }) {
+    return <Field
+        label={t('cowork.edit.what_it_does', 'What it does')}
+        hint={t('cowork.edit.what_it_does_hint', 'This is the instruction Bee Flow runs, unattended, at the scheduled moment.')}
+    >
+        <textarea
+            value={draft.prompt}
+            onChange={e => set({ prompt: e.target.value })}
+            rows={5}
+            aria-label={t('cowork.edit.what_it_does', 'What it does')}
+            data-testid="cowork-edit-prompt"
+            className={`${inputClass} resize-y leading-relaxed`}
+            style={inputStyle} />
+    </Field>;
+}
+
+function CoworkEditFormSection2({ canSave, t, saving, onCancel }: { canSave: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; saving: boolean; onCancel: () => void; }) {
+    return <div className="flex items-center gap-2">
+        <button
+            type="submit"
+            disabled={!canSave}
+            data-testid="cowork-edit-save"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+        >
+            <Save className="w-3.5 h-3.5" />
+            {t(saving ? 'cowork.edit.saving' : 'cowork.edit.save', saving ? 'Saving…' : 'Save')}
+        </button>
+        <button
+            type="button"
+            onClick={onCancel}
+            data-testid="cowork-edit-cancel"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[13px] font-medium border-[var(--border-subtle)] text-[var(--text-secondary)]"
+        >
+            <X className="w-3.5 h-3.5" />{t('cowork.edit.cancel', 'Cancel')}
+        </button>
+    </div>;
+}
+
+function CoworkEditFormSection({ t, draft, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: Draft; set: (patch: Partial<Draft>) => void; }) {
+    return <div className="grid grid-cols-2 gap-3">
+        <Field label={t('cowork.edit.next_run', 'Next run')} icon={Calendar}>
+            <input
+                type="date"
+                value={draft.date}
+                onChange={e => set({ date: e.target.value })}
+                aria-label={t('cowork.edit.next_run_date_aria', 'Next run date')}
+                data-testid="cowork-edit-date"
+                className={inputClass}
+                style={inputStyle} />
+        </Field>
+        <Field label={t('cowork.edit.at', 'At')} icon={Clock}>
+            <input
+                type="time"
+                value={draft.time}
+                onChange={e => set({ time: e.target.value })}
+                aria-label={t('cowork.edit.next_run_time_aria', 'Next run time')}
+                data-testid="cowork-edit-time"
+                className={inputClass}
+                style={inputStyle} />
+        </Field>
+    </div>;
 }

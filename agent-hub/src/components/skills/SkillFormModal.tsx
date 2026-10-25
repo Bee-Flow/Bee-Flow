@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, SetStateAction, RefObject, Dispatch } from 'react';
 import { Sparkles, X, Users, Lock } from 'lucide-react';
 import { readOrgGroups, type OrgGroup } from '../../api/queries/orgGroups';
 import { API_BASE, authFetch } from '../../utils/helpers';
@@ -163,63 +163,7 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                 className="w-full max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border shadow-2xl animate-in fade-in zoom-in-95 duration-150 bg-[var(--bg-secondary)] border-[var(--border-subtle)]"
             >
                 {/* Header */}
-                <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b flex-shrink-0 border-[var(--border-subtle)]">
-                    <div className="relative flex-shrink-0">
-                        <button
-                            onClick={() => setShowIconPicker(v => !v)}
-                            disabled={locked}
-                            title={t('skill_form.choose_icon', 'Choose icon')}
-                            aria-label={t('skill_form.choose_icon', 'Choose icon')}
-                            className="w-11 h-11 rounded-xl border-[1.5px] flex items-center justify-center text-[22px] transition-colors bg-[var(--bg-tertiary)] border-[var(--border-default)]"
-                        >
-                            {form.icon}
-                        </button>
-                        {showIconPicker && (
-                            <div
-                                className="absolute top-[52px] left-0 z-10 p-2 rounded-xl border shadow-xl grid grid-cols-5 gap-1 w-[180px] bg-[var(--bg-primary)] border-[var(--border-subtle)]"
-                            >
-                                {ICONS.map(ic => (
-                                    <button
-                                        key={ic}
-                                        onClick={() => { setField('icon', ic); setShowIconPicker(false); }}
-                                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-[18px] transition-colors ${form.icon === ic ? 'bg-[var(--accent-primary)]/15' : 'hover:bg-[var(--bg-tertiary)]'}`}
-                                    >
-                                        {ic}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <input
-                            value={form.name}
-                            onChange={e => setField('name', e.target.value)}
-                            readOnly={locked}
-                            placeholder={t('skill_form.name_placeholder', 'Skill name (e.g. meeting-summary)')}
-                            aria-label={t('skill_form.name', 'Skill name')}
-                            ref={nameRef}
-                            className="w-full text-base font-bold bg-transparent outline-none border-none [color:var(--text-primary)]!"
-                        />
-                        <input
-                            value={form.description}
-                            onChange={e => setField('description', e.target.value)}
-                            readOnly={locked}
-                            placeholder={t('skill_form.description_placeholder', 'Short description…')}
-                            aria-label={t('skill_form.description', 'Description')}
-                            className="w-full text-[13px] bg-transparent outline-none border-none mt-0.5 [color:var(--text-secondary)]!"
-                        />
-                    </div>
-
-                    <button
-                        onClick={onCancel}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[var(--bg-tertiary)] [color:var(--text-secondary)] [background:var(--bg-tertiary)]!"
-                        title={t('skill_form.close', 'Close')}
-                        aria-label={t('skill_form.close', 'Close')}
-                    >
-                        <X size={16} />
-                    </button>
-                </div>
+                <SkillFormModalSection setShowIconPicker={setShowIconPicker} locked={locked} t={t} form={form} showIconPicker={showIconPicker} setField={setField} nameRef={nameRef} onCancel={onCancel} />
 
                 {locked && <ManagedPartBanner managed={managedPart} notDeployed={refusal?.reason === 'not_deployed'} />}
 
@@ -293,47 +237,108 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
                 )}
 
                 {/* Footer */}
-                <div className="flex items-center justify-between px-6 py-4 border-t flex-shrink-0 border-[var(--border-subtle)]">
-                    <button
-                        onClick={() => setField('isShared', !form.isShared)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-[1.5px] text-[13px] font-medium transition-all ${form.isShared
-                            ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                            : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                            }`}
-                        title={sharedTitle}
-                    >
-                        {form.isShared ? <Users size={14} /> : <Lock size={14} />}
-                        {form.isShared
-                            ? ((form.sharedGroups || []).length > 0
-                                ? t('skill_form.shared_groups', 'Shared ({count} groups)', { count: form.sharedGroups.length })
-                                : t('skill_form.shared_org', 'Shared with org'))
-                            : t('skill_form.private', 'Private')}
-                    </button>
-
-                    <div className="flex gap-2">
-                        <button
-                            onClick={onCancel}
-                            className="px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [background:transparent]!"
-                        >
-                            {t('skill_form.cancel', 'Cancel')}
-                        </button>
-                        <button
-                            onClick={save}
-                            disabled={!canSave}
-                            className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-semibold transition-opacity ${canSave ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'} [background:var(--accent-primary)] [color:var(--accent-primary-fg)]!`}
-                        >
-                            {saving
-                                ? t('skill_form.saving', 'Saving…')
-                                : (
-                                    <>
-                                        <Sparkles size={14} />
-                                        {skill ? t('skill_form.update', 'Update skill') : t('skill_form.create', 'Create skill')}
-                                    </>
-                                )}
-                        </button>
-                    </div>
-                </div>
+                <SkillFormModalSection2 setField={setField} form={form} sharedTitle={sharedTitle} t={t} onCancel={onCancel} save={save} canSave={canSave} saving={saving} skill={skill} />
             </div>
         </Modal>
     );
+}
+
+function SkillFormModalSection2({ setField, form, sharedTitle, t, onCancel, save, canSave, saving, skill }: { setField: (k: string, v: string | boolean) => void; form: FormState; sharedTitle: string; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onCancel: () => void; save: () => Promise<unknown>; canSave: string | boolean; saving: boolean; skill: Skill | SkillRecord | null; }) {
+    return <div className="flex items-center justify-between px-6 py-4 border-t flex-shrink-0 border-[var(--border-subtle)]">
+        <button
+            onClick={() => setField('isShared', !form.isShared)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-[1.5px] text-[13px] font-medium transition-all ${form.isShared
+                ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
+                : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+            title={sharedTitle}
+        >
+            {form.isShared ? <Users size={14} /> : <Lock size={14} />}
+            {form.isShared
+                ? ((form.sharedGroups || []).length > 0
+                    ? t('skill_form.shared_groups', 'Shared ({count} groups)', { count: form.sharedGroups.length })
+                    : t('skill_form.shared_org', 'Shared with org'))
+                : t('skill_form.private', 'Private')}
+        </button>
+
+        <div className="flex gap-2">
+            <button
+                onClick={onCancel}
+                className="px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-subtle)] [color:var(--text-secondary)]! [background:transparent]!"
+            >
+                {t('skill_form.cancel', 'Cancel')}
+            </button>
+            <button
+                onClick={save}
+                disabled={!canSave}
+                className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-semibold transition-opacity ${canSave ? 'hover:opacity-90' : 'opacity-50 cursor-not-allowed'} [background:var(--accent-primary)] [color:var(--accent-primary-fg)]!`}
+            >
+                {saving
+                    ? t('skill_form.saving', 'Saving…')
+                    : (
+                        <>
+                            <Sparkles size={14} />
+                            {skill ? t('skill_form.update', 'Update skill') : t('skill_form.create', 'Create skill')}
+                        </>
+                    )}
+            </button>
+        </div>
+    </div>;
+}
+
+function SkillFormModalSection({ setShowIconPicker, locked, t, form, showIconPicker, setField, nameRef, onCancel }: { setShowIconPicker: Dispatch<SetStateAction<boolean>>; locked: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; form: FormState; showIconPicker: boolean; setField: (k: string, v: string | boolean) => void; nameRef: RefObject<HTMLInputElement | null>; onCancel: () => void; }) {
+    return <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b flex-shrink-0 border-[var(--border-subtle)]">
+        <div className="relative flex-shrink-0">
+            <button
+                onClick={() => setShowIconPicker(v => !v)}
+                disabled={locked}
+                title={t('skill_form.choose_icon', 'Choose icon')}
+                aria-label={t('skill_form.choose_icon', 'Choose icon')}
+                className="w-11 h-11 rounded-xl border-[1.5px] flex items-center justify-center text-[22px] transition-colors bg-[var(--bg-tertiary)] border-[var(--border-default)]"
+            >
+                {form.icon}
+            </button>
+            {showIconPicker && (
+                <div
+                    className="absolute top-[52px] left-0 z-10 p-2 rounded-xl border shadow-xl grid grid-cols-5 gap-1 w-[180px] bg-[var(--bg-primary)] border-[var(--border-subtle)]"
+                >
+                    {ICONS.map(ic => (
+                        <button
+                            key={ic}
+                            onClick={() => { setField('icon', ic); setShowIconPicker(false); } }
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-[18px] transition-colors ${form.icon === ic ? 'bg-[var(--accent-primary)]/15' : 'hover:bg-[var(--bg-tertiary)]'}`}
+                        >
+                            {ic}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+            <input
+                value={form.name}
+                onChange={e => setField('name', e.target.value)}
+                readOnly={locked}
+                placeholder={t('skill_form.name_placeholder', 'Skill name (e.g. meeting-summary)')}
+                aria-label={t('skill_form.name', 'Skill name')}
+                ref={nameRef}
+                className="w-full text-base font-bold bg-transparent outline-none border-none [color:var(--text-primary)]!" />
+            <input
+                value={form.description}
+                onChange={e => setField('description', e.target.value)}
+                readOnly={locked}
+                placeholder={t('skill_form.description_placeholder', 'Short description…')}
+                aria-label={t('skill_form.description', 'Description')}
+                className="w-full text-[13px] bg-transparent outline-none border-none mt-0.5 [color:var(--text-secondary)]!" />
+        </div>
+
+        <button
+            onClick={onCancel}
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors hover:bg-[var(--bg-tertiary)] [color:var(--text-secondary)] [background:var(--bg-tertiary)]!"
+            title={t('skill_form.close', 'Close')}
+            aria-label={t('skill_form.close', 'Close')}
+        >
+            <X size={16} />
+        </button>
+    </div>;
 }

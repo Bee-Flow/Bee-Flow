@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -150,132 +150,136 @@ const MarkdownRenderer = ({ content, className = '', isLoading = false, inline =
     const Wrapper = inline ? 'span' : 'div';
     return (
         <Wrapper className={`markdown-content ${className}`}>
-            <ReactMarkdown
-                remarkPlugins={inline ? [remarkGfm] : [remarkGfm, remarkMath]}
-                rehypePlugins={inline ? [] : [rehypeKatex]}
-                {...(inline ? { allowedElements: INLINE_ELEMENTS, unwrapDisallowed: true } : {})}
-                components={{
-                    // Fenced/indented code arrives wrapped in a <pre>; mark the
-                    // subtree so the code component can tell block from inline
-                    // (see PreContext note above).
-                    pre({ node, children, ...props }) {
-                        return (
-                            <PreContext.Provider value={true}>
-                                <pre {...props}>{children}</pre>
-                            </PreContext.Provider>
-                        );
-                    },
-                    // Code blocks with syntax highlighting style
-                    // Delegates to the hoisted CodeRenderer so its useContext call
-                    // lives in a properly-named component (see the note there).
-                    code: (codeProps) => <CodeRenderer {...codeProps} isLoading={isLoading} />,
-                    // Links — anchor links scroll within message, external open in new tab
-                    a({ node, children, href, ...props }) {
-                        // Webpage links render as a clickable card instead of a plain anchor
-                        if (href && WEBPAGE_CARD.test(href)) {
-                            const label = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(href));
-                            return <WebpageLinkCard href={href} label={label} />;
-                        }
-                        // Document links do the same — the model is told to end
-                        // its reply with "[<name>](<url>)" after building one.
-                        if (href && DOCUMENT_CARD.test(href)) {
-                            const label = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(href));
-                            return <DocumentLinkCard href={href} label={label} />;
-                        }
-                        if (href && href.startsWith('#')) {
-                            return (
-                                <a
-                                    href={href}
-                                    onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                                        e.preventDefault();
-                                        const fragment = anchorKey(href.slice(1));
-                                        const container = e.currentTarget.closest('.markdown-content');
-                                        if (!container) return;
-
-                                        // Try exact ID match first
-                                        let target = container.querySelector(`[id="${href.slice(1)}"]`);
-
-                                        // Fuzzy: search all headings and compare normalized text
-                                        if (!target) {
-                                            const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                                            for (const h of headings) {
-                                                const hText = anchorKey(h.textContent || '');
-                                                if (hText.includes(fragment) || fragment.includes(hText)) {
-                                                    target = h;
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        if (target) {
-                                            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                        }
-                                    }}
-                                    {...props}
-                                >
-                                    {children}
-                                </a>
-                            );
-                        }
-                        return (
-                            <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
-                                {children}
-                            </a>
-                        );
-                    },
-                    // Headings with auto-generated IDs for anchor links (table of contents)
-                    ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].reduce((acc: Record<string, React.ComponentType<import('./MarkdownRenderer.types').HeadingProps>>, tag: string) => {
-                        acc[tag] = ({ node, children, ...hProps }: import('./MarkdownRenderer.types').HeadingProps) => {
-                            const extractText = (child: React.ReactNode): string => {
-                                if (typeof child === 'string') return child;
-                                if ((child as React.ReactElement<{ children?: React.ReactNode }>)?.props?.children) {
-                                    return React.Children.toArray((child as React.ReactElement<{ children?: React.ReactNode }>).props.children).map(extractText).join('');
-                                }
-                                return '';
-                            };
-                            const text = React.Children.toArray(children).map(extractText).join('');
-                            const slug = headingSlug(text);
-                            return React.createElement(tag, { id: slug, 'data-heading': text, ...hProps }, children);
-                        };
-                        return acc;
-                    }, {})),
-                    // Tables with proper styling
-                    table({ node, children, ...props }) {
-                        return (
-                            <div className="table-wrapper">
-                                <table {...props}>{children}</table>
-                            </div>
-                        );
-                    },
-                    // Paragraphs - render as div to prevent hydration errors from nested block elements
-                    p({ node, children, ...props }) {
-                        // Check if children contain block-level elements
-                        const hasBlockChild = React.Children.toArray(children).some((child: React.ReactNode) => {
-                            if (React.isValidElement(child)) {
-                                const type = child.type;
-                                // Check for common block elements
-                                return type === 'pre' || type === 'div' || type === 'table' ||
-                                    type === 'ul' || type === 'ol' || type === 'blockquote' ||
-                                    (typeof type === 'function' && (child.props as { className?: string })?.className?.includes('code-block'));
-                            }
-                            return false;
-                        });
-
-                        // If contains block elements, render as div instead of p
-                        if (hasBlockChild) {
-                            return <div {...props}>{children}</div>;
-                        }
-                        return <p {...props}>{children}</p>;
-                    },
-                    // Allow overriding/extending components
-                    ...(props.components || {})
-                }}
-            >
-                {cleanContent}
-            </ReactMarkdown>
+            <MarkdownRendererReactMarkdown inline={inline} isLoading={isLoading} props={props} cleanContent={cleanContent} />
 
         </Wrapper>
     );
 };
 
 export default React.memo(MarkdownRenderer);
+
+function MarkdownRendererReactMarkdown({ inline, isLoading, props, cleanContent }: { inline: boolean; isLoading: boolean; props: { components?: Components; }; cleanContent: string; }) {
+    return <ReactMarkdown
+        remarkPlugins={inline ? [remarkGfm] : [remarkGfm, remarkMath]}
+        rehypePlugins={inline ? [] : [rehypeKatex]}
+        {...(inline ? { allowedElements: INLINE_ELEMENTS, unwrapDisallowed: true } : {})}
+        components={{
+            // Fenced/indented code arrives wrapped in a <pre>; mark the
+            // subtree so the code component can tell block from inline
+            // (see PreContext note above).
+            pre({ node, children, ...props }) {
+                return (
+                    <PreContext.Provider value={true}>
+                        <pre {...props}>{children}</pre>
+                    </PreContext.Provider>
+                );
+            },
+            // Code blocks with syntax highlighting style
+            // Delegates to the hoisted CodeRenderer so its useContext call
+            // lives in a properly-named component (see the note there).
+            code: (codeProps) => <CodeRenderer {...codeProps} isLoading={isLoading} />,
+            // Links — anchor links scroll within message, external open in new tab
+            a({ node, children, href, ...props }) {
+                // Webpage links render as a clickable card instead of a plain anchor
+                if (href && WEBPAGE_CARD.test(href)) {
+                    const label = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(href));
+                    return <WebpageLinkCard href={href} label={label} />;
+                }
+                // Document links do the same — the model is told to end
+                // its reply with "[<name>](<url>)" after building one.
+                if (href && DOCUMENT_CARD.test(href)) {
+                    const label = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(href));
+                    return <DocumentLinkCard href={href} label={label} />;
+                }
+                if (href && href.startsWith('#')) {
+                    return (
+                        <a
+                            href={href}
+                            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                                e.preventDefault();
+                                const fragment = anchorKey(href.slice(1));
+                                const container = e.currentTarget.closest('.markdown-content');
+                                if (!container) return;
+
+                                // Try exact ID match first
+                                let target = container.querySelector(`[id="${href.slice(1)}"]`);
+
+                                // Fuzzy: search all headings and compare normalized text
+                                if (!target) {
+                                    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                                    for (const h of headings) {
+                                        const hText = anchorKey(h.textContent || '');
+                                        if (hText.includes(fragment) || fragment.includes(hText)) {
+                                            target = h;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                if (target) {
+                                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            } }
+                            {...props}
+                        >
+                            {children}
+                        </a>
+                    );
+                }
+                return (
+                    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                        {children}
+                    </a>
+                );
+            },
+            // Headings with auto-generated IDs for anchor links (table of contents)
+            ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].reduce((acc: Record<string, React.ComponentType<import('./MarkdownRenderer.types').HeadingProps>>, tag: string) => {
+                acc[tag] = ({ node, children, ...hProps }: import('./MarkdownRenderer.types').HeadingProps) => {
+                    const extractText = (child: React.ReactNode): string => {
+                        if (typeof child === 'string') return child;
+                        if ((child as React.ReactElement<{ children?: React.ReactNode; }>)?.props?.children) {
+                            return React.Children.toArray((child as React.ReactElement<{ children?: React.ReactNode; }>).props.children).map(extractText).join('');
+                        }
+                        return '';
+                    };
+                    const text = React.Children.toArray(children).map(extractText).join('');
+                    const slug = headingSlug(text);
+                    return React.createElement(tag, { id: slug, 'data-heading': text, ...hProps }, children);
+                };
+                return acc;
+            }, {})),
+            // Tables with proper styling
+            table({ node, children, ...props }) {
+                return (
+                    <div className="table-wrapper">
+                        <table {...props}>{children}</table>
+                    </div>
+                );
+            },
+            // Paragraphs - render as div to prevent hydration errors from nested block elements
+            p({ node, children, ...props }) {
+                // Check if children contain block-level elements
+                const hasBlockChild = React.Children.toArray(children).some((child: React.ReactNode) => {
+                    if (React.isValidElement(child)) {
+                        const type = child.type;
+                        // Check for common block elements
+                        return type === 'pre' || type === 'div' || type === 'table' ||
+                            type === 'ul' || type === 'ol' || type === 'blockquote' ||
+                            (typeof type === 'function' && (child.props as { className?: string; })?.className?.includes('code-block'));
+                    }
+                    return false;
+                });
+
+                // If contains block elements, render as div instead of p
+                if (hasBlockChild) {
+                    return <div {...props}>{children}</div>;
+                }
+                return <p {...props}>{children}</p>;
+            },
+            // Allow overriding/extending components
+            ...(props.components || {})
+        }}
+    >
+        {cleanContent}
+    </ReactMarkdown>;
+}

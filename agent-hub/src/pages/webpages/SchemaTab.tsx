@@ -3,7 +3,7 @@ import type { ColumnDraft, DbColumn, DbTable, SchemaTabProps } from './WebpageDb
 import React, { useState, useEffect, useMemo } from 'react';
 import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { quoteIdent, api } from './BrowseTab';
 
@@ -68,54 +68,7 @@ export function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreada
     return (
         <div className="flex h-full text-[var(--vsc-fg)]">
             {/* Left: table list */}
-            <div className="shrink-0 border-r overflow-y-auto w-[220px] [border-color:var(--vsc-border)]!">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vsc-border)]">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
-                        {unreadable && tables.length === 0
-                            ? t('webpages.db.tables_unreadable_count', 'Tables (?)')
-                            : t('webpages.db.tables_count', 'Tables ({count})', { count: tables.length })}
-                    </span>
-                    <button
-                        onClick={() => setCreating((c: boolean) => !c)}
-                        title={t('webpages.db.new_table', 'New table')}
-                        className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
-                    >
-                        <Plus size={14} />
-                    </button>
-                </div>
-                {busy ? (
-                    <div className="flex items-center justify-center py-6"><Loader2 size={14} className="animate-spin" /></div>
-                ) : tables.length === 0 ? (
-                    // A FAILED scan is not an empty database. "No tables yet —
-                    // click + to create one" invites making a table that may already exist:
-                    // the CREATE collides with the name, or worse, the author picks another
-                    // name and has two for the same thing. Unknown narrows to "I do not know".
-                    <div className="px-3 py-6 text-[11px]" style={{ color: unreadable ? 'var(--warning)' : 'var(--vsc-fg-muted)' }} data-testid="db-tables-empty">
-                        {unreadable
-                            ? t('webpages.db.tables_unknown', 'The tables could not be read, so this list is not “no tables”. Try refreshing before you create one.')
-                            : t('webpages.db.no_tables', 'No tables yet — click + to create one, or use the SQL tab for a custom CREATE.')}
-                    </div>
-                ) : (
-                    tables.map((tbl: DbTable) => (
-                        <button
-                            key={tbl.name}
-                            onClick={() => setSelected(tbl.name)}
-                            className="flex items-center gap-1.5 w-full px-3 py-1.5 text-left text-[12px]"
-                            style={{
-                                background: selected === tbl.name ? 'var(--vsc-tab-active-bg)' : 'transparent',
-                                color: selected === tbl.name ? 'var(--vsc-fg)' : 'var(--vsc-fg-muted)',
-                                borderLeft: selected === tbl.name ? '2px solid var(--vsc-accent)' : '2px solid transparent',
-                            }}
-                        >
-                            <Table2 size={12} />
-                            <span className="flex-1 truncate">{tbl.name}</span>
-                            <span className="text-[10px] [opacity:0.6]">
-                                {nOf(t, 'webpages.db.n_col', tbl.columns.length, '{count} col', '{count} cols')}
-                            </span>
-                        </button>
-                    ))
-                )}
-            </div>
+            <SchemaTabSection unreadable={unreadable} tables={tables} t={t} setCreating={setCreating} busy={busy} setSelected={setSelected} selected={selected} />
 
             {/* Right: details / new-table form */}
             <div className="flex-1 overflow-y-auto p-4">
@@ -224,4 +177,55 @@ export function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreada
             {confirmDialog}
         </div>
     );
+}
+
+function SchemaTabSection({ unreadable, tables, t, setCreating, busy, setSelected, selected }: { unreadable: boolean; tables: DbTable[]; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setCreating: React.Dispatch<React.SetStateAction<boolean>>; busy: boolean; setSelected: React.Dispatch<React.SetStateAction<string | null>>; selected: string | null; }) {
+    return <div className="shrink-0 border-r overflow-y-auto w-[220px] [border-color:var(--vsc-border)]!">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--vsc-border)]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--vsc-fg-muted)]">
+                {unreadable && tables.length === 0
+                    ? t('webpages.db.tables_unreadable_count', 'Tables (?)')
+                    : t('webpages.db.tables_count', 'Tables ({count})', { count: tables.length })}
+            </span>
+            <button
+                onClick={() => setCreating((c: boolean) => !c)}
+                title={t('webpages.db.new_table', 'New table')}
+                className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
+            >
+                <Plus size={14} />
+            </button>
+        </div>
+        {busy ? (
+            <div className="flex items-center justify-center py-6"><Loader2 size={14} className="animate-spin" /></div>
+        ) : tables.length === 0 ? (
+            // A FAILED scan is not an empty database. "No tables yet —
+            // click + to create one" invites making a table that may already exist:
+            // the CREATE collides with the name, or worse, the author picks another
+            // name and has two for the same thing. Unknown narrows to "I do not know".
+            <div className="px-3 py-6 text-[11px]" style={{ color: unreadable ? 'var(--warning)' : 'var(--vsc-fg-muted)' }} data-testid="db-tables-empty">
+                {unreadable
+                    ? t('webpages.db.tables_unknown', 'The tables could not be read, so this list is not “no tables”. Try refreshing before you create one.')
+                    : t('webpages.db.no_tables', 'No tables yet — click + to create one, or use the SQL tab for a custom CREATE.')}
+            </div>
+        ) : (
+            tables.map((tbl: DbTable) => (
+                <button
+                    key={tbl.name}
+                    onClick={() => setSelected(tbl.name)}
+                    className="flex items-center gap-1.5 w-full px-3 py-1.5 text-left text-[12px]"
+                    style={{
+                        background: selected === tbl.name ? 'var(--vsc-tab-active-bg)' : 'transparent',
+                        color: selected === tbl.name ? 'var(--vsc-fg)' : 'var(--vsc-fg-muted)',
+                        borderLeft: selected === tbl.name ? '2px solid var(--vsc-accent)' : '2px solid transparent',
+                    }}
+                >
+                    <Table2 size={12} />
+                    <span className="flex-1 truncate">{tbl.name}</span>
+                    <span className="text-[10px] [opacity:0.6]">
+                        {nOf(t, 'webpages.db.n_col', tbl.columns.length, '{count} col', '{count} cols')}
+                    </span>
+                </button>
+            ))
+        )}
+    </div>;
 }

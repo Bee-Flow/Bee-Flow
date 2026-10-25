@@ -1,6 +1,6 @@
 import { RefreshCw, CheckCircle2, ExternalLink, FileDown } from 'lucide-react';
 import React, { useEffect, useMemo, useRef } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { DataTableContext, TableColumn } from '../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
@@ -298,95 +298,98 @@ export default function RopaPage({ data = {}, isMobile = false, exportsEnabled =
                 />
             ) : null}
 
-            <section className="flex flex-col gap-2" data-testid="ropa-processors">
-                <h3 className="m-0 text-xs font-bold text-[var(--text-primary)]">{t('compliance.ropa_processors', 'Processors')}</h3>
-                <p className="m-0 text-xs text-[var(--text-secondary)]">
-                    {t('compliance.ropa_processors_desc', 'Measured from the calls that actually left this installation. A processor outside the EU needs a transfer basis — confirm it per operator.')}
-                </p>
-                <DataTable
-                    columns={processorColumns}
-                    rows={processors}
-                    rowKey={(p) => p.operator || 'unknown'}
-                    loading={loading}
-                    isMobile={isMobile}
-                    ariaLabel={t('compliance.ropa_processors', 'Processors')}
-                    testId="ropa-processors-table"
-                    empty={<EmptyState title={t('compliance.ropa_no_processors', 'Nothing left this installation yet')} />}
-                    renderCard={(p: RopaProcessor) => {
-                        const key = p.operator || 'unknown';
-                        return (
-                            <div className="w-full min-w-0 flex items-center gap-2" data-testid={`ropa-processor-card-${key}`}>
-                                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                    <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{p.operator || '—'}</span>
-                                    <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] min-w-0">
-                                        <span className="truncate">{location(p)}</span>
-                                        {dora && typeof p.critical === 'boolean' && (
-                                            <StatusPill tone={p.critical ? 'warning' : 'neutral'} testId={`ropa-critical-card-${key}`}>
-                                                {p.critical ? t('compliance.ropa_critical_yes', 'Critical') : t('compliance.ropa_critical_no', 'Not critical')}
-                                            </StatusPill>
-                                        )}
-                                    </span>
-                                    {callsLine(p) && (
-                                        <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums truncate" data-testid={`ropa-calls-card-${key}`}>{callsLine(p)}</span>
-                                    )}
-                                </div>
-                                <SccCell processor={p} attested={isConfirmed(p.operator) || !!p.scc_confirmed} busy={!!state.busy}
-                                    onToggle={state.sccToggle} card testKey={`card-${key}`} />
-                            </div>
-                        );
-                    }}
-                    renderRow={(p: RopaProcessor, ctx: DataTableContext) => {
-                        const ok = isConfirmed(p.operator) || !!p.scc_confirmed;
-                        const key = p.operator || 'unknown';
-                        let i = 0;
-                        return (
-                            <TableRow columns={ctx.columns} accent={!p.is_eu && !ok ? 'warning' : null} testId={`ropa-processor-${key}`}>
-                                <TableCell column={ctx.columns[i++]}>
-                                    <span className="flex flex-col gap-0.5 min-w-0">
-                                        <span className="font-semibold text-[var(--text-primary)] truncate">{p.operator || '—'}</span>
-                                        {callsLine(p) && (
-                                            <span className={`${TABLE_FOLDED_ONLY[900]} text-[11px] text-[var(--text-tertiary)] tabular-nums truncate`}>{callsLine(p)}</span>
-                                        )}
-                                    </span>
-                                </TableCell>
-                                <TableCell column={ctx.columns[i++]}>
-                                    <span className="text-[var(--text-secondary)] truncate" data-testid={`ropa-location-${key}`}>{location(p)}</span>
-                                </TableCell>
-                                {dora && (
-                                    <TableCell column={ctx.columns[i++]}>
-                                        <span className="font-mono text-[11px] text-[var(--text-secondary)] truncate" data-testid={`ropa-contract-${key}`}>{p.contract_ref || '—'}</span>
-                                    </TableCell>
-                                )}
-                                {dora && (
-                                    <TableCell column={ctx.columns[i++]}>
-                                        {typeof p.critical === 'boolean'
-                                            ? (
-                                                <StatusPill tone={p.critical ? 'warning' : 'neutral'} testId={`ropa-critical-${key}`}>
-                                                    {p.critical ? t('compliance.ropa_critical_yes', 'Critical') : t('compliance.ropa_critical_no', 'Not critical')}
-                                                </StatusPill>
-                                            )
-                                            : <span className="text-[var(--text-tertiary)]">—</span>}
-                                    </TableCell>
-                                )}
-                                {dora && (
-                                    <TableCell column={ctx.columns[i++]}>
-                                        <span className="text-[var(--text-secondary)]" data-testid={`ropa-country-${key}`}>{p.country || '—'}</span>
-                                    </TableCell>
-                                )}
-                                <TableCell column={ctx.columns[i++]} align="right">
-                                    <span className="text-[var(--text-secondary)] tabular-nums">{typeof p.calls === 'number' ? number.format(p.calls) : '—'}</span>
-                                </TableCell>
-                                <TableCell column={ctx.columns[i++]}>
-                                    <span className="text-[var(--text-secondary)] whitespace-nowrap">{p.last_seen ? formatDay(p.last_seen) : '—'}</span>
-                                </TableCell>
-                                <TableCell column={ctx.columns[i++]}>
-                                    <SccCell processor={p} attested={ok} busy={!!state.busy} onToggle={state.sccToggle} testKey={key} />
-                                </TableCell>
-                            </TableRow>
-                        );
-                    }}
-                />
-            </section>
+            <RopaPageSection t={t} processorColumns={processorColumns} processors={processors} loading={loading} isMobile={isMobile} location={location} dora={dora} callsLine={callsLine} isConfirmed={isConfirmed} state={state} number={number} formatDay={formatDay} />
         </RegisterLayout>
     );
+}
+
+function RopaPageSection({ t, processorColumns, processors, loading, isMobile, location, dora, callsLine, isConfirmed, state, number, formatDay }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; processorColumns: TableColumn[]; processors: RopaProcessor[]; loading: boolean; isMobile: boolean; location: (p: RopaProcessor) => string; dora: boolean; callsLine: (p: RopaProcessor) => string | null; isConfirmed: (op: string | null | undefined) => boolean; state: RopaState; number: Intl.NumberFormat; formatDay: (value: DateLike) => string; }) {
+    return <section className="flex flex-col gap-2" data-testid="ropa-processors">
+        <h3 className="m-0 text-xs font-bold text-[var(--text-primary)]">{t('compliance.ropa_processors', 'Processors')}</h3>
+        <p className="m-0 text-xs text-[var(--text-secondary)]">
+            {t('compliance.ropa_processors_desc', 'Measured from the calls that actually left this installation. A processor outside the EU needs a transfer basis — confirm it per operator.')}
+        </p>
+        <DataTable
+            columns={processorColumns}
+            rows={processors}
+            rowKey={(p) => p.operator || 'unknown'}
+            loading={loading}
+            isMobile={isMobile}
+            ariaLabel={t('compliance.ropa_processors', 'Processors')}
+            testId="ropa-processors-table"
+            empty={<EmptyState title={t('compliance.ropa_no_processors', 'Nothing left this installation yet')} />}
+            renderCard={(p: RopaProcessor) => {
+                const key = p.operator || 'unknown';
+                return (
+                    <div className="w-full min-w-0 flex items-center gap-2" data-testid={`ropa-processor-card-${key}`}>
+                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                            <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{p.operator || '—'}</span>
+                            <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] min-w-0">
+                                <span className="truncate">{location(p)}</span>
+                                {dora && typeof p.critical === 'boolean' && (
+                                    <StatusPill tone={p.critical ? 'warning' : 'neutral'} testId={`ropa-critical-card-${key}`}>
+                                        {p.critical ? t('compliance.ropa_critical_yes', 'Critical') : t('compliance.ropa_critical_no', 'Not critical')}
+                                    </StatusPill>
+                                )}
+                            </span>
+                            {callsLine(p) && (
+                                <span className="text-[11px] text-[var(--text-tertiary)] tabular-nums truncate" data-testid={`ropa-calls-card-${key}`}>{callsLine(p)}</span>
+                            )}
+                        </div>
+                        <SccCell processor={p} attested={isConfirmed(p.operator) || !!p.scc_confirmed} busy={!!state.busy}
+                            onToggle={state.sccToggle} card testKey={`card-${key}`} />
+                    </div>
+                );
+            } }
+            renderRow={(p: RopaProcessor, ctx: DataTableContext) => {
+                const ok = isConfirmed(p.operator) || !!p.scc_confirmed;
+                const key = p.operator || 'unknown';
+                let i = 0;
+                return (
+                    <TableRow columns={ctx.columns} accent={!p.is_eu && !ok ? 'warning' : null} testId={`ropa-processor-${key}`}>
+                        <TableCell column={ctx.columns[i++]}>
+                            <span className="flex flex-col gap-0.5 min-w-0">
+                                <span className="font-semibold text-[var(--text-primary)] truncate">{p.operator || '—'}</span>
+                                {callsLine(p) && (
+                                    <span className={`${TABLE_FOLDED_ONLY[900]} text-[11px] text-[var(--text-tertiary)] tabular-nums truncate`}>{callsLine(p)}</span>
+                                )}
+                            </span>
+                        </TableCell>
+                        <TableCell column={ctx.columns[i++]}>
+                            <span className="text-[var(--text-secondary)] truncate" data-testid={`ropa-location-${key}`}>{location(p)}</span>
+                        </TableCell>
+                        {dora && (
+                            <TableCell column={ctx.columns[i++]}>
+                                <span className="font-mono text-[11px] text-[var(--text-secondary)] truncate" data-testid={`ropa-contract-${key}`}>{p.contract_ref || '—'}</span>
+                            </TableCell>
+                        )}
+                        {dora && (
+                            <TableCell column={ctx.columns[i++]}>
+                                {typeof p.critical === 'boolean'
+                                    ? (
+                                        <StatusPill tone={p.critical ? 'warning' : 'neutral'} testId={`ropa-critical-${key}`}>
+                                            {p.critical ? t('compliance.ropa_critical_yes', 'Critical') : t('compliance.ropa_critical_no', 'Not critical')}
+                                        </StatusPill>
+                                    )
+                                    : <span className="text-[var(--text-tertiary)]">—</span>}
+                            </TableCell>
+                        )}
+                        {dora && (
+                            <TableCell column={ctx.columns[i++]}>
+                                <span className="text-[var(--text-secondary)]" data-testid={`ropa-country-${key}`}>{p.country || '—'}</span>
+                            </TableCell>
+                        )}
+                        <TableCell column={ctx.columns[i++]} align="right">
+                            <span className="text-[var(--text-secondary)] tabular-nums">{typeof p.calls === 'number' ? number.format(p.calls) : '—'}</span>
+                        </TableCell>
+                        <TableCell column={ctx.columns[i++]}>
+                            <span className="text-[var(--text-secondary)] whitespace-nowrap">{p.last_seen ? formatDay(p.last_seen) : '—'}</span>
+                        </TableCell>
+                        <TableCell column={ctx.columns[i++]}>
+                            <SccCell processor={p} attested={ok} busy={!!state.busy} onToggle={state.sccToggle} testKey={key} />
+                        </TableCell>
+                    </TableRow>
+                );
+            } } />
+    </section>;
 }

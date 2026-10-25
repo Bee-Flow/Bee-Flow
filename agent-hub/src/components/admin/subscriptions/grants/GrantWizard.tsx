@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Plus, CheckCircle, Copy, Mail, Save } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { errorMessage } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
@@ -150,30 +150,7 @@ export function GrantWizard({ orgs, tiers, onBack, onCreated }: GrantWizardProps
 
     return (
         <div className="absolute inset-0 flex flex-col bg-[var(--bg-primary)]">
-            <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <IconButton icon={ArrowLeft} size="sm" onClick={onBack} title={t('admin_subscriptions.grants_back', 'Back to grants')} />
-                <div className="min-w-0">
-                    <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">{t('admin_subscriptions.grants_wizard_title', 'Issue admin license')}</div>
-                    <h1 className="text-[16px] font-bold text-[var(--text-primary)] truncate">
-                        {isServerScope ? t('admin_subscriptions.grants_server_no_org', 'Server license (no org)') : (selectedOrg?.name || t('admin_subscriptions.grants_pick_org', 'Pick organization'))}
-                    </h1>
-                </div>
-                <div className="ml-auto hidden sm:flex items-center gap-2">
-                    {STEPS.map((s, idx) => (
-                        <div key={s.id} className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${
-                                idx <  step ? 'bg-emerald-500 text-white' :
-                                idx === step ? 'bg-blue-500 text-white' :
-                                               'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-                            }`}>
-                                {idx < step ? <CheckCircle className="w-3.5 h-3.5" /> : idx + 1}
-                            </div>
-                            <span className={`text-[12px] ${idx === step ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{s.label}</span>
-                            {idx < STEPS.length - 1 && <span className="text-[var(--text-muted)]">→</span>}
-                        </div>
-                    ))}
-                </div>
-            </header>
+            <GrantWizardHeader onBack={onBack} t={t} isServerScope={isServerScope} selectedOrg={selectedOrg} STEPS={STEPS} step={step} />
 
             <div className="flex-1 overflow-y-auto">
                 <div className="max-w-xl mx-auto px-6 py-8 pb-32 space-y-5">
@@ -355,30 +332,59 @@ export function GrantWizard({ orgs, tiers, onBack, onCreated }: GrantWizardProps
                 </div>
             </div>
 
-            <footer className="shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] px-6 py-3 flex items-center justify-between gap-3">
-                <Button variant="ghost" onClick={onBack}>{t('admin_subscriptions.grants_cancel', 'Cancel')}</Button>
-                <div className="flex items-center gap-2">
-                    {step > 0 && !result && <Button variant="secondary" icon={ArrowLeft} onClick={() => setStep(s => s - 1)}>{t('admin_subscriptions.grants_back_btn', 'Back')}</Button>}
-                    {step < 2 && !result && (
-                        <Button
-                            variant="primary"
-                            iconRight={<ArrowRight className="w-4 h-4" />}
-                            onClick={() => setStep(s => s + 1)}
-                            disabled={!canNext}
-                        >
-                            {t('admin_subscriptions.grants_next', 'Next')}
-                        </Button>
-                    )}
-                    {step === 2 && !result && (
-                        <Button variant="primary" icon={Plus} onClick={submit} busy={busy}>
-                            {busy ? t('admin_subscriptions.grants_granting', 'Granting…') : t('admin_subscriptions.grants_grant', 'Grant license')}
-                        </Button>
-                    )}
-                    {result && (
-                        <Button variant="primary" icon={Save} onClick={finish}>{t('admin_subscriptions.grants_done', 'Done')}</Button>
-                    )}
-                </div>
-            </footer>
+            <GrantWizardFooter onBack={onBack} t={t} step={step} result={result} setStep={setStep} canNext={canNext} submit={submit} busy={busy} finish={finish} />
         </div>
     );
+}
+
+function GrantWizardFooter({ onBack, t, step, result, setStep, canNext, submit, busy, finish }: { onBack: () => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; step: number; result: { blob: string; delivery: EmailDelivery | null; } | null; setStep: React.Dispatch<React.SetStateAction<number>>; canNext: string | boolean; submit: () => Promise<void>; busy: boolean; finish: () => void; }) {
+    return <footer className="shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] px-6 py-3 flex items-center justify-between gap-3">
+        <Button variant="ghost" onClick={onBack}>{t('admin_subscriptions.grants_cancel', 'Cancel')}</Button>
+        <div className="flex items-center gap-2">
+            {step > 0 && !result && <Button variant="secondary" icon={ArrowLeft} onClick={() => setStep(s => s - 1)}>{t('admin_subscriptions.grants_back_btn', 'Back')}</Button>}
+            {step < 2 && !result && (
+                <Button
+                    variant="primary"
+                    iconRight={<ArrowRight className="w-4 h-4" />}
+                    onClick={() => setStep(s => s + 1)}
+                    disabled={!canNext}
+                >
+                    {t('admin_subscriptions.grants_next', 'Next')}
+                </Button>
+            )}
+            {step === 2 && !result && (
+                <Button variant="primary" icon={Plus} onClick={submit} busy={busy}>
+                    {busy ? t('admin_subscriptions.grants_granting', 'Granting…') : t('admin_subscriptions.grants_grant', 'Grant license')}
+                </Button>
+            )}
+            {result && (
+                <Button variant="primary" icon={Save} onClick={finish}>{t('admin_subscriptions.grants_done', 'Done')}</Button>
+            )}
+        </div>
+    </footer>;
+}
+
+function GrantWizardHeader({ onBack, t, isServerScope, selectedOrg, STEPS, step }: { onBack: () => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; isServerScope: boolean; selectedOrg: GrantOrg | undefined; STEPS: { id: string; label: string; }[]; step: number; }) {
+    return <header className="shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        <IconButton icon={ArrowLeft} size="sm" onClick={onBack} title={t('admin_subscriptions.grants_back', 'Back to grants')} />
+        <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">{t('admin_subscriptions.grants_wizard_title', 'Issue admin license')}</div>
+            <h1 className="text-[16px] font-bold text-[var(--text-primary)] truncate">
+                {isServerScope ? t('admin_subscriptions.grants_server_no_org', 'Server license (no org)') : (selectedOrg?.name || t('admin_subscriptions.grants_pick_org', 'Pick organization'))}
+            </h1>
+        </div>
+        <div className="ml-auto hidden sm:flex items-center gap-2">
+            {STEPS.map((s, idx) => (
+                <div key={s.id} className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-[11px] font-bold ${idx < step ? 'bg-emerald-500 text-white' :
+                            idx === step ? 'bg-blue-500 text-white' :
+                                'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}>
+                        {idx < step ? <CheckCircle className="w-3.5 h-3.5" /> : idx + 1}
+                    </div>
+                    <span className={`text-[12px] ${idx === step ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>{s.label}</span>
+                    {idx < STEPS.length - 1 && <span className="text-[var(--text-muted)]">→</span>}
+                </div>
+            ))}
+        </div>
+    </header>;
 }

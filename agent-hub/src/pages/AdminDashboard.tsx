@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from '../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../hooks/useTranslation';
 import { ArrowLeft } from 'lucide-react';
 import NavLink from '../components/shell/NavLink';
 import AgentConfigHub from '../components/agents/AgentConfigHub';
@@ -223,123 +223,130 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     return (
         <div className="h-full flex flex-col bg-[var(--bg-card)]">
             {/* Top Navigation Bar */}
-            <div className="h-14 flex items-center justify-between px-4 border-b shrink-0 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <div className="flex items-center gap-3">
-                    {onBack && (
-                        <button
-                            onClick={onBack}
-                            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                            title={t('admin.back_to_chat')}
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                    )}
-                    <h2 className="text-lg font-semibold text-primary">
-                        {t('admin.dashboard_title')}
-                    </h2>
-                </div>
-
-                {/* Scrollable so the full tab set (now incl. Website Analytics)
-                    is always reachable — the bar is at capacity and a fixed
-                    single row would clip the rightmost tabs off-screen. */}
-                <div ref={tabScrollRef} className="flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]">
-                    <div className="flex gap-2 p-1 rounded-lg w-max mx-auto [background:var(--bg-tertiary)]" data-surface="default" data-static>
-                        {tabs.map((tab) => {
-                            if (!checkTabAccess(tab)) return null;
-
-                            return (
-                                <NavLink
-                                    key={tab.id}
-                                    href={`/admin/${tab.id}`}
-                                    onNavigate={() => handleTabClick(tab.id)}
-                                    className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
-                                        ? 'bg-[var(--accent-primary)] text-white shadow-sm'
-                                        : 'text-muted hover:text-primary hover:bg-white/5'
-                                        } [text-decoration:none]! [color:inherit]!`}
-                                >
-                                    {tab.label}
-                                </NavLink>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="w-20"></div> {/* Spacer for balance */}
-            </div>
+            <AdminDashboardSection2 onBack={onBack} t={t} tabScrollRef={tabScrollRef} tabs={tabs} checkTabAccess={checkTabAccess} handleTabClick={handleTabClick} activeTab={activeTab} />
 
             {/* Main Content Area */}
-            <div className="flex-1 overflow-hidden relative">
-                {!isTabAllowed ? renderAccessDenied() :
-                    activeTab === 'agents' ? (
-                        <div className="absolute inset-0">
-                            <AgentConfigHub user={user} hasPermission={hasPermission} activeSection={agentSection} onNavigate={onNavigate} />
-                        </div>
-                    ) : activeTab === 'ai-config' ? (
-                        <div className="absolute inset-0 overflow-hidden p-6">
-                            <div className="h-full mx-auto max-w-full">
-                                <AIConfigPanel />
-                            </div>
-                        </div>
-                    ) : activeTab === 'security' ? (
-                        <div className="absolute inset-0">
-                            <SecurityHub user={user} activeSection={adminPath.seg2} userSection={adminPath.seg3} onNavigate={onNavigate} />
-                        </div>
-                    ) : activeTab === 'integrations' ? (
-                        <div className="absolute inset-0">
-                            <IntegrationsAdminPanel activeSection={adminPath.seg2} onNavigate={onNavigate} />
-                        </div>
-                    ) : activeTab === 'access' ? (
-                        <div className="absolute inset-0">
-                            <AccessPermissionsPanel user={user} activeSection={adminPath.seg2} onNavigate={onNavigate} />
-                        </div>
-                    ) : activeTab === 'monitoring' ? (
-                        <div className="absolute inset-0">
-                            <MonitoringPanel activeSection={adminPath.seg2} onNavigate={onNavigate} />
-                        </div>
-                    ) : activeTab === 'compliance' ? (
-                        <div className="absolute inset-0">
-                            <ComplianceHub activeSection={adminPath.seg2} focusCheckId={adminPath.seg3} onNavigate={onNavigate} />
-                        </div>
-                    ) : activeTab === 'subscriptions' ? (
-                        <div className="absolute inset-0 overflow-hidden">
-                            <SubscriptionsPanel />
-                        </div>
-                    ) : activeTab === 'support' ? (
-                        <div className="absolute inset-0">
-                            <SupportInboxPanel focusThreadId={adminPath.seg2 || null} />
-                        </div>
-                    ) : activeTab === 'licenses' ? (
-                        <div className="absolute inset-0 overflow-auto p-6">
-                            <div className="mx-auto max-w-3xl">
-                                <ServerLicensePanel />
-                            </div>
-                        </div>
-                    ) : activeTab === 'modules' ? (
-                        <div className="absolute inset-0 overflow-auto p-6">
-                            <div className="mx-auto max-w-5xl">
-                                <ModulesPanel />
-                            </div>
-                        </div>
-                    ) : activeTab === 'appearance' ? (
-                        <div className="absolute inset-0">
-                            <AppearancePanel />
-                        </div>
-                    ) : activeTab === 'languages' ? (
-                        <div className="absolute inset-0 overflow-hidden">
-                            <LanguagesPanel />
-                        </div>
-                    ) : activeTab === 'website-analytics' ? (
-                        <div className="absolute inset-0">
-                            <AnalyticsPanel />
-                        </div>
-                    ) : activeTab === 'release-notes' ? (
-                        <div className="absolute inset-0">
-                            <ReleaseNotesPanel />
-                        </div>
-                    ) : null}
-            </div>
+            <AdminDashboardSection isTabAllowed={isTabAllowed} renderAccessDenied={renderAccessDenied} activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
         </div>
     );
 };
 
 export default AdminDashboard;
+
+function AdminDashboardSection2({ onBack, t, tabScrollRef, tabs, checkTabAccess, handleTabClick, activeTab }: { onBack: React.MouseEventHandler<HTMLButtonElement>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; tabScrollRef: React.RefObject<HTMLDivElement | null>; tabs: AdminTab[]; checkTabAccess: (tab: AdminTab | undefined) => boolean; handleTabClick: (tabId: string) => void; activeTab: string; }) {
+    return <div className="h-14 flex items-center justify-between px-4 border-b shrink-0 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        <div className="flex items-center gap-3">
+            {onBack && (
+                <button
+                    onClick={onBack}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    title={t('admin.back_to_chat')}
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+            )}
+            <h2 className="text-lg font-semibold text-primary">
+                {t('admin.dashboard_title')}
+            </h2>
+        </div>
+
+        {/* Scrollable so the full tab set (now incl. Website Analytics)
+            is always reachable — the bar is at capacity and a fixed
+            single row would clip the rightmost tabs off-screen. */}
+        <div ref={tabScrollRef} className="flex-1 min-w-0 overflow-x-auto [scrollbar-width:thin]">
+            <div className="flex gap-2 p-1 rounded-lg w-max mx-auto [background:var(--bg-tertiary)]" data-surface="default" data-static>
+                {tabs.map((tab) => {
+                    if (!checkTabAccess(tab)) return null;
+
+                    return (
+                        <NavLink
+                            key={tab.id}
+                            href={`/admin/${tab.id}`}
+                            onNavigate={() => handleTabClick(tab.id)}
+                            className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab.id
+                                ? 'bg-[var(--accent-primary)] text-white shadow-sm'
+                                : 'text-muted hover:text-primary hover:bg-white/5'} [text-decoration:none]! [color:inherit]!`}
+                        >
+                            {tab.label}
+                        </NavLink>
+                    );
+                })}
+            </div>
+        </div>
+
+        <div className="w-20"></div> {/* Spacer for balance */}
+    </div>;
+}
+
+function AdminDashboardSection({ isTabAllowed, renderAccessDenied, activeTab, user, hasPermission, agentSection, onNavigate, adminPath }: { isTabAllowed: boolean; renderAccessDenied: () => React.JSX.Element; activeTab: string; user: AdminCurrentUser | null; hasPermission: (perm: string) => boolean; agentSection: string; onNavigate: (path: string, opts?: { replace?: boolean; }) => void; adminPath: { seg1?: string; seg2?: string; seg3?: string; }; }) {
+    return <div className="flex-1 overflow-hidden relative">
+        {!isTabAllowed ? renderAccessDenied() :
+            activeTab === 'agents' ? (
+                <div className="absolute inset-0">
+                    <AgentConfigHub user={user} hasPermission={hasPermission} activeSection={agentSection} onNavigate={onNavigate} />
+                </div>
+            ) : activeTab === 'ai-config' ? (
+                <div className="absolute inset-0 overflow-hidden p-6">
+                    <div className="h-full mx-auto max-w-full">
+                        <AIConfigPanel />
+                    </div>
+                </div>
+            ) : activeTab === 'security' ? (
+                <div className="absolute inset-0">
+                    <SecurityHub user={user} activeSection={adminPath.seg2} userSection={adminPath.seg3} onNavigate={onNavigate} />
+                </div>
+            ) : activeTab === 'integrations' ? (
+                <div className="absolute inset-0">
+                    <IntegrationsAdminPanel activeSection={adminPath.seg2} onNavigate={onNavigate} />
+                </div>
+            ) : activeTab === 'access' ? (
+                <div className="absolute inset-0">
+                    <AccessPermissionsPanel user={user} activeSection={adminPath.seg2} onNavigate={onNavigate} />
+                </div>
+            ) : activeTab === 'monitoring' ? (
+                <div className="absolute inset-0">
+                    <MonitoringPanel activeSection={adminPath.seg2} onNavigate={onNavigate} />
+                </div>
+            ) : activeTab === 'compliance' ? (
+                <div className="absolute inset-0">
+                    <ComplianceHub activeSection={adminPath.seg2} focusCheckId={adminPath.seg3} onNavigate={onNavigate} />
+                </div>
+            ) : activeTab === 'subscriptions' ? (
+                <div className="absolute inset-0 overflow-hidden">
+                    <SubscriptionsPanel />
+                </div>
+            ) : activeTab === 'support' ? (
+                <div className="absolute inset-0">
+                    <SupportInboxPanel focusThreadId={adminPath.seg2 || null} />
+                </div>
+            ) : activeTab === 'licenses' ? (
+                <div className="absolute inset-0 overflow-auto p-6">
+                    <div className="mx-auto max-w-3xl">
+                        <ServerLicensePanel />
+                    </div>
+                </div>
+            ) : activeTab === 'modules' ? (
+                <div className="absolute inset-0 overflow-auto p-6">
+                    <div className="mx-auto max-w-5xl">
+                        <ModulesPanel />
+                    </div>
+                </div>
+            ) : activeTab === 'appearance' ? (
+                <div className="absolute inset-0">
+                    <AppearancePanel />
+                </div>
+            ) : activeTab === 'languages' ? (
+                <div className="absolute inset-0 overflow-hidden">
+                    <LanguagesPanel />
+                </div>
+            ) : activeTab === 'website-analytics' ? (
+                <div className="absolute inset-0">
+                    <AnalyticsPanel />
+                </div>
+            ) : activeTab === 'release-notes' ? (
+                <div className="absolute inset-0">
+                    <ReleaseNotesPanel />
+                </div>
+            ) : null}
+    </div>;
+}

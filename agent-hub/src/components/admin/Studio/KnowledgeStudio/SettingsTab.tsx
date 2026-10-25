@@ -8,7 +8,7 @@ import DangerZone from '../../../shared/DangerZone';
 import { kindColorVar } from '../../../shared/kindColors';
 import type { CategoryRow } from '../../../agents/AgentWizard/agentEditor.types';
 import type { UsageRow } from '../../../../hooks/useUsage';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
 import type { SettingsTabProps, NameFieldsProps, SurfaceCardProps, PersonalNoticeProps } from './SettingsTab.types';
 
@@ -227,57 +227,10 @@ export default function SettingsTab({
             />
 
             {/* ── Where it can be used ──────────────────────────── */}
-            <section className="flex flex-col gap-2" data-testid="kb-surfaces">
-                <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
-                    {t('knowledge.settings.where_title', 'Where it can be used')}
-                </h3>
-                <div className="grid gap-2 [grid-template-columns:repeat(3,minmax(0,1fr))]">
-                    {SURFACE_CARDS.map(({ id }) => (
-                        <SurfaceCard
-                            key={id}
-                            id={id}
-                            active={surfaces.includes(id)}
-                            disabled={!canManage || saving}
-                            attached={attachedCount(usage, id)}
-                            onToggle={() => toggleSurface(id)}
-                            t={t}
-                        />
-                    ))}
-                </div>
-                <p className="text-[11px] text-[var(--text-tertiary)]">
-                    {t('knowledge.settings.where_hint', 'This decides which pickers offer this knowledge base. It does not change who may read what is in it — that is below.')}
-                </p>
-            </section>
+            <SettingsTabSection2 t={t} surfaces={surfaces} canManage={canManage} saving={saving} usage={usage} toggleSurface={toggleSurface} />
 
             {/* ── Who may see it ────────────────────────────────── */}
-            <section className="flex flex-col gap-2" data-testid="kb-audience">
-                {isPersonal ? (
-                    <PersonalNotice
-                        t={t}
-                        canMove={canManage && !!orgId}
-                        onMove={moveToOrg}
-                        busy={saving}
-                    />
-                ) : (
-                    <AudienceRows
-                        agent={kb}
-                        isPublished={view.isPublished}
-                        sharedGroups={view.sharedGroups}
-                        orgGroups={orgGroups}
-                        disabled={!canManage}
-                        confirmWidening
-                        title={t('knowledge.settings.who_title', 'Who may see and use it')}
-                        hint={t('knowledge.settings.who_hint', 'An agent can only answer from this knowledge base for someone who may see it. Everyone else gets the same answer with this left out — never an error.')}
-                        onSetPersonal={() => setAudience({ isPublished: false, sharedGroups: [] })}
-                        onSetEntireOrg={() => setAudience({ isPublished: true, sharedGroups: [] })}
-                        onToggleGroup={(gid) => {
-                            const cur = view.sharedGroups;
-                            const next = cur.includes(gid) ? cur.filter((g) => g !== gid) : [...cur, gid];
-                            return setAudience({ isPublished: true, sharedGroups: next });
-                        }}
-                    />
-                )}
-            </section>
+            <SettingsTabSection isPersonal={isPersonal} t={t} canManage={canManage} orgId={orgId} moveToOrg={moveToOrg} saving={saving} kb={kb} view={view} orgGroups={orgGroups} setAudience={setAudience} />
 
             {/* ── Category ──────────────────────────────────────── */}
             <section data-testid="kb-category">
@@ -353,6 +306,58 @@ export default function SettingsTab({
             )}
         </div>
     );
+}
+
+function SettingsTabSection2({ t, surfaces, canManage, saving, usage, toggleSurface }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; surfaces: string[]; canManage: boolean; saving: boolean; usage: UsageRow[] | null; toggleSurface: (surface: string) => void; }) {
+    return <section className="flex flex-col gap-2" data-testid="kb-surfaces">
+        <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
+            {t('knowledge.settings.where_title', 'Where it can be used')}
+        </h3>
+        <div className="grid gap-2 [grid-template-columns:repeat(3,minmax(0,1fr))]">
+            {SURFACE_CARDS.map(({ id }) => (
+                <SurfaceCard
+                    key={id}
+                    id={id}
+                    active={surfaces.includes(id)}
+                    disabled={!canManage || saving}
+                    attached={attachedCount(usage, id)}
+                    onToggle={() => toggleSurface(id)}
+                    t={t} />
+            ))}
+        </div>
+        <p className="text-[11px] text-[var(--text-tertiary)]">
+            {t('knowledge.settings.where_hint', 'This decides which pickers offer this knowledge base. It does not change who may read what is in it — that is below.')}
+        </p>
+    </section>;
+}
+
+function SettingsTabSection({ isPersonal, t, canManage, orgId, moveToOrg, saving, kb, view, orgGroups, setAudience }: { isPersonal: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; canManage: boolean; orgId: string | null; moveToOrg: () => Promise<void>; saving: boolean; kb: KnowledgeBase | null; view: { orgId: string | null; isPublished: boolean; sharedGroups: string[]; categoryId: string | null; }; orgGroups: readonly OrgGroup[]; setAudience: (body: { isPublished: boolean; sharedGroups: string[]; }) => Promise<void>; }) {
+    return <section className="flex flex-col gap-2" data-testid="kb-audience">
+        {isPersonal ? (
+            <PersonalNotice
+                t={t}
+                canMove={canManage && !!orgId}
+                onMove={moveToOrg}
+                busy={saving} />
+        ) : (
+            <AudienceRows
+                agent={kb}
+                isPublished={view.isPublished}
+                sharedGroups={view.sharedGroups}
+                orgGroups={orgGroups}
+                disabled={!canManage}
+                confirmWidening
+                title={t('knowledge.settings.who_title', 'Who may see and use it')}
+                hint={t('knowledge.settings.who_hint', 'An agent can only answer from this knowledge base for someone who may see it. Everyone else gets the same answer with this left out — never an error.')}
+                onSetPersonal={() => setAudience({ isPublished: false, sharedGroups: [] })}
+                onSetEntireOrg={() => setAudience({ isPublished: true, sharedGroups: [] })}
+                onToggleGroup={(gid) => {
+                    const cur = view.sharedGroups;
+                    const next = cur.includes(gid) ? cur.filter((g) => g !== gid) : [...cur, gid];
+                    return setAudience({ isPublished: true, sharedGroups: next });
+                } } />
+        )}
+    </section>;
 }
 
 function NameFields({ t, fieldStyle, name, description, setName, setDescription, disabled, onCommitName, onCommitDescription }: NameFieldsProps) {

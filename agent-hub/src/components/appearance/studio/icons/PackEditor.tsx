@@ -1,6 +1,6 @@
 import { Check, Pencil, Search, Download, AlertCircle, Loader2 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useId, useMemo } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { loadSettings } from '../../../chat/NanoBananaSettings';
 import IconPickerModal from '../../../icons/IconPickerModal';
@@ -118,49 +118,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
-            <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-3 shrink-0 border-[var(--border-default)]">
-                <div className="min-w-0">
-                    <h3 className="font-semibold text-base truncate text-[var(--text-primary)]">
-                        {t('appearance.icons_editor_editing_name', 'Editing "{name}"', { name: pack.name })}
-                    </h3>
-                    <p className="text-xs mt-0.5 flex items-center gap-2 text-[var(--text-muted)]">
-                        <span>{t('appearance.icons_editor_click_any_icon_to_customise_it', 'Click any icon to customise it.')}</span>
-                        {isActive && (
-                            <span
-                                className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)] [color:var(--accent-primary)]!"
-                            >
-                                {t('appearance.icons_editor_active_preview', 'Active Preview')}
-                            </span>
-                        )}
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                        onClick={() => setBulkOpen(true)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5 transition-opacity [background:linear-gradient(135deg,#f59e0b,#ef4444)]"
-                    >
-                        {t('appearance.icons_editor_ai_generate_all', 'AI Generate All')}
-                    </button>
-                    <button onClick={onExport} className="px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
-                        <Download className="w-3.5 h-3.5" /> {t('appearance.icons_editor_export', 'Export')}
-                    </button>
-                    <button
-                        onClick={handleResetAll}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium border hover:text-[var(--danger,#ef4444)] [border-color:var(--border-default)] [color:var(--text-muted)]!"
-                    >
-                        {t('appearance.icons_editor_reset_all', 'Reset All')}
-                    </button>
-                    {!isActive && (
-                        <button
-                            onClick={onActivate}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium [background:var(--accent-primary)] [color:var(--accent-primary-fg,#ffffff)]!"
-                        >
-                            {t('appearance.icons_editor_set_as_active_2', 'Set as Active')}
-                        </button>
-                    )}
-                </div>
-            </div>
+            <PackEditorSection t={t} pack={pack} isActive={isActive} setBulkOpen={setBulkOpen} onExport={onExport} handleResetAll={handleResetAll} onActivate={onActivate} />
 
             <div className="px-4 py-3 flex items-center gap-3 shrink-0 flex-wrap">
                 <div className="flex-1 min-w-48 h-2 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
@@ -199,37 +157,7 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-6">
-                {categories.map((category: IconCategory) => {
-                    const entries = category.entries || [];
-                    const filtered = entries.filter((entry: IconEntry) => {
-                        const q = search.toLowerCase();
-                        if (q && !entry.id.toLowerCase().includes(q) && !(entry.label || '').toLowerCase().includes(q)) return false;
-                        const isCustom = !!(pack.icons || {})[entry.id];
-                        if (showOnly === 'customized' && !isCustom) return false;
-                        if (showOnly === 'missing' && isCustom) return false;
-                        return true;
-                    });
-                    if (filtered.length === 0) return null;
-                    return (
-                        <div key={category.name}>
-                            <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
-                                {category.name}
-                            </h4>
-                            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
-                                {filtered.map((entry: IconEntry) => (
-                                    <IconCell
-                                        key={entry.id}
-                                        entry={entry}
-                                        custom={(pack.icons || {})[entry.id]}
-                                        onClick={() => setEditingIconKey(entry.id)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <PackEditorSection2 categories={categories} search={search} pack={pack} showOnly={showOnly} setEditingIconKey={setEditingIconKey} />
 
             {editingEntry && (
                 <IconPickerModal
@@ -350,3 +278,82 @@ const BulkGenerateModal = ({ pack, nanoSettings, running, onRun, onClose }: Bulk
         </Modal>
     );
 };
+
+function PackEditorSection2({ categories, search, pack, showOnly, setEditingIconKey }: { categories: IconCategory[]; search: string; pack: IconPack; showOnly: string; setEditingIconKey: React.Dispatch<React.SetStateAction<string | null>>; }) {
+    return <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-6">
+        {categories.map((category: IconCategory) => {
+            const entries = category.entries || [];
+            const filtered = entries.filter((entry: IconEntry) => {
+                const q = search.toLowerCase();
+                if (q && !entry.id.toLowerCase().includes(q) && !(entry.label || '').toLowerCase().includes(q)) return false;
+                const isCustom = !!(pack.icons || {})[entry.id];
+                if (showOnly === 'customized' && !isCustom) return false;
+                if (showOnly === 'missing' && isCustom) return false;
+                return true;
+            });
+            if (filtered.length === 0) return null;
+            return (
+                <div key={category.name}>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
+                        {category.name}
+                    </h4>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+                        {filtered.map((entry: IconEntry) => (
+                            <IconCell
+                                key={entry.id}
+                                entry={entry}
+                                custom={(pack.icons || {})[entry.id]}
+                                onClick={() => setEditingIconKey(entry.id)} />
+                        ))}
+                    </div>
+                </div>
+            );
+        })}
+    </div>;
+}
+
+function PackEditorSection({ t, pack, isActive, setBulkOpen, onExport, handleResetAll, onActivate }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; pack: IconPack; isActive: boolean; setBulkOpen: React.Dispatch<React.SetStateAction<boolean>>; onExport: () => void; handleResetAll: () => Promise<void>; onActivate: () => void; }) {
+    return <div className="px-4 py-3 border-b flex items-center justify-between flex-wrap gap-3 shrink-0 border-[var(--border-default)]">
+        <div className="min-w-0">
+            <h3 className="font-semibold text-base truncate text-[var(--text-primary)]">
+                {t('appearance.icons_editor_editing_name', 'Editing "{name}"', { name: pack.name })}
+            </h3>
+            <p className="text-xs mt-0.5 flex items-center gap-2 text-[var(--text-muted)]">
+                <span>{t('appearance.icons_editor_click_any_icon_to_customise_it', 'Click any icon to customise it.')}</span>
+                {isActive && (
+                    <span
+                        className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)] [color:var(--accent-primary)]!"
+                    >
+                        {t('appearance.icons_editor_active_preview', 'Active Preview')}
+                    </span>
+                )}
+            </p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+            <button
+                onClick={() => setBulkOpen(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white flex items-center gap-1.5 transition-opacity [background:linear-gradient(135deg,#f59e0b,#ef4444)]"
+            >
+                {t('appearance.icons_editor_ai_generate_all', 'AI Generate All')}
+            </button>
+            <button onClick={onExport} className="px-3 py-1.5 rounded-lg text-xs font-medium border flex items-center gap-1.5 hover:bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-secondary)]">
+                <Download className="w-3.5 h-3.5" /> {t('appearance.icons_editor_export', 'Export')}
+            </button>
+            <button
+                onClick={handleResetAll}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border hover:text-[var(--danger,#ef4444)] [border-color:var(--border-default)] [color:var(--text-muted)]!"
+            >
+                {t('appearance.icons_editor_reset_all', 'Reset All')}
+            </button>
+            {!isActive && (
+                <button
+                    onClick={onActivate}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium [background:var(--accent-primary)] [color:var(--accent-primary-fg,#ffffff)]!"
+                >
+                    {t('appearance.icons_editor_set_as_active_2', 'Set as Active')}
+                </button>
+            )}
+        </div>
+    </div>;
+}

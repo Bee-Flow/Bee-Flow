@@ -13,7 +13,7 @@ import React, { useState, useRef, useEffect, useCallback, useEffectEvent } from 
 import mermaid from 'mermaid';
 import type { RenderResult } from 'mermaid';
 import { Code, Eye, Maximize2, X, Download, Copy, Check, Loader2 } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
 import type { MermaidBlockProps, ToolbarBtnProps } from './MermaidBlock.types';
 import { MERMAID_CONFIG } from './MermaidBlock.constants';
 import { postProcessSVG } from './MermaidBlock.helpers';
@@ -234,37 +234,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                 contentEditable={false}
             >
                 {/* ── Glassmorphism Header ── */}
-                <div className="mermaid-block-header">
-                    <span className="mermaid-block-title">
-                        <span className="mermaid-block-icon">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
-                            </svg>
-                        </span>
-                        {t('notebooks.mermaid_title', 'Diagram')}
-                    </span>
-
-                    <div className="mermaid-toolbar">
-                        <ToolbarBtn onClick={() => setShowCode(!showCode)} title={showCode ? t('notebooks.mermaid_show_diagram', 'Show diagram') : t('notebooks.mermaid_show_code', 'Show code')} active={showCode}>
-                            {showCode ? <><Eye size={12} /> {t('notebooks.mermaid_preview', 'Preview')}</> : <><Code size={12} /> {t('notebooks.mermaid_code', 'Code')}</>}
-                        </ToolbarBtn>
-
-                        <ToolbarBtn onClick={handleCopy} title={t('notebooks.mermaid_copy_code', 'Copy code')} active={copied}>
-                            {copied ? <><Check size={12} /> {t('notebooks.mermaid_copied', 'Copied')}</> : <><Copy size={12} /></>}
-                        </ToolbarBtn>
-
-                        {!showCode && (
-                            <>
-                                <ToolbarBtn onClick={handleDownloadSVG} title={t('notebooks.mermaid_download_svg', 'Download SVG')}>
-                                    <Download size={12} />
-                                </ToolbarBtn>
-                                <ToolbarBtn onClick={() => setFullscreen(true)} title={t('notebooks.mermaid_fullscreen', 'Fullscreen')}>
-                                    <Maximize2 size={12} />
-                                </ToolbarBtn>
-                            </>
-                        )}
-                    </div>
-                </div>
+                <MermaidBlockSection t={t} ToolbarBtn={ToolbarBtn} setShowCode={setShowCode} showCode={showCode} handleCopy={handleCopy} copied={copied} handleDownloadSVG={handleDownloadSVG} setFullscreen={setFullscreen} />
 
                 {/* ── Code Editor ── */}
                 {showCode ? (
@@ -356,4 +326,38 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
             )}
         </>
     );
+}
+
+function MermaidBlockSection({ t, ToolbarBtn, setShowCode, showCode, handleCopy, copied, handleDownloadSVG, setFullscreen }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; ToolbarBtn: ({ onClick, title, active, children }: ToolbarBtnProps) => React.JSX.Element; setShowCode: React.Dispatch<React.SetStateAction<boolean>>; showCode: boolean; handleCopy: () => void; copied: boolean; handleDownloadSVG: () => void; setFullscreen: React.Dispatch<React.SetStateAction<boolean>>; }) {
+    return <div className="mermaid-block-header">
+        <span className="mermaid-block-title">
+            <span className="mermaid-block-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
+                </svg>
+            </span>
+            {t('notebooks.mermaid_title', 'Diagram')}
+        </span>
+
+        <div className="mermaid-toolbar">
+            <ToolbarBtn onClick={() => setShowCode(!showCode)} title={showCode ? t('notebooks.mermaid_show_diagram', 'Show diagram') : t('notebooks.mermaid_show_code', 'Show code')} active={showCode}>
+                {showCode ? <><Eye size={12} /> {t('notebooks.mermaid_preview', 'Preview')}</> : <><Code size={12} /> {t('notebooks.mermaid_code', 'Code')}</>}
+            </ToolbarBtn>
+
+            <ToolbarBtn onClick={handleCopy} title={t('notebooks.mermaid_copy_code', 'Copy code')} active={copied}>
+                {copied ? <><Check size={12} /> {t('notebooks.mermaid_copied', 'Copied')}</> : <><Copy size={12} /></>}
+            </ToolbarBtn>
+
+            {!showCode && (
+                <>
+                    <ToolbarBtn onClick={handleDownloadSVG} title={t('notebooks.mermaid_download_svg', 'Download SVG')}>
+                        <Download size={12} />
+                    </ToolbarBtn>
+                    <ToolbarBtn onClick={() => setFullscreen(true)} title={t('notebooks.mermaid_fullscreen', 'Fullscreen')}>
+                        <Maximize2 size={12} />
+                    </ToolbarBtn>
+                </>
+            )}
+        </div>
+    </div>;
 }

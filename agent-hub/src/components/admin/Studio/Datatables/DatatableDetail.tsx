@@ -17,12 +17,12 @@ import ManagedPartBanner from '../../../shared/ManagedPartBanner';
 import { managedOf } from '../../../shared/managedPart';
 import UsedByTab from '../../../shared/UsedByTab';
 import AnswersDashboard from '../Forms/answers/AnswersDashboard';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { UsageSourceRow } from '../../../shared/UsedByTab.types';
 import type { MirrorSync } from './sourceMirrors';
 import type { DtColumn, DtTable } from './rowBrowser/rowBrowserModel';
 import type { SourceMirror } from './useSourceMirror';
-import type { DatatableDetailProps, DatatableUsageRow } from './DatatableDetail.types';
+import type { DatatableDetailProps, DatatableUsageRow, DetailTable } from './DatatableDetail.types';
 import { TableMenu } from './TableMenu';
 
 export default function DatatableDetail({
@@ -247,41 +247,44 @@ export default function DatatableDetail({
                 hosts the shared DangerZone, already armed — a collapsed link
                 inside a dialog opened to ask that question would be a second
                 click asking it again. */}
-            <Modal
-                open={deleting}
-                onClose={() => setDeleting(false)}
-                size="md"
-                title={isMirror ? t('datatables.nc_unlink_open', 'Unlink this table') : t('datatables.delete_open', 'Delete this table')}
-            >
-                {deleting && (
-                    <DangerZone
-                        entityName={table.name}
-                        usage={usage}
-                        adapt={adaptRow}
-                        currentUserId={currentUserId}
-                        onNavigate={onNavigate}
-                        kindLabel={t('datatables.kind_word', 'table')}
-                        openLabel={isMirror ? t('datatables.nc_unlink_open', 'Unlink this table') : t('datatables.delete_open', 'Delete this table')}
-                        // Unlinking removes a COPY; the wording must not
-                        // threaten what does not happen (see DangerZone).
-                        question={isMirror ? t('datatables.nc_unlink_question', 'Unlink “{name}” from this workspace?', { name: table.name }) : null}
-                        confirmLabel={isMirror ? t('datatables.nc_unlink_confirm', 'Unlink') : null}
-                        // A table IS data — its rows go with it — so the
-                        // name is typed even when nothing depends on it.
-                        requireName
-                        defaultArmed
-                        onCancel={() => setDeleting(false)}
-                        notice={deleteNotice}
-                        onDelete={async (confirmedBreaking: boolean) => {
-                            await datatablesApi.remove(table.id, { confirmBreaking: confirmedBreaking });
-                            setDeleting(false);
-                            onDeleted();
-                        }}
-                    />
-                )}
-            </Modal>
+            <DatatableDetailModal deleting={deleting} setDeleting={setDeleting} isMirror={isMirror} t={t} table={table} usage={usage} currentUserId={currentUserId} onNavigate={onNavigate} deleteNotice={deleteNotice} onDeleted={onDeleted} />
         </div>
     );
+}
+
+function DatatableDetailModal({ deleting, setDeleting, isMirror, t, table, usage, currentUserId, onNavigate, deleteNotice, onDeleted }: { deleting: boolean; setDeleting: React.Dispatch<React.SetStateAction<boolean>>; isMirror: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; table: DetailTable; usage: UsageSourceRow[] | null; currentUserId: string | null; onNavigate: ((path: string) => void) | null; deleteNotice: React.JSX.Element | null; onDeleted: () => void; }) {
+    return <Modal
+        open={deleting}
+        onClose={() => setDeleting(false)}
+        size="md"
+        title={isMirror ? t('datatables.nc_unlink_open', 'Unlink this table') : t('datatables.delete_open', 'Delete this table')}
+    >
+        {deleting && (
+            <DangerZone
+                entityName={table.name}
+                usage={usage}
+                adapt={adaptRow}
+                currentUserId={currentUserId}
+                onNavigate={onNavigate}
+                kindLabel={t('datatables.kind_word', 'table')}
+                openLabel={isMirror ? t('datatables.nc_unlink_open', 'Unlink this table') : t('datatables.delete_open', 'Delete this table')}
+                // Unlinking removes a COPY; the wording must not
+                // threaten what does not happen (see DangerZone).
+                question={isMirror ? t('datatables.nc_unlink_question', 'Unlink “{name}” from this workspace?', { name: table.name }) : null}
+                confirmLabel={isMirror ? t('datatables.nc_unlink_confirm', 'Unlink') : null}
+                // A table IS data — its rows go with it — so the
+                // name is typed even when nothing depends on it.
+                requireName
+                defaultArmed
+                onCancel={() => setDeleting(false)}
+                notice={deleteNotice}
+                onDelete={async (confirmedBreaking: boolean) => {
+                    await datatablesApi.remove(table.id, { confirmBreaking: confirmedBreaking });
+                    setDeleting(false);
+                    onDeleted();
+                } } />
+        )}
+    </Modal>;
 }
 
 /** "6 columns" / "1 column". */

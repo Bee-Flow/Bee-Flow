@@ -1,9 +1,9 @@
 import { AlertCircle, Loader2, Plus, RefreshCw, Sparkles, Workflow } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SetStateAction, Dispatch, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildMessageFromSuggestion } from '../../../components/automation/taskFormatters';
 import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useAutomationApi from '../../../hooks/useAutomationApi';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
 import { RULE_TRIGGER_PROVIDER, composerSeed, facetsReadable, newRuleDefinition, ruleHref } from '../lib/meetingRules';
 import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RulesPanelProps } from './RulesPanel.types';
 import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '../../../utils/caughtError';
@@ -243,27 +243,7 @@ export default function RulesPanel({
                 </button>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 pb-2">
-                <button
-                    type="button" onClick={() => createRule()} disabled={busy}
-                    className={smallButton}
-                    style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
-                    data-testid="rules-new"
-                >
-                    <Plus className="w-3 h-3" aria-hidden="true" />
-                    {creating ? t('meetings.rules_new_busy', 'Making it…') : t('meetings.rules_new', 'Rule')}
-                </button>
-                <button
-                    type="button" onClick={() => setComposerOpen((v: boolean) => !v)} disabled={creating}
-                    aria-expanded={composerOpen}
-                    className={smallButton}
-                    style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
-                    data-testid="rules-composer-toggle"
-                >
-                    <Sparkles className="w-3 h-3" aria-hidden="true" />
-                    {t('meetings.rules_ai', 'Suggest a rule')}
-                </button>
-            </div>
+            <RulesPanelSection2 createRule={createRule} busy={busy} creating={creating} t={t} setComposerOpen={setComposerOpen} composerOpen={composerOpen} />
 
             {createError && (
                 <div className="mx-3 mb-2 px-3 py-2 rounded-lg border text-[11px]" style={ERROR_BANNER} role="status" data-testid="rules-create-error">
@@ -277,55 +257,82 @@ export default function RulesPanel({
                     creating={creating} t={t}
                 />
             )}
-            <div className="flex-1 overflow-y-auto px-3 pb-3">
-                {loading && (
-                    <div className="flex items-center gap-2 px-3 py-6 justify-center">
-                        <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" aria-hidden="true" />
-                        <span className="text-xs text-[var(--text-secondary)]">{t('meetings.rules_loading', 'Loading rules…')}</span>
-                    </div>
-                )}
-                {!loading && Boolean(rules.error) && (
-                    <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER} data-testid="rules-error">
-                        <div className="font-semibold">{t('meetings.rules_failed', 'Couldn’t load the rules for meeting notes')}</div>
-                        <div className="text-[var(--text-secondary)]">
-                            {licenceMessage(rules.error, t) || errorMessage(rules.error)}
-                        </div>
-                    </div>
-                )}
-                {/* Once at the top, not per card: the counts are all missing for the same
-                    reason, and a 0 per card would be a claim about runs that nobody
-                    could count. */}
-                {!loading && !rules.error && !runs.loading && runsUnreadable && (
-                    <div className="flex items-start gap-2 px-3 py-2 mb-1 rounded-lg border text-[11px]" style={WARN_BANNER} data-testid="rules-runs-error">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
-                        <span>{t('meetings.rules_runs_unreadable', 'Couldn’t read how often these ran, so no rule shows a count.')}</span>
-                    </div>
-                )}
-                {!loading && !rules.error && emptyRules && (
-                    <div className="flex flex-col items-center gap-2 px-3 py-8 text-center" data-testid="rules-empty">
-                        <div className="w-12 h-12 rounded-2xl grid place-items-center"
-                            style={{ background: kindTint('automation', 12), color: kindColorVar('automation') }} aria-hidden="true">
-                            <Workflow className="w-6 h-6" />
-                        </div>
-                        <div className="text-sm font-semibold text-[var(--text-primary)]">{t('meetings.rules_empty_title', 'No rules yet')}</div>
-                        <div className="text-[11px] max-w-xs text-[var(--text-tertiary)]">
-                            {t('meetings.rules_empty_desc', 'A rule picks up a meeting note the moment it is ready — files it, passes it on, or tells someone.')}
-                        </div>
-                    </div>
-                )}
-                {list(rows).map((row: RuleRow) => (
-                    <RuleCard
-                        key={row.id}
-                        row={row}
-                        facets={runs.facets}
-                        facetsError={runsUnreadable}
-                        hours={runs.hours}
-                        currentUserId={currentUserId}
-                        onOpen={openRule}
-                        t={t}
-                    />
-                ))}
-            </div>
+            <RulesPanelSection loading={loading} t={t} rules={rules} runs={runs} runsUnreadable={runsUnreadable} emptyRules={emptyRules} rows={rows} currentUserId={currentUserId} openRule={openRule} />
         </div>
     );
+}
+
+function RulesPanelSection2({ createRule, busy, creating, t, setComposerOpen, composerOpen }: { createRule: ({ title, description }?: { title?: string; description?: string; }) => Promise<void>; busy: boolean; creating: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setComposerOpen: Dispatch<SetStateAction<boolean>>; composerOpen: boolean; }) {
+    return <div className="flex items-center gap-1.5 px-3 pb-2">
+        <button
+            type="button" onClick={() => createRule()} disabled={busy}
+            className={smallButton}
+            style={{ borderColor: 'var(--accent-primary)', color: 'var(--accent-primary)' }}
+            data-testid="rules-new"
+        >
+            <Plus className="w-3 h-3" aria-hidden="true" />
+            {creating ? t('meetings.rules_new_busy', 'Making it…') : t('meetings.rules_new', 'Rule')}
+        </button>
+        <button
+            type="button" onClick={() => setComposerOpen((v: boolean) => !v)} disabled={creating}
+            aria-expanded={composerOpen}
+            className={smallButton}
+            style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}
+            data-testid="rules-composer-toggle"
+        >
+            <Sparkles className="w-3 h-3" aria-hidden="true" />
+            {t('meetings.rules_ai', 'Suggest a rule')}
+        </button>
+    </div>;
+}
+
+function RulesPanelSection({ loading, t, rules, runs, runsUnreadable, emptyRules, rows, currentUserId, openRule }: { loading: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; rules: RulesState; runs: RunsState; runsUnreadable: boolean; emptyRules: boolean; rows: RuleRow[] | null; currentUserId: string | null; openRule: (id: string) => void; }) {
+    return <div className="flex-1 overflow-y-auto px-3 pb-3">
+        {loading && (
+            <div className="flex items-center gap-2 px-3 py-6 justify-center">
+                <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" aria-hidden="true" />
+                <span className="text-xs text-[var(--text-secondary)]">{t('meetings.rules_loading', 'Loading rules…')}</span>
+            </div>
+        )}
+        {!loading && Boolean(rules.error) && (
+            <div className="flex flex-col gap-1 px-3 py-2.5 rounded-lg border text-[11px] mb-1" style={ERROR_BANNER} data-testid="rules-error">
+                <div className="font-semibold">{t('meetings.rules_failed', 'Couldn’t load the rules for meeting notes')}</div>
+                <div className="text-[var(--text-secondary)]">
+                    {licenceMessage(rules.error, t) || errorMessage(rules.error)}
+                </div>
+            </div>
+        )}
+        {/* Once at the top, not per card: the counts are all missing for the same
+            reason, and a 0 per card would be a claim about runs that nobody
+            could count. */}
+        {!loading && !rules.error && !runs.loading && runsUnreadable && (
+            <div className="flex items-start gap-2 px-3 py-2 mb-1 rounded-lg border text-[11px]" style={WARN_BANNER} data-testid="rules-runs-error">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
+                <span>{t('meetings.rules_runs_unreadable', 'Couldn’t read how often these ran, so no rule shows a count.')}</span>
+            </div>
+        )}
+        {!loading && !rules.error && emptyRules && (
+            <div className="flex flex-col items-center gap-2 px-3 py-8 text-center" data-testid="rules-empty">
+                <div className="w-12 h-12 rounded-2xl grid place-items-center"
+                    style={{ background: kindTint('automation', 12), color: kindColorVar('automation') }} aria-hidden="true">
+                    <Workflow className="w-6 h-6" />
+                </div>
+                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('meetings.rules_empty_title', 'No rules yet')}</div>
+                <div className="text-[11px] max-w-xs text-[var(--text-tertiary)]">
+                    {t('meetings.rules_empty_desc', 'A rule picks up a meeting note the moment it is ready — files it, passes it on, or tells someone.')}
+                </div>
+            </div>
+        )}
+        {list(rows).map((row: RuleRow) => (
+            <RuleCard
+                key={row.id}
+                row={row}
+                facets={runs.facets}
+                facetsError={runsUnreadable}
+                hours={runs.hours}
+                currentUserId={currentUserId}
+                onOpen={openRule}
+                t={t} />
+        ))}
+    </div>;
 }

@@ -5,7 +5,7 @@ import { highlightSnippet } from './searchHighlight';
 import { isImageAvatar, resolveAvatarSrc } from '../../utils/agentAvatar';
 import { formatRelativeDate } from '../../utils/dateFormatters';
 import { API_BASE } from '../../utils/helpers';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import type { SearchMessage, SearchConversation, SearchResult, SearchOverlayProps, PillGroupProps, FilterPillProps, ResultRowProps, EmptyStateProps } from './SearchOverlay.types';
 import { logger } from '../../utils/logger';
 import { request, RefusedError } from '../../api/mutate';
@@ -202,84 +202,10 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
                 data-testid="search-overlay"
             >
                 {/* Header: icon + input + clear + close */}
-                <div className="flex-shrink-0 flex items-center gap-3 px-5 h-16 border-b border-[var(--border-subtle)]">
-                    <Search className="w-[18px] h-[18px] text-[var(--text-tertiary)] flex-shrink-0" />
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={query}
-                        onChange={handleInput}
-                        placeholder={t('sidebar.search_placeholder', 'Search conversations and messages…')}
-                        className="flex-1 bg-transparent border-none text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:ring-0 focus:outline-none"
-                        data-testid="search-input"
-                        aria-label={t('sidebar.search_query', 'Search query')}
-                        aria-controls="search-results"
-                        aria-activedescendant={sortedResults[selectedIdx] ? `search-result-${sortedResults[selectedIdx].id}` : undefined}
-                    />
-                    {query && (
-                        <button
-                            onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); }}
-                            className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                            aria-label={t('sidebar.search_clear', 'Clear search')}
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                        aria-label={t('sidebar.search_close', 'Close search')}
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
+                <SearchOverlaySection2 inputRef={inputRef} query={query} handleInput={handleInput} t={t} sortedResults={sortedResults} selectedIdx={selectedIdx} setQuery={setQuery} setResults={setResults} onClose={onClose} />
 
                 {/* Filter bar — all chips share the same pill chrome so it reads as one row */}
-                <div
-                    className="flex-shrink-0 flex items-center flex-wrap gap-2 px-5 py-3 border-b border-[var(--border-subtle)]"
-                >
-                    <PillGroup
-                        value={source}
-                        onChange={setSource}
-                        options={[
-                            { value: 'all', label: 'All' },
-                            { value: 'agent', label: 'Agents' },
-                            { value: 'direct', label: 'Direct' },
-                        ]}
-                        ariaLabel="Source filter"
-                    />
-                    <FilterPill
-                        icon={Bot}
-                        value={selectedAgent}
-                        onChange={setSelectedAgent}
-                        disabled={source === 'direct'}
-                        options={[
-                            { value: 'all', label: 'All agents' },
-                            ...(Array.isArray(agents) ? agents.map(a => ({ value: a.id, label: a.name })) : []),
-                        ]}
-                    />
-                    <FilterPill
-                        icon={Clock}
-                        value={dateRange}
-                        onChange={setDateRange}
-                        options={[
-                            { value: 'all', label: 'Any time' },
-                            { value: '7d', label: 'Last 7 days' },
-                            { value: '30d', label: 'Last 30 days' },
-                            { value: '90d', label: 'Last 90 days' },
-                        ]}
-                    />
-                    <div className="flex-1" />
-                    <PillGroup
-                        value={sortBy}
-                        onChange={setSortBy}
-                        options={[
-                            { value: 'relevance', label: 'Relevance' },
-                            { value: 'date', label: 'Date' },
-                        ]}
-                        ariaLabel="Sort by"
-                    />
-                </div>
+                <SearchOverlaySection source={source} setSource={setSource} selectedAgent={selectedAgent} setSelectedAgent={setSelectedAgent} agents={agents} dateRange={dateRange} setDateRange={setDateRange} sortBy={sortBy} setSortBy={setSortBy} />
 
                 {/* Results */}
                 <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar" id="search-results" role="listbox">
@@ -501,3 +427,80 @@ const EmptyState = ({ title, hint, action }: EmptyStateProps) => (
 );
 
 export default SearchOverlay;
+
+function SearchOverlaySection2({ inputRef, query, handleInput, t, sortedResults, selectedIdx, setQuery, setResults, onClose }: { inputRef: React.RefObject<HTMLInputElement | null>; query: string; handleInput: (e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; sortedResults: SearchResult[]; selectedIdx: number; setQuery: React.Dispatch<React.SetStateAction<string>>; setResults: React.Dispatch<React.SetStateAction<SearchResult[]>>; onClose: () => void; }) {
+    return <div className="flex-shrink-0 flex items-center gap-3 px-5 h-16 border-b border-[var(--border-subtle)]">
+        <Search className="w-[18px] h-[18px] text-[var(--text-tertiary)] flex-shrink-0" />
+        <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={handleInput}
+            placeholder={t('sidebar.search_placeholder', 'Search conversations and messages…')}
+            className="flex-1 bg-transparent border-none text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:ring-0 focus:outline-none"
+            data-testid="search-input"
+            aria-label={t('sidebar.search_query', 'Search query')}
+            aria-controls="search-results"
+            aria-activedescendant={sortedResults[selectedIdx] ? `search-result-${sortedResults[selectedIdx].id}` : undefined} />
+        {query && (
+            <button
+                onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); } }
+                className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={t('sidebar.search_clear', 'Clear search')}
+            >
+                <X className="w-4 h-4" />
+            </button>
+        )}
+        <button
+            onClick={onClose}
+            className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+            aria-label={t('sidebar.search_close', 'Close search')}
+        >
+            <X className="w-4 h-4" />
+        </button>
+    </div>;
+}
+
+function SearchOverlaySection({ source, setSource, selectedAgent, setSelectedAgent, agents, dateRange, setDateRange, sortBy, setSortBy }: { source: string; setSource: React.Dispatch<React.SetStateAction<string>>; selectedAgent: string; setSelectedAgent: React.Dispatch<React.SetStateAction<string>>; agents: { id: string; name?: string; description?: string; emoji?: string; }[]; dateRange: string; setDateRange: React.Dispatch<React.SetStateAction<string>>; sortBy: string; setSortBy: React.Dispatch<React.SetStateAction<string>>; }) {
+    return <div
+        className="flex-shrink-0 flex items-center flex-wrap gap-2 px-5 py-3 border-b border-[var(--border-subtle)]"
+    >
+        <PillGroup
+            value={source}
+            onChange={setSource}
+            options={[
+                { value: 'all', label: 'All' },
+                { value: 'agent', label: 'Agents' },
+                { value: 'direct', label: 'Direct' },
+            ]}
+            ariaLabel="Source filter" />
+        <FilterPill
+            icon={Bot}
+            value={selectedAgent}
+            onChange={setSelectedAgent}
+            disabled={source === 'direct'}
+            options={[
+                { value: 'all', label: 'All agents' },
+                ...(Array.isArray(agents) ? agents.map(a => ({ value: a.id, label: a.name })) : []),
+            ]} />
+        <FilterPill
+            icon={Clock}
+            value={dateRange}
+            onChange={setDateRange}
+            options={[
+                { value: 'all', label: 'Any time' },
+                { value: '7d', label: 'Last 7 days' },
+                { value: '30d', label: 'Last 30 days' },
+                { value: '90d', label: 'Last 90 days' },
+            ]} />
+        <div className="flex-1" />
+        <PillGroup
+            value={sortBy}
+            onChange={setSortBy}
+            options={[
+                { value: 'relevance', label: 'Relevance' },
+                { value: 'date', label: 'Date' },
+            ]}
+            ariaLabel="Sort by" />
+    </div>;
+}

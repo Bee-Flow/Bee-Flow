@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import AiTablePanel from '../AiTablePanel';
 import { columnLabel, destructiveChanges, isManagedColumn, isSchemaLocked, sourceErrorMessage, sourceNameOf, managedColumnProblem, validateColumns, formColumnHint, isFormAnswers, isRetiredFormColumn } from '../datatableDisplay';
 import { datatablesApi } from '../datatablesApi';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
 import useConfirm from '../../../../shared/useConfirm';
 import type { FormSource } from '../formAnswers';
@@ -290,24 +290,7 @@ export default function ColumnDesigner({ table, canEdit: canEditProp, usage = []
             {/* aria-live, because every one of these appears WITHOUT the focus
                 moving — a screen-reader user pressing Save otherwise hears
                 nothing at all, whether it worked or not. */}
-            <div aria-live="polite" className="space-y-2">
-                {problems.length > 0 && (
-                    <ul className="text-xs space-y-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
-                        {problems.map((p, i) => <li key={i}>{p}</li>)}
-                    </ul>
-                )}
-                {managedProblem && (
-                    <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
-                        {managedProblemText(t, managedProblem)}
-                    </p>
-                )}
-                {error && (
-                    <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
-                        {error}
-                    </p>
-                )}
-                {note && <p className="text-xs text-[var(--text-secondary)]">{note}</p>}
-            </div>
+            <ColumnDesignerSection problems={problems} managedProblem={managedProblem} t={t} error={error} note={note} />
 
             {canEdit && dirty && (
                 <div className="sticky bottom-0 flex items-center gap-2 py-3 -mx-1 px-1 [background:var(--bg-primary)] [border-top:1px_solid_var(--border-default)]">
@@ -362,3 +345,24 @@ const HEAD_STYLE = {
     color: 'var(--text-tertiary)',
 };
 
+
+function ColumnDesignerSection({ problems, managedProblem, t, error, note }: { problems: string[]; managedProblem: { reason: string; key?: undefined; type?: undefined; } | { reason: string; key: string; type?: undefined; } | { reason: string; key: string; type: string; } | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; error: string | null; note: string | null; }) {
+    return <div aria-live="polite" className="space-y-2">
+        {problems.length > 0 && (
+            <ul className="text-xs space-y-1 px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
+                {problems.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+        )}
+        {managedProblem && (
+            <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
+                {managedProblemText(t, managedProblem)}
+            </p>
+        )}
+        {error && (
+            <p className="text-xs px-3 py-2 rounded-lg bg-[var(--bg-secondary)] text-[var(--warning)]">
+                {error}
+            </p>
+        )}
+        {note && <p className="text-xs text-[var(--text-secondary)]">{note}</p>}
+    </div>;
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Zap, DollarSign, BarChart3, Bot, MessageSquare, BookOpen, Search, Code, LayoutTemplate, type LucideIcon } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 
 const fNum = (n: number|null) => {
     if (n == null) return '0';
@@ -195,33 +195,7 @@ const ConsumerUsageSection = () => {
     return (
         <div className="space-y-5 animate-fadeIn">
             {/* Header + range picker */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                        {t('settings.usage_monitoring', 'Usage & Monitoring')}
-                    </h2>
-                    <p className="text-sm text-[var(--text-muted)] mt-1">
-                        {t('settings.consumer_usage.subtitle', 'Track your AI usage and spend')}
-                    </p>
-                </div>
-                <div className="flex gap-1 p-1 rounded-lg [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
-                    {[7, 30, 90].map(d => (
-                        <button
-                            key={d}
-                            type="button"
-                            aria-pressed={days === d}
-                            onClick={() => setDays(d)}
-                            className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-                            style={{
-                                background: days === d ? 'var(--accent-primary)' : 'transparent',
-                                color: days === d ? '#fff' : 'var(--text-muted)',
-                            }}
-                        >
-                            {d}d
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <ConsumerUsageSectionSection t={t} days={days} setDays={setDays} />
 
             {/* Stat cards */}
             {isCustomerView ? (
@@ -335,3 +309,33 @@ const ConsumerUsageSection = () => {
 };
 
 export default ConsumerUsageSection;
+
+function ConsumerUsageSectionSection({ t, days, setDays }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; days: number; setDays: React.Dispatch<React.SetStateAction<number>>; }) {
+    return <div className="flex items-center justify-between">
+        <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                {t('settings.usage_monitoring', 'Usage & Monitoring')}
+            </h2>
+            <p className="text-sm text-[var(--text-muted)] mt-1">
+                {t('settings.consumer_usage.subtitle', 'Track your AI usage and spend')}
+            </p>
+        </div>
+        <div className="flex gap-1 p-1 rounded-lg [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
+            {[7, 30, 90].map(d => (
+                <button
+                    key={d}
+                    type="button"
+                    aria-pressed={days === d}
+                    onClick={() => setDays(d)}
+                    className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                    style={{
+                        background: days === d ? 'var(--accent-primary)' : 'transparent',
+                        color: days === d ? '#fff' : 'var(--text-muted)',
+                    }}
+                >
+                    {d}d
+                </button>
+            ))}
+        </div>
+    </div>;
+}

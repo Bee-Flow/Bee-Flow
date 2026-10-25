@@ -43,7 +43,7 @@ import { TONES } from '../../../shared/statusTone';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import toast from '../../../shared/Toast';
 import { formatCalDate } from '../shared/calendarMath';
-import type { LadderData, LadderSignals, LadderSubject } from './useAiActAssessment';
+import type { LadderAssessment, LadderData, LadderSignals, LadderSubject } from './useAiActAssessment';
 import type { Verdict, Translate, LadderModalViewProps, StepProps, AnnexQuestionsProps, ChipRowProps, ContainsAiBannerProps, SubCardProps, DisclosureCardProps, MarkingCardProps, OutcomeBoxProps } from './AiActLadderModal.types';
 
 /**
@@ -323,61 +323,10 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
                 </Step>
 
                 {/* Step 2 — Art. 50 */}
-                <Step
-                    n={2}
-                    state={step2State(verdict.step2)}
-                    title={t('compliance.ladder_step2_title', 'Art. 50 — transparency')}
-                    meta={t('compliance.ladder_step2_meta', 'in force since {date} — this is what is missed most', { date: formatCalDate(ART50_IN_FORCE, { locale }) })}
-                    verdict={verdict.step2.checks > 0 && verdict.step2.passed + verdict.step2.failures.length === verdict.step2.checks
-                        // Only when every applicable sub-card is KNOWN — an unknown count renders nothing, never "0 of 2".
-                        ? t('compliance.ladder_step2_score', '{passed} of {checks} in order', { passed: verdict.step2.passed, checks: verdict.step2.checks })
-                        : null}
-                    testId="ladder-step-2"
-                >
-                    <div className="grid gap-2 sm:grid-cols-2">
-                        <DisclosureCard signals={signals} t={t} />
-                        <MarkingCard signals={signals} t={t} locale={locale} now={now} busy={busy === 'marking'} onEnable={data?.enableMarking ? enableMarking : null} />
-                    </div>
-                </Step>
+                <LadderModalViewStep2 verdict={verdict} t={t} locale={locale} signals={signals} now={now} busy={busy} data={data} enableMarking={enableMarking} />
 
                 {/* Step 3 — Annex III */}
-                <Step
-                    n={3}
-                    state={verdict.step3.ok ? 'done' : 'open'}
-                    title={t('compliance.ladder_step3_title', 'Annex III — high-risk?')}
-                    meta={t('compliance.ladder_step3_meta', 'from {date} — but what you build now falls under it then', { date: formatCalDate(ANNEX_III_FROM, { locale }) })}
-                    verdict={verdict.step3.answered
-                        ? (verdict.step3.ok ? t('compliance.ladder_no', 'No') : t('compliance.ladder_yes', 'Yes'))
-                        // An unanswered step says how far along it is rather
-                        // than nothing: "4 of 10" is the difference between
-                        // "not high risk" and "not asked yet", and conflating
-                        // those two is the bug this step was rebuilt for.
-                        : t('compliance.ladder_annex_progress', '{answered} of {total} answered', {
-                            answered: annexAnswered, total: ANNEX_III_CATEGORIES.length,
-                        })}
-                    testId="ladder-step-3"
-                >
-                    {legacyYes && (
-                        <p data-testid="ladder-legacy-yes-note" className="text-[11px] mb-2 font-medium text-[var(--warning-ink)]">
-                            {t('compliance.ladder_legacy_yes_note', 'Declared high-risk earlier — pick the area(s) to confirm')}
-                        </p>
-                    )}
-                    <AnnexQuestions
-                        questions={annexOrder}
-                        answers={annexAnswers}
-                        hints={annexHints}
-                        onAnswer={answerAnnex}
-                        t={t}
-                    />
-                    {annexArticles.length > 0 && (
-                        <p data-testid="ladder-annex-articles" className="text-[11px] mt-2 font-medium" style={{ color: TONES.error.ink }}>
-                            {t('compliance.ladder_annex_high_risk_points', 'High risk under {points}.', { points: annexArticles.join(', ') })}
-                        </p>
-                    )}
-                    <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
-                        {t('compliance.ladder_step3_note', 'If this does become high-risk later: risk management, technical documentation and human oversight are 12–18 months of work, not a quarter.')}
-                    </p>
-                </Step>
+                <LadderModalViewStep verdict={verdict} t={t} locale={locale} annexAnswered={annexAnswered} legacyYes={legacyYes} annexOrder={annexOrder} annexAnswers={annexAnswers} annexHints={annexHints} answerAnnex={answerAnnex} annexArticles={annexArticles} />
 
                 <OutcomeBox verdict={verdict} containsAi={containsAi} t={t} />
 
@@ -392,6 +341,64 @@ export function LadderModalView({ open, onClose, kind = 'automation', target, da
             </div>
         </Modal>
     );
+}
+
+function LadderModalViewStep2({ verdict, t, locale, signals, now, busy, data, enableMarking }: { verdict: { applies: boolean; articles: string[]; prohibited: boolean; highRisk: boolean; step1: { answered: boolean; ok: boolean; }; step2: { ok: boolean; failures: ("disclosure" | "marking")[]; checks: number; passed: number; }; step3: { answered: boolean; ok: boolean; }; outcomeCode: string; }; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; locale: string; signals: LadderSignals | null; now: string | number | Date | undefined; busy: string | null; data: Partial<{ loading: boolean; error: Error | null; absent: boolean; assessment: LadderAssessment | null; signals: LadderSignals | null; signalsSource: string | null; reload: () => Promise<void>; refetchSignals: () => Promise<LadderSignals | null>; save: (answers: { art5: { answer: string | null; practices: string[]; }; art50: { interacts: boolean | null; disclosure: boolean | null; generates: boolean | null; marking: boolean | null; }; annex_iii: { answer: string | null; category: string | null; domains: { [x: string]: string | null | undefined; }; }; }) => Promise<LadderAssessment | null>; enableMarking: () => Promise<void>; }> | null | undefined; enableMarking: () => Promise<void>; }) {
+    return <Step
+        n={2}
+        state={step2State(verdict.step2)}
+        title={t('compliance.ladder_step2_title', 'Art. 50 — transparency')}
+        meta={t('compliance.ladder_step2_meta', 'in force since {date} — this is what is missed most', { date: formatCalDate(ART50_IN_FORCE, { locale }) })}
+        verdict={verdict.step2.checks > 0 && verdict.step2.passed + verdict.step2.failures.length === verdict.step2.checks
+            // Only when every applicable sub-card is KNOWN — an unknown count renders nothing, never "0 of 2".
+            ? t('compliance.ladder_step2_score', '{passed} of {checks} in order', { passed: verdict.step2.passed, checks: verdict.step2.checks })
+            : null}
+        testId="ladder-step-2"
+    >
+        <div className="grid gap-2 sm:grid-cols-2">
+            <DisclosureCard signals={signals} t={t} />
+            <MarkingCard signals={signals} t={t} locale={locale} now={now} busy={busy === 'marking'} onEnable={data?.enableMarking ? enableMarking : null} />
+        </div>
+    </Step>;
+}
+
+function LadderModalViewStep({ verdict, t, locale, annexAnswered, legacyYes, annexOrder, annexAnswers, annexHints, answerAnnex, annexArticles }: { verdict: { applies: boolean; articles: string[]; prohibited: boolean; highRisk: boolean; step1: { answered: boolean; ok: boolean; }; step2: { ok: boolean; failures: ("disclosure" | "marking")[]; checks: number; passed: number; }; step3: { answered: boolean; ok: boolean; }; outcomeCode: string; }; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; locale: string; annexAnswered: number; legacyYes: boolean; annexOrder: { id: string; key: string; en: string; }[]; annexAnswers: DomainAnswers; annexHints: Set<string>; answerAnnex: (id: string, value: string) => void; annexArticles: string[]; }) {
+    return <Step
+        n={3}
+        state={verdict.step3.ok ? 'done' : 'open'}
+        title={t('compliance.ladder_step3_title', 'Annex III — high-risk?')}
+        meta={t('compliance.ladder_step3_meta', 'from {date} — but what you build now falls under it then', { date: formatCalDate(ANNEX_III_FROM, { locale }) })}
+        verdict={verdict.step3.answered
+            ? (verdict.step3.ok ? t('compliance.ladder_no', 'No') : t('compliance.ladder_yes', 'Yes'))
+            // An unanswered step says how far along it is rather
+            // than nothing: "4 of 10" is the difference between
+            // "not high risk" and "not asked yet", and conflating
+            // those two is the bug this step was rebuilt for.
+            : t('compliance.ladder_annex_progress', '{answered} of {total} answered', {
+                answered: annexAnswered, total: ANNEX_III_CATEGORIES.length,
+            })}
+        testId="ladder-step-3"
+    >
+        {legacyYes && (
+            <p data-testid="ladder-legacy-yes-note" className="text-[11px] mb-2 font-medium text-[var(--warning-ink)]">
+                {t('compliance.ladder_legacy_yes_note', 'Declared high-risk earlier — pick the area(s) to confirm')}
+            </p>
+        )}
+        <AnnexQuestions
+            questions={annexOrder}
+            answers={annexAnswers}
+            hints={annexHints}
+            onAnswer={answerAnnex}
+            t={t} />
+        {annexArticles.length > 0 && (
+            <p data-testid="ladder-annex-articles" className="text-[11px] mt-2 font-medium" style={{ color: TONES.error.ink }}>
+                {t('compliance.ladder_annex_high_risk_points', 'High risk under {points}.', { points: annexArticles.join(', ') })}
+            </p>
+        )}
+        <p className="text-[11px] text-[var(--text-tertiary)] mt-2">
+            {t('compliance.ladder_step3_note', 'If this does become high-risk later: risk management, technical documentation and human oversight are 12–18 months of work, not a quarter.')}
+        </p>
+    </Step>;
 }
 
 /* ----------------------------------------------------------------------- */

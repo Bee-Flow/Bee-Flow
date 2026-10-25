@@ -11,11 +11,11 @@ import {
 import type { CmsLink } from '../fields';
 import type { StyleBlob } from '../primitives.types';
 import type { BlockEditorWithPagesProps } from './editorProps';
-import { set } from './shared';
+import { BlockData, set } from './shared';
 import VariantPicker from './VariantPicker';
 import { BackgroundVideoCard, TourCard, MediaMotionSelect } from './MotionFields';
 import type { BackgroundVideoValue, TourValue } from './MotionFields';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Hero ──────────────────────────────────────────────────────────────
 
@@ -114,80 +114,10 @@ export function HeroEditor({ data = {}, pages = [], onChange }: BlockEditorWithP
             <TourCard value={data.tour} onChange={v => onChange(set(data, 'tour', v))} persistKey="blk.hero.tour" />
 
             {/* ── Badge ───────────────────────────────────────────── */}
-            <CollapsibleCard title={t('cms_site.blocks.hero.badge', 'Badge')} defaultOpen={true} persistKey="blk.hero.badge">
-                <Toggle
-                    label={t('cms_site.blocks.hero.show_badge', 'Show badge')}
-                    value={badgeOn}
-                    onChange={v => setBadge({ enabled: v })}
-                />
-                {badgeOn ? (
-                    <>
-                        <TextField
-                            label={t('cms_site.blocks.hero.text', 'Text')}
-                            value={badge.text || ''}
-                            onChange={v => setBadge({ text: v })}
-                            placeholder={t('cms_site.blocks.hero.e_g_new_v2_0', 'e.g. New · v2.0')}
-                            align={data.badgeAlign || data.align || 'left'}
-                            onAlignChange={v => onChange(set(data, 'badgeAlign', v))}
-                        />
-                        <IconField
-                            label={t('cms_site.blocks.hero.icon', 'Icon')}
-                            value={badge.icon}
-                            onChange={v => setBadge({ icon: v })}
-                        />
-                        <StyleTriplet
-                            label={t('cms_site.blocks.hero.badge', 'Badge')}
-                            value={badgeStyle}
-                            onChange={v => onChange(set(data, 'badgeStyle', v))}
-                            sample={t('cms_site.blocks.hero.new_just_shipped', 'New · just shipped')}
-                            weight={500}
-                            min={8} max={48}
-                        />
-                    </>
-                ) : null}
-            </CollapsibleCard>
+            <HeroEditorCollapsibleCard3 t={t} badgeOn={badgeOn} setBadge={setBadge} badge={badge} data={data} onChange={onChange} badgeStyle={badgeStyle} />
 
             {/* ── Headline ────────────────────────────────────────── */}
-            <CollapsibleCard title={t('cms_site.blocks.hero.headline', 'Headline')} persistKey="blk.hero.headline">
-                <RepeatableList
-                    label={t('cms_site.blocks.hero.title_segments', 'Title segments')}
-                    items={data.titleParts || []}
-                    onChange={v => onChange(set(data, 'titleParts', v))}
-                    makeNew={() => ({ text: '', gradient: false })}
-                    itemLabel={(it) => it.text || t('cms_site.blocks.hero.empty_segment', '(empty segment)')}
-                    collapsible
-                    renderItem={(item, update) => (
-                        <>
-                            <TextField
-                                label={t('cms_site.blocks.hero.text', 'Text')}
-                                value={item.text || ''}
-                                onChange={v => update({ ...item, text: v })}
-                                placeholder={t('cms_site.blocks.hero.segment_text', 'Segment text')}
-                            />
-                            <Toggle
-                                label={t('cms_site.blocks.hero.gradient_fill', 'Gradient fill')}
-                                value={!!item.gradient}
-                                onChange={v => update({ ...item, gradient: v })}
-                            />
-                        </>
-                    )}
-                    addLabel={t('cms_site.blocks.hero.add_segment', 'Add segment')}
-                />
-                <FieldRow label={t('cms_site.blocks.hero.alignment', 'Alignment')}>
-                    <AlignControl
-                        value={data.titleAlign || data.align || 'left'}
-                        onChange={v => onChange(set(data, 'titleAlign', v))}
-                    />
-                </FieldRow>
-                <StyleTriplet
-                    label={t('cms_site.blocks.hero.title', 'Title')}
-                    value={titleStyle}
-                    onChange={v => onChange(set(data, 'titleStyle', v))}
-                    sample={t('cms_site.blocks.hero.the_quick_brown_fox_jumps', 'The quick brown fox jumps')}
-                    weight={800}
-                    min={16} max={160}
-                />
-            </CollapsibleCard>
+            <HeroEditorCollapsibleCard t={t} data={data} onChange={onChange} titleStyle={titleStyle} />
 
             {/* ── Lead ────────────────────────────────────────────── */}
             <CollapsibleCard title={t('cms_site.blocks.hero.lead_paragraph', 'Lead paragraph')} persistKey="blk.hero.lead">
@@ -277,49 +207,118 @@ export function HeroEditor({ data = {}, pages = [], onChange }: BlockEditorWithP
             </CollapsibleCard>
 
             {/* ── Mockup ──────────────────────────────────────────── */}
-            <CollapsibleCard title={t('cms_site.blocks.hero.chat_mockup_fallback', 'Chat mockup (fallback)')} persistKey="blk.hero.mockup">
-                {hasMedia ? (
-                    <InlineHint>{t('cms_site.blocks.hero.a_product_image_is_set_above', 'A product image is set above, so the chat mockup is not shown. Clear the image to bring it back.')}</InlineHint>
-                ) : null}
-                <Toggle
-                    label={t('cms_site.blocks.hero.show_mockup', 'Show mockup')}
-                    value={mockupOn}
-                    onChange={v => setMockup({ enabled: v })}
-                />
-                {mockupOn ? (
-                    <RepeatableList
-                        label={t('cms_site.blocks.hero.chat_bubbles', 'Chat bubbles')}
-                        items={mockup.chatBubbles || []}
-                        onChange={v => setMockup({ chatBubbles: v })}
-                        makeNew={() => ({ role: 'user', text: '' })}
-                        itemLabel={(b) => b.text || t('cms_site.blocks.hero.empty', '(empty)')}
-                        collapsible
-                        renderItem={(item, update) => (
-                            <>
-                                <FieldSelect
-                                    label={t('cms_site.blocks.hero.speaker', 'Speaker')}
-                                    value={item.role}
-                                    options={[{ value: 'user', label: t('cms_site.blocks.hero.role_user', 'User') }, { value: 'ai', label: 'AI' }]}
-                                    onChange={v => update({ ...item, role: v })}
-                                />
-                                <FieldRow label={t('cms_site.blocks.hero.text', 'Text')}>
-                                    <textarea
-                                        rows={2}
-                                        className={inputCls + ' resize-y'}
-                                        value={item.text || ''}
-                                        onChange={e => update({ ...item, text: e.target.value })}
-                                        placeholder={t('cms_site.blocks.hero.bubble_text', 'Bubble text')}
-                                    />
-                                </FieldRow>
-                            </>
-                        )}
-                        addLabel={t('cms_site.blocks.hero.add_bubble', 'Add bubble')}
-                    />
-                ) : null}
-            </CollapsibleCard>
+            <HeroEditorCollapsibleCard2 t={t} hasMedia={hasMedia} mockupOn={mockupOn} setMockup={setMockup} mockup={mockup} />
 
             {/* ── Background ──────────────────────────────────────── */}
             <BackgroundCard data={data} onChange={onChange} persistKey="blk.hero.background" />
         </>
     );
+}
+
+function HeroEditorCollapsibleCard3({ t, badgeOn, setBadge, badge, data, onChange, badgeStyle }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; badgeOn: boolean; setBadge: (patch: HeroBadge) => void; badge: HeroBadge; data: HeroData; onChange: (next: BlockData) => void; badgeStyle: StyleBlob; }) {
+    return <CollapsibleCard title={t('cms_site.blocks.hero.badge', 'Badge')} defaultOpen={true} persistKey="blk.hero.badge">
+        <Toggle
+            label={t('cms_site.blocks.hero.show_badge', 'Show badge')}
+            value={badgeOn}
+            onChange={v => setBadge({ enabled: v })} />
+        {badgeOn ? (
+            <>
+                <TextField
+                    label={t('cms_site.blocks.hero.text', 'Text')}
+                    value={badge.text || ''}
+                    onChange={v => setBadge({ text: v })}
+                    placeholder={t('cms_site.blocks.hero.e_g_new_v2_0', 'e.g. New · v2.0')}
+                    align={data.badgeAlign || data.align || 'left'}
+                    onAlignChange={v => onChange(set(data, 'badgeAlign', v))} />
+                <IconField
+                    label={t('cms_site.blocks.hero.icon', 'Icon')}
+                    value={badge.icon}
+                    onChange={v => setBadge({ icon: v })} />
+                <StyleTriplet
+                    label={t('cms_site.blocks.hero.badge', 'Badge')}
+                    value={badgeStyle}
+                    onChange={v => onChange(set(data, 'badgeStyle', v))}
+                    sample={t('cms_site.blocks.hero.new_just_shipped', 'New · just shipped')}
+                    weight={500}
+                    min={8} max={48} />
+            </>
+        ) : null}
+    </CollapsibleCard>;
+}
+
+function HeroEditorCollapsibleCard2({ t, hasMedia, mockupOn, setMockup, mockup }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; hasMedia: boolean; mockupOn: boolean; setMockup: (patch: HeroMockup) => void; mockup: HeroMockup; }) {
+    return <CollapsibleCard title={t('cms_site.blocks.hero.chat_mockup_fallback', 'Chat mockup (fallback)')} persistKey="blk.hero.mockup">
+        {hasMedia ? (
+            <InlineHint>{t('cms_site.blocks.hero.a_product_image_is_set_above', 'A product image is set above, so the chat mockup is not shown. Clear the image to bring it back.')}</InlineHint>
+        ) : null}
+        <Toggle
+            label={t('cms_site.blocks.hero.show_mockup', 'Show mockup')}
+            value={mockupOn}
+            onChange={v => setMockup({ enabled: v })} />
+        {mockupOn ? (
+            <RepeatableList
+                label={t('cms_site.blocks.hero.chat_bubbles', 'Chat bubbles')}
+                items={mockup.chatBubbles || []}
+                onChange={v => setMockup({ chatBubbles: v })}
+                makeNew={() => ({ role: 'user', text: '' })}
+                itemLabel={(b) => b.text || t('cms_site.blocks.hero.empty', '(empty)')}
+                collapsible
+                renderItem={(item, update) => (
+                    <>
+                        <FieldSelect
+                            label={t('cms_site.blocks.hero.speaker', 'Speaker')}
+                            value={item.role}
+                            options={[{ value: 'user', label: t('cms_site.blocks.hero.role_user', 'User') }, { value: 'ai', label: 'AI' }]}
+                            onChange={v => update({ ...item, role: v })} />
+                        <FieldRow label={t('cms_site.blocks.hero.text', 'Text')}>
+                            <textarea
+                                rows={2}
+                                className={inputCls + ' resize-y'}
+                                value={item.text || ''}
+                                onChange={e => update({ ...item, text: e.target.value })}
+                                placeholder={t('cms_site.blocks.hero.bubble_text', 'Bubble text')} />
+                        </FieldRow>
+                    </>
+                )}
+                addLabel={t('cms_site.blocks.hero.add_bubble', 'Add bubble')} />
+        ) : null}
+    </CollapsibleCard>;
+}
+
+function HeroEditorCollapsibleCard({ t, data, onChange, titleStyle }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; data: HeroData; onChange: (next: BlockData) => void; titleStyle: StyleBlob; }) {
+    return <CollapsibleCard title={t('cms_site.blocks.hero.headline', 'Headline')} persistKey="blk.hero.headline">
+        <RepeatableList
+            label={t('cms_site.blocks.hero.title_segments', 'Title segments')}
+            items={data.titleParts || []}
+            onChange={v => onChange(set(data, 'titleParts', v))}
+            makeNew={() => ({ text: '', gradient: false })}
+            itemLabel={(it) => it.text || t('cms_site.blocks.hero.empty_segment', '(empty segment)')}
+            collapsible
+            renderItem={(item, update) => (
+                <>
+                    <TextField
+                        label={t('cms_site.blocks.hero.text', 'Text')}
+                        value={item.text || ''}
+                        onChange={v => update({ ...item, text: v })}
+                        placeholder={t('cms_site.blocks.hero.segment_text', 'Segment text')} />
+                    <Toggle
+                        label={t('cms_site.blocks.hero.gradient_fill', 'Gradient fill')}
+                        value={!!item.gradient}
+                        onChange={v => update({ ...item, gradient: v })} />
+                </>
+            )}
+            addLabel={t('cms_site.blocks.hero.add_segment', 'Add segment')} />
+        <FieldRow label={t('cms_site.blocks.hero.alignment', 'Alignment')}>
+            <AlignControl
+                value={data.titleAlign || data.align || 'left'}
+                onChange={v => onChange(set(data, 'titleAlign', v))} />
+        </FieldRow>
+        <StyleTriplet
+            label={t('cms_site.blocks.hero.title', 'Title')}
+            value={titleStyle}
+            onChange={v => onChange(set(data, 'titleStyle', v))}
+            sample={t('cms_site.blocks.hero.the_quick_brown_fox_jumps', 'The quick brown fox jumps')}
+            weight={800}
+            min={16} max={160} />
+    </CollapsibleCard>;
 }

@@ -1,7 +1,7 @@
 import { AppWindow, BookOpen, ChevronDown, Plus, Workflow, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import useTranslation from '../../../../hooks/useTranslation';
 import { useIntegrationStatus } from '../../../../hooks/useIntegrationStatus';
 import AnchoredMenu from '../../../shared/AnchoredMenu';
@@ -11,7 +11,7 @@ import { INTEGRATION_CATALOG } from '../../../agents/AgentDesigner/integrations'
 import { ALWAYS_AVAILABLE, filterAvailableIntegrations } from '../../../agents/AgentDesigner/integrationAvailability';
 import AppsPicker from '../../../agents/AgentWizard/pickers/AppsPicker';
 import type { CanUseCardProps, Pickable, PillProps } from './CanUseCard.types';
-import type { SkillIdField } from './skillModel.types';
+import type { SkillDraft, SkillIdField } from './skillModel.types';
 import { readListStatus } from './useSkillPickerData';
 import type { PickerAutomation, PickerKnowledgeBase } from './useSkillPickerData';
 
@@ -281,39 +281,7 @@ export default function CanUseCard({
                 </p>
             )}
 
-            <Disclosure
-                title={t('skills_studio.options.title', 'All options')}
-                className="mt-1"
-            >
-                <div className="flex flex-col gap-3 pt-1">
-                    <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={!!dynamicActivation}
-                            disabled={readOnly}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => onChange({ dynamicActivation: e.target.checked })}
-                            data-testid="skill-dynamic"
-                            className="mt-0.5"
-                        />
-                        <span>
-                            <span className="block font-medium text-[var(--text-primary)]">
-                                {t('skills_studio.field.dynamic_label', 'Dynamic activation')}
-                            </span>
-                            {t('skills_studio.field.dynamic_help', 'When on, the agent decides at runtime whether to apply this skill based on the user message.')}
-                        </span>
-                    </label>
-
-                    {legacyAutomationId && (
-                        <p className="text-xs m-0 text-[var(--text-secondary)]" data-testid="skill-legacy-automation">
-                            {t(
-                                'skills_studio.options.legacy_automation',
-                                'This skill runs automation {id} instead of its own steps. Steps, rules and examples are ignored while that is set.',
-                                { id: legacyAutomationId },
-                            )}
-                        </p>
-                    )}
-                </div>
-            </Disclosure>
+            <CanUseCardDisclosure t={t} dynamicActivation={dynamicActivation} readOnly={readOnly} onChange={onChange} legacyAutomationId={legacyAutomationId} />
 
             {showApps && (
                 <AppsPicker
@@ -326,6 +294,41 @@ export default function CanUseCard({
             )}
         </section>
     );
+}
+
+function CanUseCardDisclosure({ t, dynamicActivation, readOnly, onChange, legacyAutomationId }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; dynamicActivation: boolean | undefined; readOnly: boolean; onChange: (patch: Partial<SkillDraft>) => void; legacyAutomationId: string | null; }) {
+    return <Disclosure
+        title={t('skills_studio.options.title', 'All options')}
+        className="mt-1"
+    >
+        <div className="flex flex-col gap-3 pt-1">
+            <label className="flex items-start gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={!!dynamicActivation}
+                    disabled={readOnly}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => onChange({ dynamicActivation: e.target.checked })}
+                    data-testid="skill-dynamic"
+                    className="mt-0.5" />
+                <span>
+                    <span className="block font-medium text-[var(--text-primary)]">
+                        {t('skills_studio.field.dynamic_label', 'Dynamic activation')}
+                    </span>
+                    {t('skills_studio.field.dynamic_help', 'When on, the agent decides at runtime whether to apply this skill based on the user message.')}
+                </span>
+            </label>
+
+            {legacyAutomationId && (
+                <p className="text-xs m-0 text-[var(--text-secondary)]" data-testid="skill-legacy-automation">
+                    {t(
+                        'skills_studio.options.legacy_automation',
+                        'This skill runs automation {id} instead of its own steps. Steps, rules and examples are ignored while that is set.',
+                        { id: legacyAutomationId }
+                    )}
+                </p>
+            )}
+        </div>
+    </Disclosure>;
 }
 
 /**

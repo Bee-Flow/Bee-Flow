@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 import { TextField, TextAreaField, IconField } from './panels/kit';
 import { SCREEN_DEFAULTS, SCREEN_ENUMS, THEME_ENUMS } from './styleKnobMeta';
 import ColorPicker from '../../../../shared/ColorPicker';
@@ -182,55 +182,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                 </div>
             </div>
 
-            <div>
-                <SectionTitle>{t('studio_apps_insp.theme.app_theme', 'App theme')}</SectionTitle>
-                <div className="flex flex-col gap-4">
-                    <FormField label={t('studio_apps_insp.theme.primary_color', 'Primary color')}>
-                        <ColorPicker
-                            value={theme.primary || APP_COLOR_PRESETS[0]}
-                            onChange={(hex) => commitTheme({ primary: hex })}
-                            presets={APP_COLOR_PRESETS}
-                            allowCustom
-                            disabled={disabled}
-                            swatchSize={24}
-                            ariaLabel={t('studio_apps_insp.theme.primary_color_aria', 'Theme primary color')}
-                        />
-                    </FormField>
-                    <OptionalColorField
-                        label={t('studio_apps_insp.theme.button_colour', 'Button colour')}
-                        hint={t('studio_apps_insp.theme.button_colour_hint', 'Primary buttons and form submits. Off = the primary colour.')}
-                        value={theme.accent || null}
-                        fallback={theme.primary || APP_COLOR_PRESETS[0]}
-                        presets={APP_COLOR_PRESETS}
-                        onChange={(hex) => commitTheme({ accent: hex })}
-                        disabled={disabled}
-                        ariaLabel={t('studio_apps_insp.theme.button_colour_aria', 'Theme button colour')}
-                    />
-                    <OptionalColorField
-                        label={t('studio_apps_insp.theme.page_background', 'Page background')}
-                        hint={t('studio_apps_insp.theme.page_background_hint', "The ground behind the sections. Off = the platform's own light or dark ground.")}
-                        value={theme.canvas || null}
-                        fallback={CANVAS_PRESETS[0]}
-                        presets={CANVAS_PRESETS}
-                        onChange={(hex) => commitTheme({ canvas: hex })}
-                        disabled={disabled}
-                        ariaLabel={t('studio_apps_insp.theme.page_background_aria', 'Theme page background')}
-                    />
-                    {themeFields(t).map(({ key, label }) => (
-                        <FormField key={key} label={label}>
-                            <SegmentedControl
-                                value={theme[key] ?? THEME_DEFAULTS[key]}
-                                onChange={(v) => commitTheme({ [key]: v })}
-                                options={options(t, THEME_ENUMS[key])}
-                                size="sm"
-                                fullWidth
-                                disabled={disabled}
-                                ariaLabel={label}
-                            />
-                        </FormField>
-                    ))}
-                </div>
-            </div>
+            <ThemePanelSection t={t} theme={theme} commitTheme={commitTheme} disabled={disabled} />
 
             <div>
                 <SectionTitle>{t('studio_apps_insp.theme.design', 'Design')}</SectionTitle>
@@ -327,3 +279,51 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
     );
 }
 
+
+function ThemePanelSection({ t, theme, commitTheme, disabled }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; theme: ThemeValues; commitTheme: (patch: Record<string, unknown>) => void; disabled: boolean; }) {
+    return <div>
+        <SectionTitle>{t('studio_apps_insp.theme.app_theme', 'App theme')}</SectionTitle>
+        <div className="flex flex-col gap-4">
+            <FormField label={t('studio_apps_insp.theme.primary_color', 'Primary color')}>
+                <ColorPicker
+                    value={theme.primary || APP_COLOR_PRESETS[0]}
+                    onChange={(hex) => commitTheme({ primary: hex })}
+                    presets={APP_COLOR_PRESETS}
+                    allowCustom
+                    disabled={disabled}
+                    swatchSize={24}
+                    ariaLabel={t('studio_apps_insp.theme.primary_color_aria', 'Theme primary color')} />
+            </FormField>
+            <OptionalColorField
+                label={t('studio_apps_insp.theme.button_colour', 'Button colour')}
+                hint={t('studio_apps_insp.theme.button_colour_hint', 'Primary buttons and form submits. Off = the primary colour.')}
+                value={theme.accent || null}
+                fallback={theme.primary || APP_COLOR_PRESETS[0]}
+                presets={APP_COLOR_PRESETS}
+                onChange={(hex) => commitTheme({ accent: hex })}
+                disabled={disabled}
+                ariaLabel={t('studio_apps_insp.theme.button_colour_aria', 'Theme button colour')} />
+            <OptionalColorField
+                label={t('studio_apps_insp.theme.page_background', 'Page background')}
+                hint={t('studio_apps_insp.theme.page_background_hint', "The ground behind the sections. Off = the platform's own light or dark ground.")}
+                value={theme.canvas || null}
+                fallback={CANVAS_PRESETS[0]}
+                presets={CANVAS_PRESETS}
+                onChange={(hex) => commitTheme({ canvas: hex })}
+                disabled={disabled}
+                ariaLabel={t('studio_apps_insp.theme.page_background_aria', 'Theme page background')} />
+            {themeFields(t).map(({ key, label }) => (
+                <FormField key={key} label={label}>
+                    <SegmentedControl
+                        value={theme[key] ?? THEME_DEFAULTS[key]}
+                        onChange={(v) => commitTheme({ [key]: v })}
+                        options={options(t, THEME_ENUMS[key])}
+                        size="sm"
+                        fullWidth
+                        disabled={disabled}
+                        ariaLabel={label} />
+                </FormField>
+            ))}
+        </div>
+    </div>;
+}

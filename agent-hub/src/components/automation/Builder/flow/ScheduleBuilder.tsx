@@ -10,7 +10,7 @@ import {
     describeCron,
     type SchedulePreset,
 } from './scheduleBuilderUtils';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { messageOf } from '../../../../utils/caughtError';
 
 interface ScheduleBuilderProps {
@@ -106,32 +106,7 @@ export default function ScheduleBuilder({ cron, tz, onChange }: ScheduleBuilderP
 
     return (
         <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-                <Field label={t('automations.schedule_builder.frequency', 'Frequency')}>
-                    <select
-                        value={preset.mode}
-                        onChange={(e) => setPreset(presetForMode(e.target.value, preset))}
-                        className={inputClass()}
-                    >
-                        <option value="minute">{t('automations.schedule_builder.every_n_minutes', 'Every N minutes')}</option>
-                        <option value="hourly">{t('automations.schedule_builder.hourly', 'Hourly')}</option>
-                        <option value="daily">{t('automations.schedule_builder.daily', 'Daily')}</option>
-                        <option value="weekly">{t('automations.schedule_builder.weekly', 'Weekly')}</option>
-                        <option value="monthly">{t('automations.schedule_builder.monthly', 'Monthly')}</option>
-                        <option value="custom">{t('automations.schedule_builder.advanced_custom_pattern', 'Advanced — custom pattern')}</option>
-                    </select>
-                </Field>
-                <Field label={t('automations.schedule_builder.timezone', 'Timezone')}>
-                    <select
-                        value={tzValue}
-                        onChange={(e) => setTzValue(e.target.value)}
-                        className={inputClass()}
-                    >
-                        {TIMEZONE_OPTIONS.includes(tzValue) ? null : <option value={tzValue}>{tzValue}</option>}
-                        {TIMEZONE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </Field>
-            </div>
+            <ScheduleBuilderSection2 t={t} preset={preset} setPreset={setPreset} tzValue={tzValue} setTzValue={setTzValue} />
 
             {preset.mode === 'minute' && (
                 <Field label={t('automations.schedule_builder.every', 'Every')}>
@@ -237,49 +212,82 @@ export default function ScheduleBuilder({ cron, tz, onChange }: ScheduleBuilderP
                 inline below. The raw pattern is shown only in Advanced mode,
                 where the author typed it themselves; everywhere else it was
                 machine noise next to a sentence that already said it. */}
-            <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-3 text-xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                    <Calendar size={12} className="text-[var(--text-tertiary)] flex-shrink-0" />
-                    <span className="text-[var(--text-secondary)]">{description}</span>
-                    {preset.mode === 'custom' && (
-                        <code className="ml-auto font-mono text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded px-1.5 py-0.5">
-                            {generatedCron || '—'}
-                        </code>
-                    )}
-                </div>
-                {!preview.valid && preview.error && (
-                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                        <AlertCircle size={12} className="flex-shrink-0" />
-                        <span>{preview.error}</span>
-                    </div>
-                )}
-                {preview.valid && (
-                    <div className="flex items-start gap-2">
-                        <Clock size={12} className="text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[var(--text-tertiary)] mb-0.5">
-                                {t('automations.schedule_builder.next_runs_in', 'Next runs in')} {tzValue}:
-                            </div>
-                            {loading && preview.next.length === 0 && (
-                                <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.computing', 'Computing…')}</div>
-                            )}
-                            {preview.next.length > 0 ? (
-                                <ul className="space-y-0.5">
-                                    {preview.next.map((iso, i) => (
-                                        <li key={iso + i} className="font-mono text-[11px] text-[var(--text-primary)] tabular-nums">
-                                            {formatInTz(iso, tzValue)}
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (!loading && (
-                                <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.no_upcoming_runs_in_the_next', 'No upcoming runs in the next year.')}</div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </div>
+            <ScheduleBuilderSection description={description} preset={preset} generatedCron={generatedCron} preview={preview} t={t} tzValue={tzValue} loading={loading} />
         </div>
     );
+}
+
+function ScheduleBuilderSection2({ t, preset, setPreset, tzValue, setTzValue }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; preset: SchedulePreset; setPreset: React.Dispatch<React.SetStateAction<SchedulePreset>>; tzValue: string; setTzValue: React.Dispatch<React.SetStateAction<string>>; }) {
+    return <div className="grid grid-cols-2 gap-3">
+        <Field label={t('automations.schedule_builder.frequency', 'Frequency')}>
+            <select
+                value={preset.mode}
+                onChange={(e) => setPreset(presetForMode(e.target.value, preset))}
+                className={inputClass()}
+            >
+                <option value="minute">{t('automations.schedule_builder.every_n_minutes', 'Every N minutes')}</option>
+                <option value="hourly">{t('automations.schedule_builder.hourly', 'Hourly')}</option>
+                <option value="daily">{t('automations.schedule_builder.daily', 'Daily')}</option>
+                <option value="weekly">{t('automations.schedule_builder.weekly', 'Weekly')}</option>
+                <option value="monthly">{t('automations.schedule_builder.monthly', 'Monthly')}</option>
+                <option value="custom">{t('automations.schedule_builder.advanced_custom_pattern', 'Advanced — custom pattern')}</option>
+            </select>
+        </Field>
+        <Field label={t('automations.schedule_builder.timezone', 'Timezone')}>
+            <select
+                value={tzValue}
+                onChange={(e) => setTzValue(e.target.value)}
+                className={inputClass()}
+            >
+                {TIMEZONE_OPTIONS.includes(tzValue) ? null : <option value={tzValue}>{tzValue}</option>}
+                {TIMEZONE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+        </Field>
+    </div>;
+}
+
+function ScheduleBuilderSection({ description, preset, generatedCron, preview, t, tzValue, loading }: { description: string; preset: SchedulePreset; generatedCron: string; preview: PreviewState; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; tzValue: string; loading: boolean; }) {
+    return <div className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-3 text-xs space-y-1.5">
+        <div className="flex items-center gap-2">
+            <Calendar size={12} className="text-[var(--text-tertiary)] flex-shrink-0" />
+            <span className="text-[var(--text-secondary)]">{description}</span>
+            {preset.mode === 'custom' && (
+                <code className="ml-auto font-mono text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-primary)] border border-[var(--border-default)] rounded px-1.5 py-0.5">
+                    {generatedCron || '—'}
+                </code>
+            )}
+        </div>
+        {!preview.valid && preview.error && (
+            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <AlertCircle size={12} className="flex-shrink-0" />
+                <span>{preview.error}</span>
+            </div>
+        )}
+        {preview.valid && (
+            <div className="flex items-start gap-2">
+                <Clock size={12} className="text-[var(--text-tertiary)] flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                    <div className="text-[var(--text-tertiary)] mb-0.5">
+                        {t('automations.schedule_builder.next_runs_in', 'Next runs in')} {tzValue}:
+                    </div>
+                    {loading && preview.next.length === 0 && (
+                        <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.computing', 'Computing…')}</div>
+                    )}
+                    {preview.next.length > 0 ? (
+                        <ul className="space-y-0.5">
+                            {preview.next.map((iso, i) => (
+                                <li key={iso + i} className="font-mono text-[11px] text-[var(--text-primary)] tabular-nums">
+                                    {formatInTz(iso, tzValue)}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (!loading && (
+                        <div className="text-[var(--text-tertiary)]">{t('automations.schedule_builder.no_upcoming_runs_in_the_next', 'No upcoming runs in the next year.')}</div>
+                    ))}
+                </div>
+            </div>
+        )}
+    </div>;
 }
 
 /**

@@ -84,23 +84,7 @@ const AgentEditorUI = ({
     return (
         <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             {/* Tabs */}
-            <div className="flex border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                {['General', ...(hasKnowledge ? ['Knowledge'] : []), ...(hasSkills ? ['Skills'] : [])].map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab.toLowerCase())}
-                        className={`px-4 py-2 text-sm font-medium transition-colors relative ${activeTab === tab.toLowerCase()
-                            ? 'text-white'
-                            : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                            }`}
-                    >
-                        {tab}
-                        {activeTab === tab.toLowerCase() && (
-                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-primary)]" />
-                        )}
-                    </button>
-                ))}
-            </div>
+            <AgentEditorUISection hasKnowledge={hasKnowledge} hasSkills={hasSkills} setActiveTab={setActiveTab} activeTab={activeTab} />
 
             {/* Content Area */}
             <div className="flex-1 overflow-auto p-4">
@@ -500,3 +484,22 @@ const AgentEditorUI = ({
 };
 
 export default AgentEditorUI;
+
+function AgentEditorUISection({ hasKnowledge, hasSkills, setActiveTab, activeTab }: { hasKnowledge: boolean; hasSkills: boolean; setActiveTab: (v: string) => void; activeTab: string | null; }) {
+    return <div className="flex border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        {['General', ...(hasKnowledge ? ['Knowledge'] : []), ...(hasSkills ? ['Skills'] : [])].map(tab => (
+            <button
+                key={tab}
+                onClick={() => setActiveTab(tab.toLowerCase())}
+                className={`px-4 py-2 text-sm font-medium transition-colors relative ${activeTab === tab.toLowerCase()
+                    ? 'text-white'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}
+            >
+                {tab}
+                {activeTab === tab.toLowerCase() && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--accent-primary)]" />
+                )}
+            </button>
+        ))}
+    </div>;
+}

@@ -10,7 +10,7 @@ import {
     coerceVariableDefault,
 } from '../runtime/appVariables';
 import { listVariables, removeVariable, renameVariable, setVariable } from '../state/definitionOps';
-import { collectVariableUsage, declarableUnknowns, describeSite, type UsageSite } from '../state/variableUsage';
+import { collectVariableUsage, declarableUnknowns, describeSite, VariableUsage, type UsageSite } from '../state/variableUsage';
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { AppDefinition, DefinitionVariable } from '../inspector/appDefinition';
 import type { RevealTarget, VariablesManagerProps, UsageListProps } from './VariablesManager.types';
@@ -154,125 +154,7 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
                 </p>
             ) : null}
 
-            <div className="flex flex-col gap-3">
-                {variables.map((variable) => {
-                    const used = usage.countOf(variable.name);
-                    const locked = used > 0;
-                    const problem = nameErrors[variable.name];
-                    return (
-                        <div
-                            key={variable.name}
-                            className="rounded-md border border-[var(--border-subtle)] p-3 flex flex-col gap-2.5"
-                            data-variable={variable.name}
-                        >
-                            <div className="flex items-start gap-2">
-                                <div className="flex-1 min-w-0">
-                                    <FormField
-                                        label={t('studio_apps_edit.variables.name', 'Name')}
-                                        hint={locked
-                                            ? t('studio_apps_edit.variables.name_locked', 'In use, so the name is fixed — nothing rewrites the formulas that read it.')
-                                            : t('studio_apps_edit.variables.name_hint', 'How a formula refers to it: vars.<name>.')}
-                                        error={problem || undefined}
-                                    >
-                                        <div className="flex items-center gap-1.5">
-                                            <input
-                                                type="text"
-                                                className={`${INPUT_CLS} font-mono`}
-                                                defaultValue={variable.name}
-                                                onBlur={(e) => commitName(variable.name, e.target.value)}
-                                                onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                                                disabled={disabled || locked}
-                                                spellCheck={false}
-                                                aria-label={t('studio_apps_edit.variables.name_aria', 'Name of {name}', { name: variable.name })}
-                                            />
-                                            {locked ? (
-                                                <Lock className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
-                                            ) : null}
-                                        </div>
-                                    </FormField>
-                                </div>
-                                <div className="flex items-center gap-1.5 pt-6 shrink-0">
-                                    <span
-                                        className="text-[11px] text-[var(--text-secondary)] whitespace-nowrap"
-                                        title={used ? t('studio_apps_edit.variables.used_title', 'Read or written this many times') : t('studio_apps_edit.variables.unused_title', 'Nothing uses this yet')}
-                                    >
-                                        {used ? t('studio_apps_edit.variables.used', 'used {n}×', { n: used }) : t('studio_apps_edit.variables.unused', 'unused')}
-                                    </span>
-                                    {/* Never behind a hover: destructiveAffordances.test.js
-                                        scans for exactly that. */}
-                                    <IconButton
-                                        ariaLabel={t('studio_apps_edit.variables.delete_aria', 'Delete {name}', { name: variable.name })}
-                                        variant="danger"
-                                        size="sm"
-                                        disabled={disabled}
-                                        onClick={() => askDelete(variable.name)}
-                                    >
-                                        <Trash2 />
-                                    </IconButton>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2">
-                                <FormField label={t('studio_apps_edit.variables.shown_as', 'Shown as')}>
-                                    <input
-                                        type="text"
-                                        className={INPUT_CLS}
-                                        value={variable.label ?? ''}
-                                        onChange={(e) => patch(variable.name, { label: e.target.value })}
-                                        placeholder={variable.name}
-                                        disabled={disabled}
-                                        aria-label={t('studio_apps_edit.variables.label_aria', 'Label of {name}', { name: variable.name })}
-                                    />
-                                </FormField>
-                                <FormField label={t('studio_apps_edit.variables.holds', 'Holds')}>
-                                    <select
-                                        className={INPUT_CLS}
-                                        value={variable.type}
-                                        onChange={(e) => {
-                                            const type = e.target.value;
-                                            // Re-coerce, or a text default would
-                                            // survive onto a number variable and
-                                            // the server would reject the save.
-                                            patch(variable.name, { type, default: coerceVariableDefault(type, variable.default).value });
-                                        }}
-                                        disabled={disabled}
-                                        aria-label={t('studio_apps_edit.variables.type_aria', 'Type of {name}', { name: variable.name })}
-                                    >
-                                        {VARIABLE_TYPES.map((type) => (
-                                            <option key={type} value={type}>{typeLabel(t, type)}</option>
-                                        ))}
-                                    </select>
-                                </FormField>
-                            </div>
-
-                            <DefaultField
-                                variable={variable}
-                                onChange={(value: unknown) => patch(variable.name, { default: value })}
-                                disabled={disabled}
-                            />
-
-                            <FormField label={t('studio_apps_edit.variables.purpose', 'What it is for')} hint={t('studio_apps_edit.variables.purpose_hint', 'Shown to whoever edits this app next.')}>
-                                <input
-                                    type="text"
-                                    className={INPUT_CLS}
-                                    value={(variable.description ?? '') as string}
-                                    onChange={(e) => patch(variable.name, { description: e.target.value })}
-                                    placeholder={t('studio_apps_edit.variables.purpose_example', 'Which status the list shows')}
-                                    disabled={disabled}
-                                    aria-label={t('studio_apps_edit.variables.description_aria', 'Description of {name}', { name: variable.name })}
-                                />
-                            </FormField>
-
-                            {used && onRevealNode ? (
-                                <UsageList
-                                    sites={[...(usage.reads.get(variable.name) || []), ...(usage.writes.get(variable.name) || [])]}
-                                    onRevealNode={onRevealNode}
-                                />
-                            ) : null}
-                        </div>
-                    );
-                })}
-            </div>
+            <VariablesManagerSection variables={variables} usage={usage} nameErrors={nameErrors} t={t} commitName={commitName} disabled={disabled} askDelete={askDelete} patch={patch} onRevealNode={onRevealNode} />
 
             <button
                 type="button"
@@ -303,6 +185,123 @@ export default function VariablesManager({ definition, onCommit, onRevealNode = 
             />
         </div>
     );
+}
+
+function VariablesManagerSection({ variables, usage, nameErrors, t, commitName, disabled, askDelete, patch, onRevealNode }: { variables: DefinitionVariable[]; usage: VariableUsage; nameErrors: Record<string, string | null>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; commitName: (from: string, raw: string) => void; disabled: boolean; askDelete: (name: string) => void; patch: (name: string, changes: Partial<DefinitionVariable>) => void; onRevealNode: ((target: RevealTarget) => void) | null; }) {
+    return <div className="flex flex-col gap-3">
+        {variables.map((variable) => {
+            const used = usage.countOf(variable.name);
+            const locked = used > 0;
+            const problem = nameErrors[variable.name];
+            return (
+                <div
+                    key={variable.name}
+                    className="rounded-md border border-[var(--border-subtle)] p-3 flex flex-col gap-2.5"
+                    data-variable={variable.name}
+                >
+                    <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                            <FormField
+                                label={t('studio_apps_edit.variables.name', 'Name')}
+                                hint={locked
+                                    ? t('studio_apps_edit.variables.name_locked', 'In use, so the name is fixed — nothing rewrites the formulas that read it.')
+                                    : t('studio_apps_edit.variables.name_hint', 'How a formula refers to it: vars.<name>.')}
+                                error={problem || undefined}
+                            >
+                                <div className="flex items-center gap-1.5">
+                                    <input
+                                        type="text"
+                                        className={`${INPUT_CLS} font-mono`}
+                                        defaultValue={variable.name}
+                                        onBlur={(e) => commitName(variable.name, e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); } }
+                                        disabled={disabled || locked}
+                                        spellCheck={false}
+                                        aria-label={t('studio_apps_edit.variables.name_aria', 'Name of {name}', { name: variable.name })} />
+                                    {locked ? (
+                                        <Lock className="w-3.5 h-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
+                                    ) : null}
+                                </div>
+                            </FormField>
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-6 shrink-0">
+                            <span
+                                className="text-[11px] text-[var(--text-secondary)] whitespace-nowrap"
+                                title={used ? t('studio_apps_edit.variables.used_title', 'Read or written this many times') : t('studio_apps_edit.variables.unused_title', 'Nothing uses this yet')}
+                            >
+                                {used ? t('studio_apps_edit.variables.used', 'used {n}×', { n: used }) : t('studio_apps_edit.variables.unused', 'unused')}
+                            </span>
+                            {/* Never behind a hover: destructiveAffordances.test.js
+                        scans for exactly that. */}
+                            <IconButton
+                                ariaLabel={t('studio_apps_edit.variables.delete_aria', 'Delete {name}', { name: variable.name })}
+                                variant="danger"
+                                size="sm"
+                                disabled={disabled}
+                                onClick={() => askDelete(variable.name)}
+                            >
+                                <Trash2 />
+                            </IconButton>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <FormField label={t('studio_apps_edit.variables.shown_as', 'Shown as')}>
+                            <input
+                                type="text"
+                                className={INPUT_CLS}
+                                value={variable.label ?? ''}
+                                onChange={(e) => patch(variable.name, { label: e.target.value })}
+                                placeholder={variable.name}
+                                disabled={disabled}
+                                aria-label={t('studio_apps_edit.variables.label_aria', 'Label of {name}', { name: variable.name })} />
+                        </FormField>
+                        <FormField label={t('studio_apps_edit.variables.holds', 'Holds')}>
+                            <select
+                                className={INPUT_CLS}
+                                value={variable.type}
+                                onChange={(e) => {
+                                    const type = e.target.value;
+                                    // Re-coerce, or a text default would
+                                    // survive onto a number variable and
+                                    // the server would reject the save.
+                                    patch(variable.name, { type, default: coerceVariableDefault(type, variable.default).value });
+                                } }
+                                disabled={disabled}
+                                aria-label={t('studio_apps_edit.variables.type_aria', 'Type of {name}', { name: variable.name })}
+                            >
+                                {VARIABLE_TYPES.map((type) => (
+                                    <option key={type} value={type}>{typeLabel(t, type)}</option>
+                                ))}
+                            </select>
+                        </FormField>
+                    </div>
+
+                    <DefaultField
+                        variable={variable}
+                        onChange={(value: unknown) => patch(variable.name, { default: value })}
+                        disabled={disabled} />
+
+                    <FormField label={t('studio_apps_edit.variables.purpose', 'What it is for')} hint={t('studio_apps_edit.variables.purpose_hint', 'Shown to whoever edits this app next.')}>
+                        <input
+                            type="text"
+                            className={INPUT_CLS}
+                            value={(variable.description ?? '') as string}
+                            onChange={(e) => patch(variable.name, { description: e.target.value })}
+                            placeholder={t('studio_apps_edit.variables.purpose_example', 'Which status the list shows')}
+                            disabled={disabled}
+                            aria-label={t('studio_apps_edit.variables.description_aria', 'Description of {name}', { name: variable.name })} />
+                    </FormField>
+
+                    {used && onRevealNode ? (
+                        <UsageList
+                            sites={[...(usage.reads.get(variable.name) || []), ...(usage.writes.get(variable.name) || [])]}
+                            onRevealNode={onRevealNode} />
+                    ) : null}
+                </div>
+            );
+        })}
+    </div>;
 }
 
 function UsageList({ sites, onRevealNode }: UsageListProps) {

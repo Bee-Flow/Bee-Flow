@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, SetStateAction, Dispatch } from 'react';
 import {
     AlertTriangle, AlertOctagon, ZapOff, RefreshCcw, XCircle,
     Clock, Filter, Search, Bot, Paperclip, FileWarning,
@@ -9,7 +9,7 @@ import {
     Card, Empty, MetricCard
 } from './shared';
 import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import type { TypeMeta, TerminationRow, TerminationSummary, TimelineRow, AgentTerminations, TypeBadgeProps, TerminationsPageProps, DetailRowProps } from './TerminationsPage.types';
 import { API, TYPE_META, typeLabel, fetchJson, rangeQuery, fmtBytes, filterSelectWrapper, filterSelectStyle } from './TerminationsPage.helpers';
 import { StackedBarChart } from './StackedBarChart';
@@ -177,142 +177,144 @@ export function TerminationsPage({ range = '7d', customStart, customEnd, refresh
             )}
 
             {/* Detail table */}
-            <Card>
-                {/* Filter row */}
-                <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
-                    <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [flex:0_1_220px]">
-                        <Search className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
-                        <input
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder={t('admin_monitoring.term_search', 'Search agent / model / error...')}
-                            className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary,#fff)] w-[100%]"
-                        />
-                    </div>
-                    <div style={filterSelectWrapper}>
-                        <Filter className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
-                        <select value={filterType} onChange={e => setFilterType(e.target.value)} style={filterSelectStyle}>
-                            <option value="">{t('admin_monitoring.term_all_types', 'All types')}</option>
-                            {TYPE_ORDER.map(ty => <option key={ty} value={ty}>{typeLabel(t, ty)}</option>)}
-                        </select>
-                    </div>
-                    <div style={filterSelectWrapper}>
-                        <Bot className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
-                        <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)} style={filterSelectStyle}>
-                            <option value="">{t('admin_monitoring.term_all_agents', 'All agents')}</option>
-                            {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="[flex:1]" />
-                    <span className="[font-size:11px] [color:var(--text-muted,#888)]">
-                        {filtered.length === 1 ? t('admin_monitoring.term_event_one', '{n} event', { n: filtered.length }) : t('admin_monitoring.term_event_other', '{n} events', { n: filtered.length })}
-                    </span>
-                </div>
-
-                {/* Table header */}
-                <div className="[display:grid] [grid-template-columns:110px_1fr_1fr_130px_100px_60px_70px_70px_24px] [gap:8px] [padding:8px] [font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.05em] [color:var(--text-muted,#666)]">
-                    <span>{t('admin_monitoring.col_time', 'Time')}</span>
-                    <span>{t('admin_monitoring.col_agent', 'Agent')}</span>
-                    <span>{t('admin_monitoring.col_model', 'Model')}</span>
-                    <span>{t('admin_monitoring.col_type', 'Type')}</span>
-                    <span>{t('admin_monitoring.term_col_error_code', 'Error code')}</span>
-                    <span className="[text-align:right]">{t('admin_monitoring.term_col_iter', 'Iter.')}</span>
-                    <span className="[text-align:right]">{t('admin_monitoring.term_col_duration', 'Duration')}</span>
-                    <span className="[text-align:right]">{t('admin_monitoring.col_tokens', 'Tokens')}</span>
-                    <span></span>
-                </div>
-
-                {filtered.length === 0 && <Empty text="No terminations match the filters" />}
-
-                {filtered.map(r => {
-                    const isOpen = expanded === r.id;
-                    const meta: Partial<TypeMeta> = TYPE_META[r.termination_type] || {};
-                    return (
-                        <div key={r.id}>
-                            <div
-                                onClick={() => setExpanded(isOpen ? null : r.id)}
-                                className="[display:grid] [grid-template-columns:110px_1fr_1fr_130px_100px_60px_70px_70px_24px] [gap:8px] [padding:10px_8px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))] [font-size:12px] [color:var(--text-primary,#fff)] [align-items:center] [cursor:pointer]"
-                            >
-                                <span className="[color:var(--text-muted,#888)] [font-size:11px]">{fmtTime(r.timestamp)}</span>
-                                <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
-                                    {r.agent_name || r.agent_id || <span className="[color:var(--text-muted,#666)]">—</span>}
-                                </span>
-                                <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [color:var(--text-muted,#aaa)]">
-                                    {shortModel(r.model)}
-                                </span>
-                                <span className="[display:flex] [align-items:center] [flex-wrap:wrap]">
-                                    <TypeBadge type={r.termination_type} />
-                                    {isLargeInput(r) && <LargeInputBadge />}
-                                </span>
-                                <span style={{ fontSize: 11, color: r.error_code ? COLORS.rose : 'var(--text-muted, #666)' }}>
-                                    {r.error_code || '—'}
-                                </span>
-                                <span className="[text-align:right] [color:var(--text-muted,#aaa)]">{r.iteration_count || 0}</span>
-                                <span className="[text-align:right] [color:var(--text-muted,#aaa)]">{fmtDuration(r.duration_ms)}</span>
-                                <span className="[text-align:right] [color:var(--text-muted,#aaa)] [display:inline-flex] [align-items:center] [justify-content:flex-end] [gap:4px]">
-                                    {r.attachment_count > 0 && (
-                                        <Paperclip
-                                            style={{ width: 11, height: 11, color: COLORS.amber }}
-                                        >
-                                            <title>{`${r.attachment_count} attachment${r.attachment_count !== 1 ? 's' : ''} · ${fmtBytes(r.attachment_bytes || 0)}`}</title>
-                                        </Paperclip>
-                                    )}
-                                    {fmt(r.total_tokens)}
-                                </span>
-                                <span style={{ color: meta.color || 'var(--text-muted, #666)', textAlign: 'right' }}>
-                                    {isOpen ? '▾' : '▸'}
-                                </span>
-                            </div>
-                            {isOpen && (
-                                <div className="[padding:12px_16px] [background:var(--bg-primary,#0f0f1a)] [font-size:12px] [color:var(--text-muted,#aaa)] [display:flex] [flex-direction:column] [gap:6px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))]">
-                                    <DetailRow label="Source"      value={r.source} />
-                                    <DetailRow label={t('admin_monitoring.term_d_conversation', 'Conversation')} value={r.conversation_id} mono />
-                                    <DetailRow label={t('admin_monitoring.term_d_user', 'User')}        value={r.user_id} mono />
-                                    <DetailRow label={t('admin_monitoring.term_d_org', 'Organization')} value={r.organization_id} mono />
-                                    <DetailRow label={t('admin_monitoring.term_d_error_class', 'Error class')} value={r.error_class} />
-                                    <DetailRow label={t('admin_monitoring.term_d_error', 'Error')}       value={r.error_first_line} mono />
-                                    <DetailRow label={t('admin_monitoring.term_d_stack', 'Stack')}       value={r.stack_first_line} mono />
-                                    <DetailRow label={t('admin_monitoring.col_tokens', 'Tokens')}      value={(() => {
-                                        const total = (r.prompt_tokens || 0) + (r.completion_tokens || 0);
-                                        const ratio = total > 0 ? Math.round((r.prompt_tokens / total) * 100) : 0;
-                                        return t('admin_monitoring.term_tokens_detail', 'prompt {prompt} · completion {completion} · total {total}', { prompt: fmt(r.prompt_tokens), completion: fmt(r.completion_tokens), total: fmt(r.total_tokens) }) + (total > 0 ? ' ' + t('admin_monitoring.term_tokens_ratio', '(prompt {ratio}%)', { ratio }) : '');
-                                    })()} />
-                                    <DetailRow
-                                        label={t('admin_monitoring.term_d_attachments', 'Attachments')}
-                                        value={r.attachment_count > 0
-                                            ? t('admin_monitoring.term_files_detail', '{n} files · {size}', { n: r.attachment_count, size: fmtBytes(r.attachment_bytes || 0) })
-                                            : null}
-                                    />
-                                    {isLargeInput(r) && (
-                                        <div style={{
-                                            marginTop: 6, padding: '8px 10px', borderRadius: 8,
-                                            background: COLORS.amber + '12', border: `1px solid ${COLORS.amber}30`,
-                                            fontSize: 11, color: COLORS.amber, display: 'flex', gap: 6, alignItems: 'flex-start',
-                                        }}>
-                                            <FileWarning className="w-[12px] h-[12px] [margin-top:1px] [flex-shrink:0]" />
-                                            <span>
-                                                <strong>{t('admin_monitoring.term_likely_large', 'Likely caused by large input.')}</strong>{' '}
-                                                {r.attachment_bytes >= LARGE_ATTACHMENT_BYTES_THRESHOLD
-                                                    ? t('admin_monitoring.term_hint_attachment', 'An attachment of {size} was sent; ', { size: fmtBytes(r.attachment_bytes) })
-                                                    : ''}
-                                                {r.prompt_tokens >= LARGE_INPUT_TOKEN_THRESHOLD
-                                                    ? t('admin_monitoring.term_hint_prompt', 'the prompt was {n} tokens; ', { n: fmt(r.prompt_tokens) })
-                                                    : ''}
-                                                {t('admin_monitoring.term_hint_smaller', 'Suggest a smaller context or split the upload.')}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <div className="[margin-top:4px] [font-size:10px] [color:var(--text-muted,#666)] [font-style:italic]">
-                                        {t('admin_monitoring.term_privacy_note', 'Privacy: messages are not logged. Only sanitised metadata is visible here.')}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </Card>
+            <TerminationsPageCard search={search} setSearch={setSearch} t={t} filterType={filterType} setFilterType={setFilterType} filterAgent={filterAgent} setFilterAgent={setFilterAgent} agentOptions={agentOptions} filtered={filtered} expanded={expanded} setExpanded={setExpanded} />
         </div>
     );
+}
+
+function TerminationsPageCard({ search, setSearch, t, filterType, setFilterType, filterAgent, setFilterAgent, agentOptions, filtered, expanded, setExpanded }: { search: string; setSearch: Dispatch<SetStateAction<string>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; filterType: string; setFilterType: Dispatch<SetStateAction<string>>; filterAgent: string; setFilterAgent: Dispatch<SetStateAction<string>>; agentOptions: { id: string; name: string; }[]; filtered: TerminationRow[]; expanded: string | number | null; setExpanded: Dispatch<SetStateAction<string | number | null>>; }) {
+    return <Card>
+        {/* Filter row */}
+        <div className="[display:flex] [gap:8px] [margin-bottom:14px] [flex-wrap:wrap] [align-items:center]">
+            <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary,#0f0f1a)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.08))] [flex:0_1_220px]">
+                <Search className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
+                <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder={t('admin_monitoring.term_search', 'Search agent / model / error...')}
+                    className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary,#fff)] w-[100%]" />
+            </div>
+            <div style={filterSelectWrapper}>
+                <Filter className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
+                <select value={filterType} onChange={e => setFilterType(e.target.value)} style={filterSelectStyle}>
+                    <option value="">{t('admin_monitoring.term_all_types', 'All types')}</option>
+                    {TYPE_ORDER.map(ty => <option key={ty} value={ty}>{typeLabel(t, ty)}</option>)}
+                </select>
+            </div>
+            <div style={filterSelectWrapper}>
+                <Bot className="w-[12px] h-[12px] [color:var(--text-muted,#888)]" />
+                <select value={filterAgent} onChange={e => setFilterAgent(e.target.value)} style={filterSelectStyle}>
+                    <option value="">{t('admin_monitoring.term_all_agents', 'All agents')}</option>
+                    {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+            </div>
+            <div className="[flex:1]" />
+            <span className="[font-size:11px] [color:var(--text-muted,#888)]">
+                {filtered.length === 1 ? t('admin_monitoring.term_event_one', '{n} event', { n: filtered.length }) : t('admin_monitoring.term_event_other', '{n} events', { n: filtered.length })}
+            </span>
+        </div>
+
+        {/* Table header */}
+        <div className="[display:grid] [grid-template-columns:110px_1fr_1fr_130px_100px_60px_70px_70px_24px] [gap:8px] [padding:8px] [font-size:10px] [font-weight:700] [text-transform:uppercase] [letter-spacing:0.05em] [color:var(--text-muted,#666)]">
+            <span>{t('admin_monitoring.col_time', 'Time')}</span>
+            <span>{t('admin_monitoring.col_agent', 'Agent')}</span>
+            <span>{t('admin_monitoring.col_model', 'Model')}</span>
+            <span>{t('admin_monitoring.col_type', 'Type')}</span>
+            <span>{t('admin_monitoring.term_col_error_code', 'Error code')}</span>
+            <span className="[text-align:right]">{t('admin_monitoring.term_col_iter', 'Iter.')}</span>
+            <span className="[text-align:right]">{t('admin_monitoring.term_col_duration', 'Duration')}</span>
+            <span className="[text-align:right]">{t('admin_monitoring.col_tokens', 'Tokens')}</span>
+            <span></span>
+        </div>
+
+        {filtered.length === 0 && <Empty text="No terminations match the filters" />}
+
+        {filtered.map(r => {
+            const isOpen = expanded === r.id;
+            const meta: Partial<TypeMeta> = TYPE_META[r.termination_type] || {};
+            return (
+                <div key={r.id}>
+                    <div
+                        onClick={() => setExpanded(isOpen ? null : r.id)}
+                        className="[display:grid] [grid-template-columns:110px_1fr_1fr_130px_100px_60px_70px_70px_24px] [gap:8px] [padding:10px_8px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))] [font-size:12px] [color:var(--text-primary,#fff)] [align-items:center] [cursor:pointer]"
+                    >
+                        <span className="[color:var(--text-muted,#888)] [font-size:11px]">{fmtTime(r.timestamp)}</span>
+                        <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
+                            {r.agent_name || r.agent_id || <span className="[color:var(--text-muted,#666)]">—</span>}
+                        </span>
+                        <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [color:var(--text-muted,#aaa)]">
+                            {shortModel(r.model)}
+                        </span>
+                        <span className="[display:flex] [align-items:center] [flex-wrap:wrap]">
+                            <TypeBadge type={r.termination_type} />
+                            {isLargeInput(r) && <LargeInputBadge />}
+                        </span>
+                        <span style={{ fontSize: 11, color: r.error_code ? COLORS.rose : 'var(--text-muted, #666)' }}>
+                            {r.error_code || '—'}
+                        </span>
+                        <span className="[text-align:right] [color:var(--text-muted,#aaa)]">{r.iteration_count || 0}</span>
+                        <span className="[text-align:right] [color:var(--text-muted,#aaa)]">{fmtDuration(r.duration_ms)}</span>
+                        <span className="[text-align:right] [color:var(--text-muted,#aaa)] [display:inline-flex] [align-items:center] [justify-content:flex-end] [gap:4px]">
+                            {r.attachment_count > 0 && (
+                                <Paperclip
+                                    style={{ width: 11, height: 11, color: COLORS.amber }}
+                                >
+                                    <title>{`${r.attachment_count} attachment${r.attachment_count !== 1 ? 's' : ''} · ${fmtBytes(r.attachment_bytes || 0)}`}</title>
+                                </Paperclip>
+                            )}
+                            {fmt(r.total_tokens)}
+                        </span>
+                        <span style={{ color: meta.color || 'var(--text-muted, #666)', textAlign: 'right' }}>
+                            {isOpen ? '▾' : '▸'}
+                        </span>
+                    </div>
+                    {isOpen && (
+                        <div className="[padding:12px_16px] [background:var(--bg-primary,#0f0f1a)] [font-size:12px] [color:var(--text-muted,#aaa)] [display:flex] [flex-direction:column] [gap:6px] [border-top:1px_solid_var(--border-default,rgba(255,255,255,0.06))]">
+                            <DetailRow label="Source" value={r.source} />
+                            <DetailRow label={t('admin_monitoring.term_d_conversation', 'Conversation')} value={r.conversation_id} mono />
+                            <DetailRow label={t('admin_monitoring.term_d_user', 'User')} value={r.user_id} mono />
+                            <DetailRow label={t('admin_monitoring.term_d_org', 'Organization')} value={r.organization_id} mono />
+                            <DetailRow label={t('admin_monitoring.term_d_error_class', 'Error class')} value={r.error_class} />
+                            <DetailRow label={t('admin_monitoring.term_d_error', 'Error')} value={r.error_first_line} mono />
+                            <DetailRow label={t('admin_monitoring.term_d_stack', 'Stack')} value={r.stack_first_line} mono />
+                            <DetailRow label={t('admin_monitoring.col_tokens', 'Tokens')} value={(() => {
+                                const total = (r.prompt_tokens || 0) + (r.completion_tokens || 0);
+                                const ratio = total > 0 ? Math.round((r.prompt_tokens / total) * 100) : 0;
+                                return t('admin_monitoring.term_tokens_detail', 'prompt {prompt} · completion {completion} · total {total}', { prompt: fmt(r.prompt_tokens), completion: fmt(r.completion_tokens), total: fmt(r.total_tokens) }) + (total > 0 ? ' ' + t('admin_monitoring.term_tokens_ratio', '(prompt {ratio}%)', { ratio }) : '');
+                            })()} />
+                            <DetailRow
+                                label={t('admin_monitoring.term_d_attachments', 'Attachments')}
+                                value={r.attachment_count > 0
+                                    ? t('admin_monitoring.term_files_detail', '{n} files · {size}', { n: r.attachment_count, size: fmtBytes(r.attachment_bytes || 0) })
+                                    : null} />
+                            {isLargeInput(r) && (
+                                <div style={{
+                                    marginTop: 6, padding: '8px 10px', borderRadius: 8,
+                                    background: COLORS.amber + '12', border: `1px solid ${COLORS.amber}30`,
+                                    fontSize: 11, color: COLORS.amber, display: 'flex', gap: 6, alignItems: 'flex-start',
+                                }}>
+                                    <FileWarning className="w-[12px] h-[12px] [margin-top:1px] [flex-shrink:0]" />
+                                    <span>
+                                        <strong>{t('admin_monitoring.term_likely_large', 'Likely caused by large input.')}</strong>{' '}
+                                        {r.attachment_bytes >= LARGE_ATTACHMENT_BYTES_THRESHOLD
+                                            ? t('admin_monitoring.term_hint_attachment', 'An attachment of {size} was sent; ', { size: fmtBytes(r.attachment_bytes) })
+                                            : ''}
+                                        {r.prompt_tokens >= LARGE_INPUT_TOKEN_THRESHOLD
+                                            ? t('admin_monitoring.term_hint_prompt', 'the prompt was {n} tokens; ', { n: fmt(r.prompt_tokens) })
+                                            : ''}
+                                        {t('admin_monitoring.term_hint_smaller', 'Suggest a smaller context or split the upload.')}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="[margin-top:4px] [font-size:10px] [color:var(--text-muted,#666)] [font-style:italic]">
+                                {t('admin_monitoring.term_privacy_note', 'Privacy: messages are not logged. Only sanitised metadata is visible here.')}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        })}
+    </Card>;
 }
 
 function DetailRow({ label, value, mono }: DetailRowProps) {

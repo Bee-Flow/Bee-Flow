@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { MousePointerClick } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import BuildBanner from './BuildBanner';
 import { useBuildCue } from './BuildCueContext';
@@ -294,20 +294,7 @@ export function CanvasBody({
                 very cards the film is about. What the build is doing is said
                 by the banner below. A wheel on the shield scrolls the surface
                 (and, through useBuildFollow, yields the camera). */}
-            <div
-                aria-hidden={!streamLock}
-                data-stream-lock={streamLock || undefined}
-                className={`absolute inset-0 z-30 ${streamLock ? '' : 'pointer-events-none'}`}
-                onWheel={streamLock ? (e) => {
-                    const el = surfaceRef.current;
-                    if (!el) return;
-                    el.scrollBy({ top: e.deltaY });
-                    // The gesture reached the shield, not the surface — tell the
-                    // surface anyway, so the camera yields to the person.
-                    el.dispatchEvent(new Event('wheel'));
-                } : undefined}
-                onPointerDown={streamLock ? () => { surfaceRef.current?.dispatchEvent?.(new Event('pointerdown')); } : undefined}
-            />
+            <CanvasBodySection streamLock={streamLock} surfaceRef={surfaceRef} />
             {/* The build banner: live while the AI builds, a frozen farewell for
                 a few seconds after. Above the shield, so "Follow the build" works. */}
             {cue ? (
@@ -319,4 +306,20 @@ export function CanvasBody({
             ) : null}
         </div>
     );
+}
+
+function CanvasBodySection({ streamLock, surfaceRef }: { streamLock: boolean; surfaceRef: RefObject<HTMLDivElement | null>; }) {
+    return <div
+        aria-hidden={!streamLock}
+        data-stream-lock={streamLock || undefined}
+        className={`absolute inset-0 z-30 ${streamLock ? '' : 'pointer-events-none'}`}
+        onWheel={streamLock ? (e) => {
+            const el = surfaceRef.current;
+            if (!el) return;
+            el.scrollBy({ top: e.deltaY });
+            // The gesture reached the shield, not the surface — tell the
+            // surface anyway, so the camera yields to the person.
+            el.dispatchEvent(new Event('wheel'));
+        } : undefined}
+        onPointerDown={streamLock ? () => { surfaceRef.current?.dispatchEvent?.(new Event('pointerdown')); } : undefined} />;
 }

@@ -154,67 +154,7 @@ export default function Security({ data }: { data?: SecurityData | null }) {
 
     return (
         <SectionFrame id="security" name="Security" enabled={data.enabled}>
-            <section id="security" className={sectionBgClass(data)}>
-                <div className="container">
-                    <SectionHeader
-                        pathPrefix="security"
-                        eyebrow={data.eyebrow} title={data.title} lead={data.lead}
-                        eyebrowStyle={data.eyebrowStyle} titleStyle={data.titleStyle} leadStyle={data.leadStyle}
-                        eyebrowAlign={data.eyebrowAlign} titleAlign={data.titleAlign} leadAlign={data.leadAlign} align={data.align}
-                    />
-                    <div className="security-grid">
-                        {cards.map((card, i) => (
-                            <CardActionWrapper
-                                key={i}
-                                card={card}
-                                className={`security-card reveal reveal-delay-${Math.min(i + 1, 6)}`}
-                                onOpenPopup={() => setOpenIdx(i)}
-                            >
-                                <div className="security-card-head">
-                                    {card.icon ? (
-                                        <div className="icon-tile"><IconGlyph icon={card.icon} className="w-5 h-5" /></div>
-                                    ) : null}
-                                    <div>
-                                        <EditableText
-                                            as="h3"
-                                            path={`security.cards.${i}.title`}
-                                            multiline
-                                            placeholder="Card title"
-                                            className="headline-md"
-                                            style={inlineTextStyle(undefined, card.titleAlign)}
-                                        >
-                                            {card.title || ''}
-                                        </EditableText>
-                                        <EditableText
-                                            as="p"
-                                            path={`security.cards.${i}.summary`}
-                                            multiline
-                                            placeholder="Summary"
-                                            className="body-md"
-                                            style={inlineTextStyle(undefined, card.summaryAlign)}
-                                        >
-                                            {card.summary || ''}
-                                        </EditableText>
-                                    </div>
-                                </div>
-                                {card.details?.length ? (
-                                    <div className="security-card-detail">
-                                        <ul>
-                                            {card.details.map((d, j) => (
-                                                <li key={j}>
-                                                    <EditableText path={`security.cards.${i}.details.${j}`} placeholder="Detail">
-                                                        {d || ''}
-                                                    </EditableText>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ) : null}
-                            </CardActionWrapper>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            <SecuritySection data={data} cards={cards} setOpenIdx={setOpenIdx} />
 
             {openCard ? (
                 <PopupModal
@@ -230,4 +170,67 @@ export default function Security({ data }: { data?: SecurityData | null }) {
             ) : null}
         </SectionFrame>
     );
+}
+
+function SecuritySection({ data, cards, setOpenIdx }: { data: SecurityData; cards: SecurityCard[]; setOpenIdx: React.Dispatch<React.SetStateAction<number>>; }) {
+    return <section id="security" className={sectionBgClass(data)}>
+        <div className="container">
+            <SectionHeader
+                pathPrefix="security"
+                eyebrow={data.eyebrow} title={data.title} lead={data.lead}
+                eyebrowStyle={data.eyebrowStyle} titleStyle={data.titleStyle} leadStyle={data.leadStyle}
+                eyebrowAlign={data.eyebrowAlign} titleAlign={data.titleAlign} leadAlign={data.leadAlign} align={data.align} />
+            <div className="security-grid">
+                {cards.map((card, i) => (
+                    <CardActionWrapper
+                        key={i}
+                        card={card}
+                        className={`security-card reveal reveal-delay-${Math.min(i + 1, 6)}`}
+                        onOpenPopup={() => setOpenIdx(i)}
+                    >
+                        <div className="security-card-head">
+                            {card.icon ? (
+                                <div className="icon-tile"><IconGlyph icon={card.icon} className="w-5 h-5" /></div>
+                            ) : null}
+                            <div>
+                                <EditableText
+                                    as="h3"
+                                    path={`security.cards.${i}.title`}
+                                    multiline
+                                    placeholder="Card title"
+                                    className="headline-md"
+                                    style={inlineTextStyle(undefined, card.titleAlign)}
+                                >
+                                    {card.title || ''}
+                                </EditableText>
+                                <EditableText
+                                    as="p"
+                                    path={`security.cards.${i}.summary`}
+                                    multiline
+                                    placeholder="Summary"
+                                    className="body-md"
+                                    style={inlineTextStyle(undefined, card.summaryAlign)}
+                                >
+                                    {card.summary || ''}
+                                </EditableText>
+                            </div>
+                        </div>
+                        {card.details?.length ? (
+                            <div className="security-card-detail">
+                                <ul>
+                                    {card.details.map((d, j) => (
+                                        <li key={j}>
+                                            <EditableText path={`security.cards.${i}.details.${j}`} placeholder="Detail">
+                                                {d || ''}
+                                            </EditableText>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null}
+                    </CardActionWrapper>
+                ))}
+            </div>
+        </div>
+    </section>;
 }

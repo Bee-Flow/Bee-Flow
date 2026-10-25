@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import type { RowRecord } from './recordsApi';
 import { buildImportRows, importableFields, parsePasted, suggestMapping } from './spreadsheetPaste';
 import type { ImportRow, ImportTable } from './spreadsheetPaste';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 import { errorStatus, messageOf } from '../../../../../utils/caughtError';
 
 /**
@@ -208,19 +208,7 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
                 <Button onClick={onClose} disabled={importing} className="ml-auto">{t('studio_apps_tables.paste.back', 'Back to rows')}</Button>
             </div>
 
-            <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                {t('studio_apps_tables.paste.instructions', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
-                <textarea
-                    className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs [background:var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                    rows={6}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder={PLACEHOLDER}
-                    disabled={importing}
-                    spellCheck={false}
-                    aria-label={t('studio_apps_tables.paste.pasted_aria', 'Pasted rows')}
-                />
-            </label>
+            <PasteImportPanelSection t={t} text={text} setText={setText} importing={importing} />
 
             {parsed.header.length > 0 && !result ? (
                 <>
@@ -366,4 +354,19 @@ export default function PasteImportPanel({ table, onCreate, onImported, onClose 
             ) : null}
         </div>
     );
+}
+
+function PasteImportPanelSection({ t, text, setText, importing }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; text: string; setText: React.Dispatch<React.SetStateAction<string>>; importing: boolean; }) {
+    return <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
+        {t('studio_apps_tables.paste.instructions', 'Copy the rows in Excel or Google Sheets — including the header row — and paste them here.')}
+        <textarea
+            className="w-full resize-y rounded-md border px-3 py-2 font-mono text-xs [background:var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+            rows={6}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={PLACEHOLDER}
+            disabled={importing}
+            spellCheck={false}
+            aria-label={t('studio_apps_tables.paste.pasted_aria', 'Pasted rows')} />
+    </label>;
 }

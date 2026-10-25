@@ -1,7 +1,7 @@
 import { Package, Plus, Trash2, Star, Download, Upload, AlertCircle, X } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useId } from 'react';
 import { useIconPack } from '../../../../hooks/useIconPack';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { EMOJI_CATEGORIES as FALLBACK_CATEGORIES } from '../../../../utils/emojiCatalog';
 import { authFetch } from '../../../../utils/helpers';
 import Modal from '../../../shared/Modal';
@@ -184,52 +184,7 @@ export default function IconsEditor() {
             )}
 
             <div className="flex flex-1 overflow-hidden">
-                <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                    <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
-                        <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                            <Package className="w-4 h-4 text-[var(--accent-primary)]" />
-                            {t('admin.tab_appearance', 'Icon Packs')}
-                        </span>
-                        <div className="flex items-center gap-0.5">
-                            <button onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_import_pack', 'Import pack')} aria-label={t('appearance.icons_editor_import_pack', 'Import pack')}>
-                                <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
-                            </button>
-                            <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_new_pack', 'New pack')} aria-label={t('appearance.icons_editor_new_pack', 'New pack')}>
-                                <Plus className="w-4 h-4 text-[var(--text-secondary)]" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                        <PackListItem
-                            label="System Default"
-                            sub="Standard Lucide icons"
-                            isActive={!activePackId}
-                            isSelected={false}
-                            onSelect={() => handleActivatePack(null)}
-                        />
-
-                        {packs.map((pack: IconPack) => (
-                            <PackListItem
-                                key={pack.id}
-                                label={pack.name}
-                                sub={`${Object.keys(pack.icons || {}).length} custom`}
-                                isActive={activePackId === pack.id}
-                                isSelected={selectedPackId === pack.id}
-                                onSelect={() => setSelectedPackId(pack.id)}
-                                onActivate={() => handleActivatePack(pack.id)}
-                                onExport={() => handleExport(pack.id)}
-                                onDelete={() => handleDeletePack(pack.id)}
-                            />
-                        ))}
-
-                        {packs.length === 0 && (
-                            <p className="text-xs text-center py-6 text-[var(--text-muted)]">
-                                {t('appearance.icons_editor_no_custom_packs_yet_click_to_create', 'No custom packs yet — click + to create one.')}
-                            </p>
-                        )}
-                    </div>
-                </div>
+                <IconsEditorSection t={t} handleImport={handleImport} setShowAddModal={setShowAddModal} activePackId={activePackId} handleActivatePack={handleActivatePack} packs={packs} selectedPackId={selectedPackId} setSelectedPackId={setSelectedPackId} handleExport={handleExport} handleDeletePack={handleDeletePack} />
 
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {selectedPackId ? (
@@ -350,3 +305,50 @@ const AddPackModal = ({ onAdd, onClose }: AddPackModalProps) => {
     );
 };
 
+
+function IconsEditorSection({ t, handleImport, setShowAddModal, activePackId, handleActivatePack, packs, selectedPackId, setSelectedPackId, handleExport, handleDeletePack }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; handleImport: () => void; setShowAddModal: React.Dispatch<React.SetStateAction<boolean>>; activePackId: string | null; handleActivatePack: (id: string | null) => Promise<void>; packs: IconPack[]; selectedPackId: string | null; setSelectedPackId: React.Dispatch<React.SetStateAction<string | null>>; handleExport: (id: string) => Promise<void>; handleDeletePack: (id: string) => Promise<void>; }) {
+    return <div className="w-64 border-r shrink-0 flex flex-col border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        <div className="p-3 border-b flex items-center justify-between border-[var(--border-default)]">
+            <span className="text-sm font-semibold flex items-center gap-2 text-[var(--text-primary)]">
+                <Package className="w-4 h-4 text-[var(--accent-primary)]" />
+                {t('admin.tab_appearance', 'Icon Packs')}
+            </span>
+            <div className="flex items-center gap-0.5">
+                <button onClick={handleImport} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_import_pack', 'Import pack')} aria-label={t('appearance.icons_editor_import_pack', 'Import pack')}>
+                    <Upload className="w-4 h-4 text-[var(--text-secondary)]" />
+                </button>
+                <button onClick={() => setShowAddModal(true)} className="p-1 rounded-md transition-colors hover:bg-[var(--bg-tertiary)]" title={t('appearance.icons_editor_new_pack', 'New pack')} aria-label={t('appearance.icons_editor_new_pack', 'New pack')}>
+                    <Plus className="w-4 h-4 text-[var(--text-secondary)]" />
+                </button>
+            </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <PackListItem
+                label="System Default"
+                sub="Standard Lucide icons"
+                isActive={!activePackId}
+                isSelected={false}
+                onSelect={() => handleActivatePack(null)} />
+
+            {packs.map((pack: IconPack) => (
+                <PackListItem
+                    key={pack.id}
+                    label={pack.name}
+                    sub={`${Object.keys(pack.icons || {}).length} custom`}
+                    isActive={activePackId === pack.id}
+                    isSelected={selectedPackId === pack.id}
+                    onSelect={() => setSelectedPackId(pack.id)}
+                    onActivate={() => handleActivatePack(pack.id)}
+                    onExport={() => handleExport(pack.id)}
+                    onDelete={() => handleDeletePack(pack.id)} />
+            ))}
+
+            {packs.length === 0 && (
+                <p className="text-xs text-center py-6 text-[var(--text-muted)]">
+                    {t('appearance.icons_editor_no_custom_packs_yet_click_to_create', 'No custom packs yet — click + to create one.')}
+                </p>
+            )}
+        </div>
+    </div>;
+}

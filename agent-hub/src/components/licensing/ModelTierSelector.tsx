@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId } from './tierMeta';
+import { TIER_META, customTierMeta, configuredTierKeys, tierCatalogId, TierMeta } from './tierMeta';
 import AppEmoji from '../icons/AppEmoji';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 
 interface ModelTierSelectorProps {
@@ -91,41 +91,7 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
         <div ref={ref} className="[position:relative] [display:inline-block]" data-testid="model-tier-selector">
             {/* Compact pill trigger. Borderless on hover/open — looks like an
                 interactive pill rather than a form control. */}
-            <button
-                onClick={() => setOpen(!open)}
-                className="model-tier-trigger"
-                data-open={open ? '1' : '0'}
-                style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '7px',
-                    padding: '6px 10px 6px 12px', borderRadius: '9999px',
-                    background: variant === 'input' ? 'var(--bg-secondary)' : 'var(--bg-card, #fff)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text-primary)', cursor: 'pointer',
-                    fontSize: '12px', fontWeight: 500,
-                    transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
-                    whiteSpace: 'nowrap',
-                    boxShadow: open ? 'var(--shadow-sm)' : 'none',
-                }}
-                title={t('tier.select_model_tier', 'Select model tier')}
-                data-testid="model-tier-trigger"
-            >
-                {currentMeta.iconSrc ? (
-                    <img src={currentMeta.iconSrc} alt="" className="w-4 h-4 object-contain" />
-                ) : currentMeta.Icon ? (
-                    <currentMeta.Icon className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                ) : (
-                    <AppEmoji id={tierCatalogId(value)} default={currentMeta.emoji} />
-                )}
-                <span>{t(`tier.${value}`, currentMeta.label)}</span>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
-                    style={{
-                        opacity: 0.55,
-                        transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.18s ease',
-                    }}>
-                    <path d="M2 4L5 7L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            </button>
+            <ModelTierSelectorSection setOpen={setOpen} open={open} variant={variant} t={t} currentMeta={currentMeta} value={value} />
 
             {/* Dropdown panel — inner padding so the rounded hover bg paints
                 fully inside the panel's rounded corners, and a single,
@@ -250,3 +216,41 @@ const ModelTierSelector = ({ tiers = {}, value = 'fast', onChange, dropDirection
 };
 
 export default ModelTierSelector;
+
+function ModelTierSelectorSection({ setOpen, open, variant, t, currentMeta, value }: { setOpen: React.Dispatch<React.SetStateAction<boolean>>; open: boolean; variant: string; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; currentMeta: TierMeta; value: string; }) {
+    return <button
+        onClick={() => setOpen(!open)}
+        className="model-tier-trigger"
+        data-open={open ? '1' : '0'}
+        style={{
+            display: 'inline-flex', alignItems: 'center', gap: '7px',
+            padding: '6px 10px 6px 12px', borderRadius: '9999px',
+            background: variant === 'input' ? 'var(--bg-secondary)' : 'var(--bg-card, #fff)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-primary)', cursor: 'pointer',
+            fontSize: '12px', fontWeight: 500,
+            transition: 'background 0.15s, border-color 0.15s, box-shadow 0.15s',
+            whiteSpace: 'nowrap',
+            boxShadow: open ? 'var(--shadow-sm)' : 'none',
+        }}
+        title={t('tier.select_model_tier', 'Select model tier')}
+        data-testid="model-tier-trigger"
+    >
+        {currentMeta.iconSrc ? (
+            <img src={currentMeta.iconSrc} alt="" className="w-4 h-4 object-contain" />
+        ) : currentMeta.Icon ? (
+            <currentMeta.Icon className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
+        ) : (
+            <AppEmoji id={tierCatalogId(value)} default={currentMeta.emoji} />
+        )}
+        <span>{t(`tier.${value}`, currentMeta.label)}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+            style={{
+                opacity: 0.55,
+                transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.18s ease',
+            }}>
+            <path d="M2 4L5 7L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    </button>;
+}

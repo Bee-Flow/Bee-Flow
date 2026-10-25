@@ -1,7 +1,7 @@
 import { Sparkles, Send, CheckCircle2, Loader2, Flag, Tag as TagIcon, Users, MessageSquareText, EyeOff, RotateCcw, Clock, Star, AlertTriangle } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, SetStateAction, Dispatch } from 'react';
 import TicketTimeline from './TicketTimeline';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import EmailHtmlBody from '../../../support/EmailHtmlBody';
@@ -111,24 +111,7 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
 
     return (
         <div className="flex flex-col h-full">
-            <header className="px-5 py-3 border-b border-[var(--border-default)] flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="text-sm font-semibold text-[var(--text-primary)] truncate">{thread.subject || t('support.thread.no_subject', '(no subject)')}</div>
-                    <div className="text-xs text-[var(--text-tertiary)] truncate">{thread.requester_email} · <span className={STATUS_COLORS[thread.status]}>{statusLabel(t, thread.status)}</span></div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    <select value={thread.status} onChange={e => patch({ status: e.target.value })}
-                        className="text-xs rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1">
-                        {STATUS_IDS.map(s => <option key={s} value={s}>{statusLabel(t, s)}</option>)}
-                    </select>
-                    {thread.status !== 'resolved' && (
-                        <button onClick={() => patch({ status: 'resolved' })}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-green-500/40 text-green-600 dark:text-green-400 hover:bg-green-500/10">
-                            <CheckCircle2 size={12} /> {t('support.ticket.resolve', 'Resolve')}
-                        </button>
-                    )}
-                </div>
-            </header>
+            <TicketDetailHeader thread={thread} t={t} patch={patch} />
 
             {/* Meta controls: priority · assignee · tags · non-support */}
             <div className="px-5 py-2 border-b border-[var(--border-default)] flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
@@ -226,47 +209,72 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
                 {messages.map(m => <MessageBubble key={m.id} m={m} t={t} />)}
             </div>
 
-            <div className="border-t border-[var(--border-default)] p-3 flex flex-col gap-2">
-                <textarea value={reply} onChange={e => setReply(e.target.value)} rows={4}
-                    placeholder={internal ? t('support.composer.internal_placeholder', 'Internal note (not visible to the customer)…') : t('support.composer.reply_placeholder', 'Type your reply… or let the AI draft one.')}
-                    className="text-sm rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 resize-y" />
-                <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                        <input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {t('support.composer.internal_note', 'Internal note')}
-                    </label>
-                    <div className="flex items-center gap-2">
-                        {canned.length > 0 && (
-                            <div className="relative">
-                                <button onClick={() => setShowCanned(v => !v)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)]">
-                                    <MessageSquareText size={13} /> {t('support.composer.insert_canned', 'Canned reply')}
-                                </button>
-                                {showCanned && (
-                                    <div className="absolute bottom-full mb-1 right-0 w-64 max-h-60 overflow-y-auto rounded border border-[var(--border-default)] bg-[var(--bg-card)] shadow-lg z-10">
-                                        {canned.map(c => (
-                                            <button key={c.id || c.shortcut || c.title} onClick={() => { setReply(r => (r ? `${r}\n\n` : '') + (c.body || '')); setShowCanned(false); }}
-                                                className="block w-full text-left px-3 py-2 text-xs hover:bg-[var(--bg-secondary)] border-b border-[var(--border-default)] last:border-0">
-                                                <div className="font-medium text-[var(--text-primary)] truncate">{c.title}{c.shortcut ? ` · ${c.shortcut}` : ''}</div>
-                                                <div className="text-[var(--text-tertiary)] truncate">{c.body}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        <button onClick={draftWithAi} disabled={drafting}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] disabled:opacity-60">
-                            {drafting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} {t('support.composer.ai_draft', 'AI draft')}
-                        </button>
-                        <button onClick={send} disabled={busy || !reply.trim()}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded text-white font-medium disabled:opacity-60 bg-[var(--accent-primary)]">
-                            {busy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {internal ? t('support.composer.save_note', 'Save note') : t('support.composer.send', 'Send')}
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <TicketDetailSection reply={reply} setReply={setReply} internal={internal} t={t} setInternal={setInternal} canned={canned} setShowCanned={setShowCanned} showCanned={showCanned} draftWithAi={draftWithAi} drafting={drafting} send={send} busy={busy} />
         </div>
     );
+}
+
+function TicketDetailHeader({ thread, t, patch }: { thread: SupportThread; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; patch: (body: Record<string, unknown>) => Promise<void>; }) {
+    return <header className="px-5 py-3 border-b border-[var(--border-default)] flex items-center justify-between gap-3">
+        <div className="min-w-0">
+            <div className="text-sm font-semibold text-[var(--text-primary)] truncate">{thread.subject || t('support.thread.no_subject', '(no subject)')}</div>
+            <div className="text-xs text-[var(--text-tertiary)] truncate">{thread.requester_email} · <span className={STATUS_COLORS[thread.status]}>{statusLabel(t, thread.status)}</span></div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+            <select value={thread.status} onChange={e => patch({ status: e.target.value })}
+                className="text-xs rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1">
+                {STATUS_IDS.map(s => <option key={s} value={s}>{statusLabel(t, s)}</option>)}
+            </select>
+            {thread.status !== 'resolved' && (
+                <button onClick={() => patch({ status: 'resolved' })}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded border border-green-500/40 text-green-600 dark:text-green-400 hover:bg-green-500/10">
+                    <CheckCircle2 size={12} /> {t('support.ticket.resolve', 'Resolve')}
+                </button>
+            )}
+        </div>
+    </header>;
+}
+
+function TicketDetailSection({ reply, setReply, internal, t, setInternal, canned, setShowCanned, showCanned, draftWithAi, drafting, send, busy }: { reply: string; setReply: Dispatch<SetStateAction<string>>; internal: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setInternal: Dispatch<SetStateAction<boolean>>; canned: CannedResponse[]; setShowCanned: Dispatch<SetStateAction<boolean>>; showCanned: boolean; draftWithAi: () => Promise<void>; drafting: boolean; send: () => Promise<void>; busy: boolean; }) {
+    return <div className="border-t border-[var(--border-default)] p-3 flex flex-col gap-2">
+        <textarea value={reply} onChange={e => setReply(e.target.value)} rows={4}
+            placeholder={internal ? t('support.composer.internal_placeholder', 'Internal note (not visible to the customer)…') : t('support.composer.reply_placeholder', 'Type your reply… or let the AI draft one.')}
+            className="text-sm rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 resize-y" />
+        <div className="flex items-center justify-between">
+            <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                <input type="checkbox" checked={internal} onChange={e => setInternal(e.target.checked)} /> {t('support.composer.internal_note', 'Internal note')}
+            </label>
+            <div className="flex items-center gap-2">
+                {canned.length > 0 && (
+                    <div className="relative">
+                        <button onClick={() => setShowCanned(v => !v)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)]">
+                            <MessageSquareText size={13} /> {t('support.composer.insert_canned', 'Canned reply')}
+                        </button>
+                        {showCanned && (
+                            <div className="absolute bottom-full mb-1 right-0 w-64 max-h-60 overflow-y-auto rounded border border-[var(--border-default)] bg-[var(--bg-card)] shadow-lg z-10">
+                                {canned.map(c => (
+                                    <button key={c.id || c.shortcut || c.title} onClick={() => { setReply(r => (r ? `${r}\n\n` : '') + (c.body || '')); setShowCanned(false); } }
+                                        className="block w-full text-left px-3 py-2 text-xs hover:bg-[var(--bg-secondary)] border-b border-[var(--border-default)] last:border-0">
+                                        <div className="font-medium text-[var(--text-primary)] truncate">{c.title}{c.shortcut ? ` · ${c.shortcut}` : ''}</div>
+                                        <div className="text-[var(--text-tertiary)] truncate">{c.body}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+                <button onClick={draftWithAi} disabled={drafting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] disabled:opacity-60">
+                    {drafting ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} {t('support.composer.ai_draft', 'AI draft')}
+                </button>
+                <button onClick={send} disabled={busy || !reply.trim()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded text-white font-medium disabled:opacity-60 bg-[var(--accent-primary)]">
+                    {busy ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {internal ? t('support.composer.save_note', 'Save note') : t('support.composer.send', 'Send')}
+                </button>
+            </div>
+        </div>
+    </div>;
 }
 
 function MessageBubble({ m, t }: MessageBubbleProps) {

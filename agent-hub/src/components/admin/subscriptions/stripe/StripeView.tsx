@@ -1,7 +1,7 @@
 import { CreditCard, Settings, Shield, Euro, ExternalLink, CheckCircle, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { StripeKeyField } from './StripeKeyField';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { messageOf } from '../../../../utils/caughtError';
 import { Button } from '../../../shared/Button';
 import { toast } from '../../../shared/Toast';
@@ -150,99 +150,10 @@ export function StripeView() {
             </Card>
 
             {/* API keys */}
-            <Card className="mb-4">
-                <CardHeader
-                    icon={Shield}
-                    iconClass="text-blue-400"
-                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
-                    title={t('admin_subscriptions.stripe_api_keys', 'API keys')}
-                    subtitle={
-                        <>{t('admin_subscriptions.stripe_get_keys', 'Get your keys from the')}{' '}
-                            <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
-                                {t('admin_subscriptions.stripe_dashboard', 'Stripe Dashboard')} <ExternalLink className="w-3 h-3" />
-                            </a>
-                        </>
-                    }
-                />
-                <StripeKeyField
-                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
-                    label={t('admin_subscriptions.stripe_secret_key', 'Secret key')}
-                    type="password"
-                    configured={config.hasStripeSecretKey}
-                    placeholderConfigured="••••••••••••••••••"
-                    /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
-                    placeholderEmpty={t('admin_subscriptions.stripe_secret_ph', 'sk_live_… or sk_test_…')}
-                    value={secretKey}
-                    onChange={setSecretKey}
-                    onSave={() => { saveField({ stripeSecretKey: secretKey }); setSecretKey(''); }}
-                    onClear={() => deleteKey('stripe_secret_key')}
-                    busy={saving}
-                />
-                <StripeKeyField
-                    label={t('admin_subscriptions.stripe_publishable_key', 'Publishable key')}
-                    type="text"
-                    configured={!!config.stripePublishableKey}
-                    placeholderConfigured={t('admin_subscriptions.stripe_publishable_ph', 'pk_live_… or pk_test_…')}
-                    placeholderEmpty={t('admin_subscriptions.stripe_publishable_ph', 'pk_live_… or pk_test_…')}
-                    value={publishableKey}
-                    onChange={setPublishableKey}
-                    onSave={() => saveField({ stripePublishableKey: publishableKey })}
-                    busy={saving}
-                />
-                <StripeKeyField
-                    label={t('admin_subscriptions.stripe_webhook_signing', 'Webhook signing secret')}
-                    type="password"
-                    configured={config.hasStripeWebhookSecret}
-                    placeholderConfigured="••••••••••••••••••"
-                    placeholderEmpty="whsec_…"
-                    value={webhookSecret}
-                    onChange={setWebhookSecret}
-                    onSave={() => { saveField({ stripeWebhookSecret: webhookSecret }); setWebhookSecret(''); }}
-                    onClear={() => deleteKey('stripe_webhook_secret')}
-                    busy={saving}
-                />
-            </Card>
+            <StripeViewCard t={t} config={config} secretKey={secretKey} setSecretKey={setSecretKey} saveField={saveField} deleteKey={deleteKey} saving={saving} publishableKey={publishableKey} setPublishableKey={setPublishableKey} webhookSecret={webhookSecret} setWebhookSecret={setWebhookSecret} />
 
             {/* Tax & Region */}
-            <Card className="mb-4">
-                <CardHeader
-                    icon={Euro}
-                    iconClass="text-emerald-400"
-                    title={t('admin_subscriptions.stripe_tax_title', 'Tax & region (EU compliance)')}
-                    subtitle={
-                        <>{t('admin_subscriptions.stripe_tax_subtitle', 'Configure Stripe Tax for automatic VAT calculation.')}{' '}
-                            <a href="https://stripe.com/tax" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
-                                {t('admin_subscriptions.stripe_learn_more', 'Learn more')} <ExternalLink className="w-3 h-3" />
-                            </a>
-                        </>
-                    }
-                />
-                <Toggle
-                    checked={config.stripeTaxEnabled}
-                    onChange={v => saveField({ stripeTaxEnabled: v })}
-                    label={t('admin_subscriptions.stripe_tax_enable', 'Enable Stripe Tax')}
-                    description={t('admin_subscriptions.stripe_tax_enable_desc', 'Automatically calculate and collect VAT on subscriptions.')}
-                />
-                {/* BFSF-250: flipping the toggle alone is not enough — prices
-                    synced while it was off lack tax_behavior (checkout fails
-                    against them) and Stripe Tax needs Dashboard registration.
-                    Existing subscriptions are backfilled automatically on
-                    enable; note the real-billing impact. */}
-                <p className="mt-2 text-[11px] text-amber-500/90">
-                    {t('admin_subscriptions.stripe_tax_warning', 'Enabling requires: (1) Stripe Tax activated in the Stripe Dashboard (origin address + NL VAT registration), and (2) re-syncing every plan so new Prices carry tax_behavior. Existing active subscriptions are backfilled automatically: their next invoice will include 21% BTW, so announce this to customers first.')}
-                </p>
-                <div className="mt-3">
-                    <Field label={t('admin_subscriptions.stripe_nexus', 'Tax nexus country')} hint={t('admin_subscriptions.stripe_nexus_hint', 'where your business is registered for VAT')}>
-                        <Select
-                            value={config.stripeTaxCountry}
-                            onChange={e => saveField({ stripeTaxCountry: e.target.value })}
-                            className="max-w-xs"
-                        >
-                            {TAX_COUNTRIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                        </Select>
-                    </Field>
-                </div>
-            </Card>
+            <StripeViewCard2 t={t} config={config} saveField={saveField} TAX_COUNTRIES={TAX_COUNTRIES} />
 
             {/* Notifications */}
             <Card className="mb-4">
@@ -310,4 +221,91 @@ export function StripeView() {
             </Card>
         </div>
     );
+}
+
+function StripeViewCard2({ t, config, saveField, TAX_COUNTRIES }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: StripeConfig; saveField: (payload: Record<string, unknown>) => Promise<void>; TAX_COUNTRIES: { value: string; label: string; }[]; }) {
+    return <Card className="mb-4">
+        <CardHeader
+            icon={Euro}
+            iconClass="text-emerald-400"
+            title={t('admin_subscriptions.stripe_tax_title', 'Tax & region (EU compliance)')}
+            subtitle={<>{t('admin_subscriptions.stripe_tax_subtitle', 'Configure Stripe Tax for automatic VAT calculation.')}{' '}
+                <a href="https://stripe.com/tax" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
+                    {t('admin_subscriptions.stripe_learn_more', 'Learn more')} <ExternalLink className="w-3 h-3" />
+                </a>
+            </>} />
+        <Toggle
+            checked={config.stripeTaxEnabled}
+            onChange={v => saveField({ stripeTaxEnabled: v })}
+            label={t('admin_subscriptions.stripe_tax_enable', 'Enable Stripe Tax')}
+            description={t('admin_subscriptions.stripe_tax_enable_desc', 'Automatically calculate and collect VAT on subscriptions.')} />
+        {/* BFSF-250: flipping the toggle alone is not enough — prices
+            synced while it was off lack tax_behavior (checkout fails
+            against them) and Stripe Tax needs Dashboard registration.
+            Existing subscriptions are backfilled automatically on
+            enable; note the real-billing impact. */}
+        <p className="mt-2 text-[11px] text-amber-500/90">
+            {t('admin_subscriptions.stripe_tax_warning', 'Enabling requires: (1) Stripe Tax activated in the Stripe Dashboard (origin address + NL VAT registration), and (2) re-syncing every plan so new Prices carry tax_behavior. Existing active subscriptions are backfilled automatically: their next invoice will include 21% BTW, so announce this to customers first.')}
+        </p>
+        <div className="mt-3">
+            <Field label={t('admin_subscriptions.stripe_nexus', 'Tax nexus country')} hint={t('admin_subscriptions.stripe_nexus_hint', 'where your business is registered for VAT')}>
+                <Select
+                    value={config.stripeTaxCountry}
+                    onChange={e => saveField({ stripeTaxCountry: e.target.value })}
+                    className="max-w-xs"
+                >
+                    {TAX_COUNTRIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </Select>
+            </Field>
+        </div>
+    </Card>;
+}
+
+function StripeViewCard({ t, config, secretKey, setSecretKey, saveField, deleteKey, saving, publishableKey, setPublishableKey, webhookSecret, setWebhookSecret }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; config: StripeConfig; secretKey: string; setSecretKey: React.Dispatch<React.SetStateAction<string>>; saveField: (payload: Record<string, unknown>) => Promise<void>; deleteKey: (keyName: string) => Promise<void>; saving: boolean; publishableKey: string; setPublishableKey: React.Dispatch<React.SetStateAction<string>>; webhookSecret: string; setWebhookSecret: React.Dispatch<React.SetStateAction<string>>; }) {
+    return <Card className="mb-4">
+        <CardHeader
+            icon={Shield}
+            iconClass="text-blue-400"
+            /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- a translated field label or i18n key, not a credential */
+            title={t('admin_subscriptions.stripe_api_keys', 'API keys')}
+            subtitle={<>{t('admin_subscriptions.stripe_get_keys', 'Get your keys from the')}{' '}
+                <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-0.5">
+                    {t('admin_subscriptions.stripe_dashboard', 'Stripe Dashboard')} <ExternalLink className="w-3 h-3" />
+                </a>
+            </>} />
+        <StripeKeyField
+            /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
+            label={t('admin_subscriptions.stripe_secret_key', 'Secret key')}
+            type="password"
+            configured={config.hasStripeSecretKey}
+            placeholderConfigured="••••••••••••••••••"
+            /* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a translated field label or i18n key, not a credential */
+            placeholderEmpty={t('admin_subscriptions.stripe_secret_ph', 'sk_live_… or sk_test_…')}
+            value={secretKey}
+            onChange={setSecretKey}
+            onSave={() => { saveField({ stripeSecretKey: secretKey }); setSecretKey(''); } }
+            onClear={() => deleteKey('stripe_secret_key')}
+            busy={saving} />
+        <StripeKeyField
+            label={t('admin_subscriptions.stripe_publishable_key', 'Publishable key')}
+            type="text"
+            configured={!!config.stripePublishableKey}
+            placeholderConfigured={t('admin_subscriptions.stripe_publishable_ph', 'pk_live_… or pk_test_…')}
+            placeholderEmpty={t('admin_subscriptions.stripe_publishable_ph', 'pk_live_… or pk_test_…')}
+            value={publishableKey}
+            onChange={setPublishableKey}
+            onSave={() => saveField({ stripePublishableKey: publishableKey })}
+            busy={saving} />
+        <StripeKeyField
+            label={t('admin_subscriptions.stripe_webhook_signing', 'Webhook signing secret')}
+            type="password"
+            configured={config.hasStripeWebhookSecret}
+            placeholderConfigured="••••••••••••••••••"
+            placeholderEmpty="whsec_…"
+            value={webhookSecret}
+            onChange={setWebhookSecret}
+            onSave={() => { saveField({ stripeWebhookSecret: webhookSecret }); setWebhookSecret(''); } }
+            onClear={() => deleteKey('stripe_webhook_secret')}
+            busy={saving} />
+    </Card>;
 }

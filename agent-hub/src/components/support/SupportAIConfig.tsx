@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { SetStateAction, Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { Save, Sparkles, AlertTriangle, Send } from 'lucide-react';
 import AgentEditorUI from '../agents/AgentEditorUI';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
@@ -189,18 +189,7 @@ export default function SupportAIConfig() {
     return (
         <div className="h-full flex flex-col bg-[var(--bg-primary)]">
             {/* Sub-tab bar */}
-            <div className="px-4 pt-2 border-b flex items-center gap-1 overflow-x-auto border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                {CONFIG_TABS.map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-t-md whitespace-nowrap"
-                        style={{
-                            color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
-                            borderBottom: tab === t.id ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                        }}>
-                        {t.label}
-                    </button>
-                ))}
-            </div>
+            <SupportAIConfigSection setTab={setTab} tab={tab} />
 
             {tab === 'behaviour' && <div className="flex-1 overflow-auto"><SupportToolsTab /></div>}
             {tab === 'sla' && <div className="flex-1 overflow-auto"><SupportSlaPoliciesTab /></div>}
@@ -353,4 +342,19 @@ export default function SupportAIConfig() {
             )}
         </div>
     );
+}
+
+function SupportAIConfigSection({ setTab, tab }: { setTab: Dispatch<SetStateAction<string>>; tab: string; }) {
+    return <div className="px-4 pt-2 border-b flex items-center gap-1 overflow-x-auto border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        {CONFIG_TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+                className="px-3 py-1.5 text-sm font-medium rounded-t-md whitespace-nowrap"
+                style={{
+                    color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                    borderBottom: tab === t.id ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                }}>
+                {t.label}
+            </button>
+        ))}
+    </div>;
 }

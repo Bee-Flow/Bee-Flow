@@ -1,7 +1,7 @@
 // The http_request editor: the call itself (URL, method, credential, headers,
 // body), its options, and the two Advanced ticks about not calling twice.
 import { Plus, X } from 'lucide-react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../../../hooks/useTranslation';
 import TemplateField from '../../../mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from '../collectionEditors';
@@ -15,6 +15,7 @@ import { mergeMovedQuery, type HttpQuery } from './httpQueryLib';
 import { HttpQuerySection } from './httpQuerySection';
 import type { ActionCatalog } from './integrationActionFields';
 import type { CurlImport } from './curlImport';
+import { FormRecord } from '../formState/types';
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 const HTTP_WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -194,53 +195,7 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                 </AccordionSection>
             )}
 
-            <AccordionSection stepType="http_request" sectionKey="options" title={t('automations.http_request_fields.options', 'Options')} forceOpen={errorSections.has('options')} hasContent={(draft.timeoutMs != null && draft.timeoutMs !== 10_000) || (draft.parseResponse && draft.parseResponse !== 'auto')}>
-                <FormRow label={t('automations.http_request_fields.timeout_ms', 'Timeout (ms)')}>
-                    <input
-                        type="number"
-                        min={1000}
-                        max={60_000}
-                        step={500}
-                        value={draft.timeoutMs ?? 10_000}
-                        onChange={(e) => set('timeoutMs', Number(e.target.value))}
-                        className={inputClass()}
-                    />
-                </FormRow>
-                {/* `body` is always the raw text. `data` is the same thing
-                    parsed, and it is what a later step binds a LIST to — so
-                    this control decides whether the response is usable as a
-                    table at all. */}
-                <FormRow
-                    label={t('automations.http_request_fields.response', 'Response')}
-                    hint={t('automations.http_request_fields.a_json_answer_is_also_offered', 'A JSON answer is also offered parsed, as `data`, so a later step can work through it as a list.')}
-                >
-                    <select
-                        value={draft.parseResponse || 'auto'}
-                        onChange={(e) => set('parseResponse', e.target.value)}
-                        className={inputClass()}
-                    >
-                        <option value="auto">{t('automations.http_request_fields.read_json_automatically', 'Read JSON automatically')}</option>
-                        <option value="always">{t('automations.http_request_fields.always_read_it_as_json', 'Always read it as JSON')}</option>
-                        <option value="never">{t('automations.http_request_fields.leave_it_as_plain_text', 'Leave it as plain text')}</option>
-                    </select>
-                    <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        {t('automations.http_request_fields.pick_always_when_the_service_sends', 'Pick “always” when the service sends JSON but labels it as text.')}
-                    </div>
-                </FormRow>
-                <FormRow label={t('automations.http_request_fields.security', 'Security')}>
-                    <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                        <input
-                            type="checkbox"
-                            checked={blockPrivateTargets}
-                            onChange={(e) => set('blockPrivateTargets', e.target.checked)}
-                        />
-                        {t('automations.http_request_fields.block_requests_to_private_internal_network', 'Block requests to private/internal network addresses')}
-                    </label>
-                    <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        {t('automations.http_request_fields.recommended_on_only_turn_this_off', 'Recommended: on. Only turn this off if this step specifically needs to reach an internal service (e.g. on your own self-hosted network) — disabling it lets this step reach localhost, private IP ranges, and cloud metadata endpoints.')}
-                    </div>
-                </FormRow>
-            </AccordionSection>
+            <HttpRequestFieldsAccordionSection t={t} errorSections={errorSections} draft={draft} set={set} blockPrivateTargets={blockPrivateTargets} />
 
             <AccordionSection
                 stepType="http_request" sectionKey="advanced" title={t('automations.http_request_fields.advanced', 'Advanced')}
@@ -267,3 +222,51 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
 }
 
 export { HttpRequestFields };
+
+    function HttpRequestFieldsAccordionSection({ t, errorSections, draft, set, blockPrivateTargets }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; errorSections: Set<string>; draft: FormRecord; set: (key: string, value: unknown) => void; blockPrivateTargets: boolean; }) {
+        return <AccordionSection stepType="http_request" sectionKey="options" title={t('automations.http_request_fields.options', 'Options')} forceOpen={errorSections.has('options')} hasContent={(draft.timeoutMs != null && draft.timeoutMs !== 10000) || (draft.parseResponse && draft.parseResponse !== 'auto')}>
+            <FormRow label={t('automations.http_request_fields.timeout_ms', 'Timeout (ms)')}>
+                <input
+                    type="number"
+                    min={1000}
+                    max={60000}
+                    step={500}
+                    value={draft.timeoutMs ?? 10000}
+                    onChange={(e) => set('timeoutMs', Number(e.target.value))}
+                    className={inputClass()} />
+            </FormRow>
+            {/* `body` is always the raw text. `data` is the same thing
+            parsed, and it is what a later step binds a LIST to — so
+            this control decides whether the response is usable as a
+            table at all. */}
+            <FormRow
+                label={t('automations.http_request_fields.response', 'Response')}
+                hint={t('automations.http_request_fields.a_json_answer_is_also_offered', 'A JSON answer is also offered parsed, as `data`, so a later step can work through it as a list.')}
+            >
+                <select
+                    value={draft.parseResponse || 'auto'}
+                    onChange={(e) => set('parseResponse', e.target.value)}
+                    className={inputClass()}
+                >
+                    <option value="auto">{t('automations.http_request_fields.read_json_automatically', 'Read JSON automatically')}</option>
+                    <option value="always">{t('automations.http_request_fields.always_read_it_as_json', 'Always read it as JSON')}</option>
+                    <option value="never">{t('automations.http_request_fields.leave_it_as_plain_text', 'Leave it as plain text')}</option>
+                </select>
+                <div className="text-xs text-[var(--text-tertiary)] mt-1">
+                    {t('automations.http_request_fields.pick_always_when_the_service_sends', 'Pick “always” when the service sends JSON but labels it as text.')}
+                </div>
+            </FormRow>
+            <FormRow label={t('automations.http_request_fields.security', 'Security')}>
+                <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                    <input
+                        type="checkbox"
+                        checked={blockPrivateTargets}
+                        onChange={(e) => set('blockPrivateTargets', e.target.checked)} />
+                    {t('automations.http_request_fields.block_requests_to_private_internal_network', 'Block requests to private/internal network addresses')}
+                </label>
+                <div className="text-xs text-[var(--text-tertiary)] mt-1">
+                    {t('automations.http_request_fields.recommended_on_only_turn_this_off', 'Recommended: on. Only turn this off if this step specifically needs to reach an internal service (e.g. on your own self-hosted network) — disabling it lets this step reach localhost, private IP ranges, and cloud metadata endpoints.')}
+                </div>
+            </FormRow>
+        </AccordionSection>;
+    }

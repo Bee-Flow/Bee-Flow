@@ -1,5 +1,5 @@
 import { RotateCcw, Save } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ReactPortal, ReactElement, JSXElementConstructor, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { isPrivacyStep } from './privacyModel';
 import { isRouteStep } from './routeModel';
 import { sectionsWithErrors } from './sectionForIssue';
@@ -33,7 +33,7 @@ import { RouteFields } from './settings/routeEditors';
 import { SetFields } from './settings/setEditors';
 import { TriggerFields, FormPageFields } from './settings/triggerEditors';
 import { IconPicker } from './stepIcons';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import type { ModelTierConfig } from '../../../../hooks/useModelTierSelection';
 import type { Group, UpstreamDefinition, UpstreamNode } from '../mapping/upstream/upstream.types';
 import type { OnFocusField } from '../mapping/focusField.types';
@@ -502,68 +502,72 @@ export default function SettingsForm({
                     {saveError}
                 </div>
             )}
-            <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] text-[11px] whitespace-nowrap">
-                {footerLeft}
-                {/* "1 field still empty" (artboard 2b) — the INVERSE of
-                    boundPaths over the slots this step declares, counted on the
-                    live DRAFT so it updates while you fill things in rather
-                    than after a save. Silent at zero: a form with nothing wrong
-                    should say nothing. */}
-                {emptySlots.unknown ? (
-                    /* "I cannot check" — never silence, and never a number.
-                       The tool's own parameter list is missing, so the count
-                       below would be of the slots that happen to be written
-                       down, which for an untouched step is none at all. Its
-                       own wording and its own colour, so it cannot be read as
-                       "nothing wrong" (which is what silence means here). */
-                    <span
-                        className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px] border-[var(--warning)] text-[var(--warning-ink)]"
-                        title={t('automations.builder.fields_unknown_hint', 'This step\u2019s tool details could not be loaded, so its required fields cannot be checked. Reload the page to try again.')}
-                        data-testid="settings-empty-slots-unknown"
-                    >
-                        {t('automations.builder.fields_unknown', 'Cannot check the fields')}
-                    </span>
-                ) : emptySlots.empty > 0 && (
-                    <span
-                        className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px] border-[var(--error)] text-[var(--error)]"
-                        title={emptySlots.keys.join(', ')}
-                        data-testid="settings-empty-slots"
-                    >
-                        {emptySlots.empty === 1
-                            ? t('automations.builder.one_field_empty', '1 field still empty')
-                            : t('automations.builder.n_fields_empty', '{n} fields still empty', { n: emptySlots.empty })}
-                    </span>
-                )}
-                <div className="ml-auto shrink-0 flex items-center gap-2">
-                    {/* Autosave is the real save path; say so, or the Save
-                        button implies edits are lost without it. It stays as
-                        the immediate-save escape (and the tests' landmark —
-                        its text is queried by name across 10 suites). */}
-                    {/* Quiet, so it is the first to go where the column is narrow:
-                        the header's save chip says the same. */}
-                    {!compactFooter && (
-                        <span className={`${hintTextClass()} text-[var(--text-tertiary)] @max-[720px]/ndvset:hidden`}>
-                            {t('automations.builder.autosave_note', 'Changes save automatically.')}
-                        </span>
-                    )}
-                    <button
-                        onClick={reset}
-                        disabled={!dirty || saving}
-                        className="flex items-center gap-1.5 px-3 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
-                    >
-                        <RotateCcw size={12} /> <span className="@max-[480px]/ndvset:sr-only">{t('automations.builder.undo_changes', 'Undo changes')}</span>
-                    </button>
-                    <button
-                        onClick={onSave}
-                        disabled={!dirty || saving}
-                        className={controlSurfaceClass('flex items-center gap-1.5 px-3 py-1 text-xs hover:bg-[var(--bg-tertiary)] disabled:opacity-40')}
-                    >
-                        <Save size={12} /> {saving ? 'Saving…' : 'Save'}
-                    </button>
-                </div>
-            </div>
+            <SettingsFormSection footerLeft={footerLeft} emptySlots={emptySlots} t={t} compactFooter={compactFooter} reset={reset} dirty={dirty} saving={saving} onSave={onSave} />
         </div>
         </SlotListAsContext.Provider>
     );
 }
 
+
+function SettingsFormSection({ footerLeft, emptySlots, t, compactFooter, reset, dirty, saving, onSave }: { footerLeft: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null; emptySlots: { declared: number; empty: number; keys: string[]; unknown: boolean; }; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; compactFooter: boolean; reset: () => void; dirty: boolean; saving: boolean | undefined; onSave: () => Promise<void>; }) {
+    return <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] text-[11px] whitespace-nowrap">
+        {footerLeft}
+        {/* "1 field still empty" (artboard 2b) — the INVERSE of
+            boundPaths over the slots this step declares, counted on the
+            live DRAFT so it updates while you fill things in rather
+            than after a save. Silent at zero: a form with nothing wrong
+            should say nothing. */}
+        {emptySlots.unknown ? (
+            /* "I cannot check" — never silence, and never a number.
+               The tool's own parameter list is missing, so the count
+               below would be of the slots that happen to be written
+               down, which for an untouched step is none at all. Its
+               own wording and its own colour, so it cannot be read as
+               "nothing wrong" (which is what silence means here). */
+            <span
+                className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px] border-[var(--warning)] text-[var(--warning-ink)]"
+                title={t('automations.builder.fields_unknown_hint', 'This step\u2019s tool details could not be loaded, so its required fields cannot be checked. Reload the page to try again.')}
+                data-testid="settings-empty-slots-unknown"
+            >
+                {t('automations.builder.fields_unknown', 'Cannot check the fields')}
+            </span>
+        ) : emptySlots.empty > 0 && (
+            <span
+                className="shrink-0 px-[7px] rounded-full border font-semibold leading-[18px] border-[var(--error)] text-[var(--error)]"
+                title={emptySlots.keys.join(', ')}
+                data-testid="settings-empty-slots"
+            >
+                {emptySlots.empty === 1
+                    ? t('automations.builder.one_field_empty', '1 field still empty')
+                    : t('automations.builder.n_fields_empty', '{n} fields still empty', { n: emptySlots.empty })}
+            </span>
+        )}
+        <div className="ml-auto shrink-0 flex items-center gap-2">
+            {/* Autosave is the real save path; say so, or the Save
+            button implies edits are lost without it. It stays as
+            the immediate-save escape (and the tests' landmark —
+            its text is queried by name across 10 suites). */}
+            {/* Quiet, so it is the first to go where the column is narrow:
+            the header's save chip says the same. */}
+            {!compactFooter && (
+                <span className={`${hintTextClass()} text-[var(--text-tertiary)] @max-[720px]/ndvset:hidden`}>
+                    {t('automations.builder.autosave_note', 'Changes save automatically.')}
+                </span>
+            )}
+            <button
+                onClick={reset}
+                disabled={!dirty || saving}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs rounded text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-40 transition"
+            >
+                <RotateCcw size={12} /> <span className="@max-[480px]/ndvset:sr-only">{t('automations.builder.undo_changes', 'Undo changes')}</span>
+            </button>
+            <button
+                onClick={onSave}
+                disabled={!dirty || saving}
+                className={controlSurfaceClass('flex items-center gap-1.5 px-3 py-1 text-xs hover:bg-[var(--bg-tertiary)] disabled:opacity-40')}
+            >
+                <Save size={12} /> {saving ? 'Saving…' : 'Save'}
+            </button>
+        </div>
+    </div>;
+}

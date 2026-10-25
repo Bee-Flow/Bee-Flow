@@ -5,7 +5,7 @@ import PiiCategoryGrid from '../../components/privacy/PiiCategoryGrid';
 import PiiSensitivityPicker from '../../components/privacy/PiiSensitivityPicker';
 import Toggle from '../../components/shared/Toggle';
 import { piiCategoriesLocalized } from '../../config/piiCategories';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { mutate, ApiError } from '../../api/mutate';
 
@@ -144,39 +144,7 @@ const ConsumerPrivacySection = () => {
     return (
         <div className="space-y-6 animate-fadeIn">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                        {t('settings.privacy_shield', 'Privacy Shield')}
-                    </h2>
-                    <p className="text-sm text-[var(--text-muted)] mt-1">
-                        {t('settings.consumer_privacy.subtitle', 'Control data privacy and model routing for your account')}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                    {saveError && (
-                        <span role="alert" className="text-xs font-medium text-[var(--error-ink)]">
-                            {t('common.save_failed', 'Save failed')}
-                        </span>
-                    )}
-                    <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition-all hover:opacity-90"
-                        style={{ background: saved ? '#10b981' : 'var(--accent-primary)' }}
-                    >
-                        {saving ? (
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                        ) : saved ? (
-                            <Check className="w-4 h-4" />
-                        ) : (
-                            <Save className="w-4 h-4" />
-                        )}
-                        {saving ? t('common.saving', 'Saving…') : saved ? t('common.saved', 'Saved') : t('common.save', 'Save')}
-                    </button>
-                </div>
-            </div>
+            <ConsumerPrivacySectionSection2 t={t} saveError={saveError} handleSave={handleSave} saving={saving} saved={saved} />
 
             {/* Guard availability — an enabled shield with no guard service
                 detects nothing, and used to say so nowhere at all. */}
@@ -195,107 +163,7 @@ const ConsumerPrivacySection = () => {
             )}
 
             {/* Master toggle + reveal */}
-            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
-                <div className="flex items-center justify-between p-5">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:linear-gradient(135deg,#ef4444,#f59e0b)]">
-                            <Shield className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_privacy.enable', 'Enable Privacy Shield')}</p>
-                                {implicitDefault && config.enabled && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[color-mix(in_srgb,var(--success)_12%,transparent)] text-[var(--success-ink)]">
-                                        {t('privacy.implicit_default_badge', 'On by default')}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-[var(--text-muted)]">
-                                {implicitDefault && config.enabled
-                                    ? t('privacy.implicit_default_note', 'These settings are already in force with the secure defaults. Save to make them your own.')
-                                    : t('settings.consumer_privacy.enable_desc', 'Activate privacy controls for your account')}
-                            </p>
-                        </div>
-                    </div>
-                    <Toggle
-                        checked={!!config.enabled}
-                        onChange={v => update('enabled', v)}
-                        color="emerald"
-                        className="shrink-0"
-                        ariaLabel={t('settings.consumer_privacy.enable', 'Enable Privacy Shield')}
-                    />
-                </div>
-
-                {config.enabled && (
-                    <div className="border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
-                        {/* EU Mode */}
-                        <div className="flex items-center justify-between p-5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
-                                    <Globe className="w-4 h-4 text-blue-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.eu_title', 'EU Data Residency')}</p>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        {t('settings.consumer_privacy.eu_desc', 'Route all AI requests through EU-based model endpoints only')}
-                                    </p>
-                                </div>
-                            </div>
-                            <Toggle
-                                checked={!!config.euModeEnabled}
-                                onChange={v => update('euModeEnabled', v)}
-                                color="sky"
-                                className="shrink-0"
-                                ariaLabel={t('settings.consumer_privacy.eu_title', 'EU Data Residency')}
-                            />
-                        </div>
-
-                        {/* Disable Search on Upload */}
-                        <div className="flex items-center justify-between p-5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
-                                    <Search className="w-4 h-4 text-amber-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.search_title', 'Disable Search on File Upload')}</p>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        {t('settings.consumer_privacy.search_desc', 'Prevent web searches when files are attached to conversations')}
-                                    </p>
-                                </div>
-                            </div>
-                            <Toggle
-                                checked={!!config.disableSearchOnUpload}
-                                onChange={v => update('disableSearchOnUpload', v)}
-                                color="amber"
-                                className="shrink-0"
-                                ariaLabel={t('settings.consumer_privacy.search_title', 'Disable Search on File Upload')}
-                            />
-                        </div>
-
-                        {/* PII Detection toggle */}
-                        <div className="flex items-center justify-between p-5">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
-                                    <ScanEye className="w-4 h-4 text-emerald-500" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.pii_title', 'Look for personal data')}</p>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        {t('settings.consumer_privacy.pii_desc', 'Check your messages for personal details — names, email addresses, phone numbers, passwords — and hide them from the AI, or stop the message altogether')}
-                                    </p>
-                                </div>
-                            </div>
-                            <Toggle
-                                checked={!!config.piiDetectionEnabled}
-                                onChange={v => update('piiDetectionEnabled', v)}
-                                color="emerald"
-                                className="shrink-0"
-                                ariaLabel={t('settings.consumer_privacy.pii_title', 'Look for personal data')}
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
+            <ConsumerPrivacySectionSection t={t} implicitDefault={implicitDefault} config={config} update={update} />
 
             {/* PII configuration — only when both Shield + PII are on */}
             {config.enabled && config.piiDetectionEnabled && (
@@ -375,3 +243,139 @@ const ConsumerPrivacySection = () => {
 };
 
 export default ConsumerPrivacySection;
+
+function ConsumerPrivacySectionSection2({ t, saveError, handleSave, saving, saved }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; saveError: boolean; handleSave: () => Promise<void>; saving: boolean; saved: boolean; }) {
+    return <div className="flex items-center justify-between">
+        <div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                {t('settings.privacy_shield', 'Privacy Shield')}
+            </h2>
+            <p className="text-sm text-[var(--text-muted)] mt-1">
+                {t('settings.consumer_privacy.subtitle', 'Control data privacy and model routing for your account')}
+            </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+            {saveError && (
+                <span role="alert" className="text-xs font-medium text-[var(--error-ink)]">
+                    {t('common.save_failed', 'Save failed')}
+                </span>
+            )}
+            <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 transition-all hover:opacity-90"
+                style={{ background: saved ? '#10b981' : 'var(--accent-primary)' }}
+            >
+                {saving ? (
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                ) : saved ? (
+                    <Check className="w-4 h-4" />
+                ) : (
+                    <Save className="w-4 h-4" />
+                )}
+                {saving ? t('common.saving', 'Saving…') : saved ? t('common.saved', 'Saved') : t('common.save', 'Save')}
+            </button>
+        </div>
+    </div>;
+}
+
+function ConsumerPrivacySectionSection({ t, implicitDefault, config, update }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; implicitDefault: boolean; config: ConsumerShieldConfig; update: <K extends keyof ConsumerShieldConfig>(key: K, value: ConsumerShieldConfig[K]) => void; }) {
+    return <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] overflow-hidden">
+        <div className="flex items-center justify-between p-5">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center [background:linear-gradient(135deg,#ef4444,#f59e0b)]">
+                    <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">{t('settings.consumer_privacy.enable', 'Enable Privacy Shield')}</p>
+                        {implicitDefault && config.enabled && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[color-mix(in_srgb,var(--success)_12%,transparent)] text-[var(--success-ink)]">
+                                {t('privacy.implicit_default_badge', 'On by default')}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                        {implicitDefault && config.enabled
+                            ? t('privacy.implicit_default_note', 'These settings are already in force with the secure defaults. Save to make them your own.')
+                            : t('settings.consumer_privacy.enable_desc', 'Activate privacy controls for your account')}
+                    </p>
+                </div>
+            </div>
+            <Toggle
+                checked={!!config.enabled}
+                onChange={v => update('enabled', v)}
+                color="emerald"
+                className="shrink-0"
+                ariaLabel={t('settings.consumer_privacy.enable', 'Enable Privacy Shield')} />
+        </div>
+
+        {config.enabled && (
+            <div className="border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
+                {/* EU Mode */}
+                <div className="flex items-center justify-between p-5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
+                            <Globe className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.eu_title', 'EU Data Residency')}</p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                                {t('settings.consumer_privacy.eu_desc', 'Route all AI requests through EU-based model endpoints only')}
+                            </p>
+                        </div>
+                    </div>
+                    <Toggle
+                        checked={!!config.euModeEnabled}
+                        onChange={v => update('euModeEnabled', v)}
+                        color="sky"
+                        className="shrink-0"
+                        ariaLabel={t('settings.consumer_privacy.eu_title', 'EU Data Residency')} />
+                </div>
+
+                {/* Disable Search on Upload */}
+                <div className="flex items-center justify-between p-5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
+                            <Search className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.search_title', 'Disable Search on File Upload')}</p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                                {t('settings.consumer_privacy.search_desc', 'Prevent web searches when files are attached to conversations')}
+                            </p>
+                        </div>
+                    </div>
+                    <Toggle
+                        checked={!!config.disableSearchOnUpload}
+                        onChange={v => update('disableSearchOnUpload', v)}
+                        color="amber"
+                        className="shrink-0"
+                        ariaLabel={t('settings.consumer_privacy.search_title', 'Disable Search on File Upload')} />
+                </div>
+
+                {/* PII Detection toggle */}
+                <div className="flex items-center justify-between p-5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--bg-tertiary)]">
+                            <ScanEye className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-[var(--text-primary)]">{t('settings.consumer_privacy.pii_title', 'Look for personal data')}</p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                                {t('settings.consumer_privacy.pii_desc', 'Check your messages for personal details — names, email addresses, phone numbers, passwords — and hide them from the AI, or stop the message altogether')}
+                            </p>
+                        </div>
+                    </div>
+                    <Toggle
+                        checked={!!config.piiDetectionEnabled}
+                        onChange={v => update('piiDetectionEnabled', v)}
+                        color="emerald"
+                        className="shrink-0"
+                        ariaLabel={t('settings.consumer_privacy.pii_title', 'Look for personal data')} />
+                </div>
+            </div>
+        )}
+    </div>;
+}

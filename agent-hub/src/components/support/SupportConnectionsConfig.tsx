@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, Link2, MessageSquare, Send, ShieldAlert } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { SetStateAction, Dispatch, useCallback, useEffect, useState } from 'react';
 import { authFetch, API_BASE } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 
@@ -227,74 +227,7 @@ export default function SupportConnectionsConfig() {
     return (
         <div className="p-6 overflow-y-auto h-full flex flex-col gap-8 max-w-2xl">
             {/* ── YouTrack ─────────────────────────────────────────────── */}
-            <section className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                    <Link2 className="w-4 h-4 text-[var(--text-secondary)]" />
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_youtrack', 'YouTrack')}</h3>
-                </div>
-                <p className="text-xs text-[var(--text-muted)]">
-                    {t('support.support_connections_config_one_connection_the_whole_support_team', 'One connection the whole support team shares, so a linked issue shows its status to whoever opens the ticket next.')}
-                </p>
-
-                {yt?.configured && yt?.ok && (
-                    <Banner tone="ok">{t('support.support_connections_config_connected_to_host', 'Connected to {host}. {count} projects visible.', { host: yt.host, count: yt.projects?.length || 0 })}</Banner>
-                )}
-                {yt?.configured && !yt?.ok && (
-                    <Banner tone="bad">{t('support.support_connections_config_can_t_reach_host', 'Can\'t reach {host}:', { host: yt.host })} {yt.error}</Banner>
-                )}
-                {yt && !yt.configured && (
-                    <Banner tone="warn">{t('support.support_connections_config_not_connected_yet_agents_can_t_link_or', 'Not connected yet. Agents can\'t link or create issues until this is set.')}</Banner>
-                )}
-                {ytError && <Banner tone="bad">{ytError}</Banner>}
-
-                <Row label="Server URL" hint={yt?.host ? `Currently ${yt.host}. Leave blank to keep it.` : 'For example https://youtrack.example.com'}>
-                    <input
-                        value={ytUrl}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYtUrl(e.target.value)}
-                        placeholder={yt?.host ? `https://${yt.host}` : 'https://youtrack.example.com'}
-                        className="px-2 py-1.5 rounded border text-sm"
-                        style={inputStyle}
-                    />
-                </Row>
-
-                <Row
-                    label="Permanent token"
-                    hint="Stored encrypted and never shown again. Leave blank to keep the current one. Use a dedicated service account, not a personal token."
-                >
-                    <input
-                        type="password"
-                        value={ytToken}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYtToken(e.target.value)}
-                        placeholder={yt?.configured ? '••••••••  (unchanged)' : 'perm:...'}
-                        className="px-2 py-1.5 rounded border text-sm"
-                        style={inputStyle}
-                    />
-                </Row>
-
-                <Row label="Default project" hint="Where new issues are filed, and what search is scoped to.">
-                    <select
-                        value={ytProject}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setYtProject(e.target.value)}
-                        className="px-2 py-1.5 rounded border text-sm"
-                        style={inputStyle}
-                    >
-                        <option value="">{t('support.support_connections_config_choose_a_project', 'Choose a project…')}</option>
-                        {(yt?.projects || []).map((p: { id: string; shortName: string; name: string }) => (
-                            <option key={p.id} value={p.shortName}>{p.name} ({p.shortName})</option>
-                        ))}
-                    </select>
-                </Row>
-
-                <div>
-                    <button
-                        onClick={saveYt}
-                        disabled={ytSaving}
-                        className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
-                    >
-                        {ytSaving ? 'Saving…' : 'Save connection'}
-                    </button>
-                </div>
-            </section>
+            <SupportConnectionsConfigSection2 t={t} yt={yt} ytError={ytError} ytUrl={ytUrl} setYtUrl={setYtUrl} inputStyle={inputStyle} ytToken={ytToken} setYtToken={setYtToken} ytProject={ytProject} setYtProject={setYtProject} saveYt={saveYt} ytSaving={ytSaving} />
 
             {/* ── What may leave ───────────────────────────────────────── */}
             <section className="flex flex-col gap-3">
@@ -319,80 +252,151 @@ export default function SupportConnectionsConfig() {
             </section>
 
             {/* ── Chat notifications ───────────────────────────────────── */}
-            <section className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-[var(--text-secondary)]" />
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_tell_the_team_in_chat', 'Tell the team in chat')}</h3>
-                </div>
-                <p className="text-xs text-[var(--text-muted)]">
-                    {t('support.support_connections_config_a_short_card_in_your_team_space_when', 'A short card in your team space when something needs attention, with a link into this inbox. At most one message per ticket every ten minutes, so a long email thread doesn\'t flood the channel.')}
-                </p>
-
-                {chat?.configured && (
-                    <Banner tone={chat.enabled ? 'ok' : 'warn'}>
-                        {chat.enabled ? t('support.support_connections_config_webhook_saved_on', 'Webhook saved for {host}. Notifications are on.', { host: chat.host }) : t('support.support_connections_config_webhook_saved_off', 'Webhook saved for {host}. Notifications are off.', { host: chat.host })}
-                    </Banner>
-                )}
-                {chatError && <Banner tone="bad">{chatError}</Banner>}
-                {testResult?.ok && <Banner tone="ok">{t('support.support_connections_config_test_card_delivered_check_the_space', 'Test card delivered. Check the space.')}</Banner>}
-                {testResult && !testResult.ok && <Banner tone="bad">{testResult.error}</Banner>}
-
-                <Row label="Where to send it">
-                    <select
-                        value={chat?.provider || 'google_chat'}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => saveChat({ provider: e.target.value })}
-                        className="px-2 py-1.5 rounded border text-sm"
-                        style={inputStyle}
-                    >
-                        {PROVIDERS.map((p: { id: string; label: string }) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                    </select>
-                </Row>
-
-                <Row
-                    label="Webhook URL"
-                    hint="Treated as a credential — it is stored encrypted and never shown again. Leave blank to keep the current one."
-                >
-                    <input
-                        type="password"
-                        value={hook}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHook(e.target.value)}
-                        placeholder={chat?.configured ? '••••••••  (unchanged)' : 'https://chat.googleapis.com/v1/spaces/…'}
-                        className="px-2 py-1.5 rounded border text-sm"
-                        style={inputStyle}
-                    />
-                </Row>
-
-                <div className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">{t('support.support_connections_config_send_a_message_when', 'Send a message when')}</span>
-                    {(chat?.availableEvents || []).map((id: string) => (
-                        <label key={id} className="flex items-center gap-2 text-xs cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={chat?.events?.includes(id) || false}
-                                onChange={() => toggleEvent(id)}
-                            />
-                            <span className="text-[var(--text-secondary)]">{EVENT_LABELS[id] || id}</span>
-                        </label>
-                    ))}
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => saveChat({ enabled: !chat?.enabled })}
-                        disabled={chatSaving || (!chat?.configured && !hook.trim())}
-                        className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
-                    >
-                        {chatSaving ? 'Saving…' : chat?.enabled ? 'Turn notifications off' : 'Turn notifications on'}
-                    </button>
-                    <button
-                        onClick={test}
-                        disabled={!chat?.configured}
-                        className="px-3 py-1.5 rounded text-sm border flex items-center gap-1.5 disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
-                    >
-                        <Send className="w-3.5 h-3.5" /> {t('support.support_connections_config_send_a_test', 'Send a test')}
-                    </button>
-                </div>
-            </section>
+            <SupportConnectionsConfigSection t={t} chat={chat} chatError={chatError} testResult={testResult} saveChat={saveChat} inputStyle={inputStyle} hook={hook} setHook={setHook} toggleEvent={toggleEvent} chatSaving={chatSaving} test={test} />
         </div>
     );
+}
+
+function SupportConnectionsConfigSection2({ t, yt, ytError, ytUrl, setYtUrl, inputStyle, ytToken, setYtToken, ytProject, setYtProject, saveYt, ytSaving }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; yt: YouTrackConnection | null; ytError: string | null | undefined; ytUrl: string; setYtUrl: Dispatch<SetStateAction<string>>; inputStyle: { background: string; borderColor: string; color: string; }; ytToken: string; setYtToken: Dispatch<SetStateAction<string>>; ytProject: string; setYtProject: Dispatch<SetStateAction<string>>; saveYt: ({ subject }?: { subject?: boolean; } & Partial<React.MouseEvent<HTMLButtonElement>>) => Promise<void>; ytSaving: boolean; }) {
+    return <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-[var(--text-secondary)]" />
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_youtrack', 'YouTrack')}</h3>
+        </div>
+        <p className="text-xs text-[var(--text-muted)]">
+            {t('support.support_connections_config_one_connection_the_whole_support_team', 'One connection the whole support team shares, so a linked issue shows its status to whoever opens the ticket next.')}
+        </p>
+
+        {yt?.configured && yt?.ok && (
+            <Banner tone="ok">{t('support.support_connections_config_connected_to_host', 'Connected to {host}. {count} projects visible.', { host: yt.host, count: yt.projects?.length || 0 })}</Banner>
+        )}
+        {yt?.configured && !yt?.ok && (
+            <Banner tone="bad">{t('support.support_connections_config_can_t_reach_host', 'Can\'t reach {host}:', { host: yt.host })} {yt.error}</Banner>
+        )}
+        {yt && !yt.configured && (
+            <Banner tone="warn">{t('support.support_connections_config_not_connected_yet_agents_can_t_link_or', 'Not connected yet. Agents can\'t link or create issues until this is set.')}</Banner>
+        )}
+        {ytError && <Banner tone="bad">{ytError}</Banner>}
+
+        <Row label="Server URL" hint={yt?.host ? `Currently ${yt.host}. Leave blank to keep it.` : 'For example https://youtrack.example.com'}>
+            <input
+                value={ytUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYtUrl(e.target.value)}
+                placeholder={yt?.host ? `https://${yt.host}` : 'https://youtrack.example.com'}
+                className="px-2 py-1.5 rounded border text-sm"
+                style={inputStyle} />
+        </Row>
+
+        <Row
+            label="Permanent token"
+            hint="Stored encrypted and never shown again. Leave blank to keep the current one. Use a dedicated service account, not a personal token."
+        >
+            <input
+                type="password"
+                value={ytToken}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYtToken(e.target.value)}
+                placeholder={yt?.configured ? '••••••••  (unchanged)' : 'perm:...'}
+                className="px-2 py-1.5 rounded border text-sm"
+                style={inputStyle} />
+        </Row>
+
+        <Row label="Default project" hint="Where new issues are filed, and what search is scoped to.">
+            <select
+                value={ytProject}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setYtProject(e.target.value)}
+                className="px-2 py-1.5 rounded border text-sm"
+                style={inputStyle}
+            >
+                <option value="">{t('support.support_connections_config_choose_a_project', 'Choose a project…')}</option>
+                {(yt?.projects || []).map((p: { id: string; shortName: string; name: string; }) => (
+                    <option key={p.id} value={p.shortName}>{p.name} ({p.shortName})</option>
+                ))}
+            </select>
+        </Row>
+
+        <div>
+            <button
+                onClick={saveYt}
+                disabled={ytSaving}
+                className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
+            >
+                {ytSaving ? 'Saving…' : 'Save connection'}
+            </button>
+        </div>
+    </section>;
+}
+
+function SupportConnectionsConfigSection({ t, chat, chatError, testResult, saveChat, inputStyle, hook, setHook, toggleEvent, chatSaving, test }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; chat: ChatNotifications | null; chatError: string | null | undefined; testResult: { ok: boolean; error?: string; } | null; saveChat: (patch: ChatPatch) => Promise<void>; inputStyle: { background: string; borderColor: string; color: string; }; hook: string; setHook: Dispatch<SetStateAction<string>>; toggleEvent: (id: string) => void; chatSaving: boolean; test: () => Promise<void>; }) {
+    return <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-[var(--text-secondary)]" />
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('support.support_connections_config_tell_the_team_in_chat', 'Tell the team in chat')}</h3>
+        </div>
+        <p className="text-xs text-[var(--text-muted)]">
+            {t('support.support_connections_config_a_short_card_in_your_team_space_when', 'A short card in your team space when something needs attention, with a link into this inbox. At most one message per ticket every ten minutes, so a long email thread doesn\'t flood the channel.')}
+        </p>
+
+        {chat?.configured && (
+            <Banner tone={chat.enabled ? 'ok' : 'warn'}>
+                {chat.enabled ? t('support.support_connections_config_webhook_saved_on', 'Webhook saved for {host}. Notifications are on.', { host: chat.host }) : t('support.support_connections_config_webhook_saved_off', 'Webhook saved for {host}. Notifications are off.', { host: chat.host })}
+            </Banner>
+        )}
+        {chatError && <Banner tone="bad">{chatError}</Banner>}
+        {testResult?.ok && <Banner tone="ok">{t('support.support_connections_config_test_card_delivered_check_the_space', 'Test card delivered. Check the space.')}</Banner>}
+        {testResult && !testResult.ok && <Banner tone="bad">{testResult.error}</Banner>}
+
+        <Row label="Where to send it">
+            <select
+                value={chat?.provider || 'google_chat'}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => saveChat({ provider: e.target.value })}
+                className="px-2 py-1.5 rounded border text-sm"
+                style={inputStyle}
+            >
+                {PROVIDERS.map((p: { id: string; label: string; }) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+        </Row>
+
+        <Row
+            label="Webhook URL"
+            hint="Treated as a credential — it is stored encrypted and never shown again. Leave blank to keep the current one."
+        >
+            <input
+                type="password"
+                value={hook}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHook(e.target.value)}
+                placeholder={chat?.configured ? '••••••••  (unchanged)' : 'https://chat.googleapis.com/v1/spaces/…'}
+                className="px-2 py-1.5 rounded border text-sm"
+                style={inputStyle} />
+        </Row>
+
+        <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">{t('support.support_connections_config_send_a_message_when', 'Send a message when')}</span>
+            {(chat?.availableEvents || []).map((id: string) => (
+                <label key={id} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={chat?.events?.includes(id) || false}
+                        onChange={() => toggleEvent(id)} />
+                    <span className="text-[var(--text-secondary)]">{EVENT_LABELS[id] || id}</span>
+                </label>
+            ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+            <button
+                onClick={() => saveChat({ enabled: !chat?.enabled })}
+                disabled={chatSaving || (!chat?.configured && !hook.trim())}
+                className="px-3 py-1.5 rounded text-sm font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
+            >
+                {chatSaving ? 'Saving…' : chat?.enabled ? 'Turn notifications off' : 'Turn notifications on'}
+            </button>
+            <button
+                onClick={test}
+                disabled={!chat?.configured}
+                className="px-3 py-1.5 rounded text-sm border flex items-center gap-1.5 disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
+            >
+                <Send className="w-3.5 h-3.5" /> {t('support.support_connections_config_send_a_test', 'Send a test')}
+            </button>
+        </div>
+    </section>;
 }

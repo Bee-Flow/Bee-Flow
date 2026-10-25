@@ -4,7 +4,7 @@ import AudiencePicker from './AudiencePicker';
 import dryRunIssues, { type DryRunIssue } from './dryRunIssues';
 import type { Findings, IssueTarget, PublishModalProps, PublishPayload } from './PublishModal.types';
 import { GROUPS, ORG, PRIVATE } from './publishAccessSummary';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 import { errorBodyRecord, errorStatus, messageOf } from '../../../../../utils/caughtError';
 import Modal from '../../../../shared/Modal';
 import toast from '../../../../shared/Toast';
@@ -304,30 +304,7 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                 )}
 
                 {/* Current status */}
-                <div
-                    className="rounded-lg border px-3 py-2.5 text-xs border-[var(--border-subtle)] bg-[var(--bg-primary)]"
-                >
-                    <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-                        <span>{t('app_studio.publish.currently', 'Currently:')}</span>
-                        <strong className="text-[var(--text-primary)]">{audienceLabel(t, currentAudience)}</strong>
-                        {currentAudience === GROUPS ? (
-                            <span className="text-[var(--text-tertiary)]">({currentGroups.length})</span>
-                        ) : null}
-                    </div>
-                    {isPublished && publishedAt ? (
-                        <div className="mt-1 text-[var(--text-tertiary)]">
-                            {t('app_studio.publish.last_published', 'Last published {when}', { when: publishedAt })}
-                        </div>
-                    ) : null}
-                    {isPublished && liveHref ? (
-                        <a
-                            href={liveHref}
-                            className="mt-1.5 inline-flex items-center gap-1 font-medium hover:underline text-[var(--accent-primary)]"
-                        >
-                            {t('app_studio.publish.view_live', 'View live')} <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                        </a>
-                    ) : null}
-                </div>
+                <PublishModalSection t={t} currentAudience={currentAudience} currentGroups={currentGroups} isPublished={isPublished} publishedAt={publishedAt} liveHref={liveHref} />
 
                 {/* Audience picker, the group list it needs, and what the choice shares */}
                 <AudiencePicker
@@ -376,3 +353,30 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
     );
 }
 
+
+function PublishModalSection({ t, currentAudience, currentGroups, isPublished, publishedAt, liveHref }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; currentAudience: string; currentGroups: string[]; isPublished: boolean; publishedAt: string | null; liveHref: string | null; }) {
+    return <div
+        className="rounded-lg border px-3 py-2.5 text-xs border-[var(--border-subtle)] bg-[var(--bg-primary)]"
+    >
+        <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+            <span>{t('app_studio.publish.currently', 'Currently:')}</span>
+            <strong className="text-[var(--text-primary)]">{audienceLabel(t, currentAudience)}</strong>
+            {currentAudience === GROUPS ? (
+                <span className="text-[var(--text-tertiary)]">({currentGroups.length})</span>
+            ) : null}
+        </div>
+        {isPublished && publishedAt ? (
+            <div className="mt-1 text-[var(--text-tertiary)]">
+                {t('app_studio.publish.last_published', 'Last published {when}', { when: publishedAt })}
+            </div>
+        ) : null}
+        {isPublished && liveHref ? (
+            <a
+                href={liveHref}
+                className="mt-1.5 inline-flex items-center gap-1 font-medium hover:underline text-[var(--accent-primary)]"
+            >
+                {t('app_studio.publish.view_live', 'View live')} <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+        ) : null}
+    </div>;
+}

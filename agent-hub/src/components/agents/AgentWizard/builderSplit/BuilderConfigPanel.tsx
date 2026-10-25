@@ -13,7 +13,7 @@ import { messageOf } from '../../../../utils/caughtError';
 import type { ComponentProps, Dispatch, Ref, SetStateAction } from 'react';
 import type { ModelTierMap } from '../../../../api/queries/modelTiers';
 import type { Skill } from '../../../../api/queries/skills';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { Schedule } from './useAgentSchedules';
 import { logger } from '../../../../utils/logger';
 
@@ -265,46 +265,49 @@ export default function BuilderConfigPanel({
                 </div>
             </div>
 
-            <div className="mb-2">
-                <div className="flex items-center gap-2 mb-1">
-                    <div className="text-[13px] font-medium text-[var(--text-secondary)]">
-                        {t('agent_wizard.builder.instructions')}
-                    </div>
-                    {refining && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
-                            <Loader2 size={11} className="animate-spin" />
-                            {t('agent_wizard.builder.updating', 'Updating…')}
-                        </span>
-                    )}
-                </div>
-                {instructionsEditing && !refining && !ro ? (
-                    <InstructionsEditor
-                        ref={instructionsTextareaRef}
-                        initialValue={instructions}
-                        placeholder={t('agent_wizard.builder.instructions_placeholder')}
-                        onCommit={updateInstructions}
-                        onBlurEnd={() => { flushNow(); setInstructionsEditing(false); }}
-                    />
+            <BuilderConfigPanelSection t={t} refining={refining} instructionsEditing={instructionsEditing} ro={ro} instructionsTextareaRef={instructionsTextareaRef} instructions={instructions} updateInstructions={updateInstructions} flushNow={flushNow} setInstructionsEditing={setInstructionsEditing} />
+        </div>
+    );
+}
+
+function BuilderConfigPanelSection({ t, refining, instructionsEditing, ro, instructionsTextareaRef, instructions, updateInstructions, flushNow, setInstructionsEditing }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; refining: boolean | undefined; instructionsEditing: boolean | undefined; ro: boolean | undefined; instructionsTextareaRef: Ref<HTMLTextAreaElement>; instructions: string | undefined; updateInstructions: (value: string) => void; flushNow: () => void; setInstructionsEditing: (editing: boolean) => void; }) {
+    return <div className="mb-2">
+        <div className="flex items-center gap-2 mb-1">
+            <div className="text-[13px] font-medium text-[var(--text-secondary)]">
+                {t('agent_wizard.builder.instructions')}
+            </div>
+            {refining && (
+                <span className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]">
+                    <Loader2 size={11} className="animate-spin" />
+                    {t('agent_wizard.builder.updating', 'Updating…')}
+                </span>
+            )}
+        </div>
+        {instructionsEditing && !refining && !ro ? (
+            <InstructionsEditor
+                ref={instructionsTextareaRef}
+                initialValue={instructions}
+                placeholder={t('agent_wizard.builder.instructions_placeholder')}
+                onCommit={updateInstructions}
+                onBlurEnd={() => { flushNow(); setInstructionsEditing(false); } } />
+        ) : (
+            <div
+                role="button"
+                tabIndex={(refining || ro) ? -1 : 0}
+                onClick={(refining || ro) ? undefined : () => setInstructionsEditing(true)}
+                onFocus={(refining || ro) ? undefined : () => setInstructionsEditing(true)}
+                aria-disabled={refining || ro || undefined}
+                className={`instructions-view min-h-[10rem] px-4 py-3 -mx-4 rounded-xl transition ${refining ? 'opacity-60 cursor-default' : ro ? 'cursor-default' : 'cursor-text hover:bg-[var(--bg-secondary)]/40'}`}
+                title={(refining || ro) ? undefined : t('agent_wizard.builder.instructions_edit_hint', 'Click to edit')}
+            >
+                {instructions ? (
+                    <MarkdownRenderer content={instructions} />
                 ) : (
-                    <div
-                        role="button"
-                        tabIndex={(refining || ro) ? -1 : 0}
-                        onClick={(refining || ro) ? undefined : () => setInstructionsEditing(true)}
-                        onFocus={(refining || ro) ? undefined : () => setInstructionsEditing(true)}
-                        aria-disabled={refining || ro || undefined}
-                        className={`instructions-view min-h-[10rem] px-4 py-3 -mx-4 rounded-xl transition ${refining ? 'opacity-60 cursor-default' : ro ? 'cursor-default' : 'cursor-text hover:bg-[var(--bg-secondary)]/40'}`}
-                        title={(refining || ro) ? undefined : t('agent_wizard.builder.instructions_edit_hint', 'Click to edit')}
-                    >
-                        {instructions ? (
-                            <MarkdownRenderer content={instructions} />
-                        ) : (
-                            <div className="text-[var(--text-tertiary)] text-[15px] leading-7">
-                                {t('agent_wizard.builder.instructions_placeholder')}
-                            </div>
-                        )}
+                    <div className="text-[var(--text-tertiary)] text-[15px] leading-7">
+                        {t('agent_wizard.builder.instructions_placeholder')}
                     </div>
                 )}
             </div>
-        </div>
-    );
+        )}
+    </div>;
 }

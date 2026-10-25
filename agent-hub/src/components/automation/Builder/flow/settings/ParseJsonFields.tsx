@@ -7,7 +7,7 @@ import { walkPath, previewValue, suggestKeyFromPath } from '../../../../../utils
 import { walkRelativePath } from '../../../../../utils/bindingHelpers.helpers';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../../hooks/useTranslation';
 import type { OnFocusField } from '../../mapping/focusField.types';
 import type { SampleRootGroup } from '../../mapping/realOutputs';
 import type { FormRecord } from './formState/types';
@@ -378,21 +378,24 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                 </div>
             </AccordionSection>
 
-            <AccordionSection stepType="parse_json" sectionKey="options" title={t('automations.parse_json_fields.options', 'Options')} defaultOpen={aiMode} forceOpen={errorSections.has('options')}>
-                <FormRow label={t('automations.parse_json_fields.extraction', 'Extraction')}>
-                    <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
-                        <input
-                            type="checkbox"
-                            checked={aiMode}
-                            onChange={(e) => set('mode', e.target.checked ? 'ai' : 'paths')}
-                        />
-                        {t('automations.parse_json_fields.extract_with_ai_on_every_run', 'Extract with AI on every run')}
-                    </label>
-                    <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                        {t('automations.parse_json_fields.for_payloads_whose_shape_changes_run', 'For payloads whose shape changes run to run. Uses the fast AI model on every run (token cost); each field needs a description. Otherwise leave off — path extraction is instant and free.')}
-                    </div>
-                </FormRow>
-            </AccordionSection>
+            <ParseJsonFieldsAccordionSection t={t} aiMode={aiMode} errorSections={errorSections} set={set} />
         </>
     );
+}
+
+function ParseJsonFieldsAccordionSection({ t, aiMode, errorSections, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; aiMode: boolean; errorSections: Set<string>; set: (key: string, value: unknown) => void; }) {
+    return <AccordionSection stepType="parse_json" sectionKey="options" title={t('automations.parse_json_fields.options', 'Options')} defaultOpen={aiMode} forceOpen={errorSections.has('options')}>
+        <FormRow label={t('automations.parse_json_fields.extraction', 'Extraction')}>
+            <label className="flex items-center gap-2 text-sm text-[var(--text-primary)]">
+                <input
+                    type="checkbox"
+                    checked={aiMode}
+                    onChange={(e) => set('mode', e.target.checked ? 'ai' : 'paths')} />
+                {t('automations.parse_json_fields.extract_with_ai_on_every_run', 'Extract with AI on every run')}
+            </label>
+            <div className="text-xs text-[var(--text-tertiary)] mt-1">
+                {t('automations.parse_json_fields.for_payloads_whose_shape_changes_run', 'For payloads whose shape changes run to run. Uses the fast AI model on every run (token cost); each field needs a description. Otherwise leave off — path extraction is instant and free.')}
+            </div>
+        </FormRow>
+    </AccordionSection>;
 }

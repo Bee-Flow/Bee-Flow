@@ -168,118 +168,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
                 </div>
             )}
 
-            <div className="space-y-4">
-                {/* ── Embeddings (per-feature picker; empty -> inherit global) ── */}
-                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                    <div className="flex items-center justify-between gap-4 mb-3">
-                        <div className="flex-1">
-                            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_embeddings', 'Embeddings')}</div>
-                            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                                {t('admin_ai_config.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the model from the Embeddings tab.')}
-                            </p>
-                        </div>
-                        {onNavigateToTab && (
-                            <button
-                                onClick={() => onNavigateToTab('embeddings')}
-                                className="text-xs px-3 py-1.5 rounded-lg border hover:bg-white/5 transition-colors text-[var(--text-secondary)] border-[var(--border-default)]"
-                            >
-                                {t('admin_ai_config.ws_open_embed', 'Open Embeddings settings →')}
-                            </button>
-                        )}
-                    </div>
-                    <SearchableModelSelect
-                        value={config.embed}
-                        label={embedLabel}
-                        groups={embedGroups}
-                        title={t('admin_ai_config.ws_embed_select', 'Select embedding model')}
-                        clearLabel={t('admin_ai_config.ws_embed_clear', 'Inherit from global Embeddings settings')}
-                        onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, embed: { providerId, modelId } }))}
-                    />
-                    {Object.keys(embedGroups).length === 0 && (
-                        <p className="text-xs mt-2 text-[var(--text-muted)]">
-                            {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider with embeddings (e.g. OpenAI, Mistral) or set one globally in the Embeddings tab.')}
-                        </p>
-                    )}
-                </div>
-
-                {/* ── Reranking ─────────────────────────────────────── */}
-                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                    <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_reranking', 'Reranking')}</div>
-                    <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
-                        {t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                        {RERANK_METHODS.map(opt => {
-                            const selected = config.rerank.method === opt.id;
-                            return (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setConfig(prev => ({
-                                        ...prev,
-                                        rerank: opt.id === 'provider'
-                                            ? { method: 'provider', providerId: prev.rerank.providerId, modelId: prev.rerank.modelId }
-                                            : { method: opt.id, providerId: '', modelId: '' },
-                                    }))}
-                                    className="text-left p-3 rounded-lg border transition-all"
-                                    style={{
-                                        background: selected ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)',
-                                        borderColor: selected ? '#10B981' : 'var(--border-default)',
-                                    }}
-                                >
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
-                                            style={{ borderColor: selected ? '#10B981' : 'var(--border-default)', background: selected ? '#10B981' : 'transparent' }}>
-                                            {selected && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
-                                        </span>
-                                        <span className="text-sm font-medium" style={{ color: selected ? '#10B981' : 'var(--text-primary)' }}>
-                                            {opt.label}
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {config.rerank.method === 'provider' && (
-                        <div className="mt-3">
-                            <SearchableModelSelect
-                                value={{ providerId: config.rerank.providerId, modelId: config.rerank.modelId }}
-                                label={rerankLabel}
-                                groups={cleanupGroups}
-                                title={t('admin_ai_config.ws_rerank_select', 'Select rerank model')}
-                                clearLabel={t('admin_ai_config.ws_rerank_clear', 'Pick a model (required for provider rerank)')}
-                                onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, rerank: { method: 'provider', providerId, modelId } }))}
-                            />
-                            {!config.rerank.modelId && (
-                                <p className="text-xs mt-1.5 text-[var(--text-muted)]">
-                                    {t('admin_ai_config.ws_rerank_pick_hint', 'Pick a model: without one, “Provider model” falls back to cosine similarity at runtime.')}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                {/* ── Cleanup ───────────────────────────────────────── */}
-                <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                    <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}</div>
-                    <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
-                        {t('admin_ai_config.ws_cleanup_hint', 'Convert raw scraped HTML into clean, agent-readable text. Pick any chat model from a configured provider.')}
-                    </p>
-                    <SearchableModelSelect
-                        value={config.cleanup}
-                        label={cleanupLabel}
-                        groups={cleanupGroups}
-                        title={t('admin_ai_config.ws_cleanup_select', 'Select cleanup model')}
-                        clearLabel={t('admin_ai_config.ws_cleanup_clear', 'Disabled (skip cleanup)')}
-                        onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, cleanup: { providerId, modelId } }))}
-                    />
-                    {Object.keys(cleanupGroups).length === 0 && (
-                        <p className="text-xs mt-2 text-[var(--text-muted)]">
-                            {t('admin_ai_config.ws_no_providers', 'No providers configured yet: add an API key in the Providers tab to enable model selection.')}
-                        </p>
-                    )}
-                </div>
-            </div>
+            <WebSearchInferenceConfigSection t={t} onNavigateToTab={onNavigateToTab} config={config} embedLabel={embedLabel} embedGroups={embedGroups} setConfig={setConfig} RERANK_METHODS={RERANK_METHODS} rerankLabel={rerankLabel} cleanupGroups={cleanupGroups} cleanupLabel={cleanupLabel} />
 
             <div className="mt-6 flex justify-end">
                 <button
@@ -296,3 +185,115 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
 };
 
 export default WebSearchInferenceConfig;
+
+function WebSearchInferenceConfigSection({ t, onNavigateToTab, config, embedLabel, embedGroups, setConfig, RERANK_METHODS, rerankLabel, cleanupGroups, cleanupLabel }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigateToTab: React.Dispatch<React.SetStateAction<string>>; config: { embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }; embedLabel: string; embedGroups: Record<string, InferenceModel[]>; setConfig: React.Dispatch<React.SetStateAction<{ embed: { providerId: string; modelId: string; }; rerank: { method: string; providerId: string; modelId: string; }; cleanup: { providerId: string; modelId: string; }; }>>; RERANK_METHODS: { id: string; label: string; desc: string; }[]; rerankLabel: string; cleanupGroups: Record<string, InferenceModel[]>; cleanupLabel: string; }) {
+    return <div className="space-y-4">
+        {/* ── Embeddings (per-feature picker; empty -> inherit global) ── */}
+        <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+            <div className="flex items-center justify-between gap-4 mb-3">
+                <div className="flex-1">
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_embeddings', 'Embeddings')}</div>
+                    <p className="text-xs mt-0.5 text-[var(--text-muted)]">
+                        {t('admin_ai_config.ws_embed_hint', 'Vectorise queries and pages for semantic search. Pick a model to override, or leave on “Inherit global” to use the model from the Embeddings tab.')}
+                    </p>
+                </div>
+                {onNavigateToTab && (
+                    <button
+                        onClick={() => onNavigateToTab('embeddings')}
+                        className="text-xs px-3 py-1.5 rounded-lg border hover:bg-white/5 transition-colors text-[var(--text-secondary)] border-[var(--border-default)]"
+                    >
+                        {t('admin_ai_config.ws_open_embed', 'Open Embeddings settings →')}
+                    </button>
+                )}
+            </div>
+            <SearchableModelSelect
+                value={config.embed}
+                label={embedLabel}
+                groups={embedGroups}
+                title={t('admin_ai_config.ws_embed_select', 'Select embedding model')}
+                clearLabel={t('admin_ai_config.ws_embed_clear', 'Inherit from global Embeddings settings')}
+                onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, embed: { providerId, modelId } }))} />
+            {Object.keys(embedGroups).length === 0 && (
+                <p className="text-xs mt-2 text-[var(--text-muted)]">
+                    {t('admin_ai_config.ws_embed_none', 'No embedding models found in your configured providers: add a provider with embeddings (e.g. OpenAI, Mistral) or set one globally in the Embeddings tab.')}
+                </p>
+            )}
+        </div>
+
+        {/* ── Reranking ─────────────────────────────────────── */}
+        <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_reranking', 'Reranking')}</div>
+            <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
+                {t('admin_ai_config.ws_rerank_hint', 'Re-score search results to surface the most relevant. Provider-agnostic.')}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+                {RERANK_METHODS.map(opt => {
+                    const selected = config.rerank.method === opt.id;
+                    return (
+                        <button
+                            key={opt.id}
+                            onClick={() => setConfig(prev => ({
+                                ...prev,
+                                rerank: opt.id === 'provider'
+                                    ? { method: 'provider', providerId: prev.rerank.providerId, modelId: prev.rerank.modelId }
+                                    : { method: opt.id, providerId: '', modelId: '' },
+                            }))}
+                            className="text-left p-3 rounded-lg border transition-all"
+                            style={{
+                                background: selected ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-secondary)',
+                                borderColor: selected ? '#10B981' : 'var(--border-default)',
+                            }}
+                        >
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
+                                    style={{ borderColor: selected ? '#10B981' : 'var(--border-default)', background: selected ? '#10B981' : 'transparent' }}>
+                                    {selected && <span className="w-1.5 h-1.5 rounded-full bg-white"></span>}
+                                </span>
+                                <span className="text-sm font-medium" style={{ color: selected ? '#10B981' : 'var(--text-primary)' }}>
+                                    {opt.label}
+                                </span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">{opt.desc}</p>
+                        </button>
+                    );
+                })}
+            </div>
+            {config.rerank.method === 'provider' && (
+                <div className="mt-3">
+                    <SearchableModelSelect
+                        value={{ providerId: config.rerank.providerId, modelId: config.rerank.modelId }}
+                        label={rerankLabel}
+                        groups={cleanupGroups}
+                        title={t('admin_ai_config.ws_rerank_select', 'Select rerank model')}
+                        clearLabel={t('admin_ai_config.ws_rerank_clear', 'Pick a model (required for provider rerank)')}
+                        onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, rerank: { method: 'provider', providerId, modelId } }))} />
+                    {!config.rerank.modelId && (
+                        <p className="text-xs mt-1.5 text-[var(--text-muted)]">
+                            {t('admin_ai_config.ws_rerank_pick_hint', 'Pick a model: without one, “Provider model” falls back to cosine similarity at runtime.')}
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+
+        {/* ── Cleanup ───────────────────────────────────────── */}
+        <div className="rounded-xl border p-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.ws_cleanup', 'Webpage cleanup')}</div>
+            <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
+                {t('admin_ai_config.ws_cleanup_hint', 'Convert raw scraped HTML into clean, agent-readable text. Pick any chat model from a configured provider.')}
+            </p>
+            <SearchableModelSelect
+                value={config.cleanup}
+                label={cleanupLabel}
+                groups={cleanupGroups}
+                title={t('admin_ai_config.ws_cleanup_select', 'Select cleanup model')}
+                clearLabel={t('admin_ai_config.ws_cleanup_clear', 'Disabled (skip cleanup)')}
+                onChange={({ providerId, modelId }) => setConfig(prev => ({ ...prev, cleanup: { providerId, modelId } }))} />
+            {Object.keys(cleanupGroups).length === 0 && (
+                <p className="text-xs mt-2 text-[var(--text-muted)]">
+                    {t('admin_ai_config.ws_no_providers', 'No providers configured yet: add an API key in the Providers tab to enable model selection.')}
+                </p>
+            )}
+        </div>
+    </div>;
+}

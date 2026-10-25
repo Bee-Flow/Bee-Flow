@@ -5,7 +5,7 @@ import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import Modal from '../../../shared/Modal';
 import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
 import { errorMessage } from '../../../../utils/caughtError';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
 import { logger } from '../../../../utils/logger';
 import { request, RefusedError } from '../../../../api/mutate';
@@ -263,21 +263,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
             className="bg-[var(--bg-card,#fff)] overflow-y-auto"
         >
             <div>
-                <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-default)]">
-                    <div>
-                        <div className="text-sm font-semibold text-[var(--text-primary)]">{t('agent_wizard.files.title')}</div>
-                        <div className="text-xs text-[var(--text-tertiary)]">{t('agent_wizard.files.subtitle')}</div>
-                        {/* BFSF-270: for unsaved drafts, say WHERE files go —
-                            the assignee's "there should be a message" — while
-                            keeping the flow fully functional. */}
-                        {!agent?.id && (
-                            <div className="text-xs text-[var(--text-tertiary)] mt-1">
-                                {t('agent_wizard.files.draft_notice', 'Files are stored in a knowledge base right away — save the agent to keep them linked.')}
-                            </div>
-                        )}
-                    </div>
-                    <button onClick={onClose} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"><X size={18} /></button>
-                </div>
+                <FilesUploadModalSection t={t} agent={agent} onClose={onClose} />
 
                 <div className="p-5 space-y-4">
                     {/* KbList draws its own "Knowledge bases (N)" heading, next
@@ -339,4 +325,22 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
             </div>
         </Modal>
     );
+}
+
+function FilesUploadModalSection({ t, agent, onClose }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; agent: AgentShell | null | undefined; onClose: () => void; }) {
+    return <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-default)]">
+        <div>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('agent_wizard.files.title')}</div>
+            <div className="text-xs text-[var(--text-tertiary)]">{t('agent_wizard.files.subtitle')}</div>
+            {/* BFSF-270: for unsaved drafts, say WHERE files go —
+            the assignee's "there should be a message" — while
+            keeping the flow fully functional. */}
+            {!agent?.id && (
+                <div className="text-xs text-[var(--text-tertiary)] mt-1">
+                    {t('agent_wizard.files.draft_notice', 'Files are stored in a knowledge base right away — save the agent to keep them linked.')}
+                </div>
+            )}
+        </div>
+        <button onClick={onClose} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"><X size={18} /></button>
+    </div>;
 }
