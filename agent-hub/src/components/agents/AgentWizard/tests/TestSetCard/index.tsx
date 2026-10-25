@@ -1,16 +1,15 @@
 import { AlertTriangle, Ban, CheckCircle2, ChevronDown, ChevronRight, CircleHelp, FlaskConical, Play, Plus, XCircle, type LucideIcon } from 'lucide-react';
 import React, { useState } from 'react';
-import {
-    PROGRESS, REFUSAL, RUN_STATE,
-    firstProblem, justRanScore, problemFor, summariseRun,
-    type AgentTest, type Refusal, type RunProgress, type RunSummary, type TestItem, type TestRun,
-} from './testSetFacts';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import { EmptyRow, UnreadableNotice } from '../canUse/CanUseCard';
-import { READ } from '../canUse/canUseFacts';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
-import type { StatusDotProps, RefusalNoticeProps, ScoreLineProps, AboutLineProps, FailLineProps, TestRowProps, TestSetCardProps } from './TestSetCard.types';
+import { RUN_STATE, firstProblem, justRanScore, problemFor, summariseRun, type RunProgress, type RunSummary, type TestItem, type TestRun } from '../testSetFacts';
+import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
+import { EmptyRow, UnreadableNotice } from '../../canUse/CanUseCard';
+import { READ } from '../../canUse/canUseFacts';
+import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { RelativeTimeInput } from '../../../../../hooks/useRelativeTime';
+import type { StatusDotProps, RefusalNoticeProps, FailLineProps, TestRowProps, TestSetCardProps } from '../TestSetCard.types';
+import { problemSentence, refusalSentence, aiWrote } from './TestSetCard.helpers';
+import { ScoreLine } from './ScoreLine';
+import { AboutLine } from './AboutLine';
 
 /**
  * The test-set card of the Test tab (Agents artboard 1c, A4 part D).
@@ -64,80 +63,6 @@ function StatusDot({ status }: StatusDotProps) {
     return <Icon size={14} aria-hidden="true" style={{ color: look.color, flexShrink: 0 }} />;
 }
 
-/**
- * The sentence for one problem.
- *
- * Purely based on `kind` from `problemFor`, so the closed values of the server
- * (`decidedBy`) and the FACTS (a forbidden word that is literally present, a tool that was
- * never called) each get their own translatable rule. The English sentence that the server
- * stored is not shown: it is not translated and says the same thing.
- */
-function problemSentence(t: TranslateFn, problem: { status: string; kind: string; names: string[]; reason: string } | null) {
-    if (!problem) return '';
-    const names = (problem.names || []).join(', ');
-    switch (problem.kind) {
-        case 'forbidden':
-            return t('agent_studio.test.fail_forbidden', 'Said something this test forbids: {names}', { names });
-        case 'tools_missing':
-            return t('agent_studio.test.fail_tools_missing', 'Did not use: {names}', { names });
-        case 'withheld':
-            return names
-                ? t('agent_studio.test.blocked_withheld', 'A test run never uses {names}, so this could not be checked.', { names })
-                : t('agent_studio.test.blocked_plain', 'This expectation cannot be checked in a test run.');
-        case 'ungraded':
-            return t('agent_studio.test.errored', 'There was no answer to grade, so this says nothing about the agent.');
-        case 'decided:must_mention':
-            return t('agent_studio.test.fail_must_mention', 'Did not get across everything this test asks for.');
-        case 'decided:must_not_mention':
-            return t('agent_studio.test.fail_must_not_mention', 'Said something this test forbids.');
-        case 'decided:tools':
-            return t('agent_studio.test.fail_tools', 'Did not use the tools this test expects.');
-        case 'decided:rules':
-            return t('agent_studio.test.fail_rules', 'Did not follow the rules this test expects.');
-        case 'decided:notes':
-            return t('agent_studio.test.fail_notes', 'Did not meet the extra note on this test.');
-        default:
-            return t('agent_studio.test.fail_overall', 'Not a usable answer to the question.');
-    }
-}
-
-/** De zin bij een weigering. Elke soort zegt óók dat er niets getest is. */
-function refusalSentence(t: TranslateFn, refusal: Refusal) {
-    switch (refusal.kind) {
-        case REFUSAL.NO_GRADER:
-            return t('agent_studio.test.refused_no_grader', 'No AI model is set up to grade these answers, so nothing was tested.');
-        case REFUSAL.NO_SUGGESTER:
-            return t('agent_studio.test.refused_no_suggester', 'No AI model is set up to write this suggestion.');
-        case REFUSAL.MODEL_UNREADABLE:
-            return t('agent_studio.test.refused_model_unreadable', 'Could not look up which model does this, so nothing ran.');
-        case REFUSAL.SUGGESTION_UNREADABLE:
-            return t('agent_studio.test.refused_suggestion', 'Could not write a suggestion for this answer.');
-        case REFUSAL.LIMIT:
-            return t('agent_studio.test.refused_limit', 'Your plan has no room for a test run right now, so nothing was tested.');
-        case REFUSAL.CHECK_FAILED:
-            return t('agent_studio.test.refused_check', 'Could not check your workspace or your plan, so nothing ran.');
-        case REFUSAL.NOTHING_TO_RUN:
-            return t('agent_studio.test.refused_empty', 'There is nothing to run yet — write a question first.');
-        case REFUSAL.NOT_EDITABLE:
-            // What is true: this agent keeps tests, and you may not see them.
-            // The old sentence ("You can look at these tests, but not run them")
-            // promised precisely the read that the server refuses.
-            return t('agent_studio.test.refused_not_editable', 'You need edit access to this agent to see and run its tests.');
-        case REFUSAL.TOO_MANY:
-            return t('agent_studio.test.refused_too_many', 'This agent already holds as many tests as it can.');
-        case REFUSAL.NOT_SAVED:
-            return t('agent_studio.test.refused_not_saved', 'The tests ran, but the result could not be saved — so this score is not kept.');
-        case REFUSAL.RUN_STOPPED:
-            // "Nothing was tested" would be false here: the results that already came in
-            // are shown beneath it on the screen.
-            return t('agent_studio.test.refused_run_stopped', 'The run stopped part-way. What you see below is what had already been tested.');
-        default:
-            // Unknown narrows: we do not know HOW FAR it got, so we also do not claim that
-            // nothing was tested.
-            return t('agent_studio.test.refused_unknown', 'Could not finish the test run.');
-    }
-}
-
 function RefusalNotice({ t, refusal, onRetry }: RefusalNoticeProps) {
     return (
         <div
@@ -162,108 +87,6 @@ function RefusalNotice({ t, refusal, onRetry }: RefusalNoticeProps) {
     );
 }
 
-function ScoreLine({ t, summary, questionCount, progress }: ScoreLineProps) {
-    // A running run has no result. What is there is progress, and it must read that way too:
-    // not as an interim tally that claims "3 passed".
-    if (progress && progress.status === PROGRESS.RUNNING) {
-        return (
-            <div data-testid="agent-tests-score" data-state="running" className="text-[15px] font-semibold text-[var(--text-primary)]">
-                {progress.total === null
-                    ? t('agent_studio.test.running', 'Running…')
-                    : t('agent_studio.test.running_n', 'Running… {done} of {total}', { done: progress.done, total: progress.total })}
-            </div>
-        );
-    }
-    if (progress && progress.status === PROGRESS.UNFINISHED) {
-        return (
-            <div data-testid="agent-tests-score" data-state="unfinished" className="text-[13px] text-[var(--text-secondary)]">
-                {t('agent_studio.test.run_unfinished', 'That run did not finish, so it is not a result.')}
-            </div>
-        );
-    }
-    const justRan = justRanScore(progress);
-    if (justRan) {
-        return (
-            <div data-testid="agent-tests-score" data-state="result" data-kept={justRan.kept ? 'yes' : 'no'}
-                className="text-[15px] font-semibold text-[var(--text-primary)]">
-                {t('agent_studio.test.score', '{passed} of {total} passed',
-                    { passed: justRan.passed, total: justRan.total })}
-            </div>
-        );
-    }
-    switch (summary.state) {
-        case RUN_STATE.RESULT:
-            return (
-                <div data-testid="agent-tests-score" data-state="result" className="text-[15px] font-semibold text-[var(--text-primary)]">
-                    {t('agent_studio.test.score', '{passed} of {total} passed', { passed: summary.passed, total: summary.total })}
-                </div>
-            );
-        case RUN_STATE.UNKNOWN:
-            return (
-                <div data-testid="agent-tests-score" data-state="unknown" className="text-[13px] text-[var(--warning)]">
-                    {t('agent_studio.test.last_run_unknown', 'Could not read the last run, so nothing is claimed here.')}
-                </div>
-            );
-        case RUN_STATE.UNFINISHED:
-            return (
-                <div data-testid="agent-tests-score" data-state="unfinished" className="text-[13px] text-[var(--warning)]">
-                    {t('agent_studio.test.stored_unfinished', 'The last run did not finish, so there is no score for it.')}
-                </div>
-            );
-        default:
-            return (
-                <div data-testid="agent-tests-score" data-state="never" className="text-[15px] font-semibold text-[var(--text-primary)]">
-                    {questionCount === 0
-                        ? t('agent_studio.test.no_questions', 'No questions yet')
-                        : t('agent_studio.test.never_run', 'Not run yet')}
-                </div>
-            );
-    }
-}
-
-function AboutLine({ t, summary, justRan = null }: AboutLineProps) {
-    if (justRan && !justRan.kept) return null;
-    if (summary.state !== RUN_STATE.RESULT) return null;
-    const parts = [];
-    if (summary.source === 'published' && summary.version) {
-        parts.push(t('agent_studio.test.about_version', 'about v{version}', { version: summary.version }));
-        if (summary.unpublishedChanges !== null && summary.unpublishedChanges > 0) {
-            parts.push(nOf(t, 'agent_studio.test.about_ahead', summary.unpublishedChanges,
-                '{count} unpublished change since', '{count} unpublished changes since'));
-        }
-    } else if (summary.source === 'live') {
-        parts.push(t('agent_studio.test.about_draft', 'about your draft'));
-    }
-    if (summary.coverage && summary.coverage.of !== null && summary.coverage.ran !== summary.coverage.of) {
-        // Two sentences, because there are two different facts: how many questions stand NOW
-        // (the normal case), and how many stood THEN, when the run ran (if the current list
-        // could not be read).
-        parts.push(summary.coverage.when === 'then'
-            ? nOf(t, 'agent_studio.test.covers_then', summary.coverage.of,
-                'covers {ran} of the {count} question this agent had then',
-                'covers {ran} of the {count} questions this agent had then',
-                { ran: summary.coverage.ran })
-            : nOf(t, 'agent_studio.test.covers', summary.coverage.of,
-                'covers {ran} of the {count} question you have now',
-                'covers {ran} of the {count} questions you have now',
-                { ran: summary.coverage.ran }));
-    }
-    const stale = summary.stale.changed
-        ? t('agent_studio.test.stale_changed', 'A question changed after this run, so the score is about the older wording.')
-        : summary.stale.added
-            ? t('agent_studio.test.stale_added', 'A question was added after this run.')
-            : summary.stale.removed
-                ? t('agent_studio.test.stale_removed', 'This run covered a question that no longer exists.')
-                : null;
-    if (parts.length === 0 && !stale) return null;
-    return (
-        <div data-testid="agent-tests-about" className="text-[12px] text-[var(--text-tertiary)]">
-            {parts.join(' · ')}
-            {stale && <span className="block text-[var(--warning)]">{stale}</span>}
-        </div>
-    );
-}
-
 function FailLine({ t, items }: FailLineProps) {
     const first = firstProblem(items);
     if (!first) return null;
@@ -283,20 +106,6 @@ function FailLine({ t, items }: FailLineProps) {
             </span>
         </div>
     );
-}
-
-/**
- * Did a MODEL write part of this expectation?
- *
- * `writtenBy` comes from the storage (agent_tests.written_by) and is null for every test
- * that someone typed himself. Without this marker, an expectation written by a model was
- * no longer distinguishable after saving from a typed one, while every run result that
- * follows from it relies on it.
- */
-function aiWrote(test: AgentTest) {
-    const by = test && test.writtenBy;
-    if (!by || typeof by !== 'object') return false;
-    return Object.values(by).some(v => v === 'ai');
 }
 
 function TestRow({ t, test, item }: TestRowProps) {

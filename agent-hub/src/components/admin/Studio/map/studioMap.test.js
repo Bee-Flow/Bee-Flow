@@ -2,12 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { cardChrome } from '../../../automation/Builder/flow/nodeTypeColors';
 import { KIND_KEYS, cardRadius, kindColorVar } from '../../../shared/kindColors';
 import { STUDIO_APPS } from '../studioApps';
-import {
-    KINDS_OFF_MAP, MAP_BLOCKS, MAP_EDGES, MAP_H, MAP_KINDS, MAP_LANES, MAP_NODES, MAP_SYNTHETIC,
-    MAP_W, TILE_H, TILE_W, VERB_LABEL, anchorOf, blockMeta, countState,
-    edgeGeometries, edgeGeometry, edgeTouches, edgesOf, kindCardChrome, laneMeta,
-    mapNode, syntheticCardChrome,
-} from './studioMap';
+import { MAP_EDGES, anchorOf, blockMeta, countState, edgeGeometries, edgeGeometry, edgeTouches, edgesOf, kindCardChrome, laneMeta, mapNode, syntheticCardChrome } from './studioMap';
+import { KINDS_OFF_MAP, MAP_BLOCKS, MAP_H, MAP_KINDS, MAP_LANES, MAP_NODES, MAP_SYNTHETIC, MAP_W, TILE_H, TILE_W, VERB_LABEL } from './studioMap.constants';
 
 /**
  * The map is HAND-DRAWN. That is a deliberate choice (see the header of studioMap.js)

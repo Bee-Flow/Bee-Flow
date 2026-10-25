@@ -1,19 +1,14 @@
-import React, {
-    createContext,
-    useCallback, useContext,
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-    useEffectEvent } from 'react';
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useEffectEvent } from 'react';
 import { API_BASE, isDemoPath } from '../../utils/helpers';
 import WallpaperLayer from './WallpaperLayer';
 import { applyThemeToDocument } from '../theme/applyTheme';
-import type { PreviewMode, ThemeContextValue, ThemeOption, ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeContext.types';
+import type { ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeContext.types';
 import { messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { DEFAULTS, ThemeContext } from './ThemeContext.constants';
+import { readBootstrap, writeBootstrap, detectPreviewMode } from './ThemeContext.helpers';
+export { THEME_PRESETS, FONT_OPTIONS } from './ThemeContext.constants';
 
 /**
  * ThemeContext — single source of truth for the active theme + branding.
@@ -36,95 +31,6 @@ import { mutate, errorBody, RefusedError } from '../../api/mutate';
  * propagate live without re-encoding the URL. Bootstrap localStorage writes
  * are suppressed in preview mode to keep the admin's saved baseline clean.
  */
-
-const BOOTSTRAP_KEY = 'beeflow:theme:bootstrap';
-
-const DEFAULTS: ThemeSettings = Object.freeze({
-    preset: 'light',
-    accent: '#9ca3af',
-    radiusScale: 1,
-    font: 'system',
-    wallpaperOverlay: 0.1,
-    glassIntensity: 1,
-    // Glass v2 config — drive [data-*] attrs on <html> for CSS to pick up.
-    wallpaperPreset: 'mono',
-    glassTint: 'neutral',
-    glassLens: 'on',
-    glassAnimation: 'off',
-    glassGrain: 'subtle',
-    glassBorder: 'subtle',
-    glassTierSubtle: null,
-    glassTierDefault: null,
-    glassTierOpaque: null,
-    wallpaperUrl: null,
-    allowUserOverride: true,
-    source: 'default',
-});
-
-function readBootstrap(): Partial<ThemeSettings> | null {
-    try {
-        const raw = localStorage.getItem(BOOTSTRAP_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        return parsed;
-    } catch (_) {
-        return null;
-    }
-}
-
-function writeBootstrap(theme: ThemeState) {
-    try {
-        localStorage.setItem(BOOTSTRAP_KEY, JSON.stringify({
-            preset: theme.preset,
-            accent: theme.accent,
-            radiusScale: theme.radiusScale,
-            font: theme.font,
-            wallpaperUrl: theme.wallpaperUrl,
-            wallpaperOverlay: theme.wallpaperOverlay,
-            glassIntensity: theme.glassIntensity,
-            // Glass v2 attrs — applied by the pre-React bootstrap script in
-            // index.html so the page paints with the right look on first frame.
-            wallpaperPreset: theme.wallpaperPreset,
-            glassTint: theme.glassTint,
-            glassLens: theme.glassLens,
-            glassAnimation: theme.glassAnimation,
-            glassGrain: theme.glassGrain,
-            glassBorder: theme.glassBorder,
-        }));
-    } catch (err) { logger.debug('quota, ignore', err); }
-}
-
-function detectPreviewMode(): PreviewMode {
-    if (typeof window === 'undefined') return { inPreview: false, initial: null };
-    try {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('themePreview') !== '1') return { inPreview: false, initial: null };
-        const t = params.get('t');
-        if (!t) return { inPreview: true, initial: null };
-        // URL-safe base64 → standard base64 → JSON.
-        const b64 = t.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-        const parsed = JSON.parse(atob(padded));
-        if (!parsed || typeof parsed !== 'object') return { inPreview: true, initial: null };
-        return { inPreview: true, initial: parsed };
-    } catch (e) {
-        console.warn('[Theme] preview payload parse failed:', e);
-        return { inPreview: true, initial: null };
-    }
-}
-
-const ThemeContext = createContext<ThemeContextValue>({
-    ...DEFAULTS,
-    loading: true,
-    error: null,
-    setUserOverride: async () => {},
-    clearUserOverride: async () => {},
-    setAdminDefault: async () => {},
-    uploadWallpaper: async () => {},
-    deleteWallpaper: async () => {},
-    reload: async () => {},
-});
 
 export function ThemeProvider({ children, initialOverride = null }: ThemeProviderProps) {
     // Preview mode is decided once per provider mount from the URL. The Theme
@@ -405,22 +311,4 @@ export function useTheme() {
     return useContext(ThemeContext);
 }
 
-export const THEME_PRESETS: ThemeOption[] = [
-    { id: 'light', label: 'Light' },
-    { id: 'paper', label: 'Paper' },
-    { id: 'sepia', label: 'Sepia' },
-    { id: 'glass', label: 'Glass' },
-    { id: 'glass-dark', label: 'Glass Dark' },
-    { id: 'dark', label: 'Dark' },
-    { id: 'obsidian', label: 'Obsidian' },
-    { id: 'high-contrast', label: 'High Contrast' },
-    { id: 'custom', label: 'Custom' },
-];
-
-export const FONT_OPTIONS: ThemeOption[] = [
-    { id: 'system', label: 'System default' },
-    { id: 'inter', label: 'Inter' },
-    { id: 'plex', label: 'IBM Plex Sans' },
-    { id: 'geist', label: 'Geist' },
-];
 export default ThemeContext;

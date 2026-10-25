@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { READ } from './canUseFacts';
-import { ACT_AS, CONFIRM, automationRows, toolRows } from './toolGrants';
+import { automationRows, toolRows } from './toolGrants';
+import { ACT_AS, CONFIRM } from './toolGrants.helpers';
 import ToolsCard from './ToolsCard';
 
 /**

@@ -3,7 +3,11 @@ import { cardChrome } from '../../../automation/Builder/flow/nodeTypeColors';
 import { cardRadius as kindCardRadius, kindColorVar } from '../../../shared/kindColors';
 import { STUDIO_CATEGORIES, type Translate } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
-import type { BlockMeta, CountState, CurveRoute, EdgeGeometry, ElbowRoute, MapBlock, MapEdge, MapNode, Point, Side } from './studioMap.types';
+import type { BlockMeta, CountState, EdgeGeometry, ElbowRoute, MapEdge, MapNode, Point, Side } from './studioMap.types';
+import { TILE_W, TILE_H, NODE_BY_ID, ORG_WIDE_COUNT_KEYS } from './studioMap.constants';
+import { direction, arrowPath, roundedPolyline, selfGeometry, curveGeometry } from './studioMap.helpers';
+export { arrowPath } from './studioMap.helpers';
+export { TILE_W, TILE_H, MAP_W, MAP_H, MAP_LANES, KINDS_OFF_MAP, MAP_BLOCKS, MAP_SYNTHETIC, MAP_NODES, VERB_LABEL, NO_EDGE_NODE_ID, MAP_KINDS, ORG_WIDE_COUNT_KEYS } from './studioMap.constants';
 
 /**
  * The map on the Studio Start screen: the twelve building blocks and the twelve ways
@@ -40,107 +44,12 @@ import type { BlockMeta, CountState, CurveRoute, EdgeGeometry, ElbowRoute, MapBl
 
 /* ── Meetkunde ────────────────────────────────────────────────────────────── */
 
-export const TILE_W = 160;
-export const TILE_H = 46;
-export const MAP_W = 700;
-export const MAP_H = 534;
-
-/**
- * The three lanes are the categories of the register (STUDIO_CATEGORIES), in the same
- * order as the rail shows them: Build · AI · Bundle. The LABEL later comes from that
- * register, so that the lane on the map cannot be named differently from the heading
- * on the rail. Only the band coordinates stand here.
- */
-export const MAP_LANES: readonly Readonly<{ id: string; y: number; h: number }>[] = Object.freeze([
-    Object.freeze({ id: 'build', y: 8, h: 236 }),
-    Object.freeze({ id: 'ai', y: 260, h: 158 }),
-    Object.freeze({ id: 'bundle', y: 434, h: 92 }),
-]);
-
-/**
- * Kinds that shared/kindColors.js DOES give a colour, but that do not belong here:
- * they are not a building block that you make in Studio. The drift test checks the map
- * against KIND_KEYS MINUS this list — a new kind must therefore either be on the plate,
- * or here with a reason. Silent omission is not possible.
- *
- *   compliance — an area that you MANAGE, not a thing that you make. It lives in
- *                organisation settings (Compliance Center, Sep 2026) and is in
- *                kindColors only so that the header, the tile in the settings nav and
- *                its own rail share one token.
- */
-export const KINDS_OFF_MAP: readonly string[] = Object.freeze(['compliance']);
-
-/**
- * The twelve building blocks. `kind` is the key from shared/kindColors.js; colour,
- * glyph and tile shape come from there, the label and the counter from the Studio
- * register (see blockMeta). x/y are hand-chosen: column a=28, b=262, c=496, and the
- * row heights per lane.
- */
-export const MAP_BLOCKS: readonly MapBlock[] = Object.freeze([
-    Object.freeze({ id: 'form', kind: 'form', lane: 'build', x: 28, y: 38 }),
-    Object.freeze({ id: 'webpage', kind: 'webpage', lane: 'build', x: 28, y: 100 }),
-    Object.freeze({ id: 'app', kind: 'app', lane: 'build', x: 28, y: 162 }),
-    Object.freeze({ id: 'automation', kind: 'automation', lane: 'build', x: 262, y: 100 }),
-    Object.freeze({ id: 'datatable', kind: 'datatable', lane: 'build', x: 496, y: 38 }),
-    // Column c, middle row: the automation in the centre fans out to the right to table
-    // (above), document (straight ahead) and approval (below). The free place in column
-    // b lay in the path from app→approval — the geometry test in studioMap.test.js
-    // caught that.
-    Object.freeze({ id: 'document', kind: 'document', lane: 'build', x: 496, y: 100 }),
-    Object.freeze({ id: 'meeting', kind: 'meeting', lane: 'ai', x: 28, y: 282 }),
-    Object.freeze({ id: 'kb', kind: 'kb', lane: 'ai', x: 262, y: 282 }),
-    Object.freeze({ id: 'agent', kind: 'agent', lane: 'ai', x: 28, y: 356 }),
-    Object.freeze({ id: 'skill', kind: 'skill', lane: 'ai', x: 496, y: 356 }),
-    Object.freeze({ id: 'playbook', kind: 'playbook', lane: 'bundle', x: 262, y: 464 }),
-    Object.freeze({ id: 'solution', kind: 'solution', lane: 'bundle', x: 28, y: 464 }),
-]);
-
-/**
- * The last box, and the only one that is NOT a building block.
- *
- * Two of the twelve edges point to an approval, and an approval is nothing that you
- * MAKE: it exists only at the moment an app or an automation asks for it.
- * server/projects/graph.js draws it for the same reason as a SYNTHETIC node
- * (graph.js:32-40). Omitting it would make the map two edges poorer and conceal the
- * most important property of both: that a human stands between them. It therefore
- * receives a dotted box without a kind colour, and never a counter — approvals are
- * not counted.
- */
-export const MAP_SYNTHETIC: readonly MapNode[] = Object.freeze([
-    Object.freeze({
-        id: 'approval', kind: null, synthetic: true, lane: 'build', x: 496, y: 162,
-        labelKey: 'studio.map.approval', labelFallback: 'Approval',
-    }),
-]);
-
-/** Elke getekende doos, bouwsteen of niet. */
-export const MAP_NODES: readonly MapNode[] = Object.freeze([...MAP_BLOCKS, ...MAP_SYNTHETIC]);
-
-const NODE_BY_ID = new Map<string, MapNode>(MAP_NODES.map((n): [string, MapNode] => [n.id, n]));
-
 /** De doos met dit id, of null. */
 export function mapNode(id: string): MapNode | null {
     return NODE_BY_ID.get(id) || null;
 }
 
 /* ── De twaalf randen ───────────────────────────────────────────────────────── */
-
-/**
- * The nine verbs that run over the twelve edges. One edge carries two of them (an
- * automation READS and WRITES a table): those are two different risks on the same
- * connection, and graph.js therefore keeps them apart within one pair as well.
- */
-export const VERB_LABEL: Readonly<Record<string, Readonly<{ labelKey: string; labelFallback: string }>>> = Object.freeze({
-    runs: Object.freeze({ labelKey: 'studio.map.verb_runs', labelFallback: 'runs' }),
-    asks: Object.freeze({ labelKey: 'studio.map.verb_asks', labelFallback: 'asks' }),
-    calls: Object.freeze({ labelKey: 'studio.map.verb_calls', labelFallback: 'calls' }),
-    reads: Object.freeze({ labelKey: 'studio.map.verb_reads', labelFallback: 'reads' }),
-    writes: Object.freeze({ labelKey: 'studio.map.verb_writes', labelFallback: 'writes' }),
-    uses: Object.freeze({ labelKey: 'studio.map.verb_uses', labelFallback: 'uses' }),
-    grounds: Object.freeze({ labelKey: 'studio.map.verb_grounds', labelFallback: 'grounds' }),
-    feeds: Object.freeze({ labelKey: 'studio.map.verb_feeds', labelFallback: 'feeds' }),
-    triggers: Object.freeze({ labelKey: 'studio.map.verb_triggers', labelFallback: 'triggers' }),
-});
 
 /**
  * The eleven edges, in the order in which server/projects/graph.js lists them in its
@@ -244,14 +153,6 @@ export const MAP_EDGES: readonly MapEdge[] = Object.freeze([
     }),
 ]);
 
-/**
- * The box without edges. Today precisely one ('solution'), and the sentence below it
- * is written for that one (“the box that the others travel in”). An eleventh kind that
- * landed on the map without edges would otherwise be told that it is a solution, so
- * the sentence hangs on the node and not on the number 0.
- */
-export const NO_EDGE_NODE_ID = 'solution';
-
 /** The edges that touch this box — out or in. A self-loop counts once. */
 export function edgesOf(nodeId: string | null | undefined): MapEdge[] {
     if (!nodeId) return [];
@@ -346,13 +247,6 @@ export function syntheticCardChrome({ selected = false, dimmed = false }: { sele
 
 /* ── Paden ────────────────────────────────────────────────────────────────── */
 
-const SIDE_NORMAL: Readonly<Record<Side, Readonly<Point>>> = Object.freeze({
-    left: Object.freeze({ x: -1, y: 0 }),
-    right: Object.freeze({ x: 1, y: 0 }),
-    top: Object.freeze({ x: 0, y: -1 }),
-    bottom: Object.freeze({ x: 0, y: 1 }),
-});
-
 /**
  * The point on the edge of a box. `off` slides ALONG that edge: two edges that leave
  * the same box on the same side must not lie on top of each other.
@@ -365,64 +259,6 @@ export function anchorOf(node: Point, side: Side | undefined, off = 0): Point {
     if (side === 'top') return { x: cx + off, y: node.y };
     if (side === 'bottom') return { x: cx + off, y: node.y + TILE_H };
     return { x: cx, y: cy };
-}
-
-const round1 = (n: number): number => Math.round(n * 10) / 10;
-
-/** De richting waarin de pijlpunt wijst, uit de laatste twee punten. */
-function direction(from: Point, to: Point): Point {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const len = Math.hypot(dx, dy) || 1;
-    return { x: dx / len, y: dy / len };
-}
-
-/**
- * The arrowhead: a triangle with its point ON the end point. Deliberately not an SVG
- * marker — a marker does not inherit the stroke colour everywhere, and on this map that
- * colour changes at every selection.
- */
-export function arrowPath(point: Point, dir: Point, size = 6): string {
-    const bx = point.x - dir.x * size;
-    const by = point.y - dir.y * size;
-    const px = -dir.y * size * 0.55;
-    const py = dir.x * size * 0.55;
-    return `M ${round1(point.x)} ${round1(point.y)} L ${round1(bx + px)} ${round1(by + py)} L ${round1(bx - px)} ${round1(by - py)} Z`;
-}
-
-/** Een orthogonale polylijn met afgeronde hoeken. */
-function roundedPolyline(points: Point[], r = 8): string {
-    if (points.length < 2) return '';
-    let d = `M ${round1(points[0].x)} ${round1(points[0].y)}`;
-    for (let i = 1; i < points.length - 1; i += 1) {
-        const prev = points[i - 1];
-        const cur = points[i];
-        const next = points[i + 1];
-        const inDir = direction(prev, cur);
-        const outDir = direction(cur, next);
-        const rIn = Math.min(r, Math.hypot(cur.x - prev.x, cur.y - prev.y) / 2);
-        const rOut = Math.min(r, Math.hypot(next.x - cur.x, next.y - cur.y) / 2);
-        const a = { x: cur.x - inDir.x * rIn, y: cur.y - inDir.y * rIn };
-        const b = { x: cur.x + outDir.x * rOut, y: cur.y + outDir.y * rOut };
-        d += ` L ${round1(a.x)} ${round1(a.y)} Q ${round1(cur.x)} ${round1(cur.y)} ${round1(b.x)} ${round1(b.y)}`;
-    }
-    const end = points[points.length - 1];
-    d += ` L ${round1(end.x)} ${round1(end.y)}`;
-    return d;
-}
-
-/** De zelflus: een boog over de eigen tegel heen. */
-function selfGeometry(node: Point) {
-    const left = { x: node.x + 40, y: node.y };
-    const right = { x: node.x + TILE_W - 40, y: node.y };
-    const top = node.y - 42;
-    const d = `M ${left.x} ${left.y} C ${left.x} ${top}, ${right.x} ${top}, ${right.x} ${right.y}`;
-    return {
-        d,
-        mid: { x: (left.x + 3 * left.x + 3 * right.x + right.x) / 8, y: (left.y + 3 * top + 3 * top + right.y) / 8 },
-        tip: right,
-        dir: { x: 0, y: 1 },
-    };
 }
 
 /** De omweg: een orthogonale route langs handgelegde knikken. */
@@ -443,29 +279,6 @@ function elbowGeometry(a: Point, b: Point, route: ElbowRoute, edge: MapEdge): Ed
         d: roundedPolyline(pts),
         arrow: arrowPath(b, dir),
         mid: edge.labelAt || pts[Math.floor(pts.length / 2)],
-    };
-}
-
-/**
- * De bocht: een cubic bezier met raaklijnen loodrecht op de twee randen. De
- * lengte van die raaklijn schaalt mee met de afstand, en is begrensd: op een
- * korte rand duwt een lange raaklijn de bocht terug door zichzelf heen.
- */
-function curveGeometry(a: Point, b: Point, route: CurveRoute, edge: MapEdge): EdgeGeometry {
-    const span = Math.hypot(b.x - a.x, b.y - a.y);
-    const bow = route.bow ?? Math.max(20, Math.min(80, span * 0.4));
-    const n1 = SIDE_NORMAL[route.fromSide] || SIDE_NORMAL.right;
-    const n2 = SIDE_NORMAL[route.toSide] || SIDE_NORMAL.left;
-    const c1 = { x: a.x + n1.x * bow, y: a.y + n1.y * bow };
-    const c2 = { x: b.x + n2.x * bow, y: b.y + n2.y * bow };
-    const mid = {
-        x: round1((a.x + 3 * c1.x + 3 * c2.x + b.x) / 8),
-        y: round1((a.y + 3 * c1.y + 3 * c2.y + b.y) / 8),
-    };
-    return {
-        d: `M ${round1(a.x)} ${round1(a.y)} C ${round1(c1.x)} ${round1(c1.y)}, ${round1(c2.x)} ${round1(c2.y)}, ${round1(b.x)} ${round1(b.y)}`,
-        arrow: arrowPath(b, direction(c2, b)),
-        mid: edge.labelAt || mid,
     };
 }
 
@@ -494,9 +307,6 @@ export function edgeGeometry(edge: MapEdge): EdgeGeometry | null {
 export function edgeGeometries(): { edge: MapEdge; geometry: EdgeGeometry | null }[] {
     return MAP_EDGES.map((edge) => ({ edge, geometry: edgeGeometry(edge) })).filter((e) => e.geometry);
 }
-
-/** De soorten die de kaart tekent — waar de drifttest tegenaan legt. */
-export const MAP_KINDS: readonly string[] = Object.freeze(MAP_BLOCKS.map((b) => b.kind));
 
 /* ── Tellers ──────────────────────────────────────────────────────────────── */
 
@@ -528,20 +338,6 @@ export function countState(node: MapNode | null | undefined, counts: StudioCount
     const value = countFor(counts, meta.countKey);
     return typeof value === 'number' ? { state: 'known', value } : { state: 'unknown' };
 }
-
-/**
- * The keys that GET /api/studio/counts REALLY counts org-wide.
- *
- * One, today. The rest counts per user, with the scoping of its own list route:
- * `automations` is `WHERE user_id = $1`, `runs` are the caller's own runs (with a
- * comment there saying that counting org-wide would be wrong), `solutions` is
- * listUserProjects. The endpoint moreover has NO scope parameter at all — a strip that
- * passes 'org' does not change the numbers, only the sentence under them. Without this
- * list, that sentence would flip into an org-wide claim about a number that the source
- * cannot carry: “9 · Counting everything in the organisation” under the nine own
- * automations of one builder.
- */
-export const ORG_WIDE_COUNT_KEYS: readonly string[] = Object.freeze(['agents']);
 
 /**
  * The sentence that says what the number is about.

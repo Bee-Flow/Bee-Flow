@@ -1,7 +1,8 @@
 import React, { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { READ } from './canUseFacts';
 import { chooserInitialSelection, commitSelection, foldSharedApps, selectionDelta } from './toolChooserModel';
-import { hasCuratedGrants, type SelectionMap, type ToolsConfig } from './toolGrants';
+import { type SelectionMap, type ToolsConfig } from './toolGrants';
+import { hasCuratedGrants } from './toolGrants.helpers';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import AppActionPicker from '../../../shared/AppActionPicker';
 import Modal from '../../../shared/Modal';
