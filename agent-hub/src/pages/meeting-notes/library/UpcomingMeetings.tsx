@@ -2,9 +2,7 @@ import React, { useEffect, useState, useEffectEvent } from 'react';
 import { Calendar, Loader2, RefreshCw, Video, Mic, Dot, FileText, AlertCircle, Users } from 'lucide-react';
 import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useTranslation from '../../../hooks/useTranslation';
-import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
-import { openMicrosoftOAuthPopup } from '../../../api/microsoftOAuthPopup';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { openGoogleConsentPopup, openMicrosoftConsentPopup } from '../../../api/oauthPopupLaunchers';
 import TagRow from '../detail/TagRow';
 import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../../../api/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
@@ -382,7 +380,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
     const reconnectMicrosoft = async () => {
         setReconnectingMs(true);
         try {
-            await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
+            await openMicrosoftConsentPopup();
             await loadTeams();
         } catch (err) { logger.debug('popup blocked / auth-url failed — the banner stays, user can retry', err); } finally {
             setReconnectingMs(false);
@@ -392,7 +390,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange }: UpcomingM
     const reconnectGoogle = async () => {
         setReconnecting(true);
         try {
-            await openGoogleOAuthPopup({ authFetch, apiBase: API_BASE });
+            await openGoogleConsentPopup();
             await loadGmeet();
         } catch (err) { logger.debug('popup blocked / auth-url failed — the banner stays, user can retry', err); } finally {
             setReconnecting(false);

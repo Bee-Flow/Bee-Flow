@@ -1,23 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent } from 'react';
 import { Loader2, X, Pencil, Globe } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useWebpageBundleQuery } from '../../api/queries/webpagesPanels';
 import WebpagePreview from '../../pages/webpages/WebpagePreview';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ExtraFileMeta, PrimaryContent, WebpageRow } from '../../api/webpageEditorTypes';
 import type { PreviewSelection } from '../../pages/webpages/preview/usePreviewToken';
 import { errorMessage } from '../../utils/caughtError';
-
-interface WebpageBundle {
-    webpage?: WebpageRow;
-    files?: Partial<PrimaryContent>;
-    extraFiles?: ExtraFileMeta[];
-}
-
-interface PanelState {
-    loading: boolean;
-    error: string | null | undefined;
-    data: WebpageBundle | null;
-}
 
 interface SideWebpagePanelProps {
     webpageId: string;
@@ -46,49 +34,34 @@ export default function SideWebpagePanel({
     onNavigate,       // (page) — same shape as App.jsx's navigateToPage
 }: SideWebpagePanelProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState<PanelState>({ loading: true, error: null, data: null });
-    // Stash the callbacks in refs so the effect's deps stay limited to
-    // webpageId + reloadKey. Parents typically pass inline arrows that get a
-    // new reference on every render — listing them as deps causes the panel
-    // to refetch on every parent re-render and the UI gets stuck on "Loading".
-    const onLoadedRef = useRef(onLoaded);
-    const onFilesLoadedRef = useRef(onFilesLoaded);
-    useEffect(() => { onLoadedRef.current = onLoaded; }, [onLoaded]);
-    useEffect(() => { onFilesLoadedRef.current = onFilesLoaded; }, [onFilesLoaded]);
-
+    const bundle = useWebpageBundleQuery(webpageId, reloadKey);
+    // Tell the parent about each answer once. useEffectEvent reads the latest callbacks without making
+    // them dependencies: parents pass inline arrows, and listing them would re-fire on every render.
+    const announce = useEffectEvent(() => {
+        if (bundle.isError) {
+            if (typeof onLoaded === 'function') onLoaded(null);
+            if (typeof onFilesLoaded === 'function') onFilesLoaded(null);
+            return;
+        }
+        const data = bundle.data;
+        if (typeof onLoaded === 'function' && data?.webpage) onLoaded(data.webpage);
+        if (typeof onFilesLoaded === 'function') {
+            onFilesLoaded({
+                html: data?.files?.html || '',
+                css: data?.files?.css || '',
+                js: data?.files?.js || '',
+                extraFiles: Array.isArray(data?.extraFiles) ? data.extraFiles : [],
+            });
+        }
+    });
     useEffect(() => {
-        let cancelled = false;
-        setState({ loading: true, error: null, data: null });
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}`);
-                if (!res.ok) {
-                    const body = await res.json().catch(() => ({}));
-                    throw new Error(body.error || `Failed (${res.status})`);
-                }
-                const data = await res.json();
-                if (!cancelled) {
-                    setState({ loading: false, error: null, data });
-                    if (typeof onLoadedRef.current === 'function' && data?.webpage) onLoadedRef.current(data.webpage);
-                    if (typeof onFilesLoadedRef.current === 'function') {
-                        onFilesLoadedRef.current({
-                            html: data?.files?.html || '',
-                            css: data?.files?.css || '',
-                            js: data?.files?.js || '',
-                            extraFiles: Array.isArray(data?.extraFiles) ? data.extraFiles : [],
-                        });
-                    }
-                }
-            } catch (err) {
-                if (!cancelled) {
-                    setState({ loading: false, error: errorMessage(err), data: null });
-                    if (typeof onLoadedRef.current === 'function') onLoadedRef.current(null);
-                    if (typeof onFilesLoadedRef.current === 'function') onFilesLoadedRef.current(null);
-                }
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [webpageId, reloadKey]);
+        if (bundle.isSuccess || bundle.isError) announce();
+    }, [bundle.isSuccess, bundle.isError, bundle.dataUpdatedAt, bundle.errorUpdatedAt]);
+    const state = {
+        loading: bundle.isPending,
+        error: bundle.isError ? errorMessage(bundle.error) : null,
+        data: bundle.data ?? null,
+    };
 
     const openInEditor = () => {
         if (typeof onNavigate === 'function') {

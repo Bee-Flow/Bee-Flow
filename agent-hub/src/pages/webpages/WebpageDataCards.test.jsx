@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -15,6 +15,7 @@ vi.mock('../../utils/helpers', () => ({
 }));
 
 import WebpageDataCards, { countDataCards, sharingDeepLink } from './WebpageDataCards';
+import { renderWithClient as render } from '../../test/render';
 
 const CARDS = {
     tables: [{

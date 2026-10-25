@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, Link2, MessageSquare, Send, ShieldAlert } from 'lucide-react';
 import { SetStateAction, Dispatch, useCallback, useEffect, useState } from 'react';
-import { authFetch, API_BASE } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
@@ -164,13 +164,13 @@ export default function SupportConnectionsConfig() {
     const test = async () => {
         setTestResult(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/notifications/test`, { method: 'POST' });
-            const d = await res.json().catch(() => ({}));
+            await mutate(`${API_BASE}/api/support/notifications/test`, { method: 'POST' });
+            setTestResult({ ok: true });
+        } catch (e) {
             // Report what the endpoint actually said — "test failed" with no
             // detail is why nobody trusts a test button.
-            setTestResult(res.ok ? { ok: true } : { ok: false, error: d.error || 'Delivery failed' });
-        } catch (e) {
-            setTestResult({ ok: false, error: errorMessage(e) });
+            if (e instanceof RefusedError) setTestResult({ ok: false, error: (errorBody(e) ?? {}).error || 'Delivery failed' });
+            else setTestResult({ ok: false, error: errorMessage(e) });
         }
     };
 

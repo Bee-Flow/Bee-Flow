@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useMeetingSourcesQuery } from '../../../api/queries/meetingNotesConnections';
 
 /**
  * useMeetingSources — which live-meeting sources can actually feed Meeting
@@ -15,25 +14,5 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  * @returns {{ talk: boolean, gmeet: boolean, loading: boolean }}
  */
 export default function useMeetingSources() {
-    const [sources, setSources] = useState({ talk: false, gmeet: false, loading: true });
-
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            const [talk, gmeet] = await Promise.all([
-                authFetch(`${API_BASE}/api/talk-notes-settings/user/me`)
-                    .then((r: Response) => (r.ok ? r.json() : {}))
-                    .then((d: { nextcloudConnected?: boolean }) => d.nextcloudConnected === true)
-                    .catch(() => false),
-                authFetch(`${API_BASE}/api/gmeet-notes-settings/user/me`)
-                    .then((r: Response) => (r.ok ? r.json() : {}))
-                    .then((d: { connection?: { googleConnected?: boolean } }) => d.connection?.googleConnected === true)
-                    .catch(() => false),
-            ]);
-            if (alive) setSources({ talk, gmeet, loading: false });
-        })();
-        return () => { alive = false; };
-    }, []);
-
-    return sources;
+    return useMeetingSourcesQuery();
 }

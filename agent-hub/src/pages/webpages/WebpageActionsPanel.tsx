@@ -1,12 +1,12 @@
 import {
     AlertTriangle, ExternalLink, FileText, Loader2, RefreshCw, Sparkles, Workflow,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import WebpageAppsPanel from './WebpageAppsPanel';
 import { Card, Chip } from './WebpageDataCards';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useWebpageBindingsQuery } from '../../api/queries/webpagesPanels';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { ScannedCall, CodeScan, BindingsPayload, NavigateFn, OwnCodeCardProps, OwnCodeSectionProps, FormsCardProps, AgentCardProps, WebpageActionsPanelProps } from './WebpageActionsPanel.types';
 
@@ -25,12 +25,6 @@ import type { ScannedCall, CodeScan, BindingsPayload, NavigateFn, OwnCodeCardPro
  *
  * 4. "THIS AUTOMATION IS FINISHED." What "Make an automation from this" scaffolds is a DRAFT with one `http_request` step: the fixed part of the URL, the method if we knew it, and `blockPrivateTargets` on. If the page built the rest of the address on the spot, the automation's description says so.
  */
-
-const BINDINGS_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/bindings`;
-
-async function readJson(res: Response) {
-    try { return await res.json(); } catch { return null; }
-}
 
 /** Waar de gescaffolde automatisering te vinden is. */
 export function automationDeepLink(automationId: string | number | boolean) {
@@ -310,21 +304,13 @@ function AgentCard({ t, agent }: AgentCardProps) {
 
 export default function WebpageActionsPanel({ webpageId, readOnly = false, onNavigate = null }: WebpageActionsPanelProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState<{ loading: boolean; error: string | null; data: BindingsPayload | null }>({ loading: true, error: null, data: null });
-
-    const load = useCallback(async () => {
-        setState(s => ({ ...s, loading: true, error: null }));
-        try {
-            const res = await authFetch(BINDINGS_URL(webpageId));
-            const body = await readJson(res);
-            if (!res.ok) throw new Error((body && body.error) || `HTTP ${res.status}`);
-            setState({ loading: false, error: null, data: body });
-        } catch (e) {
-            setState({ loading: false, error: (e as Error).message || 'failed', data: null });
-        }
-    }, [webpageId]);
-
-    useEffect(() => { if (webpageId && !readOnly) load(); }, [webpageId, readOnly, load]);
+    const bindingsQuery = useWebpageBindingsQuery<BindingsPayload>(webpageId, !readOnly);
+    const load = async () => { await bindingsQuery.refetch(); };
+    const state = {
+        loading: bindingsQuery.isPending || bindingsQuery.isFetching,
+        error: bindingsQuery.isError ? (bindingsQuery.error.message || 'failed') : null,
+        data: bindingsQuery.data ?? null,
+    };
 
     // A non-owner gets a 404 on /bindings — here the same answer as the grants
     // panel gives, instead of an empty column that reads as "this page does

@@ -5,7 +5,8 @@ import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { quoteIdent, api } from './BrowseTab';
+import { quoteIdent } from './BrowseTab';
+import { webpageRequest as api } from '../../api/webpagesRequest';
 
 export function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreadable = false }: SchemaTabProps) {
     const { t } = useTranslation();

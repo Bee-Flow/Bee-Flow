@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { API_BASE } from '../../utils/helpers';
+import { integrationsAdminKeys, useFeatureFlagsQuery } from '../../api/queries/integrationsAdmin';
 import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
-import { logger } from '../../utils/logger';
 import { mutate, ApiError } from '../../api/mutate';
 
 interface FlagDef {
@@ -42,34 +43,17 @@ const FLAGS: FlagDef[] = [
 
 export default function FeatureKillSwitches() {
     const { t } = useTranslation();
-    const [flags, setFlags] = useState<Record<string, boolean>>(() => {
-        const init: Record<string, boolean> = {};
-        for (const f of FLAGS) init[f.key] = true;
-        return init;
-    });
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const flagsQuery = useFeatureFlagsQuery();
+    // Server answer over the all-on defaults; a saved toggle is written into the cache.
+    const flags = useMemo(() => {
+        const next: Record<string, boolean> = {};
+        for (const f of FLAGS) next[f.key] = flagsQuery.data?.[f.key] !== undefined ? !!flagsQuery.data[f.key] : true;
+        return next;
+    }, [flagsQuery.data]);
+    const loading = flagsQuery.isPending;
     const [saving, setSaving] = useState<Record<string, boolean>>({});
     const [message, setMessage] = useState<FlashMessage | null>(null);
-
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/config`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (!alive) return;
-                    setFlags(prev => {
-                        const next = { ...prev };
-                        for (const f of FLAGS) if (data[f.key] !== undefined) next[f.key] = !!data[f.key];
-                        return next;
-                    });
-                }
-            } catch (e) { logger.debug('leave defaults', e); }
-            finally { if (alive) setLoading(false); }
-        })();
-        return () => { alive = false; };
-    }, []);
 
     useEffect(() => { if (!message) return; const t = setTimeout(() => setMessage(null), 3000); return () => clearTimeout(t); }, [message]);
 
@@ -86,7 +70,7 @@ export default function FeatureKillSwitches() {
                 throw err;
             });
             if (res) {
-                setFlags(f => ({ ...f, [key]: newVal }));
+                queryClient.setQueryData<Record<string, unknown> | null>(integrationsAdminKeys.featureFlags, (old) => ({ ...(old ?? {}), [key]: newVal }));
                 setMessage({ type: 'success', text: `${label} ${newVal ? 'enabled' : 'disabled'}` });
             } else {
                 setMessage({ type: 'error', text: `Failed to update ${label}` });

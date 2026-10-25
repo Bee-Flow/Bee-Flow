@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act, within } from '@testing-library/react';
+import { screen, fireEvent, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -25,6 +25,7 @@ vi.mock('../../utils/helpers', () => ({
 }));
 
 import WebpagesList from './WebpagesList';
+import { renderWithClient as render } from '../../test/render';
 
 const NOW = '2026-09-04T10:00:00.000Z';
 
@@ -119,8 +120,8 @@ describe('WebpagesList — describe to build', () => {
 
         // Pick one table and one automation out of the chooser.
         await act(async () => { fireEvent.click(screen.getByTestId('webpages-source-picker')); });
-        await act(async () => { fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /Quotes/ })); });
-        await act(async () => { fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /Request from website/ })); });
+        fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: /Quotes/ }));
+        fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: /Request from website/ }));
 
         await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Build' })); });
 
@@ -158,7 +159,7 @@ describe('WebpagesList — describe to build', () => {
         const user = userEvent.setup();
         renderList();
         await act(async () => { fireEvent.click(screen.getByTestId('webpages-source-picker')); });
-        await act(async () => { fireEvent.click(screen.getByRole('menuitemcheckbox', { name: /Quotes/ })); });
+        fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: /Quotes/ }));
         expect(screen.getByTestId('webpages-build-sources')).toHaveTextContent('Quotes');
 
         await user.click(screen.getByRole('button', { name: 'Remove Quotes' }));

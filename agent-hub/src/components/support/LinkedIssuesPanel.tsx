@@ -2,7 +2,9 @@ import { AlertTriangle, ExternalLink, Link2, Plus, RefreshCw, Users, X } from 'l
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AttachIssuePanel from './AttachIssuePanel';
 import StateChip from './IssueStateChip';
-import { authFetch, API_BASE } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useYouTrackStatusQuery } from '../../api/queries/supportPanels';
+import type { YouTrackStatus } from '../../api/queries/supportPanels';
 import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
@@ -42,13 +44,6 @@ interface ReverseThread {
     ref?: string;
     subject?: string;
     status?: string;
-}
-
-interface YouTrackStatus {
-    configured?: boolean;
-    ok?: boolean;
-    host?: string;
-    error?: string;
 }
 
 function relative(iso?: string | null): string {
@@ -187,7 +182,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     const [issues, setIssues] = useState<LinkedIssue[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [refreshing, setRefreshing] = useState<boolean>(false);
-    const [status, setStatus] = useState<YouTrackStatus | null>(null);
+    const status: YouTrackStatus | null = useYouTrackStatusQuery().data ?? null;
     const [error, setError] = useState<string | null | undefined>(null);
     const [open, setOpen] = useState<boolean>(false);
     const [reverseFor, setReverseFor] = useState<string | null>(null);
@@ -213,15 +208,6 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     }, [threadId]);
 
     useEffect(() => { load(); }, [load]);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/support/youtrack/status`);
-                if (res.ok) setStatus(await res.json());
-            } catch (err) { logger.debug('the panel degrades to "not connected"', err); }
-        })();
-    }, []);
 
     // Moving to another ticket closes the attach panel: a half-typed search
     // must never land on a different customer's ticket.

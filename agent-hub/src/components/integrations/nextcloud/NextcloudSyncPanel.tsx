@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { integrationsAdminKeys, useFreshOrgIdQuery, useNcSyncQuery } from '../../../api/queries/integrationsAdmin';
+import type { NcSyncConfig, NcSyncUser } from '../../../api/queries/integrationsAdmin';
 import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
 
 // Theme tokens only, so every card, pill and control stays readable in the
 // dark themes (Tailwind 4 draws a bare `border` in currentColor).
@@ -23,67 +26,53 @@ const statusPill = (status: string) => (
  * panel lets the admin pick the sync mode, exclude specific NC groups,
  * and force an on-demand re-sync.
  */
-interface NcSyncConfig {
-    mode?: string;
-    syncGroups?: string[];
-    excludedGroups?: string[];
-    newUserDefaultStatus?: string;
-    ncBaseUrl?: string;
-    lastSyncAt?: string;
-}
-
-interface NcSyncUser {
-    id: string;
-    displayName?: string;
-    email?: string;
-    status: string;
-}
-
 interface NextcloudSyncPanelProps {
     user?: { organizationId?: string | null } | null;
 }
 
-const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
-    const { t } = useTranslation();
+/** The org's sync config, NC groups and synced users, with the unsaved edits laid over the server answer. */
+function useNcSyncData(user: NextcloudSyncPanelProps['user']) {
     // The user prop may be a stale snapshot from initial App mount. If we
     // can't see an org id on it, re-fetch /auth/user once before deciding
     // to show "no org" — the connector flow auto-provisions on first hit.
-    const [orgId, setOrgId] = useState(user?.organizationId || null);
-    useEffect(() => {
-        if (orgId) return;
-        let cancelled = false;
-        authFetch(`${API_BASE}/auth/user`).then(r => r.ok ? r.json() : null).then(j => {
-            if (cancelled) return;
-            const fresh = j?.user?.organizationId;
-            if (fresh) setOrgId(fresh);
-        }).catch(() => {});
-        return () => { cancelled = true; };
-    }, [orgId]);
-    const [config, setConfig] = useState<NcSyncConfig | null>(null);
-    const [groups, setGroups] = useState<string[]>([]);
-    const [users, setUsers] = useState<NcSyncUser[]>([]);
-    const [loading, setLoading] = useState(true);
+    const propOrgId = user?.organizationId || null;
+    const freshOrgId = useFreshOrgIdQuery(!propOrgId).data ?? null;
+    const orgId = propOrgId || freshOrgId;
+    const queryClient = useQueryClient();
+    const syncQuery = useNcSyncQuery(orgId);
+    // Unsaved edits on top of the server answer; a reload (after a sync) drops them, like the load it replaces.
+    const [patch, setPatch] = useState<Partial<NcSyncConfig>>({});
+    const config: NcSyncConfig | null = syncQuery.data?.config ? { ...syncQuery.data.config, ...patch } : null;
+    const update = (change: Partial<NcSyncConfig>) => setPatch(p => ({ ...p, ...change }));
+    const reload = async () => {
+        setPatch({});
+        await queryClient.refetchQueries({ queryKey: integrationsAdminKeys.ncSync(orgId) });
+    };
+    return {
+        orgId, config, update, reload,
+        groups: syncQuery.data?.groups ?? [] as string[],
+        users: syncQuery.data?.users ?? [] as NcSyncUser[],
+        loading: syncQuery.isPending,
+    };
+}
+
+/** POST nc-sync/run; a refusal reads as the server's `error` (or "Sync failed"). */
+async function runNcSync(orgId: string | null): Promise<{ created?: number; deactivated?: number }> {
+    try {
+        const res = await mutate(`${API_BASE}/auth/admin/${orgId}/nc-sync/run`, { method: 'POST' });
+        return await res.json();
+    } catch (err) {
+        if (err instanceof RefusedError) throw new Error((errorBody(err) as { error?: string } | null)?.error || 'Sync failed');
+        throw err;
+    }
+}
+
+const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
+    const { t } = useTranslation();
+    const { orgId, config, groups, users, loading, update, reload } = useNcSyncData(user);
     const [saving, setSaving] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [message, setMessage] = useState<{ type: string; text: string; } | null>(null);
-
-    const load = useCallback(async () => {
-        if (!orgId) return;
-        try {
-            const [cfgRes, grpRes, usersRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/admin/${orgId}/nc-sync`),
-                authFetch(`${API_BASE}/auth/admin/${orgId}/nc-sync/groups`),
-                authFetch(`${API_BASE}/auth/admin/${orgId}/nc-sync/users`),
-            ]);
-            if (cfgRes.ok) setConfig(await cfgRes.json());
-            if (grpRes.ok) setGroups((await grpRes.json()).groups || []);
-            if (usersRes.ok) setUsers((await usersRes.json()).users || []);
-        } catch (err) {
-            console.error('[NcSync] load:', err);
-        } finally { setLoading(false); }
-    }, [orgId]);
-
-    useEffect(() => { load(); }, [load]);
 
     useEffect(() => {
         if (message) {
@@ -92,7 +81,6 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
         }
     }, [message]);
 
-    const update = (patch: Partial<NcSyncConfig>) => setConfig(c => ({ ...c, ...patch }));
     const toggleGroup = (key: 'syncGroups' | 'excludedGroups', group: string) => {
         const list = (config as NcSyncConfig)[key] || [];
         const next = list.includes(group) ? list.filter((g: string) => g !== group) : [...list, group];
@@ -127,11 +115,9 @@ const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
     const handleSyncNow = async () => {
         setSyncing(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/${orgId}/nc-sync/run`, { method: 'POST' });
-            const j = await res.json();
-            if (!res.ok) throw new Error(j.error || 'Sync failed');
+            const j = await runNcSync(orgId);
             setMessage({ type: 'ok', text: `Sync done: created ${j.created || 0}, deactivated ${j.deactivated || 0}` });
-            await load();
+            await reload();
         } catch (e) {
             setMessage({ type: 'error', text: (e as Error).message });
         } finally { setSyncing(false); }

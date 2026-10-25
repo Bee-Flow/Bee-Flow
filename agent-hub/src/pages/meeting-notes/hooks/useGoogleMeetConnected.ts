@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useGoogleMeetConnectedQuery } from '../../../api/queries/meetingNotesConnections';
 
 /**
  * useGoogleMeetConnected — probes whether the current user has a Google
@@ -21,34 +20,5 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  *   connection status and whether the probe is still in flight
  */
 export default function useGoogleMeetConnected(enabled: boolean = true) {
-    const [state, setState] = useState({ connected: false, needsReconsent: false });
-    const [loading, setLoading] = useState(false);
-    const probedRef = useRef(false);
-
-    useEffect(() => {
-        if (!enabled || probedRef.current) return;
-        probedRef.current = true;
-        let alive = true;
-        setLoading(true);
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/gmeet-notes-settings/user/me`);
-                const data = res.ok ? await res.json() : {};
-                const conn = (data && typeof data.connection === 'object' && data.connection) || {};
-                if (alive) {
-                    setState({
-                        connected: !!(conn.googleConnected && conn.meetScopesGranted),
-                        needsReconsent: !!(conn.googleConnected && !conn.meetScopesGranted),
-                    });
-                }
-            } catch {
-                if (alive) setState({ connected: false, needsReconsent: false });
-            } finally {
-                if (alive) setLoading(false);
-            }
-        })();
-        return () => { alive = false; };
-    }, [enabled]);
-
-    return { connected: state.connected, needsReconsent: state.needsReconsent, loading };
+    return useGoogleMeetConnectedQuery(enabled);
 }

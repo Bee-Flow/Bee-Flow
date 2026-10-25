@@ -1,28 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Cloud, Save, Loader2, Check, AlertTriangle, ChevronRight, Users } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { useNcIntegrationsQuery } from '../../../api/queries/integrationsAdmin';
+import type { NcCatalogItem, NcGroup, NcIntegrationsConfig } from '../../../api/queries/integrationsAdmin';
 import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
 import { mutate, ApiError } from '../../../api/mutate';
-
-interface NcCatalogItem {
-    id: string;
-    name: string;
-    description: string;
-}
-
-interface NcIntegrationsConfig {
-    ncCatalog?: NcCatalogItem[];
-    enabled: string[];
-    usingDefaults?: boolean;
-}
-
-interface NcGroup {
-    id: string;
-    name: string;
-    disabledIntegrations?: string[];
-    userCount: number;
-}
 
 interface FlashMessage {
     type: 'ok' | 'error';
@@ -44,28 +27,16 @@ interface OrgNcIntegrationsPanelProps {
 const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
     const { t } = useTranslation();
     const orgId = user?.organizationId;
-    const [config, setConfig] = useState<NcIntegrationsConfig | null>(null);          // { ncCatalog, enabled, usingDefaults }
-    const [groups, setGroups] = useState<NcGroup[]>([]);             // [{ id, name, disabledIntegrations, userCount }]
-    const [loading, setLoading] = useState(true);
+    const ncQuery = useNcIntegrationsQuery(orgId);
+    // Unsaved edits on top of the server answer: the org-wide switches, and per-group exceptions (optimistic).
+    const [enabledDraft, setEnabledDraft] = useState<string[] | null>(null);
+    const [groupDraft, setGroupDraft] = useState<Record<string, string[]>>({});
+    const config: NcIntegrationsConfig | null = ncQuery.data?.config ? { ...ncQuery.data.config, enabled: enabledDraft ?? ncQuery.data.config.enabled } : null;
+    const groups: NcGroup[] = (ncQuery.data?.groups ?? []).map((g: NcGroup) => (groupDraft[g.id] ? { ...g, disabledIntegrations: groupDraft[g.id] } : g));
+    const loading = ncQuery.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<FlashMessage | null>(null);
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-
-    const load = useCallback(async () => {
-        if (!orgId) return;
-        try {
-            const [cfgRes, grpRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/admin/${orgId}/nc-integrations`),
-                authFetch(`${API_BASE}/auth/admin/${orgId}/nc-integrations/groups`),
-            ]);
-            if (cfgRes.ok) setConfig(await cfgRes.json());
-            if (grpRes.ok) setGroups((await grpRes.json()).groups || []);
-        } catch (e) {
-            console.error('[NcIntegrations] load:', e);
-        } finally { setLoading(false); }
-    }, [orgId]);
-
-    useEffect(() => { load(); }, [load]);
 
     useEffect(() => {
         if (!message) return;
@@ -78,7 +49,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
         const next = config.enabled.includes(id)
             ? config.enabled.filter((x: string) => x !== id)
             : [...config.enabled, id];
-        setConfig({ ...config, enabled: next });
+        setEnabledDraft(next);
     };
 
     const handleSaveOrg = async () => {
@@ -109,7 +80,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
             ? cur.filter((x: string) => x !== integrationId)
             : [...cur, integrationId];
         // Optimistic
-        setGroups((gs: NcGroup[]) => gs.map((g: NcGroup) => g.id === groupId ? { ...g, disabledIntegrations: next } : g));
+        setGroupDraft((d) => ({ ...d, [groupId]: next }));
         try {
             try {
                 await mutate(`${API_BASE}/auth/admin/${orgId}/nc-integrations/groups/${encodeURIComponent(groupId)}`, {
@@ -123,7 +94,7 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
             }
         } catch (e) {
             // Revert on failure
-            setGroups((gs: NcGroup[]) => gs.map((g: NcGroup) => g.id === groupId ? { ...g, disabledIntegrations: cur } : g));
+            setGroupDraft((d) => ({ ...d, [groupId]: cur }));
             setMessage({ type: 'error', text: errorMessage(e) });
         }
     };

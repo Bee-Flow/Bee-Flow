@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import type { ApiOptions } from '../../api/webpagesApi';
+import { webpageRequest as api } from '../../api/webpagesRequest';
 import { errorMessage } from '../../utils/caughtError';
 
 const PAGE_SIZE = 50;
@@ -19,12 +18,6 @@ export function formatCell(v: unknown): string {
     if (v === null || v === undefined) return '';
     if (typeof v === 'object') return JSON.stringify(v);
     return String(v);
-}
-
-export function api(webpageId: string | undefined, path: string, opts: ApiOptions = {}) {
-    const url = `${API_BASE}/api/webpages/${webpageId}${path}`;
-    const headers = opts.body ? { 'Content-Type': 'application/json', ...opts.headers } : opts.headers;
-    return authFetch(url, { ...opts, headers });
 }
 
 export function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {

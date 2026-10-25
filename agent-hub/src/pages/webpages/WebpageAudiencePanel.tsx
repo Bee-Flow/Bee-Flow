@@ -1,9 +1,11 @@
 import { Loader2, Lock, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card } from './WebpageDataCards';
 import AudienceRows from '../../components/shared/AudienceRows';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useWebpageAudienceQuery } from '../../api/queries/webpagesPanels';
+import { mutate, RefusedError, errorBody } from '../../api/mutate';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
 import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
@@ -13,12 +15,7 @@ import { PublicRow } from './PublicRow';
 ;
 ;
 
-const AUDIENCE_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience`;
 const PUBLIC_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience/public`;
-
-async function readJson(res: Response) {
-    try { return await res.json(); } catch { return null; }
-}
 
 /**
  * The column choice with which the form OPENS.
@@ -137,15 +134,23 @@ export default function WebpageAudiencePanel({
     onToggleGroup = null,
 }: WebpageAudiencePanelProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState<{ loading: boolean; error: string | null; data: AudienceModel | null }>({ loading: true, error: null, data: null });
+    const audienceQuery = useWebpageAudienceQuery<AudienceModel>(webpageId, !readOnly);
+    // The model a save answered with replaces the read until the next read ("Try again" drops it).
+    const [saved, setSaved] = useState<AudienceModel | null>(null);
     const [gateOpen, setGateOpen] = useState(false);
     const [choice, setChoice] = useState<ColumnChoice>({});
     const [busy, setBusy] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [options, setOptions] = useState<AddressOptions>({ accessMode: 'unlisted', password: '', emails: '', expiresAt: '' });
+    const state = {
+        loading: audienceQuery.isPending || audienceQuery.isFetching,
+        error: audienceQuery.isError ? (audienceQuery.error.message || 'failed') : null,
+        data: saved ?? audienceQuery.data ?? null,
+    };
 
     /**
-     * Take over the server model as local state.
+     * Take over the server model as local state: whenever the model changes (a read or a save
+     * answered), the column choice and the address options restart from it.
      *
      * `choice` belongs here, and that is not cosmetic: `publishBody` always sends
      * `choice` along, and the server reads a missing table as ZERO columns. Were
@@ -153,30 +158,20 @@ export default function WebpageAudiencePanel({
      * "Apply" under All options would shut the entire gate without anyone having asked
      * for that. So: after every read and after every write, the ACTUAL state stands here.
      */
-    const adopt = useCallback((body: AudienceModel | null) => {
-        setState({ loading: false, error: null, data: body });
-        setChoice(initialColumnChoice(body?.columnGate, !!body?.public?.on));
+    const [adoptedFrom, setAdoptedFrom] = useState<AudienceModel | null>(null);
+    if (state.data && state.data !== adoptedFrom) {
+        const body = state.data;
+        setAdoptedFrom(body);
+        setChoice(initialColumnChoice(body.columnGate, !!body.public?.on));
         setOptions({
-            accessMode: body?.public?.accessMode || 'unlisted',
+            accessMode: body.public?.accessMode || 'unlisted',
             password: '',
-            emails: (body?.public?.allowedEmails || []).join('\n'),
-            expiresAt: body?.public?.expiresAt ? String(body.public.expiresAt).slice(0, 10) : '',
+            emails: (body.public?.allowedEmails || []).join('\n'),
+            expiresAt: body.public?.expiresAt ? String(body.public.expiresAt).slice(0, 10) : '',
         });
-    }, []);
+    }
 
-    const load = useCallback(async () => {
-        setState(s => ({ ...s, loading: true, error: null }));
-        try {
-            const res = await authFetch(AUDIENCE_URL(webpageId));
-            const body = await readJson(res);
-            if (!res.ok) throw new Error((body && body.error) || `HTTP ${res.status}`);
-            adopt(body);
-        } catch (e) {
-            setState({ loading: false, error: (e as Error).message || 'failed', data: null });
-        }
-    }, [webpageId, adopt]);
-
-    useEffect(() => { if (webpageId && !readOnly) load(); }, [webpageId, readOnly, load]);
+    const load = () => { setSaved(null); void audienceQuery.refetch(); };
 
     const model = state.data;
     const boundTables = useMemo(() => (model?.columnGate?.tables || []), [model]);
@@ -196,14 +191,19 @@ export default function WebpageAudiencePanel({
         setBusy(true);
         setSaveError(null);
         try {
-            const res = await authFetch(PUBLIC_URL(webpageId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            const out = await readJson(res);
-            if (!res.ok) throw new Error((out && out.error) || `HTTP ${res.status}`);
-            adopt(out);
+            let out: AudienceModel | null;
+            try {
+                const res = await mutate(PUBLIC_URL(webpageId), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                try { out = await res.json(); } catch { out = null; }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error((errorBody(err) as { error?: string } | null)?.error || `HTTP ${err.status}`);
+            }
+            setSaved(out);
             setGateOpen(false);
         } catch (e) {
             setSaveError((e as Error).message || 'failed');
