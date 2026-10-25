@@ -413,7 +413,6 @@ const KEY_TABLE_FILES = [
     'components/admin/compliance/pages/overview/deadlineRows.ts',
     'components/admin/compliance/ComplianceMobile.tsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
-    'components/admin/compliance/pages/TrainingPage.tsx',
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
