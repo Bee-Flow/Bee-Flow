@@ -41,7 +41,7 @@ const posix = (p) => p.split(path.sep).join('/');
 const CODE_EXT = /\.(?:c|m)?[jt]s$/;
 const RESOLVE_EXT = ['', '.js', '.cjs', '.mjs', '.json', '.ts', '.mts', '.d.ts'];
 const TEXT_EXT = /\.(?:m?js|cjs|ts|mts|tsx|jsx|json|ya?ml|md|mdx|sh|txt)$/;
-const SKIP_DIR = new Set(['node_modules', '.git', 'coverage', 'dist', 'build', '.next']);
+const SKIP_DIR = new Set(['node_modules', '.git', '.claude', 'coverage', 'dist', 'build', '.next']);
 /** A quoted specifier that starts with ./ or ../ (or is exactly . / ..). */
 const REL_LITERAL = /(['"`])(\.{1,2}(?:\/[^'"`\n\\]*)?)\1/g;
 /** `path.join(ROOT, 'stores/x')` / `path.resolve(SERVER, "stores/x.js")` */
@@ -183,6 +183,24 @@ export function move(pairs, opts = {}) {
         }
     }
 
+    // Resolve-stub keys are the require strings AS WRITTEN in the module under test
+    // (testUtils/stubRequire.js): when a moved file's string changes, a stub keyed on the old
+    // string silently stops applying. Warn for every test that names an old string as a key.
+    const stubTests = files.filter((f) => /\.(?:test|testkit)\.(?:c|m)?js$/.test(f));
+    for (const f of stubTests) {
+        const t = edits.get(f) ?? fs.readFileSync(f, 'utf8');
+        if (!/installResolveStub|_resolveFilename/.test(t)) continue;
+        for (const [file, changes] of specChanges) {
+            for (const c of changes) {
+                if (c.rooted || c.oldSpec === c.newSpec) continue;
+                const esc = c.oldSpec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                if (new RegExp(`['"]${esc}['"]\\s*:`).test(t)) {
+                    warnings.push(`${rel(root, f)}: stub key '${c.oldSpec}' was a require string of ${rel(root, file)}, now '${c.newSpec}'`);
+                }
+            }
+        }
+    }
+
     // Move-equivalence gate: undo the recorded specifier changes on the new text; must equal the old text.
     for (const [file, changes] of specChanges) {
         const gate = equivalence(fs.readFileSync(file, 'utf8'), edits.get(file), changes);
@@ -293,7 +311,7 @@ function pruneEmpty(dir, stop) {
 }
 
 const rel = (root, p) => posix(path.relative(root, p));
-function refuse(msg) { const e = new Error(msg); e.refused = true; return e; }
+function refuse(msg) { const e = /** @type {any} */ (new Error(msg)); e.refused = true; return e; }
 
 /**
  * Gate: replacing the new specifiers with the old ones turns `after` back into `before`.
