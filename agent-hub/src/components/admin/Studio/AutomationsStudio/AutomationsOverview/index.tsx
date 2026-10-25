@@ -1,6 +1,6 @@
 import { Plus, Workflow } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS, type OverviewLane, type RunIdSet, countFolders, countStates, countTriggers, filterRows, groupRows, sortRows, statusLabelOf, triggerLabelOf } from '../overviewModel';
+import { GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS, type OverviewLane, type RunIdSet, countFolders, countStates, countTriggers, filterRows, folderLabel, groupRows, sortRows, statusLabelOf, triggerLabelOf } from '../overviewModel';
 import OverviewToolbar, { type PillOption } from '../OverviewToolbar';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import EmptyState from '../../../../shared/EmptyState';
@@ -127,7 +127,7 @@ export default function AutomationsOverview({
     const folderOptions = folders.length === 0 ? [] : [
         { value: 'all', label: t('studio_misc.overview.filter_any_folder', 'Any folder'), count: folderCounts.all },
         { value: NO_FOLDER, label: t('studio_misc.overview.no_folder', 'No folder'), count: folderCounts[NO_FOLDER] },
-        ...folders.map(f => ({ value: f.id, label: f.name || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
+        ...folders.map(f => ({ value: f.id, label: folderLabel(folders, f.id) || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
     ];
 
     let body: React.JSX.Element;
