@@ -284,6 +284,44 @@
     --learn-mastered-ink: #854d0e;
 }
 
+/* Trigger-kind colours for the automations overview and sidebar (2026-10).
+   What STARTS an automation, painted only as its icon tile, the card's 3px
+   top accent and the first chip of its step strip; never as a surface. Same
+   two-set model as --type-* and --kind-* above. Five new hues; the other
+   trigger kinds reuse a token that already means the same thing (an app,
+   webhook or agent trigger is --kind-app; an unknown one is the neutral
+   ink). A form trigger has its own orchid rather than the Studio "Forms"
+   kind's --type-pause: that taupe read as grey on a page of form-started
+   automations, which is the complaint this palette answers. The kind→tone
+   map lives in components/admin/Studio/AutomationsStudio/triggerTone.ts.
+
+   Picked a hue step apart from each other and from the run-status colours
+   (green = live/success, blue --type-ai = running, red = failed): schedule
+   teal-green, Nextcloud azure (the brand's own blue family), manual indigo,
+   mail copper, form orchid. Light set: 6.0 / 6.1 / 6.6 / 5.4 / 6.1:1 on
+   #fff, ≥ 4.5:1 on the paper card. Dark set: 7.1–8.2:1 on the dark
+   --bg-card #1a1a24. */
+:root,
+[data-theme="glass-dark"],
+[data-theme="obsidian"] {
+    --trigger-schedule: #5ec4a8;
+    --trigger-nextcloud: #62ade6;
+    --trigger-manual: #a2a7ee;
+    --trigger-mail: #e8a273;
+    --trigger-form: #d58fd6;
+}
+[data-theme="light"],
+[data-theme="glass"],
+[data-theme="high-contrast"],
+[data-theme="paper"],
+[data-theme="sepia"] {
+    --trigger-schedule: #19705b;
+    --trigger-nextcloud: #1b65a3;
+    --trigger-manual: #4c52b4;
+    --trigger-mail: #a65424;
+    --trigger-form: #9a3a96;
+}
+
 /* Glass Theme — iOS 26 "Liquid Glass" inspired. Surfaces become translucent
    over a chromatic wallpaper, frosted via backdrop-filter, edged with bright
    specular highlights. Three tiers (subtle / default / opaque) cover sidebar

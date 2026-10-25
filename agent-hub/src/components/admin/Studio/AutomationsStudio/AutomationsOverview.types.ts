@@ -1,7 +1,6 @@
 import type { AutomationRecord, RunIdSet, OverviewLane } from './overviewModel';
 import type { AutomationRowProps } from './AutomationRow';
 import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type React from 'react';
 
 /** Builds the props one row, card or tile is given. */
@@ -31,24 +30,6 @@ export interface NewFolderDialogProps {
     onClose: () => void;
 }
 
-/** Live / Paused / Draft — the pill's vocabulary, at row size. */
-export interface LifecycleChipProps {
-    automation: AutomationRecord | null;
-}
-
-/** What the last run did, in the shared status table's colour and word. */
-export interface OutcomeChipProps {
-    automation: AutomationRecord;
-    liveRunning: boolean;
-    t: TranslateFn;
-}
-
-export interface TriggerGlyphProps {
-    automation: AutomationRecord;
-    size?: number;
-    className?: string;
-}
-
 export interface SortHeadProps {
     col: string;
     sort: string;
@@ -76,12 +57,6 @@ export interface ListRowProps {
     automation: AutomationRecord;
     props?: AutomationRowProps | null;
     liveRunning: boolean;
-}
-
-export interface CardsViewProps {
-    rows: AutomationRecord[];
-    rowProps?: RowPropsFn | null;
-    activeRunIds?: RunIdSet | null;
 }
 
 export interface CardProps {

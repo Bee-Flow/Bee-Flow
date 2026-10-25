@@ -1625,35 +1625,13 @@
   },
   "src/components/admin/Studio/AutomationsStudio/AutomationRow.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     },
-    "react-hooks/static-components": {
+    "max-lines-per-function": {
       "count": 1
     }
   },
   "src/components/admin/Studio/AutomationsStudio/AutomationsLauncher.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AutomationsStudio/AutomationsOverview.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AutomationsStudio/AutomationsOverview/BoardView.tsx": {
     "complexity": {
       "count": 1
     }
@@ -1679,6 +1657,11 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/AutomationsStudio/OverviewCards.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/AutomationsStudio/OverviewToolbar.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -1698,6 +1681,11 @@
     }
   },
   "src/components/admin/Studio/AutomationsStudio/automationMenuItems.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AutomationsStudio/overviewModel.ts": {
     "complexity": {
       "count": 1
     }

@@ -1,8 +1,4 @@
-import { Bot, Clock, Mail, MousePointer2, Webhook, type LucideIcon } from 'lucide-react';
-import { type AutomationRecord, isFailing } from '../overviewModel';
 import scopedStorage from '../../../../../utils/scopedStorage';
-import { kindColorVar } from '../../../../shared/kindColors';
-import { automation as lifecycleOf } from '../../../../shared/statusOf';
 import { logger } from '../../../../../utils/logger';
 
 export const VIEW_KEY = 'automationsOverviewView';
@@ -10,8 +6,6 @@ export const VIEW_KEY = 'automationsOverviewView';
 export const SORT_KEY = 'automationsOverviewSort';
 
 export const GROUP_KEY = 'automationsOverviewGroup';
-
-export const TRIGGER_ICON: Record<string, LucideIcon> = { schedule: Clock, manual: MousePointer2, webhook: Webhook, app_event: Mail, other: Bot };
 
 // The column every view shares on a wide screen: the toolbar, the table, the
 // cards and the board stay in one centred column instead of spreading a
@@ -26,22 +20,6 @@ export function readStored(key: string, allowed: readonly string[], fallback: st
 
 export function store(key: string, value: string) {
     try { scopedStorage.setItem(key, value); } catch (err) { logger.debug('storage best-effort', err); }
-}
-
-/**
- * The icon tile's colours: the automation kind's teal while the automation is
- * on, plain grey when it is off or a draft, red when its last run failed —
- * so a column of tiles reads as a column of states before a word is read.
- */
-export function tileStyle(automation: AutomationRecord | null) {
-    if (isFailing(automation)) {
-        return { background: 'color-mix(in srgb, var(--error) 12%, transparent)', color: 'var(--error-ink)' };
-    }
-    if (lifecycleOf(automation) === 'live') {
-        const c = kindColorVar('automation');
-        return { background: `color-mix(in srgb, ${c} 12%, transparent)`, color: c };
-    }
-    return { background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' };
 }
 
 // The columns by the overview's OWN width (@container/overview). A laptop

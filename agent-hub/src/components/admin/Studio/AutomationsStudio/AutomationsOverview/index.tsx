@@ -6,10 +6,11 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import EmptyState from '../../../../shared/EmptyState';
 import Modal from '../../../../shared/Modal';
 import type { ProjectContextPillProject } from '../../../../chat/ProjectContextPill';
-import type { RowPropsFn, AutomationsOverviewProps, NewFolderDialogProps, CardsViewProps } from '../AutomationsOverview.types';
+import type { RowPropsFn, AutomationsOverviewProps, NewFolderDialogProps } from '../AutomationsOverview.types';
 import { VIEW_KEY, SORT_KEY, GROUP_KEY, COLUMN, readStored, store } from './AutomationsOverview.helpers';
 import { ListView } from './ListView';
-import { Card, BoardView } from './BoardView';
+import { BoardView } from './BoardView';
+import { CardsView } from '../OverviewCards';
 
 /**
  * "All automations" — the landing in the right pane when nothing is open.
@@ -158,7 +159,7 @@ export default function AutomationsOverview({
             </div>
         );
     } else if (view === 'cards') {
-        body = <CardsView rows={rows} rowProps={rowProps} activeRunIds={activeRunIds} />;
+        body = <CardsView rows={rows} folders={folders} rowProps={rowProps} activeRunIds={activeRunIds} column={COLUMN} />;
     } else if (view === 'board') {
         body = <BoardView lanes={lanes} groupBy={groupBy} rowProps={rowProps} activeRunIds={activeRunIds} />;
     } else {
@@ -252,21 +253,6 @@ function NewFolderDialog({ onCreate, onClose }: NewFolderDialogProps) {
 }
 
 // ── Building blocks shared by the three views ───────────────────────
-
-// ── List ─────────────────────────────────────────────────────────────
-
-// ── Cards ────────────────────────────────────────────────────────────
-
-function CardsView({ rows, rowProps, activeRunIds }: CardsViewProps) {
-    return (
-        // As many columns as fit at 21rem, by the overview's own width: two on a
-        // laptop, five in the centred column of an ultrawide. auto-fill keeps
-        // empty tracks, so three automations stay card-sized instead of stretching.
-        <div className={`${COLUMN} grid grid-cols-[repeat(auto-fill,minmax(min(21rem,100%),1fr))] gap-3 p-4`} data-testid="automations-overview-cards">
-            {rows.map(a => <Card key={a.id} automation={a} props={rowProps?.(a)} liveRunning={!!activeRunIds?.has?.(a.id)} />)}
-        </div>
-    );
-}
 
 // ── Board ────────────────────────────────────────────────────────────
 
