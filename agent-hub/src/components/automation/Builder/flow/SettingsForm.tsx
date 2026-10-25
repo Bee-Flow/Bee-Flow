@@ -1,5 +1,5 @@
 import { RotateCcw, Save } from 'lucide-react';
-import { ReactPortal, ReactElement, JSXElementConstructor, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { isPrivacyStep } from './privacyModel';
 import { isRouteStep } from './routeModel';
 import { sectionsWithErrors } from './sectionForIssue';
@@ -509,7 +509,7 @@ export default function SettingsForm({
 }
 
 
-function SettingsFormSection({ footerLeft, emptySlots, t, compactFooter, reset, dirty, saving, onSave }: { footerLeft: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null; emptySlots: { declared: number; empty: number; keys: string[]; unknown: boolean; }; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; compactFooter: boolean; reset: () => void; dirty: boolean; saving: boolean | undefined; onSave: () => Promise<void>; }) {
+function SettingsFormSection({ footerLeft, emptySlots, t, compactFooter, reset, dirty, saving, onSave }: { footerLeft: ReactNode; emptySlots: { declared: number; empty: number; keys: string[]; unknown: boolean; }; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; compactFooter: boolean; reset: () => void; dirty: boolean; saving: boolean | undefined; onSave: () => Promise<void>; }) {
     return <div className="flex-shrink-0 flex items-center gap-3 px-3 py-2 border-t border-[var(--border-default)] bg-[var(--bg-secondary)] text-[11px] whitespace-nowrap">
         {footerLeft}
         {/* "1 field still empty" (artboard 2b) — the INVERSE of
