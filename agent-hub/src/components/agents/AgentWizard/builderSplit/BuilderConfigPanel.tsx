@@ -7,7 +7,7 @@ import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
 import { toast } from '../../../shared/Toast';
 import Toggle from '../../../shared/Toggle';
 import AppsPicker from '../pickers/AppsPicker';
-import { SchedulesPicker } from '../pickers/SchedulePickers';
+import { SchedulesPicker } from '../pickers/SchedulesPicker';
 import SkillPicker from '../pickers/SkillPicker';
 import { messageOf } from '../../../../utils/caughtError';
 import type { ComponentProps, Dispatch, Ref, SetStateAction } from 'react';

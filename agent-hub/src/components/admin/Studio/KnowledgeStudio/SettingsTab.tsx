@@ -1,16 +1,14 @@
-import { Bot, Building2, MessageSquare, Workflow } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { knowledgeApi, type KnowledgeBase } from './knowledgeApi';
 import useTranslation from '../../../../hooks/useTranslation';
 import CategoryField from '../../../agents/AgentWizard/CategoryField';
-import AudienceRows from '../../../shared/AudienceRows';
 import DangerZone from '../../../shared/DangerZone';
-import { kindColorVar } from '../../../shared/kindColors';
 import type { CategoryRow } from '../../../agents/AgentWizard/agentEditor.types';
-import type { UsageRow } from '../../../../hooks/useUsage';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
-import type { SettingsTabProps, NameFieldsProps, SurfaceCardProps, PersonalNoticeProps } from './SettingsTab.types';
+import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { SettingsTabProps, NameFieldsProps } from './SettingsTab.types';
+import { SURFACE_CARDS, SettingsTabSection2 } from './SettingsTabSection2';
+import { SettingsTabSection } from './SettingsTabSection';
+export { SURFACE_CARDS, attachedCount } from './SettingsTabSection2';
 
 /**
  * Instellingen (Knowledge artboard 1c-left): name, description, where the
@@ -43,13 +41,6 @@ import type { SettingsTabProps, NameFieldsProps, SurfaceCardProps, PersonalNotic
  * decoration before it was a decision about content.
  */
 
-/** The three surfaces the Studio offers. 'webpage' stays hidden — auto-created bases own it. */
-export const SURFACE_CARDS = Object.freeze([
-    { id: 'agent', Icon: Bot, kind: 'agent' },
-    { id: 'direct_chat', Icon: MessageSquare, kind: 'chat' },
-    { id: 'ai_step', Icon: Workflow, kind: 'automation' },
-]);
-
 /**
  * A base's surfaces, with the one rule that matters: a value that was never
  * expressed means EVERYWHERE, not nowhere. A NULL predates the column, and a
@@ -65,15 +56,6 @@ export function surfacesOf(kb: KnowledgeBase | null | undefined) {
     }
     if (!Array.isArray(list)) return SURFACE_CARDS.map(c => c.id);
     return list.filter(v => typeof v === 'string');
-}
-
-/** How many things in the Used-by list depend on this base through `surface`. */
-export function attachedCount(usage: UsageRow[] | null, surface: string) {
-    if (!Array.isArray(usage)) return 0;
-    const roles: (string | null | undefined)[] = surface === 'ai_step' ? ['ai_step'] : surface === 'agent' ? ['chat'] : [];
-    if (roles.length === 0) return 0;
-    const kinds: (string | null | undefined)[] = surface === 'ai_step' ? ['automation', 'app'] : ['agent', 'webpage', 'support'];
-    return usage.filter(u => roles.includes(u.role) && kinds.includes(u.kind)).length;
 }
 
 export default function SettingsTab({
@@ -308,58 +290,6 @@ export default function SettingsTab({
     );
 }
 
-function SettingsTabSection2({ t, surfaces, canManage, saving, usage, toggleSurface }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; surfaces: string[]; canManage: boolean; saving: boolean; usage: UsageRow[] | null; toggleSurface: (surface: string) => void; }) {
-    return <section className="flex flex-col gap-2" data-testid="kb-surfaces">
-        <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
-            {t('knowledge.settings.where_title', 'Where it can be used')}
-        </h3>
-        <div className="grid gap-2 [grid-template-columns:repeat(3,minmax(0,1fr))]">
-            {SURFACE_CARDS.map(({ id }) => (
-                <SurfaceCard
-                    key={id}
-                    id={id}
-                    active={surfaces.includes(id)}
-                    disabled={!canManage || saving}
-                    attached={attachedCount(usage, id)}
-                    onToggle={() => toggleSurface(id)}
-                    t={t} />
-            ))}
-        </div>
-        <p className="text-[11px] text-[var(--text-tertiary)]">
-            {t('knowledge.settings.where_hint', 'This decides which pickers offer this knowledge base. It does not change who may read what is in it — that is below.')}
-        </p>
-    </section>;
-}
-
-function SettingsTabSection({ isPersonal, t, canManage, orgId, moveToOrg, saving, kb, view, orgGroups, setAudience }: { isPersonal: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; canManage: boolean; orgId: string | null; moveToOrg: () => Promise<void>; saving: boolean; kb: KnowledgeBase | null; view: { orgId: string | null; isPublished: boolean; sharedGroups: string[]; categoryId: string | null; }; orgGroups: readonly OrgGroup[]; setAudience: (body: { isPublished: boolean; sharedGroups: string[]; }) => Promise<void>; }) {
-    return <section className="flex flex-col gap-2" data-testid="kb-audience">
-        {isPersonal ? (
-            <PersonalNotice
-                t={t}
-                canMove={canManage && !!orgId}
-                onMove={moveToOrg}
-                busy={saving} />
-        ) : (
-            <AudienceRows
-                agent={kb}
-                isPublished={view.isPublished}
-                sharedGroups={view.sharedGroups}
-                orgGroups={orgGroups}
-                disabled={!canManage}
-                confirmWidening
-                title={t('knowledge.settings.who_title', 'Who may see and use it')}
-                hint={t('knowledge.settings.who_hint', 'An agent can only answer from this knowledge base for someone who may see it. Everyone else gets the same answer with this left out — never an error.')}
-                onSetPersonal={() => setAudience({ isPublished: false, sharedGroups: [] })}
-                onSetEntireOrg={() => setAudience({ isPublished: true, sharedGroups: [] })}
-                onToggleGroup={(gid) => {
-                    const cur = view.sharedGroups;
-                    const next = cur.includes(gid) ? cur.filter((g) => g !== gid) : [...cur, gid];
-                    return setAudience({ isPublished: true, sharedGroups: next });
-                } } />
-        )}
-    </section>;
-}
-
 function NameFields({ t, fieldStyle, name, description, setName, setDescription, disabled, onCommitName, onCommitDescription }: NameFieldsProps) {
     return (
         <section className="flex flex-col gap-3">
@@ -397,84 +327,3 @@ function NameFields({ t, fieldStyle, name, description, setName, setDescription,
     );
 }
 
-function SurfaceCard({ id, active, disabled, attached, onToggle, t }: SurfaceCardProps) {
-    const card = SURFACE_CARDS.find(c => c.id === id) || SURFACE_CARDS[0];
-    const Glyph = card.Icon;
-    const colour = kindColorVar(card.kind);
-    const LABELS: Record<string, string> = {
-        agent: t('knowledge.settings.surface_agent', 'Agents'),
-        direct_chat: t('knowledge.settings.surface_direct_chat', 'Chat'),
-        ai_step: t('knowledge.settings.surface_ai_step', 'Automations'),
-    };
-    return (
-        <button
-            type="button"
-            role="switch"
-            aria-checked={active}
-            aria-label={LABELS[id]}
-            disabled={disabled}
-            onClick={onToggle}
-            data-testid={`kb-surface-${id}`}
-            data-active={active ? 'true' : 'false'}
-            className="flex flex-col items-start gap-1 p-2.5 rounded-[10px] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
-            style={{
-                border: `1px solid ${active ? 'var(--text-primary)' : 'var(--border-default)'}`,
-                boxShadow: active ? 'inset 0 0 0 1px var(--text-primary)' : 'none',
-                background: 'var(--bg-card)',
-                outlineColor: 'var(--accent-primary)',
-            }}
-        >
-            <Glyph style={{ width: 14, height: 14, color: colour }} aria-hidden="true" />
-            <span
-                className="text-[12px]"
-                style={{ color: 'var(--text-primary)', fontWeight: active ? 600 : 400 }}
-            >
-                {LABELS[id]}
-            </span>
-            {/* Unticking a surface never detaches what is already attached —
-                the server only refuses NEW links — so the count says so
-                rather than letting somebody think they revoked something. */}
-            {!active && attached > 0 && (
-                <span className="text-[10px] [color:var(--warning-ink,var(--warning))]!">
-                    {attached === 1
-                        ? t('knowledge.settings.still_attached_one', 'still attached to 1')
-                        : t('knowledge.settings.still_attached', 'still attached to {n}', { n: attached })}
-                </span>
-            )}
-        </button>
-    );
-}
-
-function PersonalNotice({ t, canMove, onMove, busy }: PersonalNoticeProps) {
-    return (
-        <div
-            className="flex flex-col gap-2 p-3 rounded-[10px] [border:1px_solid_var(--border-default)] [background:var(--bg-card)]"
-            data-testid="kb-personal-notice"
-        >
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-[var(--text-primary)]">
-                <Building2 className="w-[14px] h-[14px]" aria-hidden="true" />
-                {t('knowledge.settings.personal_title', 'Personal — only you can see this')}
-            </div>
-            <p className="text-[11px] text-[var(--text-tertiary)]">
-                {t('knowledge.settings.personal_hint', 'A personal knowledge base cannot be shared. Move it into your organisation to choose an audience.')}
-            </p>
-            {canMove && (
-                <button
-                    type="button"
-                    onClick={onMove}
-                    disabled={busy}
-                    data-testid="kb-move-to-org"
-                    className="self-start px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [background:var(--accent-primary)] [color:var(--accent-primary-fg)]! [outline-color:var(--accent-primary)]!"
-                >
-                    {t('knowledge.settings.move_to_org', 'Move to my organisation')}
-                </button>
-            )}
-            {canMove && (
-                <p className="text-[11px] text-[var(--text-tertiary)]">
-                    {/* The consequence, before the button rather than after it. */}
-                    {t('knowledge.settings.move_consequence', 'It stays unshared until you pick an audience — but administrators will be able to see and manage it, and this cannot be undone.')}
-                </p>
-            )}
-        </div>
-    );
-}
