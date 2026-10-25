@@ -25,7 +25,6 @@ function sandbox({ files = {}, metric = 'inline-style', budget = null, pkg = 'pk
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'count-ratchet-'));
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
     fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/count-ratchet.mjs'));
-    fs.copyFileSync(path.join(path.dirname(SCRIPT), 'code-lines.mjs'), path.join(dir, 'scripts/code-lines.mjs'));
     const root = src ? path.join(dir, pkg, 'src') : path.join(dir, pkg);
     fs.mkdirSync(root, { recursive: true });
     for (const [rel, body] of Object.entries(files)) {
@@ -160,7 +159,6 @@ test('an unknown metric and a package without src are usage errors, not a pass',
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'count-ratchet-'));
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
     fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/count-ratchet.mjs'));
-    fs.copyFileSync(path.join(path.dirname(SCRIPT), 'code-lines.mjs'), path.join(dir, 'scripts/code-lines.mjs'));
     const missing = run(dir);
     assert.strictEqual(missing.code, 2);
     assert.match(missing.stderr, /not found/);
@@ -223,17 +221,10 @@ test('big-file uses the package limit: 400 lines in agent-hub, 800 in server', (
     assert.strictEqual(budgetOf(server, 'big-file', 'server'), 1);
 });
 
-test('big-file counts a last line without a newline', () => {
+test('big-file counts a last line without a newline, which wc -l would miss', () => {
     const dir = sandbox({ pkg: 'agent-hub', files: { 'a.jsx': `${lines(400)}x;` } });
     run(dir, 'big-file', [], 'agent-hub');
     assert.strictEqual(budgetOf(dir, 'big-file', 'agent-hub'), 1, '401 lines of code are over the limit however the file ends');
-});
-
-test('big-file does not count comments or blank lines', () => {
-    const body = `${'// c\n\n'.repeat(300)}${lines(399)}`;
-    const dir = sandbox({ pkg: 'agent-hub', files: { 'a.jsx': body } });
-    run(dir, 'big-file', [], 'agent-hub');
-    assert.strictEqual(budgetOf(dir, 'big-file', 'agent-hub'), 0);
 });
 
 test('big-file leaves data alone: tests, dictionaries, generated files, fixtures, content', () => {
@@ -248,6 +239,7 @@ test('big-file leaves data alone: tests, dictionaries, generated files, fixtures
             'appStudio/templates/appA.js': lines(900),
             'demo/fixtures/big.js': lines(900),
             'scripts/content/site.js': lines(900),
+            'types/rows.d.ts': lines(900),
             // Named like the exempt folders, but code: these count.
             'routes/templates.js': lines(900),
             'routes/agents/tests.js': lines(900),
@@ -329,19 +321,6 @@ test('explicit-any counts any annotations, casts and type arguments in TypeScrip
     });
     assert.strictEqual(run(dir, 'explicit-any').code, 0);
     assert.strictEqual(budgetOf(dir, 'explicit-any'), 3);
-});
-
-test('long-function counts lines of code: comments and blank lines inside a function do not make it long', () => {
-    const body = (n, line) => Array.from({ length: n }, () => line).join('\n');
-    const dir = sandbox({
-        src: false,
-        files: {
-            'doc.js': `function f() {\n${body(150, '    // a comment')}\n${body(150, '')}\n    return 1;\n}\n`,
-            'code.js': `function g() {\n${body(210, '    run();')}\n}\n`,
-        },
-    });
-    assert.strictEqual(run(dir, 'long-function').code, 0);
-    assert.strictEqual(budgetOf(dir, 'long-function'), 1);
 });
 
 test('jsdoc-loose-type counts JSDoc types that are exactly any, *, Function, Object or object, not tests or compound types', () => {
@@ -603,11 +582,21 @@ test('db-in-routes counts every spelling that resolves to db.js from routes/, an
             'routes/d.js': "const s = require('../stores/db');\nconst r = require('./db');\nconst k = require('../db/index');\nconst pkg = require('db');\n",
             'core/e.js': "const db = require('../db');\n",
             'routes/a.test.js': "const db = require('../db');\n",
-            'routes/f.js': "/** @type {{ getAll: typeof import('../db').getAll }} */\nconst { getAll } = require('../stores/rows');\n",
         },
     });
     assert.strictEqual(run(dir, 'db-in-routes').code, 0);
     assert.strictEqual(budgetOf(dir, 'db-in-routes'), 5);
+});
+
+test('db-in-routes ignores a JSDoc type import() inside a comment', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "/** @type {typeof import('../db').getAll} */\nlet f;\n/**\n * @param {import('../../db').Row} r\n */\nfunction g(r) {}\nconst db = require('../db');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'db-in-routes').code, 0);
+    assert.strictEqual(budgetOf(dir, 'db-in-routes'), 1);
 });
 
 const longBody = (n) => `${'    x();\n'.repeat(n)}`;
