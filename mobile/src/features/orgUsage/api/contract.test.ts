@@ -15,6 +15,7 @@ const SERVER = path.resolve(__dirname, '../../../../../server');
 const read = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
 const usage = read('routes/usage.js');
+const customerView = read('routes/usageCustomerView.js');
 // The store is a barrel over stores/usage/; the report SQL lives in its parts.
 const usageStore = ['stores/usageStore.js', 'stores/usage/queries.js', 'stores/usage/breakdowns.js'].map(read).join('\n');
 const azureStore = read('stores/azureServiceUsageStore.js');
@@ -40,12 +41,13 @@ describe('routes/usage.js', () => {
             'endDate: aDate.optional()',
             "interval: choice(['hour', 'day']",
             "Send startDate and endDate together, or neither.",
-            'out.billed_cost = rawCost * factor',
-            "'total_calls'",
             'combined_total_cost:',
             'azure_services_total_cost,',
             'display_name: info?.display_name',
         ]);
+        // The customer view: the marked-up cost, built from an allow-list that
+        // keeps the call counts out.
+        expectAll(customerView, ['out.billed_cost = rawCost * factor', "'billed_cost'", "'total_calls'", 'OPERATOR_ONLY_FIELDS']);
     });
 
     it('returns the columns the readers read', () => {
