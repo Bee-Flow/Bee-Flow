@@ -417,7 +417,7 @@ const KEY_TABLE_FILES = [
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.ts',
+    'components/admin/compliance/pages/settings/settingsFields.helpers.ts',
     'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
@@ -427,7 +427,7 @@ const KEY_TABLE_FILES = [
     'components/automation/Builder/mapping/fieldKinds.ts',
     // The automations launcher's tab labels (TABS).
     'components/admin/Studio/AutomationsStudio/AutomationsLauncher.tsx',
-    'components/skills/SkillFormModal.tsx',
+    'components/skills/SkillFormModal.constants.ts',
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
     // lijst: een verzonnen sleutel in die tabel liet de guard groen.
@@ -459,7 +459,7 @@ const KEY_TABLE_FILES = [
  * a stage plans against, so an undercount is worse than a long list.
  */
 const TEXT_HELPERS = [
-    { rel: 'components/shared/statusTokens.ts' },
+    { rel: 'components/shared/statusTokens/index.ts' },
     { rel: 'components/admin/Studio/KnowledgeStudio/freshness.ts' },
     { rel: 'components/admin/Studio/KnowledgeStudio/plural.ts' },
     { rel: 'components/automation/Builder/mapping/mismatch.ts' },

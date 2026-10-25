@@ -32,6 +32,7 @@ export function createService(pkgDir, ts = loadTs(), { only, noResolve = false }
             const text = read(f);
             return text === undefined ? undefined : ts.ScriptSnapshot.fromString(text);
         },
+        useCaseSensitiveFileNames: () => true, // ToolChooser.tsx and toolChooser.ts live side by side
         getCurrentDirectory: () => pkgDir,
         getCompilationSettings: () => (noResolve ? { ...cfg.options, noResolve: true } : cfg.options),
         getDefaultLibFileName: ts.getDefaultLibFilePath,

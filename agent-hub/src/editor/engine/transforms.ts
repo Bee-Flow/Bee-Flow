@@ -20,8 +20,7 @@ import {
 import { isTextblock, isAtom, isCode, type ContainerNode, type DocAttrs, type DocMark, type DocNode } from '../model/schema.js';
 import { node, emptyParagraph } from '../model/nodes.js';
 import { hasMark } from '../model/marks.js';
-import { insertAfterTable } from './tables';
-import { tableContext } from './tables.helpers';
+import { insertAfterTable, tableContext } from './tables';
 
 const st = (doc: DocNode, selection: Selection, storedMarks?: DocMark[] | null): EditorState => ({ doc, selection, storedMarks: storedMarks || null });
 
