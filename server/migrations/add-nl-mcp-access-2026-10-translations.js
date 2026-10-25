@@ -8,6 +8,9 @@
  */
 
 const NL_TRANSLATIONS = Object.freeze({
+    'mcp_access.create.run': 'Mag automation-runs starten',
+    'mcp_access.create.run_warn': 'Een run verstuurt echt mail en schrijft naar echte systemen. Alleen automations die je al hebt geactiveerd kunnen starten, en de client kan er nooit een activeren. Laat dit uit tenzij de client runs moet starten. Vereist lees- en schrijftoegang.',
+    'mcp_access.tokens.may_run': 'mag runs starten',
     'mcp_access.create.cancel': 'Annuleren',
     'mcp_access.create.expiry': 'Verloopt',
     'mcp_access.create.expiry_30': 'Over 30 dagen',

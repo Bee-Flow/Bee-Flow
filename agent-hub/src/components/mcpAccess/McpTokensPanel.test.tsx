@@ -147,6 +147,46 @@ it('sends exactly what the form says', async () => {
     expect(days).toBeLessThan(30.1);
 });
 
+it('grants starting runs only when ticked, only with write access, and shows it on the token', async () => {
+    api.on('POST', PATH, { status: 201, body: { token: 'bfmcp_abc_secret123', record: record({ id: 'tok-run' }) } });
+    const user = await renderLoaded();
+    const form = await openCreate(user);
+    await user.type(form.getByLabelText('Name'), 'Runner');
+    await user.click(form.getByRole('checkbox', { name: 'Automations' }));
+    const automations = within(form.getByRole('group', { name: 'Automations' }));
+    // Off by default, and not offered on read-only access.
+    expect(automations.getByRole('checkbox', { name: /May start automation runs/ })).not.toBeChecked();
+    expect(automations.getByRole('checkbox', { name: /May start automation runs/ })).toBeDisabled();
+    await user.click(automations.getByRole('radio', { name: 'Read and write' }));
+    expect(automations.getByRole('checkbox', { name: /May start automation runs/ })).not.toBeChecked();
+    expect(form.getByText(/can never activate one/)).toBeInTheDocument();
+    await user.click(automations.getByRole('checkbox', { name: /May start automation runs/ }));
+    await user.click(form.getByRole('button', { name: 'Create token' }));
+
+    const body = (await waitFor(() => {
+        const b = api.bodies('POST', PATH);
+        expect(b).toHaveLength(1);
+        return b[0];
+    })) as { scopes: unknown };
+    expect(body.scopes).toEqual({ automations: { level: 'write', run: true } });
+});
+
+it('does not send the run permission unless it was ticked', async () => {
+    api.on('POST', PATH, { status: 201, body: { token: 'bfmcp_abc_secret123', record: record({ id: 'tok-plain' }) } });
+    const user = await renderLoaded();
+    const form = await openCreate(user);
+    await user.type(form.getByLabelText('Name'), 'Plain');
+    await user.click(form.getByRole('checkbox', { name: 'Automations' }));
+    await user.click(within(form.getByRole('group', { name: 'Automations' })).getByRole('radio', { name: 'Read and write' }));
+    await user.click(form.getByRole('button', { name: 'Create token' }));
+    const body = (await waitFor(() => {
+        const b = api.bodies('POST', PATH);
+        expect(b).toHaveLength(1);
+        return b[0];
+    })) as { scopes: unknown };
+    expect(body.scopes).toEqual({ automations: { level: 'write' } });
+});
+
 it('shows the secret once, with a ready command for exactly the servers granted, and forgets it on Done', async () => {
     api.on('POST', PATH, { status: 201, body: { token: 'bfmcp_abc_secret123', record: record({ id: 'tok-new', name: 'New one' }) } });
     const user = await renderLoaded();

@@ -433,7 +433,7 @@ async function runCreate(userId, args) {
  * tool result, because a coding agent recovers from a described error and
  * cannot recover from a transport-level exception.
  */
-async function callTool(name, rawArgs, { userId }) {
+async function callTool(name, rawArgs, { userId, tokenId = null }) {
     if (!TOOL_NAMES.has(name)) {
         return { result: { error: `Unknown tool: ${name}` } };
     }
@@ -447,7 +447,7 @@ async function callTool(name, rawArgs, { userId }) {
     }
     if (name === 'automations_list') return { result: await runList(userId, args) };
     if (name === 'automations_create') return { result: await runCreate(userId, args) };
-    if (runTools.RUN_TOOL_NAMES.has(name)) return { result: await runTools.callRunTool(name, args, { userId }) };
+    if (runTools.RUN_TOOL_NAMES.has(name)) return { result: await runTools.callRunTool(name, args, { userId, tokenId }) };
 
     const automationId = typeof args.automationId === 'string' ? args.automationId.trim() : '';
     delete args.automationId; // never reaches the builder tool — it is our envelope
