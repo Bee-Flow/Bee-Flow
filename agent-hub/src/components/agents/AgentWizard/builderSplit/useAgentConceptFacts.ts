@@ -1,18 +1,8 @@
-import { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useAgentConceptFactsQuery } from '../../../../api/queries/agentWizardFacts';
 import { READ } from '../canUse/canUseFacts';
-import type { ReadState } from '../agentEditor.types';
-import { logger } from '../../../../utils/logger';
 
 /** The persona column of an agent; the editor reads its language. */
 export interface ConceptPersona { language?: string | null; [key: string]: unknown }
-
-interface ConceptFacts {
-    id: string | null;
-    persona: ConceptPersona | null;
-    state: ReadState;
-    unpublishedChanges: number | null;
-}
 
 /**
  * The two facts that the editor heading needs and that the agent LIST does not carry.
@@ -48,42 +38,12 @@ interface ConceptFacts {
  *     persona, OK as soon as there is one.
  */
 export default function useAgentConceptFacts(agentId: string | null) {
-    const [facts, setFacts] = useState<ConceptFacts>({ id: null, persona: null, state: READ.LOADING, unpublishedChanges: null });
+    const { data: facts } = useAgentConceptFactsQuery(agentId);
 
-    useEffect(() => {
-        if (!agentId) return undefined;
-        const ctrl = new AbortController();
-        let alive = true;
-        const fail = () => { if (alive && !ctrl.signal.aborted) setFacts({ id: agentId, persona: null, state: READ.ERROR, unpublishedChanges: null }); };
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/agents/${encodeURIComponent(agentId)}?draft=1`, { signal: ctrl.signal });
-                if (!res.ok) return fail();
-                const body = await res.json();
-                if (!alive || ctrl.signal.aborted) return undefined;
-                const changes = Number(body?.unpublishedChanges);
-                const persona = (body && typeof body.persona === 'object' && body.persona) ? body.persona : null;
-                setFacts({
-                    id: agentId,
-                    persona,
-                    // No persona in the answer = the runtime view, and that
-                    // never carries one. That is UNKNOWN, not empty.
-                    state: persona ? READ.OK : READ.ERROR,
-                    unpublishedChanges: Number.isFinite(changes) ? changes : null,
-                });
-                return undefined;
-            } catch (_) {
-                // Non-fatal: the heading then simply shows no language chip. Never an
-                // invented value in its place.
-                if (!ctrl.signal.aborted) fail();
-                return undefined;
-            }
-        })();
-        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
-    }, [agentId]);
-
-    // Facts of a PREVIOUS agent do not belong to this one. While switching,
-    // the answer is "not yet known".
-    if (facts.id !== agentId) return { persona: null, personaState: READ.LOADING, unpublishedChanges: null };
-    return { persona: facts.persona, personaState: facts.state, unpublishedChanges: facts.unpublishedChanges };
+    // Facts of another agent do not belong to this one; the query is keyed by the id, so
+    // while switching (or without an id) the answer is "not yet known".
+    if (!agentId || !facts) return { persona: null, personaState: READ.LOADING, unpublishedChanges: null };
+    // No persona in the answer = the runtime view, and that never carries one. That is UNKNOWN, not empty.
+    if (facts.failed) return { persona: null, personaState: READ.ERROR, unpublishedChanges: null };
+    return { persona: facts.persona, personaState: facts.persona ? READ.OK : READ.ERROR, unpublishedChanges: facts.unpublishedChanges };
 }

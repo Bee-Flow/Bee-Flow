@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { READ, datatableGrantsOf } from './canUseFacts';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useAgentDatatableNames, useSkillUsageSummary } from '../../../../api/queries/agentWizardFacts';
 import type { ReadState } from '../agentEditor.types';
-import { logger } from '../../../../utils/logger';
 
-/** `GET /api/skills/usage-summary`: per skill id how many agents link it. */
-type SkillUsageSummary = Record<string, { agents?: number | null }>;
+const NO_TABLES: Array<{ id?: string; name?: string }> = [];
+const NO_USAGE: Record<string, { agents?: number | null }> = {};
 
 /**
  * The two EXTRA reads that the "Can use" tab needs and that the editor did not yet do (A2 step 2):
@@ -25,21 +24,39 @@ type SkillUsageSummary = Record<string, { agents?: number | null }>;
  * `READ.ERROR`, with `refetch` attached. The pattern of `hooks/useUsage.js`: never a silent empty list where a failed
  * read belongs.
  */
+type TablesQuery = ReturnType<typeof useAgentDatatableNames>;
+type UsageQuery = ReturnType<typeof useSkillUsageSummary>;
+
+/** What the tables card sees: no grants is a read zero, a refused or unreadable answer is ERROR with no rows. */
+function tablesView(enabled: boolean, grantCount: number, active: boolean, q: TablesQuery) {
+    if (enabled && grantCount === 0) return { tables: NO_TABLES, tablesState: READ.OK as ReadState };
+    if (!active) return { tables: null, tablesState: READ.LOADING as ReadState };
+    let tablesState: ReadState = READ.LOADING;
+    if (!q.isFetching) {
+        if (q.isError) tablesState = READ.ERROR;
+        else if (q.data) tablesState = q.data.valid ? READ.OK : READ.ERROR;
+    }
+    return { tables: q.isError ? null : (q.data?.rows ?? null), tablesState };
+}
+
+/** What the usage count sees: no linked skills is a read `{}`, a refused or unreadable answer is ERROR with no summary. */
+function usageView(enabled: boolean, skillCount: number, active: boolean, q: UsageQuery) {
+    if (enabled && skillCount === 0) return { usage: NO_USAGE, usageState: READ.OK as ReadState };
+    if (!active) return { usage: null, usageState: READ.LOADING as ReadState };
+    let usageState: ReadState = READ.LOADING;
+    if (!q.isFetching) {
+        if (q.isError) usageState = READ.ERROR;
+        else if (q.data !== undefined) usageState = q.data ? READ.OK : READ.ERROR;
+    }
+    return { usage: q.isError ? null : (q.data ?? null), usageState };
+}
+
 export default function useCanUseSources({ enabled = true, toolsConfig = null, attachedSkillIds = [], savedSkillIds = [] }: {
     enabled?: boolean;
     toolsConfig?: unknown;
     attachedSkillIds?: string[];
     savedSkillIds?: string[];
 }) {
-    const [tables, setTables] = useState<Array<{ id?: string; name?: string }> | null>(null);
-    const [tablesState, setTablesState] = useState<ReadState>(READ.LOADING);
-    const [usage, setUsage] = useState<SkillUsageSummary | null>(null);
-    const [usageState, setUsageState] = useState<ReadState>(READ.LOADING);
-    // A counter that rises on every refetch: the effect hangs on it, so trying again is one setState and not a second copy
-    // of the fetch.
-    const [tablesNonce, setTablesNonce] = useState(0);
-    const [usageNonce, setUsageNonce] = useState(0);
-
     const grantCount = datatableGrantsOf(toolsConfig).grants.length;
     const skillIds = Array.isArray(attachedSkillIds) ? attachedSkillIds.filter(id => typeof id === 'string' && id) : [];
     const savedIds = Array.isArray(savedSkillIds) ? savedSkillIds.filter(id => typeof id === 'string' && id) : [];
@@ -55,59 +72,20 @@ export default function useCanUseSources({ enabled = true, toolsConfig = null, a
      */
     const skillKey = `${skillIds.join(',')}|${savedIds.join(',')}`;
 
-    useEffect(() => {
-        if (!enabled) return undefined;
-        // Nothing granted? Then "no tables" is a read fact, not a guess.
-        if (grantCount === 0) { setTables([]); setTablesState(READ.OK); return undefined; }
-        const ctrl = new AbortController();
-        let alive = true;
-        setTablesState(READ.LOADING);
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/datatables`, { signal: ctrl.signal });
-                if (!alive || ctrl.signal.aborted) return;
-                if (!res.ok) throw new Error(`datatables ${res.status}`);
-                const body = await res.json();
-                if (!alive || ctrl.signal.aborted) return;
-                setTables(Array.isArray(body?.datatables) ? body.datatables : []);
-                setTablesState(Array.isArray(body?.datatables) ? READ.OK : READ.ERROR);
-            } catch (_) {
-                if (!alive || ctrl.signal.aborted) return;
-                setTables(null);
-                setTablesState(READ.ERROR);
-            }
-        })();
-        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
-    }, [enabled, grantCount, tablesNonce]);
+    // Nothing granted? Then "no tables" is a read fact, not a guess. Nothing linked, neither now nor saved: then there is
+    // nothing to count, and `{}` is a read answer.
+    const tablesActive = enabled && grantCount > 0;
+    const usageActive = enabled && skillIds.length > 0;
+    const tablesQuery = useAgentDatatableNames(tablesActive, grantCount);
+    const usageQuery = useSkillUsageSummary(usageActive, skillKey);
 
-    useEffect(() => {
-        if (!enabled) return undefined;
-        // Nothing linked, neither now nor saved: then there is nothing to count, and `{}` is a read answer.
-        if (skillIds.length === 0) { setUsage({}); setUsageState(READ.OK); return undefined; }
-        const ctrl = new AbortController();
-        let alive = true;
-        setUsageState(READ.LOADING);
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/skills/usage-summary`, { signal: ctrl.signal });
-                if (!alive || ctrl.signal.aborted) return;
-                if (!res.ok) throw new Error(`usage-summary ${res.status}`);
-                const body = await res.json();
-                if (!alive || ctrl.signal.aborted) return;
-                const summary = body && typeof body.summary === 'object' && body.summary ? body.summary : null;
-                setUsage(summary);
-                setUsageState(summary ? READ.OK : READ.ERROR);
-            } catch (_) {
-                if (!alive || ctrl.signal.aborted) return;
-                setUsage(null);
-                setUsageState(READ.ERROR);
-            }
-        })();
-        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
-    }, [enabled, skillKey, skillIds.length, usageNonce]);
+    const { tables, tablesState } = tablesView(enabled, grantCount, tablesActive, tablesQuery);
+    const { usage, usageState } = usageView(enabled, skillIds.length, usageActive, usageQuery);
 
-    const refetchTables = useCallback(() => setTablesNonce(n => n + 1), []);
-    const refetchUsage = useCallback(() => setUsageNonce(n => n + 1), []);
+    const { refetch: refetchTablesQuery } = tablesQuery;
+    const { refetch: refetchUsageQuery } = usageQuery;
+    const refetchTables = useCallback(() => { if (tablesActive) void refetchTablesQuery(); }, [tablesActive, refetchTablesQuery]);
+    const refetchUsage = useCallback(() => { if (usageActive) void refetchUsageQuery(); }, [usageActive, refetchUsageQuery]);
 
     return { tables, tablesState, refetchTables, usage, usageState, refetchUsage };
 }

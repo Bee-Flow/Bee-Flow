@@ -9,7 +9,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.test.jsx
  */
-import { render, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -37,6 +37,7 @@ vi.mock('../../renderers/MarkdownRenderer', () => ({
 vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import BuilderSplit from './BuilderSplit';
+import { queryWrapper } from '../../../test/queryWrapper';
 import { authFetch } from '../../../utils/helpers';
 
 // The default mock answers everywhere with ok:false. A test that needs a successful reading sets
@@ -73,6 +74,9 @@ const baseProps = {
 };
 
 afterEach(() => { cleanup(); authFetch.mockImplementation(DEFAULT_FETCH); });
+
+// The component reads through react-query: every render gets its own client.
+const render = (ui, opts = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('BuilderSplit (decomposed layout smoke)', () => {
     it('renders the chat rail and the config panel in edit mode', () => {

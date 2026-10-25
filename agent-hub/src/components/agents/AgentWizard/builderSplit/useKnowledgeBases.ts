@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useCallback } from 'react';
+import { API_BASE } from '../../../../utils/helpers';
+import { useAgentKnowledgeBaseList } from '../../../../api/queries/agentWizardFacts';
 import { toast } from '../../../shared/Toast';
 import { READ } from '../canUse/canUseFacts';
 import type { ReadState } from '../agentEditor.types';
 import { messageOf } from '../../../../utils/caughtError';
-import { request, RefusedError } from '../../../../api/mutate';
+import { mutate } from '../../../../api/mutate';
 
 /** A knowledge base as `GET /api/kb` lists it. */
 export interface KnowledgeBaseRow {
@@ -13,6 +14,8 @@ export interface KnowledgeBaseRow {
     documentCount?: number | null;
     documentCountAll?: number | null;
 }
+
+const NO_KBS: KnowledgeBaseRow[] = [];
 
 export interface KnowledgeBasesDeps {
     knowledgeBaseIds: string[];
@@ -32,7 +35,6 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
         setKnowledgeBaseIds(next);
         patchConfig({ knowledge_base_ids: next });
     };
-    const [allKbs, setAllKbs] = useState<KnowledgeBaseRow[]>([]);
     /**
      * Is that list REALLY there, or did the read fail? (A2 step 2.)
      *
@@ -42,7 +44,6 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
      * difference ("nothing linked" versus a warning with a retry button), so it must
      * be readable here.
      */
-    const [kbsState, setKbsState] = useState<ReadState>(READ.LOADING);
     /**
      * `?context=agent` — only the knowledge bases whose owner made them
      * available to agents (K5's `usage_contexts`). Without it the picker
@@ -53,37 +54,22 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
      * means everywhere, or this filter would empty the picker on every
      * install that predates the column.
      */
-    const refreshKbs = useCallback(async () => {
-        setKbsState(READ.LOADING);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/kb?context=agent`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`kb ${err.status}`);
-            }
-            const body = await res.json();
-            if (!Array.isArray(body)) throw new Error('kb list is not a list');
-            setAllKbs(body);
-            setKbsState(READ.OK);
-        } catch (_) {
-            // `allKbs` stays at what it was (the old picker still renders it), but the STATE is
-            // what consumers follow: the Knowledge card no longer reads names from this list
-            // on READ.ERROR. Half-fresh names next to a warning are worse than no names,
-            // because you cannot see which half is still correct.
-            setKbsState(READ.ERROR);
-        }
-    }, []);
-    useEffect(() => { refreshKbs(); }, [refreshKbs]);
+    const kbsQuery = useAgentKnowledgeBaseList<KnowledgeBaseRow>();
+    // `allKbs` stays at what it was on an error (the old picker still renders it), but the STATE is
+    // what consumers follow: the Knowledge card no longer reads names from this list
+    // on READ.ERROR. Half-fresh names next to a warning are worse than no names,
+    // because you cannot see which half is still correct.
+    const allKbs: KnowledgeBaseRow[] = kbsQuery.data ?? NO_KBS;
+    const kbsState: ReadState = kbsQuery.isFetching ? READ.LOADING : kbsQuery.isError ? READ.ERROR : READ.OK;
+    const { refetch } = kbsQuery;
+    const refreshKbs = useCallback(async () => { await refetch(); }, [refetch]);
     const createKb = async (name: string, description?: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/api/kb`, {
+            const res = await mutate(`${API_BASE}/api/kb`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, description }),
             });
-            if (!res.ok) throw new Error(await res.text());
             const created = await res.json();
             await refreshKbs();
             // Auto-link the new KB.

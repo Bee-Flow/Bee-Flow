@@ -15,8 +15,7 @@
  *   2. /ai/config reports `voiceChatReady` (a Mistral API key is configured).
  */
 
-import { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useVoiceChatConfigReady } from '../../../api/queries/voiceChat';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import type { PermissionUser } from '../../../hooks/usePermissionCheck';
 
@@ -26,7 +25,6 @@ interface VoiceUser extends PermissionUser {
 }
 
 export default function useVoiceChatReady(user: VoiceUser | null | undefined) {
-    const [ready, setReady] = useState<boolean | null>(null);
     const { hasFeature: hasLicenseFeature } = useLicenseContext();
 
     const hasBetaFlag = !!(
@@ -35,21 +33,7 @@ export default function useVoiceChatReady(user: VoiceUser | null | undefined) {
         (Array.isArray(user?.betaFeatures) && user.betaFeatures.includes('voice_chat'))
     ) && hasLicenseFeature('voice_chat');
 
-    useEffect(() => {
-        let cancelled = false;
-        if (!hasBetaFlag) { setReady(false); return undefined; }
-        (async () => {
-            try {
-                const resp = await authFetch(`${API_BASE}/ai/config`);
-                if (!resp.ok) { if (!cancelled) setReady(false); return; }
-                const cfg = await resp.json();
-                if (!cancelled) setReady(!!cfg.voiceChatReady);
-            } catch (_) {
-                if (!cancelled) setReady(false);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [hasBetaFlag]);
+    const { data: ready } = useVoiceChatConfigReady(hasBetaFlag);
 
     return !!(hasBetaFlag && ready);
 }

@@ -7,7 +7,7 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/builderSplit/useAgentConceptFacts.test.jsx
  */
-import { renderHook, waitFor, cleanup } from '@testing-library/react';
+import { renderHook as rtlRenderHook, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const calls = [];
@@ -22,6 +22,7 @@ vi.mock('../../../../utils/helpers', () => ({
 }));
 
 import useAgentConceptFacts from './useAgentConceptFacts';
+import { queryWrapper } from '../../../../test/queryWrapper';
 import { READ } from '../canUse/canUseFacts';
 
 const PERSONA = { who: 'A colleague.', mode: 'fields', language: 'nl' };
@@ -31,6 +32,9 @@ beforeEach(() => {
     handler = async () => ({ ok: true, json: async () => ({ persona: PERSONA, unpublishedChanges: 3 }) });
 });
 afterEach(() => cleanup());
+
+// The hook reads through react-query: every render gets its own client.
+const renderHook = (cb, opts = {}) => rtlRenderHook(cb, { wrapper: queryWrapper(), ...opts });
 
 describe('useAgentConceptFacts', () => {
     it('vraagt de CONCEPTweergave op — zonder ?draft=1 komt er nooit een persona mee', async () => {

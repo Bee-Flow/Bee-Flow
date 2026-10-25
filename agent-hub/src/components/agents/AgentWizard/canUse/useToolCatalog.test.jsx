@@ -12,7 +12,7 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/canUse/useToolCatalog.test.jsx
  */
-import { renderHook, waitFor, cleanup } from '@testing-library/react';
+import { renderHook as rtlRenderHook, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const calls = [];
@@ -44,6 +44,10 @@ const okHandler = async (url) => {
 
 beforeEach(() => { calls.length = 0; handler = okHandler; });
 afterEach(() => cleanup());
+
+import { queryWrapper } from '../../../../test/queryWrapper';
+// The hook reads through react-query: every render gets its own client.
+const renderHook = (cb, opts = {}) => rtlRenderHook(cb, { wrapper: queryWrapper(), ...opts });
 
 describe('useToolCatalog — de leen-vraag gaat over de eigenaar', () => {
     it('vraagt het per agent aan de server, niet aan de grants van de ingelogde bewerker', async () => {

@@ -1,17 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { READ } from './canUseFacts';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useToolCatalogQuery, useToolLendingQuery } from '../../../../api/queries/agentWizardFacts';
 import type { ReadState } from '../agentEditor.types';
 import type { ToolApp } from './toolCatalogTypes';
-import { logger } from '../../../../utils/logger';
 
-/** What `GET /agents/tool-catalog` answers, narrowed to what the card reads. */
-interface CatalogAnswer {
-    apps: ToolApp[];
-    degraded: boolean;
-    providersKnown: boolean;
-    lendingEnabled: boolean;
-}
+const NO_LENT: Set<string> = new Set();
 
 /**
  * The two reads that the Tools card needs (A2 step 3).
@@ -51,96 +44,50 @@ interface CatalogAnswer {
  * The lending read only goes out the door if the agent ALREADY EXISTS: without an id there is no resource to have grants
  * on, and then "nothing lent" is a read fact instead of a failure.
  */
+type CatalogQuery = ReturnType<typeof useToolCatalogQuery<ToolApp>>;
+type LendingQuery = ReturnType<typeof useToolLendingQuery>;
+
+/**
+ * Unknown narrows, also during a RE-READ: leaving the old catalogue in place while another agent is loaded makes the card
+ * calculate with someone else's answer. So fetching or failed = no catalogue.
+ */
+function catalogView(enabled: boolean, q: CatalogQuery) {
+    const catalog = q.isFetching || q.isError ? null : (q.data ?? null);
+    let catalogState: ReadState = READ.LOADING;
+    if (enabled && !q.isFetching) catalogState = q.isError ? READ.ERROR : q.data ? READ.OK : READ.LOADING;
+    return { catalog, catalogState };
+}
+
+/**
+ * An agent that has not been saved yet cannot have lent grants: grants hang on a resource id. That is a read zero.
+ * While loading, the answer is UNKNOWN (the previous value is the answer about a DIFFERENT agent), and a failed read is
+ * `null`, not an empty Set: "I could not check" is not "nothing is lent".
+ */
+function lendingView(enabled: boolean, noAgent: boolean, q: LendingQuery) {
+    const lending = q.isFetching || q.isError ? null : (q.data ?? null);
+    let lentState: ReadState = READ.LOADING;
+    if (noAgent) lentState = READ.OK;
+    else if (enabled && !q.isFetching) lentState = q.isError ? READ.ERROR : q.data ? READ.OK : READ.LOADING;
+    return { lending, lentState };
+}
+
 export default function useToolCatalog({ enabled = true, agentId = null }: { enabled?: boolean; agentId?: string | number | null } = {}) {
-    const [catalog, setCatalog] = useState<CatalogAnswer | null>(null);
-    const [catalogState, setCatalogState] = useState<ReadState>(READ.LOADING);
-    const [lentApps, setLentApps] = useState<Set<string> | null>(null);
-    const [lentState, setLentState] = useState<ReadState>(READ.LOADING);
+    const catalogQuery = useToolCatalogQuery<ToolApp>(enabled);
+    const lendingQuery = useToolLendingQuery(enabled, agentId);
+
+    const { catalog, catalogState } = catalogView(enabled, catalogQuery);
+    const noAgent = enabled && !agentId;
+    const { lending, lentState } = lendingView(enabled, noAgent, lendingQuery);
+    const lendingApps = lending?.apps;
+    const lentApps = useMemo<Set<string> | null>(() => (noAgent ? NO_LENT : lendingApps ? new Set(lendingApps) : null), [noAgent, lendingApps]);
     // Whether the agent IS CURATED as the RUNTIME reads it (`null` = unknown). It comes from the same route, because it is the
     // same question: what happens now when someone runs this agent. The editor has only the draft.
-    const [runtimeCurated, setRuntimeCurated] = useState<boolean | null>(null);
-    const [catalogNonce, setCatalogNonce] = useState(0);
-    const [lentNonce, setLentNonce] = useState(0);
+    const runtimeCurated = noAgent ? null : (lending?.runtimeCurated ?? null);
 
-    useEffect(() => {
-        if (!enabled) return undefined;
-        const ctrl = new AbortController();
-        let alive = true;
-        setCatalogState(READ.LOADING);
-        // Unknown narrows, also during a RE-READ: leaving the old catalogue in place while another agent is loaded makes the card
-        // calculate with someone else's answer.
-        setCatalog(null);
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/agents/tool-catalog`, { signal: ctrl.signal });
-                if (!alive || ctrl.signal.aborted) return;
-                if (!res.ok) throw new Error(`tool-catalog ${res.status}`);
-                const body = await res.json();
-                if (!alive || ctrl.signal.aborted) return;
-                if (!Array.isArray(body?.apps)) throw new Error('tool-catalog: no apps');
-                setCatalog({
-                    apps: body.apps,
-                    // The server itself says whether it could calculate the availability. `degraded` means that every `available` is at
-                    // `null`, so the card may not draw "not available", because that would be an assertion.
-                    degraded: body.degraded === true,
-                    providersKnown: body.providersKnown !== false,
-                    lendingEnabled: body.lendingEnabled === true,
-                });
-                setCatalogState(READ.OK);
-            } catch (_) {
-                if (!alive || ctrl.signal.aborted) return;
-                setCatalog(null);
-                setCatalogState(READ.ERROR);
-            }
-        })();
-        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
-    }, [enabled, catalogNonce]);
-
-    useEffect(() => {
-        if (!enabled) return undefined;
-        // An agent that has not been saved yet cannot have lent grants: grants hang on a resource id. That is a read zero.
-        if (!agentId) {
-            setLentApps(new Set());
-            setLentState(READ.OK);
-            setRuntimeCurated(null);
-            return undefined;
-        }
-        const ctrl = new AbortController();
-        let alive = true;
-        setLentState(READ.LOADING);
-        // The same reason as with the catalogue: while loading, the answer is UNKNOWN, and the previous value is the answer about
-        // a DIFFERENT agent. If it stays, the owner switch in that window opens on the basis of someone else's lending.
-        setLentApps(null);
-        setRuntimeCurated(null);
-        (async () => {
-            try {
-                const url = `${API_BASE}/agents/${encodeURIComponent(String(agentId))}/tool-lending`;
-                const res = await authFetch(url, { signal: ctrl.signal });
-                if (!alive || ctrl.signal.aborted) return;
-                if (!res.ok) throw new Error(`tool-lending ${res.status}`);
-                const body = await res.json();
-                if (!alive || ctrl.signal.aborted) return;
-                // `readable: false` is the narrow answer of the server: no owner, a probe that is broken, an attribution that is broken.
-                // That is not an empty list. It is not a list at all.
-                if (body?.readable !== true) throw new Error('tool-lending: not readable');
-                if (!Array.isArray(body?.apps)) throw new Error('tool-lending: no list');
-                setLentApps(new Set(body.apps.filter((id: unknown) => typeof id === 'string' && id)));
-                setRuntimeCurated(typeof body.runtimeCurated === 'boolean' ? body.runtimeCurated : null);
-                setLentState(READ.OK);
-            } catch (_) {
-                if (!alive || ctrl.signal.aborted) return;
-                // `null`, not an empty Set: "I could not check" is not "nothing is lent". `toolRows` refuses the owner option on both, but
-                // only the first deserves an explanation on the screen.
-                setLentApps(null);
-                setRuntimeCurated(null);
-                setLentState(READ.ERROR);
-            }
-        })();
-        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
-    }, [enabled, agentId, lentNonce]);
-
-    const refetchCatalog = useCallback(() => setCatalogNonce(n => n + 1), []);
-    const refetchLent = useCallback(() => setLentNonce(n => n + 1), []);
+    const { refetch: refetchCatalogQuery } = catalogQuery;
+    const { refetch: refetchLendingQuery } = lendingQuery;
+    const refetchCatalog = useCallback(() => { if (enabled) void refetchCatalogQuery(); }, [enabled, refetchCatalogQuery]);
+    const refetchLent = useCallback(() => { if (enabled && agentId) void refetchLendingQuery(); }, [enabled, agentId, refetchLendingQuery]);
 
     return {
         apps: catalog?.apps ?? null,

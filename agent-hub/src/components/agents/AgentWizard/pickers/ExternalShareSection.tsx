@@ -13,11 +13,13 @@
  */
 
 import { ExternalLink, Globe, Lock, Mail, Copy, Check, Trash2, Plus, RefreshCw } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { FocusEvent } from 'react';
 import { errorMessage } from '../../../../utils/caughtError';
 import { copyText } from '../../../../utils/copyText';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { mutate } from '../../../../api/mutate';
+import { useWebpagePublicShares } from '../../../../api/queries/webpageShares';
 import useConfirm from '../../../shared/useConfirm';
 import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { logger } from '../../../../utils/logger';
@@ -49,6 +51,8 @@ const EXPIRY_OPTIONS = [
     { value: 'never', label: 'No expiry' },
 ];
 
+const NO_SHARES: PublicShare[] = [];
+
 function plusDays(days: number) {
     const d = new Date();
     d.setDate(d.getDate() + days);
@@ -70,9 +74,12 @@ function formatExpiry(iso?: string | null) {
 export default function ExternalShareSection({ webpageId, webpageName, readOnly = false }: ExternalShareSectionProps) {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [shares, setShares] = useState<PublicShare[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null | undefined>(null);
+    const sharesQuery = useWebpagePublicShares<PublicShare>(webpageId);
+    const shares = sharesQuery.data ?? NO_SHARES;
+    // Without a webpage there is nothing to load, and the list stays hidden.
+    const loading = !webpageId || sharesQuery.isFetching;
+    const [mutationError, setError] = useState<string | null | undefined>(null);
+    const error = mutationError ?? (sharesQuery.isError ? errorMessage(sharesQuery.error) : null);
     const [creating, setCreating] = useState(false);
 
     // Form state
@@ -86,23 +93,12 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
     const [justCreated, setJustCreated] = useState<{ url: string; shareId?: string } | null>(null); // { url, shareId }
     const [copiedId, setCopiedId] = useState<string | null | undefined>(null);
 
+    const { refetch: refetchShares } = sharesQuery;
     const fetchShares = useCallback(async () => {
         if (!webpageId) return;
-        setLoading(true);
-        try {
-            const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/public-shares`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
-            setShares(Array.isArray(data.shares) ? data.shares : []);
-            setError(null);
-        } catch (e) {
-            setError(errorMessage(e));
-        } finally {
-            setLoading(false);
-        }
-    }, [webpageId]);
-
-    useEffect(() => { fetchShares(); }, [fetchShares]);
+        const result = await refetchShares();
+        setError(result.isError ? errorMessage(result.error) : null);
+    }, [webpageId, refetchShares]);
 
     const activeShares = useMemo(
         () => shares.filter(s => !s.revokedAt && !(s.expiresAt && new Date(s.expiresAt).getTime() < Date.now())),
@@ -142,13 +138,12 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                 ...(accessMode === 'password' ? { password } : {}),
                 ...(accessMode === 'email' ? { allowedEmails } : {}),
             };
-            const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/public-shares`, {
+            const res = await mutate(`${API_BASE}/api/webpages/${webpageId}/public-shares`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
             setJustCreated({ url: data.url, shareId: data.share?.id });
             resetForm();
             await fetchShares();
@@ -163,13 +158,9 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         if (!webpageId) return;
         if (!(await confirm({ title: 'Revoke this link?', description: 'Existing recipients will lose access immediately.', confirmLabel: 'Revoke', destructive: true }))) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}`, {
+            await mutate(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}`, {
                 method: 'DELETE',
             });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Failed (${res.status})`);
-            }
             await fetchShares();
         } catch (e) {
             setError(errorMessage(e));
@@ -179,13 +170,9 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
     const handleRefresh = useCallback(async (shareId: string) => {
         if (!webpageId) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}/refresh`, {
+            await mutate(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}/refresh`, {
                 method: 'POST',
             });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Failed (${res.status})`);
-            }
             await fetchShares();
         } catch (e) {
             setError(errorMessage(e));

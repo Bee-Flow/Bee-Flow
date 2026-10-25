@@ -1,6 +1,6 @@
 import { Upload, X } from 'lucide-react';
 import React, { useState, useEffect, useEffectEvent, useCallback } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
 import Modal from '../../../shared/Modal';
 import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
@@ -8,7 +8,7 @@ import { errorMessage } from '../../../../utils/caughtError';
 import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
 import { logger } from '../../../../utils/logger';
-import { request, RefusedError } from '../../../../api/mutate';
+import { mutate, request, RefusedError } from '../../../../api/mutate';
 
 /** One document of the base (`GET /api/kb/:id/documents`). */
 interface KbDocument {
@@ -162,12 +162,11 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
         // the stale agent shell so a draft doesn't mint a KB called "Untitled".
         const kbName = agentName || agent?.name || 'Knowledge';
         try {
-            const res = await authFetch(`${API_BASE}/api/kb`, {
+            const res = await mutate(`${API_BASE}/api/kb`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: kbName, description: `Auto-generated for agent "${kbName}"` }),
             });
-            if (!res.ok) throw new Error(await res.text());
             const created = await res.json();
             setKbId(created.id);
             const next = Array.from(new Set([...(knowledgeBaseIds || []), created.id]));
@@ -214,13 +213,13 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
             for (const file of files) {
                 const fd = new FormData();
                 fd.append('file', file);
-                const res = await authFetch(`${API_BASE}/api/kb/${id}/ingest/file`, {
-                    method: 'POST',
-                    body: fd,
-                });
-                if (!res.ok) {
-                    const txt = await res.text();
-                    throw new Error(`${file.name}: ${txt}`);
+                try {
+                    await mutate(`${API_BASE}/api/kb/${id}/ingest/file`, {
+                        method: 'POST',
+                        body: fd,
+                    });
+                } catch (err) {
+                    throw new Error(`${file.name}: ${errorMessage(err)}`);
                 }
             }
         } catch (err) {
@@ -245,8 +244,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
     const deleteDoc = async (docId: string) => {
         if (!kbId) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${kbId}/documents/${docId}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error(await res.text());
+            await mutate(`${API_BASE}/api/kb/${kbId}/documents/${docId}`, { method: 'DELETE' });
             await loadDocs(kbId);
             onKbsChange?.();
         } catch (err) { setError(errorMessage(err)); }

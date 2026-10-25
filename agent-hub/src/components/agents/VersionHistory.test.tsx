@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,6 +57,10 @@ async function restoreVersionOne(onRestore: () => void) {
 beforeEach(() => {
     vi.clearAllMocks();
 });
+
+import { queryWrapper } from '../../test/queryWrapper';
+// The component reads through react-query: every render gets its own client.
+const render = (ui: ReactElement, opts: Parameters<typeof rtlRender>[1] = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('VersionHistory restore', () => {
     it('says so when the server did not apply the restore, and does not act as if it had', async () => {

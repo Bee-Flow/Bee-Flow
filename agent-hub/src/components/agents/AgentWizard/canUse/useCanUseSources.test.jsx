@@ -7,7 +7,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/canUse/useCanUseSources.test.jsx
  */
-import { renderHook, waitFor, cleanup } from '@testing-library/react';
+import { renderHook as rtlRenderHook, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const calls = [];
@@ -35,6 +35,10 @@ const okHandler = async (url) => {
 
 beforeEach(() => { calls.length = 0; handler = okHandler; });
 afterEach(() => cleanup());
+
+import { queryWrapper } from '../../../../test/queryWrapper';
+// The hook reads through react-query: every render gets its own client.
+const renderHook = (cb, opts = {}) => rtlRenderHook(cb, { wrapper: queryWrapper(), ...opts });
 
 describe('useCanUseSources — niets vragen waar niets te vragen valt', () => {
     it('vraagt geen tabellen op zonder grants, en noemt dat gelezen', async () => {
