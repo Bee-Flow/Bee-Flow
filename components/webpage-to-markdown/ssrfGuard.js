@@ -366,7 +366,7 @@ function makeGuardedLookup({ lookup, refuse = genericRefusal, unresolved = gener
  * literals never reach the lookup), and refuse a socket whose actual peer is
  * forbidden (destroying it), whatever resolved it.
  *
- * @param {Function} baseConnect                 an undici connector (buildConnector result)
+ * @param {import("undici").buildConnector.connector} baseConnect                 an undici connector (buildConnector result)
  * @param {(host: string) => Error} refuse
  */
 function guardConnector(baseConnect, refuse = genericRefusal) {

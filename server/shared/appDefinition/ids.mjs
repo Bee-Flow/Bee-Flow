@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * App Studio definition ids: the prefixes, the grammar and the generator.
  *

@@ -174,7 +174,7 @@ function renderTable(document, { columns, meta, rows }) {
 }
 
 /**
- * De `limit` van het element, begrensd; ontbrekend of onleesbaar → het maximum.
+ * The `limit` of the element, clamped; missing or unreadable gives the maximum.
  * @param {{ [x: string]: string; }} attrs
  */
 function limitOf(attrs) {
@@ -680,7 +680,7 @@ module.exports = {
 };
 
 /**
- * Het deel van de DOM (jsdom) dat deze module aanraakt; de server kent geen DOM-lib.
+ * The part of the DOM (jsdom) this module touches; the server has no DOM lib.
  * @typedef {{ firstChild: DomNode | null, textContent: string | null, tagName?: string, content?: DomNode,
  *   setAttribute(name: string, value: string): void, getAttribute(name: string): string | null,
  *   appendChild(node: DomNode): DomNode, replaceWith(node: DomNode): void,

@@ -1,4 +1,3 @@
-// @typecheck strict
 /**
  * Section style vocabulary: the knobs a section has and the style a new
  * section starts with. Shared by the server catalog

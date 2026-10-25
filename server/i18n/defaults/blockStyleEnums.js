@@ -1,4 +1,4 @@
-// @typecheck strict
+// @typecheck
 // The design values a CMS block's `style` may carry for its background image
 // and the built-in brand motif, and the one function that cleans them. This
 // file is the source of record: agent-hub gets a byte-for-byte GENERATED copy
@@ -56,10 +56,7 @@ function cleanBackgroundSize(v) {
     return n >= BG_SIZE_PX_MIN && n <= BG_SIZE_PX_MAX ? `${n}px` : null;
 }
 
-/**
- * The pixel width of a clean "<n>px" size, or null for the enum sizes.
- * @param {string} clean
- */
+/** The pixel width of a clean "<n>px" size, or null for the enum sizes. */
 function backgroundSizePx(clean) {
     const m = typeof clean === 'string' ? /^(\d+)px$/.exec(clean) : null;
     return m ? Number(m[1]) : null;

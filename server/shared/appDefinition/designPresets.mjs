@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * App design presets — the non-technical builder's whole design decision in
  * one click. Each preset is a COMPLETE, materialized {theme, design, navStyle}

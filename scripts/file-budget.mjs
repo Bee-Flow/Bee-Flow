@@ -38,8 +38,10 @@
  *   node scripts/file-budget.mjs <package>... --list     files over the limit, largest first
  *   node scripts/file-budget.mjs <package>... --list --top 20
  *
- * Lines are physical lines as `wc -l` counts them (the unit count-ratchet
- * uses). The files are the package's tracked and untracked-but-not-ignored
+ * Code files (.js .ts .mjs ...) are measured in code lines: comments and blank
+ * lines do not count (scripts/code-lines.mjs, the unit count-ratchet's `big-file`
+ * uses too), so JSDoc and type comments cannot push a file over. Other files
+ * (Python) are measured in physical lines as `wc -l` counts them. The files are the package's tracked and untracked-but-not-ignored
  * files (`git ls-files -co --exclude-standard`), so a build artefact or a
  * local data directory cannot move a number; outside a git work tree the
  * package directory is walked instead, minus the usual build directories.
@@ -50,6 +52,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { codeLineCount, isCodeFile } from './code-lines.mjs';
 import { isEntryPoint } from './entry-point.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -131,7 +134,8 @@ export function measure({ dir, files, budget, language }) {
         }
         const isTest = language.test.test(rel);
         const limit = isTest ? budget.testLimit : budget.limit;
-        const lines = lineCount(fs.readFileSync(path.join(dir, rel), 'utf8'));
+        const text = fs.readFileSync(path.join(dir, rel), 'utf8');
+        const lines = isCodeFile(rel) ? codeLineCount(text) : lineCount(text);
         const ceiling = ceilings[rel];
         if (lines <= limit && ceiling === undefined) continue;
         rows.push({ rel, lines, limit, ceiling, isTest });
@@ -169,7 +173,7 @@ export function initial(result) {
 const sortedObject = (obj) => Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)));
 
 function commentFor(pkg) {
-    return `Per-file line budget for ${pkg} (scripts/file-budget.mjs, npm run lint:file-budget). A source file may have at most \`limit\` lines, a test file \`testLimit\`; a file listed under \`files\` was already over it and may not grow past its ceiling. Ceilings only come down: \`node scripts/file-budget.mjs ${pkg} --update\` lowers them after a split. Touch a budgeted file, split it. Adding a file or raising a ceiling is a deliberate edit that belongs in a commit message with a reason. \`data\` lists generated files, fixtures, templates and dictionaries whose length is content, each with a reason; they are skipped.`;
+    return `Per-file line budget for ${pkg} (scripts/file-budget.mjs, npm run lint:file-budget). A source file may have at most \`limit\` code lines (comments and blank lines are not counted; Python files count physical lines), a test file \`testLimit\`; a file listed under \`files\` was already over it and may not grow past its ceiling. Ceilings only come down: \`node scripts/file-budget.mjs ${pkg} --update\` lowers them after a split. Touch a budgeted file, split it. Adding a file or raising a ceiling is a deliberate edit that belongs in a commit message with a reason. \`data\` lists generated files, fixtures, templates and dictionaries whose length is content, each with a reason; they are skipped.`;
 }
 
 function readBudget(file) {

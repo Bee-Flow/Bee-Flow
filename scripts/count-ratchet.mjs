@@ -40,8 +40,8 @@
  *                     a fetch wired by hand into a component's lifecycle. The
  *                     target is useQuery/useMutation in src/api/queries/.
  *   big-file          source files longer than the package's limit (400 lines
- *                     in agent-hub, 800 in server), in physical lines like
- *                     `wc -l`. Tests, i18n dictionaries, generated files,
+ *                     in agent-hub, 800 in server), in code lines (comments
+ *                     and blank lines not counted, scripts/code-lines.mjs). Tests, i18n dictionaries, generated files,
  *                     demo fixtures and content templates do not count: their
  *                     length is data, not structure.
  *   line-ref          comment lines that point at a line number (`L353`,
@@ -182,6 +182,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { codeLineCount, codeLineMask } from './code-lines.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -416,9 +418,16 @@ function opensFunction(code, open) {
     return !word || !NOT_A_FUNCTION.has(word[1]);
 }
 
-/** Functions whose body spans more than LONG_FUNCTION_LINES lines, braces included. */
+/**
+ * Functions whose body spans more than LONG_FUNCTION_LINES lines of code, braces included. Comment
+ * and blank lines do not count (the unit of `big-file`, scripts/code-lines.mjs), so JSDoc inside a
+ * function cannot make it long.
+ */
 function countLongFunctions(text) {
     const code = blankNonCode(text);
+    // codeUpTo[l] = lines with code among lines 1..l (a line inside a template string is code)
+    const codeUpTo = [0, 0];
+    for (const has of codeLineMask(text)) codeUpTo.push(codeUpTo[codeUpTo.length - 1] + (has ? 1 : 0));
     const stack = [];
     let line = 1;
     let n = 0;
@@ -428,7 +437,7 @@ function countLongFunctions(text) {
         else if (c === '{') stack.push(opensFunction(code, i) ? line : 0);
         else if (c === '}') {
             const start = stack.pop();
-            if (start && line - start + 1 > LONG_FUNCTION_LINES) n++;
+            if (start && codeUpTo[line + 1] - codeUpTo[start] > LONG_FUNCTION_LINES) n++;
         }
     }
     return n;
@@ -465,7 +474,7 @@ const METRICS = {
     },
     'big-file': {
         include: (rel) => !TEST_FILE.test(rel) && !BIG_FILE_EXEMPT.test(rel),
-        measure: (text, pkg) => (lineCount(text) > (BIG_FILE_LIMIT[pkg] ?? 400) ? 1 : 0),
+        measure: (text, pkg) => (codeLineCount(text) > (BIG_FILE_LIMIT[pkg] ?? 400) ? 1 : 0),
         what: 'files over the line limit',
         advice: 'split the file by responsibility (container, hooks, presentation; or one module per phase) instead',
     },
@@ -603,7 +612,9 @@ const METRICS = {
         include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('routes/'),
         measure: (text, pkg, rel) => {
             let n = 0;
-            for (const [, , spec] of text.matchAll(IMPORT_SPEC)) {
+            // A JSDoc type (`typeof import('../db').getAll`) is no runtime import.
+            const code = text.replace(/\/\*[\s\S]*?\*\//g, '');
+            for (const [, , spec] of code.matchAll(IMPORT_SPEC)) {
                 if (/^(?:db|db\.js)$/.test(resolveImport(spec, rel) ?? '')) n++;
             }
             return n;
@@ -614,7 +625,7 @@ const METRICS = {
     'long-function': {
         include: (rel) => !TEST_FILE.test(rel),
         measure: (text) => countLongFunctions(text),
-        what: `functions over ${LONG_FUNCTION_LINES} lines`,
+        what: `functions over ${LONG_FUNCTION_LINES} lines of code`,
         advice: 'split the function: extract the phases into named helpers (or hooks and subcomponents for a React component)',
     },
 };

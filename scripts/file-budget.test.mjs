@@ -27,7 +27,7 @@ const lines = (n) => Array.from({ length: n }, (_, i) => `export const v${i} = $
 function sandbox({ files = {}, budget = null, pkg = 'pkg', git = false } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'file-budget-'));
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
-    for (const name of ['file-budget.mjs', 'entry-point.mjs']) fs.copyFileSync(path.join(HERE, name), path.join(dir, 'scripts', name));
+    for (const name of ['file-budget.mjs', 'entry-point.mjs', 'code-lines.mjs']) fs.copyFileSync(path.join(HERE, name), path.join(dir, 'scripts', name));
     for (const [rel, body] of Object.entries(files)) {
         const full = path.join(dir, pkg, rel);
         fs.mkdirSync(path.dirname(full), { recursive: true });

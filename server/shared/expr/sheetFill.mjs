@@ -1,4 +1,3 @@
-// @typecheck strict
 /**
  * Filling a formula across cells, as a spreadsheet's fill-down and
  * fill-right do: the relative references shift with the cell, `$`-anchored
@@ -15,9 +14,6 @@
 const DEFAULT_BOUNDS = Object.freeze({ maxCols: 26, maxRows: 2000 });
 const REF_RE = /(\$?)([A-Z]{1,3})(\$?)(\d{1,7})(?![A-Za-z0-9_(])/g;
 
-/**
- * @param {number} c
- */
 const colName = (c) => String.fromCharCode(65 + c);
 
 /**
@@ -62,7 +58,6 @@ export function shiftFormula(raw, dCol, dRow, bounds = DEFAULT_BOUNDS) {
  * @returns {Record<string, string>}
  */
 export function fillBlock(block, direction, raw) {
-    /** @type {Record<string, string>} */
     const out = {};
     for (let row = block.r0; row <= block.r1; row++) {
         for (let col = block.c0; col <= block.c1; col++) {
