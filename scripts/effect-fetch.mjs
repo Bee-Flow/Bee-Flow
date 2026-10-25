@@ -45,7 +45,7 @@ const HOOK = /^use[A-Z]/;
  * @returns {0 | 1}
  */
 export function fetchInEffect(text, file = 'x.tsx') {
-    if (!/\buseEffect\b/.test(text)) return 0;
+    if (!text.includes('useEffect')) return 0;
     const ts = loadTs();
     const kind = /\.(t|j)sx$/.test(file) ? ts.ScriptKind.TSX : (/\.jsx?$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS);
     const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, kind);
