@@ -128,6 +128,7 @@ export function move(pairs, opts = {}) {
 
     const files = walk(server, (n) => CODE_EXT.test(n));
     const edits = new Map(); // abs file (old location) -> new text
+    const touchesMoved = new Set(); // files that name a moved file
     const specChanges = new Map(); // moved file -> [{ oldSpec, newSpec, target(old abs), mapped }]
     const reportRewritten = [];
 
@@ -171,6 +172,7 @@ export function move(pairs, opts = {}) {
             changes.push({ oldSpec: lit, newSpec: n, target: hit, mapped: true, rooted: true });
             return `${head}${q}${n}${q}`;
         });
+        if (changes.some((c) => c.mapped)) touchesMoved.add(file);
         if (text !== src) {
             edits.set(file, text);
             reportRewritten.push({ file: rel(root, newFile), changes: changes.length });
@@ -190,6 +192,7 @@ export function move(pairs, opts = {}) {
     for (const f of stubTests) {
         const t = edits.get(f) ?? fs.readFileSync(f, 'utf8');
         if (!/installResolveStub|_resolveFilename/.test(t)) continue;
+        if (!touchesMoved.has(f) && !map.has(f)) continue;
         for (const [file, changes] of specChanges) {
             for (const c of changes) {
                 if (c.rooted || c.oldSpec === c.newSpec) continue;
