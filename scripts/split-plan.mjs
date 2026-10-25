@@ -152,7 +152,7 @@ export function planFile(abs, { limit = 400, exists = fs.existsSync } = {}) {
         }
         return set;
     };
-    const ext = /\.tsx$/.test(abs) ? 'tsx' : 'ts';
+    const ext = /\.tsx$/.test(abs) ? 'tsx' : 'ts'; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script over local file paths; anchored literal suffix, linear
     const small = [];
     const phases = [
         ['types', null],
@@ -237,7 +237,7 @@ export function planFile(abs, { limit = 400, exists = fs.existsSync } = {}) {
     if (plan.residual > limit && !reduces) { plan.skip = `would still be ${plan.residual} lines (the anchor is too big for a move)`; return plan; }
 
     // Names.
-    plan.folder = groups.length >= 3 && !/(?:^|\/)index\.[cm]?[jt]sx?$/.test(posix(abs)) && true;
+    plan.folder = groups.length >= 3 && !/(?:^|\/)index\.[cm]?[jt]sx?$/.test(posix(abs)) && true; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script over local file paths; anchored literal, linear
     const stem = stemOf(abs);
     const dir = plan.folder ? path.join(path.dirname(abs), stem) : path.dirname(abs);
     const taken = new Set();
@@ -272,7 +272,7 @@ function esbuild() {
  */
 export function statementsOf(file, text) {
     const ts = loadTs();
-    const loader = /\.tsx$/.test(file) ? 'tsx' : /\.jsx$/.test(file) ? 'jsx' : /\.[cm]?js$/.test(file) ? 'js' : 'ts';
+    const loader = /\.tsx$/.test(file) ? 'tsx' : /\.jsx$/.test(file) ? 'jsx' : /\.[cm]?js$/.test(file) ? 'js' : 'ts'; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script over local file paths; anchored literal suffixes, linear
     const out = esbuild().transformSync(text, { loader, jsx: 'automatic', format: 'esm', target: 'es2022', sourcefile: path.basename(file) }).code;
     const sf = ts.createSourceFile('out.js', out, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
     const res = [];
@@ -309,7 +309,7 @@ function revertToIndex(repo, pkgRel) {
 
 /** Execute one plan on disk. Returns { files: [paths written or created], created: [paths], newMain }. */
 export function execute(plan, { pkgDir, rewriteImporters = true }) {
-    let cur = plan.file;
+    let cur = plan.file; // nosemgrep: ajinabraham.njsscan.dos.regex_injection.regex_injection_dos -- a repo script; no regex is built from input here, paths come from the local plan
     const created = [];
     const touched = new Set([plan.file]);
     if (plan.folder) {

@@ -152,7 +152,7 @@ export function extractOne(svc, file, componentName, taken) {
         }
         // Name it and turn the calls into elements.
         let name = `${comp.name}${roleOf(ts, sf, cand.node)}`;
-        for (let i = 2; taken.has(name) || new RegExp(`\\b${name}\\b`).test(svc.read(file)); i++) name = `${comp.name}${roleOf(ts, sf, cand.node)}${i}`;
+        for (let i = 2; taken.has(name) || new RegExp(`\\b${name}\\b`).test(svc.read(file)); i++) name = `${comp.name}${roleOf(ts, sf, cand.node)}${i}`; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script; name is a generated JS identifier, \b-anchored, linear
         sf2 = ls.getProgram().getSourceFile(file);
         const cur = svc.read(file);
         const edits2 = [];

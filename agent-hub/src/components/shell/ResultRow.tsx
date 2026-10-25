@@ -66,7 +66,7 @@ export const ResultRow = ({ result, query, idx, selected, onSelect, onHover }: R
                 </div>
                 <div
                     className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: highlightSnippet(result.snippet || '', query) }}
+                    dangerouslySetInnerHTML={{ __html: highlightSnippet(result.snippet || '', query) }} // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml -- highlightSnippet escapes the snippet and the query before it adds <mark> (searchHighlight.ts)
                 />
                 <div className="flex items-center gap-1 mt-1 text-[10px] text-[var(--text-muted)]">
                     <Calendar className="w-2.5 h-2.5" />
