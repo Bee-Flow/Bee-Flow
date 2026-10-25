@@ -46,7 +46,7 @@ def require_api_key(
     if key:
         return key
     if allowed_open(allow_open_vars, env):
-        logger.warning(
+        logger.warning(  # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure -- logs the names of the opt-out variables, never a key
             "%s runs WITHOUT an API key (%s=1). Anyone who can reach the port can use it.",
             service,
             "/".join(allow_open_vars),
