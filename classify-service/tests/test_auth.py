@@ -77,3 +77,45 @@ def test_create_app_reads_the_environment_by_default(monkeypatch, fake):
         c.post("/classify", json=BODY, headers={"X-API-Key": "from-env"}).status_code
         == 200
     )
+
+
+# --- fail closed -----------------------------------------------------------
+
+
+def test_no_key_refuses_to_start(monkeypatch):
+    from app.main import create_app
+    from app.shared.startup import ApiKeyRequired
+
+    for name in ("SERVICES_API_KEY", "CLASSIFY_ALLOW_OPEN", "SERVICES_ALLOW_OPEN"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(ApiKeyRequired, match="CLASSIFY_API_KEY"):
+        create_app()
+    with pytest.raises(ApiKeyRequired):
+        create_app(api_key="")
+
+
+@pytest.mark.parametrize("name", ["CLASSIFY_ALLOW_OPEN", "SERVICES_ALLOW_OPEN"])
+def test_allow_open_lets_it_start_without_a_key(monkeypatch, fake, name):
+    from app.main import create_app
+
+    for n in ("SERVICES_API_KEY", "CLASSIFY_ALLOW_OPEN", "SERVICES_ALLOW_OPEN"):
+        monkeypatch.delenv(n, raising=False)
+    monkeypatch.setenv(name, "1")
+    assert (
+        TestClient(create_app(api_key="")).post("/classify", json=BODY).status_code
+        == 200
+    )
+
+
+def test_there_is_no_cors_so_no_origin_is_allowed(fake, make_app):
+    c = TestClient(make_app(api_key="s3cret"))
+    r = c.options(
+        "/classify",
+        headers={
+            "Origin": "https://evil.example",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert "access-control-allow-origin" not in r.headers
+    r = c.get("/health", headers={"Origin": "https://evil.example"})
+    assert "access-control-allow-origin" not in r.headers

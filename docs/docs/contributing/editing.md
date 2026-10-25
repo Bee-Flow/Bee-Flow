@@ -7,7 +7,7 @@ description: How to edit pages, add screenshots, and ship a change to docs.beefl
 
 You don't need to install anything. There are two ways to edit:
 
-- **The visual editor at [/cms/](/cms/)** — friendly UI with a rich-text editor, image uploads, and a side-by-side preview. Best for non-technical editors. *(One-time setup required by an admin — see the bottom of this page.)*
+- **The visual editor at [/cms/](https://docs.beeflow.ai/cms/)** — friendly UI with a rich-text editor, image uploads, and a side-by-side preview. Best for non-technical editors. *(One-time setup required by an admin — see the bottom of this page.)*
 - **GitHub's editor** — every page has an **Edit this page** link at the bottom that opens GitHub's web editor. Best when you want to see the raw Markdown.
 
 Either way, every save is a Git commit attributed to **your** GitHub user, and the live site rebuilds automatically a couple of minutes after merge.
@@ -24,7 +24,7 @@ If you've never used GitHub before, you'll need a free account at [github.com](h
 
 ## The visual editor (recommended for non-technical editors)
 
-Go to [docs.beeflow.ai/cms/](/cms/) and click **Log in with GitHub**. Once you authorize, you'll see all the docs sections in a sidebar, just like the navigation on the site itself.
+Go to [docs.beeflow.ai/cms/](https://docs.beeflow.ai/cms/) and click **Log in with GitHub**. Once you authorize, you'll see all the docs sections in a sidebar, just like the navigation on the site itself.
 
 For each section you can:
 
@@ -216,7 +216,7 @@ If you'd rather see styled previews before merging, ask the team to add a Netlif
 
 ## Admin: one-time CMS setup
 
-The visual editor at [/cms/](/cms/) uses [Sveltia CMS](https://github.com/sveltia/sveltia-cms) — a static admin UI that lives on GitHub Pages alongside the rest of the docs. The site itself is fully GitHub-Pages-hosted.
+The visual editor at [/cms/](https://docs.beeflow.ai/cms/) uses [Sveltia CMS](https://github.com/sveltia/sveltia-cms) — a static admin UI that lives on GitHub Pages alongside the rest of the docs. The site itself is fully GitHub-Pages-hosted.
 
 There's one piece of the puzzle that has to live outside Pages: the GitHub OAuth handshake (trading an OAuth code for a token) needs a server-side step — that's a fundamental constraint of GitHub's OAuth App protocol, not something the CMS chose. We solve it with a tiny self-hosted Cloudflare Worker that you fully own. No third-party dependency.
 
@@ -228,7 +228,7 @@ The Worker code, deploy script, and full step-by-step are in **[`cms-auth/README
 4. Update the OAuth App's callback URL to `<worker URL>/callback`.
 5. Edit `static/cms/config.yml` → set `backend.base_url` to your worker URL. Commit.
 
-After the docs site rebuilds (~2 minutes) editors can visit [/cms/](/cms/) → **Log in with GitHub** → start editing. Every save = a real Git commit by their GitHub user.
+After the docs site rebuilds (~2 minutes) editors can visit [/cms/](https://docs.beeflow.ai/cms/) → **Log in with GitHub** → start editing. Every save = a real Git commit by their GitHub user.
 
 ### Editor permissions
 

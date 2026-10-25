@@ -24,17 +24,32 @@ required-version = "==0.16.4"
 # S = flake8-bandit (security smells: assert in app code, swallowed exceptions,
 # bind-all, URL schemes); UP = pyupgrade (py312 syntax: `X | None`,
 # collections.abc); I = isort (one import order everywhere).
-select = ["F", "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "B", "S", "UP", "I"]
+#
+# Added in round 5: ANN (type annotations on the services' own code; ANN401, an
+# explicit Any, stays allowed), BLE001 (a blind `except Exception` carries a noqa
+# with its reason), E402 (imports at the top; the deliberate exceptions are in
+# per-file-ignores), RUF100 (an unused noqa), RUF022 (sorted __all__) and G
+# (logging calls). TRY400 stays off: logger.exception would put a traceback,
+# which can quote request text, into the log of a privacy service.
+select = ["F", "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "B", "S", "UP", "I", "ANN", "BLE001", "E402", "RUF100", "RUF022", "G"]
+ignore = ["ANN401"]
 
 [lint.per-file-ignores]
 # Tests assert, use fixed "secret" strings as canaries, bind to 0.0.0.0 in
 # fixtures and draw seeded randomness: none of that is a security finding.
-"**/tests/**" = ["S101", "S104", "S105", "S106", "S311"]
+"**/tests/**" = ["S101", "S104", "S105", "S106", "S311", "ANN", "BLE001", "E402"]
+# Annotations and blind excepts are for the services' own code, not for offline tooling.
+"**/scripts/**" = ["ANN", "BLE001"]
+# Imports that must come after code: main.py sizes the BLAS/OpenMP pools from the
+# cgroup quota BEFORE numpy/torch/onnxruntime are imported (they read the env once);
+# pii/__init__.py re-exports the parts after its logger.
+"*-service/app/main.py" = ["E402"]
+"guard-service/app/services/pii/__init__.py" = ["E402"]
 # Offline eval and maintenance tooling, never shipped in a request path: the
 # corpus generator draws SEEDED randomness on purpose (reproducibility, not
 # secrecy), and the runners call a URL / subprocess given on their own CLI.
-"**/eval/**" = ["S311", "S310", "S603"]
-"guard-service/tools/**" = ["S310"]
+"**/eval/**" = ["S311", "S310", "S603", "ANN", "BLE001"]
+"guard-service/tools/**" = ["S310", "ANN", "BLE001"]
 
 [lint.isort]
 # `from x import a, b as c` stays one statement instead of splitting off the alias.

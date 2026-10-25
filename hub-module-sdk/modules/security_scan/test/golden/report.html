@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Security report — t.test</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="report" role="main">
+        <header class="report__header">
+            <div class="report__title">
+                <span class="report__icon" aria-hidden="true">🛡️</span>
+                <div>
+                    <h1>Security scan report</h1>
+                    <p class="report__target"><span class="report__target-label">Target</span> <code>https://t.test</code></p>
+                </div>
+            </div>
+            <dl class="report__meta">
+                <div><dt>Engines</dt><dd>OWASP ZAP (standard), Nuclei, testssl.sh</dd></div>
+                <div><dt>Started</dt><dd>2026-01-01 10:00:00 UTC</dd></div>
+                <div><dt>Finished</dt><dd>2026-01-01 10:42:00 UTC</dd></div>
+                <div><dt>Duration</dt><dd>2520.0 s</dd></div>
+            </dl>
+        </header>
+
+        <section class="summary" aria-label="Executive summary">
+            <h2>Executive summary</h2>
+            <p class="summary__lead">
+                The scan surfaced <strong>9</strong> findings across 3 engines, including <strong>3</strong> high-severity items.
+            </p>
+            <div class="cards">
+        <div class="card card--high">
+            <div class="card__count">3</div>
+            <div class="card__label">High</div>
+        </div>
+        <div class="card card--medium">
+            <div class="card__count">1</div>
+            <div class="card__label">Medium</div>
+        </div>
+        <div class="card card--low">
+            <div class="card__count">2</div>
+            <div class="card__label">Low</div>
+        </div>
+        <div class="card card--informational">
+            <div class="card__count">3</div>
+            <div class="card__label">Informational</div>
+        </div></div>
+        </section>
+
+        <section class="assessment" aria-label="Assessment">
+            <h2>Assessment</h2>
+            <div class="prose"><h4>Summary</h4>
+<p>One <strong>critical</strong> issue: <code>SQL injection</code>.</p>
+<ul>
+<li>fix it</li>
+<li>retest</li>
+</ul>
+<ol>
+<li>first</li>
+<li>second</li>
+</ol></div>
+        </section>
+        <section class="findings" aria-label="Findings">
+            <h2>Findings</h2>
+            <table class="findings__table">
+                <thead>
+                    <tr>
+                        <th scope="col">Severity</th>
+                        <th scope="col">Engine</th>
+                        <th scope="col">Count</th>
+                        <th scope="col">Detail &amp; remediation</th>
+                    </tr>
+                </thead>
+                <tbody>
+        <tr class="finding finding--high">
+            <td class="finding__sev"><span class="badge badge--high">High</span></td>
+            <td class="finding__engine">Nuclei</td>
+            <td class="finding__count">2</td>
+            <td class="finding__detail">
+                <div class="finding__name">1. Exposed .git </div>
+                <p class="finding__desc">The repo is readable.</p>
+                <div class="finding__samples"><span class="finding__samples-label">Sample locations</span><ul><li><code>https://t.test/.git/config</code></li><li><code>https://t.test/.git/HEAD</code></li></ul></div>
+                <div class="finding__remediation"><span class="finding__remediation-label">Remediation</span><p>Block it.</p></div>
+                <div class="finding__ref"><span class="finding__ref-label">Reference</span> <span>https://a.test, https://b.test</span></div>
+            </td>
+        </tr>
+        <tr class="finding finding--high">
+            <td class="finding__sev"><span class="badge badge--high">High</span></td>
+            <td class="finding__engine">OWASP ZAP</td>
+            <td class="finding__count">1</td>
+            <td class="finding__detail">
+                <div class="finding__name">2. SQL Injection </div>
+                
+                <div class="finding__samples"><span class="finding__samples-label">Sample locations</span><ul><li><code>https://t.test/q?id=1</code></li></ul></div>
+                
+                
+            </td>
+        </tr>
+        <tr class="finding finding--high">
+            <td class="finding__sev"><span class="badge badge--high">High</span></td>
+            <td class="finding__engine">testssl.sh</td>
+            <td class="finding__count">1</td>
+            <td class="finding__detail">
+                <div class="finding__name">3. TLS1 </div>
+                <p class="finding__desc">TLS 1.0 offered</p>
+                
+                
+                
+            </td>
+        </tr>
+        <tr class="finding finding--medium">
+            <td class="finding__sev"><span class="badge badge--medium">Medium</span></td>
+            <td class="finding__engine">OWASP ZAP</td>
+            <td class="finding__count">2</td>
+            <td class="finding__detail">
+                <div class="finding__name">4. Missing Anti-clickjacking Header <span class="finding__confidence">Confidence: 2</span></div>
+                <p class="finding__desc">The response does not include X-Frame-Options.</p>
+                <div class="finding__samples"><span class="finding__samples-label">Sample locations</span><ul><li><code>https://t.test/a</code></li><li><code>https://t.test/b</code></li></ul></div>
+                <div class="finding__remediation"><span class="finding__remediation-label">Remediation</span><p>Set the header.</p></div>
+                <div class="finding__ref"><span class="finding__ref-label">Reference</span> <span>https://example.test/ref</span></div>
+            </td>
+        </tr>
+        <tr class="finding finding--low">
+            <td class="finding__sev"><span class="badge badge--low">Low</span></td>
+            <td class="finding__engine">OWASP ZAP</td>
+            <td class="finding__count">3</td>
+            <td class="finding__detail">
+                <div class="finding__name">5. Cookie without SameSite </div>
+                <p class="finding__desc">x</p>
+                
+                
+                
+            </td>
+        </tr>
+        <tr class="finding finding--low">
+            <td class="finding__sev"><span class="badge badge--low">Low</span></td>
+            <td class="finding__engine">testssl.sh</td>
+            <td class="finding__count">1</td>
+            <td class="finding__detail">
+                <div class="finding__name">6. BEAST </div>
+                <p class="finding__desc">vulnerable</p>
+                
+                
+                
+            </td>
+        </tr>
+        <tr class="finding finding--informational">
+            <td class="finding__sev"><span class="badge badge--informational">Informational</span></td>
+            <td class="finding__engine">Nuclei</td>
+            <td class="finding__count">1</td>
+            <td class="finding__detail">
+                <div class="finding__name">7. tech-detect </div>
+                
+                <div class="finding__samples"><span class="finding__samples-label">Sample locations</span><ul><li><code>t.test</code></li></ul></div>
+                
+                
+            </td>
+        </tr>
+        <tr class="finding finding--informational">
+            <td class="finding__sev"><span class="badge badge--informational">Informational</span></td>
+            <td class="finding__engine">testssl.sh</td>
+            <td class="finding__count">1</td>
+            <td class="finding__detail">
+                <div class="finding__name">8. banner </div>
+                <p class="finding__desc">nginx</p>
+                
+                
+                
+            </td>
+        </tr>
+        <tr class="finding finding--informational">
+            <td class="finding__sev"><span class="badge badge--informational">Informational</span></td>
+            <td class="finding__engine">OWASP ZAP</td>
+            <td class="finding__count">0</td>
+            <td class="finding__detail">
+                <div class="finding__name">9. Server leaks version </div>
+                
+                
+                
+                
+            </td>
+        </tr></tbody>
+            </table>
+        </section>
+
+        <footer class="report__footer">
+            <p>
+                This report was produced by an <strong>authorized</strong> automated security scan of
+                <code>t.test</code>, run only against assets the requester confirmed they are
+                permitted to test. Findings are point-in-time and may include false positives — validate
+                before acting. Do not redistribute outside the authorized scope.
+            </p>
+            <p class="report__footer-meta">Generated 2026-01-01 10:42:00 UTC · Bee Flow Security Scan</p>
+        </footer>
+    </main>
+</body>
+</html>
+<!-- css -->
+/* Security report — self-contained styling.
+   Palette: neutral grays + red(#b91c1c)/amber(#b45309)/blue(#1d4ed8)/slate(#475569)
+   for severities only. Cool blue/red accents — never any warm-magenta family. */
+:root {
+    --ink: #0f172a;
+    --ink-soft: #334155;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --line-strong: #cbd5e1;
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --high: #b91c1c;
+    --medium: #b45309;
+    --low: #1d4ed8;
+    --informational: #475569;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background: #f1f5f9;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.05em 0.4em;
+    word-break: break-all;
+}
+.report { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+.report__header {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.report__title { display: flex; gap: 1rem; align-items: flex-start; }
+.report__icon { font-size: 2rem; line-height: 1; }
+.report__title h1 { margin: 0 0 0.35rem; font-size: 1.5rem; letter-spacing: -0.01em; }
+.report__target { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+.report__target-label { color: var(--muted); margin-right: 0.35rem; }
+.report__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem 1.5rem;
+    margin: 1.25rem 0 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+}
+.report__meta div { margin: 0; }
+.report__meta dt { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.report__meta dd { margin: 0.15rem 0 0; font-weight: 600; color: var(--ink); }
+
+.summary, .assessment, .findings { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+h2 { margin: 0 0 1rem; font-size: 1.15rem; letter-spacing: -0.01em; }
+.summary__lead { margin: 0 0 1.25rem; color: var(--ink-soft); }
+
+.prose { color: var(--ink-soft); line-height: 1.65; }
+.prose h3, .prose h4, .prose h5, .prose h6 { margin: 1.25rem 0 0.5rem; color: var(--ink); letter-spacing: -0.01em; }
+.prose h3 { font-size: 1.02rem; } .prose h4 { font-size: 0.95rem; } .prose h5, .prose h6 { font-size: 0.9rem; }
+.prose p { margin: 0 0 0.85rem; }
+.prose ul, .prose ol { margin: 0 0 0.85rem; padding-left: 1.4rem; }
+.prose li { margin: 0.2rem 0; }
+.prose code { background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0.05rem 0.3rem; font-size: 0.88em; }
+.prose strong { color: var(--ink); }
+.prose > :first-child { margin-top: 0; } .prose > :last-child { margin-bottom: 0; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.85rem; }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 1rem; text-align: center; background: var(--bg); }
+.card__count { font-size: 2rem; font-weight: 700; line-height: 1; }
+.card__label { margin-top: 0.35rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.card--high { border-color: #fecaca; background: #fef2f2; } .card--high .card__count { color: var(--high); }
+.card--medium { border-color: #fde68a; background: #fffbeb; } .card--medium .card__count { color: var(--medium); }
+.card--low { border-color: #bfdbfe; background: #eff6ff; } .card--low .card__count { color: var(--low); }
+.card--informational { border-color: var(--line); background: var(--bg); } .card--informational .card__count { color: var(--informational); }
+
+.findings__table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.findings__table thead th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--line-strong);
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.findings__table td { padding: 0.85rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.finding__sev { white-space: nowrap; }
+.finding__engine { color: var(--ink-soft); white-space: nowrap; }
+.finding__count { text-align: center; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.finding__detail { width: 100%; }
+.finding__name { font-weight: 600; }
+.finding__desc { margin: 0.4rem 0 0; color: var(--ink-soft); }
+.finding__confidence { font-weight: 400; font-size: 0.78rem; color: var(--muted); margin-left: 0.4rem; }
+
+.finding__samples, .finding__remediation, .finding__ref { margin-top: 0.6rem; font-size: 0.88rem; }
+.finding__samples-label, .finding__remediation-label, .finding__ref-label {
+    display: inline-block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 0.15rem;
+}
+.finding__samples ul { margin: 0.15rem 0 0; padding-left: 1.1rem; }
+.finding__samples li { margin: 0.1rem 0; }
+.finding__remediation p { margin: 0.15rem 0 0; color: var(--ink-soft); }
+.finding__ref { color: var(--ink-soft); }
+
+.badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid;
+}
+.badge--high { color: var(--high); background: #fef2f2; border-color: #fecaca; }
+.badge--medium { color: var(--medium); background: #fffbeb; border-color: #fde68a; }
+.badge--low { color: var(--low); background: #eff6ff; border-color: #bfdbfe; }
+.badge--informational { color: var(--informational); background: var(--bg); border-color: var(--line); }
+
+.empty { text-align: center; color: var(--muted); padding: 2rem 0.75rem; }
+
+.report__footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 1.25rem; }
+.report__footer p { margin: 0 0 0.5rem; }
+.report__footer code { background: transparent; border: none; padding: 0; }
+.report__footer-meta { color: var(--line-strong); }
+
+@media (max-width: 640px) {
+    .findings__table, .findings__table tbody, .findings__table tr, .findings__table td { display: block; width: 100%; }
+    .findings__table thead { display: none; }
+    .findings__table tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 0.85rem; padding: 0.5rem; }
+    .findings__table td { border-bottom: none; padding: 0.3rem 0.5rem; }
+    .finding__count::before { content: "Instances: "; color: var(--muted); }
+}

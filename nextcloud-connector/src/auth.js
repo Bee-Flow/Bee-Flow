@@ -22,6 +22,7 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const config = require('./config');
+const log = require('./log');
 
 const HDR = {
     auth: 'authorization-app-api',
@@ -134,7 +135,7 @@ async function fetchNextcloudUser(uid) {
     if (!res.ok) {
         throw new Error(`OCS user lookup failed: HTTP ${res.status}`);
     }
-    const body = await res.json();
+    const body = /** @type {any} */ (await res.json());
     const data = body?.ocs?.data;
     if (!data) throw new Error('OCS user lookup returned no data');
     const user = {
@@ -211,7 +212,7 @@ function warnSecretMismatch(userId) {
     const now = Date.now();
     if (now - _lastSecretWarnAt < 60_000) return;
     _lastSecretWarnAt = now;
-    console.warn(`[Auth] rejected a request for uid=${userId || '(service)'}: the `
+    log.warn(`[Auth] rejected a request for uid=${userId ? log.ref(userId) : '(service)'}: the `
         + `AUTHORIZATION-APP-API shared secret does not match this container's APP_SECRET. `
         + `If this is not an attack, Nextcloud and the container hold different secrets — `
         + `re-register the ExApp (occ app_api:app:unregister ${config.appId} && `
@@ -284,7 +285,7 @@ function appApiAuthMiddleware(req, res, next) {
             next();
         })
         .catch(err => {
-            console.warn(`[Auth] User lookup failed for ${decoded.userId}: ${err.message}`);
+            log.warn(`[Auth] User lookup failed for ${log.ref(decoded.userId)}: ${err.message}`);
             // When a browser hits the embedded SPA route (Accept: text/html)
             // while bootstrap is in-flight (no tenant key) or NC OCS is
             // briefly unreachable, returning raw JSON paints a useless error

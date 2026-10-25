@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import HTTPException
 from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 TOO_LARGE = "body_too_large"
 
@@ -65,11 +66,11 @@ class BodySizeLimitMiddleware:
     FastAPI's body parsing, which re-raises HTTP errors unchanged.
     """
 
-    def __init__(self, app, max_bytes: int) -> None:
+    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
         self.app = app
         self.max_bytes = max_bytes
 
-    async def __call__(self, scope, receive, send) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -82,7 +83,7 @@ class BodySizeLimitMiddleware:
 
         seen = 0
 
-        async def counted_receive():
+        async def counted_receive() -> Message:
             nonlocal seen
             message = await receive()
             if message["type"] == "http.request":
@@ -94,7 +95,7 @@ class BodySizeLimitMiddleware:
         await self.app(scope, counted_receive, send)
 
 
-def _content_length(scope) -> int | None:
+def _content_length(scope: Scope) -> int | None:
     for name, value in scope.get("headers", ()):
         if name == b"content-length":
             try:

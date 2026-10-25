@@ -145,7 +145,7 @@ export function makeTscRunner(pkg, tscPath) {
  * The loop. `runTsc()` returns the current error list. Files are changed on disk
  * and restored by the returned `restore()` (also wired to exit signals by the CLI).
  */
-export function castLoop(ts, pkg, files, { patterns = DEFAULT_PATTERNS, group = 1, runTsc, dry = false, log = () => {} } = {}) {
+export function castLoop(ts, pkg, files, { patterns = DEFAULT_PATTERNS, group = 1, runTsc, dry = false, log = (/** @type {string} */ _m) => {} } = /** @type {any} */ ({})) {
     const originals = new Map();
     const restore = () => { for (const [abs, text] of originals) fs.writeFileSync(abs, text); };
     const report = { package: pkg, patterns, runs: 0, kept: [], reverted: [], unchanged: [] };

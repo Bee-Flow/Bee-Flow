@@ -388,7 +388,7 @@ class ValueBankTests(unittest.TestCase):
         import random
 
         rng = random.Random(7)
-        digits_only = lambda v: "".join(c for c in v if c.isdigit())  # noqa: E731
+        digits_only = lambda v: "".join(c for c in v if c.isdigit())
         checks = {
             "bsn_valid": ev.is_valid_bsn,
             "natid_de": lambda v: ev.is_valid_iso7064_mod11_10(digits_only(v)),

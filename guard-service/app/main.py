@@ -14,17 +14,19 @@ from app.cpu import apply_thread_env
 _THREAD_CORES = apply_thread_env()
 
 import logging
+import os
 import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Response
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.dependencies import close_http, close_redis, init_http, init_redis
 from app.models import HealthResponse
 from app.routers import disclosure, pii
+from app.shared.api_key_auth import APIKeyMiddleware
+from app.shared.startup import require_api_key
 
 logger = logging.getLogger("guard")
 
@@ -85,7 +87,7 @@ def _warm_pii_model() -> None:
             time.sleep(delay)
         try:
             svc.load(settings.pii_model)
-        except Exception as exc:  # load() catches internally; belt-and-braces
+        except Exception as exc:  # load() catches internally; belt-and-braces  # noqa: BLE001 - startup warm-load and probes must never raise
             logger.error("PII model warm-load raised: %s", exc)
         if svc.ready:
             return
@@ -112,7 +114,7 @@ def _warm_pii_model() -> None:
         _time.sleep(_WARM_LOAD_RETRY_FOREVER)
         try:
             svc.load(settings.pii_model)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - startup warm-load and probes must never raise
             logger.error("PII model warm-load raised: %s", exc)
         if svc.ready:
             logger.info("[PiiService] model recovered after extended retry")
@@ -140,7 +142,7 @@ def _warm_disclosure_encoder() -> None:
         svc.load(
             settings.disclosure_model_dir, max_tokens=settings.disclosure_max_tokens
         )
-    except Exception as exc:  # load() records internally; belt-and-braces
+    except Exception as exc:  # load() records internally; belt-and-braces  # noqa: BLE001 - startup warm-load and probes must never raise
         logger.error("Disclosure encoder warm-load raised: %s", exc)
 
 
@@ -211,18 +213,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+# No CORS middleware: only the Bee Flow server calls this service, server to
+# server. A browser never does, so no origin is allowed (the old "*" let any
+# web page that could reach the port read the answers).
+
+# Fail closed: without SERVICES_API_KEY the service refuses to start, unless
+# SERVICES_ALLOW_OPEN=1 (or GUARD_ALLOW_OPEN=1) says it may run open.
+_SERVICES_API_KEY = require_api_key(
+    os.getenv("SERVICES_API_KEY", ""),
+    service="guard-service",
+    key_vars="SERVICES_API_KEY",
+    allow_open_vars=("GUARD_ALLOW_OPEN", "SERVICES_ALLOW_OPEN"),
 )
-
-import os
-
-from app.api_key_auth import APIKeyMiddleware
-
-_SERVICES_API_KEY = os.getenv("SERVICES_API_KEY", "")
 if _SERVICES_API_KEY:
     app.add_middleware(APIKeyMiddleware, api_key=_SERVICES_API_KEY)
 
@@ -243,7 +245,7 @@ def _pii_status() -> tuple[bool, str, str | None, str | None]:
         # Not ready: distinguish "still loading" from "load failed".
         state = "error" if svc.load_error else "loading"
         return False, state, svc.backend, svc.load_error
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:  # pragma: no cover - defensive  # noqa: BLE001 - startup warm-load and probes must never raise
         return False, "error", None, f"{type(exc).__name__}: {exc}"
 
 
@@ -253,7 +255,7 @@ def _engine_digest() -> str | None:
         from app.services.pii import engine_fingerprint_digest
 
         return engine_fingerprint_digest()
-    except Exception:  # pragma: no cover - defensive
+    except Exception:  # pragma: no cover - defensive  # noqa: BLE001 - startup warm-load and probes must never raise
         return None
 
 

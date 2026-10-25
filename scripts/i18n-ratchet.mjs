@@ -279,6 +279,7 @@ const GENERIC_PARAMS_RX = /<[A-Za-z_$][A-Za-z0-9_$]*\s*(?:extends\b|,)/y;
 function scanJsx(src) {
     const attrs = [];
     const texts = [];
+    /** @type {any[]} */
     const stack = [{ type: 'code', braces: 0 }];
     let textFrom = -1;
     let i = 0;

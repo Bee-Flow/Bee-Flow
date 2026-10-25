@@ -60,6 +60,7 @@
 const crypto = require('crypto');
 const config = require('./config');
 const { withWarmupRetry } = require('./appApiClient');
+const log = require('./log');
 
 const WEBHOOKS_API = '/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks';
 
@@ -240,12 +241,12 @@ async function ensureWebhookListeners() {
         });
     } catch (err) {
         if (err.status === 404) {
-            console.warn('[Webhooks] The webhook_listeners app is not enabled on this Nextcloud — '
+            log.warn('[Webhooks] The webhook_listeners app is not enabled on this Nextcloud — '
                 + 'push triggers are unavailable. Enable it with `occ app:enable webhook_listeners`. '
                 + 'Polling-based triggers keep working.');
             return { ok: false, reason: 'app-disabled', registered: 0, skipped: 0, failed: 0 };
         }
-        console.warn(`[Webhooks] Could not list existing webhooks: ${err.message}`);
+        log.warn(`[Webhooks] Could not list existing webhooks: ${err.message}`);
         return { ok: false, reason: 'list-failed', registered: 0, skipped: 0, failed: 0 };
     }
 
@@ -262,14 +263,14 @@ async function ensureWebhookListeners() {
         if (entry.optional) {
             // Forms/Tables not installed — expected, not an error.
             skipped++;
-            console.log(`[Webhooks] Skipped ${entry.event} (${entry.class}) — not available on this server, app not installed or class not webhook-capable (HTTP ${r.status})`);
+            log.info(`[Webhooks] Skipped ${entry.event} (${entry.class}) — not available on this server, app not installed or class not webhook-capable (HTTP ${r.status})`);
             continue;
         }
         failed++;
-        console.warn(`[Webhooks] Register failed for ${entry.event}: HTTP ${r.status} ${r.body}`);
+        log.warn(`[Webhooks] Register failed for ${entry.event}: HTTP ${r.status} ${r.body}`);
     }
 
-    console.log(`[Webhooks] ${registered} registered, ${skipped} skipped (optional apps), ${failed} failed`);
+    log.info(`[Webhooks] ${registered} registered, ${skipped} skipped (optional apps), ${failed} failed`);
     if (registered > 0 && failed === 0) {
         _registered = true;
         stopRetry();
@@ -286,7 +287,7 @@ function startRetry(intervalMs = 60_000) {
     if (_retryTimer || _registered) return;
     _retryTimer = setInterval(() => {
         ensureWebhookListeners().catch(err =>
-            console.warn(`[Webhooks] retry failed: ${err.message}`));
+            log.warn(`[Webhooks] retry failed: ${err.message}`));
     }, intervalMs);
     _retryTimer.unref?.();
 }

@@ -132,4 +132,4 @@ def match_spans(  # noqa: C901, PLR0912
     return result
 
 
-__all__ = ["SpanTuple", "iou", "overlaps", "MatchResult", "match_spans"]
+__all__ = ["MatchResult", "SpanTuple", "iou", "match_spans", "overlaps"]

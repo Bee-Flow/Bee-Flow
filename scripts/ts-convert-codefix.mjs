@@ -119,7 +119,7 @@ const PREFS = { quotePreference: 'single', importModuleSpecifierPreference: 'rel
  * current program. `refuse(newText)` lets a caller ban more than forbiddenInsert
  * does (the JSDoc driver refuses casts and `{null}`).
  */
-export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = () => false } = {}) {
+export function fixRound(ts, svc, abs, state, { fixIds = FIX_IDS, refuse = (/** @type {string} */ _t) => /** @type {boolean} */ (false) } = {}) {
     const taken = [];
     for (const d of svc.service.getSemanticDiagnostics(abs)) {
         if (d.start === undefined) continue;

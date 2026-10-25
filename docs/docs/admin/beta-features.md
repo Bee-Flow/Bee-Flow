@@ -26,7 +26,7 @@ Toggle the flag in the panel and click **Save**. No restart needed — the flag 
 
 ## Server defaults
 
-For self-hosters, the *server-wide* default for each flag is set via env vars (see [env reference → Feature flags](../self-hosting/env.md#feature-flags)). The org panel can only enable a flag that's globally allowed — if the server has `FEATURE_NOTEBOOKS_ENABLED=false`, no org can opt in.
+For self-hosters, the *server-wide* default for each flag is set via env vars (see [env reference → Feature flags](../self-hosting/env.md#everything-else)). The org panel can only enable a flag that's globally allowed — if the server has `FEATURE_NOTEBOOKS_ENABLED=false`, no org can opt in.
 
 ## Stability guarantees
 

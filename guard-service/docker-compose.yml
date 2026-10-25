@@ -17,7 +17,9 @@ services:
       - GUARD_REDIS_URL=redis://guard-redis:6379/1
       - GUARD_PII_ENABLED=${GUARD_PII_ENABLED:-true}
       - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
-      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+      # Required: this stack publishes the port on 0.0.0.0, and the service refuses
+      # to start without a key. Generate one with `openssl rand -hex 24`.
+      - SERVICES_API_KEY=${SERVICES_API_KEY:?set SERVICES_API_KEY (openssl rand -hex 24)}
     depends_on:
       guard-redis:
         condition: service_healthy

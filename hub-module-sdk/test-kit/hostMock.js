@@ -116,20 +116,20 @@ export function createHostMockFactory({
     moduleId,
     subscriptionResult = () => ({ allowed: true }),
     log = consoleLog,
-} = {}) {
+} = /** @type {any} */ ({})) {
     /**
      * @param {object} [opts]
      * @param {boolean} [opts.active=true]  what isModuleActive() resolves to
-     * @param {object}  [opts.db]           replace the whole db mock
-     * @param {object}  [opts.dbSeed]       { one, all } canned db results
-     * @param {object}  [opts.configStore]  override the fake configStore
-     * @param {object}  [opts.ai]           override the ai.* stubs
-     * @param {object}  [opts.usage]        override the usage.* stubs
-     * @param {object}  [opts.limits]       override the limits.* stubs
-     * @param {object}  [opts.storage]      override the storage.* stubs
-     * @param {object}  [opts.webpages]     override the webpages.* stubs
-     * @param {object}  [opts.net]          override the net.* stubs
-     * @param {object}  [opts.log]          override the logger
+     * @param {any}  [opts.db]           replace the whole db mock
+     * @param {any}  [opts.dbSeed]       { one, all } canned db results
+     * @param {any}  [opts.configStore]  override the fake configStore
+     * @param {any}  [opts.ai]           override the ai.* stubs
+     * @param {any}  [opts.usage]        override the usage.* stubs
+     * @param {any}  [opts.limits]       override the limits.* stubs
+     * @param {any}  [opts.storage]      override the storage.* stubs
+     * @param {any}  [opts.webpages]     override the webpages.* stubs
+     * @param {any}  [opts.net]          override the net.* stubs
+     * @param {any}  [opts.log]          override the logger
      * @returns {Host} a host mock (not frozen, so tests can spy)
      */
     return function makeHostMock(opts = {}) {
@@ -184,7 +184,7 @@ export function createHostMockFactory({
             log: opts.log || log(),
             async isModuleActive(_id) { return active; },
             // Real host wraps fetch with an SSRF guard; the mock is plain fetch.
-            fetch: (...args) => globalThis.fetch(...args),
+            fetch: (/** @type {[any, any?]} */ ...args) => globalThis.fetch(...args),
         };
     };
 }
