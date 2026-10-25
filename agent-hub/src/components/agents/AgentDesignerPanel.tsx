@@ -1,15 +1,38 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import AgentEditorUI from './AgentEditorUI';
 import type { ToolParamConfig, AgentFormData, EditorCategory, EditorGroup, EditorOrganization } from './AgentEditorUI';
 import type { HubUser } from '../../AgentHub/useAgentHubData';
-import { filterVisibleModels } from '../../api/modelMeta';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { agentDesignerCategoriesKey, useDesignerCategories, useDesignerOrgsAndGroups, useDesignerVisibleModels } from '../../api/queries/agentDesignerPanel';
+import { API_BASE } from '../../utils/helpers';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { PanelAgent, AgentDesignerPanelProps } from './AgentDesignerPanel.types';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { AgentDesignerPanelSection } from './AgentDesignerPanelSection';
+
+/** Only the parameters the author fixed go to the server; a tool without any is left out. */
+function fixedToolParams(toolParams: AgentFormData['toolParams'] | undefined) {
+    const transformed: Record<string, Record<string, unknown>> = {};
+    for (const [toolId, params] of Object.entries(toolParams || {})) {
+        transformed[toolId] = {};
+        for (const [paramName, paramConfig] of Object.entries(params)) {
+            if (paramConfig.fixed && paramConfig.value !== undefined) {
+                transformed[toolId][paramName] = paramConfig.value;
+            }
+        }
+        if (Object.keys(transformed[toolId]).length === 0) {
+            delete transformed[toolId];
+        }
+    }
+    return transformed;
+}
+
+const NO_MODELS: ReturnType<typeof useDesignerVisibleModels>['data'] & unknown[] = [];
+const NO_ORGS: EditorOrganization[] = [];
+const NO_GROUPS: EditorGroup[] = [];
+const NO_CATEGORIES: EditorCategory[] = [];
 
 const AgentDesignerPanel = ({
     agent,
@@ -21,10 +44,12 @@ const AgentDesignerPanel = ({
     const [saving, setSaving] = useState(false);
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [availableModels, setAvailableModels] = useState<{ displayName: string; name: string; desc: string; cat: string; id: string; local?: boolean; scaleway?: boolean; eugpt?: boolean; }[]>([]);
-    const [organizations, setOrganizations] = useState<EditorOrganization[]>([]);
-    const [groups, setGroups] = useState<EditorGroup[]>([]);
-    const [categories, setCategories] = useState<EditorCategory[]>([]);
+    const queryClient = useQueryClient();
+    const availableModels = useDesignerVisibleModels().data ?? NO_MODELS;
+    const orgsAndGroups = useDesignerOrgsAndGroups<EditorOrganization, EditorGroup>().data;
+    const organizations = orgsAndGroups?.organizations ?? NO_ORGS;
+    const groups = orgsAndGroups?.groups ?? NO_GROUPS;
+    const categories = useDesignerCategories<EditorCategory>().data ?? NO_CATEGORIES;
 
     // Form state object
     const [formData, setFormData] = useState<AgentFormData>({
@@ -96,55 +121,6 @@ const AgentDesignerPanel = ({
         }
     }, [agent]);
 
-    useEffect(() => {
-        fetchModels();
-        fetchOrgsAndGroups();
-        fetchCategories();
-    }, []);
-
-    const fetchModels = async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/agents/meta/models`);
-            const data = await res.json();
-            if (data.models) {
-                setAvailableModels(filterVisibleModels(data.models));
-            }
-        } catch (err) {
-            console.error('Failed to fetch models:', err);
-        }
-    };
-
-    const fetchOrgsAndGroups = async () => {
-        try {
-            const [orgsRes, groupsRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/organizations`),
-                authFetch(`${API_BASE}/auth/groups`)
-            ]);
-            if (orgsRes.ok) {
-                const orgsData = await orgsRes.json();
-                setOrganizations(Array.isArray(orgsData) ? orgsData : []);
-            }
-            if (groupsRes.ok) {
-                const groupsData = await groupsRes.json();
-                setGroups(Array.isArray(groupsData) ? groupsData : []);
-            }
-        } catch (err) {
-            console.error('Failed to fetch orgs/groups:', err);
-        }
-    };
-
-    const fetchCategories = async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/agents/categories`);
-            if (res.ok) {
-                const data = await res.json();
-                setCategories(Array.isArray(data) ? data : []);
-            }
-        } catch (err) {
-            console.error('Failed to fetch categories:', err);
-        }
-    };
-
     const handleCreateCategory = async (name: string) => {
         try {
             const res = await mutate(`${API_BASE}/agents/categories`, {
@@ -157,7 +133,7 @@ const AgentDesignerPanel = ({
             });
             if (res) {
                 const cat = await res.json();
-                setCategories(prev => [...prev, cat]);
+                queryClient.setQueryData<EditorCategory[]>(agentDesignerCategoriesKey, prev => [...(prev ?? []), cat]);
                 // Auto-select the newly created category
                 setFormData(prev => ({ ...prev, categoryId: cat.id }));
             }
@@ -170,22 +146,23 @@ const AgentDesignerPanel = ({
         if (!agent) return;
 
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agent.id}/publish`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    isPublished: !formData.isPublished,
-                    sharedGroups: formData.sharedGroups || [],
-                })
-            });
-
-            if (res.ok) {
-                setFormData(prev => ({ ...prev, isPublished: !prev.isPublished }));
-                if (onSave) onSave(); // Refresh agent list
-            } else {
-                const data = await res.json().catch(() => ({}));
+            try {
+                await mutate(`${API_BASE}/agents/${agent.id}/publish`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        isPublished: !formData.isPublished,
+                        sharedGroups: formData.sharedGroups || [],
+                    })
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = (errorBody(err) ?? {}) as { error?: string };
                 toast.error(data.error || 'Failed to update publish status.');
+                return;
             }
+            setFormData(prev => ({ ...prev, isPublished: !prev.isPublished }));
+            if (onSave) onSave(); // Refresh agent list
         } catch (err) {
             console.error('Failed to toggle publish:', err);
             toast.error('Failed to update publish status. Please try again.');
@@ -197,19 +174,7 @@ const AgentDesignerPanel = ({
         setSaving(true);
 
         try {
-            // Transform toolParams
-            const transformedParams: Record<string, Record<string, unknown>> = {};
-            for (const [toolId, params] of Object.entries(formData.toolParams || {})) {
-                transformedParams[toolId] = {};
-                for (const [paramName, paramConfig] of Object.entries(params)) {
-                    if (paramConfig.fixed && paramConfig.value !== undefined) {
-                        transformedParams[toolId][paramName] = paramConfig.value;
-                    }
-                }
-                if (Object.keys(transformedParams[toolId]).length === 0) {
-                    delete transformedParams[toolId];
-                }
-            }
+            const transformedParams = fixedToolParams(formData.toolParams);
 
             const body = {
                 name: formData.name,
@@ -231,16 +196,18 @@ const AgentDesignerPanel = ({
 
             let savedAgent = agent;
             if (agent) {
-                const res = await authFetch(`${API_BASE}/agents/${agent.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-                if (!res.ok) {
+                try {
+                    await mutate(`${API_BASE}/agents/${agent.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
                     // BFSF-271: surface permission rejections instead of
                     // silently pretending the save worked (matches the
                     // delete handler's error idiom in this legacy panel).
-                    const data = await res.json().catch(() => ({}));
+                    const data = (errorBody(err) ?? {}) as { code?: string; error?: string };
                     toast.error(data.code === 'agent_not_editable'
                         ? t('agent_studio.read_only_banner', "Read-only — you don't have permission to edit this agent.")
                         : (data.error || 'Failed to save agent'));
@@ -273,15 +240,17 @@ const AgentDesignerPanel = ({
         if (!(await confirm({ title: t('agent.delete_confirm'), confirmLabel: t('common.delete', 'Delete'), destructive: true }))) return;
 
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agent.id}`, {
-                method: 'DELETE',
-            });
-            if (res.ok) {
-                if (onDelete) onDelete();
-            } else {
-                const data = await res.json().catch(() => ({}));
+            try {
+                await mutate(`${API_BASE}/agents/${agent.id}`, {
+                    method: 'DELETE',
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = (errorBody(err) ?? {}) as { error?: string };
                 toast.error(data.error || 'Failed to delete agent');
+                return;
             }
+            if (onDelete) onDelete();
         } catch (err) {
             console.error('Failed to delete agent:', err);
             toast.error('Failed to delete agent. Please try again.');
