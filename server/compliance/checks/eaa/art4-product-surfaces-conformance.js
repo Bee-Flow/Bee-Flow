@@ -115,7 +115,7 @@ module.exports = {
             stale_after_days: STALE_DAYS,
             axe_version: loaded.artefact?.axe_version || null,
             surfaces: [],
-            totals: null,
+            totals: /** @type {Record<string, number> | null} */ (null),
             attestation: _attestation(settings),
         };
 

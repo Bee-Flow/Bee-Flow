@@ -49,7 +49,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
  *   failed: {name: string, error: string}[]}>}
  */
 async function runMigrations({ log = console, force = false } = {}) {
-    const report = { succeeded: [], skipped: [], unverified: [], failed: [] };
+    const report = { succeeded: /** @type {string[]} */ ([]), skipped: [], unverified: /** @type {string[]} */ ([]), failed: /** @type {{ name: string; error: string; }[]} */ ([]) };
 
     // Pre-create user_sessions (connect-pg-simple uses its own pool.query which
     // bypasses our serialized exec()). Awaited, als losse statements.

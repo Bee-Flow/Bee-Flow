@@ -83,7 +83,11 @@ export function planFile(project, file) {
     const note = (map, sym, text) => { if (sym) (map.get(sym) || map.set(sym, []).get(sym)).push(text); };
     const visit = (n) => {
         if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken && n.right.kind !== ts.SyntaxKind.NullKeyword) {
-            note(assigned, symbolOf(n.left), typeText(n.right));
+            const sym = symbolOf(n.left);
+            note(assigned, sym, typeText(n.right));
+            // `x = list` where list is U[]: U is an element of x too
+            const rt = checker.getTypeAtLocation(n.right);
+            if (checker.isArrayType(rt)) note(pushed, sym, checker.typeToString(checker.getTypeArguments(rt)[0], n.right, fmt));
         } else if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && /^(push|unshift)$/.test(n.expression.name.text)) {
             const sym = symbolOf(n.expression.expression);
             for (const a of n.arguments) note(pushed, sym, ts.isSpreadElement(a) ? '' : typeText(a));
@@ -104,7 +108,8 @@ export function planFile(project, file) {
         if (target.kind === ts.SyntaxKind.SourceFile) target = token;
         let kind = null;
         let sym = null;
-        if (d.code === 2322 && /to type 'null'/.test(msg)) { kind = 'null'; sym = symbolOf(target); }
+        if (d.code === 2322 && /to type '(?:null|undefined|null \| undefined|undefined \| null)'/.test(msg)) { kind = 'null'; sym = symbolOf(target); }
+        else if (d.code === 2322 && /to type '(?:never\[\]|any\[\])'/.test(msg)) { kind = 'array'; sym = symbolOf(target); }
         else if (d.code === 2345 && /parameter of type 'never'/.test(msg)) {
             let call = token;
             while (call && !ts.isCallExpression(call)) call = call.parent;

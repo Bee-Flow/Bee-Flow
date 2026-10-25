@@ -915,7 +915,7 @@ class LocalProvider extends BaseProvider {
      */
     async probe(apiKey, baseUrl) {
         const headers = this.getHeaders(apiKey);
-        const result = { ok: false, flavor: this.flavor, version: null, modelCount: 0, models: [], error: null };
+        const result = { ok: false, flavor: this.flavor, version: null, modelCount: 0, models: [], error: /** @type {string | null} */ (null) };
 
         if (this.runtime.nativeApi === 'ollama') {
             try {

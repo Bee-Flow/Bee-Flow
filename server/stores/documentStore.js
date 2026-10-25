@@ -381,7 +381,7 @@ async function listDocumentsPage(context, options = {}) {
     const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
     // The filters a notebook row answers too, by placeholder (notebookLibrary).
-    const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '', visibility };
+    const shared = { query: '', folder: /** @type {string | null} */ (null), folderSet: folderId !== undefined, category: '', visibility };
     const search = librarySearch(query, options.onlyFillable === true, bind);
     where.push(...search.clauses);
     shared.query = search.phrase;

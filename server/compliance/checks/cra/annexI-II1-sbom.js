@@ -114,7 +114,7 @@ module.exports = {
             app_build_sha: appSha,
             app_version: APP_VERSION,
             matches_build: false,
-            age_days: null,
+            age_days: /** @type {(number | null) | null} */ (null),
             fresh: false,
             fresh_window_days: FRESH_DAYS,
             search_order: sbomLocator.candidates(),

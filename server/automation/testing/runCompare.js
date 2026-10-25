@@ -125,7 +125,7 @@ async function compareStep(key, ea, eb, env) {
         branchIndex: row.branchIndex ?? null,
         a: { present: !!ea, status: ea ? ea.row.status : null },
         b: { present: !!eb, status: eb ? eb.row.status : null },
-        verdict: 'same', softReason: null, kind: 'json', changes: [], changesTruncated: false,
+        verdict: 'same', softReason: /** @type {(string | null) | null} */ (null), kind: 'json', changes: /** @type {({ after?: string | undefined; before?: string | undefined; path: string; change: string; })[]} */ ([]), changesTruncated: false,
     };
     if (!ea || !eb) { out.verdict = ea ? 'only_a' : 'only_b'; return out; }
     const [oa, ob] = await Promise.all([outputOf(ea, env.sideA, env.store), outputOf(eb, env.sideB, env.store)]);

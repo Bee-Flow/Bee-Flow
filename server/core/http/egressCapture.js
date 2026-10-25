@@ -161,7 +161,7 @@ function edgeFromObject(headers) {
 
 // Parsed once per distinct env value: the env rarely changes, the parse runs
 // for every peer of every probed call.
-const _envCache = { otlpRaw: null, otlpHosts: new Set(), proxyRaw: null, proxy: null };
+const _envCache = { otlpRaw: /** @type {string | null} */ (null), otlpHosts: new Set(), proxyRaw: /** @type {string | null} */ (null), proxy: /** @type {({ host: string; port: number | null; noProxy: string[]; } | null) | null} */ (null) };
 
 /** Hosts of the OTLP exporter. A batch export started inside a call is not the call's egress. */
 function telemetryHosts(env = process.env) {

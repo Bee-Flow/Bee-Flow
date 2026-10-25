@@ -357,7 +357,7 @@ async function runSwarmTurn({
         phaseStates: {},
         workers: {},
         startedAt,
-        durationMs: null,
+        durationMs: /** @type {number | null} */ (null),
     };
 
     // Build the directChat tool stack ONCE per turn — every worker shares

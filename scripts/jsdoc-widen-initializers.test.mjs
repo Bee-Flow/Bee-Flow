@@ -64,3 +64,26 @@ test('nothing is written when the later values do not settle on a type', () => {
         rmSync(dir, { recursive: true, force: true });
     }
 });
+
+test('an array property filled by assignment takes the element type of what is assigned', () => {
+    const dir = sandbox({
+        'c.js': [
+            'const state = { label: null, items: [] };',
+            '/** @param {string} label @param {string[]} list */',
+            'function set(label, list) {',
+            '    state.label = label;',
+            '    state.items = list;',
+            '}',
+            'module.exports = { state, set };',
+            '',
+        ].join('\n'),
+    });
+    try {
+        run({ files: [path.join(dir, 'c.js')], write: true, serverDir: dir });
+        const text = readFileSync(path.join(dir, 'c.js'), 'utf8');
+        assert.match(text, /items: \/\*\* @type \{string\[\]\} \*\/ \(\[\]\)/);
+        assert.match(text, /label: \/\*\* @type \{string \| null\} \*\/ \(null\)/);
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});

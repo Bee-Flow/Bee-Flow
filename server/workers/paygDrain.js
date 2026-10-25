@@ -44,7 +44,7 @@ const CIRCUIT_WINDOW_MS = 5 * 60_000;         // rolling window for counting
 const CIRCUIT_HALF_OPEN_AFTER_MS = 5 * 60_000; // self-heal probe after this long
 const _circuit = {
     state: 'closed',           // 'closed' | 'open' | 'half-open'
-    failures: [],              // recent failure timestamps (ms)
+    failures: /** @type {number[]} */ ([]),              // recent failure timestamps (ms)
     openedAt: 0,
 };
 

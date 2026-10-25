@@ -108,7 +108,7 @@ function followUps(anchors, actions, opts) {
             const e = actions[j];
             if (exclude.has(e) || seen.has(e.verb)) continue;
             seen.add(e.verb);
-            const s = stats.get(e.verb) || { count: 0, delays: [], app: e.app };
+            const s = stats.get(e.verb) || { count: 0, delays: /** @type {number[]} */ ([]), app: e.app };
             s.count++;
             s.delays.push(e.ts - a.ts);
             stats.set(e.verb, s);

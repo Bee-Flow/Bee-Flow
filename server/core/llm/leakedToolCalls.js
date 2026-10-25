@@ -164,7 +164,7 @@ function extractLeakedToolCalls(text, { toolNames } = {}) {
  *   'thinking').
  */
 function recoverLeakedToolCalls(response, { toolNames, iter = 0 } = {}) {
-    const out = { toolCalls: [], rejected: [], content: (response && response.content) || null, sources: [] };
+    const out = { toolCalls: [], rejected: /** @type {({ source: string; name: string | null; reason: "unknown_tool" | "unparsable"; raw: string; format: string; })[]} */ ([]), content: (response && response.content) || null, sources: /** @type {string[]} */ ([]) };
     if (!response || typeof response !== 'object') return out;
 
     /**

@@ -121,8 +121,8 @@ async function loadInstalledAtBoot() {
 // ── Runtime reconciler (M1.3) — the single retry/GC host ───────────────────
 let _reconcileTimer = null;
 const _reconcileStats = {
-    lastRunAt: null, lastDurationMs: null, lastError: null,
-    activated: 0, deactivated: 0, healed: 0, errors: 0, gcPruned: 0, boot: null,
+    lastRunAt: /** @type {string | null} */ (null), lastDurationMs: /** @type {number | null} */ (null), lastError: null,
+    activated: 0, deactivated: 0, healed: 0, errors: 0, gcPruned: 0, boot: /** @type {{ activated: number; failed: number; at: string; } | null} */ (null),
 };
 
 /**

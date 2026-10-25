@@ -87,7 +87,7 @@ async function getAgentStats(agentId, startDate = null, endDate = null) {
 async function getAgentChatStats(agentIds, { excludeUserId = null, db = pool } = {}) {
     const ids = [...new Set((Array.isArray(agentIds) ? agentIds : []).filter(Boolean).map(String))];
     const out = new Map(ids.map(id => [id, {
-        conversationCount: 0, userCount: 0, othersConversationCount: 0, lastUsedAt: null,
+        conversationCount: 0, userCount: 0, othersConversationCount: 0, lastUsedAt: /** @type {(string | null) | null} */ (null),
     }]));
     if (ids.length === 0) return out;
     // Only when running against the real pool: with an injected db the schema

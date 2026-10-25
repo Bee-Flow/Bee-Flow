@@ -72,7 +72,7 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
         // this org therefore means nobody ahead of it could have used it.
         if (canStart(k)) return Promise.resolve(start(k));
         return new Promise((resolve, reject) => {
-            const w = { key: k, resolve, timer: null };
+            const w = { key: k, resolve, timer: /** @type {NodeJS.Timeout | null} */ (null) };
             w.timer = setTimeout(() => {
                 const at = queue.indexOf(w);
                 if (at >= 0) queue.splice(at, 1);
