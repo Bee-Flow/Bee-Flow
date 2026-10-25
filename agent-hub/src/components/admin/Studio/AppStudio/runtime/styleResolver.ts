@@ -16,8 +16,8 @@
 import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
 import { SPACE_STEP_PX, ROLE_COLORS, HEX_RE, RADIUS_VALUES, ALIGN_VALUES, WEIGHT_VALUES, SIZE_FONT, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT, HIDE_BANDS } from './styleResolver.constants';
 import { sizeNumber, resolveHeightCss } from './styleResolver.helpers';
-export { isFill, fillRowTemplate, resolveHeightCss } from './styleResolver.helpers';
-export { SPACE_STEP_PX, ROLE_COLORS, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT } from './styleResolver.constants';
+;
+;
 
 /** calc() for N spacing steps honouring the theme density multiplier. */
 export function spaceSteps(n?: number | null): string {
@@ -53,14 +53,14 @@ export const roleTextColor = (tone?: string | null): string => {
 export const roleFillContrast = (tone?: string | null): string => (tone === 'danger' || tone === 'primary' ? '#ffffff' : '#111827');
 
 /** colorOrRole knob value → CSS color, or null to inherit. */
-export function resolveColor(value?: string | null): string | null {
+function resolveColor(value?: string | null): string | null {
     if (value == null) return null;
     if (ROLE_COLORS[value]) return ROLE_COLORS[value];
     if (typeof value === 'string' && HEX_RE.test(value)) return value;
     return null;
 }
 
-export function resolveRadius(value?: string | null): string | undefined {
+function resolveRadius(value?: string | null): string | undefined {
     if (value === undefined) return undefined;       // knob not present on this node
     if (value === null) return 'var(--app-radius)';  // inherit theme
     return RADIUS_VALUES[value] || 'var(--app-radius)';
@@ -172,7 +172,7 @@ export function resolveBackground(value?: string | null): string | null {
  * Both values use --border-color so they follow the platform theme; 'subtle'
  * fades it, which is what a divider inside a card wants.
  */
-export function resolveBorder(value?: string | null): string | null {
+function resolveBorder(value?: string | null): string | null {
     // The fallback is load-bearing: --border-color is declared only inside the
     // data-app-appearance light/dark blocks, so on the default 'auto' both of
     // these were invalid declarations and the border knob painted nothing.

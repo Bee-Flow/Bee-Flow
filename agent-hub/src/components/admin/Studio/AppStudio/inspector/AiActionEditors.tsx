@@ -11,7 +11,7 @@ import type { FormFieldRef, AppAction } from './appDefinition';
 import type { AppTable } from '../bi/useAppTables';
 import type { SourceBinding, WriteTo, NamedField, AiAction, SchemaMeta, ApplyPatch, MappingRowsProps, MappingSummaryProps, WriteToEditorProps, AiExtractEditorProps, KbQueryEditorProps, AiActionEditorProps } from './AiActionEditors.types';
 import { ModelTierRow, FieldSourcePicker, SchemaFieldsEditor, KbMultiSelect, ResultVarField, AiGenerateEditor } from './AiGenerateEditor';
-export { ModelTierRow, KbMultiSelect } from './AiGenerateEditor';
+;
 
 /**
  * Inline editors for the native AI action kinds (ai_extract / ai_generate /

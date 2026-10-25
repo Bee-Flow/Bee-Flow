@@ -1,7 +1,7 @@
 import type { ToolApp } from './toolCatalogTypes';
 import type { ToolsConfig, ToolsConfigIn, ClaimantsIndex, LendingNoticeOfArgs, ToolRowArgs } from './toolGrants.types';
 
-export const RESERVED_TOOL_KEYS = Object.freeze(['automations', 'datatables']);
+const RESERVED_TOOL_KEYS = Object.freeze(['automations', 'datatables']);
 
 /** Keys that a plain object cannot safely carry (mirror of toolPolicy.js). */
 export const UNSAFE_OBJECT_KEYS = Object.freeze(new Set(['__proto__', 'constructor', 'prototype']));
@@ -167,14 +167,14 @@ export function hasCuratedGrants(toolsConfig: ToolsConfigIn) {
 }
 
 /** The stored `confirm` of an app, or `null` if there is no choice. */
-export function storedConfirmOf(toolsConfig: ToolsConfigIn, appId: string) {
+function storedConfirmOf(toolsConfig: ToolsConfigIn, appId: string) {
     const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
     if (!isPlainObject(entry)) return null;
     return entry.confirm === CONFIRM.DIRECT || entry.confirm === CONFIRM.ASK ? entry.confirm : null;
 }
 
 /** The stored `actAs` of an app, or `null` if there is no choice. */
-export function storedActAsOf(toolsConfig: ToolsConfigIn, appId: string) {
+function storedActAsOf(toolsConfig: ToolsConfigIn, appId: string) {
     const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
     if (!isPlainObject(entry)) return null;
     return entry.actAs === ACT_AS.OWNER || entry.actAs === ACT_AS.VIEWER ? entry.actAs : null;

@@ -12,7 +12,7 @@ import type { SkillRecord } from './SkillCard';
 import type { TextTab, FormState, CharCountProps, SkillFormModalProps } from './SkillFormModal.types';
 import { logger } from '../../utils/logger';
 import { ICONS, INSTRUCTION_LIMIT, TABS, STRUCTURE_WARNING, STRUCTURED_TEXT_FIELDS } from './SkillFormModal.constants';
-export { ICONS, INSTRUCTION_LIMIT } from './SkillFormModal.constants';
+;
 
 const emptyForm = (): FormState => ({
     name: '',

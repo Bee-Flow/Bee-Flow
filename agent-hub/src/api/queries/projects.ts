@@ -12,7 +12,7 @@ import { toProjectError } from './projectErrors';
 import { type ProjectKind, type ProjectRole, type ProjectForm, type ProjectMembers, type ProjectActivityItem, type ProjectResources, type ProjectThread, type MyProjectChat, type InviteForm, type ProjectPrincipals, type TransferOwnerForm } from './projects.types';
 import { projectKeys, enc, useMemberMutation } from './useSetMemberColor';
 export { projectKeys, useSetMemberColor } from './useSetMemberColor';
-export { type ProjectKind, type ProjectRole, type ProjectForm, type ProjectShare, type ProjectPerson, type ProjectMembers, type ProjectActivityItem, type ResourceSection, type ProjectResources, type ProjectThread, type MyProjectChat, type InviteForm, type ProjectPrincipals, type TransferOwnerForm } from './projects.types';
+export { type ProjectKind, type ProjectRole, type ProjectForm, type ProjectShare,  type ProjectMembers, type ProjectActivityItem,  type ProjectResources, type ProjectThread, type MyProjectChat, type InviteForm, type ProjectPrincipals, type TransferOwnerForm } from './projects.types';
 
 export interface Project {
     id: string;

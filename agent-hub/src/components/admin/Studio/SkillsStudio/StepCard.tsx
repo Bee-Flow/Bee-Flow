@@ -85,7 +85,7 @@ export function StepCard({ step, index, readOnly, refOptions, listStatus, onOpen
 const REF_ICON: Record<string, LucideIcon> = { automation: Workflow, kb: BookOpen, table: Table };
 
 /** The label a ref shows: the referenced thing's name, or its bare id. */
-export function refLabel(ref: StepRef, refOptions?: RefOptions | null) {
+function refLabel(ref: StepRef, refOptions?: RefOptions | null) {
     const bucket = refOptions?.[ref.kind];
     const hit = Array.isArray(bucket) ? bucket.find((o: RefOption) => String(o.id) === String(ref.id)) : null;
     return hit?.name || hit?.title || ref.id;

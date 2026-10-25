@@ -6,7 +6,7 @@ import type { Viewport } from '@xyflow/system';
 import type { Shot, ShotForArgs, PlanCameraMoveArgs } from './buildChoreography.types';
 import { COLUMNS, COL_PITCH, ROW_PITCH, WRAP_HOLD_MS, SHOTS } from './buildChoreography.constants';
 import { nodesOf, contentOf, edgeKeysOf, viewportForBounds, biasTowardNewest, interpolateFor, viewportSize, frameOf, placedRect, movesFor } from './buildChoreography.helpers';
-export { COL_PITCH, ROW_PITCH, WRAP_HOLD_MS, DEFAULT_SHOTS, BURST_WIDE_MIN } from './buildChoreography.constants';
+export { COL_PITCH,     } from './buildChoreography.constants';
 
 /**
  * The build as a film — the pure half.

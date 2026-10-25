@@ -5,7 +5,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import type { AudienceMode, GroupChecklistProps, GroupNames, GroupNamer, OrgGroup, VisibilityCapsuleProps } from './VisibilityCapsule.types';
 import { PERSONAL, ORG, GROUPS, tx, useAudienceActions } from './useAudienceActions';
-export { PERSONAL, ORG, GROUPS, useAudienceActions } from './useAudienceActions';
+;
 
 /**
  * VisibilityCapsule — THE "who can see this" control (Personal / Entire
@@ -82,7 +82,7 @@ export function makeGroupNamer({ groupNames, orgGroups }: { groupNames?: GroupNa
 }
 
 /** ["a","b","c"] → "a, b and c" — the "and" goes through i18n. */
-export function joinAudienceNames(t: TranslateFn, names?: (string | null | undefined)[] | null): string {
+function joinAudienceNames(t: TranslateFn, names?: (string | null | undefined)[] | null): string {
     const list = (names || []).filter(Boolean);
     if (list.length <= 1) return list[0] || '';
     return tx(t, 'visibility.names_and', '{head} and {last}', {

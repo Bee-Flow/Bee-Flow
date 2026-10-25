@@ -14,7 +14,7 @@ import { logger } from '../../../utils/logger';
 import { APP_TILE, RECENTS_KEY, REMEMBERED, RECENTS_SHOWN, CATEGORY_LABELS, PILL_CLASSES, CARD_CLASSES, CARD_STYLE, GRID_CLASSES, GENERIC_LOAD_ERROR } from './AppsHomePage.constants';
 import { categoriesInView, visibleUnder, matchesQuery, byName, isPublished } from './AppsHomePage.helpers';
 import { Directory } from './Directory';
-export { RECENTS_SHOWN } from './AppsHomePage.constants';
+;
 
 /** `{ [appId]: epochMs }`, never throwing on absent or corrupt storage. */
 export function readAppRecents(): Record<string, number> {
@@ -49,7 +49,7 @@ export function rememberAppOpened(id: string | null, now: number = Date.now()) {
  * longer in `apps` (unpublished, unshared, deleted) drops out on its own,
  * because the list is filtered rather than looked up.
  */
-export function recentApps(apps: DirectoryApp[], limit: number = RECENTS_SHOWN, recents: Record<string, number> = readAppRecents()) {
+function recentApps(apps: DirectoryApp[], limit: number = RECENTS_SHOWN, recents: Record<string, number> = readAppRecents()) {
     const list = Array.isArray(apps) ? apps : [];
     return list
         .filter((a) => a?.id && recents[a.id])

@@ -48,7 +48,7 @@ export interface BuildBannerProps {
 export type SouthCall = Partial<ToolCallRow> & { name?: string };
 
 /** The AI build's live cue as the south bar reads it (build/useBuildCue.ts). */
-export interface SouthBarCue {
+interface SouthBarCue {
     running?: boolean;
     phase?: string;
     startedAt?: number | null;

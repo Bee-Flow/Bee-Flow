@@ -6,7 +6,7 @@ import RunBanner from './RunBanner';
 import useTranslation from '../../../../hooks/useTranslation';
 import { type PlanStripProps, type EngineLineProps, type BuildBannerProps, type SouthCall, type Farewell, type CanvasSouthBarProps } from './CanvasSouthBar.types';
 import { FAREWELL_MS, SKIPPED_MS, elapsedSince, shortReason, planStrip } from './CanvasSouthBar.helpers';
-export { type SouthBarCue } from './CanvasSouthBar.types';
+;
 
 /**
  * The canvas's south edge (design 1a/1d): ONE thing at a time, by precedence —

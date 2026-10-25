@@ -12,7 +12,7 @@ import type { NodeProps } from './appNode.types';
 import type { KanbanRow, KanbanCellEntry, KanbanColumn, KanbanLane, ToneMapEntry, CardFieldSpec, KanbanProps, KanbanCellProps } from './AppKanban.types';
 import { CARD_PREFIX, CardBody, KanbanCard } from './KanbanCard';
 import { LANE_SEP, NO_LANE, columnDroppableId, parseColumnDroppableId, laneCollision, normalizeAxisRows, kanbanColumns, kanbanSwimlanes, resolveCardDrop, rankForSlot } from './AppKanban.helpers';
-export { NO_LANE, columnDroppableId, parseColumnDroppableId, normalizeAxisRows, kanbanColumns, kanbanSwimlanes, resolveCardDrop, rankForSlot } from './AppKanban.helpers';
+export {  columnDroppableId, parseColumnDroppableId, normalizeAxisRows, kanbanColumns, kanbanSwimlanes, resolveCardDrop, rankForSlot } from './AppKanban.helpers';
 
 function KanbanCell({ column, lane, children, maxHeight, fill, laned }: KanbanCellProps) {
     const { setNodeRef, isOver } = useDroppable({ id: columnDroppableId(lane, column.value) });

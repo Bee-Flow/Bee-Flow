@@ -20,7 +20,7 @@ import { type LucideIcon } from 'lucide-react';
 import type { LadderData, LadderSubject } from '../useAiActAssessment';
 import type { LadderModalViewProps } from '../AiActLadderModal.types';
 import { StandaloneLadder, LadderModalView } from './StandaloneLadder';
-export { LadderModalView, outcomeText } from './StandaloneLadder';
+;
 
 export default function AiActLadderModal(props: LadderModalViewProps) {
     if (props.data) return <LadderModalView {...props} />;

@@ -11,7 +11,7 @@ import toast from '../../../../shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
 import { audienceOf, sharedGroupsOf, formatWhen, audienceLabel, resolveIssueTarget, asIssueList, resolveNodeScreen, ncMenuToast } from './PublishModal.helpers';
 import { BlockerList } from './BlockerList';
-export { resolveIssueTarget } from './PublishModal.helpers';
+;
 /**
  * Publish modal — the three-way audience picker for an App Studio app.
  *

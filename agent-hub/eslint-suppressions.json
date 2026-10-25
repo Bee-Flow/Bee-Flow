@@ -94,20 +94,6 @@
       "count": 1
     }
   },
-  "src/App.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
-    },
-    "no-restricted-syntax": {
-      "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
   "src/AuthedApp.tsx": {
     "complexity": {
       "count": 1
@@ -119,9 +105,6 @@
       "count": 2
     },
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -145,16 +128,6 @@
   },
   "src/api/queries/automation/versions.ts": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/api/queries/modules.ts": {
-    "max-lines": {
-      "count": 1
-    }
-  },
-  "src/api/queries/projects.ts": {
-    "max-lines": {
       "count": 1
     }
   },
@@ -255,13 +228,10 @@
   },
   "src/components/admin/Studio/AppStudio/bi/FilterRowsEditor.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/bi/QueryBuilder.tsx": {
@@ -368,17 +338,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/editor/Canvas.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/editor/CommandPalette.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -433,9 +392,6 @@
   "src/components/admin/Studio/AppStudio/editor/PublishModal.tsx": {
     "complexity": {
       "count": 2
-    },
-    "max-lines": {
-      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -541,34 +497,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor.tsx": {
-    "complexity": {
-      "count": 3
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/flow/StepSettings.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 3
-    }
-  },
   "src/components/admin/Studio/AppStudio/flow/stepCatalog.ts": {
     "complexity": {
       "count": 1
@@ -601,9 +529,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/AiActionEditors.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -660,14 +585,8 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/actionKindCatalog.ts": {
@@ -725,17 +644,6 @@
   "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.kinds.test.jsx": {
     "import/order": {
       "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.tsx": {
-    "complexity": {
-      "count": 6
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 3
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/panels/ChartInspector.tsx": {
@@ -1074,9 +982,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputHtml.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -1114,10 +1019,7 @@
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppKanban.tsx": {
     "complexity": {
-      "count": 6
-    },
-    "max-lines": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -1480,9 +1382,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/tables/RelationshipsTab.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -1556,13 +1455,10 @@
   },
   "src/components/admin/Studio/Approvals/ApprovalDetail.tsx": {
     "complexity": {
-      "count": 4
-    },
-    "max-lines": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -1665,20 +1561,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Datatables/ColumnDesigner.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
-    },
-    "max-statements": {
-      "count": 2
-    }
-  },
   "src/components/admin/Studio/Datatables/DatatableCard.tsx": {
     "complexity": {
       "count": 1
@@ -1686,13 +1568,10 @@
   },
   "src/components/admin/Studio/Datatables/DatatableDetail.tsx": {
     "complexity": {
-      "count": 4
-    },
-    "max-lines": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "react-hooks/set-state-in-effect": {
       "count": 2
@@ -1700,13 +1579,10 @@
   },
   "src/components/admin/Studio/Datatables/DatatableSharing.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/Datatables/DatatablesStudio.tsx": {
@@ -2349,11 +2225,8 @@
     }
   },
   "src/components/admin/Studio/SkillsStudio/ExamplesTab.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/Studio/SkillsStudio/SkillDetail.tsx": {
@@ -2372,7 +2245,7 @@
   },
   "src/components/admin/Studio/SkillsStudio/SkillStepEditor.tsx": {
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     },
     "react-hooks/exhaustive-deps": {
       "count": 1
@@ -2457,11 +2330,6 @@
   "src/components/admin/Studio/Solutions/installRequirements.ts": {
     "complexity": {
       "count": 2
-    }
-  },
-  "src/components/admin/Studio/Solutions/installWizardSteps.tsx": {
-    "max-lines": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Solutions/pipeline/DeployDialog.tsx": {
@@ -2614,16 +2482,7 @@
     }
   },
   "src/components/admin/Studio/SupportStudio/index.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
-    },
-    "max-statements": {
       "count": 1
     }
   },
@@ -2672,9 +2531,6 @@
     }
   },
   "src/components/admin/ai-config/LimitsConfig.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -2782,9 +2638,6 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     },
@@ -2804,20 +2657,6 @@
   },
   "src/components/admin/compliance/index.tsx": {
     "complexity": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/admin/compliance/ladder/AiActLadderModal.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
@@ -3393,9 +3232,6 @@
     "complexity": {
       "count": 2
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 2
     },
@@ -3411,9 +3247,6 @@
   "src/components/admin/monitoring/index.tsx": {
     "complexity": {
       "count": 2
-    },
-    "max-lines": {
-      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -3800,9 +3633,6 @@
     "complexity": {
       "count": 2
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -3821,9 +3651,6 @@
     }
   },
   "src/components/admin/product-website/assistant/CmsAssistantPane.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -4669,15 +4496,15 @@
   },
   "src/components/agents/AgentWizard/canUse/ToolsCard.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     }
   },
   "src/components/agents/AgentWizard/canUse/toolGrants.ts": {
     "complexity": {
-      "count": 5
+      "count": 4
     }
   },
   "src/components/agents/AgentWizard/canUse/useToolCatalog.ts": {
@@ -4773,17 +4600,6 @@
       "count": 1
     }
   },
-  "src/components/agents/AgentWizard/tests/TestSetCard.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/agents/AgentWizard/tests/testSetFacts.ts": {
     "complexity": {
       "count": 2
@@ -4826,13 +4642,7 @@
     }
   },
   "src/components/appearance/studio/icons/IconsEditor.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -4947,15 +4757,9 @@
   },
   "src/components/automation/Builder/FlowletsPanel.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -5201,9 +5005,6 @@
     }
   },
   "src/components/automation/Builder/flow/ScheduleBuilder.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -5297,7 +5098,7 @@
   },
   "src/components/automation/Builder/flow/flowletScope.ts": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/flow/ghostDraft.ts": {
@@ -5728,17 +5529,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/flow/settings/collectionEditors.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/flow/settings/columnMatch.ts": {
     "max-statements": {
       "count": 1
@@ -5863,9 +5653,6 @@
   },
   "src/components/automation/Builder/flow/settings/triggerEditors.tsx": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -5912,16 +5699,13 @@
   },
   "src/components/automation/Builder/flow/useBuildChoreography.ts": {
     "complexity": {
-      "count": 4
-    },
-    "max-lines": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
-      "count": 3
+      "count": 2
     },
     "react-hooks/purity": {
       "count": 1
@@ -6056,9 +5840,6 @@
     "complexity": {
       "count": 2
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -6189,7 +5970,7 @@
   },
   "src/components/automation/Builder/mapping/VariablePicker.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -6603,9 +6384,6 @@
   "src/components/automation/useAutomationLibrary.ts": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "max-statements": {
-      "count": 1
     }
   },
   "src/components/automation/useAutomationRouting.ts": {
@@ -6971,17 +6749,11 @@
     }
   },
   "src/components/chat/WorkspaceNotebook.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
       "count": 2
-    },
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/components/chat/answerTrace.ts": {
@@ -7200,9 +6972,6 @@
     }
   },
   "src/components/integrations/azure/SSOSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -7263,20 +7032,14 @@
     }
   },
   "src/components/integrations/nextcloud/NcScopeSection.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
   "src/components/integrations/nextcloud/NextcloudSyncPanel.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -7408,23 +7171,6 @@
     }
   },
   "src/components/licensing/SubscriptionContext.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/licensing/TierSlider.tsx": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
-    },
-    "max-statements": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
@@ -7636,11 +7382,8 @@
     }
   },
   "src/components/onboarding/player/SimStep.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/onboarding/player/TutorPanel.tsx": {
@@ -7830,23 +7573,11 @@
     }
   },
   "src/components/renderers/MarkdownRenderer.tsx": {
-    "complexity": {
-      "count": 3
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 3
-    },
-    "max-statements": {
       "count": 1
-    },
-    "react-hooks/error-boundaries": {
-      "count": 11
     },
     "react-hooks/set-state-in-effect": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/renderers/MermaidRenderer.tsx": {
@@ -7878,11 +7609,8 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/renderers/VegaLiteRenderer.tsx": {
@@ -8033,12 +7761,6 @@
     }
   },
   "src/components/shell/SearchOverlay.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -8743,9 +8465,6 @@
     }
   },
   "src/marketing/PricingPage.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 1
     }
@@ -9127,14 +8846,6 @@
       "count": 2
     }
   },
-  "src/pages/apps/AppsHomePage.tsx": {
-    "max-lines": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/pages/documents/DeckLookFields.tsx": {
     "complexity": {
       "count": 2
@@ -9203,13 +8914,7 @@
     }
   },
   "src/pages/documents/notebook/MermaidBlock.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
-    },
-    "max-statements": {
       "count": 1
     }
   },
@@ -9731,9 +9436,6 @@
   },
   "src/pages/meeting-notes/lib/insightsMetrics.ts": {
     "complexity": {
-      "count": 3
-    },
-    "max-statements": {
       "count": 1
     }
   },
@@ -9771,12 +9473,6 @@
     }
   },
   "src/pages/meeting-notes/library/RulesPanel.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -9809,11 +9505,8 @@
     }
   },
   "src/pages/settings/ConnectionsManager.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     },
     "max-statements": {
       "count": 1
@@ -9835,9 +9528,6 @@
     }
   },
   "src/pages/settings/ConsumerPrivacySection.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -10169,27 +9859,18 @@
   },
   "src/pages/webpages/WebpageAppsPanel.tsx": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
-    },
-    "max-statements": {
       "count": 1
     }
   },
   "src/pages/webpages/WebpageAudiencePanel.tsx": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/pages/webpages/WebpageCard.tsx": {
@@ -10198,9 +9879,6 @@
     }
   },
   "src/pages/webpages/WebpageChat.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -10211,14 +9889,8 @@
     }
   },
   "src/pages/webpages/WebpageDbViewer.tsx": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 4
-    },
-    "max-statements": {
-      "count": 1
+      "count": 2
     }
   },
   "src/pages/webpages/WebpageEditorBody.tsx": {

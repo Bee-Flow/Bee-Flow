@@ -7,7 +7,7 @@ import type { AudienceModel, PublicAiNotesProps, PublicRowProps } from './Webpag
  *
  * `aiKnown !== true` means NOT READ, not "off": if that counted as off, the screen would claim "no AI runs publicly" about a field that nobody looked at — the same dangerous direction that `public.known` excludes above. Therefore `runs` hangs on `known` and `grounds` on `runs`: every claim here stands on the reading beneath it.
  */
-export function publicAiState(model: AudienceModel | null | undefined) {
+function publicAiState(model: AudienceModel | null | undefined) {
     const known = model?.public?.aiKnown === true;
     const runs = known && model?.public?.aiRuns === true;
     return { known, runs, grounds: runs && model?.public?.aiGroundsOnPage === true };

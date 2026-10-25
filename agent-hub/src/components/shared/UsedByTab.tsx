@@ -53,7 +53,7 @@ import type { TranslateFn } from '../../hooks/useTranslation';
 import useTranslation from '../../hooks/useTranslation';
 import type { KindLabelFn, KindVisual, UsageAdapter, UsageEntry, UsageRowProps, UsageSourceRow, UsageSummaryProps, UsedByTabProps } from './UsedByTab.types';
 import { EXTRA_KIND, STUDIO_PATH, HEAD_STYLE, ROW_STYLE, KIND_NOUNS } from './UsedByTab.constants';
-export { USAGE_ROLES } from './UsedByTab.constants';
+;
 
 /** The kind key for a row: a Studio kind via kindOf, else one of the extras. */
 export function usageKind(row?: UsageEntry | null): string | null {
@@ -323,7 +323,7 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }: U
 }
 
 /** What the row DOES with this thing — the "Does"/"As" column. */
-export function roleLabelFor(t: TranslateFn, role?: string | null): string {
+function roleLabelFor(t: TranslateFn, role?: string | null): string {
     switch (role) {
         case 'read': return t('usage.role_read', 'reads');
         case 'write': return t('usage.role_write', 'writes');

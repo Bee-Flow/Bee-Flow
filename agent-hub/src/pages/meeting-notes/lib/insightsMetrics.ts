@@ -6,7 +6,7 @@ import type { InsightsModel, Monologue, PersonStat } from '../detail/insights/in
 import type { MeetingNote } from '../detail/meetingDetailTypes';
 import type { PlayerSegment } from '../detail/player/player.types';
 import { insightsWindowSeconds, buildSpeakerMetrics, buildSilentAttendees, buildAirtimeWindows, buildFollowUpStats } from './insightsMetrics.helpers';
-export { insightsWindowSeconds, countWords, buildSpeakerMetrics, buildSilentAttendees, buildAirtimeWindows, buildFollowUpStats } from './insightsMetrics.helpers';
+;
 
 /**
  * Derivations for the tabbed Insights panel — everything beyond the original

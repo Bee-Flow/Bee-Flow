@@ -10,7 +10,7 @@ import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '
 import { logger } from '../../../utils/logger';
 import { list, RuleCard } from './RuleCard';
 import { ERROR_BANNER, WARN_BANNER, smallButton, Composer } from './Composer';
-export { conditionSentence, consequenceParts, runLabel, RuleCard } from './RuleCard';
+;
 
 /**
  * "Rules" — the automations that run on a COMPLETED meeting note, as readable sentences (M5, part D).
@@ -52,7 +52,7 @@ function hasRetryAfter(v: unknown): v is { retryAfter?: unknown } {
     return typeof v === 'object' && v !== null;
 }
 
-export function licenceMessage(err: unknown, t: TranslateFn): string | null {
+function licenceMessage(err: unknown, t: TranslateFn): string | null {
     const message = String(errorMessage(err) || err || '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- word-bounded literal alternatives: linear
     const locked = LICENCE_TOKENS.has(message)
         || errorCode(err) === 'feature_locked' || errorCode(err) === 'tier_required'

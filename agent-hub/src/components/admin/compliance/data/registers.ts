@@ -19,8 +19,8 @@ import type { AccessAuditRow } from '../pages/accessAuditLabels';
 import type { DpiaRecord } from '../pages/dpia/DpiaDrawer';
 import type { Id, UseDpiaArgs, UseIncidentsArgs, UseSoaArgs, SoaBody, UsePoliciesArgs, UseConnectorsArgs, UseRisksArgs, UseAuditArgs, UseTrainingArgs, UseAccessAuditArgs, AccessAuditLog, AccessAuditFilter, OrgUserRow, UseOrgUsersArgs } from './registers.types';
 import { noop } from './useRopa';
-export { useDsr } from './useDsr';
-export { useRopa } from './useRopa';
+;
+;
 export type { OrgUserRow } from './registers.types';
 /**
  * Shared busy/mutate wrapper: set busy → run → refresh → toast on failure.

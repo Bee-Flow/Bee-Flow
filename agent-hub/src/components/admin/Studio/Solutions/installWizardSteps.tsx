@@ -7,11 +7,11 @@ import type { Catalog, CatalogDatatable } from '../../../automation/Builder/mapp
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
 import type { RowProps, TableRowsProps, ConnectionRowsProps, ApproverRowsProps, GrantRowsProps, InstallChoices, ConnectStepProps, InstallReport, InstallPayload, ResultStepProps } from './installWizardSteps.types';
 import { ListStatus, selectCls, selectStyle } from './AccessStep';
-export { ContentsStep } from './ContentsStep';
-export { ListStatus, AccessStep } from './AccessStep';
+;
+;
 export type { InstallChoices, InstallReport, InstallPayload } from './installWizardSteps.types';
 
-export function Row({ children, testId }: RowProps) {
+function Row({ children, testId }: RowProps) {
     return (
         <div className="px-3 py-2.5 rounded-lg space-y-1.5 bg-[var(--bg-secondary)]" data-testid={testId}>
             {children}
@@ -38,7 +38,7 @@ function stepWhere(row: StepAddress, t: TranslateFn) {
 
 // ── Step 2: the holes, and the requests ────────────────────────────
 
-export function TableRows({ rows, catalog, choice, onChoice }: TableRowsProps) {
+function TableRows({ rows, catalog, choice, onChoice }: TableRowsProps) {
     const { t } = useTranslation();
     const tables: Array<CatalogDatatable & { key?: string }> = catalog.status === 'ok' ? (catalog.data?.datatables || []) : [];
     return rows.map(row => (
@@ -70,7 +70,7 @@ export function TableRows({ rows, catalog, choice, onChoice }: TableRowsProps) {
     ));
 }
 
-export function ConnectionRows({ rows, connections, choice, onChoice }: ConnectionRowsProps) {
+function ConnectionRows({ rows, connections, choice, onChoice }: ConnectionRowsProps) {
     const { t } = useTranslation();
     const items = connections.status === 'ok' ? (connections.data?.connections || []) : [];
     return rows.map(row => {
@@ -99,7 +99,7 @@ export function ConnectionRows({ rows, connections, choice, onChoice }: Connecti
     });
 }
 
-export function ApproverRows({ rows, people, groups, choice, onChoice }: ApproverRowsProps) {
+function ApproverRows({ rows, people, groups, choice, onChoice }: ApproverRowsProps) {
     const { t } = useTranslation();
     const users = people.status === 'ok' && Array.isArray(people.data) ? people.data : [];
     const groupList = groups.status === 'ok' && Array.isArray(groups.data) ? groups.data : [];
@@ -128,7 +128,7 @@ export function ApproverRows({ rows, people, groups, choice, onChoice }: Approve
     });
 }
 
-export function GrantRows({ rows, catalog, ticked, onTick }: GrantRowsProps) {
+function GrantRows({ rows, catalog, ticked, onTick }: GrantRowsProps) {
     const { t } = useTranslation();
     const byTool = useMemo(() => {
         const map = new Map();

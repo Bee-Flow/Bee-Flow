@@ -20,7 +20,7 @@ import type {
 } from './projectChatTypes';
 import { errorCode } from '../../utils/caughtError';
 import { enc, PAGE, teamChatKeys, chatsPath, chatPath, foldIn, fetchPage } from './useTeamChatMessages';
-export { teamChatKeys, mergeMessages, newestSeq, foldIn, useTeamChatMessages } from './useTeamChatMessages';
+;
 
 export type {
     CreateTeamChat, PendingTeamChatMessage, SendTeamChatMessage, TeamChat, TeamChatAiMode, TeamChatAiPolicy, TeamChatAiResult,

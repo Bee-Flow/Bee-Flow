@@ -1,6 +1,6 @@
 import { type LabelLookup } from './refTokens';
 import { PILL_ATTR, buildFragment } from './refEditorDom.helpers';
-export { PILL_ATTR, PILL_TINT_CLASS, pillTint, buildPill, buildFragment, appendText } from './refEditorDom.helpers';
+;
 
 /**
  * The DOM half of the reference editor: turn a stored field value into editable

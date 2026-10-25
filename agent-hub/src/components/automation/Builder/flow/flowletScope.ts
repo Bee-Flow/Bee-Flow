@@ -25,7 +25,7 @@ import type { AutoMapDefinition } from '../mapping/autoMapInputs.types';
 import type { Position } from '../build/addStepModel';
 import type { ScopeStep, ScopeGraph } from './flowletScope.types';
 import { walkSteps } from './flowletScope.helpers';
-export { layerCallScopes } from './flowletScope.helpers';
+;
 export type { ScopeStep, ScopeGraph } from './flowletScope.types';
 const LAYER_KEY_RE = /^[a-z][a-z0-9_]*$/;
 /**

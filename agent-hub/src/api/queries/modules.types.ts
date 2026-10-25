@@ -34,9 +34,9 @@ export interface ModuleMutationResponse {
     module: AdminModule;
 }
 
-export type ModulePricingType = 'free' | 'one_time' | 'subscription';
+type ModulePricingType = 'free' | 'one_time' | 'subscription';
 
-export type ModuleBillingInterval = 'month' | 'year';
+type ModuleBillingInterval = 'month' | 'year';
 
 // Server-derived typed pricing (v3.1). Never hand-build this from `prices[]`
 // on the client — the server owns the derivation.
@@ -47,7 +47,7 @@ export interface MarketplacePricing {
     interval?: ModuleBillingInterval | null;
 }
 
-export interface MarketplaceEntitlement {
+interface MarketplaceEntitlement {
     status: string;            // active | pending | expired | revoked | …
     expiresAt: string | null;  // ISO; null for perpetual (one-time / free)
 }
@@ -116,7 +116,7 @@ export interface UpdateResponse {
     requiresRestart?: boolean;
 }
 
-export type LedgerVersionStatus =
+type LedgerVersionStatus =
     'active' | 'retired' | 'staged' | 'failed' | 'incompatible' | 'quarantined';
 
 export interface ModuleHealthRow {

@@ -9,7 +9,7 @@ import type { SaveNotice } from './saveNotices';
 import type { NodeEntry, RowCommon, LogicRow, LogicRowsOptions, DerivedAutomationRowsArgs } from './logicRows.types';
 import { actionsOf, whatOf, baseRow, makeEmitter, type Emitter } from './logicRows.types2';
 import { triggerWhen, nodesOfScreen, emitSurfaceRows, asSet, triggerKindOf, matchNotice } from './logicRows.helpers';
-export type { LogicRow } from './logicRows.types';
+;
 
 /**
  * The rows of the Logic tab: one table across ALL screens of "when" × "what then happens".

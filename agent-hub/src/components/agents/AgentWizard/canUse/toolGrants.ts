@@ -36,7 +36,7 @@ import type { ToolApp } from './toolCatalogTypes';
 import type { CallableAutomation } from '../../../admin/Studio/SkillsStudio/skillModel.types';
 import type { AutomationLike, ToolsConfig, ToolsConfigIn, SelectionMap, ToolRowsArgs, AutomationRowsArgs } from './toolGrants.types';
 import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
-export { RESERVED_TOOL_KEYS, CONFIRM, ACT_AS, ACT_AS_KIND, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, storedConfirmOf, storedActAsOf, sendsFor } from './toolGrants.helpers';
+;
 export type { AutomationLike, ToolsConfig, SelectionMap } from './toolGrants.types';
 
 // ── Twee rijen over dezelfde module ─────────────────────────────────

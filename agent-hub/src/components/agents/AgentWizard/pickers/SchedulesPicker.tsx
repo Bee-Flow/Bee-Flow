@@ -3,7 +3,7 @@ import { useRef, useEffect } from 'react';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
 import type { SchedulesPickerProps } from './SchedulePickers.types';
 
-export function formatScheduleNextRun(iso: string | number | Date, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+function formatScheduleNextRun(iso: string | number | Date, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (!iso) return '—';
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '—';

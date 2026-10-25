@@ -10,8 +10,8 @@ import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
 import type { ColumnGateTable, ColumnGate, ColumnChoice, AddressOptions, AudienceModel, ColumnGateFormProps, WebpageAudiencePanelProps } from './WebpageAudiencePanel.types';
 import { AddressCard } from './AddressCard';
 import { PublicRow } from './PublicRow';
-export { publicAiState } from './PublicRow';
-export { otherLinksNotice } from './AddressCard';
+;
+;
 
 const AUDIENCE_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience`;
 const PUBLIC_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience/public`;

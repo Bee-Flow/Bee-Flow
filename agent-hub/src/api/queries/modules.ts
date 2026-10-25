@@ -13,9 +13,9 @@ import { ApiError, apiClient } from '../client';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { type AdminModule, type ModuleMutationResponse, type MarketplacePage, type ConnectResponse, type PurchaseResponse, type RefreshEntitlementsResponse, type InstallProgress, type UpdateResponse, type ModuleHealthRow, type ModulesHealthResponse, type ModuleLogsResponse, type ModuleAuditResponse, type LedgerVersion, type SideloadResponse, type UpdatePolicy, type MarketplaceModuleDetail, type PurchaseVars, type InstallVars, type UpdateVars, type RollbackVars, type SideloadVars, type OfflineGrantVars, type UpdatePolicyVars } from './modules.types';
-export { type ModuleRequirement, type ModuleCapability, type AdminModule, type ModuleMutationResponse, type ModulePricingType, type ModuleBillingInterval, type MarketplacePricing, type MarketplaceEntitlement, type MarketplaceModule, type MarketplacePage, type ConnectResponse, type PurchaseResponse, type RefreshEntitlementsResponse, type InstallProgress, type UpdateResponse, type LedgerVersionStatus, type ModuleHealthRow, type ModulesHealthResponse, type ModuleLogEntry, type ModuleLogsResponse, type ModuleAuditResponse, type LedgerVersion, type SideloadResponse, type UpdatePolicy, type ModulePermissionEntry, type MarketplaceMediaEntry, type MarketplaceHubVersion, type MarketplaceModuleDetail, type PurchaseVars, type InstallVars, type UpdateVars, type RollbackVars, type SideloadVars, type OfflineGrantVars, type UpdatePolicyVars } from './modules.types';
+export {   type AdminModule, type ModuleMutationResponse,      type MarketplacePage, type ConnectResponse, type PurchaseResponse, type RefreshEntitlementsResponse, type InstallProgress, type UpdateResponse,   type ModulesHealthResponse,  type ModuleLogsResponse,  type LedgerVersion, type SideloadResponse, type UpdatePolicy,    type MarketplaceModuleDetail, type PurchaseVars, type InstallVars, type UpdateVars, type RollbackVars, type SideloadVars, type OfflineGrantVars, type UpdatePolicyVars } from './modules.types';
 
-export const moduleKeys = {
+const moduleKeys = {
     all: ['admin-modules'] as const,
     list: () => [...moduleKeys.all, 'list'] as const,
     marketplace: (q: string) => [...moduleKeys.all, 'marketplace', q] as const,
@@ -182,7 +182,7 @@ export function useModulesHealth(opts: { enabled?: boolean } = {}) {
     });
 }
 
-export function useModuleHealth(id: string | null, opts: { enabled?: boolean } = {}) {
+function useModuleHealth(id: string | null, opts: { enabled?: boolean } = {}) {
     return useQuery<ModuleHealthRow | null, Error>({
         queryKey: moduleKeys.moduleHealth(id || ''),
         queryFn: ({ signal }) =>
@@ -217,7 +217,7 @@ export function useReactivateModule() {
     });
 }
 
-export function useModuleAudit(moduleId?: string | null, opts: { limit?: number; enabled?: boolean } = {}) {
+function useModuleAudit(moduleId?: string | null, opts: { limit?: number; enabled?: boolean } = {}) {
     return useQuery<ModuleAuditResponse | null, Error>({
         queryKey: moduleKeys.audit(moduleId || ''),
         queryFn: ({ signal }) =>

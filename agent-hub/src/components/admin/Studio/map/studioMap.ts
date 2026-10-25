@@ -6,8 +6,8 @@ import { studioAppForKind } from '../studioNav';
 import type { BlockMeta, CountState, EdgeGeometry, ElbowRoute, MapEdge, MapNode, Point, Side } from './studioMap.types';
 import { TILE_W, TILE_H, NODE_BY_ID, ORG_WIDE_COUNT_KEYS } from './studioMap.constants';
 import { direction, arrowPath, roundedPolyline, selfGeometry, curveGeometry } from './studioMap.helpers';
-export { arrowPath } from './studioMap.helpers';
-export { TILE_W, TILE_H, MAP_W, MAP_H, MAP_LANES, KINDS_OFF_MAP, MAP_BLOCKS, MAP_SYNTHETIC, MAP_NODES, VERB_LABEL, NO_EDGE_NODE_ID, MAP_KINDS, ORG_WIDE_COUNT_KEYS } from './studioMap.constants';
+;
+;
 
 /**
  * The map on the Studio Start screen: the twelve building blocks and the twelve ways

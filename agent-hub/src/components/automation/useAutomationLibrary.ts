@@ -33,7 +33,7 @@ export interface AutomationFolder {
 }
 
 /** One reusable Step (an automation of kind 'block'). */
-export interface StepRow {
+interface StepRow {
     id: string;
     title?: string;
     [key: string]: unknown;

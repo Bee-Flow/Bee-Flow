@@ -15,7 +15,7 @@
  */
 import type { Contact, SettingsFieldDef, SettingsForm, SettingsGroupDef } from './settingsFields.types';
 import { LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES, CONFORMANCE_LEVELS, asArray, asText, asDate } from './settingsFields.helpers';
-export { LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES, CONFORMANCE_LEVELS, RELEVANCE_OPTIONS } from './settingsFields.helpers';
+;
 /* ── option tables ───────────────────────────────────────────────────────── */
 
 /* ── the groups ──────────────────────────────────────────────────────────── */
@@ -281,7 +281,7 @@ const FIELD_BY_NAME = new Map<string, SettingsFieldDef>(
     SETTINGS_GROUPS.flatMap(g => g.fields.map(f => [f.name, f])),
 );
 
-export function fieldSpec(name: string) {
+function fieldSpec(name: string) {
     return FIELD_BY_NAME.get(name) || null;
 }
 

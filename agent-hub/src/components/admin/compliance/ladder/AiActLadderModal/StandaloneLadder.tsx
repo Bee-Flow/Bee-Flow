@@ -332,7 +332,7 @@ function ContainsAiBanner({ containsAi, aiSteps, signals, t }: ContainsAiBannerP
     );
 }
 
-export function outcomeText(verdict: Verdict, containsAi: boolean, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+function outcomeText(verdict: Verdict, containsAi: boolean, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (containsAi && !(verdict.step1.answered && verdict.step3.answered)) {
         return t('compliance.ladder_outcome_pending', 'Outcome: pending — tick the chips of steps 1 and 3 to declare.');
     }

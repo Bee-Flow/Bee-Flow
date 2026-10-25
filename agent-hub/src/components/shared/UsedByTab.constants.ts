@@ -2,7 +2,7 @@ import { FolderKanban, MessageSquare, NotebookPen } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { KindVisual } from './UsedByTab.types';
 
-export const USAGE_ROLES = Object.freeze([
+const USAGE_ROLES = Object.freeze([
     'read', 'write', 'readwrite', 'contains', 'invokes', 'chat', 'ai_step', 'answer_block',
 ]);
 

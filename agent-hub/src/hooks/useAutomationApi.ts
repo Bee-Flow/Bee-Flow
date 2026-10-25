@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler } from './useAutomationApi.types2';
 import { errorBody, safeText, buildRunQuery, buildAutomationListQuery, buildFacetQuery } from './useAutomationApi.helpers';
 export { errorBody, safeText } from './useAutomationApi.helpers';
-export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type ErrorBody } from './useAutomationApi.types2';
+export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler,  } from './useAutomationApi.types2';
 /**
  * REST helpers for the automation builder. Thin wrapper over authFetch so
  * components don't have to repeat the URL prefix and JSON handshake.

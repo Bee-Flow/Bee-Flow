@@ -5,7 +5,7 @@ import type { BuildChoreographyArgs, CameraPlan, FxEvent, FxState, LatestChoreog
 import { logger } from '../../../../utils/logger';
 import { CARD_W, CARD_H, GHOST_ID, GHOST_EDGE_ID, MOUNT_GRACE_MS, OWN_SLACK_MS, WIDE_SHOT, MOUNT_SHOT, CENTER_DURATION_MS, RESIZE_SETTLE_MS, NO_NODES, EMPTY } from './useBuildChoreography.constants';
 import { nextExpiry, nextDue, prune, rectOf, unionOfNodes, predecessorOf, lastInFlow, captionFor, applyDiff, advance, mergeMoves, sizeOf } from './useBuildChoreography.helpers';
-export { FLAG_TTL_MS, GHOST_ID, GHOST_EDGE_ID } from './useBuildChoreography.constants';
+export { FLAG_TTL_MS,   } from './useBuildChoreography.constants';
 
 /**
  * The build as a film — the stateful half (the pure half is

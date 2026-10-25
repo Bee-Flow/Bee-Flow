@@ -5,7 +5,7 @@ import type { AccessEntry, AccessOutcomeArgs, ParsedRowRule, RowRule, RuleCondit
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { SYSTEM_FIELDS, COMPARE_SOURCES, SOURCE_LABEL, BASE_SCOPES, ACCESS_MODES, ACTIONS, OPS_BY_KIND, OP_LABELS, DATE_OP_LABELS, CMP, CANON, MIRROR, NOT_PICKABLE } from './rowRuleModel.constants';
 import { tr, normalizePerm, defaultPerm, serializeValue, flattenLogic, readPath, readLiteral, describeWrites, describeNoRows } from './rowRuleModel.helpers';
-export { COMPARE_SOURCES, BASE_SCOPES } from './rowRuleModel.constants';
+;
 
 /**
  * App Studio RBAC — the picker model behind the row-rule builder.
@@ -119,7 +119,7 @@ export function valueKindOf(field?: { type?: string } | null) {
 
 // ── Operators ───────────────────────────────────────────────────────
 
-export function operatorLabel(op: string, kind: string, t: TranslateFn | null = null) {
+function operatorLabel(op: string, kind: string, t: TranslateFn | null = null) {
     const entry = ((kind === 'date' || kind === 'datetime') && DATE_OP_LABELS[op]) || OP_LABELS[op];
     return entry ? tr(t, entry[0], entry[1]) : op;
 }
@@ -275,7 +275,7 @@ function describeValue(condition: RuleCondition, t: TranslateFn | null = null) {
     return `“${condition.value}”`;
 }
 
-export function describeCondition(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
+function describeCondition(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
     const field = findRuleField(table, condition.field, t);
     const name = field ? field.name : condition.field;
     const kind = valueKindOf(field);
