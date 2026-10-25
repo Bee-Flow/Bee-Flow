@@ -2611,7 +2611,18 @@
     "studio_misc.toolbar.view": "Weergave",
     "studio_misc.toolbar.view_board": "Bord",
     "studio_misc.toolbar.view_cards": "Kaarten",
-    "studio_misc.toolbar.view_list": "Lijst"
+    "studio_misc.toolbar.view_list": "Lijst",
+    "studio_misc.overview.invalid_schedule": "Ongeldig schema",
+    "studio_misc.overview.last_run_failed": "Laatste run mislukt",
+    "studio_misc.overview.tone_app": "App of webhook",
+    "studio_misc.overview.tone_form": "Formulier",
+    "studio_misc.overview.tone_manual": "Handmatig",
+    "studio_misc.overview.tone_other": "Andere trigger",
+    "studio_misc.overview.tone_schedule": "Schema",
+    "studio_misc.overview.trigger_form": "Formulier ingediend",
+    "studio_misc.overview.trigger_app_trigger": "App-knop",
+    "studio_misc.overview.trigger_agent_call": "Aangeroepen door een agent",
+    "studio_misc.overview.trigger_layer_input": "Flowlet-invoer"
   },
   "sameAsEnglish": [
     "studio_apps_bi.chart.type_donut",
@@ -2717,6 +2728,8 @@
     "studio_misc.overview.col_status",
     "studio_misc.overview.col_trigger",
     "studio_misc.overview.status_live",
+    "studio_misc.overview.tone_mail",
+    "studio_misc.overview.tone_nextcloud",
     "studio_misc.overview.trigger_webhook",
     "studio_misc.runbar.via",
     "studio_misc.support.beta",

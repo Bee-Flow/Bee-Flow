@@ -28,7 +28,7 @@ const DATA = require(path.join(__dirname, 'data', 'hardcoded-studio-admin-2026-1
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = '330dd5e307073bceb8a4ee614d55901dde5f2e4e9caba674255bed328eb10eda';
+const DATA_SHA256 = '8e43b18b6317bbf75b5af2c1c46a1a395fbfb670ef4a4ee721a0ef4b556eab8a';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

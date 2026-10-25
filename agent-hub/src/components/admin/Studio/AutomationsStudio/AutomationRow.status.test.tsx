@@ -27,21 +27,32 @@ const meta = () => screen.getByTestId('automation-row-meta').textContent;
 describe('AutomationRow status wording', () => {
     afterEach(cleanup);
 
-    it('reads "Draft · never live" for an automation that was never published', () => {
+    it('reads a short "Draft" for an automation that was never published', () => {
         renderRow({ neverLive: true, liveVersion: null, isActive: false, isDraft: true });
-        expect(meta()).toContain('Draft · never live');
+        expect(meta()).toBe('Draft · By hand');
         // The old DRAFT chip is gone: the status says it.
         expect(screen.queryByText('draft')).toBeNull();
     });
 
     it('reads "Live · v3" and the pending changes', () => {
         renderRow({ pendingChanges: 2 });
-        expect(meta()).toContain('Live · v3 · 2 changes not live');
+        expect(meta()).toBe('Live · v3 · 2 changes not live · By hand');
     });
 
     it('reads "Paused" for a switched-off live automation', () => {
         renderRow({ isActive: false });
         expect(meta()).toMatch(/^Paused/);
+    });
+
+    it('says "Last run failed" instead of the trigger, with a red dot on the tile', () => {
+        renderRow({ lastStatus: 'error' });
+        expect(meta()).toBe('Live · v3 · Last run failed');
+        expect(screen.getByTestId('automation-row-dot')).toBeTruthy();
+    });
+
+    it('draws no dot on a switched-off automation: the word says it', () => {
+        renderRow({ isActive: false });
+        expect(screen.queryByTestId('automation-row-dot')).toBeNull();
     });
 });
 

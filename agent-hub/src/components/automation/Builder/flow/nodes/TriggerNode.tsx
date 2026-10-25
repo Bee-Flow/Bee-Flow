@@ -1,9 +1,4 @@
-import {
-    Clock, Zap, Webhook, MousePointer2, Mail, Calendar,
-    Tag, BellRing, FileUp, FilePlus, FilePen, Share2, Activity, Bell,
-    Stethoscope, LogIn, Bot, AppWindow, ClipboardList,
-    type LucideIcon,
-} from 'lucide-react';
+import { Stethoscope } from 'lucide-react';
 import React from 'react';
 import IntegrationLogo from './IntegrationLogo';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
@@ -12,6 +7,7 @@ import { appRefDisplay, triggerAppRef, useAppRefLabel } from '../appRefLabel';
 import { humanizeFieldKey } from '../displayHelpers';
 import { nodeTypeLabel } from '../nodeDefs';
 import { describeCron } from '../scheduleBuilderUtils';
+import { TRIGGER_ICONS, triggerIconKey } from '../triggerIcons';
 import { APP_EVENT_TYPE_LABEL, triggerTypeLabel } from '../triggerLabels';
 import type { AppRef } from '../../../../admin/Studio/AppStudio/inspector/appDefinition';
 import type { AppEventConfig, AppEventFilter, StepNodeProps, SummaryText, TFn } from './nodeProps';
@@ -30,36 +26,6 @@ const PROVIDER_TO_INTEGRATION: Record<string, string> = {
     'nextcloud':        'nextcloud',
 };
 
-// Icons only — the label strings live in ../triggerLabels so the palette,
-// the settings form and the node all name a trigger the same way (BFSF-339).
-const KIND_ICON: Record<string, LucideIcon> = {
-    schedule:    Clock,
-    manual:      MousePointer2,
-    webhook:     Webhook,
-    app_event:   Zap,
-    agent_call:  Bot,
-    layer_input: LogIn,
-    app_trigger: AppWindow,
-    form:        ClipboardList,
-};
-
-/**
- * Sub-icon per (provider, event) so a Gmail-new-email trigger gets a Mail
- * glyph instead of the generic app-event lightning bolt.
- */
-const APP_EVENT_ICON: Record<string, LucideIcon> = {
-    'gmail.mail.new':                  Mail,
-    'gmail.label.added':               Tag,
-    'google-calendar.event.changed':   Calendar,
-    'google-calendar.event.upcoming':  BellRing,
-    'google-drive.file.new':           FileUp,
-    'nextcloud.file.new':              FilePlus,
-    'nextcloud.file.changed':          FilePen,
-    'nextcloud.share.received':        Share2,
-    'nextcloud.activity.new':          Activity,
-    'nextcloud.notification.new':      Bell,
-};
-
 export default function TriggerNode({ id, data }: StepNodeProps) {
     const { step, runStep, issues, onAddAfter, onDiagnose } = data;
     const { t } = useTranslation();
@@ -74,11 +40,7 @@ export default function TriggerNode({ id, data }: StepNodeProps) {
     const appRefRecord = useAppRefLabel(kind === 'app_trigger' ? appRef : null);
 
     const kindLabel = triggerTypeLabel(step);
-    let Icon = KIND_ICON[kind] || KIND_ICON.manual;
-    if (kind === 'app_event' && step.appEvent) {
-        const key = `${step.appEvent.provider}.${step.appEvent.event}`;
-        if (APP_EVENT_ICON[key]) Icon = APP_EVENT_ICON[key];
-    }
+    const Icon = TRIGGER_ICONS[triggerIconKey({ kind, appEvent: step.appEvent })];
     const providerIntegration = (kind === 'app_event' && step.appEvent?.provider)
         ? PROVIDER_TO_INTEGRATION[step.appEvent.provider] || null
         : null;
