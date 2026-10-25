@@ -13,9 +13,9 @@ const recorderMock = { current: null };
 vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.current }));
 
 import GoogleMeetImportPanel from './GoogleMeetImportPanel';
+import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
-import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
 
 const ITEMS = [
     { eventId: 'e1', meetingCode: 'abc-defg-hij', title: 'Weekly sync', start: '2026-07-16T10:00:00Z', end: '2026-07-16T10:45:00Z', recordingState: 'available', importedNoteId: null },

@@ -746,9 +746,9 @@ jobs:
       - uses: ./.github/actions/npm-install
         with:
           directory: agent-hub
-      # Errors fail; the warning count may not rise above
-      # agent-hub/.eslint-budget.json, and `--update` lowers it after a clean-up.
-      - name: Lint (errors fail, warnings budgeted)
+      # Every rule is an error; the old violations are listed per file and
+      # rule in agent-hub/eslint-suppressions.json, and `--update` prunes it.
+      - name: Lint (errors fail, old violations suppressed per file and rule)
         run: node ../scripts/eslint-budget.mjs agent-hub
       # The agent-hub ratchets (TypeScript, i18n, inline-style, fireEvent,
       # authFetch-in-effect, big-file, Dutch-comment, line-reference) and the

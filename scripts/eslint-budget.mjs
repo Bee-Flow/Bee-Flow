@@ -10,6 +10,15 @@
  * change raises it, and `--update` lowers it after a clean-up. It never raises
  * the budget: that is a deliberate edit with a reason in the commit message.
  *
+ * SUPPRESSIONS MODE. A package with an eslint-suppressions.json (eslint's bulk
+ * suppressions, 9.24+: a count per file and per rule) has no total budget at
+ * all: every rule is an error, the old violations are suppressed by file and
+ * rule, and the gate is eslint itself. A NEW violation is an error; a fixed
+ * one leaves a stale suppression, which eslint reports (exit 2) and this gate
+ * fails on until `--update` runs `eslint --prune-suppressions`. A file cannot
+ * trade one rule's violations for another's, which a single total allowed.
+ * agent-hub runs in this mode; the packages without the file keep the budget.
+ *
  * Errors are not budgeted; one error fails, as `eslint` itself would.
  *
  * Usage:
@@ -77,21 +86,34 @@ export function eslintArgs(version, cpus = availableParallelism()) {
     return ['.', '-f', 'json', ...(parallel ? ['--concurrency', String(workers)] : [])];
 }
 
-function runEslint(pkg, dir) {
+/** Does the package carry bulk suppressions (and so run without a total budget)? */
+export function usesSuppressions(pkgDir) {
+    return fs.existsSync(path.join(pkgDir, 'eslint-suppressions.json'));
+}
+
+/** Did eslint say that some suppressions no longer match a violation? */
+export function staleSuppressions(stderr) {
+    return /suppressions left that do not occur anymore/.test(String(stderr ?? ''));
+}
+
+function runEslint(pkg, dir, extraArgs = []) {
     const entry = eslintEntry(dir);
     if (!fs.existsSync(entry)) {
         console.error(`eslint-budget: ${path.relative(ROOT, entry)} not found — run npm ci in ${pkg} first`);
         process.exit(2);
     }
     try {
-        return execFileSync(process.execPath, [entry, ...eslintArgs(eslintVersion(dir))], {
+        const stdout = execFileSync(process.execPath, [entry, ...eslintArgs(eslintVersion(dir)), ...extraArgs], {
             cwd: dir,
             encoding: 'utf8',
             maxBuffer: 512 * 1024 * 1024,
+            stdio: ['ignore', 'pipe', 'pipe'],
         });
+        return { stdout, stderr: '' };
     } catch (e) {
-        // eslint exits 1 when it reports errors; the JSON on stdout is still the report.
-        if (e.stdout) return e.stdout;
+        // eslint exits 1 when it reports errors, 2 on stale suppressions; the
+        // JSON on stdout is still the report.
+        if (e.stdout) return { stdout: e.stdout, stderr: String(e.stderr ?? '') };
         throw e;
     }
 }
@@ -109,8 +131,9 @@ function main(args) {
     const dir = path.resolve(ROOT, pkg);
     const budgetFile = path.join(dir, '.eslint-budget.json');
 
-    const raw = reportFile ? fs.readFileSync(path.resolve(reportFile), 'utf8') : runEslint(pkg, dir);
-    const report = JSON.parse(raw);
+    const suppressions = usesSuppressions(dir);
+    const ran = reportFile ? { stdout: fs.readFileSync(path.resolve(reportFile), 'utf8'), stderr: '' } : runEslint(pkg, dir, suppressions && update ? ['--prune-suppressions'] : []);
+    const report = JSON.parse(ran.stdout);
     const counts = { errors: 0, warnings: 0 };
     for (const file of report) {
         counts.errors += file.errorCount;
@@ -120,6 +143,19 @@ function main(args) {
     if (counts.errors > 0) {
         console.error(`❌ ${pkg}: ${counts.errors} eslint error(s) — errors are never budgeted; run eslint in ${pkg} to see them`);
         process.exit(1);
+    }
+
+    if (suppressions) {
+        if (counts.warnings > 0) {
+            console.error(`❌ ${pkg}: ${counts.warnings} eslint warning(s) — with bulk suppressions every rule is an error; a warning means a rule was demoted`);
+            process.exit(1);
+        }
+        if (!update && staleSuppressions(ran.stderr)) {
+            console.error(`❌ ${pkg}: eslint-suppressions.json holds suppressions that no longer match a violation — run \`node scripts/eslint-budget.mjs ${pkg} --update\` and commit the smaller file`);
+            process.exit(1);
+        }
+        console.log(update ? `Pruned the stale suppressions of ${pkg}` : `✅ ${pkg}: no violations outside eslint-suppressions.json, none stale`);
+        process.exit(0);
     }
 
     const existing = fs.existsSync(budgetFile) ? JSON.parse(fs.readFileSync(budgetFile, 'utf8')) : null;

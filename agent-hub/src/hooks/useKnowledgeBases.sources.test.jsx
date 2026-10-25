@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { act, waitFor } from '@testing-library/react';
-import { renderHookWithClient } from '../test/render';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import useKnowledgeBases from './useKnowledgeBases';
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
+import { renderHookWithClient } from '../test/render';
 
 vi.mock('../components/admin/Studio/KnowledgeStudio/knowledgeApi', () => {
     const knowledgeApi = { listSources: vi.fn() };

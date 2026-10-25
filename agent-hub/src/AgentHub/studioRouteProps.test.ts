@@ -5,7 +5,6 @@ import { studioRouteProps, type StudioRoute } from './studioRouteProps';
 // The mapping exactly as AgentHub.jsx spelled it inline before the split, kept
 // here as the reference the extracted helper must agree with on every route.
 const documentRef = (r: StudioRoute) => (r.id === 'notebook' ? (r.sub ? notebookRef(r.sub) : null) : r.id || null);
-// eslint-disable-next-line complexity -- the pre-split inline mapping, kept verbatim as the reference
 const reference = (r: StudioRoute) => ({
     initialAgentId: r.section === 'agents' ? r.id : null,
     initialSkillId: r.section === 'skills' ? r.id : null,

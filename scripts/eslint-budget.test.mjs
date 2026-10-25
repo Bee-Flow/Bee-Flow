@@ -15,7 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { eslintEntry, eslintArgs, atLeast, CONCURRENCY_SINCE, MAX_WORKERS } from './eslint-budget.mjs';
+import { eslintEntry, eslintArgs, atLeast, usesSuppressions, staleSuppressions, CONCURRENCY_SINCE, MAX_WORKERS } from './eslint-budget.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.join(HERE, 'eslint-budget.mjs');
@@ -25,7 +25,7 @@ const report = (errors, warnings) => JSON.stringify([
     { filePath: 'b.js', errorCount: 0, warningCount: 0, messages: [] },
 ]);
 
-function sandbox({ errors = 0, warnings = 0, budget = null, version = '9.39.2' } = {}) {
+function sandbox({ errors = 0, warnings = 0, budget = null, version = '9.39.2', suppressions = false, stale = false } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eslint-budget-'));
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
     fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/eslint-budget.mjs'));
@@ -36,8 +36,10 @@ function sandbox({ errors = 0, warnings = 0, budget = null, version = '9.39.2' }
     // No shebang and no exec bit: the gate has to start it with node.
     fs.writeFileSync(path.join(eslint, 'bin', 'eslint.js'), `require('fs').writeFileSync('eslint-argv.json', JSON.stringify(process.argv.slice(2)));
 process.stdout.write(${JSON.stringify(report(errors, warnings))});
+${stale ? "if (!process.argv.includes('--prune-suppressions')) { process.stderr.write('There are suppressions left that do not occur anymore. Consider re-running the command with `--prune-suppressions`.'); process.exit(2); }" : ''}
 process.exit(${errors > 0 ? 1 : 0});
 `);
+    if (suppressions) fs.writeFileSync(path.join(dir, 'pkg', 'eslint-suppressions.json'), '{}');
     if (budget !== null) {
         fs.writeFileSync(path.join(dir, 'pkg', '.eslint-budget.json'), JSON.stringify({ warnings: budget }));
     }
@@ -149,4 +151,36 @@ test('the worker count is explicit, never auto: every usable CPU up to MAX_WORKE
     assert.deepStrictEqual(eslintArgs('9.39.2', 3).slice(3), ['--concurrency', '3']);
     assert.deepStrictEqual(eslintArgs('9.39.2', 64).slice(3), ['--concurrency', String(MAX_WORKERS)]);
     assert.ok(!eslintArgs('9.39.2', 64).includes('auto'));
+});
+
+test('suppressions mode: no total budget, a clean run passes and a new violation fails', () => {
+    const ok = run(sandbox({ suppressions: true }));
+    assert.strictEqual(ok.code, 0);
+    assert.match(ok.stdout, /no violations outside eslint-suppressions.json/);
+    assert.strictEqual(run(sandbox({ suppressions: true, errors: 1 })).code, 1);
+});
+
+test('suppressions mode: a warning fails, because every rule is an error there', () => {
+    const r = run(sandbox({ suppressions: true, warnings: 1 }));
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /every rule is an error/);
+});
+
+test('suppressions mode: a stale suppression fails until --update prunes it', () => {
+    const dir = sandbox({ suppressions: true, stale: true });
+    const r = run(dir);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /no longer match a violation/);
+    const u = run(dir, ['--update']);
+    assert.strictEqual(u.code, 0);
+    assert.ok(JSON.parse(fs.readFileSync(path.join(dir, 'pkg/eslint-argv.json'), 'utf8')).includes('--prune-suppressions'));
+    assert.ok(!fs.existsSync(path.join(dir, 'pkg/.eslint-budget.json')), 'no total budget is written in suppressions mode');
+});
+
+test('usesSuppressions and staleSuppressions read the file and the eslint message', () => {
+    const dir = sandbox({ suppressions: true });
+    assert.strictEqual(usesSuppressions(path.join(dir, 'pkg')), true);
+    assert.strictEqual(usesSuppressions(dir), false);
+    assert.strictEqual(staleSuppressions('There are suppressions left that do not occur anymore.'), true);
+    assert.strictEqual(staleSuppressions(''), false);
 });

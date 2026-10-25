@@ -20,7 +20,7 @@ function resolveBuildSha(envSha) {
     try {
         return execSync('git rev-parse --short HEAD', { cwd: import.meta.dirname, stdio: ['ignore', 'pipe', 'ignore'] })
             .toString().trim();
-    } catch (_) {
+    } catch {
         return 'dev';
     }
 }

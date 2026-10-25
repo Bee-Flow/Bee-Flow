@@ -13,9 +13,9 @@ vi.mock('../../../agents/AgentWizard/pickers/BehaviorPicker', () => ({ BehaviorB
 vi.mock('../../../agents/VersionHistory', () => ({ default: () => <div data-testid="version-history" /> }));
 
 import ComplianceBlock, { chipState } from './ComplianceBlock';
+import { API } from '../../../../api/complianceApi';
 import { authFetch } from '../../../../utils/helpers';
 import AdvancedDrawer from '../../../agents/AgentWizard/pickers/AdvancedDrawer';
-import { API } from '../../../../api/complianceApi';
 
 const NOW = new Date(2026, 8, 14, 15, 30).getTime();
 

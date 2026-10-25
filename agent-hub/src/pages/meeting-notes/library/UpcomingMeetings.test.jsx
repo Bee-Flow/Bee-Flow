@@ -15,9 +15,9 @@ vi.mock('../../../lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import UpcomingMeetings from './UpcomingMeetings';
-import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import { openMicrosoftOAuthPopup } from '../../../api/microsoftOAuthPopup';
 import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../../../api/transcriptionsApi';
+import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 
 const talkMeeting = (over = {}) => ({
     talkToken: 'tok1', uid: 'uid1', title: 'Talk standup',

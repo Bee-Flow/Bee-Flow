@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { skillsApi } from '../../../../api/skillsApi';
 import TestTab from './TestTab';
+import { skillsApi } from '../../../../api/skillsApi';
 
 /**
  * The Test tab (S3): run one question through the steps.

@@ -718,7 +718,7 @@ describe('i18n guard', () => {
             const src = fs.readFileSync(file, 'utf8');
             const seen = new Map();
             const dups = [];
-            const re = /^\s*(['"])([A-Za-z0-9_.\-]+)\1\s*:/gm;
+            const re = /^\s*(['"])([A-Za-z0-9_.-]+)\1\s*:/gm;
             let m;
             // Line numbers are tracked incrementally. The obvious version —
             // `src.slice(0, m.index).split('\n').length` per match — copies and

@@ -6,22 +6,22 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-// Initial CI-friendly config:
-//   - keeps `react-hooks/rules-of-hooks` strict (real bugs)
-//   - demotes the rest of react-hooks v7 (the new React-Compiler rules) to warn
-//   - demotes a few js.configs.recommended rules to warn so CI passes today
-// Tighten over time by promoting individual rules back to 'error'.
+// Every rule here is an error. The violations that predate that are recorded
+// per file and per rule in eslint-suppressions.json (eslint's bulk
+// suppressions): a NEW violation fails, a fixed one makes its suppression
+// stale and fails until `npm run lint:suppress:prune` drops it. No rule is a
+// warning, so nothing hides behind a total count.
 
-// Long-file / long-function / complexity budgets. Warn-only so CI stays green;
-// promote to 'error' as the codebase is cleaned up.
+// Long-file / long-function / complexity limits. Tests are exempt (see the
+// override below): a describe block is a table of cases, not a function to split.
 const sizeComplexityRules = {
-    'max-lines': ['warn', { max: 400, skipBlankLines: true, skipComments: true }],
-    'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true }],
-    complexity: ['warn', { max: 15 }],
-    'max-depth': ['warn', 4],
-    'max-params': ['warn', 5],
-    'max-statements': ['warn', 25],
-    'max-nested-callbacks': ['warn', 4],
+    'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+    'max-lines-per-function': ['error', { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true }],
+    complexity: ['error', { max: 15 }],
+    'max-depth': ['error', 4],
+    'max-params': ['error', 5],
+    'max-statements': ['error', 25],
+    'max-nested-callbacks': ['error', 4],
 };
 
 export default [
@@ -29,6 +29,11 @@ export default [
         // dist-embed is the Nextcloud embed build (see the Dockerfile's embed
         // stage); like dist, it is build output and never linted.
         ignores: ['dist', 'dist-embed', 'dist-runtime', 'build', 'node_modules', 'coverage', '.vite'],
+    },
+    {
+        // A disable comment that silences nothing is dead weight and hides the
+        // day the rule it names stops firing.
+        linterOptions: { reportUnusedDisableDirectives: 'error' },
     },
     {
         files: ['**/*.{js,jsx}'],
@@ -66,20 +71,20 @@ export default [
             // React rules — keep rules-of-hooks strict, demote the new
             // React-Compiler rules to warn for now.
             'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': 'warn',
-            'react-hooks/set-state-in-effect': 'warn',
-            'react-hooks/immutability': 'warn',
-            'react-hooks/preserve-manual-memoization': 'warn',
-            'react-hooks/static-components': 'warn',
-            'react-hooks/purity': 'warn',
-            'react-hooks/refs': 'warn',
-            'react-hooks/error-boundaries': 'warn',
-            'react-hooks/component-hook-factories': 'warn',
-            'react-hooks/incompatible-library': 'warn',
-            'react-hooks/unsupported-syntax': 'warn',
+            'react-hooks/exhaustive-deps': 'error',
+            'react-hooks/set-state-in-effect': 'error',
+            'react-hooks/immutability': 'error',
+            'react-hooks/preserve-manual-memoization': 'error',
+            'react-hooks/static-components': 'error',
+            'react-hooks/purity': 'error',
+            'react-hooks/refs': 'error',
+            'react-hooks/error-boundaries': 'error',
+            'react-hooks/component-hook-factories': 'error',
+            'react-hooks/incompatible-library': 'error',
+            'react-hooks/unsupported-syntax': 'error',
 
             'react-refresh/only-export-components': [
-                'warn',
+                'error',
                 { allowConstantExport: true, allowCompoundComponents: true },
             ],
 
@@ -100,12 +105,12 @@ export default [
             //   no-irregular-whitespace → narrow case.
             //   no-shadow-restricted-names → narrow case.
             //   no-constant-binary-expression → narrow case.
-            'no-dupe-keys': 'warn',
-            'no-case-declarations': 'warn',
-            'no-useless-escape': 'warn',
-            'no-irregular-whitespace': 'warn',
-            'no-shadow-restricted-names': 'warn',
-            'no-constant-binary-expression': 'warn',
+            'no-dupe-keys': 'error',
+            'no-case-declarations': 'error',
+            'no-useless-escape': 'error',
+            'no-irregular-whitespace': 'error',
+            'no-shadow-restricted-names': 'error',
+            'no-constant-binary-expression': 'error',
 
             // Promoted back to 'error': the check turned up exactly one
             // violation repo-wide and it was a genuine crash (an unimported
@@ -115,18 +120,18 @@ export default [
             'no-undef': 'error',
 
             'no-unused-vars': [
-                'warn',
+                'error',
                 { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_', ignoreRestSiblings: true },
             ],
-            'no-empty': ['warn', { allowEmptyCatch: true }],
+            'no-empty': ['error', { allowEmptyCatch: true }],
 
-            // Import ordering — warn-only so existing files don't break CI.
+            // Import ordering.
             // Newly written or refactored files naturally pick up the
             // convention via editor auto-fix. The order keeps node builtins
             // / externals / parent / sibling / index groups separated and
             // alphabetizes within each group.
             'import/order': [
-                'warn',
+                'error',
                 {
                     groups: [
                         'builtin',
@@ -151,11 +156,11 @@ export default [
 
             // Forbid raw fetch() in src/components and src/pages — those
             // should go through apiClient (or a dedicated React Query
-            // hook). Kept at 'warn' so the existing call sites surface as
+            // hook). Kept at 'error' so the existing call sites surface as
             // todo markers; promote to 'error' once the Phase 5 splits
             // migrate them. A rule has one severity, so this entry lives
             // here rather than beside the alert/confirm errors above.
-            'no-restricted-syntax': ['warn', {
+            'no-restricted-syntax': ['error', {
                 selector: "CallExpression[callee.type='Identifier'][callee.name='fetch']",
                 message: 'Use apiClient (api/client) or a React Query hook instead of raw fetch().',
             }],
@@ -206,17 +211,17 @@ export default [
         rules: {
             ...reactHooks.configs.recommended.rules,
             'react-hooks/rules-of-hooks': 'error',
-            'react-hooks/exhaustive-deps': 'warn',
-            'react-hooks/set-state-in-effect': 'warn',
-            'react-hooks/immutability': 'warn',
-            'react-hooks/preserve-manual-memoization': 'warn',
-            'react-hooks/static-components': 'warn',
-            'react-hooks/purity': 'warn',
-            'react-hooks/refs': 'warn',
-            'react-hooks/error-boundaries': 'warn',
-            'react-hooks/component-hook-factories': 'warn',
-            'react-hooks/incompatible-library': 'warn',
-            'react-hooks/unsupported-syntax': 'warn',
+            'react-hooks/exhaustive-deps': 'error',
+            'react-hooks/set-state-in-effect': 'error',
+            'react-hooks/immutability': 'error',
+            'react-hooks/preserve-manual-memoization': 'error',
+            'react-hooks/static-components': 'error',
+            'react-hooks/purity': 'error',
+            'react-hooks/refs': 'error',
+            'react-hooks/error-boundaries': 'error',
+            'react-hooks/component-hook-factories': 'error',
+            'react-hooks/incompatible-library': 'error',
+            'react-hooks/unsupported-syntax': 'error',
             'no-restricted-globals': ['error',
                 { name: 'alert', message: 'Use the shared toast (components/shared/Toast) instead of alert().' },
                 { name: 'confirm', message: 'Use the shared confirm dialog (components/shared/useConfirm) instead of confirm().' },
@@ -225,10 +230,19 @@ export default [
                 { object: 'window', property: 'alert', message: 'Use the shared toast (components/shared/Toast) instead of window.alert().' },
                 { object: 'window', property: 'confirm', message: 'Use the shared confirm dialog (components/shared/useConfirm) instead of window.confirm().' },
             ],
-            'no-restricted-syntax': ['warn', {
+            'no-restricted-syntax': ['error', {
                 selector: "CallExpression[callee.type='Identifier'][callee.name='fetch']",
                 message: 'Use apiClient (api/client) or a React Query hook instead of raw fetch().',
             }],
+        },
+    },
+    {
+        // Tests are exempt from the size and complexity limits: a describe
+        // block is a table of cases and splitting it buys nothing.
+        files: ['**/*.test.{js,jsx,ts,tsx}', 'src/test/**'],
+        rules: {
+            ...Object.fromEntries(Object.keys(sizeComplexityRules).map((rule) => [rule, 'off'])),
+            'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }],
         },
     },
     // NOTE: scoping 'react-hooks/exhaustive-deps' to error inside src/hooks/

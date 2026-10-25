@@ -36,7 +36,7 @@ describe('ComposerToolsMenu', () => {
         const user = userEvent.setup();
         render(<ComposerToolsMenu items={[
             { id: 'attach', label: 'Add photos & files', kind: 'action', onSelect: vi.fn() },
-            false && { id: 'skills', label: 'Skills', kind: 'panel', onOpenChange: vi.fn() },
+            false,
             null,
         ]} />);
 

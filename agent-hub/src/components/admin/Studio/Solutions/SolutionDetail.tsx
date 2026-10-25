@@ -66,7 +66,6 @@ function SolutionDetailView({
     // The server's name is the truth; the local copy only exists so a rename
     // paints instantly and can be rolled back when the server refuses. Same
     // shape, and the same lint exemption, as StudioSectionHeader's own draft.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setName(project.name); }, [project.name]);
 
     // The header needs all five the moment it paints: the audience capsule, the

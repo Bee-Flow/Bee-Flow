@@ -1,11 +1,11 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderWithClient } from '../../test/render';
 import AppRunPage from './AppRunPage';
 import AppsHomePage, { readAppRecents } from './AppsHomePage';
 import { KITCHEN_SINK } from '../../components/admin/Studio/AppStudio/state/sampleDefinitions';
 import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
+import { renderWithClient } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
 

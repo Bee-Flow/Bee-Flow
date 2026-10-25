@@ -173,11 +173,12 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         for (const item of next) {
             const file = filesRef.current.get(item.id) as File;
             activeRef.current += 1;
+            const dropRow = () => setUploads((list) => list.filter((u) => u.id !== item.id));
             uploadSourceFile(forId, file)
                 .then(() => {
                     filesRef.current.delete(item.id);
                     patchUpload(item.id, { status: 'done' });
-                    setTimeout(() => setUploads((list) => list.filter((u) => u.id !== item.id)), DONE_ROW_MS);
+                    setTimeout(dropRow, DONE_ROW_MS);
                     void refreshSources();
                     onChangedRef.current?.();
                 })
