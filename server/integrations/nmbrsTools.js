@@ -44,7 +44,7 @@ const SOAP_NS_BASE = 'https://api.nmbrs.nl/soap/v3';
 const SOAP_SERVICES = new Set(['DebtorService', 'CompanyService', 'EmployeeService', 'ReportService']);
 
 const { NMBRS_TOOLS: BASE_TOOLS } = require('./nmbrsToolDefs');
-const { NMBRS_BULK_TOOLS, isBulkTool, executeBulkTool } = require('./nmbrsBulkTools');
+const { NMBRS_BULK_TOOLS, isBulkTool, executeBulkTool, pickFieldsDeep, EMPLOYEE_FIELDS } = require('./nmbrsBulkTools');
 const { truncateRows, shapeList, parsePaging, shapePage } = require('./nmbrsPaging');
 
 const NMBRS_TOOLS = [...BASE_TOOLS, ...NMBRS_BULK_TOOLS];
@@ -458,7 +458,7 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
                 if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
                 log.info(`[NMBRS] Getting employee ${employeeId}`);
                 const employee = await fetchEmployee(creds, employeeId);
-                return { employee: employee ?? null };
+                return { employee: employee ? pickFieldsDeep(employee, EMPLOYEE_FIELDS) : null }; // allow-list: no BSN, address, private contacts
             }
             case 'nmbrs_list_employee_contracts': {
                 const employeeId = String(args.employeeId || '').trim();

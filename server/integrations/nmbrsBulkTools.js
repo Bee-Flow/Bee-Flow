@@ -66,6 +66,40 @@ function pickFields(row, allowed) {
     return out;
 }
 
+// Fields of one employee (nmbrs_get_employee) that may reach the model: identity,
+// name and work contact. Not the BSN, identification documents, nationality,
+// place of birth, partner, marital status, private contact details or emergency
+// contacts. Matched case-insensitively at any depth, because the REST answer
+// nests and camel-cases what SOAP's PersonalInfo returns flat.
+const EMPLOYEE_FIELDS = [
+    'Id', 'EmployeeId', 'EmployeeNumber', 'Title', 'TitleAfter', 'FirstName', 'Initials', 'Prefix',
+    'LastName', 'Nickname', 'Gender', 'Birthday', 'BirthDate', 'EmailWork', 'BusinessEmail',
+    'TelephoneWork', 'TelephoneMobileWork', 'BusinessPhone', 'BusinessMobilePhone',
+];
+
+/**
+ * Collect the allowed fields of a possibly nested record into one flat object;
+ * everything else, at every depth, is left behind.
+ * @param {any} row
+ * @param {string[]} allowed
+ */
+function pickFieldsDeep(row, allowed) {
+    const wanted = new Map(allowed.map((k) => [k.toLowerCase(), k]));
+    /** @type {Record<string, unknown>} */
+    const out = {};
+    /** @param {any} node @param {number} depth */
+    const walk = (node, depth) => {
+        if (!node || typeof node !== 'object' || Array.isArray(node) || depth > 4) return;
+        for (const [key, value] of Object.entries(node)) {
+            const name = wanted.get(key.toLowerCase());
+            if (name && !(name in out) && (value === null || typeof value !== 'object')) out[name] = value;
+            else if (value && typeof value === 'object') walk(value, depth + 1);
+        }
+    };
+    walk(row, 0);
+    return out;
+}
+
 // name -> SOAP call. `params` lists the envelope parameters IN WSDL ORDER:
 // [soapName, argName].
 const BULK_SPECS = {
@@ -121,4 +155,4 @@ async function executeBulkTool(toolName, args, creds, deps) {
     return shapePage(rows, paging, spec.scope);
 }
 
-module.exports = { NMBRS_BULK_TOOLS, isBulkTool, executeBulkTool, pickFields, PERSONAL_INFO_FIELDS };
+module.exports = { NMBRS_BULK_TOOLS, isBulkTool, executeBulkTool, pickFields, pickFieldsDeep, PERSONAL_INFO_FIELDS, EMPLOYEE_FIELDS };

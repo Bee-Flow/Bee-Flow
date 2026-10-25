@@ -437,6 +437,29 @@ function soapResponse(method, innerXml) {
         assert.strictEqual(new Set(seen).size, 200);
     }
 
+    // ── nmbrs_get_employee: an allow-list, never the raw record (#349) ──
+    scriptFetch([{ text: soapResponse('PersonalInfo_GetCurrent', [
+        '<EmployeeNumber>42</EmployeeNumber><BSN>123456782</BSN><FirstName>Alice</FirstName><LastName>Jansen</LastName>',
+        '<Gender>female</Gender><Birthday>1990-01-02</Birthday><EmailPrivate>alice@home.nl</EmailPrivate>',
+        '<TelephonePrivate>0612345678</TelephonePrivate><EmailWork>alice@work.nl</EmailWork><IdentificationNumber>NX1234</IdentificationNumber>',
+        '<InCaseOfEmergency>Bob</InCaseOfEmergency><PartnerLastName>Pietersen</PartnerLastName>',
+    ].join('')) }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_get_employee', { employeeId: '7' }, 'soapU');
+        assert.deepStrictEqual(r.employee, {
+            EmployeeNumber: '42', FirstName: 'Alice', LastName: 'Jansen', Gender: 'female', Birthday: '1990-01-02', EmailWork: 'alice@work.nl',
+        });
+        const text = JSON.stringify(r);
+        for (const leak of ['123456782', 'alice@home.nl', '0612345678', 'NX1234', 'Bob', 'Pietersen']) assert.ok(!text.includes(leak), `${leak} must not reach the model`);
+    }
+    // REST nests and camel-cases: the same allow-list applies at any depth.
+    scriptFetch([{ json: { employeeId: '7', bsn: '123456782', basicInfo: { firstName: 'Alice', lastName: 'Jansen', privateEmail: 'alice@home.nl' }, address: { street: 'Dorpsstraat', city: 'Utrecht' } } }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_get_employee', { employeeId: '7' }, 'restU');
+        assert.deepStrictEqual(r.employee, { EmployeeId: '7', FirstName: 'Alice', LastName: 'Jansen' });
+        assert.ok(!/123456782|Dorpsstraat|Utrecht|alice@home/.test(JSON.stringify(r)));
+    }
+
     clearCreds('noemail');
     console.log('nmbrsTools.test.js: all tests passed');
 })().catch((err) => {

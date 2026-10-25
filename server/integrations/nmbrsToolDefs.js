@@ -49,7 +49,7 @@ const NMBRS_TOOLS = [
         type: 'function',
         function: {
             name: 'nmbrs_get_employee',
-            description: 'Get core NMBRS details for one employee: name, employee number, and current personal/employment info (read-only). Use employeeId from nmbrs_list_employees.',
+            description: 'Get core NMBRS details for one employee: name, employee number, gender, birthday and work contact (read-only). BSN, address and private contact details are left out. Use employeeId from nmbrs_list_employees.',
             parameters: {
                 type: 'object',
                 properties: {
