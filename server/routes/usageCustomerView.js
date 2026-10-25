@@ -33,20 +33,14 @@ const CUSTOMER_FIELDS = Object.freeze(new Set([
     'unique_users', 'phase_count', 'agent_count',
     // The marked-up cost: computed by redactRow, the customer's one AI figure.
     'billed_cost',
-    // ── Kept as today, but worth an owner's decision (flagged in review) ──
-    // Token counts that the old deny-list never named:
-    'orchestrator_tokens', 'worker_tokens',
-    // Raw-cost-derived totals that the old deny-list never named:
-    'total_billed_cost', 'combined_total_cost',
-    // A single call's duration (only the average was ever stripped):
-    'duration_ms',
-    // /recent is SELECT * and used to pass these columns through: how the call
-    // ended, the call tree, the rate card the row was priced with and the raw
-    // usage facts.
-    'cache_ttl', 'stop_reason', 'parent_call_id', 'swarm_run_id',
-    'price_input', 'price_output', 'price_cache_read', 'price_cache_write',
-    'price_source', 'catalog_version', 'cost_basis', 'price_currency', 'currency', 'fx_rate',
-    'service_tier', 'usage_raw',
+    // What Stripe was told (already the billed figure).
+    'total_billed_cost',
+    // ── Kept as today, pending an owner's decision ──
+    // The raw cost plus Azure services, unmarked; the customer screens read it
+    // as their total, so dropping it needs a replacement figure first.
+    'combined_total_cost',
+    // How a call went, not what it cost: duration, how it ended, the call tree.
+    'duration_ms', 'cache_ttl', 'stop_reason', 'parent_call_id', 'swarm_run_id', 'currency',
 ]));
 
 /**
@@ -67,6 +61,13 @@ const OPERATOR_ONLY_FIELDS = Object.freeze(new Set([
     'estimated_cost', 'total_estimated_cost', 'total_cost',
     // Report columns no customer endpoint serves (cache-hit report, time bucket).
     'uncached_prompt_tokens', 'hit_rate', 'bucket',
+    // Token counts of a swarm run.
+    'orchestrator_tokens', 'worker_tokens',
+    // /recent is SELECT *: the rate card a row was priced with and the raw usage
+    // facts. No client reads them, and they are the provider cost in parts.
+    'price_input', 'price_output', 'price_cache_read', 'price_cache_write',
+    'price_source', 'catalog_version', 'cost_basis', 'price_currency', 'fx_rate',
+    'service_tier', 'usage_raw',
 ]));
 
 /**
