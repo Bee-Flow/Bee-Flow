@@ -1,7 +1,7 @@
 import { Eye, List, Repeat, Tag, Workflow, X, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import { pillTint, PILL_TINT_CLASS } from './refEditorDom';
+import { pillTint, PILL_TINT_CLASS } from './refEditorDom.helpers';
 import { classifyRef, scanExprPaths } from './refTokens';
 import { describeDataPath } from './valueParts';
 import { useTranslation } from '../../../../hooks/useTranslation';

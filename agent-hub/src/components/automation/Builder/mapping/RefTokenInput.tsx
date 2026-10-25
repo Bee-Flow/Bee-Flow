@@ -1,9 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
-import {
-    appendText, buildFragment, caretToEnd, deleteBeforeCaret, ensureTrailingFiller,
-    insertAtCaret, pillBeforeCaret, renderInto, serializeHost, textBeforeCaret,
-    PILL_SELECTOR, pathOfRaw, rangeFromPoint, replacePill,
-} from './refEditorDom';
+import { caretToEnd, deleteBeforeCaret, ensureTrailingFiller, insertAtCaret, pillBeforeCaret, renderInto, serializeHost, textBeforeCaret, PILL_SELECTOR, pathOfRaw, rangeFromPoint, replacePill } from './refEditorDom';
+import { appendText, buildFragment } from './refEditorDom.helpers';
 import { parseRefTokens, type LabelLookup } from './refTokens';
 import type { Position } from '../build/addStepModel';
 

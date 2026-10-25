@@ -15,7 +15,7 @@ import QuickSwitcher from '../admin/Studio/AutomationsStudio/QuickSwitcher';
 import { parseAppRefParam, stickyFrom } from '../admin/Studio/studioRoutes';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import useConfirm from '../shared/useConfirm';
-import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';
+import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary.types';
 import type { BuilderTab } from './Builder/useBuilderTabUrl';
 import type { AutomationRouting } from './useAutomationRouting';
 import type { AppUserLike } from '../projects/workspace/types';

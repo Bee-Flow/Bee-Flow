@@ -6,7 +6,7 @@ import { releaseStudioChrome } from '../../hooks/useStudioChrome';
 import { toast } from '../shared/Toast';
 import { errorMessage } from '../../utils/caughtError';
 import type { QuickSwitcherItem } from '../admin/Studio/AutomationsStudio/QuickSwitcher';
-import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';
+import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary.types';
 
 interface QuickSwitcherArgs {
     embedded: boolean;

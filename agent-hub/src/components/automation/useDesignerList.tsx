@@ -1,7 +1,7 @@
 import React from 'react';
 import BuildingBlocksGroup from '../admin/Studio/AutomationsStudio/BuildingBlocksGroup';
 import type { DesignerState } from './useDesignerShell';
-import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary';
+import type { AutomationLibrary, AutomationListRow } from './useAutomationLibrary.types';
 
 type ListLibrary = Pick<AutomationLibrary, 'automations' | 'steps' | 'stepsLoading' | 'activeRunIds' | 'onDeleteStep'
     | 'toggleAutomation' | 'duplicateAutomation' | 'exportAutomationJson' | 'copyAutomationId' | 'requestDeleteAutomation'>;

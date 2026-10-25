@@ -6,7 +6,7 @@ import { isSharedWithMe } from './automationStatus';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import Modal from '../../../shared/Modal';
-import type { AutomationListRow, AutomationFolder } from '../../../automation/useAutomationLibrary';
+import type { AutomationListRow, AutomationFolder } from '../../../automation/useAutomationLibrary.types';
 
 /**
  * The automations sidebar, grouped into folders.
