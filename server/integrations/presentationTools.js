@@ -95,7 +95,7 @@ function safePresentationFileName(raw, fallback = 'presentation') {
  * @param {string} filename
  */
 async function saveToOneDrive(args, ctx, built, filename) {
-    const { destinationPath, uploadToOneDrive } = require('./officeFileDelivery');
+    const { destinationPath, uploadToOneDrive } = require('./officeDestination');
     const path = destinationPath(args.oneDrivePath, 'pptx', filename);
     return path ? uploadToOneDrive(built, ctx, path) : null;
 }

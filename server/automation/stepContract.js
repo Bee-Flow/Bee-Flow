@@ -18,22 +18,7 @@
  */
 
 const { bestEffort } = require('../utils/bestEffort');
-
-function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
-
-// Walk a graph's steps, descending into loop bodies and parallel branches —
-// the same nesting validate.js/portability.js walk. Flat for everything else.
-function walkSteps(steps, fn) {
-    if (!Array.isArray(steps)) return;
-    for (const s of steps) {
-        if (!isObject(s)) continue;
-        fn(s);
-        if (s.type === 'loop') walkSteps(s.body, fn);
-        if (s.type === 'parallel' && Array.isArray(s.branches)) {
-            for (const branch of s.branches) walkSteps(branch, fn);
-        }
-    }
-}
+const { isObject, walkSteps, stepParams, stepOutputFields } = require('./stepWalk');
 
 // Coarse fallback when the static tool→integration map can't resolve a tool.
 /**
@@ -47,23 +32,6 @@ function coarseIntegration(tool) {
     if (tool.startsWith('gcal') || tool.startsWith('calendar')) return 'google-calendar';
     if (tool.startsWith('webpage')) return 'webpages';
     return String(tool).split('_')[0] || null;
-}
-
-/** The declared input params of a Step (root layer_input trigger). */
-function stepParams(definition) {
-    const params = definition?.trigger?.params;
-    if (!Array.isArray(params)) return [];
-    return params
-        .filter(isObject)
-        .map(p => ({ name: p.name, type: p.type || 'string', required: !!p.required, description: p.description || '' }))
-        .filter(p => p.name);
-}
-
-/** The output field names a Step returns (its single layer_output step). */
-function stepOutputFields(definition) {
-    const out = (definition?.steps || []).find(s => s && s.type === 'layer_output');
-    const fields = out && isObject(out.fields) ? out.fields : {};
-    return Object.keys(fields);
 }
 
 /** Both halves of the contract in one call. */
@@ -129,7 +97,7 @@ function requiredIntegrations(definition) {
     // this, both are loaded and the cycle costs nothing. customNode keeps its
     // own require of codeSandbox lazy, so this does not drag isolated-vm into
     // stores and routes.
-    const { capabilityToolNames } = require('./customNode');
+    const { capabilityToolNames } = require('./customNodeCapabilities');
     for (const tool of capabilityToolNames(definition)) addTool(tool);
     return [...ids].sort();
 }
