@@ -32,7 +32,7 @@ const assert = require('node:assert');
 const { validateDefinition } = require('./validate');
 const { COMPLETENESS_CODES } = require('./validate/completenessCodes');
 const { AI_STEP_AGENT_PERMISSION_KEYS, MAX_AI_STEP_SKILL_IDS } = require('./validate/constants');
-const { mayAutomationUseAgent, collectAgentIds, agentCatalogFor, servesPublishedConfig } = require('./agentCatalog');
+const { mayAutomationUseAgent, collectAgentIds, agentCatalogFor, servesPublishedConfig } = require('../core/automationModel/agentCatalog');
 
 const TRIGGER = { id: 'trg', kind: 'manual' };
 const OFF = { startAutomations: false, useKnowledge: false, useTools: false };

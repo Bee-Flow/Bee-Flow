@@ -78,7 +78,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   tier: Awaited<ReturnType<typeof getUserTierMap>>[string],
  *   adapter: ReturnType<typeof import('../../../core/providers').getAdapter>,
  *   narrationModelId: string, thinkingModelId: string,
- *   profile: ReturnType<typeof import('../../../automation/builderModelProfiles').getProfileForModel>,
+ *   profile: ReturnType<typeof import('../../../core/automationModel/builderModelProfiles').getProfileForModel>,
  *   catalogOrder: ReturnType<typeof import('../../../automation/builderPrompt/rankApps').catalogOrderOf> | null,
  *   webResearch: Awaited<ReturnType<typeof import('./webResearch').resolveWebResearch>>,
  *   sys: ReturnType<typeof import('./turnMessages').composeTurnMessages>['sys'],
@@ -97,7 +97,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   lastSummary: string | null,
  *   stopReason: { reason: string, tool?: string | null, error?: string, label?: string | null, position?: unknown } | null,
  *   usageTotals: { prompt: number, completion: number, cached: number, cacheCreation: number, rounds: number },
- *   turnEffort: ReturnType<typeof import('../../../automation/builderModelProfiles').effortForIteration>,
+ *   turnEffort: ReturnType<typeof import('../../../core/automationModel/builderModelProfiles').effortForIteration>,
  *   iter: number,
  * }} BuilderTurn
  */

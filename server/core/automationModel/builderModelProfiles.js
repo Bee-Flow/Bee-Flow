@@ -275,7 +275,7 @@ const CLAUDE_FAMILY_RANK = { fable: 3, mythos: 3, opus: 2, sonnet: 1, haiku: 0 }
 function parseClaudeModel(modelId) {
     const id = String(modelId || '').toLowerCase();
     if (!id.includes('claude')) return null;
-    const { normalizeClaudeModelId, describeClaudeModel } = require('../core/providers/claudeModels');
+    const { normalizeClaudeModelId, describeClaudeModel } = require('../providers/claudeModels');
     // NAME-FIRST ids only, by contract. The catalog can also read legacy
     // number-first ids (claude-3-5-sonnet-…), but those must NOT earn the
     // Claude ranking bonus here — ordering is "newest generation on top", and a

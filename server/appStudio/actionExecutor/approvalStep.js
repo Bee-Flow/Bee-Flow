@@ -196,7 +196,7 @@ async function requestApprovalStep(app, model, step, ctx) {
 
     // Frozen at INSERT: which Solution this decision was made inside. An
     // app-sourced approval takes it from the app, there being no run.
-    const project = await require('../../automation/approvalProject').projectStamp(app.projectId);
+    const project = await require('../../core/automationModel/approvalProject').projectStamp(app.projectId);
 
     const approval = await automationStore.createApproval({
         organizationId: orgId,

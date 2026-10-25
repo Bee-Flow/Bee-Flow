@@ -216,7 +216,7 @@ function AgentCallFields({ draft, set, onRenameField = null, automationId = null
  * by a Studio App action with DECLARED TYPED INPUTS. Same row editor as the
  * flowlet/agent params, plus the `file` type: a file input arrives at run
  * time as { fileId, name, mime, size, url } (bind .url into steps that fetch
- * the file). Server contract: server/automation/appTriggerContract.js —
+ * the file). Server contract: server/core/automationModel/appTriggerContract.js —
  * identifier names, no leading underscore.
  */
 function AppTriggerFields({ draft, set, onRenameField = null }: ParamFieldsProps) {

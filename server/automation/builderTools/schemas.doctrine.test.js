@@ -17,7 +17,7 @@ const { TOOL_SCHEMAS, applyToolCall, emptyDefinition } = require('../builderTool
 const { ADD_FOR_TYPE } = require('./stepBuilders');
 const { buildFewShotMessages, buildLeanSystemPrompt } = require('../builderPrompt');
 const { iterableFieldsOf, describeShape } = require('../outputSchemas');
-const { CORE_TOOL_NAMES } = require('../builderModelProfiles');
+const { CORE_TOOL_NAMES } = require('../../core/automationModel/builderModelProfiles');
 const { validateDefinition } = require('../validate');
 
 const tool = (n) => TOOL_SCHEMAS.find(t => t.function.name === n).function;

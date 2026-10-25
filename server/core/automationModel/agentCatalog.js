@@ -30,10 +30,10 @@
  * reported as "not allowed" (that would be a wrong answer to a failure), and never quietly approved
  * either. Then there is simply no catalogue.
  */
-const log = require('../telemetry/log');
+const log = require('../../telemetry/log');
 // Does this row run on its PUBLISHED config? Pure, so it lives below the
 // features: core/automationModel/agentPublication.js (the whole argument is there).
-const { servesPublishedConfig } = require('../core/automationModel/agentPublication');
+const { servesPublishedConfig } = require('./agentPublication');
 
 const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
 
@@ -130,7 +130,7 @@ async function agentCatalogFor(definition, { userId = null, orgId = null, groups
     // "the check could not run".
     if (!ids.length) return new Set();
     try {
-        const store = deps.agentStore || require('../stores/agentStore');
+        const store = deps.agentStore || require('../../stores/agentStore');
         const usable = new Set();
         for (const id of ids) {
             const agent = await store.getForRuntime(id);
@@ -176,8 +176,8 @@ async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
     let orgId = null;
     let groups = [];
     try {
-        const userStore = deps.userStore || require('../stores/userStore');
-        const { resolveUserGroups } = deps.audience || require('../auth/audience');
+        const userStore = deps.userStore || require('../../stores/userStore');
+        const { resolveUserGroups } = deps.audience || require('../../auth/audience');
         const [owner, gs] = await Promise.all([userStore.getUser(ownerId), resolveUserGroups(ownerId)]);
         orgId = (owner && owner.organizationId) || null;
         groups = Array.isArray(gs) ? gs : [];
@@ -192,9 +192,9 @@ module.exports = { collectAgentIds, mayAutomationUseAgent, agentCatalogFor, agen
 
 /**
  * @typedef {object} CatalogDeps  injectable collaborators (tests pass fakes)
- * @property {typeof import('../stores/agentStore')} [agentStore]
- * @property {typeof import('../stores/userStore')} [userStore]
- * @property {typeof import('../auth/audience')} [audience]
+ * @property {typeof import('../../stores/agentStore')} [agentStore]
+ * @property {typeof import('../../stores/userStore')} [userStore]
+ * @property {typeof import('../../auth/audience')} [audience]
  */
 
 /**

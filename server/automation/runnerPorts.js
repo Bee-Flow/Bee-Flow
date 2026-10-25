@@ -26,7 +26,7 @@ const formTriggerContract = () => require('./formTriggerContract');
 
 registerRunnerPorts({
     approvals: {
-        /** @type {typeof import('./approvalProject').projectStamp} */ projectStamp: (...args) => require('./approvalProject').projectStamp(...args),
+        /** @type {typeof import('../core/automationModel/approvalProject').projectStamp} */ projectStamp: (...args) => require('../core/automationModel/approvalProject').projectStamp(...args),
         /** @type {typeof import('./approvalEvents').dispatchApprovalRequested} */ dispatchApprovalRequested: (...args) => approvalEvents().dispatchApprovalRequested(...args),
         /** @type {typeof import('./approvalEvents').dispatchApprovalDecided} */ dispatchApprovalDecided: (...args) => approvalEvents().dispatchApprovalDecided(...args),
         /** @type {typeof import('./approvalHooks').runOnDecidedHook} */ runOnDecidedHook: (...args) => require('./approvalHooks').runOnDecidedHook(...args),

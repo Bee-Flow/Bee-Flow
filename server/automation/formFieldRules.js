@@ -27,7 +27,7 @@ let RE2Ctor = null;
 const loadRE2 = () => RE2Ctor || (RE2Ctor = require('re2'));
 const { parseExpr, evaluate } = require('../shared/expr/index.mjs');
 const log = require('../telemetry/log');
-const { MAX_STRING_VALUE } = require('./appTriggerContract');
+const { MAX_STRING_VALUE } = require('../core/automationModel/appTriggerContract');
 const { formOptionsCap, isPlainObject, DATE_RE, MAX_TEXTAREA_LEN, MAX_SHOW_IF_LEN, MAX_PATTERN_LEN, MAX_PATTERN_MESSAGE_LEN } = require('./formFieldTypes');
 const { fallback } = require('../utils/bestEffort');
 

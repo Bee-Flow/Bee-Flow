@@ -54,7 +54,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
     let availableAgents = null;
     if (draftWrap.userId) {
         try {
-            const { agentCatalogForOwner } = require('../agentCatalog');
+            const { agentCatalogForOwner } = require('../../core/automationModel/agentCatalog');
             availableAgents = await agentCatalogForOwner(def, draftWrap.userId);
         } catch (e) {
             log.warn(`[builderTools] agent check skipped: ${/** @type {Error} */ (e).message}`);

@@ -19,7 +19,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { agentPickerRows, explainRefusal, AGENT_PICKER_REASONS } = require('./agentPickerRows');
-const { mayAutomationUseAgent } = require('./agentCatalog');
+const { mayAutomationUseAgent } = require('../core/automationModel/agentCatalog');
 
 const VIEWER = { userId: 'u1', orgId: 'org1', groups: ['g1'] };
 

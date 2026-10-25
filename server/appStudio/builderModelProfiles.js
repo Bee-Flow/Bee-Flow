@@ -19,7 +19,7 @@ const {
     getProfile,
     getProfileForModel,
     effortForIteration,
-} = require('../automation/builderModelProfiles');
+} = require('../core/automationModel/builderModelProfiles');
 
 // The 'core' toolset for small (Haiku/mini/Ministral/Gemma-class) models: an
 // 18-tool menu instead of 38, so tool selection stays reliable. Everything a

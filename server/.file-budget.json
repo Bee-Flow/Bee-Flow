@@ -97,7 +97,7 @@
     "automation/aiActAuto.js": 449,
     "automation/aiActCheck.js": 474,
     "automation/aiActDetect.js": 447,
-    "automation/builderModelProfiles.js": 479,
+    "core/automationModel/builderModelProfiles.js": 479,
     "automation/builderPrompt/catalogRender.js": 448,
     "automation/builderTools.js": 673,
     "automation/builderTools.test.js": 1159,

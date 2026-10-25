@@ -94,7 +94,7 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
      */
     let availableAgents = null;
     try {
-        const { agentCatalogForOwner } = require('./agentCatalog');
+        const { agentCatalogForOwner } = require('../core/automationModel/agentCatalog');
         availableAgents = await agentCatalogForOwner(def, a.userId || userId);
     } catch (e) {
         log.warn('[provisionAutomation] agent catalog build failed; activating without the agent check:', e.message);

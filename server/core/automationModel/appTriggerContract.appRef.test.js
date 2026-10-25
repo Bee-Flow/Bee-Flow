@@ -17,7 +17,7 @@ const {
     appTriggerRef,
     validateAppTriggerRef,
 } = require('./appTriggerContract');
-const { validateDefinition } = require('./validate');
+const { validateDefinition } = require('../../automation/validate');
 
 const REF = Object.freeze({ appId: '5f2a1c34-8b7d-4e19-9f00-2ab3c4d5e6f7', screenId: 'scr_dash01', nodeId: 'cmp_btn123' });
 
@@ -115,7 +115,7 @@ describe('validate.js applies the ref rules to a saved definition', () => {
 });
 
 describe('a back-pointer never leaves the installation it names', () => {
-    const { buildExport } = require('./portability');
+    const { buildExport } = require('../../automation/portability');
 
     test('export strips it, and says why', () => {
         // It names an app, a screen and a component of ONE install. Carried

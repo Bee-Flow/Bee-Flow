@@ -83,7 +83,7 @@ function resolveInputs(inputMapping, formValues) {
 
 /** True when the target automation's PRIMARY trigger is an app trigger. */
 function isAppTriggerAutomation(automation) {
-    return require('../../automation/appTriggerContract').isAppTriggerDefinition(automation?.definition);
+    return require('../../core/automationModel/appTriggerContract').isAppTriggerDefinition(automation?.definition);
 }
 
 // Lifetime of the signed download URL handed to the automation for a `file`
@@ -145,7 +145,7 @@ async function expandFileInput(param, descriptor, app) {
  * with a client-safe message on any violation.
  */
 async function resolveAppTriggerInputs(automation, inputMapping, formValues, { app }) {
-    const contract = require('../../automation/appTriggerContract');
+    const contract = require('../../core/automationModel/appTriggerContract');
     const params = contract.appTriggerParams(automation?.definition);
     const values = (formValues && typeof formValues === 'object' && !Array.isArray(formValues)) ? formValues : {};
     const mapping = (inputMapping && typeof inputMapping === 'object' && !Array.isArray(inputMapping)) ? inputMapping : null;

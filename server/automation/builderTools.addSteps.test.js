@@ -16,7 +16,7 @@ const {
     applyToolCall, emptyDefinition, MUTATING_TOOLS, SCOPED_GRAPH_TOOLS, TOOL_SCHEMAS,
     compactSample, compactDryRunForModel, truncateToolResultJson,
 } = require('./builderTools');
-const { CORE_TOOL_NAMES } = require('./builderModelProfiles');
+const { CORE_TOOL_NAMES } = require('../core/automationModel/builderModelProfiles');
 const { validateDefinition } = require('./validate');
 
 function freshWrap() {

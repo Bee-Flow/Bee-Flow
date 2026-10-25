@@ -11,13 +11,13 @@
  * a project deleted mid-flight must never stop the approval from being written.
  * A blank title is recoverable at read time; a lost decision record is not.
  */
-const log = require('../telemetry/log');
+const log = require('../../telemetry/log');
 
 async function projectStamp(projectId) {
     if (!projectId) return { projectId: null, projectTitle: '' };
     let projectTitle = '';
     try {
-        const project = await require('../stores/projectStore').getProject(projectId);
+        const project = await require('../../stores/projectStore').getProject(projectId);
         projectTitle = project?.name || '';
     } catch (err) {
         log.warn('[Approvals] could not resolve project title:', /** @type {Error} */ (err).message);

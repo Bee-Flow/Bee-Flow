@@ -27,7 +27,7 @@
 
 'use strict';
 
-const { PARAM_NAME_RE, MAX_PARAMS } = require('./appTriggerContract');
+const { PARAM_NAME_RE, MAX_PARAMS } = require('../core/automationModel/appTriggerContract');
 
 // The types the canvas editor offers for an agent argument
 // (flow/settings/triggerEditors.jsx). JSON Schema's `integer` is folded into

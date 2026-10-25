@@ -71,7 +71,7 @@ async function listChatAgents(project, { userId }, deps = {}) {
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
     const resolveUserGroups = deps.resolveUserGroups || ((id) => require('../auth/audience').resolveUserGroups(id));
     const audienceOf = deps.listAudience || ((proj) => listProjectAudience(proj));
-    const { mayAutomationUseAgent } = require('../automation/agentCatalog');
+    const { mayAutomationUseAgent } = require('../core/automationModel/agentCatalog');
     const SYSTEM_OWNERS = ['system', 'swarm'];
 
     /**

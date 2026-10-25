@@ -77,7 +77,7 @@ const log = require('../../../telemetry/log');
 const router = express.Router();
 
 const automationStore = require('../../../stores/automationStore');
-const { effortForIteration } = require('../../../automation/builderModelProfiles');
+const { effortForIteration } = require('../../../core/automationModel/builderModelProfiles');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { systemPrefixFingerprint, toolSetFingerprint, toolBytesFingerprint } = require('../../../core/llm/promptCacheStability');
 const { builderRateLimit } = require('./rateLimits');
