@@ -27,7 +27,6 @@ const { XMLParser } = require('fast-xml-parser');
 const log = require('../telemetry/log');
 
 const REQUEST_TIMEOUT_MS = 20000;
-const MAX_RESPONSE_CHARS = 30000;
 const MAX_ERROR_MESSAGE_CHARS = 300;
 
 // Environment → request host. Fixed maps: the env value must never reach the
@@ -43,6 +42,12 @@ const REST_HOST = { production: 'api.nmbrsapp.com', sandbox: 'api-sandbox.nmbrsa
 const SOAP_NS_BASE = 'https://api.nmbrs.nl/soap/v3';
 
 const SOAP_SERVICES = new Set(['DebtorService', 'CompanyService', 'EmployeeService', 'ReportService']);
+
+const { NMBRS_TOOLS: BASE_TOOLS } = require('./nmbrsToolDefs');
+const { NMBRS_BULK_TOOLS, isBulkTool, executeBulkTool } = require('./nmbrsBulkTools');
+const { truncateRows, shapeList, parsePaging, shapePage } = require('./nmbrsPaging');
+
+const NMBRS_TOOLS = [...BASE_TOOLS, ...NMBRS_BULK_TOOLS];
 
 const { SOAP_METHODS_READONLY, EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYROLL } = require('./nmbrsSoapMethods');
 
@@ -60,122 +65,6 @@ const xmlParser = new XMLParser({
     trimValues: true,
 });
 
-/**
- * Tool definitions in OpenAI function-calling format. All read-only.
- */
-const NMBRS_TOOLS = [
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_debtors',
-            description: 'List the NMBRS debtors (top-level payroll administrations) your account can access. Read-only. Call this first to find debtorId values. Works the same whether the connection uses the NMBRS SOAP or REST API.',
-            parameters: { type: 'object', properties: {}, required: [] }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_companies',
-            description: 'List NMBRS companies (employers), optionally restricted to one debtor. Read-only. Returns company IDs needed by nmbrs_list_employees.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    debtorId: { type: 'string', description: 'Optional debtor ID from nmbrs_list_debtors to filter companies.' }
-                },
-                required: []
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_employees',
-            description: 'List employees of an NMBRS company (read-only). Use companyId from nmbrs_list_companies. Returns employee IDs for the per-employee tools.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    companyId: { type: 'string', description: 'Company ID from nmbrs_list_companies.' },
-                    activeOnly: { type: 'boolean', description: 'When true (default), only currently-employed staff are returned.' }
-                },
-                required: ['companyId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_get_employee',
-            description: 'Get core NMBRS details for one employee: name, employee number, and current personal/employment info (read-only). Use employeeId from nmbrs_list_employees.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' }
-                },
-                required: ['employeeId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_employee_contracts',
-            description: 'List the contract history for one NMBRS employee: start/end dates, weekly hours, contract type (read-only).',
-            parameters: {
-                type: 'object',
-                properties: {
-                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' }
-                },
-                required: ['employeeId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_employee_salaries',
-            description: 'List salary records for one NMBRS employee: gross amount, salary type, effective date (read-only). Payroll data is sensitive — only retrieve what the user asked for.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' }
-                },
-                required: ['employeeId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_employee_wage_components',
-            description: 'List fixed and variable wage components for one NMBRS employee in a given year (and optionally a period/month). Read-only. Payroll data is sensitive — only retrieve what was asked.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' },
-                    year: { type: 'integer', description: 'Calendar year, e.g. 2026.' },
-                    period: { type: 'integer', description: 'Optional 1-based period/month (1-13). Omit for the whole year.' }
-                },
-                required: ['employeeId', 'year']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nmbrs_list_payslips',
-            description: 'List payslip / payrun summaries for one NMBRS employee in a given year (and optionally a period/month). Read-only — returns metadata and totals, not the binary PDF.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    employeeId: { type: 'string', description: 'Employee ID from nmbrs_list_employees.' },
-                    year: { type: 'integer', description: 'Calendar year, e.g. 2026.' },
-                    period: { type: 'integer', description: 'Optional 1-based period/month (1-13). Omit for the whole year.' }
-                },
-                required: ['employeeId', 'year']
-            }
-        }
-    }
-];
 
 // ─── Pure helpers (exported for tests) ─────────────────────────
 
@@ -281,36 +170,6 @@ function extractSoapResult(parsed, method) {
         return resp[`${method}Result`];
     }
     return resp;
-}
-
-/**
- * Drop trailing rows until the serialized result fits the LLM-context budget.
- * Never truncates mid-row. (Mirrors afasTools.truncateRows.)
- */
-function truncateRows(rows, maxChars = MAX_RESPONSE_CHARS) {
-    if (!Array.isArray(rows)) return { rows: [], truncated: false };
-    let kept = rows;
-    let truncated = false;
-    while (kept.length > 1 && JSON.stringify(kept).length > maxChars) {
-        kept = kept.slice(0, Math.floor(kept.length / 2));
-        truncated = true;
-    }
-    if (kept.length > 0 && JSON.stringify(kept).length > maxChars) {
-        kept = [];
-        truncated = true;
-    }
-    return { rows: kept, truncated };
-}
-
-function shapeList(rawRows, scope) {
-    const arr = Array.isArray(rawRows) ? rawRows : [];
-    const { rows, truncated } = truncateRows(arr);
-    const result = { items: rows, count: rows.length };
-    if (truncated) {
-        result.truncated = true;
-        result.message = `Response too large — showing ${rows.length} of ${arr.length} ${scope || 'records'}. Narrow by company, employee or period.`;
-    }
-    return result;
 }
 
 /**
@@ -502,11 +361,12 @@ async function fetchContracts(creds, employeeId) {
     return coerceArray(await soapRequest(creds, 'EmployeeService', 'Contract_GetAll', { EmployeeId: employeeId }));
 }
 
-async function fetchSalaries(creds, employeeId) {
+async function fetchSalaries(creds, employeeId, year, period) {
     if (creds.mode === 'rest') {
-        return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/salaries`));
+        return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/salaries`, { year: String(year), period: String(period) }));
     }
-    return coerceArray(await soapRequest(creds, 'EmployeeService', 'Salary_GetList', { EmployeeId: employeeId }));
+    // Salary_GetList needs Period and Year (WSDL order: EmployeeId, Period, Year).
+    return coerceArray(await soapRequest(creds, 'EmployeeService', 'Salary_GetList', { EmployeeId: employeeId, Period: period, Year: year }));
 }
 
 async function fetchWageComponents(creds, employeeId, year, period) {
@@ -515,8 +375,8 @@ async function fetchWageComponents(creds, employeeId, year, period) {
         if (period) query.period = String(period);
         return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/wagecomponents`, query));
     }
-    const params = { EmployeeId: employeeId, Year: year };
-    if (period) params.Period = period;
+    if (!period) throw new Error('A period (1-13) is required for wage components over the NMBRS SOAP API.');
+    const params = { EmployeeId: employeeId, Period: period, Year: year };
     const fixed = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentFixed_Get', params));
     const variable = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentVar_Get', params));
     return [
@@ -589,7 +449,9 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
                 if (!validId(companyId)) return { error: 'Invalid companyId. Use an ID from nmbrs_list_companies.' };
                 const activeOnly = args.activeOnly !== false;
                 log.info(`[NMBRS] Listing employees for company ${companyId} (activeOnly=${activeOnly})`);
-                return shapeList(await fetchEmployees(creds, companyId, activeOnly), 'employees');
+                const paging = parsePaging(args);
+                if ('error' in paging) return { error: paging.error };
+                return shapePage(await fetchEmployees(creds, companyId, activeOnly), paging, 'employees');
             }
             case 'nmbrs_get_employee': {
                 const employeeId = String(args.employeeId || '').trim();
@@ -607,8 +469,12 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
             case 'nmbrs_list_employee_salaries': {
                 const employeeId = String(args.employeeId || '').trim();
                 if (!validId(employeeId)) return { error: 'Invalid employeeId. Use an ID from nmbrs_list_employees.' };
-                log.info(`[NMBRS] Listing salaries for employee ${employeeId}`);
-                return shapeList(await fetchSalaries(creds, employeeId), 'salaries');
+                const year = parseYear(args.year);
+                if (!year) return { error: 'Invalid year. Provide a 4-digit calendar year, e.g. 2026.' };
+                const period = parsePeriod(args.period);
+                if (!period || period === 'invalid') return { error: 'Invalid period. NMBRS needs a period (month) from 1 to 13.' };
+                log.info(`[NMBRS] Listing salaries for employee ${employeeId} (${year}/${period})`);
+                return shapeList(await fetchSalaries(creds, employeeId, year, period), 'salaries');
             }
             case 'nmbrs_list_employee_wage_components': {
                 const employeeId = String(args.employeeId || '').trim();
@@ -631,6 +497,9 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
                 return shapeList(await fetchPayslips(creds, employeeId, year, period), 'payslips');
             }
             default:
+                if (isBulkTool(toolName)) {
+                    return await executeBulkTool(toolName, args, creds, { soapRequest, coerceArray, validId, parseYear, parsePeriod, log });
+                }
                 return { error: `Unknown NMBRS tool: ${toolName}` };
         }
     } catch (err) {

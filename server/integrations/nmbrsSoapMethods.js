@@ -16,6 +16,12 @@ const SOAP_METHODS_READONLY = new Set([
     'EmployeeService/Salary_GetList',
     'EmployeeService/WageComponentFixed_Get',
     'EmployeeService/WageComponentVar_Get',
+    'EmployeeService/Employment_GetAll_AllEmployeesByCompany',
+    'EmployeeService/LeaseCar_GetAll_EmployeesByCompany',
+    'EmployeeService/SVW_GetAll_AllEmployeesByCompany',
+    'EmployeeService/PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany',
+    'EmployeeService/Contract_GetAll_AllEmployeesByCompany',
+    'CompanyService/Run_GetList',
 ]);
 
 // EmployeeService/List_GetByCompany filters on Nmbrs' EmployeeType enumeration:
