@@ -256,8 +256,7 @@ export default function AppDataGrid({ node }: NodeProps<DataGridProps>) {
               * The background is opaque so rows can't show through.
               */}
             <thead
-                className="sticky top-0 z-[1]"
-                style={{ background: 'var(--bg-card)' }}
+                className="sticky top-0 z-[1] [background:var(--bg-card)]"
             >
                 {headerRow()}
                 {hasFilters ? filterRow() : null}

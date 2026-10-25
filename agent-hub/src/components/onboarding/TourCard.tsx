@@ -50,8 +50,7 @@ export function TourCard({ step, steps, stepIndex, title, body, actionHint, card
         >
             <div className="flex items-start gap-3">
                 <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                    style={{ background: 'color-mix(in srgb, var(--accent-primary) 14%, transparent)' }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 [background:color-mix(in_srgb,var(--accent-primary)_14%,transparent)]"
                     aria-hidden="true"
                 >
                     {step.icon}
@@ -104,8 +103,7 @@ export function TourCard({ step, steps, stepIndex, title, body, actionHint, card
                     )}
                     {interactive ? (
                         <span
-                            className="text-[12px] font-semibold text-[var(--accent-primary)]"
-                            style={{ animation: 'beeflowHintPulse 1.6s ease-in-out infinite' }}
+                            className="text-[12px] font-semibold text-[var(--accent-primary)] [animation:beeflowHintPulse_1.6s_ease-in-out_infinite]"
                         >
                             {actionHint}
                         </span>
@@ -113,8 +111,7 @@ export function TourCard({ step, steps, stepIndex, title, body, actionHint, card
                         <button
                             type="button"
                             onClick={onNext}
-                            className="inline-flex items-center gap-1.5 px-3.5 h-8 rounded-lg text-[12px] font-semibold transition-opacity hover:opacity-90"
-                            style={{ background: 'var(--accent-primary)', color: 'var(--accent-primary-fg, #fff)' }}
+                            className="inline-flex items-center gap-1.5 px-3.5 h-8 rounded-lg text-[12px] font-semibold transition-opacity hover:opacity-90 [background:var(--accent-primary)] [color:var(--accent-primary-fg,#fff)]!"
                         >
                             {isLast ? (
                                 <>

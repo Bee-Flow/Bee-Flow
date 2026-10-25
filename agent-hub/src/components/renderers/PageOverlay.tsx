@@ -18,66 +18,26 @@ export default function PageOverlay({ overlay, onClose }: PageOverlayProps) {
     const { t } = useTranslation();
     return (
         <div
-            style={{
-                position: 'fixed',
-                inset: 0,
-                background: 'rgba(0,0,0,0.5)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 9999,
-                backdropFilter: 'blur(4px)'
-            }}
+            className="[position:fixed] [inset:0] [background:rgba(0,0,0,0.5)] [display:flex] [align-items:center] [justify-content:center] [z-index:9999] [backdrop-filter:blur(4px)]"
             onClick={onClose}
         >
             <div
-                style={{
-                    background: 'var(--bg-primary)',
-                    borderRadius: '1rem',
-                    padding: '1.5rem',
-                    maxWidth: '500px',
-                    width: '90%',
-                    maxHeight: '80vh',
-                    overflow: 'auto',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
-                    border: '1px solid var(--border-default)'
-                }}
+                className="[background:var(--bg-primary)] [border-radius:1rem] [padding:1.5rem] max-w-[500px] w-[90%] max-h-[80vh] [overflow:auto] [box-shadow:0_20px_50px_rgba(0,0,0,0.3)] [border:1px_solid_var(--border-default)]"
                 onClick={e => e.stopPropagation()}
             >
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '1rem'
-                }}>
-                    <h3 style={{
-                        fontSize: '1.25rem',
-                        fontWeight: '600',
-                        color: 'var(--text-primary)'
-                    }}>
+                <div className="[display:flex] [justify-content:space-between] [align-items:center] [margin-bottom:1rem]">
+                    <h3 className="[font-size:1.25rem] [font-weight:600] [color:var(--text-primary)]">
                         {overlay.title}
                     </h3>
                     <button
                         onClick={onClose}
-                        style={{
-                            background: 'var(--bg-tertiary)',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            padding: '0.5rem',
-                            cursor: 'pointer',
-                            color: 'var(--text-muted)'
-                        }}
+                        className="[background:var(--bg-tertiary)] [border:none] [border-radius:0.5rem] [padding:0.5rem] [cursor:pointer] [color:var(--text-muted)]"
                     >
                         ✕
                     </button>
                 </div>
 
-                <div style={{
-                    fontSize: '0.9rem',
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.7',
-                    wordBreak: 'break-word'
-                }}>
+                <div className="[font-size:0.9rem] [color:var(--text-secondary)] [line-height:1.7] [word-break:break-word]">
                     {overlay.content}
                 </div>
 
@@ -86,17 +46,7 @@ export default function PageOverlay({ overlay, onClose }: PageOverlayProps) {
                         href={overlay.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{
-                            display: 'inline-block',
-                            marginTop: '1rem',
-                            padding: '0.625rem 1.25rem',
-                            background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                            color: 'white',
-                            borderRadius: '0.5rem',
-                            textDecoration: 'none',
-                            fontWeight: '500',
-                            fontSize: '0.875rem'
-                        }}
+                        className="[display:inline-block] [margin-top:1rem] [padding:0.625rem_1.25rem] [background:linear-gradient(135deg,#8b5cf6,#6366f1)] [color:white] [border-radius:0.5rem] [text-decoration:none] [font-weight:500] [font-size:0.875rem]"
                     >
                         {t('chat.renderers.page_open_link', 'Open Link →')}
                     </a>
@@ -104,18 +54,7 @@ export default function PageOverlay({ overlay, onClose }: PageOverlayProps) {
 
                 <button
                     onClick={onClose}
-                    style={{
-                        display: 'block',
-                        width: '100%',
-                        marginTop: '1rem',
-                        padding: '0.75rem',
-                        background: 'var(--bg-tertiary)',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        color: 'var(--text-primary)',
-                        fontWeight: '500'
-                    }}
+                    className="[display:block] w-[100%] [margin-top:1rem] [padding:0.75rem] [background:var(--bg-tertiary)] [border:none] [border-radius:0.5rem] [cursor:pointer] [color:var(--text-primary)] [font-weight:500]"
                 >
                     {t('common.close', 'Close')}
                 </button>

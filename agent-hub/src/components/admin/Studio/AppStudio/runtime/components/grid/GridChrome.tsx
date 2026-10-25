@@ -117,8 +117,7 @@ export function GridChromeRow({
                             onChange={(e) => setGlobalFilter(e.target.value)}
                             placeholder={t('studio_apps_runtime.grid.search_placeholder', 'Search…')}
                             aria-label={t('studio_apps_runtime.grid.search_rows', 'Search rows')}
-                            className="w-full border pl-8 pr-2.5 py-1.5 text-sm outline-none focus:border-[var(--app-primary)]"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
+                            className="w-full border pl-8 pr-2.5 py-1.5 text-sm outline-none focus:border-[var(--app-primary)] [background:var(--bg-primary)] [border-color:var(--border-default)]! [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
                         />
                     </div>
                 ) : null}
@@ -146,8 +145,7 @@ export function GridChromeRow({
                         <span
                             key={f.id}
                             data-app-grid-chip={f.id}
-                            className="inline-flex max-w-[16rem] items-center gap-1 border pl-2 pr-1 py-0.5 text-xs"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--app-primary)', color: 'var(--text-primary)', borderRadius: 'var(--app-radius)' }}
+                            className="inline-flex max-w-[16rem] items-center gap-1 border pl-2 pr-1 py-0.5 text-xs [background:var(--bg-primary)] [border-color:var(--app-primary)] [color:var(--text-primary)]! [border-radius:var(--app-radius)]"
                         >
                             <span className="truncate">
                                 <span className="text-[var(--text-secondary)]">{label} </span>
@@ -156,8 +154,7 @@ export function GridChromeRow({
                             <button
                                 type="button"
                                 onClick={() => column.setFilterValue(undefined)}
-                                className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full hover:bg-[var(--app-primary-soft)]"
-                                style={{ color: 'var(--text-muted)' }}
+                                className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full hover:bg-[var(--app-primary-soft)] [color:var(--text-muted)]"
                             >
                                 <X className="h-3 w-3" aria-hidden="true" />
                                 <span className="sr-only">{t('studio_apps_runtime.grid.remove_filter', 'Remove filter on {name}', { name: label })}</span>
@@ -170,8 +167,7 @@ export function GridChromeRow({
                         type="button"
                         onClick={clearFilters}
                         data-app-grid-filters={activeFilterCount}
-                        className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium shrink-0"
-                        style={{ background: 'var(--app-primary-soft)', color: 'var(--app-primary)', borderRadius: 'var(--app-radius)' }}
+                        className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium shrink-0 [background:var(--app-primary-soft)] [color:var(--app-primary)]! [border-radius:var(--app-radius)]"
                     >
                         {/* Beside chips that already say what is set, the
                             count would repeat them: the button becomes the
@@ -248,8 +244,7 @@ export function GridFooter({ boxed, rangeFrom, rangeTo, filteredCount, pageSize,
                             value={pageSize}
                             onChange={(e) => { setPageSize(Number(e.target.value)); setPageIndex(0); }}
                             aria-label={t('studio_apps_runtime.grid.rows_per_page', 'Rows per page')}
-                            className="border px-1.5 py-0.5 text-xs outline-none focus:border-[var(--app-primary)]"
-                            style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }}
+                            className="border px-1.5 py-0.5 text-xs outline-none focus:border-[var(--app-primary)] [background:var(--bg-primary)] [border-color:var(--border-default)]! [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
                         >
                             {pageSizeChoices.map((n) => <option key={n} value={n}>{n}</option>)}
                         </select>
@@ -261,8 +256,7 @@ export function GridFooter({ boxed, rangeFrom, rangeTo, filteredCount, pageSize,
                         type="button"
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
-                        className="inline-flex items-center gap-1 px-2 py-1 border disabled:opacity-40"
-                        style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                        className="inline-flex items-center gap-1 px-2 py-1 border disabled:opacity-40 [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                         aria-label={t('studio_apps_runtime.grid.previous_page', 'Previous page')}
                     >
                         <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_runtime.grid.prev', 'Prev')}
@@ -271,8 +265,7 @@ export function GridFooter({ boxed, rangeFrom, rangeTo, filteredCount, pageSize,
                         type="button"
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
-                        className="inline-flex items-center gap-1 px-2 py-1 border disabled:opacity-40"
-                        style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)' }}
+                        className="inline-flex items-center gap-1 px-2 py-1 border disabled:opacity-40 [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
                         aria-label={t('studio_apps_runtime.grid.next_page', 'Next page')}
                     >
                         {t('studio_apps_runtime.grid.next', 'Next')} <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />

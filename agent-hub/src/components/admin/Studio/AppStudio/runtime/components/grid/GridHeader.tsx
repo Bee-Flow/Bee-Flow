@@ -87,7 +87,7 @@ export function GridHeaderRow({ table, selectable, cellPad, divider, minimal, ha
 export function GridFilterRow({ table, selectable, cellPad, divider, hasRowActions }: Omit<GridHeaderProps, 'minimal'>) {
     const { t } = useTranslation();
     return (
-        <tr data-app-grid-filterrow="true" style={{ background: 'var(--bg-secondary)' }}>
+        <tr data-app-grid-filterrow="true" className="[background:var(--bg-secondary)]">
             {selectable !== 'none' ? <th className={`${cellPad}${divider}`} style={{ borderColor: 'var(--border-default)' }} /> : null}
             {table.getHeaderGroups()[0].headers.map((header) => {
                 const meta = (header.column.columnDef.meta || {}) as GridColumnMeta;
