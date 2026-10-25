@@ -74,38 +74,9 @@ async function isAdminCaller(req) {
     return isPlatformOperator(req.session?.user);
 }
 
-// Strip token / message-count fields from a row and replace estimated_cost
-// with marked-up billed_cost. Used to scrub the customer-facing Gebruik &
-// Monitoring responses so usage* markup is the only AI figure customers see.
-const TOKEN_FIELDS = ['total_calls', 'calls', 'total_tokens', 'tokens', 'prompt_tokens', 'completion_tokens',
-    'cached_tokens', 'cache_creation_tokens', 'reasoning_tokens',
-    'total_prompt_tokens', 'total_completion_tokens', 'total_cached_tokens',
-    'total_cache_creation_tokens', 'total_reasoning_tokens',
-    'input_cost', 'output_cost', 'total_input_cost', 'total_output_cost',
-    'azure_services_total_cost', 'billed_calls', 'avg_duration_ms',
-    'unique_models', 'unique_agents'];
-
-/**
- * @param {number} factor
- */
-function redactRow(row, factor) {
-    if (!row || typeof row !== 'object') return row;
-    const out = { ...row };
-    const rawCost = Number(out.estimated_cost ?? out.total_estimated_cost ?? out.total_cost) || 0;
-    out.billed_cost = rawCost * factor;
-    for (const f of TOKEN_FIELDS) delete out[f];
-    delete out.estimated_cost;
-    delete out.total_estimated_cost;
-    delete out.total_cost;
-    return out;
-}
-
-/**
- * @param {number} factor
- */
-function redactRows(rows, factor) {
-    return (rows || []).map(r => redactRow(r, factor));
-}
+// The customer view of a row (allow-list, see usageCustomerView.js): usage*
+// markup is the only AI figure customers see.
+const { redactRow, redactRows } = require('./usageCustomerView');
 
 // Apply customer redaction unless the caller is an admin. Use as the last
 // step before res.json — returns the redacted payload (or the original).
