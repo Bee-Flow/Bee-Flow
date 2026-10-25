@@ -42,6 +42,9 @@ export function checkedFiles(dir = SERVER_DIR, prefix = '') {
         const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
         if (entry.isDirectory()) {
             if (!SKIP.has(entry.name)) out.push(...checkedFiles(path.join(dir, entry.name), rel));
+        } else if (entry.isFile() && /\.mts$/.test(entry.name)) {
+            // TypeScript source needs no marker: it is always checked, strictly.
+            out.push(rel);
         } else if (entry.isFile() && /\.[cm]?js$/.test(entry.name)) {
             const head = readFileSync(path.join(dir, entry.name), 'utf8').split('\n').slice(0, 30).join('\n');
             if (MARKER.test(head)) out.push(rel);
@@ -74,17 +77,24 @@ export function parseDiagnostics(output) {
 }
 
 /**
+ * What `.mts` files are checked under, on top of jsconfig.json: strict, and only
+ * syntax Node can strip (no enums, namespaces or parameter properties), because
+ * these files run as they are written.
+ */
+export const MTS_OPTIONS = Object.freeze({ strict: true, noImplicitAny: true, strictNullChecks: true, erasableSyntaxOnly: true });
+
+/**
  * Type-check `files` (relative to `dir`) and return the diagnostics in those
  * files plus file-less ones. `dir` holds jsconfig.json and optionally types/.
  * With `single` the generated config gets a per-process name, so parallel
  * `--file` runs never overwrite each other's.
  */
-export function runTypecheck(files, { dir = SERVER_DIR, single = false, tsc = TSC } = {}) {
+export function runTypecheck(files, { dir = SERVER_DIR, single = false, tsc = TSC, compilerOptions = {} } = {}) {
     const ambient = readdirSafe(path.join(dir, 'types')).filter((f) => f.endsWith('.d.ts')).map((f) => `types/${f}`);
     const configPath = path.join(dir, single ? `.typecheck.${process.pid}.tsconfig.json` : '.typecheck.tsconfig.json');
     const config = {
         extends: './jsconfig.json',
-        compilerOptions: { checkJs: true, noEmit: true },
+        compilerOptions: { checkJs: true, noEmit: true, ...compilerOptions },
         files: [...files, ...ambient],
     };
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
@@ -135,18 +145,29 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         }
     }
 
-    const { diagnostics, crashed, output } = runTypecheck(files, { single: fileArg !== -1 });
-    if (crashed) {
-        process.stderr.write(output);
-        console.error('\ntypecheck: tsc stopped before checking (output above)');
-        process.exit(2);
+    const single = fileArg !== -1;
+    // .mts files and the JavaScript marked with // @typecheck are checked under different options: two runs.
+    const mtsFiles = files.filter((f) => f.endsWith('.mts'));
+    const runs = [
+        [files.filter((f) => !f.endsWith('.mts')), {}],
+        [mtsFiles, { compilerOptions: MTS_OPTIONS }],
+    ].filter(([list]) => list.length > 0);
+    const diagnostics = [];
+    for (const [list, extra] of runs) {
+        const res = runTypecheck(list, { single, ...extra });
+        if (res.crashed) {
+            process.stderr.write(res.output);
+            console.error('\ntypecheck: tsc stopped before checking (output above)');
+            process.exit(2);
+        }
+        diagnostics.push(...res.diagnostics);
     }
     if (diagnostics.length > 0) {
         for (const d of diagnostics) console.log(formatDiagnostic(d));
-        console.error(`\ntypecheck: ${diagnostics.length} error(s) in ${fileArg !== -1 ? files[0] : 'files marked // @typecheck'}`);
+        console.error(`\ntypecheck: ${diagnostics.length} error(s) in ${fileArg !== -1 ? files[0] : 'files marked // @typecheck or .mts'}`);
         process.exit(1);
     }
-    console.log(fileArg !== -1 ? `typecheck: ${files[0]}, no errors` : `typecheck: ${files.length} file(s) with // @typecheck, no errors`);
+    console.log(fileArg !== -1 ? `typecheck: ${files[0]}, no errors` : `typecheck: ${files.length} file(s) (// @typecheck or .mts), no errors`);
 }
 
 function readdirSafe(dir) {

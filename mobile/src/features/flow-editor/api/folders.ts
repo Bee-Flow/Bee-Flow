@@ -1,11 +1,13 @@
 /**
  * The sidebar folders (routes/automation/crud.js, /folders).
  *
- * One flat level, organisation-wide: anyone in the organisation can read and
- * edit a folder, while the automations inside stay per-user. Deleting a folder
- * DETACHES its automations — it never deletes one, because a folder may hold
- * automations of colleagues the deleting user cannot see. A duplicate name is a
- * 409 `folder_name_taken` (case-insensitive per organisation).
+ * Organisation-wide: anyone in the organisation can read and edit a folder,
+ * while the automations inside stay per-user. Folders nest on the server (each
+ * carries a `parentId`); this client lists them flat and ignores the nesting.
+ * Deleting a folder DETACHES its automations and moves its subfolders up — it
+ * never deletes either, because a folder may hold automations of colleagues the
+ * deleting user cannot see. A duplicate name is a 409 `folder_name_taken`
+ * (case-insensitive, among the folders of one parent).
  */
 
 import { api } from '@/core/api/client';

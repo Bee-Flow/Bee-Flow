@@ -7,7 +7,7 @@ import ContextMenu from './ContextMenu';
 import {
     GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS,
     type AutomationRecord, type OverviewLane, type RunIdSet,
-    countFolders, countStates, countTriggers, filterRows, flowSummaryOf, groupRows, isFailing, sortRows,
+    countFolders, countStates, countTriggers, filterRows, flowSummaryOf, folderLabel, groupRows, isFailing, sortRows,
     statusLabelOf, triggerKindOf, triggerLabelOf, triggerTextOf,
 } from './overviewModel';
 import OverviewToolbar, { type PillOption } from './OverviewToolbar';
@@ -164,7 +164,7 @@ export default function AutomationsOverview({
     const folderOptions = folders.length === 0 ? [] : [
         { value: 'all', label: t('studio_misc.overview.filter_any_folder', 'Any folder'), count: folderCounts.all },
         { value: NO_FOLDER, label: t('studio_misc.overview.no_folder', 'No folder'), count: folderCounts[NO_FOLDER] },
-        ...folders.map(f => ({ value: f.id, label: f.name || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
+        ...folders.map(f => ({ value: f.id, label: folderLabel(folders, f.id) || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
     ];
 
     let body: React.JSX.Element;

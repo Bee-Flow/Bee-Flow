@@ -239,7 +239,7 @@ jobs:
               - 'server/shared/expr/*'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
-              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,orgRunRow.js,runs.js,runsStats.js,versions.js,webhooks.js}'
+              - 'server/stores/automationStore/{folderStore.mts,forms.js,lifecycle.js,orgRunRow.js,runs.js,runsStats.js,versions.js,webhooks.js}'
               - 'server/stores/datatableStore/{rowMappers.js,usage.js}'
               - 'server/stores/user/{groups.js,users.js}'
               - 'server/stores/webpage/{sources.js,versions.js}'
