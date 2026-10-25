@@ -5,7 +5,7 @@
  * and Header imports MobileNav — putting them in Header would make that
  * circular.
  */
-export interface NavItem {
+interface NavItem {
     label?: string;
     href?: string;
     target?: string;
@@ -14,7 +14,7 @@ export interface NavItem {
     description?: string;
 }
 
-export interface NavColumn {
+interface NavColumn {
     heading?: string;
     items?: NavItem[];
 }
@@ -45,7 +45,7 @@ export function readDropdown(link: NavLinkData | undefined): NavDropdown | null 
     return null;
 }
 
-export const isPreview = (): boolean =>
+const isPreview = (): boolean =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).has('preview');
 
@@ -58,7 +58,7 @@ export const navHandler = (e: { preventDefault: () => void }): void => {
 // True on a device with no hover — a phone, or an iPad in landscape wide
 // enough to still get the desktop nav. There, the first tap on a dropdown
 // parent must OPEN the panel rather than navigate away from it.
-export const isTouchLike = (): boolean =>
+const isTouchLike = (): boolean =>
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(hover: none)').matches;

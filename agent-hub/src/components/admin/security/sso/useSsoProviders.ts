@@ -17,12 +17,12 @@ export interface SsoProviderConfig {
     tenantId?: string;
 }
 
-export type SsoProviders = Record<SsoProviderId, SsoProviderConfig>;
+type SsoProviders = Record<SsoProviderId, SsoProviderConfig>;
 
 /** A secret typed in the form, sent once and then cleared. */
-export type SsoSecrets = Record<SsoProviderId, string>;
+type SsoSecrets = Record<SsoProviderId, string>;
 
-export interface SsoMessage {
+interface SsoMessage {
     type: 'success' | 'error';
     text: string;
 }

@@ -504,7 +504,7 @@ export function buildInsightsModel(meeting: MeetingNote | null | undefined, { pe
  *
  * @returns {Array<{id, label, value, detail?: string, seconds?: number}>}
  */
-export function buildOverviewHighlights(model: InsightsModel) {
+function buildOverviewHighlights(model: InsightsModel) {
     const out = [];
     const people = model.people?.rows || [];
 

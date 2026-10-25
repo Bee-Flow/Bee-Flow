@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { ApiError } from '../client';
 
-export const appsKeys = {
+const appsKeys = {
     dataConnectors: (appId: string | null) => ['apps', 'dataConnectors', appId] as const,
 };
 

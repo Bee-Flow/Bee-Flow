@@ -21,7 +21,7 @@ interface IconPickerModalProps {
     nanoBananaSettings?: { image?: { model?: string } } | null;
 }
 
-export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, nanoBananaSettings }: IconPickerModalProps) {
+function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, nanoBananaSettings }: IconPickerModalProps) {
     const { t } = useTranslation();
     const [tab, setTab] = useState<'emoji' | 'image' | 'nano'>('emoji');
     const [prompt, setPrompt] = useState('');

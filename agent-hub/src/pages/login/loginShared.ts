@@ -26,7 +26,7 @@ export interface AuthAnswer {
 
 // Default Privacy-Shield selection for a new org: all PII categories on,
 // block on detection. The wizard's All/None lets the founder pare it down.
-export const DEFAULT_PII_CATEGORIES: string[] = PII_CATEGORIES.map(c => c.id);
+const DEFAULT_PII_CATEGORIES: string[] = PII_CATEGORIES.map(c => c.id);
 
 /** Signup mode starts on for a ?signup=1 or ?invite= deep link. */
 export function initialSignupMode(search: string): boolean {

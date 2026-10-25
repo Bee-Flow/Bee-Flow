@@ -116,7 +116,7 @@ export function actionLabelMap(actions: (AppAction | null)[] = []) {
 }
 
 /** Convenience for a single action when its siblings are already to hand. */
-export function actionLabel(action: AppAction | null | undefined, labelMap: { get(key: string | undefined): string | undefined } | null | undefined) {
+function actionLabel(action: AppAction | null | undefined, labelMap: { get(key: string | undefined): string | undefined } | null | undefined) {
     return labelMap?.get(action?.tool) || action?.label || '';
 }
 

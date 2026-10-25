@@ -57,7 +57,7 @@ export interface ProjectTeamChatProps {
 }
 
 /** What to tell the author when the AI will not answer their message, if anything. */
-export function aiResultNotice(ai: TeamChatAiResult, askedAi: boolean, t: TranslateFn): string | null {
+function aiResultNotice(ai: TeamChatAiResult, askedAi: boolean, t: TranslateFn): string | null {
     if (ai.status === 'busy') return t('project_chat.ai_busy', 'The AI is still answering an earlier message. Ask again when it is done.');
     if (ai.status !== 'skipped') return null;
     if (ai.reason === 'limit') return t('project_chat.ai_limit', 'The AI did not answer: the AI usage limit has been reached.');

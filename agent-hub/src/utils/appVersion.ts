@@ -12,9 +12,9 @@
 
 /* global __APP_VERSION__, __APP_BUILD_SHA__, __APP_BUILD_DATE__ */
 
-export const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 export const APP_BUILD_SHA = typeof __APP_BUILD_SHA__ !== 'undefined' ? __APP_BUILD_SHA__ : 'dev';
-export const APP_BUILD_DATE = typeof __APP_BUILD_DATE__ !== 'undefined' ? __APP_BUILD_DATE__ : '';
+const APP_BUILD_DATE = typeof __APP_BUILD_DATE__ !== 'undefined' ? __APP_BUILD_DATE__ : '';
 
 /**
  * Short, single-line version string intended for footers — "v1.0.0 · a1b2c3d".
@@ -36,10 +36,3 @@ export function formatVersionWithDate() {
     return `${base} · built ${date} UTC`;
 }
 
-export default {
-    APP_VERSION,
-    APP_BUILD_SHA,
-    APP_BUILD_DATE,
-    formatVersion,
-    formatVersionWithDate,
-};

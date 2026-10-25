@@ -329,7 +329,7 @@ interface BindingFallbackArgs {
     lines?: number;
 }
 
-export function bindingFallback({ error, errorCode, isLoading, value, emptyText, lines = 3, onRetry = null }: BindingFallbackArgs) {
+function bindingFallback({ error, errorCode, isLoading, value, emptyText, lines = 3, onRetry = null }: BindingFallbackArgs) {
     if (error) return <ErrorText error={error} errorCode={errorCode} onRetry={onRetry} />;
     if (isLoading) return <SkeletonLines lines={lines} />;
     const empty = value == null || (Array.isArray(value) && value.length === 0);

@@ -92,7 +92,7 @@ function summary(v: unknown): Summary {
     return { found: num(s.found), total: num(s.total), falseAlarms: num(s.falseAlarms), sentences: num(s.sentences) };
 }
 
-export interface Outbound { name: string; description: string; lookalikes: string[] }
+interface Outbound { name: string; description: string; lookalikes: string[] }
 export interface AssistPreview { outbound: Outbound; keepFixedProposal: string[] }
 
 function outbound(v: unknown): Outbound {
@@ -130,7 +130,7 @@ export function parseAssist(body: unknown): AssistResult {
     };
 }
 
-export interface TestMark extends Span { kind: 'hit' | 'missed' | 'false_alarm' | 'found'; partial?: boolean }
+interface TestMark extends Span { kind: 'hit' | 'missed' | 'false_alarm' | 'found'; partial?: boolean }
 export interface TestResult {
     results: { id: string; marks: TestMark[] }[];
     summary: Summary;
@@ -162,7 +162,7 @@ export function parseTest(body: unknown): TestResult {
     };
 }
 
-export type Sensitivity = 'low' | 'medium' | 'high';
+type Sensitivity = 'low' | 'medium' | 'high';
 export interface TuneResult {
     best: {
         config: Pick<CustomDataType, 'words' | 'pattern' | 'ai'>;
@@ -262,7 +262,7 @@ export interface AssistInput {
     keepFixed?: string[];
 }
 
-export const customDataKeys = {
+const customDataKeys = {
     all: ['custom-data'] as const,
     preview: (orgId: string, input: AssistInput) => [
         ...customDataKeys.all, 'preview', orgId, input.type.id, input.type.name,

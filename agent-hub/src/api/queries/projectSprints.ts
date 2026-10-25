@@ -8,7 +8,7 @@ import { apiClient } from '../client';
 import { projectRequest as write } from './projectErrors';
 import { projectKeys } from './projects';
 
-export type SprintStatus = 'planned' | 'active' | 'closed';
+type SprintStatus = 'planned' | 'active' | 'closed';
 
 export interface Sprint {
     id: string;

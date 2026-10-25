@@ -47,7 +47,7 @@ import type { CheckRecord } from './framework/checkSort';
 // MiniBars); `section` is where a click lands; `legacy` is the pre-frameworks
 // overview key that still ships. `law` is the national/standard name printed
 // after the in-force date — plain data, not a translatable sentence.
-export const FRAMEWORK_CARDS: ReadonlyArray<{ fw: string; section: string; legacy: 'gdpr' | 'aia' | 'iso'; law: string | null; unit: string }> = Object.freeze([
+const FRAMEWORK_CARDS: ReadonlyArray<{ fw: string; section: string; legacy: 'gdpr' | 'aia' | 'iso'; law: string | null; unit: string }> = Object.freeze([
     Object.freeze({ fw: 'gdpr', section: 'gdpr', legacy: 'gdpr', law: 'UAVG', unit: 'checks' }),
     Object.freeze({ fw: 'aia', section: 'aia', legacy: 'aia', law: null, unit: 'checks' }),
     Object.freeze({ fw: 'iso27001', section: 'iso', legacy: 'iso', law: 'ISO/IEC 27001:2022 + Amd 1:2024', unit: 'controls' }),

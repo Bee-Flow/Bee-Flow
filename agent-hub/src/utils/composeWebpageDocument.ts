@@ -41,10 +41,10 @@ import { buildBfElementsScript } from './bfElementsRuntime';
 // The bridges, the selection relay and the inliners are shared with the
 // server's draft document (server/shared/webpage/previewBridges.mjs and
 // previewInline.mjs; these are their generated mirrors).
-export { defangScriptClose, buildSelectionBridgeScript, buildBridgeHeadScripts };
+;
 
 /** The three editable slots of a webpage; each may be empty. */
-export interface WebpageSlots {
+interface WebpageSlots {
     html?: string | null;
     css?: string | null;
     js?: string | null;
@@ -60,7 +60,7 @@ export interface PreviewExtraFile {
 }
 
 /** What the preview needs beyond the slots. */
-export interface WebpageDocumentOptions {
+interface WebpageDocumentOptions {
     selectionBridge?: boolean;
     extraFiles?: PreviewExtraFile[];
     dbToken?: string | null;
@@ -70,7 +70,7 @@ export interface WebpageDocumentOptions {
 
 const toBase64 = (text: string): string => btoa(unescape(encodeURIComponent(text)));
 
-export function composeWebpageDocument({ html, css, js }: WebpageSlots, options: WebpageDocumentOptions = {}): string {
+function composeWebpageDocument({ html, css, js }: WebpageSlots, options: WebpageDocumentOptions = {}): string {
     const { selectionBridge = false, extraFiles = [], dbToken = null, dbApiBase = null, dbWebpageId = null } = options;
     const safeHtml = html && html.trim()
         ? html

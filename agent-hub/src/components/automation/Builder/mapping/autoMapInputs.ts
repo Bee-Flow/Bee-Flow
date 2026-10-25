@@ -41,7 +41,7 @@ export function isSecretLikeKey(key: unknown): boolean {
 }
 
 /** Resolve a tool's inputSchema from the catalog. */
-export function findInputSchemaForTool(catalog: ToolCatalogLike | null | undefined, tool: unknown): InputSchema | null {
+function findInputSchemaForTool(catalog: ToolCatalogLike | null | undefined, tool: unknown): InputSchema | null {
     for (const app of (catalog?.apps || [])) {
         for (const action of (app.actions || [])) {
             if (action?.name === tool) return (action.inputSchema as InputSchema | null) || null;
@@ -137,7 +137,7 @@ const SCANNABLE_NAME_RES = [
  * output of the nearest step — an object is scanned as its JSON, so "check
  * everything that step produced" is a real answer rather than a guess.
  */
-export function nearestScannableRef(groups: UpstreamGroup[] | null | undefined): string | null {
+function nearestScannableRef(groups: UpstreamGroup[] | null | undefined): string | null {
     for (const re of SCANNABLE_NAME_RES) {
         for (let gi = (groups || []).length - 1; gi >= 0; gi--) {
             const fields = (groups as UpstreamGroup[])[gi].fields || [];

@@ -29,7 +29,7 @@ import { typeColorVar } from '../flow/nodeTypeColors';
  * the caret).
  */
 
-export const PILL_ATTR = 'data-ref-pill';
+const PILL_ATTR = 'data-ref-pill';
 export const PILL_SELECTOR = `[${PILL_ATTR}]`;
 // A <br> the browser needs to make a trailing newline visible, but that is NOT
 // part of the value. Without it, pressing Enter at the end moves the caret to a

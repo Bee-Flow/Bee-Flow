@@ -32,7 +32,7 @@ export interface SecondaryFilterProps {
 /** The default of each secondary filter: what "Clear" goes back to. */
 export const SECONDARY_DEFAULTS: Partial<RunLogFilters> = { trigger: null, mode: 'live', automationId: null };
 
-export function modeOptions(t: TranslateFn) {
+function modeOptions(t: TranslateFn) {
     return [
         { key: 'live', label: t('runs.log.mode_live', 'Live runs') },
         { key: 'dry_run', label: t('runs.log.mode_tests', 'Tests only') },

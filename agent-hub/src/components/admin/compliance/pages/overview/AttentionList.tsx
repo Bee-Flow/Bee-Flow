@@ -10,7 +10,7 @@ import { complianceActionPath, resolveTarget } from '../../data/actions';
 import type { FrameworkTag } from '../framework/checkSort';
 
 /** The action an attention item offers: an auto-fix, or a link to the fix. */
-export interface AttentionAction {
+interface AttentionAction {
     type: string;
     label?: string | null;
     label_key?: string | null;
@@ -19,7 +19,7 @@ export interface AttentionAction {
 }
 
 /** What the row draws beside its title. */
-export interface AttentionMeta {
+interface AttentionMeta {
     frameworks?: Array<FrameworkTag | null> | null;
     severity?: string | null;
     verification?: string | null;
@@ -185,7 +185,7 @@ const ACTION_FALLBACK: Readonly<Partial<Record<string, string>>> = Object.freeze
     navigate: 'Open',
 });
 
-export function actionLabel(action: AttentionAction | null | undefined, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+function actionLabel(action: AttentionAction | null | undefined, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (!action) return null;
     if (action.label) return action.label;
     const fallback = ACTION_FALLBACK[action.type] || ACTION_FALLBACK.navigate;

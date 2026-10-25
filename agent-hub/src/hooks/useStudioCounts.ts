@@ -48,7 +48,7 @@ export function countFor(counts: StudioCounts | null | undefined, key: string | 
 }
 
 /** Drop the cached counts — for a screen that just created or deleted one. */
-export function invalidateStudioCounts(): void {
+function invalidateStudioCounts(): void {
     // remove, not reset or invalidate: logout calls this while the old
     // user's screens are still mounted and their session token still set,
     // and either of those would refetch for the old user on the way out.
@@ -82,4 +82,3 @@ export function useStudioCounts({ enabled = true, poll = true }: UseStudioCounts
     };
 }
 
-export default useStudioCounts;

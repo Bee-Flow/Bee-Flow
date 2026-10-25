@@ -8,7 +8,7 @@ import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { ProblemNote } from '../../mapping/toolInput/ParamExtras';
 
 /** A failed row, whether or not an error branch caught it afterwards. */
-export const FAILED_STATUSES = new Set(['error', 'failed', 'handled_error']);
+const FAILED_STATUSES = new Set(['error', 'failed', 'handled_error']);
 
 interface ErrorInfoLike {
     settingKey?: unknown;

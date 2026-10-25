@@ -189,4 +189,3 @@ export function describeSaveResult(data: SaveResponse | null | undefined, t: Tra
     return { message: { type: 'success', text: 'Saved.' }, result, clampedAction: null };
 }
 
-export default describeClamps;

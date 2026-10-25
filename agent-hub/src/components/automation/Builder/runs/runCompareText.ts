@@ -83,7 +83,7 @@ export function formatBytes(bytes: number | null): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export interface PartDetail { field: string; was: string; becomes: string }
+interface PartDetail { field: string; was: string; becomes: string }
 export interface PartChange {
     key: string;
     label: string;

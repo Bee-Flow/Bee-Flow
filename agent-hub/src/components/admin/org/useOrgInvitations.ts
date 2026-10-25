@@ -19,7 +19,7 @@ export interface Invitation {
  * NOT go out — it is the link to hand over instead — and `upgradeLink` marks
  * the seat cap, which is a route to the upgrade flow rather than a dead end.
  */
-export interface InviteResult {
+interface InviteResult {
     success: boolean;
     message: string;
     inviteUrl?: string | null;

@@ -18,7 +18,7 @@ import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } fro
 // ColorRow / FontRow used to be defined here; they now live in
 // ./primitives. Re-export so existing imports from this module
 // (editors barrel, other panels) keep resolving.
-export { ColorRow, FontRow } from './primitives';
+;
 
 /**
  * Design tab — site-wide branding controls.

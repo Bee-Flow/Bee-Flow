@@ -649,5 +649,5 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 // The definition reads this section used to hold itself. Re-exported because
 // this is the path the inspector's tests reach them through.
 export {
-    enclosingForm, formNameOf, getFormFields, getFormFieldNames, screenIdOfNode, stepCount,
+     formNameOf, getFormFields,  screenIdOfNode, stepCount,
 } from './actionRefs';

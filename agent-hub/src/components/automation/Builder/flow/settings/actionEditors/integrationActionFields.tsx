@@ -50,7 +50,7 @@ const outerItemVars = (fe: ForEachConfig | null | undefined) => (Array.isArray(f
 
 // `mappingApi` ({ suggestMappings }) replaces the API client in tests.
 /** One operation of a catalog app, as the server sends it. */
-export interface IntegrationAction {
+interface IntegrationAction {
     name: string;
     label?: string;
     description?: string;
@@ -63,7 +63,7 @@ export interface IntegrationAction {
     outputSchema?: unknown;
 }
 
-export interface IntegrationApp {
+interface IntegrationApp {
     id: string;
     label: string;
     available?: boolean;

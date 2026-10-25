@@ -33,7 +33,7 @@ function dataSaverOn(): boolean {
     return connection?.saveData === true;
 }
 
-export function autoplayAllowed({ mobile = false }: AutoplayOptions = {}): boolean {
+function autoplayAllowed({ mobile = false }: AutoplayOptions = {}): boolean {
     if (typeof window === 'undefined') return false;
     if (matches(REDUCED) || dataSaverOn()) return false;
     return mobile || !matches(PHONE);

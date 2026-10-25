@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 
 type ChoiceAccent = 'blue' | 'emerald' | 'amber' | 'teal' | 'sky';
 
-export interface ChoiceOption<V extends string = string> {
+interface ChoiceOption<V extends string = string> {
     value: V;
     label: string;
     description?: string;

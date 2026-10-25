@@ -153,7 +153,7 @@ const callsIn = (state: string) => DESTINATIONS.filter(d => d.location_state ===
 
 const OUTSIDE = DESTINATIONS.filter(d => d.location_state === 'outside');
 /** Calls that carried personal data, and the kinds found in them: some calls carried two. */
-export const PII_EVENTS = DESTINATIONS.reduce((s, d) => s + d.pii_events, 0);
+const PII_EVENTS = DESTINATIONS.reduce((s, d) => s + d.pii_events, 0);
 const TOOL_CATEGORIES = apportion(Math.round(PII_EVENTS * 1.25), [
     { category: 'Person', weight: 46 },
     { category: 'Email', weight: 24 },
@@ -164,9 +164,9 @@ const TOOL_CATEGORIES = apportion(Math.round(PII_EVENTS * 1.25), [
 export const NON_EU_CALLS = callsIn('outside');
 /** Of the calls that left Europe, the ones that carried personal data. */
 export const PII_NON_EU = OUTSIDE.reduce((s, d) => s + d.pii_events, 0);
-export const VIA_NETWORK_CALLS = callsIn('via_network');
-export const UNKNOWN_CALLS = callsIn('unknown');
-export const LOCATED_CALLS = callsIn('local') + callsIn('eu') + NON_EU_CALLS;
+const VIA_NETWORK_CALLS = callsIn('via_network');
+const UNKNOWN_CALLS = callsIn('unknown');
+const LOCATED_CALLS = callsIn('local') + callsIn('eu') + NON_EU_CALLS;
 
 /**
  * The server's weighting, over the LOCATED calls only (your own server, inside

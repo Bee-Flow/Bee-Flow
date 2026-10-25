@@ -22,7 +22,7 @@ import { errorCode } from '../../utils/caughtError';
 
 export type {
     CreateTeamChat, PendingTeamChatMessage, SendTeamChatMessage, TeamChat, TeamChatAiMode, TeamChatAiPolicy, TeamChatAiResult,
-    TeamChatAiMeta, TeamChatAiStatus, TeamChatAiTrigger, TeamChatAuthorKind, TeamChatLastMessage, TeamChatMessage, TeamChatMessages, TeamChatNotice, TeamChatRef, TeamChatTrace,
+    TeamChatAiMeta,   TeamChatAuthorKind,  TeamChatMessage, TeamChatMessages,  TeamChatRef, TeamChatTrace,
 } from './projectChatTypes';
 export { isAutomaticAnswer } from './projectChatTypes';
 

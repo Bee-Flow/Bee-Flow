@@ -8,9 +8,9 @@ import type { ContentTabProps } from './types';
 
 export const OWNER_ID = 'u-owner';
 export const EDITOR_ID = 'u-editor';
-export const VIEWER_ID = 'u-viewer';
+const VIEWER_ID = 'u-viewer';
 
-export const PROJECT: Project = {
+const PROJECT: Project = {
     id: 'p1',
     name: 'Launch plan',
     ownerId: OWNER_ID,

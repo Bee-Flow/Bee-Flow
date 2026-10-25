@@ -42,7 +42,7 @@ async function readJson(res: Response) {
     }
 }
 
-export const UNSUPPORTED =
+const UNSUPPORTED =
     'This Bee Flow API container has no /ai/local-runtimes endpoint. Either it predates self-hosted '
     + 'runtime support — update the server image — or /ai is not proxied through to it.';
 

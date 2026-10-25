@@ -93,7 +93,7 @@ export function eventsForType(type: string|number) {
  *
  * The order stays that of the type; whatever is extra comes after it.
  */
-export function eventSlotsOf(node: AppNode | null | undefined) {
+function eventSlotsOf(node: AppNode | null | undefined) {
     const slots = eventsForType(node?.type ?? '').slice();
     for (const event of NODE_EVENTS) {
         if (slots.includes(event)) continue;

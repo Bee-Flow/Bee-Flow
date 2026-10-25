@@ -147,4 +147,3 @@ export function appendPhase(
     return next || trail;
 }
 
-export default appendPhase;

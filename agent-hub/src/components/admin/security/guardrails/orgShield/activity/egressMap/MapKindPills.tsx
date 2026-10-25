@@ -35,7 +35,7 @@ function Pill({ on, label, n, onClick }: { on: boolean; label: string; n?: numbe
 }
 
 /** Which kinds get a pill, and which go in the menu. Exported for its test. */
-export function splitKinds(kinds: KindCount[], selected: string | null, catLabel: (id: string) => string) {
+function splitKinds(kinds: KindCount[], selected: string | null, catLabel: (id: string) => string) {
     const pills = kinds.slice(0, TOP);
     if (selected && !pills.some(k => k.id === selected)) {
         pills.push(kinds.find(k => k.id === selected) || { id: selected, label: catLabel(selected), n: 0 });

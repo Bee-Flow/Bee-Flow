@@ -76,7 +76,7 @@ export interface ZoomLimits {
 /** Events this close together are one gesture and keep one device. */
 export const GESTURE_GAP_MS = 400;
 /** A single-axis delta this large starts a mouse-wheel gesture. */
-export const NOTCH_MIN_PX = 40;
+const NOTCH_MIN_PX = 40;
 /** Chrome on macOS reports a mouse wheel step as a multiple of this. */
 const MAC_CHROME_WHEEL_STEP = 4.000244140625;
 /** Pixels per line and per page for deltaMode 1 and 2. 20 per line is what React Flow's own pan-on-scroll uses. */
@@ -89,7 +89,7 @@ const PAGE_PX = 800;
  */
 export const PINCH_STEP_MAX = 1.25;
 /** The most one mouse-wheel event may zoom. A notch is 2^0.2 = 1.149; only a page-mode delta gets near this. */
-export const WHEEL_STEP_MAX = 2;
+const WHEEL_STEP_MAX = 2;
 
 export const EMPTY_WHEEL_MEMORY: WheelMemory = Object.freeze({ device: null, lastAt: Number.NEGATIVE_INFINITY });
 

@@ -73,7 +73,7 @@ export function logAccess(state: AccessState, entry: Omit<AccessAuditRow, 'id' |
 }
 
 /** listAccessAuditActions: one row per action with its count and newest stamp, newest first. */
-export function accessAuditActions(rows: readonly AccessAuditRow[]): AccessAuditAction[] {
+function accessAuditActions(rows: readonly AccessAuditRow[]): AccessAuditAction[] {
     const by = new Map<string, AccessAuditAction>();
     for (const r of rows) {
         const seen = by.get(r.action);
@@ -100,7 +100,7 @@ function dateFrom(query: URLSearchParams, name: string): number | null {
     return Number.isNaN(ms) ? null : ms;
 }
 
-export function filterAccessAudit(rows: readonly AccessAuditRow[], query: URLSearchParams): AccessAuditRow[] {
+function filterAccessAudit(rows: readonly AccessAuditRow[], query: URLSearchParams): AccessAuditRow[] {
     const actions = actionsFrom(query);
     const actor = query.get('actor');
     const targetType = query.get('targetType');

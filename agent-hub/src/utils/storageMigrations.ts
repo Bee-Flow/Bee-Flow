@@ -71,15 +71,15 @@ export const ICONPACK_CACHE_PREFIX = 'beeflow_iconpack_';
    these. Private mode, a blocked third-party context or a full quota must
    degrade to "no stored value", never to a crash. */
 
-export function readDeviceItem(key: string): string | null {
+function readDeviceItem(key: string): string | null {
     try { return localStorage.getItem(key); } catch { return null; }
 }
 
-export function writeDeviceItem(key: string, value: string) {
+function writeDeviceItem(key: string, value: string) {
     try { localStorage.setItem(key, value); } catch (err) { logger.debug('quota / blocked', err); }
 }
 
-export function removeDeviceItem(key: string) {
+function removeDeviceItem(key: string) {
     try { localStorage.removeItem(key); } catch (err) { logger.debug('blocked', err); }
 }
 
@@ -278,18 +278,3 @@ export function runUserStorageMigrations(userId?: string | null) {
     } catch (err) { logger.debug('never take the app down over storage', err); }
 }
 
-export default {
-    STORAGE_SCHEMA_VERSION,
-    DEVICE_SCHEMA_KEY,
-    I18N_CACHE_PREFIX,
-    I18N_LOCALES_CACHE_KEY,
-    ICONPACK_CACHE_PREFIX,
-    readDeviceItem,
-    writeDeviceItem,
-    removeDeviceItem,
-    readDeviceJSON,
-    buildStampedCacheKey,
-    sweepStaleBuildCaches,
-    runStorageMigrations,
-    runUserStorageMigrations,
-};

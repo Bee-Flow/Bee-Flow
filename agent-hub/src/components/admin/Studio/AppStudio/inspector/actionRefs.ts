@@ -99,7 +99,7 @@ export function effectSteps(effects: ActionEffect | null | undefined): Array<Rec
  * walk: which fields does this action have to offer, and — for "test with
  * what's on screen" — under which NAME did that form publish its live values.
  */
-export function enclosingForm(
+function enclosingForm(
     definition: AppDefinition | null | undefined,
     node: AppNode | null | undefined,
 ): AppNode | null {
@@ -159,7 +159,7 @@ export function getFormFields(
 }
 
 /** Input-field names of the form enclosing `node` (or of the form itself). */
-export function getFormFieldNames(
+function getFormFieldNames(
     definition: AppDefinition | null | undefined,
     node: AppNode | null | undefined,
 ): string[] {

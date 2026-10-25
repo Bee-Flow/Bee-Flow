@@ -10,7 +10,7 @@ import { projectErrorText } from './projectErrorText';
 import { canEditProject, type StartChat } from './types';
 import { ErrorText, PrimaryButton } from './workspaceUi';
 
-export const MAX_FIRST_MESSAGE = 20000;
+const MAX_FIRST_MESSAGE = 20000;
 export default function ProjectComposer({ project, role, readOnly = false, onOpenTeamChat }: {
     project: Project; role: ProjectRole; onStartChat: StartChat; onOpenTeamChat: (chatId: string) => void;
     /** The project is archived: nothing can be started. */

@@ -2,7 +2,7 @@ import type { ContentData, ContentElement as ContentElementData } from './conten
 import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
 
 /** A link as the public site leaves it (resolveLinksInTree) or the admin preview does (legacyifyLinks). */
-export interface RenderedLink {
+interface RenderedLink {
     href?: string;
     target?: string;
     rel?: string;

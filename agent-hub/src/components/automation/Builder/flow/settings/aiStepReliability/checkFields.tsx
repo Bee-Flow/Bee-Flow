@@ -21,7 +21,7 @@ export interface PickerProps {
 }
 
 /** A field of the answer in the reader's words. */
-export function fieldOptionLabel(o: FieldPathOption, t: TranslateFn): string {
+function fieldOptionLabel(o: FieldPathOption, t: TranslateFn): string {
     if (o.each && o.column) return t('ai_step_checks.field_column_each', '{field}: {column} (each item)', { field: o.field, column: o.column });
     if (o.each) return t('ai_step_checks.field_each', '{field} (each item)', { field: o.field });
     if (o.column) return t('ai_step_checks.field_part', '{field}: {column}', { field: o.field, column: o.column });

@@ -33,8 +33,8 @@ export { NESTED_STEP_RESULTS } from './automationsNestedOutputs';
 
 type Obj = Record<string, unknown>;
 
-export const NESTED_AUTOMATION_ID = 'auto_demo_nested_mapping';
-export const NESTED_AUTOMATION_TITLE = 'Nested data mapping';
+const NESTED_AUTOMATION_ID = 'auto_demo_nested_mapping';
+const NESTED_AUTOMATION_TITLE = 'Nested data mapping';
 
 // ── The definition ───────────────────────────────────────────────────────
 

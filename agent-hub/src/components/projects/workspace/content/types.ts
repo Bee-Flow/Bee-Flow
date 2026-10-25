@@ -3,7 +3,7 @@
 
 import type { ProjectRole } from '../../../../api/queries/projects';
 
-export type { ContentIntent, ContentTabProps } from '../types';
+export type {  ContentTabProps } from '../types';
 
 /** Editors and the owner add and remove content; viewers only read. */
 export function canEditContent(role: ProjectRole | null | undefined): boolean {

@@ -59,7 +59,7 @@ function AgentSelect({ chat, agents, onChange }: { chat: TeamChat; agents: Agent
 }
 
 /** "Paused" while "not helpful" feedback holds the AI back in an Auto chat. */
-export function AutoPausedChip({ chat, now: nowProp }: { chat: TeamChat; now?: number }) {
+function AutoPausedChip({ chat, now: nowProp }: { chat: TeamChat; now?: number }) {
     const { t, locale } = useTranslation();
     const clock = useNow(30000);
     const now = nowProp ?? clock;
@@ -78,7 +78,7 @@ export function AutoPausedChip({ chat, now: nowProp }: { chat: TeamChat; now?: n
 }
 
 /** "Limited" while the organisation no longer allows the chat's own mode: it then acts as "On mention". */
-export function ModeWithdrawnChip({ chat }: { chat: TeamChat }) {
+function ModeWithdrawnChip({ chat }: { chat: TeamChat }) {
     const { t } = useTranslation();
     if (effectiveMode(chat) === chat.aiMode) return null;
     const why = t('project_chat.ai_mode_withdrawn_title', 'Your organisation no longer allows this mode here, so the AI only answers when someone mentions it.');

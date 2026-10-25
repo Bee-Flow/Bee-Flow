@@ -16,7 +16,7 @@ import scopedStorage from './scopedStorage';
 export type SettingsSection = Record<string, unknown>;
 
 /** Every panel's settings, keyed by section ('image', 'elevenlabs', 'sfx', 'video', 'lyria'). */
-export type SettingsBlob = Record<string, SettingsSection>;
+type SettingsBlob = Record<string, SettingsSection>;
 
 /** Hooks of {@link createSettingsStore}. */
 export interface SettingsStoreOptions {
@@ -31,7 +31,7 @@ export interface SettingsStoreOptions {
  *
  * `storageKey` is the scopedStorage key holding the settings object.
  */
-export function createSettingsStore(storageKey: string, { migrate, onSave }: SettingsStoreOptions = {}) {
+function createSettingsStore(storageKey: string, { migrate, onSave }: SettingsStoreOptions = {}) {
     const getAll = (): SettingsBlob => {
         const stored = scopedStorage.getJSON<SettingsBlob>(storageKey, null);
         if (stored) return stored;
@@ -64,4 +64,3 @@ export const mediaGenSettingsStore = createSettingsStore('nanoBananaSettings', {
     },
 });
 
-export default mediaGenSettingsStore;

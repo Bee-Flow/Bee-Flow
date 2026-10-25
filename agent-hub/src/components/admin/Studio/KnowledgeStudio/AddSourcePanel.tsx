@@ -10,9 +10,9 @@ import { errorBodyRecord, errorCode, errorMessage, messageOf } from '../../../..
 import type { AddSourcePanelProps, FormProps, KindButtonProps, NewSource, SignpostProps, SubmitProps, TableField, TableOption, UploadFormProps } from './AddSourcePanel.types';
 
 /** The server's own cap (routes/knowledgeBases/sources.js): 3..500000 chars. */
-export const PASTE_MAX_CHARS = 500_000;
+const PASTE_MAX_CHARS = 500_000;
 /** One file, per the multer config on POST /:id/sources/:sid/files. */
-export const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 /**
  * "Bron toevoegen" — the seven-button card and the inline form each button
@@ -118,7 +118,7 @@ export default function AddSourcePanel({ canManage = false, onCreate, onUpload, 
  * decision, and pre-answering it with a new empty automation would be a guess
  * most of the time — the usual case is an automation that already exists.
  */
-export function AutomationSignpost({ t, kbName = '', onNavigate = null, sources = [] }: SignpostProps) {
+function AutomationSignpost({ t, kbName = '', onNavigate = null, sources = [] }: SignpostProps) {
     // The same relative-time hook the Sources list itself uses, so the two
     // never disagree about when a source last ran.
     const rel = useRelativeTime();
@@ -229,7 +229,7 @@ function KindButton({ t, kind, disabled, reason, onClick }: KindButtonProps) {
  * owner's view of the table, not the reader's. Same trade as a meeting source,
  * and it is said here rather than discovered later.
  */
-export function DatatableForm({ t, busy, onSubmit }: FormProps) {
+function DatatableForm({ t, busy, onSubmit }: FormProps) {
     const [tables, setTables] = useState<TableOption[] | null>(null);      // null = loading
     const [datatableId, setDatatableId] = useState('');
     const [columns, setColumns] = useState<string[]>([]);
@@ -421,7 +421,7 @@ const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 
  * nobody meant to publish. It is deliberately not offered rather than offered
  * and discouraged.
  */
-export function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
+function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
     const [tag, setTag] = useState('');
     const [fields, setFields] = useState<string[]>(['summary', 'decisions']);
     const [vocabulary, setVocabulary] = useState<{ tag: string }[]>([]);
@@ -519,7 +519,7 @@ export function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
 }
 
 /** Naam + tekst. The text goes to the server and never comes back. */
-export function PasteTextForm({ t, busy, onSubmit }: FormProps) {
+function PasteTextForm({ t, busy, onSubmit }: FormProps) {
     const [name, setName] = useState('');
     const [text, setText] = useState('');
     const tooLong = text.length > PASTE_MAX_CHARS;
@@ -558,7 +558,7 @@ export function PasteTextForm({ t, busy, onSubmit }: FormProps) {
 }
 
 /** URL + "hele site"-toggle. maxPages is stored; K3 does the crawling. */
-export function WebpageForm({ t, busy, onSubmit }: FormProps) {
+function WebpageForm({ t, busy, onSubmit }: FormProps) {
     const [url, setUrl] = useState('');
     const [whole, setWhole] = useState(false);
     const [maxPages, setMaxPages] = useState<number | string>(50);
@@ -612,7 +612,7 @@ export function WebpageForm({ t, busy, onSubmit }: FormProps) {
  * a 413 that only says "file_too_large" leaves the person guessing which of
  * eleven files it meant.
  */
-export function UploadFilesForm({ t, busy, onUpload }: UploadFormProps) {
+function UploadFilesForm({ t, busy, onUpload }: UploadFormProps) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [rejected, setRejected] = useState<string[]>([]);
 

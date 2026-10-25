@@ -35,7 +35,7 @@ const CARD_PREFIX = 'appkanban-card:';
  */
 const LANE_SEP = '\u0000';
 
-export const NO_LANE = '__all__';
+const NO_LANE = '__all__';
 
 /** Droppable id for one column within one lane. */
 export function columnDroppableId(lane: string, value: string) {

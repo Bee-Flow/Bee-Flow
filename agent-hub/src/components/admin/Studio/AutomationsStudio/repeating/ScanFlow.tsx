@@ -33,7 +33,7 @@ export function DetailsToggle({ open, onToggle }: { open: boolean; onToggle: () 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 /** What the scan is doing right now, in one sentence. */
-export function progressText(run: RunState, labelFor: LabelFor, t: TranslateFn): string {
+function progressText(run: RunState, labelFor: LabelFor, t: TranslateFn): string {
     switch (run.phase) {
         case 'templating': return t('automations.repeating.progressTemplating', 'Finding templates…');
         case 'mining': return t('automations.repeating.progressMining', 'Spotting what repeats…');
@@ -53,7 +53,7 @@ export function progressText(run: RunState, labelFor: LabelFor, t: TranslateFn):
  * the Shield blocked sends none. A code this page does not know yet is never
  * shown raw; a sentence from the server is.
  */
-export function skipReason(reason: string | null, t: TranslateFn): string {
+function skipReason(reason: string | null, t: TranslateFn): string {
     switch (reason) {
         case null:
         case 'shield':
@@ -116,7 +116,7 @@ function flowPills(run: RunState, t: TranslateFn): Array<string | undefined> {
 }
 
 /** The four steps of a patterns scan as canvas nodes, with their record pills. */
-export function flowNodes(run: RunState, labelFor: LabelFor, t: TranslateFn): MiniNodeProps[] {
+function flowNodes(run: RunState, labelFor: LabelFor, t: TranslateFn): MiniNodeProps[] {
     const current = run.phase != null && run.phase in PHASE_STEP ? PHASE_STEP[run.phase] : 0;
     const read = run.steps.filter(s => s.status === 'done').length;
     const reading = [...run.steps].reverse().find(s => s.status === 'start');

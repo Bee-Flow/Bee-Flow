@@ -8,7 +8,7 @@ import type { StageName } from '../../../../../api/stagesApi';
  * or fails wears a warning or error ring instead. The text label is always
  * there for assistive tech.
  */
-export interface StageMiniEntry {
+interface StageMiniEntry {
     name: StageName;
     release?: string | null;
     state?: 'ok' | 'waiting' | 'failing' | 'none';

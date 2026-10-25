@@ -25,7 +25,7 @@ import type { OrgUser } from '../accessAuditLabels';
  */
 
 /** One row of a status table: the tone (when it has one) and the compliance.* label. */
-export interface StatusEntry {
+interface StatusEntry {
     tone?: Tone;
     key: string;
     en: string;
@@ -123,7 +123,7 @@ export function isOverdue(dueAt?: DateLike, { closed = false, now = Date.now() }
 }
 
 /** A user option label: name — e-mail (the roster endpoint decides what it hands out). */
-export function userOptionLabel(u?: OrgUser | null): string {
+function userOptionLabel(u?: OrgUser | null): string {
     if (!u) return '';
     if (u.displayName) return u.email ? `${u.displayName} — ${u.email}` : u.displayName;
     return u.email || String(u.id);
@@ -240,7 +240,7 @@ export function Toggle({ checked, onChange, label, hint, testId, disabled }: Tog
 
 const BUTTON_BASE = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
 
-export type ActionVariant = 'primary' | 'ghost' | Tone;
+type ActionVariant = 'primary' | 'ghost' | Tone;
 
 export type ActionButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'className'> & {
     variant?: ActionVariant;

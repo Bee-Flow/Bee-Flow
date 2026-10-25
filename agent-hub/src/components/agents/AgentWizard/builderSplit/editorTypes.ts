@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 
 /** The `config` column of an agent row; every field may be missing. */
-export interface EditorAgentConfig {
+interface EditorAgentConfig {
     memoryEnabled?: boolean;
     useGeneralMemory?: boolean;
     attachedSkillIds?: string[];

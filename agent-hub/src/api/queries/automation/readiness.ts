@@ -94,7 +94,7 @@ const STATUSES: readonly AiActStatus[] = ['not_required', 'missing', 'valid', 'e
 const statusOf = (v: unknown): AiActStatus => (STATUSES.includes(v as AiActStatus) ? v as AiActStatus : 'not_required');
 
 /** Normalise GET /:id/readiness. Exported for the test; tolerant of junk. */
-export function parseReadiness(body: unknown): Readiness {
+function parseReadiness(body: unknown): Readiness {
     const raw = obj(body);
     const steps = obj(raw.stepsComplete);
     const test = raw.lastTest && typeof raw.lastTest === 'object' ? obj(raw.lastTest) : null;
@@ -164,7 +164,7 @@ export function parseSuggestion(body: unknown): AiActSuggestion {
 }
 
 /** Normalise the AiActState of GET/PUT /:id/ai-act. */
-export function parseAiActState(body: unknown): AiActState {
+function parseAiActState(body: unknown): AiActState {
     const raw = obj(body);
     return {
         required: raw.required === true,
@@ -187,15 +187,15 @@ export function answersToBody(a: AiActAnswers): Record<string, unknown> {
     };
 }
 
-export async function fetchReadiness(id: string, signal?: AbortSignal): Promise<Readiness> {
+async function fetchReadiness(id: string, signal?: AbortSignal): Promise<Readiness> {
     return parseReadiness(await getAutomationJson(id, '/readiness', 'readiness', signal));
 }
 
-export async function fetchAiActSuggestion(id: string, signal?: AbortSignal): Promise<AiActSuggestion> {
+async function fetchAiActSuggestion(id: string, signal?: AbortSignal): Promise<AiActSuggestion> {
     return parseSuggestion(await getAutomationJson(id, '/ai-act/suggestion', 'ai act suggestion', signal));
 }
 
-export async function saveAiActCheck(id: string, answers: AiActAnswers): Promise<AiActState> {
+async function saveAiActCheck(id: string, answers: AiActAnswers): Promise<AiActState> {
     return parseAiActState(await putAutomationJson(id, '/ai-act', answersToBody(answers), 'ai act check'));
 }
 

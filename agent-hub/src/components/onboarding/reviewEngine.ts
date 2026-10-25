@@ -51,7 +51,7 @@ export interface ReviewSessionArgs {
 export const REVIEW_STALE_DAYS = 14;
 export const REVIEW_SESSION_SIZE = 6;
 // "First try" — at most this many attempts still counts as clean/mastered.
-export const MASTERY_MAX_ATTEMPTS = 1;
+const MASTERY_MAX_ATTEMPTS = 1;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -86,7 +86,7 @@ export function stepIsReviewable(step: LessonStep | null | undefined): boolean {
     return false;
 }
 
-export function reviewableSteps(lesson: LessonDoc | null | undefined): LessonStep[] {
+function reviewableSteps(lesson: LessonDoc | null | undefined): LessonStep[] {
     return (lesson?.steps || []).filter(stepIsReviewable);
 }
 

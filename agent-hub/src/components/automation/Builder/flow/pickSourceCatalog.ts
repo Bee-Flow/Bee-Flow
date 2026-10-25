@@ -64,7 +64,7 @@ export function loadPickSources(): Promise<PickSource[]> {
 }
 
 /** Test seam: drop what has been loaded. */
-export function __resetPickSources(): void {
+function __resetPickSources(): void {
     cache = null;
     inFlight = null;
 }

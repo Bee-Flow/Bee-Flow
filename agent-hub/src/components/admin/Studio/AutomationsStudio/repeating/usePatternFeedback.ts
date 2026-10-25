@@ -7,7 +7,7 @@ import { toast } from '../../../../shared/Toast';
 import { feedbackSuggestion, suggestionKey } from './patternView';
 
 /** How long "Undo" stays offered before the choice is sent. */
-export const UNDO_MS = 6000;
+const UNDO_MS = 6000;
 
 export type HideAction = 'snoozed' | 'dismissed';
 

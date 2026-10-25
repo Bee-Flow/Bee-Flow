@@ -14,7 +14,7 @@ import { useProjectLive } from '../../components/projects/workspace/ProjectLiveC
 import { apiClient } from '../client';
 import type { CommentAnchor } from './comments';
 
-export type SuggestionStatus = 'open' | 'accepted' | 'rejected' | 'stale' | 'superseded';
+type SuggestionStatus = 'open' | 'accepted' | 'rejected' | 'stale' | 'superseded';
 
 export interface Suggestion {
     id: string;
@@ -42,11 +42,11 @@ export const SUGGESTIONS_DOM_EVENT = 'beeflow:document-suggestions';
 const enc = encodeURIComponent;
 const base = (documentId: string) => `/api/studio-documents/${enc(documentId)}/suggestions`;
 
-export const suggestionKeys = {
+const suggestionKeys = {
     document: (documentId: string) => ['studio-documents', 'suggestions', documentId] as const,
 };
 
-export function invalidateSuggestions(qc: QueryClient, documentId: string) {
+function invalidateSuggestions(qc: QueryClient, documentId: string) {
     return qc.invalidateQueries({ queryKey: suggestionKeys.document(documentId) });
 }
 

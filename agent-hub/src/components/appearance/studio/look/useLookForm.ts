@@ -27,7 +27,7 @@ export interface LookForm {
     wallpaperOverlay: number;
 }
 
-export type SetLookForm = Dispatch<SetStateAction<LookForm | null>>;
+type SetLookForm = Dispatch<SetStateAction<LookForm | null>>;
 
 /** What every section of the Look editor takes. */
 export interface LookSectionProps {
@@ -180,7 +180,7 @@ export function useLookForm() {
     };
 }
 
-export function buildFormFromTheme(theme: ThemeSettings): LookForm {
+function buildFormFromTheme(theme: ThemeSettings): LookForm {
     return {
         preset: theme.preset,
         accent: theme.accent,

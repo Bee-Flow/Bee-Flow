@@ -62,7 +62,7 @@ export type { PlanRows, ReadReport } from './upgradeClient.types';
  * is NOT in here — also one that is added next year — reads as “not determinable”,
  * never as “untouched”.
  */
-export const COMPARED_KINDS = new Set(['automation', 'app', 'webpage', 'agent']);
+const COMPARED_KINDS = new Set(['automation', 'app', 'webpage', 'agent']);
 
 /** De entiteitenlijsten van een manifest, met de enkelvoudige soortnaam erbij. */
 const ENTITY_LISTS = [

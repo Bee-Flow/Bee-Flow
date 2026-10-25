@@ -7,7 +7,7 @@ import { shortModel } from './format';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../../config/integrationIcons';
 
 // ── Source map ───────────────────────────────────────────────────────────────
-export const SOURCE_MAP: Record<string, { label: string; icon: LucideIcon; color: string }> = {
+const SOURCE_MAP: Record<string, { label: string; icon: LucideIcon; color: string }> = {
     agent: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
     chat: { label: 'Agent Chat', icon: Bot, color: '#0ea5e9' },
     direct: { label: 'Direct Chat', icon: MessageSquare, color: '#10b981' },
@@ -73,7 +73,7 @@ interface IntegrationLogoProps {
     size?: number;
 }
 
-export const IntegrationLogo = ({ integrationType, size = 26, fallbackColor }: IntegrationLogoProps) => {
+const IntegrationLogo = ({ integrationType, size = 26, fallbackColor }: IntegrationLogoProps) => {
     if (!hasIntegrationIcon(integrationType)) {
         return <IconBadge icon={Globe} color={fallbackColor || '#94a3b8'} size={size} />;
     }
@@ -96,7 +96,7 @@ interface ModelTierBadgeProps {
     model: string;
 }
 
-export const ModelTierBadge = ({ model, tier }: ModelTierBadgeProps) => (
+const ModelTierBadge = ({ model, tier }: ModelTierBadgeProps) => (
     <span className="[display:inline-flex] [align-items:center] [gap:4px] [flex-wrap:wrap]">
         <span className="[display:inline-flex] [align-items:center] [gap:3px] [padding:1px_6px] [border-radius:4px] [font-size:10px] [font-weight:600] [background:var(--bg-tertiary)] [color:var(--text-secondary)]" title={model}>
             <Cpu className="w-[9px] h-[9px]" /> {shortModel(model)}

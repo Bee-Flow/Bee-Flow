@@ -18,7 +18,7 @@ function MenuBtn({ icon, label, onClick, danger }: { icon: string; label: string
     );
 }
 
-export interface PageMenuActions {
+interface PageMenuActions {
     onSetHomepage: () => void;
     onDuplicate: () => void;
     onRename: () => void;

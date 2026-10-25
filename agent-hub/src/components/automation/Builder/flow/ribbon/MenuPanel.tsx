@@ -22,7 +22,7 @@ import type { RibbonApp, StepPayload } from './ribbonCategories';
 type AddFn = (payload: StepPayload) => void;
 
 // Past this many rows, reading top to bottom is slower than typing a word.
-export const MENU_FILTER_THRESHOLD = 6;
+const MENU_FILTER_THRESHOLD = 6;
 
 const HEADER = 'text-[11px] font-semibold uppercase tracking-wide text-[var(--text-tertiary)]';
 
@@ -146,7 +146,7 @@ function MenuPage({ title = null, hint = null, sections, filterLabel, emptyText 
 type PanelProps = Omit<PageProps, 'onOpenApp' | 'onBack'>;
 
 /** A dropdown's content. Opening an app of several actions swaps in its action list. */
-export default function MenuPanel(props: PanelProps) {
+function MenuPanel(props: PanelProps) {
     const { t } = useTranslation();
     const [app, setApp] = useState<RibbonApp | null>(null);
     const appSections = useMemo(() => (app ? [{ key: app.id, title: app.label, rows: actionRows(app) }] : []), [app]);

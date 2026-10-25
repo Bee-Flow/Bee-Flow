@@ -76,7 +76,7 @@ const cache = new Map<string, { at: number; record: AppRefRecord | null }>();
 const inflight = new Map<string, Promise<AppRefRecord | null>>();
 
 /** Cache key for a reference. Null for anything that is not a whole one. */
-export function appRefKey(ref: AppRef | null | undefined) {
+function appRefKey(ref: AppRef | null | undefined) {
     if (!ref?.appId || !ref?.screenId) return null;
     // Separator: an ESCAPE (`\u0001`), not a literal byte. A real 0x00 in the source makes the
     // file BINARY for git. Then a PR shows no diff, grep/ripgrep skip the lines, and the file

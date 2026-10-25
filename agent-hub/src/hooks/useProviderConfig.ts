@@ -27,7 +27,7 @@ import { mutate, ApiError, request, RefusedError } from '../api/mutate';
 
 /** The raw GET /ai/config body: per-provider has-flags and plain settings.
  *  Each card reads its own keys, so the shape stays open. */
-export interface ProviderConfig {
+interface ProviderConfig {
     /** Always a string: the server falls back to 'europe-west4' (routes/ai/config/instanceConfig.js). */
     googleVertexLocation?: string;
     /** Always a string: the server answers `|| ''` (routes/ai/config/instanceConfig.js). */
@@ -43,7 +43,7 @@ export interface ProviderMessage {
 }
 
 /** What to say through `onMessage` for either outcome; omit to stay silent. */
-export interface MutationMessages {
+interface MutationMessages {
     success?: string;
     error?: string;
 }

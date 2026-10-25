@@ -17,7 +17,7 @@ export const RECIPES = Object.freeze<{ id: string; }[]>([]);
 
 // Keyed by the built-in recipe's keys AND by kind (a custom playbook's
 // phases carry their own `label`; the kind word is the fallback).
-export const PHASE_LABEL_KEYS: Readonly<Record<string, [string, string]>> = Object.freeze({
+const PHASE_LABEL_KEYS: Readonly<Record<string, [string, string]>> = Object.freeze({
     table: ['playbooks.phase.table', 'Table'],
     automation: ['playbooks.phase.automation', 'Automation'],
     fill: ['playbooks.phase.fill', 'First rows'],
@@ -66,6 +66,6 @@ export function phaseLabel(phase: Pick<Phase, 'key' | 'kind' | 'label'>, t: (key
     return hit ? t(hit[0], hit[1]) : (phase.key || '');
 }
 
-export function recipeById(id: string) {
+function recipeById(id: string) {
     return RECIPES.find((r) => r.id === id) || null;
 }

@@ -34,7 +34,7 @@ export interface TemplateCard {
     sampleData?: { filename: string; url: string } | null;
 }
 
-export const automationTemplateKeys = {
+const automationTemplateKeys = {
     list: ['automation', 'templates'] as const,
 };
 
@@ -81,7 +81,7 @@ export function parseTemplates(body: unknown): TemplateCard[] {
     return out;
 }
 
-export async function fetchAutomationTemplates(signal?: AbortSignal): Promise<TemplateCard[]> {
+async function fetchAutomationTemplates(signal?: AbortSignal): Promise<TemplateCard[]> {
     const res = await authFetch(`${API_BASE}/api/automation/templates`, { signal });
     if (!res.ok) {
         let message = 'The templates could not be loaded.';

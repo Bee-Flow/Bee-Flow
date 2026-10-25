@@ -21,7 +21,7 @@ import useSheetHistory from './useSheetHistory';
 export type SheetSaveState = 'saved' | 'saving' | 'unsaved' | 'error';
 
 export const SAVE_DEBOUNCE_MS = 600;
-export const sheetQueryKey = (id: string, tabId?: string) => ['studio-document-sheet', id, tabId ?? 'default'] as const;
+const sheetQueryKey = (id: string, tabId?: string) => ['studio-document-sheet', id, tabId ?? 'default'] as const;
 
 export default function useSheet(id: string) {
     const queryClient = useQueryClient();

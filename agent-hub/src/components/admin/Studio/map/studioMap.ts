@@ -382,7 +382,7 @@ function direction(from: Point, to: Point): Point {
  * marker — a marker does not inherit the stroke colour everywhere, and on this map that
  * colour changes at every selection.
  */
-export function arrowPath(point: Point, dir: Point, size = 6): string {
+function arrowPath(point: Point, dir: Point, size = 6): string {
     const bx = point.x - dir.x * size;
     const by = point.y - dir.y * size;
     const px = -dir.y * size * 0.55;
@@ -541,7 +541,7 @@ export function countState(node: MapNode | null | undefined, counts: StudioCount
  * cannot carry: “9 · Counting everything in the organisation” under the nine own
  * automations of one builder.
  */
-export const ORG_WIDE_COUNT_KEYS: readonly string[] = Object.freeze(['agents']);
+const ORG_WIDE_COUNT_KEYS: readonly string[] = Object.freeze(['agents']);
 
 /**
  * The sentence that says what the number is about.

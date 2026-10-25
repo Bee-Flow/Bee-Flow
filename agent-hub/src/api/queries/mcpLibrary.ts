@@ -16,7 +16,7 @@ import { ApiError, apiClient } from '../client';
 
 export type RemoteMode = 'off' | 'official' | 'allowlist' | 'any';
 export type AuthStyle = 'none' | 'bearer' | 'header';
-export type CredentialMode = 'shared' | 'personal' | 'none';
+type CredentialMode = 'shared' | 'personal' | 'none';
 export type AccessMode = 'everyone' | 'groups' | 'nobody';
 
 export interface McpTool {
@@ -33,7 +33,7 @@ export interface McpAccess {
     groupIds: string[];
 }
 
-export interface CatalogCredential {
+interface CatalogCredential {
     key: string;
     label: string;
     help: string | null;
@@ -99,7 +99,7 @@ export interface ServerWideServer {
     access: McpAccess;
 }
 
-export interface LibraryPolicy {
+interface LibraryPolicy {
     remote: RemoteMode;
     allowsCustomUrls: boolean;
     allowedHosts: string[];

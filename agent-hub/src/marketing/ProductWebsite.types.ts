@@ -90,7 +90,7 @@ export interface SiteDesign {
 }
 
 /** Per-block colour overrides (block.style.colorOverrides). */
-export interface BlockColorOverrides {
+interface BlockColorOverrides {
     primary?: string;
     secondary?: string;
     accent?: string;
@@ -127,7 +127,7 @@ export interface BlockStyle {
 }
 
 /** Block content: the font fields the page walks, anything else passes through to the section. */
-export interface BlockContent {
+interface BlockContent {
     badgeStyle?: TextStyleBlob;
     titleStyle?: TextStyleBlob;
     leadStyle?: TextStyleBlob;

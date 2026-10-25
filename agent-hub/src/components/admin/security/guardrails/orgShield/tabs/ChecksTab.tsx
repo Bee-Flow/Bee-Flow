@@ -24,7 +24,7 @@ export type CheckStep = 'processing' | 'outbound';
  * Which kinds a TOOL may carry is not here: it lives in the detection matrix,
  * beside "do we even look for this". Card 4's footer points there.
  */
-export function ChecksTab({
+function ChecksTab({
     step, f, readOnly = false, licence, env, evidence = null, onGoTo, t,
 }: {
     step: CheckStep;

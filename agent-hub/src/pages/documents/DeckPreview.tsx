@@ -96,7 +96,7 @@ function Footer({ theme, onDark = false }: { theme: DeckTheme; onDark?: boolean 
     );
 }
 
-export function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeting · Q3' }: { theme: DeckTheme; title?: string; subtitle?: string }) {
+function CoverSlide({ theme, title = 'Quarterly review', subtitle = 'Board meeting · Q3' }: { theme: DeckTheme; title?: string; subtitle?: string }) {
     const tpl = !!theme.template;
     const accent = !tpl && theme.coverStyle === 'accent';
     const split = !tpl && theme.coverStyle === 'split';
@@ -130,7 +130,7 @@ function MiniChart({ theme }: { theme: DeckTheme }) {
     );
 }
 
-export function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTheme; title?: string }) {
+function ContentSlide({ theme, title = 'Overview of invoices' }: { theme: DeckTheme; title?: string }) {
     const { t } = useTranslation();
     const band = theme.titleStyle === 'band' && !theme.template;
     const cornerLogo = theme.logoPlacement === 'corner';

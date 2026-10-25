@@ -49,7 +49,7 @@ export function alignFor(col: GridColumn) {
 
 export const ALIGN_CLASS = { left: 'text-left', right: 'text-right', center: 'text-center' };
 
-export function isHttpUrl(value: unknown) {
+function isHttpUrl(value: unknown) {
     const v = String(value || '').trim().toLowerCase();
     return v.startsWith('https://') || v.startsWith('http://');
 }

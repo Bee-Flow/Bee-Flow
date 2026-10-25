@@ -48,7 +48,7 @@ export const StudioSectionHeader = StudioSectionHeaderJsx as unknown as React.Co
 
 export const FilterPills = FilterPillsJsx;
 
-export interface DangerZoneProps {
+interface DangerZoneProps {
     entityName: string;
     /** null = still checking, [] = nothing depends on it. */
     usage?: unknown[] | null;

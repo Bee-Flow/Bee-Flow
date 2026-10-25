@@ -33,7 +33,7 @@ import { RankCard } from './RankCard';
 import { WorthALook } from './WorthALook';
 
 /** The parts of the pane, in tab order. */
-export const ACTIVITY_PARTS = ['map', 'figures', 'lists', 'log'] as const;
+const ACTIVITY_PARTS = ['map', 'figures', 'lists', 'log'] as const;
 export type ActivityPart = typeof ACTIVITY_PARTS[number];
 
 export interface BodyProps {

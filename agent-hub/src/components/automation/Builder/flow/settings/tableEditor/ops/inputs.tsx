@@ -79,7 +79,7 @@ export function AddButton({ onClick, children }: { onClick: () => void; children
     );
 }
 
-export function RemoveButton({ onClick, label }: { onClick: () => void; label: string }) {
+function RemoveButton({ onClick, label }: { onClick: () => void; label: string }) {
     return (
         <button type="button" onClick={onClick} aria-label={label} title={label} className="shrink-0 rounded p-1 text-[var(--text-tertiary)] hover:text-[var(--error)]">
             <Trash2 size={13} />

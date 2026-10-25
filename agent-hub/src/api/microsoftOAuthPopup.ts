@@ -23,7 +23,7 @@ export interface MicrosoftOAuthResult {
     closed?: boolean;
 }
 
-export type MicrosoftOAuthErrorCode = 'auth_url_failed' | 'popup_blocked';
+type MicrosoftOAuthErrorCode = 'auth_url_failed' | 'popup_blocked';
 
 export interface MicrosoftOAuthError extends Error {
     code: MicrosoftOAuthErrorCode;

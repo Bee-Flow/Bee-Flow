@@ -78,7 +78,7 @@ function audienceLabel(t: TranslateFn, audience: string): string {
  * The walk itself lives in shared/resolveTarget.js — the one deep-link
  * resolver every "Show me" goes through; this keeps the modal's shape.
  */
-export function resolveIssueTarget(definition: PublishModalProps['definition'], path: unknown): IssueTarget | null {
+function resolveIssueTarget(definition: PublishModalProps['definition'], path: unknown): IssueTarget | null {
     if (typeof path !== 'string') return null;
     const hit = (resolveTarget as ResolveTargetFn)(definition, { path, kind: 'app' });
     return hit ? { screenId: hit.screenId, screenName: hit.screenName, nodeId: hit.nodeId } : null;

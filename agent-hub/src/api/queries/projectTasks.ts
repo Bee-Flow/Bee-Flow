@@ -16,7 +16,7 @@ export const TASK_PRIORITIES: readonly TaskPriority[] = ['low', 'normal', 'high'
 export interface ChecklistItem { id: string; text: string; done: boolean }
 
 /** Where a task came from: a meeting and one of its action items. */
-export interface TaskSource { kind: 'meeting'; id: string; itemId: string }
+interface TaskSource { kind: 'meeting'; id: string; itemId: string }
 
 /** What a task points at, including another task. A thread is a message of a chat that has replies. */
 export type TaskLink =

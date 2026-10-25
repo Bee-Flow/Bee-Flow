@@ -222,4 +222,3 @@ export const studioAppsApi = {
     },
 };
 
-export default studioAppsApi;

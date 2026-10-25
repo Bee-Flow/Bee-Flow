@@ -43,7 +43,7 @@ export interface SignupData {
 }
 
 /** The state setter LoginPage hands to each signup step. */
-export type SetSignupData = Dispatch<SetStateAction<SignupData>>;
+type SetSignupData = Dispatch<SetStateAction<SignupData>>;
 
 /** Outcome of a validation: `reason` is a stable code, `error` the translated message. */
 export interface ValidationResult {
@@ -83,7 +83,7 @@ const OBVIOUSLY_WEAK = new Set<string>([
     'beeflow', 'beeflow123', 'changeme1', 'secret123', 'sunshine1', 'football1',
 ]);
 
-export function isObviouslyWeakPassword(value: unknown): boolean {
+function isObviouslyWeakPassword(value: unknown): boolean {
     const raw = String(value || '');
     if (!raw) return false;
     const lower = raw.toLowerCase();

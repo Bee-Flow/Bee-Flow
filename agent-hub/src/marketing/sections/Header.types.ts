@@ -1,7 +1,7 @@
 import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
 import type { NavLinkData } from './navShared';
 
-export interface HeaderLogo {
+interface HeaderLogo {
     url?: string;
     src?: string;
     text?: string;

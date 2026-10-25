@@ -295,4 +295,4 @@ export const OWN_DATA_ROUTES = {
     'POST /api/org-privacy-shield/:orgId/custom-data/tune': ({ body }: Ctx) => tuneOf(body || {}),
 };
 
-export const _ownDataInternals = { lookalike, matcherFor, runBench, DEMO_PROJECTS };
+const _ownDataInternals = { lookalike, matcherFor, runBench, DEMO_PROJECTS };

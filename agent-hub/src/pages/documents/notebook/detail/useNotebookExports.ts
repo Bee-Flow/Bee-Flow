@@ -35,7 +35,7 @@ function decodeMermaid(encoded: string): string {
 }
 
 /** A file name that keeps letters in any script, and loses only what file systems refuse. */
-export function exportFileName(title: string, ext: string): string {
+function exportFileName(title: string, ext: string): string {
     const clean = String(title || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '_').replace(/\s+/g, ' ').trim().slice(0, 120);
     return `${clean || 'notebook'}.${ext}`;
 }

@@ -14,7 +14,7 @@ import { logger } from '../../../utils/logger';
 const BASE = `${API_BASE}/api/automation`;
 const enc = encodeURIComponent;
 
-export const automationSettingsKeys = {
+const automationSettingsKeys = {
     folders: ['automation', 'folders'] as const,
     catalog: ['automation', 'catalog'] as const,
     schedulePreview: (cron: string, tz: string, skipHolidays: boolean) =>
@@ -60,7 +60,7 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object'
 
 export interface AutomationFolder { id: string; name: string }
 
-export function parseFolders(body: unknown): AutomationFolder[] {
+function parseFolders(body: unknown): AutomationFolder[] {
     const raw = obj(body);
     const rows = Array.isArray(raw.folders) ? raw.folders : Array.isArray(body) ? body as unknown[] : [];
     const out: AutomationFolder[] = [];
@@ -88,7 +88,7 @@ export function useAutomationFoldersQuery({ enabled = true }: { enabled?: boolea
 // ── Description suggestion ─────────────────────────────────────────────────
 
 /** `language` is the reading language ('nl', 'en-GB'); the server writes the proposal in it. */
-export async function suggestDescription(id: string, language?: string | null): Promise<string> {
+async function suggestDescription(id: string, language?: string | null): Promise<string> {
     const lang = (language || '').trim();
     const body = /^[a-z]{2}(-[A-Za-z]{2})?$/.test(lang) ? { language: lang } : {};
     const res = obj(await postJson(`/${enc(id)}/suggest-description`, body, 'Bee could not suggest a description.'));
@@ -142,13 +142,13 @@ export async function downloadAutomationExport(id: string, title: string): Promi
 
 export interface SchedulePreview { valid: boolean; next: string[]; error: string | null }
 
-export function parseSchedulePreview(body: unknown): SchedulePreview {
+function parseSchedulePreview(body: unknown): SchedulePreview {
     const raw = obj(body);
     const next = Array.isArray(raw.next) ? raw.next.filter((s): s is string => typeof s === 'string') : [];
     return { valid: raw.valid !== false, next, error: text(raw.error) };
 }
 
-export async function fetchSchedulePreview(cron: string, tz: string, skipHolidays: boolean): Promise<SchedulePreview> {
+async function fetchSchedulePreview(cron: string, tz: string, skipHolidays: boolean): Promise<SchedulePreview> {
     // `skipHolidays` only travels when set: the preview body is strict, so a
     // server without the holiday calendar keeps answering the plain case.
     const body: Record<string, unknown> = { cron, tz, count: 3 };
@@ -169,7 +169,7 @@ export function useSchedulePreviewQuery(cron: string, tz: string, skipHolidays: 
 
 export interface TriggerProvider { id: string; label: string; events: string[] }
 
-export function parseTriggerProviders(body: unknown): TriggerProvider[] {
+function parseTriggerProviders(body: unknown): TriggerProvider[] {
     const triggers = Array.isArray(obj(body).triggers) ? obj(body).triggers as unknown[] : [];
     const appEvent = triggers.map(obj).find((t) => t.kind === 'app_event');
     const providers = Array.isArray(appEvent?.providers) ? appEvent.providers as unknown[] : [];

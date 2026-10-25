@@ -21,7 +21,7 @@ import { daysAgo, minutesAgo } from './common';
 import { LOTTE, MARK, ME, SANNE, type DemoPerson } from './automationsPeople';
 
 type Obj = Record<string, unknown>;
-export interface FlowDef { trigger?: Obj; steps: Obj[]; edges: Obj[]; [key: string]: unknown }
+interface FlowDef { trigger?: Obj; steps: Obj[]; edges: Obj[]; [key: string]: unknown }
 
 type ChangeKind = 'added' | 'removed' | 'changed' | 'moved';
 interface FieldChange {
@@ -256,7 +256,7 @@ interface VersionState {
     runs?: Array<{ automationId: string; version?: number | null; isTest?: boolean; status?: string }>;
 }
 
-export function historyOf(state: VersionState, a: AutomationLike): VersionRecord[] {
+function historyOf(state: VersionState, a: AutomationLike): VersionRecord[] {
     if (!state.versions[a.id]) {
         state.versions[a.id] = [row({
             ...saved(`ver_${a.id}_1`, a.version, daysAgo(1), ME), entry: { code: 'created', params: {} }, description: 'Created', definition: clone(a.definition as FlowDef),
@@ -307,7 +307,7 @@ function forward(rows: VersionRecord[], from: number, to: number): FieldChange[]
 
 const INVERT: Record<ChangeKind, ChangeKind> = { added: 'removed', removed: 'added', changed: 'changed', moved: 'moved' };
 
-export function fieldDiff(rows: VersionRecord[], version: number, other: number) {
+function fieldDiff(rows: VersionRecord[], version: number, other: number) {
     const changes = version >= other
         ? forward(rows, other, version)
         : forward(rows, version, other).map(c => ({ ...c, change: INVERT[c.change], before: c.after, after: c.before }));

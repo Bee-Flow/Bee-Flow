@@ -15,6 +15,5 @@ export const STUDIO_START: Readonly<StudioStartDescriptor & { Component: ReturnT
     Component: lazy(() => import('./StudioStart')),
 });
 
-export { isStudioStart };
+;
 
-export default STUDIO_START;

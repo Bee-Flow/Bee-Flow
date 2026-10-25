@@ -19,7 +19,7 @@ export type TFn = (key: string | undefined, fallbackOrParams?: string | Translat
  */
 
 /** Lucide glyph per step kind (artboard 1b "Stappen" column). */
-export const STEP_KIND_ICON = Object.freeze({
+const STEP_KIND_ICON = Object.freeze({
     [STEP_TYPES.SLIDE]: FileText,
     [STEP_TYPES.QUIZ]: ListChecks,
     [STEP_TYPES.EXERCISE]: PenLine,
@@ -61,7 +61,7 @@ interface StepMixLineProps {
     className?: string;
 }
 
-export function StepMixLine({ t, mix, className = '' }: StepMixLineProps) {
+function StepMixLine({ t, mix, className = '' }: StepMixLineProps) {
     const order = [STEP_TYPES.SLIDE, STEP_TYPES.QUIZ, STEP_TYPES.EXERCISE, STEP_TYPES.SIM, STEP_TYPES.TOUR, STEP_TYPES.ACTION];
     const parts = order.filter((k) => mix?.[k] > 0);
     if (!parts.length) return null;
@@ -141,7 +141,7 @@ export function EmojiTile({ icon, size = 40, locked = false, radius, fontSize }:
 }
 
 /** BEGINNER / INTERMEDIATE / ADVANCED — 10px uppercase hairline chip. */
-export function LevelChip({ t, level }: { t: TFn; level?: string }) {
+function LevelChip({ t, level }: { t: TFn; level?: string }) {
     if (!level) return null;
     return (
         <span
@@ -160,7 +160,7 @@ interface BadgeMarkProps {
     className?: string;
 }
 
-export function BadgeMark({ badge, earned, t, className = '' }: BadgeMarkProps) {
+function BadgeMark({ badge, earned, t, className = '' }: BadgeMarkProps) {
     if (!badge) return null;
     return (
         <span
@@ -174,7 +174,7 @@ export function BadgeMark({ badge, earned, t, className = '' }: BadgeMarkProps) 
 }
 
 /** "in window" / "beside the app" — the Plays chip (artboard 1b). */
-export function PlaysChip({ t, plays }: { t: TFn; plays?: string }) {
+function PlaysChip({ t, plays }: { t: TFn; plays?: string }) {
     const docked = plays === 'docked';
     const Icon = docked ? PanelRight : AppWindow;
     return (

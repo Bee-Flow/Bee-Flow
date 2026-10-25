@@ -7,7 +7,7 @@ import { errorCode, errorMessage, errorStatus } from '../../../../utils/caughtEr
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 
 /** What the model changed, as the server counts it (only the lengths are read). */
-export interface AiTableChanges {
+interface AiTableChanges {
     added?: unknown[];
     renamed?: unknown[];
     retyped?: unknown[];
@@ -15,7 +15,7 @@ export interface AiTableChanges {
 }
 
 /** The table as the AI sees it: sent along on a revise, and kept to undo one. */
-export interface AiTableCurrent {
+interface AiTableCurrent {
     name?: string;
     description?: string | null;
     fields?: unknown[];

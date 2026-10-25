@@ -6,10 +6,10 @@ export type TeamChatAiMode = 'off' | 'mention' | 'auto' | 'always';
 /** `system` is a notice such as "the AI now joins on its own": it has a code, no text. */
 export type TeamChatAuthorKind = 'user' | 'assistant' | 'system';
 /** Why the AI spoke: asked outright, or on its own (after a quiet moment, or an unanswered question). */
-export type TeamChatAiTrigger = 'ask' | 'mention' | 'always' | 'auto_quiet' | 'auto_unanswered';
-export type TeamChatNotice = 'ai_auto_on';
+type TeamChatAiTrigger = 'ask' | 'mention' | 'always' | 'auto_quiet' | 'auto_unanswered';
+type TeamChatNotice = 'ai_auto_on';
 
-export interface TeamChatLastMessage {
+interface TeamChatLastMessage {
     authorKind: TeamChatAuthorKind;
     authorUserId?: string | null;
     excerpt: string;
@@ -123,7 +123,7 @@ export interface TeamChatMessages {
     hasOlder: boolean;
 }
 
-export type TeamChatAiStatus = 'queued' | 'skipped' | 'busy';
+type TeamChatAiStatus = 'queued' | 'skipped' | 'busy';
 export interface TeamChatAiResult { status: TeamChatAiStatus; reason?: string }
 
 export interface CreateTeamChat { title?: string; aiMode: TeamChatAiMode; agentId?: string | null; message?: string; refs?: TeamChatRef[] }

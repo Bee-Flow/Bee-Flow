@@ -19,14 +19,14 @@ export interface DroppedBlock {
 }
 
 /** A non-fatal fix applied while normalizing. */
-export interface BlockWarning {
+interface BlockWarning {
     index: number;
     type: string;
     code: string;
     message: string;
 }
 
-export type NormalizedBlock = {
+type NormalizedBlock = {
     id: string;
     type: string;
     enabled: boolean;
@@ -34,7 +34,7 @@ export type NormalizedBlock = {
     style: Record<string, unknown>;
 };
 
-export interface NormalizeResult {
+interface NormalizeResult {
     block: NormalizedBlock | null;
     dropped: DroppedBlock | null;
     warnings: BlockWarning[];
@@ -54,11 +54,11 @@ export const KNOWN_BLOCK_TYPES = Object.keys(BLOCK_CATALOGUE);
 // Fields that live at the top level of a block object (everything else is
 // editable content). Used to detect the "fields not nested under content"
 // near-miss and to wrap them back in.
-export const STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'style', 'meta', 'version']);
+const STRUCTURAL_KEYS = new Set(['id', 'type', 'enabled', 'content', 'style', 'meta', 'version']);
 
 // Forgiving aliases for the common casing/spelling variants a hand-author or
 // an LLM produces for our type strings. Only safe, unambiguous mappings.
-export const TYPE_ALIASES: Record<string, string> = {
+const TYPE_ALIASES: Record<string, string> = {
     'social-proof': 'socialProof',
     socialproof: 'socialProof',
     'tech-stats': 'techStats',
@@ -100,7 +100,7 @@ function newBlockId() {
  * Normalize a single raw block toward the canonical shape
  * `{ id, type, enabled, content, style }`.
  */
-export function normalizeBlock(raw: unknown, index: number): NormalizeResult {
+function normalizeBlock(raw: unknown, index: number): NormalizeResult {
     const warnings: BlockWarning[] = [];
     if (!isPlainObject(raw)) {
         return { block: null, dropped: { index, type: null, reason: 'not-an-object' }, warnings };

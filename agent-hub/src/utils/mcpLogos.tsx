@@ -40,7 +40,7 @@ function letterColor(key: string | undefined) {
  * org's official logo for the large majority of MCP servers (they live in a
  * brand-owned GitHub org: stripe/, supabase/, getsentry/, …).
  */
-export function githubAvatarFromRepo(repo: string | null | undefined) {
+function githubAvatarFromRepo(repo: string | null | undefined) {
     const m = /github\.com\/([^/#?]+)/i.exec(String(repo || ''));
     if (!m) return null;
     const owner = m[1].trim();
@@ -67,7 +67,7 @@ type LogoCandidate =
     | { kind: 'emoji'; value: string }
     | { kind: 'letter'; char: string; color: string };
 
-export function mcpLogoCandidates(server: McpLogoServer = {}) {
+function mcpLogoCandidates(server: McpLogoServer = {}) {
     const out: LogoCandidate[] = [];
     if (isUrl(server.logo)) out.push({ kind: 'url', src: server.logo });
     if (isUrl(server.iconUrl)) out.push({ kind: 'url', src: server.iconUrl });
@@ -92,7 +92,7 @@ interface McpLogoProps {
     className?: string;
 }
 
-export function McpLogo({ server, size = 32, className = '' }: McpLogoProps) {
+function McpLogo({ server, size = 32, className = '' }: McpLogoProps) {
     const candidates = useMemo(() => mcpLogoCandidates(server), [server]);
     const [idx, setIdx] = useState(0);
 

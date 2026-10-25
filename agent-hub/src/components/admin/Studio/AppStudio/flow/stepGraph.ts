@@ -73,17 +73,17 @@ interface GraphNodeBase {
     scopeKey: string | null;
     scopeLabel: string | null;
 }
-export interface EntryNode extends GraphNodeBase { step: null; isEntry: true }
+interface EntryNode extends GraphNodeBase { step: null; isEntry: true }
 export interface StepNode extends GraphNodeBase { step: FlowStep; isEntry: false }
 export type GraphNode = EntryNode | StepNode;
 
 export interface GraphEdge { id?: string; from: string; to: string; label?: string | null }
 
 /** Steps that hold other steps, and where. */
-export const CONTAINER_KINDS = new Set(['condition', 'loop', 'switch']);
+const CONTAINER_KINDS = new Set(['condition', 'loop', 'switch']);
 
 /** The entry pill each container scope hangs from. */
-export const ENTRY_SUFFIX = '__entry__';
+const ENTRY_SUFFIX = '__entry__';
 
 function isObject(v: unknown): v is FlowStep { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 

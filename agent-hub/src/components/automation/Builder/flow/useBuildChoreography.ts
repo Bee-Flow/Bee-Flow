@@ -51,7 +51,7 @@ const CARD_W = 240;
 const CARD_H = 96;
 
 export const GHOST_ID = '__ghost__';
-export const GHOST_EDGE_ID = '__ghost_edge__';
+const GHOST_EDGE_ID = '__ghost_edge__';
 
 /**
  * React Flow's own fit-on-mount is a programmatic move too, and it fires

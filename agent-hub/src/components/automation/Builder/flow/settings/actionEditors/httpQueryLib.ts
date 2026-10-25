@@ -7,7 +7,7 @@
  */
 
 export type ArrayFormat = 'indices' | 'brackets' | 'repeat' | 'comma';
-export type QueryRow = { key: string; value: string };
+type QueryRow = { key: string; value: string };
 export type HttpQuery = {
     mode: 'fields' | 'json';
     items?: QueryRow[];

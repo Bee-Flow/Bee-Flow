@@ -77,7 +77,7 @@ export const VIEW = Object.freeze({
 });
 
 /** kindColors' key per branch — one legend, never a second palette. */
-export const BRANCH_KIND = Object.freeze({
+const BRANCH_KIND = Object.freeze({
     [VIEW.AUTOMATION]: 'automation', [VIEW.TABLE]: 'datatable', [VIEW.KB]: 'kb',
 });
 
@@ -94,7 +94,7 @@ export function fieldLabels(t: TranslateFn): Record<string, string> {
 }
 
 /** Which list a branch loads, and how it narrows what it offers. */
-export async function loadBranch(branch: BranchKey, api: ReturnType<typeof useAutomationApi>): Promise<BranchRow[]> {
+async function loadBranch(branch: BranchKey, api: ReturnType<typeof useAutomationApi>): Promise<BranchRow[]> {
     if (branch === VIEW.AUTOMATION) {
         const res = await api.listAutomations<{ automations?: AutomationRow[] }>();
         // `manual`, `agent_call`, `form` and `app_trigger` can only ever be the
@@ -274,7 +274,7 @@ export function ColumnMapping({ t, table, mapping, labels, onMap, onBack, onAddR
     );
 }
 
-export function BackRow({ t, onBack }: { t: TranslateFn; onBack: () => void }) {
+function BackRow({ t, onBack }: { t: TranslateFn; onBack: () => void }) {
     return (
         <button
             type="button"
@@ -288,7 +288,7 @@ export function BackRow({ t, onBack }: { t: TranslateFn; onBack: () => void }) {
     );
 }
 
-export function Note({ children }: { children?: React.ReactNode }) {
+function Note({ children }: { children?: React.ReactNode }) {
     return <div className="px-3 py-2 text-xs text-[var(--text-tertiary)]">{children}</div>;
 }
 

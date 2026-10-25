@@ -30,7 +30,7 @@ export interface LadderSignals extends Partial<Omit<AiActSignals, 'surface' | 's
 }
 
 /** The stored self-declaration, as far as the modal reads it. */
-export interface LadderAssessment {
+interface LadderAssessment {
     outcome?: string;
     current?: boolean;
     signals?: LadderSignals | null;
@@ -60,9 +60,9 @@ interface AssessmentState {
     serverSignals: LadderSignals | null;
 }
 
-export const ASSESSMENT_KINDS: readonly (string | undefined)[] = Object.freeze(['automation', 'agent']);
+const ASSESSMENT_KINDS: readonly (string | undefined)[] = Object.freeze(['automation', 'agent']);
 
-export function assessmentUrl(kind: string | undefined, id: string | number | boolean) {
+function assessmentUrl(kind: string | undefined, id: string | number | boolean) {
     return `${API}/ai-act/assessments/${encodeURIComponent(String(kind))}/${encodeURIComponent(id)}`;
 }
 
@@ -71,7 +71,7 @@ function isNotFound(err: unknown) {
 }
 
 /** Server signals win; every field the server left out is filled from the client fallback. */
-export function mergeSignals(server: LadderSignals | null, fallback: LadderSignals | null) {
+function mergeSignals(server: LadderSignals | null, fallback: LadderSignals | null) {
     if (!server) return fallback || null;
     if (!fallback) return server;
     const merged = { ...fallback, ...server, source: 'server' };

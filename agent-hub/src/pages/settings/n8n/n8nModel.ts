@@ -64,7 +64,7 @@ export interface PermissionSummary {
 export type FlashMessage = { type: 'success' | 'error'; text: string };
 
 /** The tool slug a discovered workflow gets: lower-case words joined by `_`, at most 50 characters. */
-export function slugForWorkflow(name: string): string {
+function slugForWorkflow(name: string): string {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 50);
 }
 

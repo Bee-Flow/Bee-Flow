@@ -32,7 +32,7 @@ const NAMING_PROPS = ['label', 'title', 'text', 'heading'];
  * actual width) and the warning form has always cut at 24 characters. Adding a
  * character here would change every existing warning string by one.
  */
-export function nodeOwnText(node: AppNode | null | undefined, max = 40): string {
+function nodeOwnText(node: AppNode | null | undefined, max = 40): string {
     const props = node?.props || {};
     for (const key of NAMING_PROPS) {
         const value = props[key];
@@ -75,4 +75,3 @@ export function nodeLabelWithType(node: AppNode | null | undefined): string {
     return text ? `${base} “${text}”` : base;
 }
 
-export default nodeLabel;

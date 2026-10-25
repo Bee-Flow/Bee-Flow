@@ -108,4 +108,3 @@ export function FeatureDemoEditor({ data, onChange }: { data: FeatureDemoData; o
     );
 }
 
-export default FeatureDemoEditor;

@@ -83,7 +83,7 @@ function HalfOpenStrip({ kinds, t }: { kinds: MatrixKind[]; t: TranslateFn }) {
     );
 }
 
-export function CategoryMatrix({
+function CategoryMatrix({
     categories, detect, toolPolicy, canBlockExternal, readOnly, allowPublicOrgs,
     toolKinds = null, days = 30, onToggleDetect, onSetDetect, onToggleTool, t,
 }: CategoryMatrixProps) {

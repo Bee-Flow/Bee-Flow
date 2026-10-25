@@ -82,4 +82,3 @@ export function useAppHeight(): void {
     }, []);
 }
 
-export default useAppHeight;

@@ -31,7 +31,7 @@ import { normaliseEgressRows, normaliseGuardRows } from './shieldRows';
 import { regionOf, type Region } from '../shieldPalette';
 
 /** What an entry was: a message to an AI model, a tool call, or a web search. */
-export type EntryType = 'model' | 'tool' | 'web_search';
+type EntryType = 'model' | 'tool' | 'web_search';
 
 type RawRow = Record<string, unknown>;
 

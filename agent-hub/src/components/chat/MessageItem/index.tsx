@@ -34,7 +34,7 @@ import { MessageErrorBoundary } from '../../shell/ErrorBoundary';
 // InputArea.footer.test.jsx.
 const COLUMN_MAX_W = 'max-w-[760px]';
 
-export interface MessageItemProps {
+interface MessageItemProps {
     idx: number;
     msg: ChatMessage;
     selectedAgent?: FeedbackAgent | null;

@@ -54,7 +54,7 @@ function writeCachedPack(packId: string, icons: IconMap): void {
     } catch (err) { logger.debug('quota / blocked — cache is best-effort', err); }
 }
 
-export function IconPackProvider({ children }: { children: ReactNode }) {
+function IconPackProvider({ children }: { children: ReactNode }) {
     const [icons, setIcons] = useState<IconMap>({});
     const [activePackId, setActivePackId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -176,4 +176,3 @@ export function useIconPack(): IconPackValue {
     return ctx;
 }
 
-export default useIconPack;

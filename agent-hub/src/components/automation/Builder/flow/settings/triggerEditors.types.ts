@@ -21,7 +21,7 @@ export interface TriggerDraft {
     [key: string]: unknown;
 }
 
-export type SetDraftField = (key: string, value: unknown) => void;
+type SetDraftField = (key: string, value: unknown) => void;
 
 /** The saved automation as the trigger forms read it (its id and its triggers). */
 export interface TriggerAutomation {
@@ -34,7 +34,7 @@ export interface TriggerAutomation {
 }
 
 /** One event an app can trigger on. */
-export interface ProviderEvent {
+interface ProviderEvent {
     id: string;
     label?: string;
     deliverability?: string;
@@ -42,7 +42,7 @@ export interface ProviderEvent {
 }
 
 /** One app that can start an automation (a stale backend still serves bare ids). */
-export interface AppEventProvider {
+interface AppEventProvider {
     id: string;
     label: string;
     defaultEvent?: string;

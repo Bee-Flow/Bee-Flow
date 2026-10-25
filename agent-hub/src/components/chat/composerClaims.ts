@@ -110,7 +110,7 @@ export function resolveTierClaim({
  * configuration only — the shield is switched on, but nothing is being checked
  * right now, which the user is better off knowing than being reassured about.
  */
-export const SHIELD_LINES = Object.freeze({
+const SHIELD_LINES = Object.freeze({
     replaces: Object.freeze({
         tone: 'ok', key: 'chat.composer.shield_replaces',
         en: 'Personal data is replaced before sending',

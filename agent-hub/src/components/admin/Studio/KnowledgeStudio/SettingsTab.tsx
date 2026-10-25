@@ -44,7 +44,7 @@ import type { SettingsTabProps, NameFieldsProps, SurfaceCardProps, PersonalNotic
  */
 
 /** The three surfaces the Studio offers. 'webpage' stays hidden — auto-created bases own it. */
-export const SURFACE_CARDS = Object.freeze([
+const SURFACE_CARDS = Object.freeze([
     { id: 'agent', Icon: Bot, kind: 'agent' },
     { id: 'direct_chat', Icon: MessageSquare, kind: 'chat' },
     { id: 'ai_step', Icon: Workflow, kind: 'automation' },

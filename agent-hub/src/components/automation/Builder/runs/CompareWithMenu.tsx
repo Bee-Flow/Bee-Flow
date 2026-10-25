@@ -11,7 +11,7 @@ import { POPOVER_PANEL, PRIMARY_BTN } from './runChecksStyles';
 const RECENT: RunListFilters = { status: 'all', period: 168, q: '', showTests: true };
 
 /** The run just before this one, else the newest other run. Exported for the test. */
-export function previousRun(runs: RunRowData[], current: RunRowData): RunRowData | null {
+function previousRun(runs: RunRowData[], current: RunRowData): RunRowData | null {
     const others = runs.filter(r => r.id !== current.id);
     return others.find(r => !current.startedAt || !r.startedAt || r.startedAt < current.startedAt) ?? others[0] ?? null;
 }

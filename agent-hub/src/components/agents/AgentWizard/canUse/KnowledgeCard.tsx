@@ -39,9 +39,9 @@ import type { datatableRows, knowledgeBaseRows } from './canUseFacts';
  */
 
 /** One linked knowledge base, as `canUseFacts.knowledgeBaseRows` builds it. */
-export type KbCardRow = ReturnType<typeof knowledgeBaseRows>[number];
+type KbCardRow = ReturnType<typeof knowledgeBaseRows>[number];
 /** One table grant, as `canUseFacts.datatableRows` builds it. */
-export type TableCardRow = ReturnType<typeof datatableRows>['rows'][number];
+type TableCardRow = ReturnType<typeof datatableRows>['rows'][number];
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
 function RowWarning({ children }: { children?: ReactNode }) {

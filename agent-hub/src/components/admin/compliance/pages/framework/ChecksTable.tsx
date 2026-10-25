@@ -38,7 +38,7 @@ import type { TableColumn } from '../../../../shared/DataTable';
  * whose title column would be squeezed to a word.
  */
 
-export const PILL_LABEL: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
+const PILL_LABEL: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
     all: ['compliance.tbl_pill_all', 'All'],
     fail: ['compliance.status_fail', 'Failing'],
     warn: ['compliance.status_warn', 'Needs attention'],
@@ -74,7 +74,7 @@ interface ChecksToolbarProps {
     testId?: string;
 }
 
-export function ChecksToolbar({ pill, onPill, counts, sort, onSort, query, onQuery, testId = 'checks-toolbar' }: ChecksToolbarProps) {
+function ChecksToolbar({ pill, onPill, counts, sort, onSort, query, onQuery, testId = 'checks-toolbar' }: ChecksToolbarProps) {
     const { t } = useTranslation();
     const pillOptions = visiblePills(counts, pill).map((value) => {
         const [key, en] = PILL_LABEL[value];

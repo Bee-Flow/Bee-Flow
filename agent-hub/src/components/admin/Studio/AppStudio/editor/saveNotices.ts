@@ -67,4 +67,3 @@ export function toSaveNotices(payload: SavePayload | null | undefined): SaveNoti
     return out;
 }
 
-export default toSaveNotices;

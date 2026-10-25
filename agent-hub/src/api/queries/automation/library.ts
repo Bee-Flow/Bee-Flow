@@ -26,7 +26,7 @@ export interface AutomationTrash {
     retentionDays: number;
 }
 
-export const automationLibraryKeys = {
+const automationLibraryKeys = {
     trash: ['automation', 'trash'] as const,
 };
 
@@ -71,7 +71,7 @@ export function parseTrash(body: unknown): AutomationTrash {
     return { automations, retentionDays: days };
 }
 
-export async function fetchAutomationTrash(signal?: AbortSignal): Promise<AutomationTrash> {
+async function fetchAutomationTrash(signal?: AbortSignal): Promise<AutomationTrash> {
     const res = await authFetch(`${BASE}/_trash`, { signal });
     if (!res.ok) throw await failure(res, 'Could not read the trash.');
     return parseTrash(await res.json());

@@ -4,7 +4,7 @@ import type { SegmentedOption } from '../primitives.types';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
 /** The motif keys of block.style (a missing key = no motif). */
-export interface BlockMotif {
+interface BlockMotif {
     motif?: string;
     motifSide?: string;
     motifTiles?: boolean;

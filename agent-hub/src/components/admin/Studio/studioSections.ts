@@ -36,7 +36,7 @@ export const STUDIO_ICONS: Record<'knowledge' | 'aiTasks' | 'webpages', LucideIc
 // studioRegistry.boundary.test.ts.
 
 /** What getProps(ctx) receives: Studio/index.jsx's props plus setEditing. */
-export interface StudioPropsCtx {
+interface StudioPropsCtx {
     onNavigate?: ((target: string) => void) | null;
     setEditing?: (editing: boolean) => void;
     [key: string]: unknown;

@@ -130,7 +130,7 @@ const NEXT_INDEX: Record<string, (pos: number, n: number) => number> = {
     End: (_pos, n) => n - 1,
 };
 
-export function ShieldPipeline({
+function ShieldPipeline({
     items, value, onChange, ariaLabel,
 }: {
     items: StripItem[];

@@ -24,7 +24,7 @@ import { findNode, findScreen, findSection } from '../state/definitionOps';
 const KINDS_ON_CANVAS = new Set(['component']);
 
 /** One entry of the batch being typed. */
-export interface ToolDraftItem {
+interface ToolDraftItem {
     kind: string;
     type?: unknown;
     label?: unknown;

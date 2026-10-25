@@ -30,7 +30,7 @@ interface Props {
 }
 
 /** The threshold behind "loose"; "normal" writes no threshold at all. */
-export const TOPIC_LOOSE_THRESHOLD = 0.15;
+const TOPIC_LOOSE_THRESHOLD = 0.15;
 
 type Level = 'loose' | 'normal' | 'custom';
 

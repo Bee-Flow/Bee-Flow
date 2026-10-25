@@ -26,7 +26,7 @@ export function LegalCaveat() {
     );
 }
 
-export function NeverKept() {
+function NeverKept() {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col gap-1" data-testid="cm-never-kept">

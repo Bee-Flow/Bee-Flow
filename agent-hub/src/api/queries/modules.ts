@@ -13,7 +13,7 @@ import { ApiError, apiClient } from '../client';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 
-export const moduleKeys = {
+const moduleKeys = {
     all: ['admin-modules'] as const,
     list: () => [...moduleKeys.all, 'list'] as const,
     marketplace: (q: string) => [...moduleKeys.all, 'marketplace', q] as const,
@@ -96,8 +96,8 @@ export function useRemoveModule() {
 // list above. All are requireSuperAdmin server-side; the panel derives display
 // state (buy / entitled / installing / expired / update) from these shapes.
 
-export type ModulePricingType = 'free' | 'one_time' | 'subscription';
-export type ModuleBillingInterval = 'month' | 'year';
+type ModulePricingType = 'free' | 'one_time' | 'subscription';
+type ModuleBillingInterval = 'month' | 'year';
 
 // Server-derived typed pricing (v3.1). Never hand-build this from `prices[]`
 // on the client — the server owns the derivation.
@@ -108,7 +108,7 @@ export interface MarketplacePricing {
     interval?: ModuleBillingInterval | null;
 }
 
-export interface MarketplaceEntitlement {
+interface MarketplaceEntitlement {
     status: string;            // active | pending | expired | revoked | …
     expiresAt: string | null;  // ISO; null for perpetual (one-time / free)
 }
@@ -179,7 +179,7 @@ export interface UpdateResponse {
 
 // ─── M1 runtime health / logs / audit ───────────────────────────────────────
 
-export type LedgerVersionStatus =
+type LedgerVersionStatus =
     'active' | 'retired' | 'staged' | 'failed' | 'incompatible' | 'quarantined';
 
 export interface ModuleHealthRow {
@@ -217,7 +217,7 @@ export interface ModuleLogsResponse {
     replica?: string | null;
 }
 
-export interface ModuleAuditResponse {
+interface ModuleAuditResponse {
     audit: Array<Record<string, unknown>>;
 }
 
@@ -414,7 +414,7 @@ export function useModulesHealth(opts: { enabled?: boolean } = {}) {
     });
 }
 
-export function useModuleHealth(id: string | null, opts: { enabled?: boolean } = {}) {
+function useModuleHealth(id: string | null, opts: { enabled?: boolean } = {}) {
     return useQuery<ModuleHealthRow | null, Error>({
         queryKey: moduleKeys.moduleHealth(id || ''),
         queryFn: ({ signal }) =>
@@ -449,7 +449,7 @@ export function useReactivateModule() {
     });
 }
 
-export function useModuleAudit(moduleId?: string | null, opts: { limit?: number; enabled?: boolean } = {}) {
+function useModuleAudit(moduleId?: string | null, opts: { limit?: number; enabled?: boolean } = {}) {
     return useQuery<ModuleAuditResponse | null, Error>({
         queryKey: moduleKeys.audit(moduleId || ''),
         queryFn: ({ signal }) =>

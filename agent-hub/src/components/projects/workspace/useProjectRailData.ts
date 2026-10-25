@@ -15,7 +15,7 @@ import { kindColorVar } from '../../shared/kindColors';
 import { roleOfProject, type WorkspaceTabId } from './types';
 import { useProjectUnread } from './useProjectUnread';
 
-export type Glyph = React.ComponentType<{ className?: string; style?: React.CSSProperties; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' }>;
+type Glyph = React.ComponentType<{ className?: string; style?: React.CSSProperties; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' }>;
 export interface RailItem { id: WorkspaceTabId; label: string; Icon: Glyph; iconStyle: React.CSSProperties }
 export interface RailGroupDef { id: 'collaborate' | 'content' | 'manage'; label: string; items: RailItem[] }
 export type RailCounts = Partial<Record<WorkspaceTabId, number | null>>;

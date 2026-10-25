@@ -18,7 +18,7 @@ import type { IconType, ItemSection, PaletteItem } from './ribbonCategories';
 type Translate = (key: string, fallback?: string, params?: Record<string, unknown>) => string;
 
 /** A command that adds on click. */
-export interface ItemPillPlan {
+interface ItemPillPlan {
     type: 'item';
     key: string;
     item: PaletteItem;
@@ -39,7 +39,7 @@ export interface MenuPillPlan {
     origin: string | null;
 }
 
-export type PillPlan = ItemPillPlan | MenuPillPlan;
+type PillPlan = ItemPillPlan | MenuPillPlan;
 /** The pills between two dividers. */
 export type SegmentPlan = PillPlan[];
 

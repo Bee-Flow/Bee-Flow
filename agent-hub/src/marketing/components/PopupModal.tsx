@@ -47,7 +47,7 @@ const TABBABLE = [
 ].join(',');
 
 /** Keeps Tab and Shift+Tab inside `dialog`: past the last control focus wraps to the first, and back. */
-export function trapTab(e: React.KeyboardEvent<HTMLElement>, dialog: HTMLElement | null): void {
+function trapTab(e: React.KeyboardEvent<HTMLElement>, dialog: HTMLElement | null): void {
     if (e.key !== 'Tab' || !dialog) return;
     const items = Array.from(dialog.querySelectorAll<HTMLElement>(TABBABLE));
     if (items.length === 0) {

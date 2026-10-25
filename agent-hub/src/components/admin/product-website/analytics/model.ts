@@ -43,7 +43,7 @@ function readField(row: BreakdownRow, field: string) {
     return null;
 }
 
-export function pivotRow(row: BreakdownRow, fields: string[]): PivotOut {
+function pivotRow(row: BreakdownRow, fields: string[]): PivotOut {
     const out: PivotOut = {
         views: Number(row.views) || 0,
         visitors: Number(row.visitors) || 0,
@@ -108,7 +108,7 @@ const CHANNEL_LABEL_KEYS: Record<string, string> = {
 /** Channel names double as identifiers; translate only for display (pass `t`). */
 export const channelLabel = (label: string, t: Translate | undefined) => (t && CHANNEL_LABEL_KEYS[label] ? t(CHANNEL_LABEL_KEYS[label], label) : label);
 
-export const CHANNEL_ORDER = ['Direct', 'Search', 'Referral', 'Social', 'Email', 'AI assistants', 'Campaign', 'Paid'];
+const CHANNEL_ORDER = ['Direct', 'Search', 'Referral', 'Social', 'Email', 'AI assistants', 'Campaign', 'Paid'];
 
 /** `[{x: referrer, y: count}]` → channel totals, biggest first. */
 export function toChannels(referrerRows: { x?: string | null; y?: number }[], { direct = 0 } = {}) {

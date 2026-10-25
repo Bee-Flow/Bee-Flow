@@ -265,7 +265,7 @@ export async function initOpenObserve() {
 
 // Optional: give RUM a low-cardinality view name instead of raw pathnames
 // that carry agent/notebook IDs.
-export function setTelemetryView(name: string) {
+function setTelemetryView(name: string) {
     // `started` is set before the dynamic import resolves, so the null check on
     // the SDK matters: a view change during that window is dropped rather than
     // throwing.
@@ -273,4 +273,4 @@ export function setTelemetryView(name: string) {
     try { openobserveRum.startView({ name }); } catch (err) { logger.debug('noop', err); }
 }
 
-export function isTelemetryEnabled() { return started; }
+function isTelemetryEnabled() { return started; }

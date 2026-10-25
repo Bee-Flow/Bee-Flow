@@ -98,6 +98,6 @@ export function useAnalyticsQuery<P = unknown>(kind: string, name: string, scope
 }
 
 /** Convenience wrapper for a breakdown dimension (`metrics`). */
-export function useMetrics(type: string, scope: AnalyticsScope, { limit = 10, enabled = true } = {}) {
+function useMetrics(type: string, scope: AnalyticsScope, { limit = 10, enabled = true } = {}) {
     return useAnalyticsQuery('query', 'metrics', scope, { params: { type, limit }, enabled });
 }

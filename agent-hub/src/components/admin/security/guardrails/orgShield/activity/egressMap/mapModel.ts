@@ -22,8 +22,8 @@ import { REGION_FILL, type Region } from '../../shieldPalette';
 import { boxOf, type Box, type PinCluster, type Pt, type Size } from './mapGeometry';
 
 /** Where a destination is, as the server says: the same five values as a Privacy Shield region. */
-export type LocationState = Region;
-export type LocationBasis =
+type LocationState = Region;
+type LocationBasis =
     | 'socket' | 'edge_header' | 'recent_socket' | 'proxy' | 'child_process'
     | 'browser' | 'backfill' | 'none' | 'no_geo_db';
 
@@ -85,7 +85,7 @@ export interface MapOrigin {
 }
 
 /** The band of latitudes the map frames: Canada, Greenland and New Zealand in, Antarctica out. */
-export const WORLD_LAT: [number, number] = [-58, 84];
+const WORLD_LAT: [number, number] = [-58, 84];
 
 const STATES = new Set<LocationState>(['local', 'eu', 'outside', 'via_network', 'unknown']);
 const BASES = new Set<LocationBasis>([
@@ -123,7 +123,7 @@ function legacyState(raw: RawDestination): LocationState {
     return 'unknown';
 }
 
-export function hostOf(raw: RawDestination): string {
+function hostOf(raw: RawDestination): string {
     return str(raw.dest_host) || str(raw.tls_servername) || str(raw.server_endpoint);
 }
 
@@ -214,7 +214,7 @@ export function unplacedReason(d: MapDestination): UnplacedReason {
 }
 
 /** Server coordinates first, the country pin second. null when neither is known. */
-export function lonLatOf(d: MapDestination, pins: Record<string, number[]>): { lonLat: Pt; exact: boolean } | null {
+function lonLatOf(d: MapDestination, pins: Record<string, number[]>): { lonLat: Pt; exact: boolean } | null {
     if (d.lat !== null && d.lon !== null) return { lonLat: [d.lon, d.lat], exact: true };
     const pin = d.countryCode ? pins[d.countryCode] : undefined;
     if (pin && pin.length === 2) return { lonLat: [pin[0], pin[1]], exact: false };
@@ -248,7 +248,7 @@ export const ORIGIN_FILL = REGION_FILL.local;
 /** A pin whose destination got none of the kind being filtered on. */
 export const MUTED_FILL = 'var(--text-tertiary)';
 
-export type LineDash = 'solid' | 'dashed' | 'dotted';
+type LineDash = 'solid' | 'dashed' | 'dotted';
 export interface LineStyle { colour: string; dash: LineDash; animated: boolean }
 
 /**

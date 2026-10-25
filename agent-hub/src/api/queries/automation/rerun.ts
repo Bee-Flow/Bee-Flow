@@ -28,7 +28,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 
 /** The wire plan, reduced to what the screen uses. Exported for the test. */
-export function parseRerunPlan(raw: unknown): RerunPlan {
+function parseRerunPlan(raw: unknown): RerunPlan {
     const p = isRecord(raw) ? raw : {};
     const effects = Array.isArray(p.sideEffects) ? p.sideEffects : [];
     return {

@@ -12,14 +12,14 @@ export interface TemplateGalleryProps {
 }
 
 /** Categories in the order the templates bring them, with how many each has. */
-export function categoryCounts(templates: TemplateCard[]): Array<{ name: string; count: number }> {
+function categoryCounts(templates: TemplateCard[]): Array<{ name: string; count: number }> {
     const counts = new Map<string, number>();
     for (const tm of templates) if (tm.category) counts.set(tm.category, (counts.get(tm.category) || 0) + 1);
     return [...counts].map(([name, count]) => ({ name, count }));
 }
 
 /** Search reads the title, the sentence, the category, the tags and the apps. */
-export function matchesTemplate(tm: TemplateCard, query: string, category: string | null): boolean {
+function matchesTemplate(tm: TemplateCard, query: string, category: string | null): boolean {
     if (category && tm.category !== category) return false;
     if (!query) return true;
     const hay = [tm.title, tm.description, tm.category || '', ...tm.tags, ...tm.requiredIntegrations].join(' ').toLowerCase();

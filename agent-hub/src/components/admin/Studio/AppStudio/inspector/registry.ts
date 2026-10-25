@@ -23,7 +23,7 @@ import SpecPanel from './panels/SpecPanel';
 import { getComponentEntry } from '../runtime/componentRegistry';
 
 /** What the inspector hands every per-type Content panel. */
-export interface InspectorPanelProps {
+interface InspectorPanelProps {
     node: AppNode;
     definition: AppDefinition;
     onCommit: (definition: AppDefinition) => void;

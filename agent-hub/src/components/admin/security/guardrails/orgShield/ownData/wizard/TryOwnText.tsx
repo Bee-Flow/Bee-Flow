@@ -20,7 +20,7 @@ import { DegradedNote, MarkedText } from './TestSentence';
  * find is just a find. A sentence worth keeping goes into the test set with
  * its finds already marked, to confirm or correct there.
  */
-export function TryOwnText({ state, dispatch, ctx, t }: StepProps) {
+function TryOwnText({ state, dispatch, ctx, t }: StepProps) {
     const id = useId();
     const [text, setText] = useState('');
     const [result, setResult] = useState<{ text: string; found: Span[]; preview: string | null; degraded: boolean } | null>(null);

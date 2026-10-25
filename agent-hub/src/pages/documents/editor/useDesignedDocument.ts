@@ -218,4 +218,4 @@ export default function useDesignedDocument({ initial, canvasRef, workspaceRef, 
     };
 }
 
-export type DesignedDocumentState = ReturnType<typeof useDesignedDocument>;
+type DesignedDocumentState = ReturnType<typeof useDesignedDocument>;

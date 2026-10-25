@@ -33,7 +33,7 @@ function readWebSearchEnabled(): boolean {
 }
 
 /** The test-chat mode as the request needs it. */
-export interface TurnTestChat {
+interface TurnTestChat {
     asGroup?: string;
     sessionId: string | null;
     /** The outbox: decisions to send ONCE with this turn, keyed by argsKey. */

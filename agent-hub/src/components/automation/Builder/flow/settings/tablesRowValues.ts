@@ -54,7 +54,7 @@ export interface ValuesMapReading {
 }
 
 /** An upstream field Auto-map may draw from. */
-export interface FeedField {
+interface FeedField {
     key?: string;
     path?: string;
     perIteration?: boolean;
@@ -69,7 +69,7 @@ export interface FeedGroup {
 }
 
 /** The two tools whose `values` input the editor owns. */
-export const TABLES_ROW_TOOLS = Object.freeze(['nextcloud_tables_create_row', 'nextcloud_tables_update_row']);
+const TABLES_ROW_TOOLS = Object.freeze(['nextcloud_tables_create_row', 'nextcloud_tables_update_row']);
 
 export function isTablesRowTool(tool: string) {
     return TABLES_ROW_TOOLS.includes(tool);
@@ -115,7 +115,7 @@ export function literalTableId(binding: unknown) {
  * shape nextcloud_tables_list_columns already returns —
  * `{ tableId, count, columns: [{ id, title, type, subtype, mandatory, description }] }`.
  */
-export function columnsEndpoint(tableId: string | number) {
+function columnsEndpoint(tableId: string | number) {
     return `${API_BASE}/api/automation/catalog/nextcloud-tables/${encodeURIComponent(tableId)}/columns`;
 }
 

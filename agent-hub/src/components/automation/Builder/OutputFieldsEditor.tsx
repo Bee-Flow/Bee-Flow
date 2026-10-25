@@ -13,7 +13,7 @@ import type { OutputRecord, OutputRow, OutputShape } from './outputDrafts';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 
-export interface OutputFieldsEditorProps {
+interface OutputFieldsEditorProps {
     shape: OutputShape;
     /** The sheet's JSON text — the draft is read out of it and written back to it. */
     text: string;

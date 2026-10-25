@@ -72,16 +72,16 @@ import { confirmDecisionOf, type ConfirmBook } from './MessageItem/toolConfirmSt
 import type { AnswerRow, HeldAction, HeldActionRow, MissingRow, OmittedFact, PhaseTrailEntry, QuestionRow, RuleRow, SourcesRow, ToolConfirmCall, ToolEntry, ToolTimes, TraceMessage, TraceRow, TraceSource } from './answerTrace.types';
 
 /** De vijf regels, in leesvolgorde. */
-export const TRACE_ROWS = Object.freeze(['question', 'sources', 'rule', 'held_action', 'answer']);
+const TRACE_ROWS = Object.freeze(['question', 'sources', 'rule', 'held_action', 'answer']);
 
 /** De drie standen van een regel. 'judged' is er precies één: de attributie. */
-export const TRACE_STATES = Object.freeze(['recorded', 'judged', 'missing']);
+const TRACE_STATES = Object.freeze(['recorded', 'judged', 'missing']);
 
 /**
  * Waarom een regel ontbreekt. Gesloten lijst — elke reden krijgt één zin in de
  * UI, en elke zin gaat over de meting, nooit over de agent.
  */
-export const MISSING_REASONS = Object.freeze([
+const MISSING_REASONS = Object.freeze([
     /** Nothing has been recorded for this turn (e.g. a reloaded conversation). */
     'no_trace',
     /** Something has been recorded, but a step like that was not among it. */
@@ -97,7 +97,7 @@ export const MISSING_REASONS = Object.freeze([
 ]);
 
 /** De feiten die per regel weggelaten kunnen zijn. Gesloten lijst. */
-export const OMITTED_FACTS = Object.freeze([
+const OMITTED_FACTS = Object.freeze([
     'query', 'results', 'model', 'tone', 'language', 'sentences',
 ]);
 
@@ -145,7 +145,7 @@ function sumDurations(steps: Array<{ durationMs?: number | null } | null | undef
 }
 
 /** De tools die deze beurt draaide, zoals "How I got this answer" ze telt. */
-export function toolStepsOf(msg: TraceMessage | null | undefined): ToolEntry[] {
+function toolStepsOf(msg: TraceMessage | null | undefined): ToolEntry[] {
     const history = Array.isArray(msg?.toolHistory) ? msg.toolHistory : [];
     return history.filter((t: ToolEntry | null) => t && t.name !== HIDDEN_TOOL);
 }
@@ -342,7 +342,7 @@ const OPEN_ENDED_STAGE = 'streaming_start';
  * must put other WORDS next to it: "until the answer began", not "until the last
  * step". Hence this separate question instead of an invented end time.
  */
-export function traceSpanOpen(trail: unknown) {
+function traceSpanOpen(trail: unknown) {
     const rows = Array.isArray(trail) ? trail : [];
     let lastAt = null;
     let lastOpen = false;

@@ -30,7 +30,7 @@ export interface TrendSeries {
 }
 
 /** A horizontal reference line (e.g. a Core Web Vitals threshold) at value `y`. */
-export interface TrendRefLine {
+interface TrendRefLine {
     y: number;
     label?: string;
     color?: string;
@@ -211,4 +211,4 @@ export default function TrendChart({
         </div>
     );
 }
-export { PAD };
+;

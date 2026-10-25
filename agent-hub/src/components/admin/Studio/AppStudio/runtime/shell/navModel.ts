@@ -75,4 +75,3 @@ export function navModel(definition: NavDefinition | null | undefined): NavModel
     return { ungrouped, groups, flat };
 }
 
-export default navModel;

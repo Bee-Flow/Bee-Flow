@@ -24,11 +24,11 @@ import type { ModelEntry } from '../../../api/modelMeta';
 import Modal from '../../shared/Modal';
 import { useTranslation } from '../../../hooks/useTranslation';
 
-export interface SelectableModel extends ModelEntry {
+interface SelectableModel extends ModelEntry {
     providerId?: string;
 }
 
-export interface ModelSelection {
+interface ModelSelection {
     providerId: string;
     modelId: string;
 }

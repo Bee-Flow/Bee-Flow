@@ -11,7 +11,7 @@ export interface RuntimeInfo {
 }
 
 /** One model a runtime reports serving. */
-export interface ProbeModel {
+interface ProbeModel {
     id: string;
     name?: string;
     /** Always set: the server describes every served model (core/providers/localModels.js). */
@@ -61,7 +61,7 @@ export interface PullProgress {
 export type RuntimeOutcome = { ok: true } | { ok: false; error: string };
 
 /** One runtime found by the autodetect scan. */
-export interface DetectedRuntime {
+interface DetectedRuntime {
     type?: string;
     label?: string;
     url: string;

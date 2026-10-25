@@ -25,7 +25,7 @@ const tr = (t: TranslateFn, key: string, en: string, params?: TranslateParams) =
 
 // Server-managed on every table (dataModel.SYSTEM_COLUMNS); a declared field may
 // never claim one, so a generated key has to step around them too.
-export const SYSTEM_COLUMNS = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
+const SYSTEM_COLUMNS = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
 
 /** One relation, as the diagram draws it. */
 export interface RelationEdge {

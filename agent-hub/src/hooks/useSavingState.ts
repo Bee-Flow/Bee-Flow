@@ -19,7 +19,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type SavingStateKind = 'idle' | 'saving' | 'saved' | 'error';
+type SavingStateKind = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface UseSavingStateOptions {
     /** ms to show the 'saved' state before auto-resetting to 'idle'. */

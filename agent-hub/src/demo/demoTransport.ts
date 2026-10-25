@@ -1,4 +1,4 @@
-export interface DemoContext {
+interface DemoContext {
     state: object;
     params: Record<string, string>;
     body: Record<string, unknown> | null;
@@ -8,7 +8,7 @@ export interface DemoContext {
 }
 
 /** A handler names only the members of the context it reads, typed to its own fixture state. */
-export type DemoHandler = { bivarianceHack(ctx: Partial<DemoContext>): unknown }['bivarianceHack'];
+type DemoHandler = { bivarianceHack(ctx: Partial<DemoContext>): unknown }['bivarianceHack'];
 export type DemoRoutes = Record<string, DemoHandler>;
 
 interface CompiledRoute {
@@ -156,4 +156,4 @@ export function createDemoTransport(routes: DemoRoutes, state: object) {
     };
 }
 
-export const __test__ = { toPath, compile };
+const __test__ = { toPath, compile };

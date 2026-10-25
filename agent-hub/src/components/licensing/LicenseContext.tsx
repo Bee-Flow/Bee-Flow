@@ -6,7 +6,7 @@ import { isAbortError, messageOf } from '../../utils/caughtError';
 import { request, RefusedError } from '../../api/mutate';
 
 /** A licence or subscription row as /api/license/status returns it. */
-export interface LicenseRecord {
+interface LicenseRecord {
     tier?: string;
     expiresAt?: string | null;
     issuer?: string;
@@ -29,7 +29,7 @@ export interface LicenseState {
     error: string | null;
 }
 
-export interface LicenseContextValue extends LicenseState {
+interface LicenseContextValue extends LicenseState {
     hasFeature: (name: string) => boolean;
     hasTier: (required: string) => boolean;
     entLoading?: boolean;
@@ -71,7 +71,7 @@ type NavigateToBilling = (arg: { feature: string | null; requiredTier: string })
 // before the Pro tier was retired) are normalised to `enterprise` via
 // LEGACY_TIER_ALIAS — same contract as the server side.
 export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];
-export const LEGACY_TIER_ALIAS: Record<string, string> = { pro: 'enterprise' };
+const LEGACY_TIER_ALIAS: Record<string, string> = { pro: 'enterprise' };
 export const TIER_RANK: Record<string, number> = Object.fromEntries(TIER_HIERARCHY.map((t, i) => [t, i]));
 
 function normalizeTier(tier: string) {
@@ -346,7 +346,7 @@ export function RequireTier({
  * <LockedIfBelow tier="enterprise">{({ locked, requiredTier }) => (...)}</LockedIfBelow>
  * Render-prop helper for lightweight inline gating (lock icons, tooltips).
  */
-export function LockedIfBelow({ tier = 'enterprise', feature = null, children }: {
+function LockedIfBelow({ tier = 'enterprise', feature = null, children }: {
     tier?: string;
     feature?: string | null;
     children: (arg: { locked: boolean; requiredTier: string; currentTier: string; ctx: LicenseContextValue }) => React.ReactNode;

@@ -42,7 +42,7 @@
     "build:runtime": "vite build --config vite.runtime.config.js",
     "build:world-atlas": "node scripts/build-world-atlas.mjs",
     "lint": "eslint .",
-    "lint:dead": "npx --yes knip@6.37.0 --include files",
+    "lint:dead": "npx --yes knip@6.37.0 --include files,exports,types,dependencies,unlisted",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",

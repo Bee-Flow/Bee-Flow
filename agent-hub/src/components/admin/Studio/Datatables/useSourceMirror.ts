@@ -193,4 +193,4 @@ export default function useSourceMirror(table: MirrorHookTable) {
 
 export type SourceMirror = NonNullable<ReturnType<typeof useSourceMirror>>;
 
-export { PULSE_MS };
+;

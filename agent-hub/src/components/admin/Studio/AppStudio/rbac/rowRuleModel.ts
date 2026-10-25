@@ -208,7 +208,7 @@ const DATE_OP_LABELS: Record<string, [string, string]> = {
     '<=': ['studio_apps_edit.row_rule.op_on_or_before', 'is on or before'],
 };
 
-export function operatorLabel(op: string, kind: string, t: TranslateFn | null = null) {
+function operatorLabel(op: string, kind: string, t: TranslateFn | null = null) {
     const entry = ((kind === 'date' || kind === 'datetime') && DATE_OP_LABELS[op]) || OP_LABELS[op];
     return entry ? tr(t, entry[0], entry[1]) : op;
 }
@@ -414,7 +414,7 @@ function describeValue(condition: RuleCondition, t: TranslateFn | null = null) {
     return `“${condition.value}”`;
 }
 
-export function describeCondition(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
+function describeCondition(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
     const field = findRuleField(table, condition.field, t);
     const name = field ? field.name : condition.field;
     const kind = valueKindOf(field);

@@ -65,14 +65,14 @@ interface SuggestedTestDraft {
  */
 
 /** Elke lijst is één item per regel. Simpel te bewerken, simpel te lezen. */
-export function linesToList(text: unknown): string[] {
+function linesToList(text: unknown): string[] {
     return String(text || '')
         .split('\n')
         .map(s => s.trim())
         .filter(Boolean);
 }
 
-export function listToLines(list: unknown): string {
+function listToLines(list: unknown): string {
     return (Array.isArray(list) ? list : []).join('\n');
 }
 

@@ -92,4 +92,4 @@ export function sectionsWithErrors(step: EditedStep | null | undefined, stepIssu
     return out;
 }
 
-export { TAXONOMY };
+;

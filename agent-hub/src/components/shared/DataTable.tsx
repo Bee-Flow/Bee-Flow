@@ -51,7 +51,7 @@ import useContainerWidth from './useContainerWidth';
  * a column but cannot swap a row for a card.
  */
 
-export type TableAlign = 'left' | 'right' | 'center';
+type TableAlign = 'left' | 'right' | 'center';
 
 /** One column of the table: the header, the grid track and, when it folds, the width it folds at. */
 export interface TableColumn {
@@ -128,7 +128,7 @@ export interface DataTableProps<Row> {
     testId?: string;
 }
 
-export const TABLE_CONTAINER = 'ctable';
+const TABLE_CONTAINER = 'ctable';
 
 /**
  * The fold literals: both the header cell and the body cell of a folding

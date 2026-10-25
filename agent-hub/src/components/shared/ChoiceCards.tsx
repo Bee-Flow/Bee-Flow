@@ -48,7 +48,7 @@ export interface ChoiceCardOption<TValue extends string> {
  * and a dark outline instead — for pages in the neutral style where green
  * already means "stays inside" and must not double as "selected".
  */
-export type ChoiceCardsAppearance = 'tint' | 'radio';
+type ChoiceCardsAppearance = 'tint' | 'radio';
 
 export interface ChoiceCardsProps<TValue extends string> {
     value: TValue | null | undefined;

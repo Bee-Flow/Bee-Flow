@@ -9,7 +9,7 @@ import EvidencePills from './EvidencePills';
 import PatternStepPreview from './PatternStepPreview';
 import { NOT_REPETITIVE, legacyEvidence, patternEyebrow, reasonTexts, templateParts } from './patternView';
 
-export type PatternCardVariant = 'pattern' | 'idea';
+type PatternCardVariant = 'pattern' | 'idea';
 
 export interface PatternCardProps {
     suggestion: RepeatingSuggestion;

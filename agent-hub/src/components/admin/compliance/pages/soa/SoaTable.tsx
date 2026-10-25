@@ -19,7 +19,7 @@ import type { OrgUser } from '../accessAuditLabels';
  * the few that do. The check cell truncates inside its own track, so its
  * text never runs into the Decision pill.
  */
-export const SOA_COLUMNS = Object.freeze([
+const SOA_COLUMNS = Object.freeze([
     Object.freeze({ id: 'control', width: '58px', labelKey: 'compliance.soa_col_control', fallback: 'Control' }),
     Object.freeze({ id: 'title', width: '1fr', labelKey: 'compliance.soa_col_title_how', fallback: 'Title · how met' }),
     Object.freeze({ id: 'check', width: '150px', labelKey: 'compliance.soa_col_check', fallback: 'Live check' }),
@@ -28,7 +28,7 @@ export const SOA_COLUMNS = Object.freeze([
 ]);
 
 /** Decision word → pill tone + glyph. `todo` is the open one (warning); `excluded` says nothing (neutral). */
-export const DECISION_META = Object.freeze({
+const DECISION_META = Object.freeze({
     todo: Object.freeze({ tone: 'warning', icon: CircleDashed, labelKey: 'compliance.soa_decision_todo', fallback: 'To review' }),
     reviewed: Object.freeze({ tone: 'neutral', icon: Eye, labelKey: 'compliance.soa_decision_reviewed', fallback: 'Reviewed' }),
     approved: Object.freeze({ tone: 'success', icon: CircleCheck, labelKey: 'compliance.soa_decision_approved', fallback: 'Approved' }),
@@ -84,7 +84,7 @@ export function DecisionPill({ decision, testId }: DecisionPillProps) {
 }
 
 /** The live-check cell: glyph in tone + the check's short title (+ "· needs attention" when open). */
-export function LiveCheckCell({ live }: { live?: LiveCheck | null }) {
+function LiveCheckCell({ live }: { live?: LiveCheck | null }) {
     const { t } = useTranslation();
     if (!live || live.kind === 'none') {
         const words = t('compliance.soa_no_live_check_title', 'No live check covers this control');

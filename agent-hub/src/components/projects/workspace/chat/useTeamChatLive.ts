@@ -10,10 +10,10 @@ import { refreshTeamChatMessage, teamChatKeys, useProjectChatQuery } from '../..
 import { useProjectLive, type ProjectLiveEvent } from '../ProjectLiveContext';
 
 /** After this long without a "finished" event an AI turn is assumed over. */
-export const AI_ANSWER_TIMEOUT_MS = 180_000;
+const AI_ANSWER_TIMEOUT_MS = 180_000;
 
 /** The team chat an event is about, or null. */
-export function chatIdOfEvent(event: ProjectLiveEvent): string | null {
+function chatIdOfEvent(event: ProjectLiveEvent): string | null {
     const fromPayload = event.payload?.chatId;
     if (typeof fromPayload === 'string' && fromPayload) return fromPayload;
     if (event.targetType === 'project_chat' || event.targetType === 'chat') return event.targetId || null;

@@ -6,7 +6,7 @@
  */
 import { splitQueryFromUrl, type HttpQuery } from './httpQueryLib';
 
-export type CurlSkipped = { kind: 'header' | 'basic_auth' | 'cookie' | 'url_credentials' | 'query'; name: string };
+type CurlSkipped = { kind: 'header' | 'basic_auth' | 'cookie' | 'url_credentials' | 'query'; name: string };
 
 export type CurlImport = {
     method: string;
@@ -23,7 +23,7 @@ export type CurlImport = {
 const SECRET_HEADER = /^(authorization|proxy-authorization|cookie|set-cookie)$|api[-_]?key|token|secret|password|passwd|credential|signature|session/i;
 const SECRET_QUERY = /api[-_]?key|token|secret|passw(or)?d|signature|credential|access[-_]?key|^auth$|^key$|^sig$/i;
 
-export const isSecretHeader = (name: string) => SECRET_HEADER.test(name.trim());
+const isSecretHeader = (name: string) => SECRET_HEADER.test(name.trim());
 
 /** Split a shell-ish command into words: quotes, $'…', backslash escapes and line continuations. */
 export function tokenize(input: string): string[] {

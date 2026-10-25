@@ -85,7 +85,7 @@ export { ISO_DATE_RE };
  * One e-mail address, nothing around it (round 2 leftover: the `email` kind).
  * Deliberately strict: "Jan <jan@x.nl>" or a list of addresses stays text.
  */
-export const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[a-z]{2,}$/i;
+const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[a-z]{2,}$/i;
 
 /** A design-time placeholder from upstream.samplePlaceholderFor — not data. */
 export function isPlaceholder(v: unknown): boolean {
@@ -102,7 +102,7 @@ export function looksLikeFile(v: unknown): boolean {
 }
 
 /** Is every element (that we sampled) an object? Then it reads as a table. */
-export function looksTabular(arr: unknown[]): boolean {
+function looksTabular(arr: unknown[]): boolean {
     const sample = arr.slice(0, 20).filter(v => v !== null && v !== undefined);
     if (!sample.length) return false;
     const objects = sample.filter(v => typeof v === 'object' && !Array.isArray(v));

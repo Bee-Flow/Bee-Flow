@@ -11,9 +11,9 @@ import React from 'react';
 import type { Mock } from 'vitest';
 import { ProjectLiveProvider } from '../ProjectLiveContext';
 
-export interface Call { method: string; path: string; query: Record<string, string>; body: any }
+interface Call { method: string; path: string; query: Record<string, string>; body: any }
 export interface Reply { status?: number; body?: unknown }
-export type Handler = (req: { query: Record<string, string>; body: any; path: string }) => unknown;
+type Handler = (req: { query: Record<string, string>; body: any; path: string }) => unknown;
 
 const json = (body: unknown, status = 200) => ({
     ok: status < 400,

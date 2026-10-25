@@ -13,7 +13,7 @@ export const mem = (over: Partial<Memory> & { id: string }): Memory => ({
 
 export const respond = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
 
-export interface Call { method: string; path: string; query: URLSearchParams; body: unknown; hasBody: boolean }
+interface Call { method: string; path: string; query: URLSearchParams; body: unknown; hasBody: boolean }
 type Handler = (call: Call) => ReturnType<typeof respond> | Promise<ReturnType<typeof respond>>;
 
 export function mockApi(routes: Record<string, Handler> = {}) {

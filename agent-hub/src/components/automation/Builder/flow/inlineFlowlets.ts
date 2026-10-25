@@ -49,7 +49,7 @@ import type { FlowDefinition, FlowEdge, FlowStep } from './types';
 import type { LayoutStep, Dims, ShiftById, InlineEntry, InlineSidecar, FlatEdge } from './inlineFlowlets.types';
 export type { InlineEntry } from './inlineFlowlets.types';
 
-export const INLINE_SEP = '/';
+const INLINE_SEP = '/';
 
 /** Mirrors the server's MAX_LAYER_DEPTH (automation/validate/layerGraph.js). */
 export const MAX_INLINE_DEPTH = 8;

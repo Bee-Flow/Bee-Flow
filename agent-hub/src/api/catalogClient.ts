@@ -28,6 +28,6 @@ export function fetchCatalog(): Promise<ServerCatalog | null> {
 }
 
 // Test/logout hook — drop the cached promise so the next call refetches.
-export function resetCatalogCache(): void {
+function resetCatalogCache(): void {
     catalogPromise = null;
 }

@@ -17,7 +17,7 @@ import { parseProjectUrl } from '../utils/projectRoutes';
 export type ProjectHistoryMode = 'none' | 'replace' | 'push';
 
 /** Tab ids the old project page used; the workspace maps them on arrival. */
-export const LEGACY_PROJECT_TABS: ReadonlySet<string> = new Set(['general', 'threads', 'resources', 'memory', 'danger']);
+const LEGACY_PROJECT_TABS: ReadonlySet<string> = new Set(['general', 'threads', 'resources', 'memory', 'danger']);
 
 export function projectHistoryMode(currentPathname: string, nextPath: string): ProjectHistoryMode {
     if (currentPathname === nextPath) return 'none';

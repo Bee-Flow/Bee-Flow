@@ -49,7 +49,7 @@ export const GRADE_RECORDED = 'recorded';
 /** Iemand heeft dit achteraf beweerd. Nooit dezelfde pil als hierboven. */
 export const GRADE_JUDGED = 'judged';
 /** De twee soorten bewering. De volgorde is de rendervolgorde. */
-export const CHIP_GRADES = Object.freeze([GRADE_RECORDED, GRADE_JUDGED]);
+const CHIP_GRADES = Object.freeze([GRADE_RECORDED, GRADE_JUDGED]);
 
 /** Hoeveel geoordeelde chips er hoogstens onder één antwoord passen. */
 export const MAX_JUDGED_CHIPS = 6;

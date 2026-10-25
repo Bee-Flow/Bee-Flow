@@ -19,7 +19,7 @@ export interface PresenceAvatarsProps {
 }
 
 /** One entry per person; an editing tab wins over a viewing one. */
-export function byPerson(peers: PresencePeer[]): PresencePeer[] {
+function byPerson(peers: PresencePeer[]): PresencePeer[] {
     const out = new Map<string, PresencePeer>();
     for (const p of peers) {
         const seen = out.get(p.userId);

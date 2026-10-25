@@ -10,7 +10,7 @@ export type TitleFor = (automationId: string | null | undefined) => string | nul
 type DescribeActionFn = (id: string, action: AppAction, definition: AppDefinition | null | undefined, titleFor?: TitleFor | null) => string;
 
 /** The badge to draw for one mark. */
-export type LogicMarkKind = 'action' | 'visibility' | 'enablement' | 'validation' | 'computed';
+type LogicMarkKind = 'action' | 'visibility' | 'enablement' | 'validation' | 'computed';
 
 /** One thing a component does, in a sentence. */
 export interface LogicSummaryMark {

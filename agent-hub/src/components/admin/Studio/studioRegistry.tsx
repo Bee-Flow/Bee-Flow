@@ -3,7 +3,7 @@ import { lazy } from '../../../utils/lazyWithReload';
 import { STUDIO_SECTIONS, STUDIO_ICONS, type StudioSectionDescriptor } from './studioSections';
 
 export { STUDIO_ICONS };
-export type { StudioPropsCtx, StudioCreateEntry } from './studioSections';
+;
 
 // Studio app registry — the sections of studioSections.ts with their lazy
 // components. This is the ONLY module that imports the section screens, and

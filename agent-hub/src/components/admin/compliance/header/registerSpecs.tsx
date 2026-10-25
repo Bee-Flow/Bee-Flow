@@ -48,7 +48,7 @@ export interface HeaderSpec {
     tabCounts?: Record<string, number | undefined>;
 }
 
-export interface HeaderAction {
+interface HeaderAction {
     label: string;
     icon?: LucideIcon;
     onClick: () => void;

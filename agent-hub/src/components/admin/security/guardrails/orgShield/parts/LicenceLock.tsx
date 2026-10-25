@@ -16,7 +16,7 @@ interface LicenceLockProps {
  * with its own emoji, its own wrapper and its own fallback URL. One component
  * so a change to the wording or the link lands everywhere at once.
  */
-export function LicenceLock({ children, upgradeUrl, t }: LicenceLockProps) {
+function LicenceLock({ children, upgradeUrl, t }: LicenceLockProps) {
     return (
         <p className="text-[11px] leading-relaxed flex items-start gap-1.5 text-[var(--text-muted)]">
             <Lock className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />

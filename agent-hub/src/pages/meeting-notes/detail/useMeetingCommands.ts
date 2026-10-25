@@ -20,7 +20,7 @@ interface RegenerateAnswer {
 }
 
 /** The note after a summary regeneration, from the server's answer. */
-export function mergeRegenerated(p: MeetingNote, res: RegenerateAnswer): MeetingNote {
+function mergeRegenerated(p: MeetingNote, res: RegenerateAnswer): MeetingNote {
     return {
         ...p,
         summary: res.summary,
@@ -77,7 +77,7 @@ function announceRegenerateOutcome(t: TranslateFn, res: RegenerateAnswer) {
 }
 
 /** Keeps accented letters as their base ("cliëntenraad" → "clientenraad") instead of deleting them. */
-export function exportFileStem(title: string | undefined): string {
+function exportFileStem(title: string | undefined): string {
     return (title || 'meeting')
         .normalize('NFKD').replace(/[̀-ͯ]/g, '')
         .replace(/[^\w -]/g, '').trim() || 'meeting';

@@ -219,7 +219,7 @@ interface CourseRowProps {
     onOpen: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-export function CourseRow({ t, course, lessons, completedMap, locked, complete, lockedReason, onOpen }: CourseRowProps) {
+function CourseRow({ t, course, lessons, completedMap, locked, complete, lockedReason, onOpen }: CourseRowProps) {
     const state = courseState({ lessons, completedMap, locked, complete });
     const done = lessons.filter((l) => !!completedMap[l.id]).length;
     const title = t(course.titleKey, course.titleFallback);

@@ -29,7 +29,7 @@ import { mutate, ApiError } from '../../api/mutate';
  * disabled and a notice says why; the stored data stays manageable.
  */
 
-export type StatsStatus = 'loading' | 'ok' | 'error';
+type StatsStatus = 'loading' | 'ok' | 'error';
 
 export interface MemoryUser {
     memoryEnabled?: boolean;

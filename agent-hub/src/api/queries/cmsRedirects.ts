@@ -31,7 +31,7 @@ export interface CmsRedirectInput {
 
 const base = (siteId: string) => `/api/cms/sites/${encodeURIComponent(siteId)}/redirects`;
 
-export const cmsRedirectKeys = {
+const cmsRedirectKeys = {
     site: (siteId: string) => ['cmsRedirects', siteId] as const,
 };
 

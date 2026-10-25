@@ -21,7 +21,7 @@ interface PiiActionPickerProps {
  * Shared between the admin GuardrailsPanel and the personal
  * ConsumerPrivacySection so both stay visually aligned.
  */
-export function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, blockLabel, blockHelp, footnote }: PiiActionPickerProps) {
+function PiiActionPicker({ value, onChange, tokenizeLabel, tokenizeHelp, blockLabel, blockHelp, footnote }: PiiActionPickerProps) {
     const { t } = useTranslation();
     const options = [
         {

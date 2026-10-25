@@ -32,7 +32,7 @@ const noop = () => {};
 
 /** An open thing the Overview asks the person to look at (GET /attention). */
 /** One row of GET /attention: what the Overview's list draws, plus the register kind and ref. */
-export type AttentionItem = AttentionListItem & { kind: string; ref?: string; [key: string]: unknown };
+type AttentionItem = AttentionListItem & { kind: string; ref?: string; [key: string]: unknown };
 
 export interface AttentionResponse {
     items: AttentionItem[];
@@ -52,7 +52,7 @@ export interface DsrRequestRow {
 }
 
 /** A dated item in the Deadlines card: what it is, where it lives, and its clock. */
-export interface DeadlineItem {
+interface DeadlineItem {
     id: string;
     kind: string;
     ref: string;
@@ -71,7 +71,7 @@ export interface DeadlinesResponse {
     [key: string]: unknown;
 }
 
-export interface FrameworkRow {
+interface FrameworkRow {
     id: string;
     name?: string;
     enabled?: boolean;
@@ -80,7 +80,7 @@ export interface FrameworkRow {
 }
 
 /** How recently the legal register was checked against the official texts. */
-export interface CatalogueReview {
+interface CatalogueReview {
     verified_on?: string | null;
     stale?: boolean;
     [key: string]: unknown;
@@ -297,7 +297,7 @@ export function useCalendar({ enabled = true, all = false }: UseCalendarArgs = {
 }
 
 // ── AI Act assessments (the ladder) ────────────────────────────────────────
-export function useAiActAssessment(kind: string | number | boolean, id: string | number | boolean) {
+function useAiActAssessment(kind: string | number | boolean, id: string | number | boolean) {
     const base = kind && id ? `${API}/ai-act/assessments/${encodeURIComponent(kind)}/${encodeURIComponent(id)}` : null;
     const res = useResource<Record<string, unknown>>(base as string, { enabled: !!base, parse: (b) => asObject(b) as Record<string, unknown> | null });
     const loadSignals = useCallback(() => (base ? fetchJson(`${base}/signals`).then(asObject) : Promise.resolve(null)), [base]);

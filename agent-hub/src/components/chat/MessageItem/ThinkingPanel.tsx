@@ -243,4 +243,3 @@ function ThinkingPart({ part, showDivider, isLive, t }: ThinkingPartProps) {
     );
 }
 
-export default ThinkingPanel;

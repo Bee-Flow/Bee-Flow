@@ -11,7 +11,7 @@ import { PRIMARY_BTN, SECONDARY_BTN, SELECT } from './settingsUi';
 
 type T = ReturnType<typeof useTranslation>['t'];
 
-export function roleLabel(role: ShareRole, t: T): string {
+function roleLabel(role: ShareRole, t: T): string {
     if (role === 'edit') return t('automations.sharing.role_edit', 'Can edit');
     if (role === 'view') return t('automations.sharing.role_view', 'Can view');
     return t('automations.sharing.role_run', 'Can start');

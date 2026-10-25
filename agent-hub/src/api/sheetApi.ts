@@ -102,7 +102,7 @@ export async function deleteSheetTab(id: string, tabId: string): Promise<{ tabs:
     return asJson<{ tabs: SheetTab[] }>(res, 'Failed to delete the tab');
 }
 
-export function sheetCsvUrl(id: string, tabId?: string): string {
+function sheetCsvUrl(id: string, tabId?: string): string {
     return sheetUrl(id, '.csv') + tabQuery(tabId);
 }
 

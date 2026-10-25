@@ -20,7 +20,7 @@ export interface ConflictDialogProps {
 }
 
 /** The text of a piece of HTML, parsed without running anything. */
-export function textOf(html: string): string {
+function textOf(html: string): string {
     if (!html) return '';
     const doc = new DOMParser().parseFromString(html, 'text/html');
     return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();

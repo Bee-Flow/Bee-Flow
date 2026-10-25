@@ -60,14 +60,14 @@ export interface PlanForm {
     per_seat: boolean;
 }
 
-export type PlanFormUpdate = <K extends keyof PlanForm>(key: K, val: PlanForm[K]) => void;
+type PlanFormUpdate = <K extends keyof PlanForm>(key: K, val: PlanForm[K]) => void;
 
 export interface PlanSectionProps {
     form: PlanForm;
     update: PlanFormUpdate;
 }
 
-export function initPlanForm(plan?: PlanRecord | null): PlanForm {
+function initPlanForm(plan?: PlanRecord | null): PlanForm {
     return {
         name: plan?.name || '',
         description: plan?.description || '',

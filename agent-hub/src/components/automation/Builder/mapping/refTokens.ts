@@ -36,7 +36,7 @@ export interface RefInfo {
     fieldPath: string;
 }
 
-export interface LiteralToken { type: 'literal'; text: string }
+interface LiteralToken { type: 'literal'; text: string }
 export interface RefToken extends RefInfo {
     type: 'ref';
     raw: string;

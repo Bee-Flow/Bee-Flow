@@ -57,7 +57,7 @@ export interface Continuation {
 }
 
 /** The caller's callbacks, held in refs so `send` never goes stale. */
-export interface AppBuilderCallbackRefs {
+interface AppBuilderCallbackRefs {
     onDraft: MutableRefObject<UseAppBuilderStreamOptions['onDraft']>;
     onDone: MutableRefObject<UseAppBuilderStreamOptions['onDone']>;
     onError: MutableRefObject<UseAppBuilderStreamOptions['onError']>;

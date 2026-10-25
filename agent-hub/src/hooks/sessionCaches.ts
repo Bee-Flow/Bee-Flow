@@ -69,4 +69,3 @@ export function clearSessionCaches(): void {
     invalidateAllowedModelsCache();
 }
 
-export default clearSessionCaches;

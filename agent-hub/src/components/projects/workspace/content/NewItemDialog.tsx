@@ -8,8 +8,8 @@ import useTranslation from '../../../../hooks/useTranslation';
 import Modal from '../../../shared/Modal';
 import { SelectField } from '../workspaceUi';
 
-export const MAX_ITEM_NAME = 200;
-export const MAX_ITEM_DESCRIPTION = 1000;
+const MAX_ITEM_NAME = 200;
+const MAX_ITEM_DESCRIPTION = 1000;
 
 export interface NewItemValues {
     name: string;

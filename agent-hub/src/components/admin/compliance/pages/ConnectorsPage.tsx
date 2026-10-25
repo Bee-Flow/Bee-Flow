@@ -33,7 +33,7 @@ import {
  * onLoadConnections.
  */
 
-export { SWEEP_INTERVAL_HOURS, nextSweepAt, toneOfConnector };
+export {  nextSweepAt, toneOfConnector };
 
 const COLUMNS = Object.freeze([
     Object.freeze({ id: 'connector', label: 'compliance.conn_col_connector', width: '1fr' }),

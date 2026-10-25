@@ -68,7 +68,7 @@ function formatStamp(value: unknown) {
  * Tags that ARE the content (an image, a table, a rule) count even with no text
  * beside them; a signature logo alone is a real message body.
  */
-export function hasVisibleHtml(html: unknown) {
+function hasVisibleHtml(html: unknown) {
     if (typeof html !== 'string' || !html.trim()) return false;
     if (/<(img|table|video|iframe|hr)[\s>/]/i.test(html)) return true;
     const text = html

@@ -19,7 +19,7 @@ export interface OrgGroup {
     [key: string]: unknown;
 }
 
-export const orgGroupKeys = {
+const orgGroupKeys = {
     all: ['orgGroups'] as const,
     list: () => [...orgGroupKeys.all, 'list'] as const,
 };

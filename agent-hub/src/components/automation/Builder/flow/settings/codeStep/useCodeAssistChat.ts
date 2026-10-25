@@ -10,7 +10,7 @@ import { useCallback, useRef, useState } from 'react';
 import { streamCodeAssist, type AssistMessage } from '../../../../../../api/queries/automation/codeStep';
 import { messageOf } from '../../../../../../utils/caughtError';
 
-export type TurnStatus = 'streaming' | 'done' | 'failed' | 'stopped';
+type TurnStatus = 'streaming' | 'done' | 'failed' | 'stopped';
 
 export interface AssistTurn {
     id: number;

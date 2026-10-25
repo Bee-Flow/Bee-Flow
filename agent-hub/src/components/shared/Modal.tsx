@@ -28,7 +28,7 @@ import {
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'auto';
 export type ModalPlacement = 'center' | 'top' | 'left' | 'right' | 'bottom';
-export type ModalVariant = 'panel' | 'bare';
+type ModalVariant = 'panel' | 'bare';
 
 export interface ModalProps {
     open: boolean;

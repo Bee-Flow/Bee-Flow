@@ -42,11 +42,11 @@ const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** d + n calendar days, LOCAL. Fixed-hour maths drifts an hour across a DST
  *  boundary, which duplicates a day and shifts the rest of the grid. */
-export function addDays(d: Date, n: number) {
+function addDays(d: Date, n: number) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
 
-export function parseDay(value: unknown) {
+function parseDay(value: unknown) {
     if (value == null || value === '') return null;
     // 'YYYY-MM-DD' is a CALENDAR date, but Date() reads it as UTC midnight —
     // west of Greenwich that lands the event on the previous day.

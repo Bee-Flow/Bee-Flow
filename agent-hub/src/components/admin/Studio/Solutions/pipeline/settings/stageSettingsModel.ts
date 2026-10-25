@@ -80,9 +80,9 @@ export const canOperate = (role: string | null | undefined): boolean => role ===
 
 // ── Bindings: grouping, status, problems ─────────────────────────────────────
 
-export type SlotKind = 'connection' | 'approver_seats' | 'table' | 'knowledge_base' | 'document' | 'webpage_slug' | 'integration_grant' | 'mirror_source';
+type SlotKind = 'connection' | 'approver_seats' | 'table' | 'knowledge_base' | 'document' | 'webpage_slug' | 'integration_grant' | 'mirror_source';
 export type SlotGroup = 'connections' | 'approvers' | 'notify' | 'data' | 'exposure';
-export const SLOT_GROUPS: readonly SlotGroup[] = ['connections', 'approvers', 'notify', 'data', 'exposure'];
+const SLOT_GROUPS: readonly SlotGroup[] = ['connections', 'approvers', 'notify', 'data', 'exposure'];
 
 export interface Requirement {
     slot: string; kind: string; label: string; neededBy: string[]; bound: boolean;

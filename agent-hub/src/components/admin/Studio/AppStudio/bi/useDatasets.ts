@@ -32,7 +32,7 @@ export interface DatasetGroup {
 }
 
 /** The question a saved view asks; only the parts that name its answer columns are read here. */
-export interface DatasetDescriptor {
+interface DatasetDescriptor {
     aggregates?: Array<DatasetAggregate | null>;
     groupBy?: Array<DatasetGroup | null>;
     [key: string]: unknown;

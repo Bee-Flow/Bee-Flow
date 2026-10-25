@@ -6,7 +6,7 @@
 
 import { DEFAULT_MAX_COST, diffHunks } from '../../../../editor/diff/sequence';
 
-export type LineKind = 'same' | 'add' | 'del' | 'gap';
+type LineKind = 'same' | 'add' | 'del' | 'gap';
 
 export interface LineRow {
     kind: LineKind;

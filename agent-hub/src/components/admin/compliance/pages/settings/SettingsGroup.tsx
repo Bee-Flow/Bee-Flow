@@ -12,7 +12,7 @@ import {
 import type { OrgUser } from '../accessAuditLabels';
 import type { SettingsFieldDef, SettingsGroupDef, Contact } from './settingsFields.types';
 import type { Translate, MemberValue, SettingsValue, SettingsChange, RelevanceSetter, FieldProps, SettingsGroupProps, GroupSectionProps, MemberFillProps, GroupFieldProps, RemoveButtonProps, ListEntry, StringListProps, ContactRow, ContactListProps, RelevanceFieldProps } from './SettingsGroup.types';
-export type { MemberValue, SettingsValue, SettingsChange } from './SettingsGroup.types';
+export type { MemberValue, SettingsValue,  } from './SettingsGroup.types';
 
 export default function SettingsGroup({
     group, form, saved = null, onChange, orgUsers = null, open = true, onToggle = null,

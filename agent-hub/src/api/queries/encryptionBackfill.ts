@@ -7,7 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 
-export type BackfillStatus = 'idle' | 'running' | 'done' | 'error';
+type BackfillStatus = 'idle' | 'running' | 'done' | 'error';
 
 export interface BackfillSurfaceStats {
     encrypted: number;
@@ -31,9 +31,9 @@ export interface BackfillJob {
     error: string | null;
 }
 
-export const BACKFILL_POLL_MS = 2000;
+const BACKFILL_POLL_MS = 2000;
 
-export const backfillKeys = {
+const backfillKeys = {
     job: (orgId: string) => ['org-encryption-backfill', orgId] as const,
 };
 
@@ -44,7 +44,7 @@ async function failure(res: Response, fallback: string): Promise<Error> {
     return new Error(body.message || (typeof body.error === 'string' ? body.error : '') || fallback);
 }
 
-export async function fetchBackfillJob(orgId: string, signal?: AbortSignal): Promise<BackfillJob> {
+async function fetchBackfillJob(orgId: string, signal?: AbortSignal): Promise<BackfillJob> {
     const res = await authFetch(url(orgId), { signal });
     if (!res.ok) throw await failure(res, `backfill ${res.status}`);
     return res.json();

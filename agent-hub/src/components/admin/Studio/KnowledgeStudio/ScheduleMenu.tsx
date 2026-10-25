@@ -62,7 +62,7 @@ export const CRON_PRESETS = Object.freeze([
 ]);
 
 /** The zone a schedule is written in — named, never assumed. */
-export function browserTimezone() {
+function browserTimezone() {
     try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Amsterdam'; }
     catch { return 'Europe/Amsterdam'; }
 }

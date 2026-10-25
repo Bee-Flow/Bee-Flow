@@ -38,10 +38,10 @@ export type Outcome = 'replaced' | 'stopped' | 'tool' | 'passed' | 'clean' | 'un
 export const OUTCOME_ORDER: Outcome[] = ['replaced', 'stopped', 'tool', 'passed', 'clean', 'unchecked', 'other'];
 
 /** Shield-event actions where the personal data was swapped for placeholders or removed. */
-export const REPLACED_ACTIONS = new Set(['tokenized', 'redacted', 'tool_result_redacted', 'partial_redacted']);
+const REPLACED_ACTIONS = new Set(['tokenized', 'redacted', 'tool_result_redacted', 'partial_redacted']);
 
 /** Shield-event actions where the message, search or tool call did not go out. */
-export const STOPPED_ACTIONS = new Set(['blocked', 'search_blocked', 'tool_blocked', 'held']);
+const STOPPED_ACTIONS = new Set(['blocked', 'search_blocked', 'tool_blocked', 'held']);
 
 /**
  * Shield-event actions where something went out that the shield did not
@@ -50,10 +50,10 @@ export const STOPPED_ACTIONS = new Set(['blocked', 'search_blocked', 'tool_block
  * but never hidden inside another bucket — and not all of it is personal data
  * FOUND, so the pane words this bucket as "let through", never as a find.
  */
-export const PASSED_ACTIONS = new Set(['allowed', 'pii_detected', 'passed_unredacted', 'scan_failed']);
+const PASSED_ACTIONS = new Set(['allowed', 'pii_detected', 'passed_unredacted', 'scan_failed']);
 
 /** Configuration-audit rows that share the table but are not about a message. */
-export const AUDIT_VIOLATION_TYPES = new Set(['admin_action', 'user_action']);
+const AUDIT_VIOLATION_TYPES = new Set(['admin_action', 'user_action']);
 
 /**
  * Shield events that are about a message but not about personal data in it:
@@ -68,7 +68,7 @@ export const NOTE_VIOLATION_TYPES = new Set(['unicode_smuggling', 'pii_tokenmap'
  * The check could not run. The categories column of these rows holds a
  * marker ("protection was unavailable"), never a kind that was found.
  */
-export const CHECK_FAILED_TYPES = new Set(['scan_failed', 'pii_unavailable']);
+const CHECK_FAILED_TYPES = new Set(['scan_failed', 'pii_unavailable']);
 
 /** Is this shield-event row an audit record rather than something that happened to a message? */
 export function isAuditRow(row: { violation_type?: string | null } | null | undefined): boolean {

@@ -26,8 +26,8 @@ import { describeError } from '../../../utils/caughtError';
 
 // The dialogs moved to ./pageList/TemplateDialogs; re-exported so the
 // import path the panel uses stays stable.
-export { SaveTemplateDialog, TemplatesManagerDialog } from './pageList/TemplateDialogs';
-export type { PageListPage, PageTemplate, NewPageInput } from './pageList/pageListShared';
+export { SaveTemplateDialog,  } from './pageList/TemplateDialogs';
+;
 
 interface PageListProps extends Omit<PageRowCallbacks, 'onExport'> {
     pages: PageListPage[];

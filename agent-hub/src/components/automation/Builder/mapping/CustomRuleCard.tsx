@@ -31,7 +31,7 @@ function fieldName(path: string, stepLabelById: StepLabels, stepTypeById: StepLa
 }
 
 /** The distinct field names an expression reads, in the order it reads them. */
-export function customRuleFieldNames(expr: string, stepLabelById: StepLabels = null, stepTypeById: StepLabels = null): string[] {
+function customRuleFieldNames(expr: string, stepLabelById: StepLabels = null, stepTypeById: StepLabels = null): string[] {
     const names: string[] = [];
     for (const part of scanExprPaths(expr, ROOTS) as Array<{ path?: string }>) {
         const name = part.path ? fieldName(part.path, stepLabelById, stepTypeById) : '';

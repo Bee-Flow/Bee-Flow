@@ -367,4 +367,3 @@ export function NewMenuButton({
     );
 }
 
-export default NewMenu;

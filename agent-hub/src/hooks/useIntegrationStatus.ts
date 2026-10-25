@@ -5,7 +5,7 @@ import {
 } from '../api/queries/integrationStatus';
 import { queryClient } from '../api/queryClient';
 
-export type { IntegrationStatus };
+;
 
 export interface IntegrationStatusState {
     integrationStatus: IntegrationStatus | null;

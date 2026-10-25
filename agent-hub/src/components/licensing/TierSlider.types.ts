@@ -5,7 +5,7 @@ import type { TierMeta } from './tierMeta';
 export type MetaFor = (key: string) => TierMeta;
 
 /** The composer's memory control as TierSlider is handed it: the current `{ mode, onChange, lock }` shape or the older `{ enabled, onToggle }`. */
-export interface TierSliderMemory {
+interface TierSliderMemory {
     mode?: MemoryMode;
     onChange?: (next: MemoryMode) => void;
     lock?: MemoryLock;

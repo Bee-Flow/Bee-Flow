@@ -161,7 +161,7 @@ function ExamplesInputs(props: StepProps) {
     );
 }
 
-export function MethodInputs(props: StepProps) {
+function MethodInputs(props: StepProps) {
     return props.state.type.method === 'words' ? <WordsInputs {...props} /> : <ExamplesInputs {...props} />;
 }
 

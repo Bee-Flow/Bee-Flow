@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
 
-export type CaptchaGlobal = 'turnstile' | 'hcaptcha' | 'grecaptcha';
+type CaptchaGlobal = 'turnstile' | 'hcaptcha' | 'grecaptcha';
 
 /** The slice of a provider's global this component calls. */
-export interface CaptchaApi {
+interface CaptchaApi {
     ready?: (callback: () => void) => void;
     render?: (container: HTMLElement, options: Record<string, unknown>) => unknown;
     remove?: (widgetId: unknown) => void;

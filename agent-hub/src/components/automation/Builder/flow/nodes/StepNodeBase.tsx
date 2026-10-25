@@ -289,7 +289,7 @@ export function ForEachBadge({ step }: { step?: NodeStep | null }) {
  * binding objects (`{kind:'literal',value:…}` etc.) — only the
  * user-meaningful values are shown, not the wrapping kind.
  */
-export function renderInputsPreview(inputs: unknown) {
+function renderInputsPreview(inputs: unknown) {
     if (!inputs || typeof inputs !== 'object') return null;
     const entries = Object.entries(inputs).slice(0, 4);
     if (entries.length === 0) return null;

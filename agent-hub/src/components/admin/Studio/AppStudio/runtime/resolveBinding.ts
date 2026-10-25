@@ -424,4 +424,3 @@ export function resolveBinding(binding: BindingInput, arg?: unknown): ResolveRes
     }
 }
 
-export default resolveBinding;

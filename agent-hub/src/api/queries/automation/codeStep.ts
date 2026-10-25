@@ -13,7 +13,7 @@ import { readEventStream } from '../../../utils/sseStream';
 import { apiClient, ApiError } from '../../client';
 import { logger } from '../../../utils/logger';
 
-export type CodeParamType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+type CodeParamType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 
 export interface CodeParam {
     name: string;
@@ -28,7 +28,7 @@ export interface CodeParam {
     line: number;
 }
 
-export type FindingSeverity = 'block' | 'warn' | 'info';
+type FindingSeverity = 'block' | 'warn' | 'info';
 
 export interface CodeFinding {
     ruleId: string;
@@ -56,7 +56,7 @@ export interface CodeCapabilities {
     httpInLoop: boolean;
 }
 
-export interface CodeApproval {
+interface CodeApproval {
     ruleId: string;
     codeHash: string | null;
     approverRole: 'author' | 'admin';
@@ -64,7 +64,7 @@ export interface CodeApproval {
     createdAt: string | null;
 }
 
-export type AiReview = 'pending' | { verdict: string; category: string | null } | null;
+type AiReview = 'pending' | { verdict: string; category: string | null } | null;
 
 export interface CodeAnalysis {
     ok: boolean;
@@ -128,7 +128,7 @@ function parseFinding(raw: unknown): CodeFinding | null {
     };
 }
 
-export function parseApprovals(raw: unknown): CodeApproval[] {
+function parseApprovals(raw: unknown): CodeApproval[] {
     if (!Array.isArray(raw)) return [];
     return raw.map(obj).filter(a => !!str(a.ruleId)).map(a => ({
         ruleId: a.ruleId as string,
@@ -146,7 +146,7 @@ function parseAiReview(raw: unknown): AiReview {
 }
 
 /** The analyse response, reduced to what is whole. */
-export function parseCodeAnalysis(body: unknown): CodeAnalysis {
+function parseCodeAnalysis(body: unknown): CodeAnalysis {
     const b = obj(body);
     const syntax = obj(b.syntaxError);
     const caps = obj(b.capabilities);
@@ -288,7 +288,7 @@ export type AssistEvent =
     | { type: 'done' };
 
 /** One SSE event of the assistant, in the UI's terms; null for one it does not know. */
-export function toAssistEvent(event: string, data: unknown): AssistEvent | null {
+function toAssistEvent(event: string, data: unknown): AssistEvent | null {
     const d = obj(data);
     if (event === 'delta') {
         const text = [d.text, d.delta, d.content].find(v => typeof v === 'string');

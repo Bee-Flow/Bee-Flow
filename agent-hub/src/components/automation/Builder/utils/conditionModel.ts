@@ -71,7 +71,7 @@ const OPERATORS: Operator[] = [
 
 const OP_BY_KEY = new Map<string | undefined, Operator>(OPERATORS.map((o): [string, Operator] => [o.key, o]));
 
-export const getOperator = (key: string | undefined) => OP_BY_KEY.get(key) || null;
+const getOperator = (key: string | undefined) => OP_BY_KEY.get(key) || null;
 export const isUnaryOp = (key: string | undefined) => getOperator(key)?.kind === 'unary';
 export const isTopicOp = (key: string | undefined) => getOperator(key)?.kind === 'topic';
 

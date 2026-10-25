@@ -21,7 +21,7 @@ import { logger } from '../../utils/logger';
 import { postPresence } from './documentsApi';
 import type { People } from './documentQueries';
 
-export const BEAT_MS = 20_000;
+const BEAT_MS = 20_000;
 const DEFAULT_TTL_MS = 45_000;
 const CHANGE_DEBOUNCE_MS = 400;
 

@@ -19,7 +19,7 @@
 
 import { useCallback, useRef, useState , useLayoutEffect } from 'react';
 
-export type AsyncActionResult<T> =
+type AsyncActionResult<T> =
     | { ok: true; data: T }
     | { ok: false; error: unknown };
 

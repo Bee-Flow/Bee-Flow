@@ -132,7 +132,7 @@ type Id = string | number | boolean;
 type SseHandler = (name: string, payload: unknown) => void;
 
 /** `?a=1&b=2` from an object, dropping null/undefined/'' — never `?`. */
-export function qs(params: Record<string, unknown> = {}) {
+function qs(params: Record<string, unknown> = {}) {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
         if (v === null || v === undefined || v === '') continue;

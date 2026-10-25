@@ -36,7 +36,7 @@ export interface ErrorInfoLike {
     technical?: string | null;
 }
 
-export type LogTone = 'error' | 'warn' | 'neutral';
+type LogTone = 'error' | 'warn' | 'neutral';
 
 export interface RunLogSentence {
     text: string;

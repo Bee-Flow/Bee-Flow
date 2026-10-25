@@ -63,7 +63,7 @@ export interface ReadResult {
 }
 
 /** What a queued read resolves with when the batch answered it. */
-export interface BatchAnswer {
+interface BatchAnswer {
     result: ReadResult;
     appVersion: unknown;
 }

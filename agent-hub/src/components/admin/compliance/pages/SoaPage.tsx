@@ -213,7 +213,7 @@ interface HistoryApiRow {
     note?: string;
 }
 
-export function normaliseHistoryRow(row: HistoryApiRow | null | undefined, i: number) {
+function normaliseHistoryRow(row: HistoryApiRow | null | undefined, i: number) {
     if (!row || typeof row !== 'object') return null;
     const ref = row.control_ref ?? row.ref ?? null;
     const at = row.changed_at ?? row.updated_at ?? row.at ?? null;

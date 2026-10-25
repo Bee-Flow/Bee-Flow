@@ -24,7 +24,7 @@ const timeOf = (iso: string) => {
     return Number.isNaN(t) ? 0 : t;
 };
 
-export function mergeChatItems(team: TeamChat[], threads: ProjectThread[], mine: MyProjectChat[], me: string | null): ChatListItem[] {
+function mergeChatItems(team: TeamChat[], threads: ProjectThread[], mine: MyProjectChat[], me: string | null): ChatListItem[] {
     const items: ChatListItem[] = team.map(chat => ({
         kind: 'team', key: `team:${chat.id}`, id: chat.id, title: chat.title, at: chat.lastMessageAt || chat.updatedAt || chat.createdAt || '', chat,
     }));
@@ -46,7 +46,7 @@ export function mergeChatItems(team: TeamChat[], threads: ProjectThread[], mine:
     return items.sort((a, b) => timeOf(b.at) - timeOf(a.at));
 }
 
-export function filterChatItems(items: ChatListItem[], filter: ChatListFilter): ChatListItem[] {
+function filterChatItems(items: ChatListItem[], filter: ChatListFilter): ChatListItem[] {
     if (filter === 'all') return items;
     return items.filter(i => (filter === 'team' ? i.kind === 'team' : i.kind === 'ai'));
 }

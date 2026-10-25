@@ -508,7 +508,7 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
     );
 }
 
-export function ToolLinkEdge({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }: ToolLinkEdgeProps) {
+function ToolLinkEdge({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }: ToolLinkEdgeProps) {
     const [path] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 12 });
     return (
         <BaseEdge

@@ -179,4 +179,3 @@ export const skillsApi = {
     ),
 };
 
-export default skillsApi;

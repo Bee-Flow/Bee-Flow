@@ -13,7 +13,7 @@ import { logger } from '../../../utils/logger';
 const BASE = `${API_BASE}/api/automation`;
 
 export type ShareRole = 'run' | 'view' | 'edit';
-export type PrincipalType = 'user' | 'group';
+type PrincipalType = 'user' | 'group';
 
 export interface Share {
     principalType: PrincipalType;
@@ -46,7 +46,7 @@ export interface Principal {
 
 export const ROLES: readonly ShareRole[] = ['run', 'view', 'edit'];
 
-export const automationPeopleKeys = {
+const automationPeopleKeys = {
     shares: (id: string) => ['automation-people', 'shares', id] as const,
     directory: (id: string) => ['automation-people', 'directory', id] as const,
 };
@@ -83,7 +83,7 @@ function person(v: unknown): { userId: string; name: string } | null {
 }
 
 /** Normalise GET /:id/shares. Exported for the test; tolerant of junk. */
-export function parseShares(body: unknown): AutomationShares {
+function parseShares(body: unknown): AutomationShares {
     const raw = obj(body);
     const shares: Share[] = [];
     for (const s of Array.isArray(raw.shares) ? raw.shares : []) {
@@ -118,13 +118,13 @@ async function failure(res: { status: number; json: () => Promise<unknown> }): P
     return new PeopleRequestError(res.status, code, message);
 }
 
-export async function fetchShares(id: string, signal?: AbortSignal): Promise<AutomationShares> {
+async function fetchShares(id: string, signal?: AbortSignal): Promise<AutomationShares> {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/shares`, { signal });
     if (!res.ok) throw await failure(res);
     return parseShares(await res.json());
 }
 
-export async function saveShares(id: string, shares: Share[]): Promise<AutomationShares> {
+async function saveShares(id: string, shares: Share[]): Promise<AutomationShares> {
     // A person or group that no longer exists would make the server refuse
     // the whole list (share_user_unknown), so every later change would fail.
     const body = shares
@@ -146,7 +146,7 @@ export interface TransferResult {
     warnings: string[];
 }
 
-export async function transferOwner(id: string, userId: string): Promise<TransferResult> {
+async function transferOwner(id: string, userId: string): Promise<TransferResult> {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/transfer-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -219,7 +219,7 @@ function toGroup(v: unknown): Principal | null {
 }
 
 /** Normalise a directory body: `{ users, groups }`. Exported for the test. */
-export function parseDirectory(body: unknown): Principal[] {
+function parseDirectory(body: unknown): Principal[] {
     const raw = obj(body);
     const users = (Array.isArray(raw.users) ? raw.users : []).map(toUser);
     const groups = (Array.isArray(raw.groups) ? raw.groups : []).map(toGroup);
@@ -237,7 +237,7 @@ async function readList(url: string, signal?: AbortSignal): Promise<unknown[]> {
     }
 }
 
-export async function fetchDirectory(automationId: string, signal?: AbortSignal): Promise<Principal[]> {
+async function fetchDirectory(automationId: string, signal?: AbortSignal): Promise<Principal[]> {
     const own = await authFetch(`${BASE}/${encodeURIComponent(automationId)}/principals`, { signal });
     if (own.ok) return parseDirectory(await own.json());
     if (own.status !== 404) return [];

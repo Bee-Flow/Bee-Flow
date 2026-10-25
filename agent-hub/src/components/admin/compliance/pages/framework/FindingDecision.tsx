@@ -13,7 +13,7 @@ import AnchoredMenuJs from '../../../../shared/AnchoredMenu';
 
 const AnchoredMenu = AnchoredMenuJs;
 
-export type FindingStateName = 'acknowledged' | 'accepted_risk' | 'snoozed';
+type FindingStateName = 'acknowledged' | 'accepted_risk' | 'snoozed';
 
 export interface FindingStateView {
     state: FindingStateName;
@@ -90,7 +90,7 @@ function formatDay(value: string | null | undefined, locale: string): string {
 }
 
 /** The label of a decision, in the reader's language. */
-export function useFindingStateLabel() {
+function useFindingStateLabel() {
     const { t, locale } = useTranslation();
     return (s: FindingStateView): string => {
         if (s.state === 'snoozed') return t('compliance.finding_state.snoozed', 'Snoozed until {date}', { date: formatDay(s.until, locale) });

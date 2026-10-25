@@ -40,7 +40,7 @@ export interface RunOpts {
 }
 
 /** A navigate effect: the authored string, or the { screenId, params } a return_to_app step sends. */
-export type NavigateTarget = string | { screenId?: string; params?: Record<string, unknown> | null } | null;
+type NavigateTarget = string | { screenId?: string; params?: Record<string, unknown> | null } | null;
 
 /** "What happens when the action is done" — authored onSuccess/onError or an automation's _appEffects. */
 export interface EffectObject {

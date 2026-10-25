@@ -659,7 +659,7 @@ function buildBlockOverrideCss(blockId: string | undefined, style: BlockStyle | 
 // resolveAssetUrl moved to ./assetUrl.js (sections import it there without
 // cycling through this module); imported for local use + re-exported so
 // existing imports keep resolving.
-export { resolveAssetUrl };
+;
 
 /**
  * Public product website. Renders enabled sections in canonical order from

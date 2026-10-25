@@ -93,7 +93,7 @@ export function toolLabel(name: string): string {
     return rest.length ? `${App}: ${rest.join(' ')}` : App;
 }
 
-export const isApproved = (a: CodeAnalysis | null | undefined, f: CodeFinding): boolean =>
+const isApproved = (a: CodeAnalysis | null | undefined, f: CodeFinding): boolean =>
     !!a && a.approvals.some(ap => ap.ruleId === f.ruleId && (!ap.codeHash || ap.codeHash === a.hash));
 
 export interface ChecksState {

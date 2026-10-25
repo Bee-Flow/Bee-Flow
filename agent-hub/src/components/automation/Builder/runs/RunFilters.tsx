@@ -5,7 +5,7 @@ import type { RunFacetCounts, RunListFilters, RunPeriod, RunStatusFilter } from 
 import { useRunFacets } from '../../../../api/queries/automation/runs';
 
 /** A pasted run link (`?run=<id>`) or a bare run uuid; null for search text. */
-export function runLinkId(text: string): string | null {
+function runLinkId(text: string): string | null {
     const s = text.trim();
     const fromQuery = /[?&]run=([A-Za-z0-9_-]{6,})/.exec(s);
     if (fromQuery) return fromQuery[1];

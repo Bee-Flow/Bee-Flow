@@ -30,7 +30,7 @@ export interface NotebookSource {
     [key: string]: unknown;
 }
 
-export type UploadStatus = 'queued' | 'uploading' | 'done' | 'failed';
+type UploadStatus = 'queued' | 'uploading' | 'done' | 'failed';
 export interface UploadItem { id: string; name: string; size: number; status: UploadStatus; error?: string }
 export interface PendingDelete { source: NotebookSource; index: number }
 

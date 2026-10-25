@@ -9,7 +9,7 @@ import RegulatoryCalendar, { type CalendarItem } from '../../shared/RegulatoryCa
 import TimelinePhases from '../../shared/TimelinePhases';
 
 /** A milestone, from the calendar or from a catalogue entry (the labels come as keys or as text). */
-export interface PhaseSource {
+interface PhaseSource {
     id: string;
     date: string;
     label?: string;
@@ -68,7 +68,7 @@ export interface TimelinePhase {
  */
 
 /** Rows of `GET /calendar` for one framework, in date order (undated rows last). */
-export function milestonesOf(calendar: CalendarData | CalendarItem[] | null | undefined, frameworkId: string | null): CalendarMilestone[] | null {
+function milestonesOf(calendar: CalendarData | CalendarItem[] | null | undefined, frameworkId: string | null): CalendarMilestone[] | null {
     const rows = Array.isArray(calendar) ? calendar : (Array.isArray(calendar?.milestones) ? calendar.milestones : null);
     if (!rows) return null;
     // The rows kept are the ones of this framework, so they carry its id; the rest of a CalendarMilestone is what the calendar sends.
@@ -78,7 +78,7 @@ export function milestonesOf(calendar: CalendarData | CalendarItem[] | null | un
 }
 
 /** The catalogue record of one framework from data.frameworks ({active,candidates} or a flat list). */
-export function frameworkRecord(frameworks: FrameworksData | CatalogueFramework[] | null | undefined, frameworkId: string | null): CatalogueFramework | null {
+function frameworkRecord(frameworks: FrameworksData | CatalogueFramework[] | null | undefined, frameworkId: string | null): CatalogueFramework | null {
     const lists = Array.isArray(frameworks)
         ? [frameworks]
         : [frameworks?.active, frameworks?.candidates, frameworks?.items].filter(Array.isArray);
@@ -104,7 +104,7 @@ const labelOf = (m: PhaseSource, t: (key: string | undefined, fallbackOrParams?:
  * short label for a date that carries one milestone; the milestone's own
  * label stays in the calendar list under the track.
  */
-export function toPhases(milestones: PhaseSource[] | null, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, now: number = Date.now(), { art50Missed = false, shortTitles = null }: { art50Missed?: boolean; shortTitles?: Map<string, string> | null } = {}): TimelinePhase[] {
+function toPhases(milestones: PhaseSource[] | null, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, now: number = Date.now(), { art50Missed = false, shortTitles = null }: { art50Missed?: boolean; shortTitles?: Map<string, string> | null } = {}): TimelinePhase[] {
     const rows = (milestones || []).filter(m => parseDay(m.date) !== null);
     const perDate = new Map<string, number>();
     for (const m of rows) perDate.set(m.date, (perDate.get(m.date) ?? 0) + 1);

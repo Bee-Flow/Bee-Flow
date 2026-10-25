@@ -9,7 +9,7 @@ import { logger } from '../utils/logger';
  * cancels whatever is pending. Pass `enabled: false` when the turn could not have
  * saved anything (writing off, memory paused or off for the organisation).
  */
-export const REMEMBERED_POLL_DELAYS_MS: readonly number[] = [2000, 4000, 9000];
+const REMEMBERED_POLL_DELAYS_MS: readonly number[] = [2000, 4000, 9000];
 
 export interface UseRememberedMemoriesOptions {
     conversationId: string | null | undefined;

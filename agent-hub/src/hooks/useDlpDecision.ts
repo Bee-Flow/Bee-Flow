@@ -24,7 +24,7 @@ export const DLP_TOUCH_INTERVAL_MS = 60 * 1000;
 
 /** What the SSE reducer puts on the event. The modal feature-detects the
  *  richer fields (`reviewText`, `provider`, …), so only the id is named. */
-export interface DlpPreviewDetail {
+interface DlpPreviewDetail {
     decisionId?: string;
     reviewText?: string;
     findings?: unknown[];
@@ -36,7 +36,7 @@ export type DlpPending = DlpPreviewDetail & { kind: 'chat_text' | 'attachment' }
 export type DlpChoice = 'redact' | 'block' | 'allow';
 
 /** A span the user marked in the review UI; the server redacts exactly these. */
-export interface DlpManualAddition {
+interface DlpManualAddition {
     offset: number;
     length: number;
     [key: string]: unknown;

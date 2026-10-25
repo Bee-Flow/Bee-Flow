@@ -10,7 +10,7 @@ import { verdictFor } from '../ownDataModel';
  * means. The small print names the size of the test set on purpose: a
  * perfect score on four sentences is not a perfect type.
  */
-export function QualityReadout({ summary, stale, t }: { summary: Summary; stale: boolean; t: TranslateFn }) {
+function QualityReadout({ summary, stale, t }: { summary: Summary; stale: boolean; t: TranslateFn }) {
     const verdict = verdictFor(summary);
     const good = verdict === 'perfect' || verdict === 'good';
     return (

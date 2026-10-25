@@ -106,7 +106,7 @@ function isNumeric(v: unknown) {
  * the row to free text, so the user always SEES what is saved even when the
  * pretty control cannot express it.
  */
-export function isRepresentable(value: FilterValue, control: string, field: FilterField | null) {
+function isRepresentable(value: FilterValue, control: string, field: FilterField | null) {
     if (value === '' || value == null) return true;
     switch (control) {
         case 'bool': return value === true || value === false;
@@ -266,7 +266,7 @@ function emptyValueFor(control: string) {
  * expression grammar has no array literal (`[` is index access), so `in` and
  * `between` rows fall back to the remembered value instead.
  */
-export function exprFromLiteral(value: FilterValue) {
+function exprFromLiteral(value: FilterValue) {
     if (typeof value === 'string') return value === '' ? '' : JSON.stringify(value);
     if (typeof value === 'number' && Number.isFinite(value)) return String(value);
     if (typeof value === 'boolean') return String(value);
@@ -274,7 +274,7 @@ export function exprFromLiteral(value: FilterValue) {
 }
 
 /** The inverse, for the expressions simple enough to be a literal again. */
-export function literalFromExpr(expr: string | undefined, control: string) {
+function literalFromExpr(expr: string | undefined, control: string) {
     const src = typeof expr === 'string' ? expr.trim() : '';
     if (!src) return emptyValueFor(control);
     if (src === 'true') return true;

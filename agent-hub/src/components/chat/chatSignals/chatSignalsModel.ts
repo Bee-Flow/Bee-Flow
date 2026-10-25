@@ -14,7 +14,7 @@ import type { AgentCountingGate } from '../../../api/queries/chatSignals';
 import type { ChatSignal, ShieldStatus } from '../../../api/queries/shieldStatus';
 import type { ChatSignalsTurnSurface } from '../../../hooks/useChatEngine/turnEndpoint';
 
-export type { AgentCountingGate };
+;
 
 export interface NoticeModel {
     surface: ChatSignalsTurnSurface;

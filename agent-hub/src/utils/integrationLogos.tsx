@@ -502,7 +502,7 @@ const McpLogoMark = (p: LogoProps) => (
 
 // ── id → logo registry ─────────────────────────────────────────
 
-export const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
+const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
     // Google
     gmail: GmailLogo,
     google_drive: GoogleDriveLogo,

@@ -145,7 +145,7 @@ export function parseFieldDiff(body: unknown): FieldDiff {
     };
 }
 
-export const versionKeys = {
+const versionKeys = {
     list: (automationId: string) => ['automation', automationId, 'versions'] as const,
     one: (automationId: string, versionId: string) => ['automation', automationId, 'versions', 'one', versionId] as const,
     fieldDiff: (automationId: string, version: number, other: number) =>

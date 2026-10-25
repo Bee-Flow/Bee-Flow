@@ -64,7 +64,7 @@ export function evidenceRef(uploaded: UploadedEvidence | null | undefined): Evid
 }
 
 /** Upload one file and return its allow-listed evidence ref. */
-export async function uploadEvidence(file: string | Blob, { checkId = null, subjectId = null, subjectType = 'attachment', note = null }: { checkId?: string | null; subjectId?: string | null; subjectType?: string; note?: string | null } = {}) {
+async function uploadEvidence(file: string | Blob, { checkId = null, subjectId = null, subjectType = 'attachment', note = null }: { checkId?: string | null; subjectId?: string | null; subjectType?: string; note?: string | null } = {}) {
     const form = new FormData();
     form.append('file', file);
     form.append('subject_type', subjectType);
@@ -79,7 +79,7 @@ export async function uploadEvidence(file: string | Blob, { checkId = null, subj
 const SECONDARY_BUTTON = 'inline-flex items-center gap-1 px-[9px] py-1 rounded-lg border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-primary)] bg-[var(--bg-card)] disabled:opacity-60';
 
 /** Error codes the two attest routes answer with → the sentence the drawer shows. */
-export const ATTEST_ERRORS: Readonly<Record<string, { key: string; fallback: string }>> = Object.freeze({
+const ATTEST_ERRORS: Readonly<Record<string, { key: string; fallback: string }>> = Object.freeze({
     evidence_required: { key: 'compliance.custom_err_evidence_required', fallback: 'This item needs at least one piece of evidence.' },
     invalid_outcome: { key: 'compliance.custom_err_invalid_outcome', fallback: 'That is not a valid outcome.' },
     invalid_subject: { key: 'compliance.mach_err_invalid_subject', fallback: 'This subject cannot be attested.' },

@@ -92,7 +92,7 @@ function DescribeRow({ disabled, onCreate, t }: { disabled: boolean; onCreate: (
     );
 }
 
-export function OwnDataLanding({
+function OwnDataLanding({
     types, readOnly, automations, note, onStart, onDescribe, t,
 }: {
     types: CustomDataType[];

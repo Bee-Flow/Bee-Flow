@@ -11,9 +11,9 @@
  * This module reads exactly those two shapes and nothing else.
  */
 
-export type ManagedStage = 'uat' | 'prd';
+type ManagedStage = 'uat' | 'prd';
 
-export interface ManagedDevRef {
+interface ManagedDevRef {
     kind: string;
     id: string;
 }
@@ -27,7 +27,7 @@ export interface ManagedPart {
     devRef: ManagedDevRef | null;
 }
 
-export type ManagedReason = 'managed' | 'not_deployed';
+type ManagedReason = 'managed' | 'not_deployed';
 
 /**
  * A refused write, in the shape the banner takes. `managed` is whatever the

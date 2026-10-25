@@ -62,7 +62,7 @@ export interface RowSort {
     dir: 'asc' | 'desc';
 }
 
-export interface RowPage {
+interface RowPage {
     rows?: DtRow[];
     hasMore?: boolean;
     nextCursor?: string | null;
@@ -70,7 +70,7 @@ export interface RowPage {
 }
 
 /** A refusal from the datatables API: the server's code and body ride on the Error. */
-export interface ApiError {
+interface ApiError {
     message?: string;
     code?: string;
     body?: { limit?: number } | null;

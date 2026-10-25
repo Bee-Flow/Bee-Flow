@@ -25,7 +25,7 @@ export interface TriggerLike {
 }
 
 /** kind → the muted type kicker. */
-export const TRIGGER_TYPE_LABEL: Record<string, string> = {
+const TRIGGER_TYPE_LABEL: Record<string, string> = {
     schedule:    'Schedule trigger',
     manual:      'Manual trigger',
     webhook:     'Webhook trigger',
@@ -47,7 +47,7 @@ export const TRIGGER_TYPE_LABEL: Record<string, string> = {
  * reads as a label and its type, while "Schedule trigger / Schedule trigger"
  * reads as a rendering bug.
  */
-export const TRIGGER_NAME: Record<string, string> = {
+const TRIGGER_NAME: Record<string, string> = {
     schedule:    'Schedule',
     manual:      'Manual',
     webhook:     'Webhook',

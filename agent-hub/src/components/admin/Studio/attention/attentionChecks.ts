@@ -82,7 +82,7 @@ async function getJson(path: string) {
  * server/core/findings/finding.js, so the client and the server cannot
  * disagree about what is worse.
  */
-export const SEVERITY_RANK: Readonly<Record<string, number>> = Object.freeze({ error: 0, warning: 1, info: 2 });
+const SEVERITY_RANK: Readonly<Record<string, number>> = Object.freeze({ error: 0, warning: 1, info: 2 });
 
 /**
  * The six source keys the endpoint answers with, in the artboard's order.
@@ -322,7 +322,7 @@ export function checkAvailability(check: { gate?: AttentionGate } | null | undef
 /* ── The runner ──────────────────────────────────────────────────────────── */
 
 /** A run with nothing in it — and no licence to say anything is fine. */
-export const EMPTY_ATTENTION: Readonly<AttentionRun> = Object.freeze({
+const EMPTY_ATTENTION: Readonly<AttentionRun> = Object.freeze({
     findings: [], unavailable: [], capped: [], complete: false, checked: [], skipped: [], truncated: 0,
 });
 
@@ -480,4 +480,3 @@ export function summarizeAttention(state: Readonly<AttentionRun> | null | undefi
     };
 }
 
-export default ATTENTION_CHECKS;

@@ -86,7 +86,7 @@ interface PropSpec {
 type ListItem = Record<string, unknown>;
 
 /** Offline fallback: infer a minimal prop spec from registry defaultProps. */
-export function inferSpecProps(defaultProps: Record<string,unknown>|undefined) {
+function inferSpecProps(defaultProps: Record<string,unknown>|undefined) {
     const out: Record<string, PropSpec> = {};
     for (const [key, v] of Object.entries(defaultProps || {})) {
         if (v && typeof v === 'object' && !Array.isArray(v) && 'kind' in v) out[key] = { type: 'binding', default: v };

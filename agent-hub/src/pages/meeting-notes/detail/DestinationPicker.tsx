@@ -76,7 +76,7 @@ interface DestinationChipProps {
     open?: boolean;
 }
 
-export const DestinationChip = React.forwardRef<HTMLButtonElement, DestinationChipProps>(function DestinationChip(
+const DestinationChip = React.forwardRef<HTMLButtonElement, DestinationChipProps>(function DestinationChip(
     { destination, onClick = null, disabled = false, open = false, t }, ref,
 ) {
     const set = !!destination;

@@ -49,7 +49,7 @@ export function isSpreadsheetMirror(table: { managedKind?: string | null; } | nu
  * NOT translated: "Google Drive" is Google Drive in every language, and a
  * dictionary entry for it would only be a place for it to drift.
  */
-export const PROVIDERS = Object.freeze(['google_drive', 'onedrive', 'nextcloud_files']);
+const PROVIDERS = Object.freeze(['google_drive', 'onedrive', 'nextcloud_files']);
 const PROVIDER_NAMES: Readonly<Record<string, string>> = Object.freeze({ google_drive: 'Google Drive', onedrive: 'OneDrive', nextcloud_files: 'Nextcloud' });
 
 export function providerName(provider: string | null | undefined) {
@@ -68,7 +68,7 @@ export function providerLogoId(provider: string | undefined, format?: string | n
 }
 
 /** The file formats the server can link; mirrors spreadsheetFile.FORMATS. */
-export const FORMATS = Object.freeze(['xlsx', 'xlsm', 'xls', 'csv', 'ods', 'gsheet']);
+const FORMATS = Object.freeze(['xlsx', 'xlsm', 'xls', 'csv', 'ods', 'gsheet']);
 
 /** What a format is called on screen — with its extension, which is what the person sees in the folder. */
 export function formatLabel(t: TranslateFn, format: string | null | undefined) {
@@ -96,7 +96,7 @@ export function sourceNameOf(table: MirrorTable | null | undefined, source: Mirr
 }
 
 /** The table (or view) in Nextcloud's own Tables app — the server's deep link. */
-export function ncUrlOf(source: MirrorSource | null | undefined) {
+function ncUrlOf(source: MirrorSource | null | undefined) {
     if (!source || !source.ncTableId) return null;
     return source.ncUrl || `/apps/tables/#/${source.ncViewId ? `view/${source.ncViewId}` : `table/${source.ncTableId}`}`;
 }

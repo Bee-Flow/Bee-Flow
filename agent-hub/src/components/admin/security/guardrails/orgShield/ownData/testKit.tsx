@@ -25,7 +25,7 @@ export const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     return out;
 };
 
-export interface HarnessInit {
+interface HarnessInit {
     types?: CustomDataType[];
     tests?: TestsDoc | null;
     piiCategories?: string[];

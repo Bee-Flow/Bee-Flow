@@ -11,7 +11,7 @@ export interface VideoStepDoc {
     titleFallback?: string;
 }
 
-export interface VideoStepState {
+interface VideoStepState {
     status: 'watched';
     watchedAt: string;
 }

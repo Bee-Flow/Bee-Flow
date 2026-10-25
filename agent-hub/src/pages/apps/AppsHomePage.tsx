@@ -53,7 +53,7 @@ const RECENTS_KEY = 'appRecents';
 const REMEMBERED = 12;
 // The design's row of three wide cards. More than that and "recent" stops
 // being a shortcut and becomes a second copy of the directory.
-export const RECENTS_SHOWN = 3;
+const RECENTS_SHOWN = 3;
 
 /** `{ [appId]: epochMs }`, never throwing on absent or corrupt storage. */
 export function readAppRecents(): Record<string, number> {
@@ -88,7 +88,7 @@ export function rememberAppOpened(id: string | null, now: number = Date.now()) {
  * longer in `apps` (unpublished, unshared, deleted) drops out on its own,
  * because the list is filtered rather than looked up.
  */
-export function recentApps(apps: DirectoryApp[], limit: number = RECENTS_SHOWN, recents: Record<string, number> = readAppRecents()) {
+function recentApps(apps: DirectoryApp[], limit: number = RECENTS_SHOWN, recents: Record<string, number> = readAppRecents()) {
     const list = Array.isArray(apps) ? apps : [];
     return list
         .filter((a) => a?.id && recents[a.id])

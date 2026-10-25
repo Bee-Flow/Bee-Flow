@@ -139,7 +139,7 @@ export function readFormsPayload(body: { forms?: unknown } | null | undefined) {
 }
 
 /** `GET /api/automation/forms/:automationId` → the directory row, or null. */
-export function readFormPayload(body: { form?: FormListRow | null } | null | undefined) {
+function readFormPayload(body: { form?: FormListRow | null } | null | undefined) {
     const f = body?.form;
     return f && typeof f === 'object' && typeof f.automationId === 'string' && f.automationId ? f : null;
 }
@@ -201,7 +201,7 @@ function CopyLinkButton({ form, t, onError }: CopyLinkButtonProps) {
 }
 
 /** Whether THIS caller may open the Form page: the owner, or a reader of its answers table. */
-export function canOpenForm(form: { mine?: boolean; automationId?: string; answers?: { grade?: string | null } | null } | null | undefined) {
+function canOpenForm(form: { mine?: boolean; automationId?: string; answers?: { grade?: string | null } | null } | null | undefined) {
     return canOpenAutomation(form) || (!!form?.answers?.grade && typeof form?.automationId === 'string' && !!form.automationId);
 }
 

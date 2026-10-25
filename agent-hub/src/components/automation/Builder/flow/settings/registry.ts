@@ -38,7 +38,7 @@ type SettingsComponent = ComponentType<Record<string, unknown>>;
 
 const REGISTRY: Record<string, SettingsComponent> = {};
 
-export function registerSettings(type: string, component: SettingsComponent) {
+function registerSettings(type: string, component: SettingsComponent) {
     REGISTRY[type] = component;
 }
 
@@ -46,4 +46,3 @@ export function getSettingsForType(type: string): SettingsComponent | null {
     return REGISTRY[type] || null;
 }
 
-export default REGISTRY;

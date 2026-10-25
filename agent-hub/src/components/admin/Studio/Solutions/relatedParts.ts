@@ -16,9 +16,9 @@ import { mutate, ApiError } from '../../../../api/mutate';
  * notice says so), and answered (possibly with nothing to add).
  */
 
-export type RelatedStatus = 'addable' | 'already_here' | 'in_other_solution' | 'not_yours' | 'not_found';
+type RelatedStatus = 'addable' | 'already_here' | 'in_other_solution' | 'not_yours' | 'not_found';
 
-export interface RelatedVia { kind: string; id: string; name: string | null; relation: string | null }
+interface RelatedVia { kind: string; id: string; name: string | null; relation: string | null }
 
 export interface RelatedPart {
     kind: string;
@@ -80,7 +80,7 @@ export function parseRelated(body: unknown): RelatedResult | null {
     return { related, truncated: (body as { truncated?: unknown }).truncated === true };
 }
 
-export async function fetchRelated(projectId: string, items: RelatedRef[]): Promise<RelatedResult | null> {
+async function fetchRelated(projectId: string, items: RelatedRef[]): Promise<RelatedResult | null> {
     try {
         let res: Response;
         try {
@@ -106,7 +106,7 @@ export type RelatedState =
     | { status: 'ok'; result: RelatedResult };
 
 /** Wait this long after the last tick before asking, so ticking five boxes asks once. */
-export const RELATED_DEBOUNCE_MS = 250;
+const RELATED_DEBOUNCE_MS = 250;
 
 /**
  * The related parts of the ticked items, asked a moment after the selection

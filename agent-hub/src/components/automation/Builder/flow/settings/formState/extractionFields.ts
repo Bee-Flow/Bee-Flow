@@ -14,7 +14,7 @@ export const MAX_EXTRACTION_FIELDS = 30;
 export const MAX_EXTRACTION_INSTRUCTIONS = 2000;
 // `[a-z][a-z0-9_]{0,39}` — lowercase snake, because these become the output
 // keys (`steps.<id>.output.<name>`) and every later binding spells them.
-export const EXTRACTION_NAME_RE = /^[a-z][a-z0-9_]{0,39}$/;
+const EXTRACTION_NAME_RE = /^[a-z][a-z0-9_]{0,39}$/;
 
 /** The row the panel opens on and "Add field" appends. */
 export function emptyExtractionField(): FormRecord {

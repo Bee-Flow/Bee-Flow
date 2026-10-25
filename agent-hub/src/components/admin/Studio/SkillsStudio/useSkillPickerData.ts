@@ -12,7 +12,7 @@ export interface PickerAutomation extends CallableAutomation {
     name?: string;
 }
 export interface PickerKnowledgeBase { id: string | number; name?: string }
-export interface PickerDatatable { id: string | number; name?: string; key?: string }
+interface PickerDatatable { id: string | number; name?: string; key?: string }
 
 export interface PickerData {
     orgGroups: OrgGroup[];
@@ -88,7 +88,7 @@ async function readList<T>(path: string, pick: (body: ListBody | null) => unknow
 }
 
 /** Before the first answer: four empty lists and no claim about any of them. */
-export const EMPTY_PICKER_DATA: PickerData = Object.freeze({
+const EMPTY_PICKER_DATA: PickerData = Object.freeze({
     orgGroups: [], automations: [], knowledgeBases: [], datatables: [],
     unavailable: [], loaded: false,
 });

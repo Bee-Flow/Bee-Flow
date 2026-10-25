@@ -29,7 +29,7 @@ import { mergeFormValues } from '../runtime/formValues';
  */
 
 /** `{ [formName]: { [field]: value } }` — what is on the screen right now. */
-export type ScreenForms = Record<string, Record<string, unknown>>;
+type ScreenForms = Record<string, Record<string, unknown>>;
 
 /** The store: stable over the shell's whole life. */
 export interface ScreenValuesStore {

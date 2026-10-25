@@ -91,4 +91,3 @@ export function deleteRecord(appId: string, tableId: string, recordId: string) {
     return request(`${recordsUrl(appId, tableId)}/${enc(recordId)}`, { method: 'DELETE' });
 }
 
-export default { listRecords, createRecord, updateRecord, deleteRecord, PAGE_SIZE };

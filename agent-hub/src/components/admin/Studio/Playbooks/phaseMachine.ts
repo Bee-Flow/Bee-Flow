@@ -33,7 +33,7 @@ export interface DesignScreen {
     sections: DesignSection[];
 }
 
-export interface DesignSpec {
+interface DesignSpec {
     name?: string;
     tagline?: string;
     look: { preset?: string; mood?: string; accent?: string };
@@ -121,7 +121,7 @@ export interface KeyedPlaybookEvent {
 }
 
 /** An event for the playbook as a whole (stop/resume) or one that hands over the server's answer. */
-export interface WholePlaybookEvent {
+interface WholePlaybookEvent {
     type: 'stop' | 'resume' | 'replace';
     key?: undefined;
     playbook?: PlaybookLike;
@@ -136,7 +136,7 @@ export interface WireRequest {
     body?: Record<string, unknown>;
 }
 
-export const PHASE_ORDER = Object.freeze(['table', 'automation', 'fill', 'app', 'approvals']); // the built-in recipe's keys
+const PHASE_ORDER = Object.freeze(['table', 'automation', 'fill', 'app', 'approvals']); // the built-in recipe's keys
 export const KINDS = Object.freeze(['table', 'automation', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']); // what a stage can be
 export const SERVER_RUN = new Set<string | null>(['table', 'fill', 'design', 'compliance']);    // POST …/phases/<key>/run, then poll
 export const CLIENT_RUN = new Set<string | null>(['automation', 'app', 'app_turn', 'access']); // a builder (or the person) works here; the page PATCHes
@@ -147,10 +147,10 @@ export function kindOf(phase: Phase | null | undefined): string | null {
     if (phase.kind) return phase.kind;
     return phase.key === 'approvals' ? 'app_turn' : phase.key;
 }
-export const TERMINAL = new Set<string>(['done', 'skipped', 'locked']);
-export const ACTIONABLE = new Set<string>(['ready', 'running', 'awaiting', 'failed']);
+const TERMINAL = new Set<string>(['done', 'skipped', 'locked']);
+const ACTIONABLE = new Set<string>(['ready', 'running', 'awaiting', 'failed']);
 
-export function phaseByKey(phases: Phase[] | null | undefined, key: string | undefined): Phase | null {
+function phaseByKey(phases: Phase[] | null | undefined, key: string | undefined): Phase | null {
     return (Array.isArray(phases) ? phases : []).find((p) => p && p.key === key) || null;
 }
 

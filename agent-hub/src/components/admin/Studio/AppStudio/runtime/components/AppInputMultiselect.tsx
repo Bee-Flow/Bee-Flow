@@ -23,7 +23,7 @@ import type { NodeProps } from './appNode.types';
  * sent a string where an array was expected — and adding one chip committed
  * [thatChip] over the top of the original value.
  */
-export function toValueList(value: string | string[] | null | undefined) {
+function toValueList(value: string | string[] | null | undefined) {
     if (Array.isArray(value)) return value;
     if (value == null || value === '') return [];
     if (typeof value === 'string') return value.split(',').map((s) => s.trim()).filter(Boolean);

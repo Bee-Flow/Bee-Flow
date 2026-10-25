@@ -15,7 +15,7 @@ import type { RuleRow, RunFacets } from '../library/RulesPanel.types';
  */
 
 export const RULE_TRIGGER_PROVIDER = 'meeting-notes';
-export const RULE_TRIGGER_EVENT = 'meeting.processed';
+const RULE_TRIGGER_EVENT = 'meeting.processed';
 
 const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const list = <T = unknown>(v: unknown): T[] => (Array.isArray(v) ? v : []);

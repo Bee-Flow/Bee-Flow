@@ -17,14 +17,14 @@
  *     digest: { enabled, time: 'HH:MM' } }
  */
 
-export const NOTIFICATION_EVENTS = Object.freeze(['onError', 'onApproval', 'onSuccess']);
-export const NOTIFICATION_CHANNELS = Object.freeze(['bell', 'email', 'talk']);
-export const NOTIFICATION_URGENCIES = Object.freeze(['silent', 'normal', 'urgent']);
-export const RECIPIENT_TYPES = Object.freeze(['owner', 'approver', 'user', 'group']);
-export const DELIVERY_MODES = Object.freeze(['direct', 'digest']);
-export const MAX_RECIPIENTS = 20;
-export const MAX_PER_HOUR_LIMIT = 60;
-export const DEFAULT_DIGEST_TIME = '17:00';
+const NOTIFICATION_EVENTS = Object.freeze(['onError', 'onApproval', 'onSuccess']);
+const NOTIFICATION_CHANNELS = Object.freeze(['bell', 'email', 'talk']);
+const NOTIFICATION_URGENCIES = Object.freeze(['silent', 'normal', 'urgent']);
+const RECIPIENT_TYPES = Object.freeze(['owner', 'approver', 'user', 'group']);
+const DELIVERY_MODES = Object.freeze(['direct', 'digest']);
+const MAX_RECIPIENTS = 20;
+const MAX_PER_HOUR_LIMIT = 60;
+const DEFAULT_DIGEST_TIME = '17:00';
 
 export type Channel = 'bell' | 'email' | 'talk';
 export type Urgency = 'silent' | 'normal' | 'urgent';
@@ -68,7 +68,7 @@ export const NOTIFICATION_DEFAULTS = Object.freeze({
 });
 
 /** The pre-handoff-5 channel names, and what each one means now. */
-export const LEGACY_CHANNEL_MAP = Object.freeze({
+const LEGACY_CHANNEL_MAP = Object.freeze({
     inapp: 'bell',
     notification: 'bell',
     nc_notification: 'bell',
@@ -77,7 +77,7 @@ export const LEGACY_CHANNEL_MAP = Object.freeze({
 });
 
 /** The pre-handoff-5 levels as an urgency. */
-export const LEGACY_LEVEL_TO_URGENCY = Object.freeze({
+const LEGACY_LEVEL_TO_URGENCY = Object.freeze({
     urgent: 'urgent',
     heads_up: 'normal',
     ai_task: 'normal',
@@ -89,9 +89,9 @@ export const LEGACY_LEVEL_TO_URGENCY = Object.freeze({
 // email; the runner calls the bell 'notification' on a step and accepts
 // either (core/automationRunner/execOutbound.js). No Nextcloud channels here:
 // a step cannot send them (validate.js NOTIFICATION_STEP_CHANNELS).
-export const VALID_CHANNELS = Object.freeze(['inapp', 'email']);
+const VALID_CHANNELS = Object.freeze(['inapp', 'email']);
 
-export const CHANNEL_OPTIONS = Object.freeze([
+const CHANNEL_OPTIONS = Object.freeze([
     Object.freeze({ key: 'inapp', label: 'In-app bell', always: true }),
     Object.freeze({ key: 'email', label: 'Email' }),
 ]);

@@ -62,7 +62,7 @@ const EMPTY_PLAN = { audience: null, roles: [], tableRules: [], defaultRole: nul
  * waits for the org's connector, so this can be exact instead of hopeful —
  * the same three readings the Publish dialog gives (`ncConnected`, `ncSync`).
  */
-export function ncMenuWords(nc: NcResult | null, t: TranslateFn) {
+function ncMenuWords(nc: NcResult | null, t: TranslateFn) {
     if (!nc) return null;
     if (nc.ncConnected === false) return t('playbooks.access.nc_not_connected', 'No Nextcloud is connected yet — the icon appears once it is.');
     if (nc.ncSync === 'synced') return t('playbooks.access.nc_synced', 'It is in the Nextcloud app menu — reload Nextcloud to see it.');
@@ -75,7 +75,7 @@ interface PublishRefusal {
     body?: { errors?: Array<string | { message?: string; error?: string }> } | null;
 }
 
-export function blockersOf(error: PublishRefusal | null | undefined) {
+function blockersOf(error: PublishRefusal | null | undefined) {
     const body = error && error.body;
     const list = body && Array.isArray(body.errors) ? body.errors : [];
     return list.map((e) => (typeof e === 'string' ? e : (e && (e.message || e.error)) || '')).filter(Boolean).slice(0, 6);

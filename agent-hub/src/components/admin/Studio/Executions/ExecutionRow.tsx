@@ -38,7 +38,7 @@ export const FROM_WIDEST = 'hidden @[100rem]/runlog:block';
 
 type AutomationApi = ReturnType<typeof useAutomationApi>;
 
-export interface ExecutionRowProps {
+interface ExecutionRowProps {
     run: RunLogRow;
     isGlobal: boolean;
     api: AutomationApi;

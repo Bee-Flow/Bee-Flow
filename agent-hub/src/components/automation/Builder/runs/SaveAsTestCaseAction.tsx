@@ -19,7 +19,7 @@ interface SaveAsTestCaseActionProps {
 }
 
 /** Can this row be saved as a test case? Exported for the test. */
-export function canSaveAsTestCase(automationId: string | null | undefined, step: RunStepRecord | null | undefined): boolean {
+function canSaveAsTestCase(automationId: string | null | undefined, step: RunStepRecord | null | undefined): boolean {
     return !!automationId && !!step && step.stepType === 'code' && !step.dataHidden && !!step.runId
         && step.input !== undefined && step.input !== null;
 }

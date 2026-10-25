@@ -57,7 +57,7 @@ const SERVER_CODES = new Set<string>([
     'already_registered', 'no_security_key_here', 'no_pending_login', 'mfa_attempts_exhausted',
 ]);
 
-export const securityKeyKeys = {
+const securityKeyKeys = {
     all: ['security-keys'] as const,
 };
 
@@ -144,7 +144,7 @@ export function useSecurityKeys(enabled = true) {
  * Proof of a factor the account already has, for changing its factors while
  * 2FA is on: an authenticator or recovery code, or a key's answer.
  */
-export type SecondFactorProof = { code: string } | { securityKey: AuthenticationResponseJSON };
+type SecondFactorProof = { code: string } | { securityKey: AuthenticationResponseJSON };
 
 /** Touch a key the account already has, as proof. Throws like the ceremonies. */
 export async function proveWithSecurityKey(): Promise<{ securityKey: AuthenticationResponseJSON }> {

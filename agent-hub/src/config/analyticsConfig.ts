@@ -25,7 +25,7 @@ export const SAFETY_PII_ALERT = 10;
  * Default chart palette. Ten distinct hues, slate at the end so any
  * "Other / Unknown" series doesn't visually fight with the named series.
  */
-export const PALETTE = [
+const PALETTE = [
     '#0ea5e9', // sky-500
     '#10b981', // emerald-500
     '#f59e0b', // amber-500
@@ -49,7 +49,7 @@ export function paletteColor(i: number): string {
  * Unknown operators fall back to slate so an unattributed entry stays
  * legible without being a noisy default.
  */
-export const OPERATOR_COLORS: Record<string, string> = {
+const OPERATOR_COLORS: Record<string, string> = {
     'Google':       '#4285F4',
     'Microsoft':    '#0078D4',
     'Cloudflare':   '#F38020',
@@ -61,7 +61,7 @@ export const OPERATOR_COLORS: Record<string, string> = {
     'Unknown':      '#94a3b8',
 };
 
-export function operatorColor(name: string | null | undefined): string {
+function operatorColor(name: string | null | undefined): string {
     return (name && OPERATOR_COLORS[name]) || '#64748b';
 }
 
@@ -100,7 +100,7 @@ export const SEMANTIC = {
  * both). Other heroes with different semantics (feedback positive-rate,
  * terminations clean-completion) use `pickBand` with their own thresholds.
  */
-export function scoreColor(score: number): string {
+function scoreColor(score: number): string {
     if (score >= 80) return SEMANTIC.ok;
     if (score >= 60) return SEMANTIC.good;
     if (score >= 40) return SEMANTIC.watch;
@@ -108,7 +108,7 @@ export function scoreColor(score: number): string {
     return SEMANTIC.crit;
 }
 
-export function scoreLabel(score: number): string {
+function scoreLabel(score: number): string {
     if (score >= 80) return 'Excellent';
     if (score >= 60) return 'Good';
     if (score >= 40) return 'Watch';
@@ -116,7 +116,7 @@ export function scoreLabel(score: number): string {
     return 'Critical';
 }
 
-export interface ScoreBand {
+interface ScoreBand {
     min: number;
     color: string;
     label: string;
@@ -128,7 +128,7 @@ export interface ScoreBand {
  * Lets feedback/terminations express their own thresholds without re-deriving
  * colour ladders inline.
  */
-export function pickBand(value: number | null | undefined, bands: ScoreBand[]): ScoreBand {
+function pickBand(value: number | null | undefined, bands: ScoreBand[]): ScoreBand {
     if (value != null) {
         for (const b of bands) if (value >= b.min) return b;
     }

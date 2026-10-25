@@ -12,20 +12,20 @@ import { seedVariableDefaults } from '@shared/appDefinition/variables.mjs';
 
 export {
     VARIABLE_TYPES,
-    VARIABLE_TYPE_DEFAULTS,
+    
     VARIABLE_NAME_RE,
     RESERVED_VARIABLE_NAMES,
     MAX_VARIABLES,
-    MAX_VARIABLE_DEFAULT_BYTES,
-    MAX_VARIABLE_NAME_LEN,
-    MAX_VARIABLE_LABEL_LEN,
-    MAX_VARIABLE_DESCRIPTION_LEN,
+    
+    
+    
+    
     coerceVariableDefault,
     seedVariableDefaults,
 } from '@shared/appDefinition/variables.mjs';
 
 /** Declared names, in declaration order. */
-export function listVariableNames(variables?: Array<{ name?: unknown } | null> | null) {
+function listVariableNames(variables?: Array<{ name?: unknown } | null> | null) {
     return (Array.isArray(variables) ? variables : [])
         .map((v) => (v && typeof v.name === 'string' ? v.name : null))
         .filter(Boolean);

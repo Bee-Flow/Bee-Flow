@@ -22,7 +22,7 @@ export interface Subscription extends OrgSubscription {
     status: string;
 }
 
-export interface SubscriptionContextValue {
+interface SubscriptionContextValue {
     sub: Subscription | null;
     loading: boolean;
     hasActiveSub: boolean;
@@ -82,4 +82,3 @@ export function useSubscriptionContext() {
     return useContext(SubscriptionContext);
 }
 
-export default SubscriptionContext;

@@ -7,7 +7,7 @@ import { STAGE_DOT, STAGE_INK, STAGE_RULE, STAGE_TINT, useStageLabel } from './S
 import type { PipelineStage, StageKey } from '../../../../../api/stagesApi';
 
 export {
-    StatusPill, ackText, blockTexts, errorText, findingText, footerLabels, kindLabel, outcomeText, statusLabel,
+     ackText, blockTexts, errorText, findingText, footerLabels,  outcomeText, statusLabel,
 } from './stageText';
 
 /**

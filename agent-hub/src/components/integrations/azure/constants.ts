@@ -88,7 +88,7 @@ export const getModelMeta = (id: string): ModelMeta | null => {
     return null;
 };
 
-export const formatModelId = (id: string): string => {
+const formatModelId = (id: string): string => {
     if (!id) return id;
     let name = id.replace(/-\d{6,8}$/, '').replace(/-\d{4}$/, '');
     return name.split('-').map((part: string) => /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)).join(' ');

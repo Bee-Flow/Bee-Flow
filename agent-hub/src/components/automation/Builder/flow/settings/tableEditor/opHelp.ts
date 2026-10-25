@@ -3,7 +3,7 @@ import type { OpKind } from './tableOpModel';
 export type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 
 /** What an operation is called and what it is for, in one plain sentence. */
-export interface OpTitle { title: string; blurb: string }
+interface OpTitle { title: string; blurb: string }
 
 function titles(t: Translate) {
     const ops: Record<OpKind, OpTitle> = {

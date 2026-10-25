@@ -45,9 +45,9 @@ const DEFAULT_W = 240;
 const DEFAULT_H = 96;
 
 /** How close the dragged card must come, in flow units. */
-export const EDGE_SNAP = 70;   // centre → the line between a connection's ends
-export const NODE_GAP = 150;   // horizontal gap between two cards
-export const NODE_OVERLAP = 70; // vertical offset still counted as "in line"
+const EDGE_SNAP = 70;   // centre → the line between a connection's ends
+const NODE_GAP = 150;   // horizontal gap between two cards
+const NODE_OVERLAP = 70; // vertical offset still counted as "in line"
 
 export function nodeRect(node: RectNode | null | undefined): NodeRect {
     const w = node?.measured?.width ?? node?.width ?? DEFAULT_W;

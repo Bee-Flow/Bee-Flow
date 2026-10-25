@@ -11,14 +11,14 @@ import { apiClient } from '../client';
 import { projectKeys, type ProjectActivityItem } from './projects';
 
 export type ChangeItemType = 'notebook' | 'document' | 'meeting';
-export type ChangeKind = 'edited' | 'added' | 'removed' | 'renamed' | 'restored' | 'named';
+type ChangeKind = 'edited' | 'added' | 'removed' | 'renamed' | 'restored' | 'named';
 
-export interface ChangeContributor {
+interface ChangeContributor {
     userId: string | null;
     kind: 'user' | 'ai';
 }
 
-export interface ChangeStats {
+interface ChangeStats {
     wordsAdded: number;
     wordsRemoved: number;
     blocksChanged: number;
@@ -68,7 +68,7 @@ export interface ChangeLogItem extends ProjectActivityItem {
 const enc = encodeURIComponent;
 const LOG_PAGE = 50;
 /** How often an open workspace tells the server the visit goes on. */
-export const VISIT_PING_MS = 10 * 60 * 1000;
+const VISIT_PING_MS = 10 * 60 * 1000;
 
 export const changeKeys = {
     all: (projectId: string) => [...projectKeys.project(projectId), 'changes'] as const,

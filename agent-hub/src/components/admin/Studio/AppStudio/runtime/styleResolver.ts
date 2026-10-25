@@ -16,7 +16,7 @@
 import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
 
 // One spacing step in px (multiplied by the --app-space density var).
-export const SPACE_STEP_PX = 4;
+const SPACE_STEP_PX = 4;
 
 /** calc() for N spacing steps honouring the theme density multiplier. */
 export function spaceSteps(n?: number | null): string {
@@ -66,7 +66,7 @@ export const roleFillContrast = (tone?: string | null): string => (tone === 'dan
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
 /** colorOrRole knob value → CSS color, or null to inherit. */
-export function resolveColor(value?: string | null): string | null {
+function resolveColor(value?: string | null): string | null {
     if (value == null) return null;
     if (ROLE_COLORS[value]) return ROLE_COLORS[value];
     if (typeof value === 'string' && HEX_RE.test(value)) return value;
@@ -76,7 +76,7 @@ export function resolveColor(value?: string | null): string | null {
 // radius knob: null inherits the theme radius; 'full' is the pill shape.
 const RADIUS_VALUES: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '12px', full: '9999px' };
 
-export function resolveRadius(value?: string | null): string | undefined {
+function resolveRadius(value?: string | null): string | undefined {
     if (value === undefined) return undefined;       // knob not present on this node
     if (value === null) return 'var(--app-radius)';  // inherit theme
     return RADIUS_VALUES[value] || 'var(--app-radius)';
@@ -98,7 +98,7 @@ export const HEIGHT_PX: Record<string, string> = { sm: '120px', md: '200px', lg:
  * for as long as height:'fill' has existed). Longhands are identical in a
  * browser and actually observable in a test.
  */
-export const FLEX_FILL = Object.freeze({ flexGrow: 1, flexShrink: 1, flexBasis: 0 });
+const FLEX_FILL = Object.freeze({ flexGrow: 1, flexShrink: 1, flexBasis: 0 });
 
 /**
  * True when this node asked to take the leftover space.
@@ -277,7 +277,7 @@ export function resolveBackground(value?: string | null): string | null {
  * Both values use --border-color so they follow the platform theme; 'subtle'
  * fades it, which is what a divider inside a card wants.
  */
-export function resolveBorder(value?: string | null): string | null {
+function resolveBorder(value?: string | null): string | null {
     // The fallback is load-bearing: --border-color is declared only inside the
     // data-app-appearance light/dark blocks, so on the default 'auto' both of
     // these were invalid declarations and the border knob painted nothing.

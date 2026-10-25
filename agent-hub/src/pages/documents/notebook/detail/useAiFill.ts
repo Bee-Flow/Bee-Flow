@@ -23,7 +23,7 @@ interface Options {
 }
 
 /** Read an SSE body into the text of its `content` events; an `error` event throws. */
-export async function readFillStream(body: ReadableStream<Uint8Array>, fallbackError: string): Promise<string> {
+async function readFillStream(body: ReadableStream<Uint8Array>, fallbackError: string): Promise<string> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';

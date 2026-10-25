@@ -41,7 +41,7 @@ type TFn = ReturnType<typeof useTranslation>['t'];
 interface Subject { name: string }
 
 /** The display name of a share row: a person from `people`, a group from `groups`. */
-export function subjectOf(share: ProjectShare, data: ProjectMembers | undefined, t: TFn): Subject {
+function subjectOf(share: ProjectShare, data: ProjectMembers | undefined, t: TFn): Subject {
     if (share.sharedWithType === 'group') {
         const g = data?.groups?.[share.sharedWithId];
         return { name: g?.name || t('project_home.members.unknown_group', 'A group you cannot see') };

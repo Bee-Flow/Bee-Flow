@@ -399,7 +399,7 @@ function listCheckFromSpec(spec: { criteria?: CriterionSpec[] }): ActionCheck {
 }
 
 /** Criterion ids of a check this runtime cannot verify (they never auto-pass). */
-export function unverifiableCriteria(check: ActionCheck | null | undefined): string[] {
+function unverifiableCriteria(check: ActionCheck | null | undefined): string[] {
     return (check?.criteria || []).filter((c: CheckCriterion) => c.unverifiable).map((c: CheckCriterion) => c.id);
 }
 

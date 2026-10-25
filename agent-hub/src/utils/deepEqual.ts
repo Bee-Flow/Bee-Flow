@@ -27,4 +27,3 @@ export function deepEqual(a: unknown, b: unknown): boolean {
     return true;
 }
 
-export default deepEqual;

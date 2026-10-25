@@ -10,7 +10,7 @@ import type { ChatTurn } from './turnStream';
 import type { ChatMessage } from './types';
 
 /** Slack before a turn's start when the chip asks what the turn saved. */
-export const MEMORY_SINCE_SLACK_MS = 3000;
+const MEMORY_SINCE_SLACK_MS = 3000;
 
 export interface TurnTarget {
     /** Registry key: the conversation, else a fresh pending key. */

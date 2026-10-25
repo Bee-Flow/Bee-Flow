@@ -31,7 +31,7 @@ import { logger } from '../../../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 export type { SolutionProject } from './SolutionDetail.types';
 
-export { blueprintVersionFor, controlBadge };
+;
 
 function SolutionDetailView({
     project, onBack, currentUserId, dataId, stage, stageRow, pipeline, pipelineState, onSelectStage, initialTab,

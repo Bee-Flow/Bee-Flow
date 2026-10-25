@@ -103,7 +103,7 @@ function errorText(error: CustomDataError | null, outbound: { name: string; desc
     return error.code === 'assist_personal_data' ? personalDataLine(error.findings, outbound, t) : errorLine(error.code, t);
 }
 
-export function AssistantCard({ state, dispatch, ctx, t, onWriteOwn }: StepProps & { onWriteOwn: () => void }) {
+function AssistantCard({ state, dispatch, ctx, t, onWriteOwn }: StepProps & { onWriteOwn: () => void }) {
     const { id, name, description, method } = state.type;
     // Keyed on the VALUES, joined, rather than on array identities that
     // change on every render: the preview must re-ask only when what it

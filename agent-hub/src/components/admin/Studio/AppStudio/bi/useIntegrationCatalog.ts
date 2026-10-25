@@ -42,7 +42,7 @@ let catalogPromise: Promise<CatalogResponse> | null = null;
 let catalogFetchedAt = 0;
 const CATALOG_TTL_MS = 30_000;
 
-export function clearCatalogCache() { catalogPromise = null; catalogFetchedAt = 0; }
+function clearCatalogCache() { catalogPromise = null; catalogFetchedAt = 0; }
 
 export default function useIntegrationCatalog() {
     const api = useAutomationApi();

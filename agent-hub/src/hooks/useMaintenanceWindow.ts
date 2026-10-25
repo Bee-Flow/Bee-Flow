@@ -44,7 +44,7 @@ export interface MaintenanceWindow {
     [key: string]: unknown;
 }
 
-export type EtaUnit = 'moment' | 'seconds' | 'minute' | 'minutes';
+type EtaUnit = 'moment' | 'seconds' | 'minute' | 'minutes';
 
 export interface CoarseEta {
     unit: EtaUnit;
@@ -183,4 +183,3 @@ export function useMaintenanceWindow({ enabled = true }: { enabled?: boolean } =
     };
 }
 
-export default useMaintenanceWindow;

@@ -33,4 +33,3 @@ if (typeof window !== 'undefined') {
     window.__BEEFLOW_SHARED__ = shared;
 }
 
-export default shared;

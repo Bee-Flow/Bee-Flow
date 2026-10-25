@@ -45,7 +45,7 @@ interface ExpressionHelpProps {
  * existing toggle to hang the body off (ConditionBuilder has its own, so it
  * renders `ExpressionHelpBody` directly).
  */
-export default function ExpressionHelp({ defaultOpen = false }: ExpressionHelpProps) {
+function ExpressionHelp({ defaultOpen = false }: ExpressionHelpProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(defaultOpen);
     return (

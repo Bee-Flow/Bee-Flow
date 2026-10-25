@@ -16,7 +16,7 @@ import { getSettingsForType } from './registry';
 
 const SettingsContext = createContext({});
 
-export function useSettingsContext() {
+function useSettingsContext() {
     return useContext(SettingsContext);
 }
 

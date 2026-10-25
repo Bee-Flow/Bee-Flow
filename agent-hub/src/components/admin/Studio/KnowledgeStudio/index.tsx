@@ -39,7 +39,7 @@ const HIDDEN_SUGGESTIONS_KEY = 'knowledge.suggestions.hidden';
  * this person has already waved away. One at a time on purpose — three
  * stacked suggestions read as a to-do list somebody else wrote.
  */
-export function firstVisibleSuggestion(t: TranslateFn, suggestions: KbSuggestion[], hidden: Set<string>) {
+function firstVisibleSuggestion(t: TranslateFn, suggestions: KbSuggestion[], hidden: Set<string>) {
     const list = Array.isArray(suggestions) ? suggestions : [];
     const pick = list.find(s => s && !hidden.has(`${s.kbId}:${s.agentId}`));
     if (!pick) return null;

@@ -27,7 +27,7 @@ export interface StepAdvanceOn {
     timeoutMs?: number;
 }
 
-export interface StepChoice {
+interface StepChoice {
     id: string;
     labelKey?: string;
     labelFallback?: string;
@@ -36,7 +36,7 @@ export interface StepChoice {
     feedbackFallback?: string;
 }
 
-export interface SimPair {
+interface SimPair {
     id: string;
     left: string;
     right: string;
@@ -202,7 +202,7 @@ export interface Course {
     source?: string;
 }
 
-export interface CertificateRule {
+interface CertificateRule {
     type: string;
     n: number;
 }
@@ -224,7 +224,7 @@ export interface Track {
 }
 
 /** Structure the server owns, from GET /ai/learning/catalog (courses overlay the bundled presentation). */
-export interface ServerCourse {
+interface ServerCourse {
     id: string;
     title?: string;
     desc?: string;
@@ -238,7 +238,7 @@ export interface ServerCourse {
     source?: string;
 }
 
-export interface ServerCertificate {
+interface ServerCertificate {
     id: string;
     title?: string;
     level?: string | null;

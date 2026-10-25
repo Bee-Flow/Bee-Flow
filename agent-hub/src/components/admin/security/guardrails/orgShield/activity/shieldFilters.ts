@@ -71,7 +71,7 @@ interface BucketWindow {
 /** The independent filter axes. Order is the order chips render in. */
 export const FILTER_KEYS: string[] = ['kind', 'person', 'place', 'dest', 'region', 'outcome', 'pii', 'day'];
 
-export const NO_FILTERS: Filters = Object.freeze({});
+const NO_FILTERS: Filters = Object.freeze({});
 
 /**
  * Set an axis, or clear it when the same value is clicked again.

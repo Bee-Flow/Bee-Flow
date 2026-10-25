@@ -14,7 +14,7 @@ export const SURFACES = ['direct', 'agent', 'agent_public'] as const;
 export type Surface = typeof SURFACES[number];
 export const EMPLOYEE_SURFACES: readonly Surface[] = ['direct', 'agent'];
 export const SIGNALS = ['outcomes', 'kinds'] as const;
-export type Signal = typeof SIGNALS[number];
+type Signal = typeof SIGNALS[number];
 export const LEGAL_BASES = ['art6_1_f', 'art6_1_e', 'art6_1_c'] as const;
 export type LegalBasis = typeof LEGAL_BASES[number];
 export const WORKS_COUNCIL = ['consent', 'court_replacement', 'not_applicable', 'pending'] as const;
@@ -24,7 +24,7 @@ export type WorksCouncilReason = typeof WORKS_COUNCIL_REASONS[number];
 export const DPIA_RISK_LEVELS = ['low', 'medium', 'high'] as const;
 export type RiskLevel = typeof DPIA_RISK_LEVELS[number];
 export const RETENTION = Object.freeze({ min: 30, max: 90, default: 90 });
-export const NOTICE_LEAD_DAYS = 7;
+const NOTICE_LEAD_DAYS = 7;
 
 /** Every code the server can name, in the order of build spec 3.1; the card lists them in this order. */
 export const MISSING_CODES = [

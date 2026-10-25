@@ -11,8 +11,8 @@ export const CHECK_KINDS: readonly CheckKind[] = ['allowedFrom', 'numbersFrom', 
 const KIND_FIELD: Record<CheckKind, FieldKind> = { allowedFrom: 'text', numbersFrom: 'text', script: 'text', items: 'list' };
 
 /** Entries of enumFrom have no `kind`; they are allowedFrom checks that are also shown to the model. */
-export const asCheck = (e: EnumFrom): AllowedFromCheck => ({ kind: 'allowedFrom', ...e });
-export function asEnum(c: AllowedFromCheck): EnumFrom {
+const asCheck = (e: EnumFrom): AllowedFromCheck => ({ kind: 'allowedFrom', ...e });
+function asEnum(c: AllowedFromCheck): EnumFrom {
     const out: Record<string, unknown> = { ...c };
     delete out.kind;
     return out as unknown as EnumFrom;

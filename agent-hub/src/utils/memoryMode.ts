@@ -8,7 +8,7 @@ import scopedStorage from './scopedStorage';
  */
 export type MemoryMode = 'on' | 'read' | 'off';
 
-export const MEMORY_MODES: readonly MemoryMode[] = ['on', 'read', 'off'];
+const MEMORY_MODES: readonly MemoryMode[] = ['on', 'read', 'off'];
 
 const MODE_KEY = 'memoryMode';
 /** The key of the old two-state switch. Still read, and still written for older code. */
@@ -22,7 +22,7 @@ export interface MemoryFlags {
     memoryWriteEnabled: boolean;
 }
 
-export function isMemoryMode(v: unknown): v is MemoryMode {
+function isMemoryMode(v: unknown): v is MemoryMode {
     return v === 'on' || v === 'read' || v === 'off';
 }
 

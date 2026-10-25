@@ -28,7 +28,7 @@ export interface NotebookSetters {
 }
 
 /** The parsed /workspace response body. */
-export interface WorkspaceResponse {
+interface WorkspaceResponse {
     content?: string;
     notebookId?: string | null;
 }
@@ -40,7 +40,7 @@ export interface WorkspaceResponse {
  *
  * `wsData` is the parsed response body.
  */
-export function applyWorkspaceResponse(wsData: WorkspaceResponse | null | undefined, { setNotebookLinkedId, setNotebookContent, setShowNotebook }: NotebookSetters): void {
+function applyWorkspaceResponse(wsData: WorkspaceResponse | null | undefined, { setNotebookLinkedId, setNotebookContent, setShowNotebook }: NotebookSetters): void {
     const convContent = wsData?.content || '';
     setNotebookLinkedId(wsData?.notebookId || null);
     if (convContent.trim().length > 0) {

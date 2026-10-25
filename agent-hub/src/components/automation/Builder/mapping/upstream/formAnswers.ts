@@ -31,7 +31,7 @@ import type { FormFieldDecl, Group, UpstreamNode } from './upstream.types';
  * binding that resolves to undefined forever. Before that registry has loaded
  * the sample simply has no `data` rows — fewer rows, never wrong ones.
  */
-export function pickSample(field: FormFieldDecl) {
+function pickSample(field: FormFieldDecl) {
     const source = pickSourceById(field.source);
     const one = {
         kind: 'app_pick',

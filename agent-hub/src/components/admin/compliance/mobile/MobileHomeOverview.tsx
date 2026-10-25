@@ -67,7 +67,7 @@ const MAX_REFS = 2;
 const isNum = (v: number | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /** The framework id the counts object keys a section's score under. */
-export function frameworkIdOf(section: Section) {
+function frameworkIdOf(section: Section) {
     return section.id === 'iso' ? 'iso27001' : section.id;
 }
 

@@ -15,7 +15,7 @@ type Loose = Record<string, unknown>;
 /** Field types that GIVE instead of ask (mirrors DISPLAY_FIELD_TYPES on the server). */
 export const DISPLAY_FIELD_TYPES = ['download', 'notebook', 'info'];
 /** The display fields that point at a file (mirrors FILE_FIELD_TYPES on the server). */
-export const FILE_FIELD_TYPES = ['download', 'notebook'];
+const FILE_FIELD_TYPES = ['download', 'notebook'];
 export const isDisplayField = (f: unknown): boolean => DISPLAY_FIELD_TYPES.includes((f as Loose | null)?.type as string);
 
 /**

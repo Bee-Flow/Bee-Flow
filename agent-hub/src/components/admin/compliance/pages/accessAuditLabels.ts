@@ -42,7 +42,7 @@ export interface OrgUser {
 }
 
 /** Actions the log writes, so the list reads as events rather than ids. */
-export const ACTION_META: Readonly<Record<string, ActionMeta>> = {
+const ACTION_META: Readonly<Record<string, ActionMeta>> = {
     login_succeeded: { icon: LogIn, tone: 'success', key: 'compliance.aa_action_login_ok', en: 'Signed in' },
     login_failed: { icon: LogOut, tone: 'warning', key: 'compliance.aa_action_login_fail', en: 'Sign-in refused' },
     login_blocked: { icon: ShieldOff, tone: 'error', key: 'compliance.aa_action_login_blocked', en: 'Sign-in blocked' },
@@ -79,7 +79,7 @@ export function when(iso: string | null | undefined, locale = 'en'): string {
 }
 
 /** The number a person reads for a request: the stored id without a `dsr_` prefix. */
-export function requestRef(id: unknown): string {
+function requestRef(id: unknown): string {
     return String(id ?? '').replace(/^dsr_/, '');
 }
 

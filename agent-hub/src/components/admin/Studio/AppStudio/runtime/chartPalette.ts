@@ -86,4 +86,3 @@ export const PLACEHOLDER_DATA = [
     { label: 'Fri', value: 16 },
 ];
 
-export default CHART_COLORS;

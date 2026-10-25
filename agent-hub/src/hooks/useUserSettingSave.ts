@@ -38,9 +38,9 @@ import { API_BASE, authFetch } from '../utils/helpers';
 const USER_SETTINGS_URL = `${API_BASE}/ai/user-settings`;
 
 /** The parsed response body; `{}` when the response carried no JSON. */
-export type UserSettingResponse = Record<string, unknown> & { error?: string };
+type UserSettingResponse = Record<string, unknown> & { error?: string };
 
-export interface UserSettingSaveOptions {
+interface UserSettingSaveOptions {
     onSuccess?: (data: UserSettingResponse) => void;
     endpoint?: string;
     method?: string;

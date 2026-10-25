@@ -14,7 +14,7 @@ import type { ResolveCall, ResolvePlan } from './compliance.types';
  */
 
 /** What a call of each kind needs, and what it is called in front of a person. */
-export const CALL_KINDS: Readonly<Record<string, string>> = Object.freeze({
+const CALL_KINDS: Readonly<Record<string, string>> = Object.freeze({
     register: 'the processing register',
     automation_definition: 'the automation',
     app_publish: 'who can open the app',

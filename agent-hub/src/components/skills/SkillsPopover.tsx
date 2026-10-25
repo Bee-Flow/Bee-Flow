@@ -12,7 +12,7 @@ import { logger } from '../../utils/logger';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 export type { SkillsPopoverProps } from './SkillsPopover.types';
 
-export const SKILL_CAP = 5;
+const SKILL_CAP = 5;
 
 export default function SkillsPopover({
     user,

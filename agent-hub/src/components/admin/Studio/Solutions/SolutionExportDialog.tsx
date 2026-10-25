@@ -102,7 +102,7 @@ function requirementLine(item: RequirementItem, t: TranslateFn): string {
     return [item.kind, where, inAutomation].filter(Boolean).join(' · ');
 }
 
-export function RequirementsPreview({ requires }: { requires?: Requires | null }) {
+function RequirementsPreview({ requires }: { requires?: Requires | null }) {
     const { t } = useTranslation();
     const items = requires?.items;
     if (!Array.isArray(items) || items.length === 0) return null;

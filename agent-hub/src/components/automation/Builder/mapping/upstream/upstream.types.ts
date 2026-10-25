@@ -18,7 +18,7 @@ export interface FormFieldDecl {
     fieldsFrom?: unknown;
 }
 
-export interface ForEachParent {
+interface ForEachParent {
     itemVar?: string;
     overRef?: string;
 }
@@ -103,7 +103,7 @@ export interface Group {
     ownItem?: boolean;
 }
 
-export interface ToolOutputMeta {
+interface ToolOutputMeta {
     sample: unknown;
     schema: unknown;
 }
@@ -118,11 +118,11 @@ export interface SampleRoot {
     [key: string]: unknown;
 }
 
-export interface CatalogApp {
+interface CatalogApp {
     actions?: { name?: string; outputSample?: unknown; outputSchema?: unknown }[];
 }
 
-export interface TriggerMetaField {
+interface TriggerMetaField {
     key: string;
     path?: string;
 }

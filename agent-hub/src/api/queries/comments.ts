@@ -15,7 +15,7 @@ import { projectKeys, type ProjectRole } from './projects';
 export type CommentTargetType = 'notebook' | 'document' | 'task';
 export type CommentThreadStatus = 'open' | 'resolved';
 export type CommentAiMode = 'off' | 'mention' | 'auto';
-export type CommentAuthorKind = 'user' | 'assistant';
+type CommentAuthorKind = 'user' | 'assistant';
 
 /**
  * Where a thread points: the selected words, a little text on either side, the
@@ -94,7 +94,7 @@ export interface CommentThreadsData {
     aiPolicy?: CommentAiPolicy | null;
 }
 
-export type CommentAiStatus = 'queued' | 'skipped' | 'busy';
+type CommentAiStatus = 'queued' | 'skipped' | 'busy';
 export interface CommentAiResult { status: CommentAiStatus; reason?: string }
 
 export interface CommentTarget { projectId: string; targetType: CommentTargetType; targetId: string }
@@ -111,7 +111,7 @@ export interface NewReply { threadId: string; clientMsgId: string; content: stri
 
 const enc = encodeURIComponent;
 /** Enough to notice another person's comment when no live feed is there. */
-export const COMMENTS_POLL_MS = 20_000;
+const COMMENTS_POLL_MS = 20_000;
 
 export const commentKeys = {
     all: (projectId: string) => [...projectKeys.project(projectId), 'comments'] as const,

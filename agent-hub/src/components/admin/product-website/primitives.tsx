@@ -233,7 +233,7 @@ export function FieldSelect({ value, onChange, options, label, hint }: FieldSele
 // The one CTA style vocabulary — primary / secondary / ghost / link.
 // Previously duplicated as two CTA_STYLE_OPTIONS consts and three raw
 // inline <select> copies across editors.jsx.
-export const CTA_STYLE_OPTIONS: SelectOption[] = [
+const CTA_STYLE_OPTIONS: SelectOption[] = [
     { value: 'primary',   label: 'Primary (filled)', labelKey: 'cms_site.site.fields.cta_primary' },
     { value: 'secondary', label: 'Secondary (outlined)', labelKey: 'cms_site.site.fields.cta_secondary' },
     { value: 'ghost',     label: 'Ghost (no border)', labelKey: 'cms_site.site.fields.cta_ghost' },
@@ -250,7 +250,7 @@ export function CtaStyleSelect({ label, value, onChange }: CtaStyleSelectProps) 
 // Standard block background vocabulary (`data.backgroundVariant`).
 // ContentEditor keeps its different none/light/dark/primary vocabulary by
 // passing its own `options`.
-export const BACKGROUND_VARIANT_OPTIONS: SelectOption[] = [
+const BACKGROUND_VARIANT_OPTIONS: SelectOption[] = [
     { value: 'default', label: 'Default (page bg)', labelKey: 'cms_site.site.fields.bg_default' },
     { value: 'surface', label: 'Surface (alt bg)', labelKey: 'cms_site.site.fields.bg_surface' },
     { value: 'primary', label: 'Primary (brand color)', labelKey: 'cms_site.site.fields.bg_primary' },

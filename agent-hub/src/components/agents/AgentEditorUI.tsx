@@ -12,7 +12,7 @@ import type { AppUserLike } from '../projects/workspace/types';
 import type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory, AgentEditorUIProps } from './AgentEditorUI.types';
 import { logger } from '../../utils/logger';
 import { request, RefusedError } from '../../api/mutate';
-export type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory } from './AgentEditorUI.types';
+export type { ToolParamConfig, AgentFormData,  EditorOrganization, EditorGroup, EditorCategory } from './AgentEditorUI.types';
 
 const AgentEditorUI = ({
     data,

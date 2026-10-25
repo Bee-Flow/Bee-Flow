@@ -73,7 +73,7 @@ export function StepIcon({ name, size = 16, className = '', fallback = null }: S
 }
 
 /** True when `name` resolves to a known icon. */
-export function isStepIcon(name?: string | null): boolean {
+function isStepIcon(name?: string | null): boolean {
     return !!(name && STEP_ICON_MAP[name]);
 }
 

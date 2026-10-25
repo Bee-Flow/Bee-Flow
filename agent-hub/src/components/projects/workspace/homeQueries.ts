@@ -31,7 +31,7 @@ function mergeUsableAgents(own: unknown, published: unknown): AgentSummary[] {
 }
 
 /** The agents the caller may chat with: their own, and those published to them. */
-export function useUsableAgents(enabled = true) {
+function useUsableAgents(enabled = true) {
     return useQuery<AgentSummary[], Error>({
         queryKey: ['project-home', 'agents'],
         enabled,

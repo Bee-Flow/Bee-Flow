@@ -62,7 +62,7 @@ function hasRetryAfter(v: unknown): v is { retryAfter?: unknown } {
     return typeof v === 'object' && v !== null;
 }
 
-export function licenceMessage(err: unknown, t: TranslateFn): string | null {
+function licenceMessage(err: unknown, t: TranslateFn): string | null {
     const message = String(errorMessage(err) || err || '').trim(); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- word-bounded literal alternatives: linear
     const locked = LICENCE_TOKENS.has(message)
         || errorCode(err) === 'feature_locked' || errorCode(err) === 'tier_required'
@@ -80,7 +80,7 @@ export function licenceMessage(err: unknown, t: TranslateFn): string | null {
  *
  * "… is finished" is the sentence of `meeting.processed`, and that appears only when THAT is the event. `meetingTriggersOf` deliberately filters on the PROVIDER and not on the event, so that a later `meeting.scheduled` automatically lands in the list — but then this sentence would tell the story of `meeting.processed` about every future event. Also reachable today: an unknown app_event event is a WARNING for the validator, not an error, so such a definition is saved, appears here, and never fires.
  */
-export function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
+function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
     if (!condition) return null;
     const tags = list(condition.tags);
     if (!condition.onlyProcessed) {
@@ -225,7 +225,7 @@ function RuleFooter({ row, runs, open, onOpen, t }: RuleFooterProps) {
     );
 }
 
-export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpen, t }: RuleCardProps) {
+function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpen, t }: RuleCardProps) {
     const condition = triggerConditionOf(row?.definition);
     const parts = consequenceParts(consequencesOf(row?.definition), t);
     const runs = runLabel({ facets, facetsError, automationId: row?.id, hours }, t);

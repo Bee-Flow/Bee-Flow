@@ -20,7 +20,7 @@
 const TABLE_ROW = /^\s*\|.*\|\s*$/;
 const DIVIDER_ROW = /^\s*\|(\s*:?-{2,}:?\s*\|)+\s*$/;
 
-export interface TableCell {
+interface TableCell {
     value: string;
     start: number;
     end: number;

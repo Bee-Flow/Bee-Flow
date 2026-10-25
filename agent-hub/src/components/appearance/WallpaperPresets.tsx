@@ -125,4 +125,4 @@ export default function WallpaperPresets({ value, onChange, disabled = false }: 
     );
 }
 
-export const WALLPAPER_PRESET_IDS = PRESETS.map((p: WallpaperPreset) => p.id);
+const WALLPAPER_PRESET_IDS = PRESETS.map((p: WallpaperPreset) => p.id);

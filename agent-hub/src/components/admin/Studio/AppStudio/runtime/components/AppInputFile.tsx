@@ -27,7 +27,7 @@ import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
  */
 
 /** One uploaded file as the field stores it. */
-export interface FileEntry {
+interface FileEntry {
     kind?: string;
     fileId: string;
     name: string;

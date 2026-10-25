@@ -89,4 +89,3 @@ export function useApprovalsNav({ canBrowseApprovals, isOrgAdmin }: { canBrowseA
     return { pendingCount, hasApprovals };
 }
 
-export default useApprovalsNav;

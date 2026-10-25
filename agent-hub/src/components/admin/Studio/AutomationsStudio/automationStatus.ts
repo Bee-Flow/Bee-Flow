@@ -25,14 +25,14 @@ export interface AutomationStatusInput {
     myRole?: string | null;
 }
 
-export type StatusTone = 'draft' | 'live' | 'paused' | 'pending';
+type StatusTone = 'draft' | 'live' | 'paused' | 'pending';
 
 export interface StatusPart {
     tone: StatusTone;
     text: string;
 }
 
-export function isNeverLive(r: AutomationStatusInput): boolean {
+function isNeverLive(r: AutomationStatusInput): boolean {
     if (typeof r.neverLive === 'boolean') return r.neverLive;
     if (r.liveVersion !== undefined) return r.liveVersion == null;
     return !!r.isDraft;

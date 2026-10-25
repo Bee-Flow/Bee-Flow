@@ -59,11 +59,11 @@ const BY_COURSE: Readonly<Record<string, LucideIcon>> = Object.freeze({
  * graduation cap — deliberately the Learning Center's own mark, so an org
  * course reads as "a course" rather than borrowing a feature's identity.
  */
-export function courseIcon(courseId: string): LucideIcon {
+function courseIcon(courseId: string): LucideIcon {
     return BY_COURSE[courseId] || GraduationCap;
 }
 
-export const COURSE_ICONS = BY_COURSE;
+const COURSE_ICONS = BY_COURSE;
 
 /**
  * The glyph as a component.

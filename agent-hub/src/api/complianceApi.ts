@@ -22,7 +22,7 @@ export const API_DSR = (import.meta.env.VITE_API_URL || '') + '/api/dsr';
 export const OPTS = Object.freeze({ credentials: 'include' });
 
 /** The Error `fetchJson` throws for a refused request. */
-export interface FetchJsonError extends Error {
+interface FetchJsonError extends Error {
     status?: number;
     code?: string | null;
     serverMessage?: string | null;

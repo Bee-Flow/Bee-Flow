@@ -3,7 +3,7 @@ import { flowPosition } from './flow/flowOrder';
 import type { FlowDefinition, FlowStep } from './flow/types';
 
 /** Where one node sits in the run order, and what it can page to. */
-export interface FlowPosition {
+interface FlowPosition {
     /** 1-based, and 0 when the step is not part of this flow at all. */
     index: number;
     total: number;

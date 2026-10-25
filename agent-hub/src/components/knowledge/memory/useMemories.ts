@@ -11,7 +11,7 @@ import type {
     Memory, MemorySort, MemoryScope, MemoryStats, MemoryType, MemoryView,
 } from './memoryTypes';
 
-export const PAGE_SIZE = 50;
+const PAGE_SIZE = 50;
 
 export interface MemoryQuery {
     view: MemoryView;
@@ -22,7 +22,7 @@ export interface MemoryQuery {
     sort: MemorySort;
 }
 
-export class MemoryHttpError extends Error {
+class MemoryHttpError extends Error {
     status: number;
     /** The server's machine-readable reason (`sensitive_identifier`, `memory_unreadable`, ...), when it sent one. */
     code: string | null;
@@ -57,7 +57,7 @@ const jsonInit = (method: string, body?: unknown): AuthFetchOptions => ({
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 });
 
-export function buildListPath(q: MemoryQuery, offset: number): string {
+function buildListPath(q: MemoryQuery, offset: number): string {
     const params = new URLSearchParams();
     params.set('limit', String(PAGE_SIZE));
     params.set('offset', String(offset));
@@ -71,7 +71,7 @@ export function buildListPath(q: MemoryQuery, offset: number): string {
     return `?${params.toString()}`;
 }
 
-export function loadErrorKind(status: number | null): 'forbidden' | 'failed' {
+function loadErrorKind(status: number | null): 'forbidden' | 'failed' {
     return status === 403 ? 'forbidden' : 'failed';
 }
 

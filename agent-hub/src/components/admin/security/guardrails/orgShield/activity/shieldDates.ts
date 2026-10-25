@@ -33,7 +33,7 @@ export function clockTime(ts: string | number | Date | null | undefined): string
 }
 
 /** `YYYY-MM-DD` → local midnight of that day. */
-export function dayStart(key: string): Date {
+function dayStart(key: string): Date {
     const [y, m, d] = key.split('-').map(Number);
     return new Date(y, (m || 1) - 1, d || 1);
 }

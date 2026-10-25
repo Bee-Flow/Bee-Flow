@@ -16,7 +16,7 @@ export type ProjectComplianceHintKey =
     | 'project_orphaned_content'
     | 'project_files_unscanned';
 
-export interface ProjectComplianceHint {
+interface ProjectComplianceHint {
     key: ProjectComplianceHintKey;
     severity: 'low' | 'medium' | 'high';
     titleKey: string;
@@ -26,7 +26,7 @@ export interface ProjectComplianceHint {
 
 export interface ProjectComplianceHintResponse { hint: ProjectComplianceHint | null }
 
-export const projectComplianceHintKeys = {
+const projectComplianceHintKeys = {
     all: ['project-compliance-hint'] as const,
     hint: (projectId: string) => ['project-compliance-hint', projectId] as const,
 };

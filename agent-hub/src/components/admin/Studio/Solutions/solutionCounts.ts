@@ -76,6 +76,6 @@ export function countPhrase(t: TranslateFn, section: string, count: unknown) {
 }
 
 /** Does this section have a counted phrase at all? */
-export function hasCountPhrase(section: string) {
+function hasCountPhrase(section: string) {
     return Object.prototype.hasOwnProperty.call(COUNT_PHRASE, section);
 }

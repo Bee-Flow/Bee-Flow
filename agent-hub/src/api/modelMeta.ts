@@ -148,7 +148,7 @@ export const MISTRAL_MODEL_META: Record<string, ModelMeta> = {
 };
 
 // Only these models are shown by default
-export const VISIBLE_MODELS = new Set<string>([
+const VISIBLE_MODELS = new Set<string>([
     // Mistral: the current line-up. Magistral, Pixtral and Devstral are
     // retired on La Plateforme (their ids 404); reasoning is a switch on
     // Small 4 and Medium 3.5 now.
@@ -200,7 +200,7 @@ export const getModelMeta = (id: string): ModelMeta | null => {
 
 // Auto-format a raw model ID into a readable name: strip trailing date
 // stamps (e.g. -20251101 or -2411) and title-case the hyphenated parts.
-export const formatModelId = (id: string): string => {
+const formatModelId = (id: string): string => {
     if (!id) return id;
     const name = String(id).replace(/-\d{6,8}$/, '').replace(/-\d{4}$/, '');
     return name.split('-').map((part: string) => /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)).join(' ');

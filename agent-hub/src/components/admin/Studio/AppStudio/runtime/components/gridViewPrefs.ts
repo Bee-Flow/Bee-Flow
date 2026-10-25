@@ -40,7 +40,7 @@ export const VIEW_OPTIONS: Record<string, string[]> = {
     clamp: ['1', '2', '3', 'off'],
 };
 
-export const VIEW_KEYS = Object.keys(VIEW_OPTIONS);
+const VIEW_KEYS = Object.keys(VIEW_OPTIONS);
 
 function isLegal(key: string, value: unknown): boolean {
     return typeof value === 'string' && VIEW_OPTIONS[key] && VIEW_OPTIONS[key].includes(value);

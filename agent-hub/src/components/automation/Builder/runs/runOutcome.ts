@@ -184,7 +184,7 @@ const LEGACY_HOW: Record<string, string> = {
 };
 
 /** Map the legacy triggerKind onto the handoff-5 howStarted vocabulary. */
-export function howStartedOf(run: RunRowData): string {
+function howStartedOf(run: RunRowData): string {
     if (run.howStarted) return run.howStarted;
     return LEGACY_HOW[String(run.triggerKind || '').toLowerCase()] || 'manual';
 }

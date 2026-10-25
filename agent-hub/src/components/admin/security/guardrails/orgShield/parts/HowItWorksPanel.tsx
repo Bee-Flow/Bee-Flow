@@ -187,7 +187,7 @@ function WorthKnowing({ t }: { t: TranslateFn }) {
     );
 }
 
-export function HowItWorksPanel({ open, onClose, guard, onGoTo, t }: {
+function HowItWorksPanel({ open, onClose, guard, onGoTo, t }: {
     open: boolean;
     onClose: () => void;
     guard: GuardStatus | null;

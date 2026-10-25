@@ -15,7 +15,7 @@ import type { SaveFn, SettingsAutomation } from './settingsUi';
 import type { BuilderTab } from '../useBuilderTabUrl';
 
 export type SettingsSectionId = 'general' | 'start' | 'notifications' | 'sharing' | 'ai-act' | 'advanced' | 'assistant';
-export const SETTINGS_SECTIONS: SettingsSectionId[] = ['general', 'start', 'notifications', 'sharing', 'ai-act', 'assistant', 'advanced'];
+const SETTINGS_SECTIONS: SettingsSectionId[] = ['general', 'start', 'notifications', 'sharing', 'ai-act', 'assistant', 'advanced'];
 
 export interface SettingsPageProps {
     automation: SettingsAutomation | null;

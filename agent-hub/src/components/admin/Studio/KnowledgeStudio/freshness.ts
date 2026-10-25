@@ -89,7 +89,7 @@ export function toMillis(at: Date | number | string | null | undefined): number 
  * `live` beats `on_change` beats `after_meeting` beats `schedule`, in that
  * order — a live source means the answer is never older than the question.
  */
-export const REFRESH_RANK: Readonly<Record<string, number>> = Object.freeze({ live: 4, on_change: 3, after_meeting: 2, schedule: 1, manual: 0 });
+const REFRESH_RANK: Readonly<Record<string, number>> = Object.freeze({ live: 4, on_change: 3, after_meeting: 2, schedule: 1, manual: 0 });
 
 export function strongestRefresh(sources: RefreshSource[] | null | undefined = []): StrongestRefresh | null {
     let best: StrongestRefresh | null = null;

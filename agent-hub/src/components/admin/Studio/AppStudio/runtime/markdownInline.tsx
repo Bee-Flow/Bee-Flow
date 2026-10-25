@@ -85,7 +85,7 @@ function parse(text: string, keyPrefix: string): ReactNode[] {
 }
 
 /** Render a markdown-subset string to an array of React nodes. */
-export function renderInlineMarkdown(text: unknown) {
+function renderInlineMarkdown(text: unknown) {
     if (text == null) return null;
     return parse(String(text), 'md');
 }

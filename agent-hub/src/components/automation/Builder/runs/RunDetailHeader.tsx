@@ -11,7 +11,7 @@ import GoldenControl from './GoldenControl';
 import CompareWithMenu from './CompareWithMenu';
 
 /** The link that reopens this run in the builder's Runs tab. */
-export function runLink(runId: string, href: string = window.location.href): string {
+function runLink(runId: string, href: string = window.location.href): string {
     const url = new URL(href);
     url.searchParams.set('view', 'runs');
     url.searchParams.set('run', runId);

@@ -84,7 +84,7 @@ export function uniqueTableKey(base: string | undefined, tables: Array<{ key?: s
  * between server and client; the VERDICT stays with the server validation
  * (validate/refs.js checkTableSource). This is only what the screen shows.
  */
-export const TABLE_SOURCE_MODES = ['read', 'readwrite'];
+const TABLE_SOURCE_MODES = ['read', 'readwrite'];
 
 export interface TableSource {
     kind: string | null;

@@ -61,7 +61,7 @@ export interface DestinationRecord {
  */
 
 /** The destination kinds the server will accept. Anything else is refused. */
-export const DESTINATION_KINDS = Object.freeze(['automation', 'datatable_row', 'kb']);
+const DESTINATION_KINDS = Object.freeze(['automation', 'datatable_row', 'kb']);
 
 /**
  * THE ALLOW-LIST. Everything an action item is allowed to contribute to a

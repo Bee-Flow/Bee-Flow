@@ -39,7 +39,7 @@ interface DwellOptions {
 }
 
 /** Statuses a step does not come back from — the run has moved on. */
-export const TERMINAL = new Set(['success', 'error', 'skipped', 'nothing_to_do', 'handled_error', 'cancelled', 'pinned']);
+const TERMINAL = new Set(['success', 'error', 'skipped', 'nothing_to_do', 'handled_error', 'cancelled', 'pinned']);
 const RUN_OVER = new Set(['success', 'error', 'cancelled', 'failed', 'skipped']);
 
 /** The order the film walks: the trigger, then the steps as the definition lists them. */

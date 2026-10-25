@@ -31,7 +31,7 @@ export const RESIDENCY: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: 'hybrid', key: 'compliance.residency_hybrid', en: 'Hybrid' }),
 ]);
 
-export const NIS2_ENTITY_CLASSES: readonly SettingsOption[] = Object.freeze([
+const NIS2_ENTITY_CLASSES: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: '', key: 'compliance.set_unanswered', en: 'Not answered yet' }),
     Object.freeze({ value: 'not_in_scope', key: 'compliance.set_nis2_class_not_in_scope', en: 'Not in scope' }),
     Object.freeze({ value: 'supplier_only', key: 'compliance.set_nis2_class_supplier_only', en: 'Supplier to an in-scope entity' }),
@@ -39,14 +39,14 @@ export const NIS2_ENTITY_CLASSES: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: 'essential', key: 'compliance.set_nis2_class_essential', en: 'Essential entity' }),
 ]);
 
-export const CRA_ROLES: readonly SettingsOption[] = Object.freeze([
+const CRA_ROLES: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: '', key: 'compliance.set_unanswered', en: 'Not answered yet' }),
     Object.freeze({ value: 'manufacturer', key: 'compliance.set_cra_role_manufacturer', en: 'Manufacturer' }),
     Object.freeze({ value: 'distributor', key: 'compliance.set_cra_role_distributor', en: 'Importer / distributor' }),
     Object.freeze({ value: 'user_only', key: 'compliance.set_cra_role_user_only', en: 'User only' }),
 ]);
 
-export const CONFORMANCE_LEVELS: readonly SettingsOption[] = Object.freeze([
+const CONFORMANCE_LEVELS: readonly SettingsOption[] = Object.freeze([
     Object.freeze({ value: '', key: 'compliance.set_unanswered', en: 'Not answered yet' }),
     Object.freeze({ value: 'WCAG 2.1 AA', key: 'compliance.set_eaa_level_wcag21aa', en: 'WCAG 2.1 AA' }),
     Object.freeze({ value: 'WCAG 2.2 AA', key: 'compliance.set_eaa_level_wcag22aa', en: 'WCAG 2.2 AA' }),
@@ -324,7 +324,7 @@ const FIELD_BY_NAME = new Map<string, SettingsFieldDef>(
     SETTINGS_GROUPS.flatMap(g => g.fields.map(f => [f.name, f])),
 );
 
-export function fieldSpec(name: string) {
+function fieldSpec(name: string) {
     return FIELD_BY_NAME.get(name) || null;
 }
 

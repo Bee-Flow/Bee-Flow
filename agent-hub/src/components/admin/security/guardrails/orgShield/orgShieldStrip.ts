@@ -20,7 +20,7 @@ import { presetFor } from '../../../../privacy/PiiSensitivityPicker';
  * is the Your own data pane's own summary. Nothing here invents a number.
  */
 
-export type StripTone = 'warn';
+type StripTone = 'warn';
 
 export interface StripItem {
     id: string;
@@ -35,7 +35,7 @@ export interface StripItem {
 }
 
 /** The shield fields the read-outs look at (a slice of `useOrgShield().fields`). */
-export interface StripFields {
+interface StripFields {
     enabled?: boolean;
     piiCategories?: readonly string[];
     piiConfidenceThreshold?: number;
@@ -61,7 +61,7 @@ export interface StripInput {
 interface ReadOut { text?: string; tone?: StripTone }
 
 /** The window What happened opens on (its default range), and so what its pill promises. */
-export const ACTIVITY_DAYS = 30;
+const ACTIVITY_DAYS = 30;
 
 const SEP = ' · ';
 

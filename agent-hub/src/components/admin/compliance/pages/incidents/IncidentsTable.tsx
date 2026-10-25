@@ -71,7 +71,7 @@ interface IncidentColumn {
  * severity. Occurred folds under the title when the table is narrow (an open
  * drawer beside it), so the title keeps its room.
  */
-export const INCIDENT_COLUMNS: readonly Readonly<IncidentColumn>[] = Object.freeze([
+const INCIDENT_COLUMNS: readonly Readonly<IncidentColumn>[] = Object.freeze([
     Object.freeze({ id: 'clock', width: '118px', labelKey: 'compliance.inc_col_clock', fallback: 'Deadline' }),
     Object.freeze({ id: 'incident', width: '1fr', labelKey: 'compliance.inc_col_incident', fallback: 'Incident' }),
     Object.freeze({ id: 'occurred', width: '104px', labelKey: 'compliance.inc_col_occurred', fallback: 'Occurred', foldBelow: 900 }),
@@ -84,7 +84,7 @@ export const incidentRef = (inc: IncidentRecord) => (isVulnerability(inc) ? `VUL
 const sameId = (a: unknown, b: unknown) => a !== null && a !== undefined && String(a) === String(b);
 
 /** The row's stripe: red when the running clock is overdue, amber when urgent, none otherwise. */
-export function accentOf(incident: IncidentRecord, now = Date.now()): Tone | null {
+function accentOf(incident: IncidentRecord, now = Date.now()): Tone | null {
     const next = nextClock(incident);
     if (!next) return null;
     const { state } = clockState({ dueAt: next.dueAt, startedAt: startedAtOf(incident), urgentBelowMs: next.urgentBelowMs, now });
@@ -120,7 +120,7 @@ export function IncidentClock({ incident, variant = 'row', testId }: { incident:
 }
 
 /** "Next step": the stage the row waits for, or All filed / Closed, with the filed count for a screen reader. */
-export function NextStep({ incident, testId }: { incident: IncidentRecord; testId?: string }) {
+function NextStep({ incident, testId }: { incident: IncidentRecord; testId?: string }) {
     const { t } = useTranslation();
     const next = nextClock(incident);
     const { filed, total } = filedCount(incident);

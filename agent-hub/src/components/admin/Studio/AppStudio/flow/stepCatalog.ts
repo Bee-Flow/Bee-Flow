@@ -48,7 +48,7 @@ const GROUP_LABELS: Record<string, [string, string]> = {
 };
 
 /** The group's name for display. */
-export function groupLabel(group: string, t: TranslateFn | null = null): string {
+function groupLabel(group: string, t: TranslateFn | null = null): string {
     const entry = GROUP_LABELS[group];
     if (!entry) return group;
     return t ? t(entry[0], entry[1]) : entry[1];
@@ -213,7 +213,7 @@ export const STEP_CATALOG: Record<string, StepMeta> = {
 };
 
 /** Fallback presentation, so an unknown kind is still readable. */
-export const UNKNOWN_STEP: StepMeta = { label: 'Step', group: 'Flow', icon: Bell, blurb: '' };
+const UNKNOWN_STEP: StepMeta = { label: 'Step', group: 'Flow', icon: Bell, blurb: '' };
 
 /**
  * The presentation for a kind. With `t`, label and blurb come back translated

@@ -29,7 +29,7 @@ import type { RiskRow, RiskPatch, Member } from './risks/riskDraft';
  * the table while the table keeps its room, over it behind a scrim at 1280
  * and 1024, a dialog on a phone.
  */
-export const HEADER_ACTION_CREATE = 'create';
+const HEADER_ACTION_CREATE = 'create';
 
 const FILTERS: readonly Readonly<{ id: string; tone: PillTone; labelKey: string; fallback: string }>[] = Object.freeze([
     Object.freeze({ id: 'all', tone: 'neutral', labelKey: 'compliance.risk_filter_all', fallback: 'All' }),
@@ -294,7 +294,7 @@ export default function RisksPage(props: RisksPageProps) {
 }
 
 /** POST /iso/risks body — the legacy page's allow-list. */
-export function createFields(draft: Readonly<CreateDraft>) {
+function createFields(draft: Readonly<CreateDraft>) {
     return {
         title: String(draft.title || '').trim(),
         description: String(draft.description || '').trim() || undefined,
@@ -305,7 +305,7 @@ export function createFields(draft: Readonly<CreateDraft>) {
     };
 }
 
-export { RISK_STATUSES };
+;
 
 const INPUT = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
 

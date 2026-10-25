@@ -80,7 +80,7 @@ interface ScrollRevealProps {
     className?: string;
 }
 
-export default function ScrollReveal({ delay = 0, children, className = '' }: ScrollRevealProps) {
+function ScrollReveal({ delay = 0, children, className = '' }: ScrollRevealProps) {
     const delayClass = delay > 0 ? `reveal-delay-${Math.min(delay, 6)}` : '';
     return <div className={`reveal ${delayClass} ${className}`.trim()}>{children}</div>;
 }

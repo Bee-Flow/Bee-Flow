@@ -10,7 +10,7 @@ import React, { useId, useState, useRef, useEffect } from 'react';
  * from the DOM when not visible so it never traps the cursor.
  */
 
-export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
+type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
 export interface TooltipProps {
     content: React.ReactNode;

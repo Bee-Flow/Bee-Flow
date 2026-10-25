@@ -113,7 +113,7 @@ export function parseBlocks(text: unknown): MarkdownBlock[] {
  * navigator.clipboard is absent on http origins and in some embeddings, so the
  * button hides itself rather than failing on click.
  */
-export function CodeBlock({ code }: { code: string }) {
+function CodeBlock({ code }: { code: string }) {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;

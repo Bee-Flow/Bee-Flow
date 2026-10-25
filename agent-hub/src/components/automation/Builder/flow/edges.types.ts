@@ -9,7 +9,7 @@ export interface EdgeIdentity {
     caseName: string|null;
 }
 
-export interface LabelledEdgeData {
+interface LabelledEdgeData {
     parallelCount?: number;
     parallelIndex?: number;
     fromPortLabels?: boolean;

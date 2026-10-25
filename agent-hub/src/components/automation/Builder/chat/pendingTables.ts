@@ -10,7 +10,7 @@
 
 const PENDING_RE = /^pending:[1-9]\d{0,2}$/;
 
-export interface PendingTableField {
+interface PendingTableField {
     key: string;
     name: string;
     type: string;

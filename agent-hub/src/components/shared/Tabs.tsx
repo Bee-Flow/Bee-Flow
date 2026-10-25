@@ -22,7 +22,7 @@ import React, { useCallback, useId, useRef } from 'react';
  * move focus and selection; Home/End jump to first/last.
  */
 
-export interface TabItem<TId extends string = string> {
+interface TabItem<TId extends string = string> {
     id: TId;
     label: React.ReactNode;
     /** Optional badge / count to the right of the label. */

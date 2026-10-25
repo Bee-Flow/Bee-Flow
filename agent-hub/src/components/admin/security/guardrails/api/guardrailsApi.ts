@@ -20,7 +20,7 @@ export interface DirectChatBinding {
 export type GuardrailCapabilities = Record<string, boolean>;
 
 /** The Error apiJson throws for a non-2xx answer: the HTTP status and the parsed body ride along. */
-export interface GuardrailRequestError extends Error {
+interface GuardrailRequestError extends Error {
     status?: number;
     body?: unknown;
 }
@@ -79,7 +79,7 @@ export async function probeCapabilities({ force = false }: { force?: boolean } =
 }
 
 /** Test seam — lets a test start from a known probe result. */
-export function __setCapabilities(caps: GuardrailCapabilities | null) { _capabilityCache = caps; }
+function __setCapabilities(caps: GuardrailCapabilities | null) { _capabilityCache = caps; }
 
 // ── Things that exist today ───────────────────────────────────────────────
 

@@ -35,7 +35,7 @@ export const TOKENS = {
 };
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
-export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: SparklineProps) => {
+const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }: SparklineProps) => {
     if (!Array.isArray(values) || values.length < 2) return null;
     const max = Math.max(...values, 1);
     const points = values.map((v: number, i: number) => {
@@ -53,7 +53,7 @@ export const Sparkline = ({ values, color = '#0ea5e9', width = 60, height = 16 }
 // ── StatusPill ───────────────────────────────────────────────────────────────
 // The uppercase status chip (Excellent / Watch / Critical / active …). `color`
 // must be a hex so the `${color}15` tint is valid.
-export const StatusPill = ({ label, color, dot = false }: StatusPillProps) => (
+const StatusPill = ({ label, color, dot = false }: StatusPillProps) => (
     <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 6,
         background: `${color}15`, color, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -318,7 +318,7 @@ export const FilterChipBar = ({ value, onChange, options, size = 'md' }: FilterC
 
 // ── DrillChip ────────────────────────────────────────────────────────────────
 // The removable "axis: label ✕" filter chip used by Safety + Integrations.
-export const DrillChip = ({ axis, label, onClear }: DrillChipProps) => {
+const DrillChip = ({ axis, label, onClear }: DrillChipProps) => {
     const { t } = useTranslation();
     return (
     <div style={{ marginBottom: 8 }}>

@@ -10,4 +10,4 @@ export const SKILL_EMOJI_ICONS = [
     '📋', '🏆', '🔧', '⚙️', '🌟', '💬', '📞', '🖊️', '🗂️', '🔑',
 ] as const;
 
-export type SkillEmojiIcon = typeof SKILL_EMOJI_ICONS[number];
+type SkillEmojiIcon = typeof SKILL_EMOJI_ICONS[number];

@@ -22,7 +22,7 @@ interface MemoryEditorProps {
 
 const FIELD = 'w-full rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 py-2 text-sm text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus-ring)]';
 
-export function importanceLabel(t: ReturnType<typeof useTranslation>['t'], value: number): string {
+function importanceLabel(t: ReturnType<typeof useTranslation>['t'], value: number): string {
     if (value < 0.34) return t('knowledge.memory_importance_low', 'Low');
     if (value < 0.67) return t('knowledge.memory_importance_normal', 'Normal');
     return t('knowledge.memory_importance_high', 'High');

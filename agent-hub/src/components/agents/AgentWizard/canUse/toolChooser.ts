@@ -34,6 +34,6 @@ export function chooserRequest(section: string, opts: { appId?: string | null } 
 }
 
 /** Kent de kiezer deze sectie? */
-export function isChooserSection(section: string): boolean {
+function isChooserSection(section: string): boolean {
     return SECTIONS.includes(section);
 }

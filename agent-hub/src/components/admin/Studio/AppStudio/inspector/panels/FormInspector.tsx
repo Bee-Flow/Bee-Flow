@@ -14,7 +14,7 @@ interface FormInspectorProps {
     resetKey?: string | null;
 }
 
-export default function FormInspector({ node, definition, onCommit, disabled = false }: PanelProps<FormInspectorProps>) {
+function FormInspector({ node, definition, onCommit, disabled = false }: PanelProps<FormInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

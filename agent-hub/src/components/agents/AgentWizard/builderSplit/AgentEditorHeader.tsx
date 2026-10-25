@@ -115,7 +115,7 @@ export function publishedVersionOf(agent: { published_version?: unknown; publish
  * `icon ?? kindIcon(kind)` in StudioSectionHeader would pick the element and
  * draw an EMPTY tile. The fallback therefore has to happen here, before the prop.
  */
-export function agentTileIcon(avatar: string | null) {
+function agentTileIcon(avatar: string | null) {
     return avatar ? <AgentTileGlyph avatar={avatar} /> : undefined;
 }
 

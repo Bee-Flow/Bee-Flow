@@ -45,4 +45,3 @@ export async function readEventStream(body: ReadableStream<Uint8Array>, onEvent:
     }
 }
 
-export default readEventStream;

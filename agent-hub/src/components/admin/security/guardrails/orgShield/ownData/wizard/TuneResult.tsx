@@ -11,7 +11,7 @@ import type { TuneInfo } from '../useTypeWizard';
  * after numbers are the server's, measured on the same sentences, so the
  * admin can see the gain was real rather than take it on trust.
  */
-export function TuneResult({ info, canUndo, onUndo, t }: { info: TuneInfo; canUndo: boolean; onUndo: () => void; t: TranslateFn }) {
+function TuneResult({ info, canUndo, onUndo, t }: { info: TuneInfo; canUndo: boolean; onUndo: () => void; t: TranslateFn }) {
     if (!info.improved) {
         return (
             <p role="status" className="m-0 text-xs text-[var(--text-secondary)]">

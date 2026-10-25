@@ -21,7 +21,7 @@ interface GateProps {
  *
  * Emerald + blue only — no purple (house rule).
  */
-export default function Gate({ capability, tier, fallback = null, children, loadingFallback = null }: GateProps) {
+function Gate({ capability, tier, fallback = null, children, loadingFallback = null }: GateProps) {
     const ent = useEntitlements();
     if (ent.loading) return loadingFallback;
     if (tier && !ent.hasTier(tier)) return fallback;

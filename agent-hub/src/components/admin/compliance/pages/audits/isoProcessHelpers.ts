@@ -51,7 +51,7 @@ export function notRaisedCount(findings: AuditFinding[] | null | undefined): num
 }
 
 /** 'open_incidents' → 'Open incidents': a key nobody labelled, in its own words. */
-export function labelize(key: unknown): string {
+function labelize(key: unknown): string {
     const words = String(key).replace(/_/g, ' ');
     return words.charAt(0).toUpperCase() + words.slice(1);
 }
@@ -59,7 +59,7 @@ export function labelize(key: unknown): string {
 const asText = (x: unknown): string => (typeof x === 'object' && x !== null ? JSON.stringify(x) : String(x));
 
 /** Any stored input value as one line of text; '—' for nothing. */
-export function fmtVal(v: unknown): string {
+function fmtVal(v: unknown): string {
     if (v === null || v === undefined || v === '') return '—';
     if (Array.isArray(v)) return v.map(asText).join(', ') || '—';
     if (typeof v === 'object') return Object.entries(v as Record<string, unknown>).map(([k, x]) => `${labelize(k)}: ${asText(x)}`).join(' · ');
@@ -73,7 +73,7 @@ interface MrInputLabel {
 }
 
 /** The 9.3.2 agenda keys the server collects (routes/compliance/isoProcess.js), with their labels. */
-export const MR_INPUT_LABELS: Readonly<Record<string, MrInputLabel>> = Object.freeze({
+const MR_INPUT_LABELS: Readonly<Record<string, MrInputLabel>> = Object.freeze({
     score_now: Object.freeze({ labelKey: 'compliance.mr_input_score_now', en: 'Compliance score now' }),
     score_90d_ago: Object.freeze({ labelKey: 'compliance.mr_input_score_90d_ago', en: 'Score 90 days ago' }),
     failing_checks: Object.freeze({ labelKey: 'compliance.mr_input_failing_checks', en: 'Failing checks' }),

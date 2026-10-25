@@ -10,7 +10,7 @@ import type { DataSummary, FlowStep } from '../flow/types';
 type Catalog = { apps?: Array<{ label?: string; actions?: Array<{ name: string; label?: string; description?: string }> }>; [key: string]: unknown } | null;
 
 /** The raw node-type label ("Schedule trigger", "Remove duplicates"). */
-export function stepTypeLabel(step: FlowStep | null, t: TranslateFn | null = null): string {
+function stepTypeLabel(step: FlowStep | null, t: TranslateFn | null = null): string {
     if (!step) return '';
     if (step.type === 'trigger') return (triggerTypeLabel as (s: FlowStep) => string)(step);
     return (nodeTypeLabel as (type: unknown, t: unknown) => string)(step.type, t) || String(step.type || '').replace(/_/g, ' ');

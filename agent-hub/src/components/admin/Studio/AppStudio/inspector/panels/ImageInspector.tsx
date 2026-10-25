@@ -12,7 +12,7 @@ interface ImageInspectorProps {
     fit?: string;
 }
 
-export default function ImageInspector({ node, definition, onCommit, disabled = false }: PanelProps<ImageInspectorProps>) {
+function ImageInspector({ node, definition, onCommit, disabled = false }: PanelProps<ImageInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const FITS = [

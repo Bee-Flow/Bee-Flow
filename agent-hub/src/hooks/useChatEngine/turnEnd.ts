@@ -42,7 +42,7 @@ export function finishPermissionDenied(turn: ChatTurn, deps: TurnEndDeps): void 
 }
 
 /** The turn ended with `done`: close the message, with the memory chip's watch if any. */
-export function finishCompleted(turn: ChatTurn, deps: TurnEndDeps, memoryWatch: ChatMessage['memoryWatch']): void {
+function finishCompleted(turn: ChatTurn, deps: TurnEndDeps, memoryWatch: ChatMessage['memoryWatch']): void {
     deps.setIsLoading(false);
     patchMessage(deps, turn.assistantMsgId, m => ({ ...m, isStreaming: false, ...(memoryWatch ? { memoryWatch } : {}) }));
 }
@@ -69,7 +69,7 @@ export function turnMemoryWatch(turn: ChatTurn, input: MemoryWatchInput): ChatMe
 }
 
 /** The turn already finished on the server: close quietly, no notice on a complete answer. */
-export function finishAfterDone(turn: ChatTurn, deps: TurnEndDeps): void {
+function finishAfterDone(turn: ChatTurn, deps: TurnEndDeps): void {
     patchMessage(deps, turn.assistantMsgId, m => ({ ...m, isStreaming: false }));
     deps.setIsLoading(false);
 }

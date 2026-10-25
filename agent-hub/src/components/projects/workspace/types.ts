@@ -21,7 +21,7 @@ export type WorkspaceTabId =
     | 'activity'
     | 'settings';
 
-export const WORKSPACE_TABS: readonly WorkspaceTabId[] = Object.freeze([
+const WORKSPACE_TABS: readonly WorkspaceTabId[] = Object.freeze([
     'overview', 'chats', 'tasks', 'documents', 'notebooks', 'meetings', 'knowledge', 'members', 'activity', 'settings',
 ]);
 
@@ -42,7 +42,7 @@ export function normalizeWorkspaceTab(raw?: string | null): WorkspaceTabId {
 }
 
 /** What the app needs to start a chat from inside a project. */
-export interface StartChatOptions {
+interface StartChatOptions {
     project: Project;
     message: string;
     /** Set for an agent chat; absent or null for a chat with the AI assistant. */

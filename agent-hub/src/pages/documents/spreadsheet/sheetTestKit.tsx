@@ -9,7 +9,7 @@ import scopedStorage from '../../../utils/scopedStorage';
 import type { StudioDocument } from '../documentQueries';
 import SpreadsheetEditor from './SpreadsheetEditor';
 
-export const DOC = { id: 'doc-1', userId: 'u1', name: 'Budget', docType: 'spreadsheet', bodyHtml: '', versionId: 'v1' } as StudioDocument;
+const DOC = { id: 'doc-1', userId: 'u1', name: 'Budget', docType: 'spreadsheet', bodyHtml: '', versionId: 'v1' } as StudioDocument;
 
 type GetSheet = { mockResolvedValue: (v: unknown) => unknown };
 

@@ -19,7 +19,7 @@ const emptyNotebookPayload = () => ({});
 type SetMessages = Dispatch<SetStateAction<ChatMessage[]>>;
 
 /** A preview-iframe selection, shown as a removable pill above the chat input. */
-export interface AttachedSelection {
+interface AttachedSelection {
     text: string;
     tagName: string | null;
     className: string | null;

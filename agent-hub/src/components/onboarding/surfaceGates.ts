@@ -78,7 +78,7 @@ export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
 };
 
 /** API path prefix → the gate the product puts on that route (longest prefix wins). */
-export const ENDPOINT_SURFACE_GATES: Record<string, SurfaceGate> = {
+const ENDPOINT_SURFACE_GATES: Record<string, SurfaceGate> = {
     '/agents':                                 { feat: [], permView: [], permWrite: [] },
     '/ai/config/chat-models':                  { feat: [], permView: [], permWrite: [] },
     '/ai/direct/conversations':                { feat: [], permView: [], permWrite: [] },

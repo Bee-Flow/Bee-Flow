@@ -12,7 +12,7 @@ import { logger } from '../../../../utils/logger';
  * is held in 'custom' mode and round-trips through unchanged.
  */
 
-export type ScheduleMode = 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
+type ScheduleMode = 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
 /** One of the visual builder's presets; which fields are set depends on `mode`. */
 export interface SchedulePreset {
@@ -26,7 +26,7 @@ export interface SchedulePreset {
 }
 
 /** The app's `t(key, fallback, params)` translator. */
-export type CronTranslate = (key: string, fallback: string, params?: Record<string, unknown>) => string;
+type CronTranslate = (key: string, fallback: string, params?: Record<string, unknown>) => string;
 
 interface DescribeCronOptions {
     t?: CronTranslate | null;
@@ -68,7 +68,7 @@ export const TIMEZONE_OPTIONS: string[] = (() => {
 })();
 
 const SCHEDULE_MODES: ScheduleMode[] = ['minute', 'hourly', 'daily', 'weekly', 'monthly', 'custom'];
-export { SCHEDULE_MODES };
+;
 
 /**
  * Try to decompose a cron string into one of our preset modes. Anything

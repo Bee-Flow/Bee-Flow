@@ -18,8 +18,8 @@ export type SwitchCol = 'detect' | 'external' | 'internal';
 export type SentenceOrigin = 'assistant' | 'nearmiss' | 'own' | 'feedback';
 
 export interface WordsSpec { values: string[]; caseSensitive: boolean; wholeWord: boolean }
-export interface PatternSpec { source: string; caseSensitive: boolean; engine?: 're2' | 'v8-legacy'; error?: string }
-export interface AiSpec { prompt: string; floor: number; groupSignature?: string }
+interface PatternSpec { source: string; caseSensitive: boolean; engine?: 're2' | 'v8-legacy'; error?: string }
+interface AiSpec { prompt: string; floor: number; groupSignature?: string }
 export interface Quality { found: number; total: number; falseAlarms: number; sentences: number; at?: string; stale?: boolean }
 
 export interface CustomDataType {
@@ -93,9 +93,9 @@ export const LIMITS = {
 } as const;
 
 export const CUSTOM_TYPE_ID_RE = /^cdt_[0-9a-f]{10}$/;
-export const TOKEN_KEY_RE = /^[a-z](?:[a-z0-9_]{0,30}[a-z])?$/;
+const TOKEN_KEY_RE = /^[a-z](?:[a-z0-9_]{0,30}[a-z])?$/;
 /** The token key every migrated legacy term keeps, so `[customterm_N]` survives. */
-export const LEGACY_TOKEN_KEY = 'customterm';
+const LEGACY_TOKEN_KEY = 'customterm';
 
 export function isCustomTypeId(id: unknown): id is string {
     return typeof id === 'string' && CUSTOM_TYPE_ID_RE.test(id);
@@ -229,7 +229,7 @@ export function toDraft(type: CustomDataType): CustomDataType {
 }
 
 /** What the AI label defaults to before tuning has picked a better wording. */
-export function defaultPrompt(name: string): string {
+function defaultPrompt(name: string): string {
     const clean = String(name || '').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
     return clean.slice(0, LIMITS.promptMax).trim();
 }

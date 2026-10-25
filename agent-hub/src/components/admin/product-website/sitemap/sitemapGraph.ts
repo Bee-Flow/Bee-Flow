@@ -22,7 +22,7 @@ export interface Point {
 }
 
 /** One entry of the SiteDoc's page index. */
-export interface SitemapPageEntry {
+interface SitemapPageEntry {
     id: string;
     title?: string;
     slug?: string;

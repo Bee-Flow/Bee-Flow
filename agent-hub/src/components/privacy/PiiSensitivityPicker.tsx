@@ -96,7 +96,7 @@ interface PiiSensitivityPickerProps {
  *   onto the heading row. Same control, same semantics, same copy — a second
  *   sensitivity picker would have been one design language too many.
  */
-export function PiiSensitivityPicker({ value, onChange, disabled = false, t, variant = 'inset' }: PiiSensitivityPickerProps) {
+function PiiSensitivityPicker({ value, onChange, disabled = false, t, variant = 'inset' }: PiiSensitivityPickerProps) {
     const tr: (key: string, fallback: string, params?: TranslateParams) => string = t || ((_key: string, fallback: string) => fallback);
     const v = typeof value === 'number' ? value : 0.7;
     const active = presetFor(v);

@@ -19,7 +19,7 @@ export { createContentFlusher } from './useChatEngine/contentFlusher';
 export { extractMdHeading, summarizeWorkItem } from './useChatEngine/workSummary';
 
 /** The agent answering, as the page hands it over. */
-export interface ChatAgent {
+interface ChatAgent {
     id?: string;
     name?: string;
     avatar?: string;
@@ -27,7 +27,7 @@ export interface ChatAgent {
 }
 
 /** Direct (agent-less) chat: which model, and where to send the turn. */
-export interface DirectMode {
+interface DirectMode {
     enabled?: boolean;
     modelTier?: string;
     conversationId?: string;
@@ -42,7 +42,7 @@ export interface DirectMode {
  * without a test chat is another, existing path, and the two may not accidentally
  * be half on at once.
  */
-export interface TestChatMode {
+interface TestChatMode {
     enabled?: boolean;
     asGroup?: string;
     sessionId?: string;
@@ -51,7 +51,7 @@ export interface TestChatMode {
 }
 
 /** What the notebook panel contributes to a turn, when it is open. */
-export interface NotebookPayload {
+interface NotebookPayload {
     notebookspaceContent?: string;
     notebookspaceSelection?: string;
     [key: string]: unknown;

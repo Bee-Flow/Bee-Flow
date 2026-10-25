@@ -7,7 +7,7 @@ import type { ToolApp } from '../agents/AgentWizard/canUse/toolCatalogTypes';
 import type { PickerAction, PickerApp, PickerText, EffectBadgeProps, EffectFiltersProps, ActionRowProps, AppActionPickerProps } from './AppActionPicker.types';
 
 /** De Engelse standaardteksten van de schil. Een surface met `t()` overschrijft ze. */
-export const PICKER_TEXT = Object.freeze({
+const PICKER_TEXT = Object.freeze({
     search: 'Search apps and actions',
     enableAll: 'Enable all',
     disableAll: 'Disable all',
@@ -39,7 +39,7 @@ export const PICKER_TEXT = Object.freeze({
 const EFFECTS = Object.freeze(['reads', 'writes', 'sends']);
 
 /** `reads`/`writes`/`sends`, or `null` if the catalogue does not say so. */
-export function actionEffect(action: PickerAction) {
+function actionEffect(action: PickerAction) {
     const raw = action && typeof action.effect === 'string' ? action.effect.trim() : '';
     return EFFECTS.includes(raw) ? raw : null;
 }

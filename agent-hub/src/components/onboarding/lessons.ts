@@ -47,7 +47,7 @@ export const LESSON_PLAYER_OPEN_EVENT = 'beeflow:open-lesson';
 
 // Re-export the event names so the Learning Center page has a single import
 // surface (it dispatches TOUR_START_EVENT and listens for LESSON_COMPLETE_EVENT).
-export { TOUR_START_EVENT, TOUR_ENSURE_SIDEBAR_EVENT, TOUR_SEEN_KEY };
+export { TOUR_START_EVENT,   };
 
 /* ── Lesson 2: Writing effective prompts ─────────────────────────────────── */
 const PROMPTS_STEPS: LessonStep[] = [
@@ -1461,14 +1461,14 @@ export function lessonVisible(lesson: LessonDoc | null | undefined, user: Lesson
 }
 
 // The lessons to show on the Learning Center page, filtered by permission + plan.
-export function resolveLessons(user: LessonUser | null | undefined, { hasFeature }: { hasFeature?: HasFeature } = {}): LessonDoc[] {
+function resolveLessons(user: LessonUser | null | undefined, { hasFeature }: { hasFeature?: HasFeature } = {}): LessonDoc[] {
     return LESSONS.filter((l: LessonDoc) => lessonVisible(l, user, hasFeature));
 }
 
 // True when every step of a lesson is a live-app tour step. Such lessons skip the
 // LessonPlayer entirely and dispatch TOUR_START_EVENT straight to the engine, so
 // the legacy 10 lessons behave exactly as before.
-export function lessonIsPureTour(lesson: LessonDoc | null | undefined): boolean {
+function lessonIsPureTour(lesson: LessonDoc | null | undefined): boolean {
     const steps = lesson?.steps || [];
     return steps.length > 0 && steps.every((s: LessonStep) => stepType(s) === STEP_TYPES.TOUR);
 }
@@ -1487,7 +1487,7 @@ export function lessonIdIsPureTour(lessonId: string): boolean {
  * the player listens for to resume. The id is recognisable (EPHEMERAL_PREFIX) so
  * markLessonComplete() can skip persisting it as a real lesson.
  * ──────────────────────────────────────────────────────────────────────────── */
-export const EPHEMERAL_PREFIX = '__eph_';
+const EPHEMERAL_PREFIX = '__eph_';
 const ephemeralTours = new Map<string, LessonStep[]>();
 let ephemeralCounterSeed = 0;
 

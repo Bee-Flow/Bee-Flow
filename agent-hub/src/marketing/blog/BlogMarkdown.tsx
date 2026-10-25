@@ -48,7 +48,7 @@ function textOf(node: ReactNode): string {
 }
 
 /** Same id rule as the server's headingId(), so #section links survive hydration. */
-export function headingSlug(text: string): string {
+function headingSlug(text: string): string {
     return text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'section';
 }

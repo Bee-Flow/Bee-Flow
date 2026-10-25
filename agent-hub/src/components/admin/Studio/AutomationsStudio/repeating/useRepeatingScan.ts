@@ -12,7 +12,7 @@ import usePatternFeedback from './usePatternFeedback';
 
 /* ── The live run, as a pure reducer over the SSE frames ─────────────── */
 
-export type StepStatus = 'start' | 'done' | 'skipped';
+type StepStatus = 'start' | 'done' | 'skipped';
 
 /** One source the scan read (patterns: `source_step`; ideas: `scan_step`). */
 export interface SourceStep {
@@ -25,7 +25,7 @@ export interface SourceStep {
     piiCategories: string[];
 }
 
-export interface ScanStats { events: number; templates: number; candidates: number }
+interface ScanStats { events: number; templates: number; candidates: number }
 
 export interface RunState {
     scanning: boolean;
@@ -60,7 +60,7 @@ const count = (v: unknown): number | null => (typeof v === 'number' && Number.is
 const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 
 /** A `source_step` or an ideas-mode `scan_step` frame as one SourceStep. */
-export function toStep(event: string, data: unknown): SourceStep | null {
+function toStep(event: string, data: unknown): SourceStep | null {
     const d = obj(data);
     if (event === 'source_step') {
         const app = str(d.app) || str(d.source);

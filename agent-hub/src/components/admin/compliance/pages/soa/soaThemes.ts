@@ -45,7 +45,7 @@ export const THEMES = Object.freeze([
     Object.freeze({ id: 'A.8', theme: 8, labelKey: 'compliance.soa_theme_a8', fallback: 'A.8 Technological' }),
 ]);
 
-export const THEME_IDS = Object.freeze(['all', ...THEMES.map(x => x.id)]);
+const THEME_IDS = Object.freeze(['all', ...THEMES.map(x => x.id)]);
 
 export const DECISIONS = Object.freeze(['todo', 'reviewed', 'approved', 'excluded']);
 export const DECISION_FILTERS = Object.freeze(['all', ...DECISIONS]);
@@ -53,7 +53,7 @@ export const DECISION_FILTERS = Object.freeze(['all', ...DECISIONS]);
 export const PAGE_LIMIT = 12;
 
 /** Worst-wins ranking of a check row's status (same table the legacy page used). */
-export const CHECK_RANK: Readonly<Record<string, number>> = Object.freeze({ fail: 3, warn: 2, pass: 1, not_applicable: 0, pending: 0 });
+const CHECK_RANK: Readonly<Record<string, number>> = Object.freeze({ fail: 3, warn: 2, pass: 1, not_applicable: 0, pending: 0 });
 
 /** 'A.5.20' → 'A.5'; a numeric `theme` (5..8) also resolves; anything else → null. */
 export function themeOf(control: ControlLike) {

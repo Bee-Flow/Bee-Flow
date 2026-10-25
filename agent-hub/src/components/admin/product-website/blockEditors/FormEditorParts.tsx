@@ -8,7 +8,7 @@ import type { FormField, FormFieldType } from '../../../../marketing/sections/fo
 
 // The cards of the Form block editor (FormEditor.tsx composes them).
 
-export type ConsentData = { enabled?: boolean; text?: string };
+type ConsentData = { enabled?: boolean; text?: string };
 
 export type FormData = Partial<Record<
     | 'backgroundVariant' | 'eyebrow' | 'title' | 'lead'

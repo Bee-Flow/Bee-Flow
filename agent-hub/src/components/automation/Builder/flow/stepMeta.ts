@@ -7,9 +7,9 @@
  * from here so the brand name is a single edit.
  */
 
-export const STEP_LABEL = 'Step';
-export const STEP_LABEL_PLURAL = 'Steps';
-export const STEP_CATEGORY = 'Steps';
+const STEP_LABEL = 'Step';
+const STEP_LABEL_PLURAL = 'Steps';
+const STEP_CATEGORY = 'Steps';
 
 // Default node label when a call_block step has no title yet.
 export const STEP_NODE_DEFAULT = 'Step';

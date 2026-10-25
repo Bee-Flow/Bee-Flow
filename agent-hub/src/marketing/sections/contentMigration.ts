@@ -85,7 +85,7 @@ function newId(prefix: string): string {
 }
 
 /** True when the content blob already follows the new column/elements shape. */
-export function isNewContentShape(content: ContentData | LegacyContent | null | undefined): content is ContentData {
+function isNewContentShape(content: ContentData | LegacyContent | null | undefined): content is ContentData {
     return !!content
         && typeof content === 'object'
         && Array.isArray(content.columns);
@@ -123,7 +123,7 @@ export function makeColumn(): ContentColumn {
 }
 
 /** Default content for a brand-new Content block. */
-export function makeDefaultContent(): ContentData {
+function makeDefaultContent(): ContentData {
     return {
         columnLayout: '1',
         columns: [

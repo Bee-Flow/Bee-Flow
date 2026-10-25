@@ -1,7 +1,7 @@
 import type { AccessMember, AccessRole, AccessTableRule } from '../accessApply';
 
 /** Who may open the app: only `groups` carries group ids and names. */
-export type ScreenAudience =
+type ScreenAudience =
     | { kind: 'groups'; groupIds: string[]; groupNames: string[] }
     | { kind: 'private' | 'organisation'; groupIds?: undefined; groupNames?: undefined };
 export type AudienceKind = ScreenAudience['kind'];

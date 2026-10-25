@@ -27,7 +27,7 @@ export interface OAuthStatus {
 
 const NOT_CONNECTED: OAuthStatus = { configured: false, connected: false };
 
-export const oauthIntegrationKeys = {
+const oauthIntegrationKeys = {
     status: (provider: OAuthProvider) => ['oauth-integration', provider, 'status'] as const,
 };
 

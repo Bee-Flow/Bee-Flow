@@ -46,7 +46,7 @@ export interface ViewInput {
     placeLabel: (row: Raw) => string;
 }
 
-export interface RankEntry {
+interface RankEntry {
     value: string;
     label: string;
     count: number;

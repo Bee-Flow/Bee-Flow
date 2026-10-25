@@ -10,7 +10,7 @@ interface TextProps {
     muted?: boolean;
 }
 
-export default function TextInspector({ node, definition, onCommit, disabled = false }: PanelProps<TextProps>) {
+function TextInspector({ node, definition, onCommit, disabled = false }: PanelProps<TextProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

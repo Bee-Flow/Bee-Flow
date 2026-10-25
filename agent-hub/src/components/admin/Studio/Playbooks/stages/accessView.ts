@@ -39,7 +39,7 @@ export interface PlannedChange {
 }
 
 /** The roles every app has, whatever its model says. */
-export const BUILTIN_ROLES = ['app', 'member'];
+const BUILTIN_ROLES = ['app', 'member'];
 
 /** Where the app stands right now, before anything on this screen is applied. */
 export function currentAccess(app: AccessApp | null | undefined, members: unknown[] = [], t: TranslateFn) {

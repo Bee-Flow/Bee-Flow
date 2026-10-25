@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
 // never happened. The callback page is served from the API origin; in dev
 // that differs from the SPA's own origin, so both are trusted.
 
-export function trustedOAuthOrigins(apiBase?: string): string[] {
+function trustedOAuthOrigins(apiBase?: string): string[] {
     let apiOrigin = window.location.origin;
     try {
         apiOrigin = new URL(apiBase || '', window.location.origin).origin;

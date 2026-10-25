@@ -38,7 +38,7 @@ const FRAMEWORK_TABS = Object.freeze(['checks', 'timeline', 'evidence']);
 // `{ <oldTab>: { section, tab? } }`. A bookmark, an e-mailed link or a stored
 // attention target with `?tab=<oldTab>` then still opens the right page
 // (resolveTab here, the redirect in index.jsx, resolveTarget in data/actions.js).
-export interface LegacyTarget {
+interface LegacyTarget {
     section: string;
     tab?: string;
 }

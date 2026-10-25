@@ -34,4 +34,3 @@ export const highlightSnippet = (snippet?: unknown, query?: string | null): stri
     );
 };
 
-export default highlightSnippet;

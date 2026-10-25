@@ -39,7 +39,7 @@ export function ChainEditor({ stages, onChange, onDrop, directory }: ChainEditor
     return <StagesEditor stages={stages} set={(_key, next) => onChange(next)} directory={directory} onDropStages={onDrop} t={t} />;
 }
 
-export const newChain = (): ApprovalStage[] => [{ key: newStageKey([]), name: '', description: '', approvers: [null], rule: 'all' }];
+const newChain = (): ApprovalStage[] => [{ key: newStageKey([]), name: '', description: '', approvers: [null], rule: 'all' }];
 
 export interface GateSectionProps {
     settings: StageSettings;

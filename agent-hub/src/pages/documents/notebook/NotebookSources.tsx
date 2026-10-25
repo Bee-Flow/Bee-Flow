@@ -16,7 +16,7 @@ import { AddUrlPanel, MeetingSourcePanel, PasteTextPanel, type MeetingMode } fro
 import { SOURCE_META, type SourceRow } from './sources/sourceMeta';
 import { logger } from '../../../utils/logger';
 
-export { SOURCE_META };
+;
 
 type PanelKey = 'file' | 'url' | 'text' | 'meeting';
 

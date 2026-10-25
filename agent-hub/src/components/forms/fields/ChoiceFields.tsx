@@ -29,7 +29,7 @@ const HELP_TEXT = 'text-xs text-[var(--text-muted)]';
 const OPTION_ROW = 'flex items-start gap-2 text-sm cursor-pointer text-[var(--text-primary)]';
 
 /** "Choose up to 3" / "Choose at least 2" / "Choose 2 to 4": what a multiselect asks for, or ''. */
-export function choiceCountHint(field: FormFieldDef, t: ReturnType<typeof useTranslation>['t']): string {
+function choiceCountHint(field: FormFieldDef, t: ReturnType<typeof useTranslation>['t']): string {
     const lo = typeof field.minSelected === 'number' && field.minSelected > 0 ? field.minSelected : null;
     const hi = typeof field.maxSelected === 'number' ? field.maxSelected : null;
     if (lo !== null && hi !== null) {

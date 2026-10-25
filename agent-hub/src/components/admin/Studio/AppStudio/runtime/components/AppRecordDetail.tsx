@@ -28,7 +28,7 @@ interface FieldValueProps {
     format: string;
 }
 
-export function FieldValue({ value, format }: FieldValueProps) {
+function FieldValue({ value, format }: FieldValueProps) {
     if (value == null || value === '') return <span className="text-[var(--text-muted)]">{EM_DASH}</span>;
     switch (format) {
         // The file itself, not its descriptor. Shared with the data_grid's

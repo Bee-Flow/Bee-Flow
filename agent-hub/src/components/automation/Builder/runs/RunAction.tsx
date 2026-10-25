@@ -1,7 +1,7 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-export const ACTION_BTN = 'inline-flex items-center justify-center gap-1.5 h-[30px] min-w-[30px] px-2 @[1100px]/rundetail:px-2.5 rounded-lg border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap disabled:opacity-50';
+const ACTION_BTN = 'inline-flex items-center justify-center gap-1.5 h-[30px] min-w-[30px] px-2 @[1100px]/rundetail:px-2.5 rounded-lg border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap disabled:opacity-50';
 
 interface ActionProps {
     icon: LucideIcon;

@@ -120,7 +120,7 @@ function UnmarkedChip({ t }: { t: TranslateFn }) {
     );
 }
 
-export function VerdictChip({ marks, t }: { marks: Mark[]; t: TranslateFn }) {
+function VerdictChip({ marks, t }: { marks: Mark[]; t: TranslateFn }) {
     const { verdict, missed, falseAlarms } = sentenceVerdict(marks);
     const text = verdict === 'correct'
         ? t('shield_data.chip_correct', 'Correct')
@@ -222,7 +222,7 @@ function RowMenu({
     );
 }
 
-export function TestSentence({
+function TestSentence({
     sentence, marks, onChange, onRemove, t,
 }: { sentence: Sentence; marks: Mark[] | null; onChange: (s: Sentence) => void; onRemove: () => void; t: TranslateFn }) {
     const [pending, setPending] = useState<Pending>(null);

@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 /** A tab of a `tabs` element. */
-export interface PageTab {
+interface PageTab {
     label?: ReactNode;
     children?: unknown[];
 }
@@ -17,7 +17,7 @@ export interface PageAccordionItem {
 export type PageTableColumn = string | { label?: ReactNode };
 
 /** A row of a `table` element. */
-export type PageTableRow = ReactNode[] | Record<string, ReactNode>;
+type PageTableRow = ReactNode[] | Record<string, ReactNode>;
 
 /** One bar of a `chart` element. */
 export interface ChartDatum {

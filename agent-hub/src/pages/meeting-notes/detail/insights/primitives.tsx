@@ -109,7 +109,7 @@ export function MetricRow({ label, value, detail, onClick, title, flagged = fals
 }
 
 /** Speaker chip: the palette dot plus a humanised name. */
-export function SpeakerName({ speakerId, color, className = '' }: SpeakerNameProps) {
+function SpeakerName({ speakerId, color, className = '' }: SpeakerNameProps) {
     return (
         <span className={`inline-flex items-center gap-1.5 min-w-0 ${className}`}>
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />

@@ -36,7 +36,7 @@ export function isMultilineProp(prop: SchemaProp | null | undefined): boolean {
 }
 
 /** Enums short enough to read as buttons (round 4: "choices as buttons"). */
-export const ENUM_BUTTON_MAX = 4;
+const ENUM_BUTTON_MAX = 4;
 
 /** The options of a short enum, or null when it should stay a field. */
 export function shortEnum(prop: SchemaProp | null | undefined): string[] | null {

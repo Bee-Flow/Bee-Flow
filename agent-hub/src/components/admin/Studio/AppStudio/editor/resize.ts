@@ -10,7 +10,7 @@
 const MIN_SPAN = 1;
 const MAX_SPAN = 12;
 
-export const GRID_COLUMNS = 12;
+const GRID_COLUMNS = 12;
 
 /**
  * Pixels of horizontal drag that advance a span by exactly one column.
@@ -101,7 +101,7 @@ export function spanFromDrag({ startSpan, dx, columnWidth }: SpanFromDragArgs = 
 export const HEIGHT_STEPS = ['auto', 'sm', 'md', 'lg', 'xl', 'fill'];
 
 /** One height step ≈ this many pixels of vertical drag. */
-export const HEIGHT_STEP_PX = 80;
+const HEIGHT_STEP_PX = 80;
 
 /**
  * Pointer vertical drag → nearest height step.

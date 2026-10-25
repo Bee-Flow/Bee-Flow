@@ -68,7 +68,7 @@ interface DsrHookData {
     exportUrlFor?: (id: RequestId) => string;
 }
 
-export const DRAWER_WIDTH = 380;
+const DRAWER_WIDTH = 380;
 
 const FILTER_TONE: Readonly<Record<string, PillTone>> = Object.freeze({ open: 'neutral', overdue: 'error', fulfilled: 'neutral', rejected: 'muted' });
 const FILTER_LABEL: Readonly<Record<string, readonly [string, string]>> = Object.freeze({
@@ -98,7 +98,7 @@ export function dsrHeaderSpec(t: TranslateFn, { overdue, onRefresh, onCapture, r
  * The register's data source: the hub's `data.dsr` where it exists, a local
  * fetchJson fallback for everything it does not (yet) provide.
  */
-export const dsrUrl = (id: string | number | boolean, tail: string = '') => `${API_DSR}/requests/${encodeURIComponent(id)}${tail}`;
+const dsrUrl = (id: string | number | boolean, tail: string = '') => `${API_DSR}/requests/${encodeURIComponent(id)}${tail}`;
 
 function useDsrSource(dsr: DsrHookData | null | undefined, enabled: boolean = true) {
     const hasList = Boolean(dsr && 'requests' in dsr);

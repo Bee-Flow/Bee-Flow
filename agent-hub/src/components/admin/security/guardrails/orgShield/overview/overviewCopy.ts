@@ -199,7 +199,7 @@ const FACTS: Record<string, FactFn> = {
 const isWarnValue = (row: PostureRow) => row.tone === 'warn' || row.tone === 'error'
     || (row.id === 'transparency' && row.tone === 'note');
 
-export function factFor(row: PostureRow, ctx: CopyContext): Fact | null {
+function factFor(row: PostureRow, ctx: CopyContext): Fact | null {
     const fn = FACTS[row.id];
     const label = LABELS[row.id];
     if (!fn || !label) return null;

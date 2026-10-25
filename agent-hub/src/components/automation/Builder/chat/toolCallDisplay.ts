@@ -42,7 +42,7 @@ export interface AddedStep {
     [key: string]: unknown;
 }
 
-export interface ToolResult {
+interface ToolResult {
     error?: string;
     _fixHint?: string;
     /** One step, or an array for a batch (which has no id or icon of its own). */

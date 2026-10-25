@@ -106,14 +106,14 @@ export function subjectLabel(check: MaybeCheck): string | null {
 }
 
 /** by_status order: what is broken first, what needs a look next, then the quiet rows. */
-export const STATUS_ORDER = Object.freeze({ fail: 0, warn: 1, pass: 2, not_applicable: 3, pending: 4 });
+const STATUS_ORDER = Object.freeze({ fail: 0, warn: 1, pass: 2, not_applicable: 3, pending: 4 });
 
 /** Severity order inside one status band — the weight a row carries in the score. */
-export const SEVERITY_ORDER = Object.freeze({ critical: 0, high: 1, medium: 2, low: 3 });
+const SEVERITY_ORDER = Object.freeze({ critical: 0, high: 1, medium: 2, low: 3 });
 
 export const SORT_MODES = Object.freeze(['by_status', 'by_article']);
 
-export const STATUS_PILLS = Object.freeze(['all', 'fail', 'warn', 'pass', 'not_applicable']);
+const STATUS_PILLS = Object.freeze(['all', 'fail', 'warn', 'pass', 'not_applicable']);
 
 /** The pill tone per filter value — `all` is the neutral pill, n/a the muted one. */
 export const PILL_TONE = Object.freeze({
@@ -202,7 +202,7 @@ function rank(table: Readonly<Record<string, number>>, key: string, fallback: nu
     return r === undefined ? fallback : r;
 }
 
-export function compareByStatus(a: CheckRecord, b: CheckRecord, regulation: string | null | undefined): number {
+function compareByStatus(a: CheckRecord, b: CheckRecord, regulation: string | null | undefined): number {
     const sa = rank(STATUS_ORDER, a.status, 5); const sb = rank(STATUS_ORDER, b.status, 5);
     if (sa !== sb) return sa - sb;
     const va = rank(SEVERITY_ORDER, a.severity, 4); const vb = rank(SEVERITY_ORDER, b.severity, 4);
@@ -210,7 +210,7 @@ export function compareByStatus(a: CheckRecord, b: CheckRecord, regulation: stri
     return compareArticle(articleForRegulation(a, regulation), articleForRegulation(b, regulation));
 }
 
-export function compareByArticle(a: CheckRecord, b: CheckRecord, regulation: string | null | undefined): number {
+function compareByArticle(a: CheckRecord, b: CheckRecord, regulation: string | null | undefined): number {
     const c = compareArticle(articleForRegulation(a, regulation), articleForRegulation(b, regulation));
     if (c !== 0) return c;
     return compareByStatus(a, b, regulation);

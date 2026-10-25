@@ -54,7 +54,7 @@ import type { TranslateFn } from '../../hooks/useTranslation';
 import useTranslation from '../../hooks/useTranslation';
 import type { KindLabelFn, KindVisual, UsageAdapter, UsageEntry, UsageRowProps, UsageSourceRow, UsageSummaryProps, UsedByTabProps } from './UsedByTab.types';
 
-export const USAGE_ROLES = Object.freeze([
+const USAGE_ROLES = Object.freeze([
     'read', 'write', 'readwrite', 'contains', 'invokes', 'chat', 'ai_step', 'answer_block',
 ]);
 
@@ -371,7 +371,7 @@ function UsageRow({ row, last, currentUserId, onNavigate, t, rel, kindLabel }: U
 }
 
 /** What the row DOES with this thing — the "Does"/"As" column. */
-export function roleLabelFor(t: TranslateFn, role?: string | null): string {
+function roleLabelFor(t: TranslateFn, role?: string | null): string {
     switch (role) {
         case 'read': return t('usage.role_read', 'reads');
         case 'write': return t('usage.role_write', 'writes');

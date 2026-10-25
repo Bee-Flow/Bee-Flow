@@ -43,7 +43,7 @@ export interface DeleteBlockBody {
 }
 
 /** One kind of consumer that was found. */
-export interface UsedKind {
+interface UsedKind {
     kind: string;
     count: number;
     foreignOnly: boolean;

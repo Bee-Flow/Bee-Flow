@@ -7,7 +7,7 @@
 // (`blog.labels`, from the cms_blog.public.* keys). DEFAULT_LABELS below is
 // only the fallback for a payload without them (an old snapshot, a test).
 
-export interface BlogTag { slug: string; label: string; count?: number }
+interface BlogTag { slug: string; label: string; count?: number }
 
 export interface BlogPostSummary {
     id: string;

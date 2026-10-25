@@ -23,7 +23,7 @@ export interface TablePreviewRequest {
     limit?: number;
 }
 
-export interface OpIssue {
+interface OpIssue {
     code: string;
     field: string | null;
     message: string;
@@ -69,13 +69,13 @@ export interface DescribedColumn {
     sampleValues: string[];
 }
 
-export interface Description {
+interface Description {
     rowCount: number;
     provenance: Record<string, string> | null;
     columns: DescribedColumn[];
 }
 
-export interface Segment {
+interface Segment {
     id: string;
     label: string;
     column: string | null;
@@ -97,7 +97,7 @@ export interface TablePreviewOk {
     warnings: string[];
 }
 
-export interface TablePreviewFailed {
+interface TablePreviewFailed {
     ok: false;
     findings: Finding[];
     opResults: OpResult[];

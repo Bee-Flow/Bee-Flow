@@ -2,7 +2,7 @@ import { CHROME_H, CHROME_W, NODE_H, NODE_W, classifyInternal, edgeEndpoints } f
 import type { InternalEdge, Point } from './sitemapGraph';
 
 /** What an edge click explains: where the link is defined. */
-export interface EdgeInfo {
+interface EdgeInfo {
     kind: 'chrome' | 'tree' | 'backlink';
     text: string;
 }

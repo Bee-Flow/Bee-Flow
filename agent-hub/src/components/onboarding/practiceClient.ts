@@ -21,7 +21,7 @@ export interface PracticeGrade {
     error: string | null;
 }
 
-export { PRACTICE_LESSON_IDS } from './reviewEngine';
+;
 
 // Generate fresh practice items for one or more practice-able lessons.
 // Resolves to { practiceId, items: [{ id, lessonId, question, choices }] } or

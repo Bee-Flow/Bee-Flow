@@ -7,14 +7,14 @@ import { rowInputClass } from '../formStyles';
 import type { Translate } from './opHelp';
 
 /** What a picker suggests first. */
-export type ColumnPreference = 'any' | 'split' | 'numeric' | 'personal';
+type ColumnPreference = 'any' | 'split' | 'numeric' | 'personal';
 
 type Described = ReadonlyMap<string, DescribedColumn>;
 
 const NUMERIC_KINDS: ColumnKind[] = ['numeric', 'scale'];
 
 /** Whether the sample says this column suits the picker's purpose. A column nothing is known about is not ruled out. */
-export function suits(column: TableColumn, described: Described, prefer: ColumnPreference): boolean {
+function suits(column: TableColumn, described: Described, prefer: ColumnPreference): boolean {
     const d = described.get(column.key);
     switch (prefer) {
         case 'split': return d ? d.usableAsSplit : true;
@@ -37,7 +37,7 @@ function kindWord(kind: ColumnKind, t: Translate): string {
 }
 
 /** The text of one option: the column's name, what it holds and whether it looks personal. */
-export function columnLabel(column: TableColumn, described: Described, t: Translate): string {
+function columnLabel(column: TableColumn, described: Described, t: Translate): string {
     const d = described.get(column.key);
     const parts = [column.label || column.key];
     if (d) {

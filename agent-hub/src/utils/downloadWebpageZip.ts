@@ -16,7 +16,7 @@ import { describeError } from './caughtError';
  *   decode back to bytes for the zip.
  */
 /** What {@link downloadWebpageZip} packs. */
-export interface DownloadWebpageZipOptions {
+interface DownloadWebpageZipOptions {
     name?: string;
     html?: string | null;
     css?: string | null;
@@ -55,7 +55,7 @@ function triggerDownload(blob: Blob, name?: string): void {
 /**
  * `framework` is 'react-mui' or 'vanilla' (the default).
  */
-export async function downloadWebpageZip({ name, html, css, js, extraFiles = [], extraContents = {}, framework = 'vanilla' }: DownloadWebpageZipOptions): Promise<void> {
+async function downloadWebpageZip({ name, html, css, js, extraFiles = [], extraContents = {}, framework = 'vanilla' }: DownloadWebpageZipOptions): Promise<void> {
     // React + Material UI: ship a self-contained built index.html (the same
     // esbuild-bundled module + esm.sh import map the preview uses) plus the
     // original src/ files. The build needs no local toolchain; the index.html

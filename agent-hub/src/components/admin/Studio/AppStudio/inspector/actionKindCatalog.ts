@@ -140,7 +140,7 @@ export function kindLabel(kind: string | null | undefined): KindOption | null {
 }
 
 /** The first `modal` node in the app — a new open/close_modal has to aim somewhere. */
-export function firstModalId(definition: AppDefinition | null | undefined): string {
+function firstModalId(definition: AppDefinition | null | undefined): string {
     let found = '';
     const walk = (nodes: AppNode[] | undefined): void => {
         for (const n of nodes || []) {

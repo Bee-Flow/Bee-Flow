@@ -4,7 +4,7 @@
 
 import type { Project, ProjectMembers } from '../../../api/queries/projects';
 
-export interface FakeCall {
+interface FakeCall {
     method: string;
     path: string;
     query: URLSearchParams;

@@ -5,7 +5,7 @@ import type { ProjectTask, TaskStatus } from './projectTasks';
 export interface BoardColumn { id: string; title: string; status: TaskStatus; wipLimit: number | null }
 export interface ProjectBoard { columns: BoardColumn[]; assignments: Record<string, string>; version: number }
 export const DEFAULT_COLUMNS: BoardColumn[] = ['todo', 'doing', 'done'].map(id => ({ id, title: '', status: id as TaskStatus, wipLimit: null }));
-export const boardKey = (id: string) => [...projectKeys.detail(id), 'board'];
+const boardKey = (id: string) => [...projectKeys.detail(id), 'board'];
 const base = (id: string) => `/api/projects/${encodeURIComponent(id)}/board`;
 export function taskColumn(task: ProjectTask, columns: BoardColumn[], assignments: Record<string, string>) {
     return columns.find(c => c.id === assignments[task.id] && c.status === task.status) || columns.find(c => c.status === task.status);

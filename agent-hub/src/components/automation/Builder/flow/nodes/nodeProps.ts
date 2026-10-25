@@ -58,7 +58,7 @@ export interface AppEventConfig {
     [key: string]: unknown;
 }
 
-export interface TriggerParam {
+interface TriggerParam {
     name: string;
     type?: string;
     required?: boolean;
@@ -149,7 +149,7 @@ export interface NodeStep extends FlowStep {
 }
 
 /** A step's fields without its identity: what the one-line summaries read. */
-export type StepFields = Partial<NodeStep>;
+type StepFields = Partial<NodeStep>;
 
 /** What `flow/layout.js` puts on a step node. */
 export interface StepNodeData<S extends NodeStep = NodeStep> {

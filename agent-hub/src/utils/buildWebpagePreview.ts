@@ -37,7 +37,7 @@ import { buildBfElementsScript } from './bfElementsRuntime';
 // runtime guard, the asset resolver and the document shell live in
 // server/shared/webpage/reactPreview.mjs (this is its generated mirror), shared
 // with the server's headless screenshot and public React share.
-export { buildImportMap };
+;
 
 // ── esbuild-wasm lazy singleton ────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ interface BuildReactBundleArgs {
     files: Record<string, PreviewFile>;
 }
 
-export async function buildReactBundle({ entry = REACT_ENTRY, files }: BuildReactBundleArgs) {
+async function buildReactBundle({ entry = REACT_ENTRY, files }: BuildReactBundleArgs) {
     return bundleReact(await getEsbuild(), { entry, files });
 }
 

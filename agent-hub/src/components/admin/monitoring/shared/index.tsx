@@ -9,10 +9,10 @@ import type { UsageRow, ModelRate } from '../drawer/drawerTypes';
 import type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, CardProps, MetricCardProps, InOutLabelProps, DonutItem, FilterOption, FilterSelectProps, FilterState, FilterBarProps, SortableColumn, SortableTableProps, SkeletonProps, SkeletonGridProps } from '../shared.types';
 import { fmt, COLORS, Empty } from './SvgAreaChart';
 import { fmtCost } from './ModelRow';
-export { DonutChart } from './DonutChart';
-export { fmtCost, shortModel, MODEL_COLORS, InOutBar, ModelRow } from './ModelRow';
+;
+export { fmtCost, shortModel, MODEL_COLORS, InOutBar,  } from './ModelRow';
 export { fmt, COLORS, Empty, SvgAreaChart } from './SvgAreaChart';
-export type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, FilterOption, FilterState, SortableColumn } from '../shared.types';
+export type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint,  FilterState, SortableColumn } from '../shared.types';
 
 // ── Row shapes ──────────────────────────────────────────────────────────────
 
@@ -54,7 +54,7 @@ export function fmtTime(ts: string | number | undefined) {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function fmtPct(n: number) {
+function fmtPct(n: number) {
     if (!n && n !== 0) return '—';
     const sign = n > 0 ? '+' : '';
     return `${sign}${n.toFixed(1)}%`;
@@ -62,7 +62,7 @@ export function fmtPct(n: number) {
 
 // ── Colors ──────────────────────────────────────────────────────────────────
 
-export const AGENT_COLORS: Readonly<Record<string, { bg: string; text: string; label: string }>> = {
+const AGENT_COLORS: Readonly<Record<string, { bg: string; text: string; label: string }>> = {
     chat: { bg: '#6366f115', text: '#818cf8', label: '💬 Chat' },
     system: { bg: '#8b5cf615', text: '#a78bfa', label: '⚙️ System' },
 };
@@ -71,7 +71,7 @@ export function getAgentStyle(type: string | undefined) {
     return AGENT_COLORS[String(type)] || AGENT_COLORS.chat;
 }
 
-export const SOURCE_MAP: Readonly<Record<string, { label: string; icon: LucideIcon; color: string }>> = {
+const SOURCE_MAP: Readonly<Record<string, { label: string; icon: LucideIcon; color: string }>> = {
     agent: { label: 'Agent Chat', icon: Bot, color: '#6366f1' },
     chat: { label: 'Agent Chat', icon: Bot, color: '#6366f1' },
     direct: { label: 'Direct Chat', icon: Activity, color: '#10b981' },
@@ -339,7 +339,7 @@ export function AgentRow({ agent: a, index, detailed }: { agent: UsageRecord; in
 
 // ── Skeleton / Loading ──────────────────────────────────────────────────────
 
-export function Skeleton({ height = 80, style }: SkeletonProps) {
+function Skeleton({ height = 80, style }: SkeletonProps) {
     return (
         <div style={{
             height, borderRadius: '12px',
@@ -350,7 +350,7 @@ export function Skeleton({ height = 80, style }: SkeletonProps) {
     );
 }
 
-export function SkeletonGrid({ count = 4, height = 80 }: SkeletonGridProps) {
+function SkeletonGrid({ count = 4, height = 80 }: SkeletonGridProps) {
     return (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: '12px' }}>
             {Array.from({ length: count }, (_, i) => <Skeleton key={i} height={height} />)}

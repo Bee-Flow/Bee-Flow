@@ -91,7 +91,7 @@ function Chips({ terms, readOnly, onRemove, t }: { terms: string[]; readOnly: bo
     );
 }
 
-export function AllowTermsChips({ terms: rawTerms, onChange, publicOrgs: rawPublic, onChangePublicOrgs, readOnly, t }: AllowTermsChipsProps) {
+function AllowTermsChips({ terms: rawTerms, onChange, publicOrgs: rawPublic, onChangePublicOrgs, readOnly, t }: AllowTermsChipsProps) {
     const titleId = useId();
     const terms = rawTerms || [];
     const publicOrgs = rawPublic !== false;

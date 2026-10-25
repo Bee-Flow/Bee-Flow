@@ -225,7 +225,7 @@ function StepDisc({ index, done, active }: { index: number; done: boolean; activ
 }
 
 /** The "pre-filled value" line under a tile — the fact, plus where it came from. */
-export function tileValue(index: number, data: Partial<SetupData> | null | undefined, detected: ReadonlySet<string> | null | undefined, t: TranslateFn): string {
+function tileValue(index: number, data: Partial<SetupData> | null | undefined, detected: ReadonlySet<string> | null | undefined, t: TranslateFn): string {
     const from = (field: string, text: string): string => (detected?.has?.(field)
         ? t('compliance.setup_from_config', '{value} · from your configuration', { value: text })
         : text);

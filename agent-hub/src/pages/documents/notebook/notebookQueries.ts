@@ -18,7 +18,7 @@ import type { NotebookSource } from './hooks/useSourcesPolling';
 
 export type NotebookRole = 'owner' | 'editor' | 'viewer';
 
-export interface NotebookRecord {
+interface NotebookRecord {
     id: string;
     userId: string;
     name: string;

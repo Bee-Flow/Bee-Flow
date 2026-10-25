@@ -27,7 +27,7 @@ export const COL_MAX = 1600;
 /** The settings column's floor while a side column is open. */
 export const SETTINGS_MIN = 640;
 /** Up to this the settings column takes all the room; past it the room is shared. */
-export const SETTINGS_TARGET = 880;
+const SETTINGS_TARGET = 880;
 /** The settings column's widest while a growing side column can take the room. */
 export const SETTINGS_MAX = 1040;
 /** Comes in grows with a wide drawer up to this. */

@@ -28,7 +28,7 @@ export type ShieldError = 'unauthorized' | 'unavailable' | 'invalid' | 'network'
 
 export type ChatMonitoringState = 'off' | 'scheduled' | 'on';
 /** The chat types a client can announce. Mobile and the notebook are not among them. */
-export type ChatSignalsSurface = 'direct' | 'agent' | 'agent_public';
+type ChatSignalsSurface = 'direct' | 'agent' | 'agent_public';
 export type ChatSignal = 'outcomes' | 'kinds';
 
 /**
@@ -160,7 +160,7 @@ export function shieldErrorCode(e: unknown): ShieldError {
     return e instanceof ShieldStatusError ? e.code : 'network';
 }
 
-export async function fetchShieldStatus(signal?: AbortSignal): Promise<ShieldStatus> {
+async function fetchShieldStatus(signal?: AbortSignal): Promise<ShieldStatus> {
     let res: Response;
     try {
         res = await authFetch(`${API_BASE}/api/privacy/shield-status`, { signal });

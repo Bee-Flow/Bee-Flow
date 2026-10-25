@@ -25,7 +25,7 @@ export const PREVIEW_SURFACES: PreviewSurface[] = [
 ];
 
 /** URL-safe base64 of a JSON-stringified theme payload. */
-export function encodeThemePayload(payload: DraftPayload | null) {
+function encodeThemePayload(payload: DraftPayload | null) {
     const json = JSON.stringify(payload);
     const b64 = btoa(json);
     return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

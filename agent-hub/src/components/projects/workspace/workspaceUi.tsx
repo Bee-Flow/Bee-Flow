@@ -127,7 +127,7 @@ export function Card({ title, description, action, children, className = '', tes
 }
 
 /** The 11px uppercase heading of a section on a page. */
-export function SectionLabel({ children, id }: { children: React.ReactNode; id?: string }) {
+function SectionLabel({ children, id }: { children: React.ReactNode; id?: string }) {
     return (
         <h2 id={id} className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0">
             {children}
@@ -194,7 +194,7 @@ export function LoadingRow({ label, centered = false }: { label: string; centere
 }
 
 /** A quiet sentence for members who can read but not change the content. */
-export function ReadOnlyNote({ children }: { children: React.ReactNode }) {
+function ReadOnlyNote({ children }: { children: React.ReactNode }) {
     return <p className="text-[12px] text-[var(--text-tertiary)]">{children}</p>;
 }
 

@@ -29,7 +29,7 @@ export interface WiredAutomation {
 }
 
 /** The target automation's trigger — where its declared input contract lives. */
-export interface AutomationTrigger {
+interface AutomationTrigger {
     kind?: string;
     /** app_trigger's typed params. */
     params?: Array<{ name?: string; type?: string; required?: boolean; description?: string } | null>;
@@ -49,7 +49,7 @@ export interface SkippedInput {
 }
 
 /** The state of the test run: one shape, three moments. */
-export interface EventWiringTest {
+interface EventWiringTest {
     status: 'running' | 'done' | 'error';
     body?: unknown;
     error?: string;

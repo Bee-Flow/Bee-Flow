@@ -26,14 +26,14 @@ export type DeploymentStatus =
     | 'awaiting_approval' | 'approved' | 'rejected' | 'queued' | 'preparing' | 'committing'
     | 'converging' | 'compensating' | 'succeeded' | 'succeeded_with_warnings' | 'failed' | 'cancelled';
 
-export const ACTIVE_STATUSES: readonly DeploymentStatus[] = ['queued', 'approved', 'preparing', 'committing', 'converging', 'compensating'];
-export const TERMINAL_STATUSES: readonly DeploymentStatus[] = ['succeeded', 'succeeded_with_warnings', 'failed', 'cancelled', 'rejected'];
+const ACTIVE_STATUSES: readonly DeploymentStatus[] = ['queued', 'approved', 'preparing', 'committing', 'converging', 'compensating'];
+const TERMINAL_STATUSES: readonly DeploymentStatus[] = ['succeeded', 'succeeded_with_warnings', 'failed', 'cancelled', 'rejected'];
 export const isActive = (status?: string | null): boolean => ACTIVE_STATUSES.includes(status as DeploymentStatus);
 export const isTerminal = (status?: string | null): boolean => TERMINAL_STATUSES.includes(status as DeploymentStatus);
 
-export interface ReleaseRef { id?: string | null; seq: number | null }
+interface ReleaseRef { id?: string | null; seq: number | null }
 
-export interface DeploymentError { code?: string | null; message?: string | null; ref?: string | null }
+interface DeploymentError { code?: string | null; message?: string | null; ref?: string | null }
 
 export interface DeploymentSummary {
     id: string;
@@ -70,7 +70,7 @@ export interface PipelineRelease {
     deployedTo?: StageKey[];
 }
 
-export interface PipelineDev {
+interface PipelineDev {
     aheadOf: { seq: number | null; changed: number; added: number; removed: number } | null;
     checks: { blocked: boolean; count: number };
 }
@@ -90,15 +90,15 @@ export interface PlanFinding {
     name?: string | null;
 }
 
-export interface PlanPart {
+interface PlanPart {
     ref: string; kind: string; name?: string | null;
     action: 'create' | 'replace' | 'unchanged' | 'retire' | 'revive' | 'remove';
     drift?: boolean; goesLive?: boolean; summary?: string | null;
 }
 
-export interface PlanRetire { key: string; relaxes?: { notNull?: boolean; unique?: boolean; fk?: boolean } }
+interface PlanRetire { key: string; relaxes?: { notNull?: boolean; unique?: boolean; fk?: boolean } }
 
-export interface PlanData {
+interface PlanData {
     ref: string; name?: string | null;
     create?: boolean;
     add: string[]; rename: Array<{ from: string; to: string }>; retire: PlanRetire[]; unretire: string[];
@@ -128,7 +128,7 @@ export interface Plan {
     settingsVersion?: number;
 }
 
-export interface DeploymentStep { seq: number; phase: string; ref?: string | null; kind?: string | null; action: string; status: string }
+interface DeploymentStep { seq: number; phase: string; ref?: string | null; kind?: string | null; action: string; status: string }
 
 export interface DeploymentDetail {
     deployment: DeploymentSummary;
@@ -136,7 +136,7 @@ export interface DeploymentDetail {
     approval?: { id: string; status: string } | null;
 }
 
-export interface InboundAddress { kind: string; label: string; url: string }
+interface InboundAddress { kind: string; label: string; url: string }
 
 /** What the Status tab reads of GET /:id/stages/:stage (the rest belongs to the settings page). */
 export interface StageSettingsSummary {
@@ -189,7 +189,7 @@ const enc = encodeURIComponent;
 // ── Reading ──────────────────────────────────────────────────────────────────
 
 /** Tolerant reader: a body that is not a pipeline reads as "no stages", never as a crash. */
-export function readPipeline(body: unknown): Pipeline {
+function readPipeline(body: unknown): Pipeline {
     const o = isObject(body) ? body : {};
     return {
         dev: isObject(o.dev) ? (o.dev as unknown as PipelineDev) : null,
@@ -294,7 +294,7 @@ export function missingFromError(res: ApiResult<unknown>): PlanAck[] {
 
 // ── What GET /api/projects/summary sends about stages ────────────────────────
 
-export type StripTone = 'ok' | 'warning' | 'error' | 'busy' | 'none';
+type StripTone = 'ok' | 'warning' | 'error' | 'busy' | 'none';
 
 export interface StripStage {
     stage: StageKey;

@@ -102,7 +102,7 @@ export function NumbersBody({ entry, onChange, fields, ariaBase, previewSample, 
 }
 
 /** Human names for the writing systems. Keys are the server's. */
-export function useScriptLabels(): Record<string, string> {
+function useScriptLabels(): Record<string, string> {
     const { t } = useTranslation();
     return {
         latin: t('ai_step_checks.script_latin', 'Latin'),

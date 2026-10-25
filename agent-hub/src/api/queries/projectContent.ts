@@ -69,7 +69,7 @@ export interface ProjectKnowledgeBase {
     icon?: string | null;
 }
 
-export type ProjectFileStatus = 'ready' | 'processing' | 'failed';
+type ProjectFileStatus = 'ready' | 'processing' | 'failed';
 
 /** A file uploaded straight into the project. */
 export interface ProjectFile {
@@ -144,7 +144,7 @@ export const MAX_PROJECT_FILE_BYTES = 20 * 1024 * 1024;
 
 const enc = encodeURIComponent;
 
-export const contentKeys = {
+const contentKeys = {
     mine: (what: 'documents' | 'notebooks' | 'meetings' | 'knowledge-bases' | 'templates') => ['project-content', 'mine', what] as const,
 };
 

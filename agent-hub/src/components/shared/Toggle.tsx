@@ -18,8 +18,8 @@ import React from 'react';
  * suffix.
  */
 
-export type ToggleColor = 'emerald' | 'amber' | 'rose' | 'sky';
-export type ToggleSize = 'sm' | 'md' | 'lg';
+type ToggleColor = 'emerald' | 'amber' | 'rose' | 'sky';
+type ToggleSize = 'sm' | 'md' | 'lg';
 
 export interface ToggleProps {
     checked: boolean;

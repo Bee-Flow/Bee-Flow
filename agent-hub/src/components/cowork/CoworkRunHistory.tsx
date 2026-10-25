@@ -55,7 +55,7 @@ function firstMeaningfulLine(text: string | null | undefined) {
 }
 
 /** Run statuses that mean the attempt did not succeed. */
-export const FAILED_RUN_STATUSES = new Set(['error', 'failed', 'needs_reauth', 'timeout', 'cancelled']);
+const FAILED_RUN_STATUSES = new Set(['error', 'failed', 'needs_reauth', 'timeout', 'cancelled']);
 
 /** The one line the closed row shows: what came out of this run. */
 function outcomeLine(run: CoworkRun, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {

@@ -32,11 +32,11 @@
 import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
 
 /** How much of a table a role reaches. `create` is a plain boolean instead. */
-export type RowScope = 'none' | 'own' | 'all';
+type RowScope = 'none' | 'own' | 'all';
 export type ScopeValue = RowScope | boolean;
 
 /** The access block a table is saved with. */
-export interface TableAccess {
+interface TableAccess {
     default?: unknown;
     roles?: Record<string, Record<string, unknown> | null>;
     rowFilters?: Record<string, unknown>;
@@ -51,7 +51,7 @@ export interface AccessTable {
 }
 
 /** An outside source (model.connectors[]). */
-export interface AccessConnector {
+interface AccessConnector {
     id: string;
     kind: string;
     name?: string;
@@ -126,7 +126,7 @@ export function joinNames(names: Array<string | null | undefined>, t: TranslateF
     });
 }
 
-export function tableName(table: AccessTable | null | undefined, t: TranslateFn | null = null): string {
+function tableName(table: AccessTable | null | undefined, t: TranslateFn | null = null): string {
     return table?.name || table?.key || table?.id || tr(t, 'studio_apps_edit.access_summary.a_table', 'a table');
 }
 

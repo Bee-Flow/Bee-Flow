@@ -4,7 +4,7 @@ import type { TranslateFn } from '../../../hooks/useTranslation';
 import type { TranscriptionsApiError } from '../../../api/jsonOrThrow';
 import type { UpcomingMeeting } from '../lib/upcomingMeta';
 
-export type { TranscriptionsApiError };
+;
 
 export interface TalkMeeting extends UpcomingMeeting {
     talkToken: string;
@@ -30,7 +30,7 @@ export interface TalkData {
     meetings: TalkMeeting[];
 }
 
-export interface GmeetConnection {
+interface GmeetConnection {
     googleConnected?: boolean;
     meetScopesGranted?: boolean;
     hasSettingsScope?: boolean;
@@ -43,7 +43,7 @@ export interface GmeetData {
     meetings: GmeetMeeting[];
 }
 
-export interface TeamsConnection {
+interface TeamsConnection {
     microsoftConnected?: boolean;
     teamsScopesGranted?: boolean;
     hasMeetingWriteScope?: boolean;

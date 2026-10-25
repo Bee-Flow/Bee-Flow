@@ -18,7 +18,7 @@ const DAY_BUTTONS: { id: number; key: string; label: string }[] = [
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** "Tue 29 Sep 07:00" in the schedule's own time zone. */
-export function formatNextRun(iso: string, tz: string, locale?: string): string {
+function formatNextRun(iso: string, tz: string, locale?: string): string {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     try {

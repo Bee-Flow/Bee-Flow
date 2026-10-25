@@ -34,7 +34,7 @@ export const CHART_SERIES = [
 ];
 
 // Semantic aliases that read better at call sites than raw colour names.
-export const SEMANTIC = {
+const SEMANTIC = {
     success: STATUS_COLORS.green,
     warning: STATUS_COLORS.amber,
     danger: STATUS_COLORS.red,

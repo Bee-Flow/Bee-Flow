@@ -61,8 +61,8 @@ export interface RowCheck extends CheckRecord {
 
 type Translate = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
 
-export const SECONDARY_BTN = 'inline-flex items-center gap-1 h-7 px-2 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] font-medium text-[var(--text-primary)] whitespace-nowrap hover:bg-[var(--bg-secondary)] disabled:opacity-60 disabled:cursor-not-allowed';
-export const ICON_BTN = 'inline-flex items-center justify-center h-7 w-7 rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-60 disabled:cursor-not-allowed';
+const SECONDARY_BTN = 'inline-flex items-center gap-1 h-7 px-2 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[11px] font-medium text-[var(--text-primary)] whitespace-nowrap hover:bg-[var(--bg-secondary)] disabled:opacity-60 disabled:cursor-not-allowed';
+const ICON_BTN = 'inline-flex items-center justify-center h-7 w-7 rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-60 disabled:cursor-not-allowed';
 
 /** The label + glyph of the remediation button for a resolved link (null → no button). */
 export function remediationLabel(rem: Remediation, t: Translate): { text: string; Icon: typeof ArrowUpRight };

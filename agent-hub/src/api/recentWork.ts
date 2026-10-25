@@ -367,4 +367,3 @@ export function statuslessKinds(
     return out;
 }
 
-export default runRecentWork;

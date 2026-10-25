@@ -218,7 +218,7 @@ interface RunState {
 }
 
 /** The definition the run executed: its version's snapshot, the working copy for the current one. */
-export function definitionFor(state: RunState, run: DemoRun): { trigger?: Obj; steps?: Obj[] } | null {
+function definitionFor(state: RunState, run: DemoRun): { trigger?: Obj; steps?: Obj[] } | null {
     const a = state.automations.find(x => x.id === run.automationId);
     if (!a) return null;
     const snap = run.version === a.version ? a.definition : state.versions[a.id]?.find(v => v.version === run.version)?.definition;
@@ -228,7 +228,7 @@ export function definitionFor(state: RunState, run: DemoRun): { trigger?: Obj; s
 const topSteps = (def: { steps?: Obj[] } | null) => (def?.steps || []).filter(s => s.type !== 'note');
 
 /** Every recorded step of one run: the trigger, then each step it reached. */
-export function stepsFor(state: RunState, run: DemoRun, sample: Sample): StepRecord[] {
+function stepsFor(state: RunState, run: DemoRun, sample: Sample): StepRecord[] {
     const def = definitionFor(state, run);
     const statuses = statusesOf(run);
     let clock = new Date(run.startedAt).getTime();

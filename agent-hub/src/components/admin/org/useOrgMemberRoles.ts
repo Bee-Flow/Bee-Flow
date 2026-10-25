@@ -9,7 +9,7 @@ import { mutate, ApiError } from '../../../api/mutate';
  * only deliberately, so it is re-sent with `confirmSelfDemotion` once the
  * member has read what they are giving up.
  */
-export interface PendingSelfDemotion {
+interface PendingSelfDemotion {
     userId: string;
     newRole: string;
     /** The server's own wording, when it sent one; the dialog has its own. */

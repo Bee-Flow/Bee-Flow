@@ -19,7 +19,7 @@ import { logger } from '../utils/logger';
  */
 
 /** One tool the sub-agent ran while building the layer. */
-export interface LayerToolCall {
+interface LayerToolCall {
     layerKey?: string;
     name?: string;
     arguments?: unknown;
@@ -27,7 +27,7 @@ export interface LayerToolCall {
 }
 
 /** An automation definition, applied by the caller — never read here. */
-export type AutomationDraft = Record<string, unknown>;
+type AutomationDraft = Record<string, unknown>;
 
 /** The fields this hook reads off the layer agent's SSE events. */
 interface LayerAgentEventData {
@@ -38,7 +38,7 @@ interface LayerAgentEventData {
     error?: string;
 }
 
-export type FlowletAgentMode = 'create' | 'refine';
+type FlowletAgentMode = 'create' | 'refine';
 
 export interface FlowletAgentState {
     running: boolean;
@@ -52,7 +52,7 @@ export interface FlowletAgentState {
     error: string | null;
 }
 
-export interface FlowletAgentRequest {
+interface FlowletAgentRequest {
     automationId: string;
     instruction: string;
     mode?: FlowletAgentMode;
@@ -60,7 +60,7 @@ export interface FlowletAgentRequest {
     title?: string | null;
 }
 
-export interface FlowletAgentOutcome {
+interface FlowletAgentOutcome {
     draft: AutomationDraft | null;
     layerKey: string | null;
     error: string | null;

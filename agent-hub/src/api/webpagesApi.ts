@@ -114,4 +114,3 @@ export async function fetchWebpageBundle(id: string | number) {
     };
 }
 
-export default api;

@@ -53,7 +53,7 @@ export interface NavRowItem extends NavItem {
 }
 
 /** A Studio section descriptor, as the registry (studioApps.jsx) declares it. */
-export interface StudioSection {
+interface StudioSection {
     id: string;
     gate: StudioNavDescriptor['gate'];
     urlSegment: string;
@@ -110,7 +110,7 @@ export function buildCoreNav(o: CoreNavOptions): NavRowItem[] {
     ];
 }
 
-export interface StudioRowContext {
+interface StudioRowContext {
     t: Translate;
     locale: string;
     studioCounts: StudioCounts | null | undefined;
@@ -124,7 +124,7 @@ export interface StudioRowContext {
  * studioNav.studioSectionLabel, shared with the rail; the one-line
  * description from the registry's descKey (runtime modules have none).
  */
-export function studioFlyoutRow(app: StudioSection, c: StudioRowContext): NavItem {
+function studioFlyoutRow(app: StudioSection, c: StudioRowContext): NavItem {
     const label = studioSectionLabel(app, c.t, c.locale) as string;
     return {
         key: `studio-${app.id}`,

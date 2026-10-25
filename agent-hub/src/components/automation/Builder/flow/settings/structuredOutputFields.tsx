@@ -6,7 +6,7 @@ import { cardClass, rowInputClass, subLabelClass } from './formPrimitives';
 import { OUTPUT_FIELD_TYPES, COLUMN_TYPES } from './formState';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
-export interface ColumnRow { key: string; type: string }
+interface ColumnRow { key: string; type: string }
 export interface OutputFieldRow { key: string; type: string; description?: string; columns?: ColumnRow[] }
 
 export function StructuredOutputFields({ fields, onChange }: { fields: OutputFieldRow[]; onChange: (next: OutputFieldRow[]) => void }) {

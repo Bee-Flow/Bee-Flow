@@ -25,7 +25,7 @@ export interface Assertion {
     value?: unknown;
 }
 
-export type AssertionCode =
+type AssertionCode =
     | 'ok' | 'path_missing' | 'not_equal' | 'equal' | 'not_contained' | 'key_missing' | 'wrong_type' | 'wrong_count' | 'not_countable';
 
 export interface AssertionResult {
@@ -38,7 +38,7 @@ export interface AssertionResult {
 export type TestStatus = 'pass' | 'fail' | 'error' | 'unusable';
 export type Expectation = 'success' | 'error';
 
-export type TestCaseInputInfo =
+type TestCaseInputInfo =
     | { kind: 'typed'; values: Record<string, unknown> | null }
     | { kind: 'run'; runId: string | null; available: boolean };
 
@@ -59,7 +59,7 @@ export interface TestCaseList {
 }
 
 /** What a case is created or changed with. A run input is captured by the server. */
-export type TestCaseInputBody =
+type TestCaseInputBody =
     | { kind: 'typed'; values: Record<string, unknown> }
     | { kind: 'run'; runId: string; attempts?: number };
 
@@ -75,7 +75,7 @@ export interface TestCaseDetail {
     input: { kind: 'typed' | 'run'; available: boolean; values: Record<string, unknown> | null; runId: string | null };
 }
 
-export type TestReason =
+type TestReason =
     | 'fixture_expired' | 'code_syntax_error' | 'code_blocked' | 'code_param_invalid' | 'sandbox_missing';
 
 export interface TestRunResult {
@@ -108,7 +108,7 @@ const STATUSES: TestStatus[] = ['pass', 'fail', 'error', 'unusable'];
 const status = (v: unknown): TestStatus | null => (STATUSES.includes(v as TestStatus) ? v as TestStatus : null);
 const expectation = (v: unknown): Expectation => (v === 'error' ? 'error' : 'success');
 
-export function parseAssertion(raw: unknown): Assertion | null {
+function parseAssertion(raw: unknown): Assertion | null {
     const r = obj(raw);
     const id = str(r.id);
     if (!id || !ASSERTION_OPS.includes(r.op as AssertionOp)) return null;
@@ -234,7 +234,7 @@ export function testCaseErrorField(err: unknown): TestCaseErrorField {
 }
 
 const KEY = ['automation-test-cases'] as const;
-export const testCaseKeys = {
+const testCaseKeys = {
     all: (automationId: string) => [...KEY, automationId] as const,
     list: (automationId: string, stepId: string) => [...KEY, automationId, 'list', stepId] as const,
     detail: (automationId: string, caseId: string) => [...KEY, automationId, 'case', caseId] as const,

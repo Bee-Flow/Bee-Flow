@@ -5,7 +5,7 @@
 import React, { memo, useEffect, useRef } from 'react';
 import type { GridActions } from './useGridState';
 
-export interface SheetCellProps {
+interface SheetCellProps {
     id: string;
     name: string;
     col: number;

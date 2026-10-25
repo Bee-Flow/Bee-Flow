@@ -70,7 +70,7 @@ export function dayBucketLabel(iso: string | number | Date): string {
 }
 
 /** Which filter bucket a run belongs to (matches the HistoryFilters chips). */
-export function matchesFilter(run: { status?: string; mode?: string }, filter: string): boolean {
+function matchesFilter(run: { status?: string; mode?: string }, filter: string): boolean {
     switch (filter) {
         case 'all': return true;
         case 'error': return run.status === 'error';
@@ -82,7 +82,7 @@ export function matchesFilter(run: { status?: string; mode?: string }, filter: s
 }
 
 /** Whether a run started within the last `hours` hours. */
-export function startedWithinHours(run: { startedAt?: string | null }, hours: number): boolean {
+function startedWithinHours(run: { startedAt?: string | null }, hours: number): boolean {
     if (!run.startedAt) return false;
     const t = Date.parse(run.startedAt);
     if (Number.isNaN(t)) return false;
@@ -106,7 +106,7 @@ export function absoluteTime(iso?: string | number | Date | null, locale: string
 }
 
 /** Just the clock time, locale-aware — for dense per-day listings. */
-export function shortClock(iso?: string | number | Date | null, locale: string | undefined = undefined): string {
+function shortClock(iso?: string | number | Date | null, locale: string | undefined = undefined): string {
     if (!iso) return '';
     try {
         return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });

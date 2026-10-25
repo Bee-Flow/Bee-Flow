@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 /** Internal tab id → URL segment, e.g. { org_users: 'users' }. */
-export type TabAliases = Record<string, string>;
+type TabAliases = Record<string, string>;
 
 export interface NavigateOptions {
     replace?: boolean;

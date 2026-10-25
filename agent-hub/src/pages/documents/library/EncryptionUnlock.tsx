@@ -15,7 +15,7 @@ import { logger } from '../../../utils/logger';
 
 const EncryptionSetup = EncryptionSetupJs;
 
-export const KEY_UNAVAILABLE = 'document_encryption_key_unavailable';
+const KEY_UNAVAILABLE = 'document_encryption_key_unavailable';
 
 /** Whether a refusal means "this session holds no key for that document". */
 export function isKeyUnavailable(error: unknown): boolean {

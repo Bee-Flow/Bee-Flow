@@ -35,7 +35,7 @@ export interface AiTranslateResult {
     [key: string]: unknown;
 }
 
-export type AiTranslateRequest = (tier: string) => Promise<AiTranslateResult>;
+type AiTranslateRequest = (tier: string) => Promise<AiTranslateResult>;
 
 export interface UseAiTranslateOptions {
     request: AiTranslateRequest;

@@ -16,14 +16,14 @@ import { request, RefusedError, mutate, errorBody } from '../../../../../api/mut
 type Doc = Record<string, unknown>;
 
 /** The save bar's line; `tabs` names the panes a warning concerns. */
-export interface ShieldMessage {
+interface ShieldMessage {
     type: 'success' | 'warning' | 'error';
     text: string;
     tabs?: string[];
 }
 
 /** What a save resolves to, for the caller that wants to react to it. */
-export interface ShieldSaveResult {
+interface ShieldSaveResult {
     ok: boolean;
     error?: string;
     clamped?: string[];
@@ -89,7 +89,7 @@ function useShieldBaseline() {
  *                             and change. Only then may we choose one.
  * Neither → fetch nothing and say so. Pinned by OrgShieldEditor.orgscope.test.jsx.
  */
-export function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: UseOrgShieldOptions = {}) {
+function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: UseOrgShieldOptions = {}) {
     const { confirm, confirmDialog } = useConfirm();
     const { t } = useTranslation();
     const [selectedOrgId, setSelectedOrgId] = useState('');

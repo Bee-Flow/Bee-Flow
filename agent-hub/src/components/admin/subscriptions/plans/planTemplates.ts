@@ -441,6 +441,6 @@ export const PLAN_TEMPLATES: PlanTemplate[] = [
     },
 ];
 
-export function getTemplate(id: string): PlanTemplate | null {
+function getTemplate(id: string): PlanTemplate | null {
     return PLAN_TEMPLATES.find(t => t.id === id) || null;
 }

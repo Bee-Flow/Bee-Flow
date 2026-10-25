@@ -15,7 +15,7 @@ const asFamily = (f: string): MiniFamily => (STEP_FAMILIES.has(f) ? f as MiniFam
  * up to three steps, then "+n more". Without a draft the trigger is a dashed
  * "Trigger to choose" placeholder, followed by the apps the pattern touches.
  */
-export function previewNodes(p: Pattern, labelFor: (id: string) => string, t: TranslateFn): MiniNodeProps[] {
+function previewNodes(p: Pattern, labelFor: (id: string) => string, t: TranslateFn): MiniNodeProps[] {
     const eyebrow = t('automations.ndv.family.trigger', 'Trigger');
     const choose = t('automations.repeating.chooseTrigger', 'Trigger to choose');
     if (!p.draft) {

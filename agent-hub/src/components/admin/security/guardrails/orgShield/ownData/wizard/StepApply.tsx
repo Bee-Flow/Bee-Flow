@@ -23,7 +23,7 @@ function summaryLine(apply: Record<SwitchCol, boolean>, tokenKey: string, t: Tra
     return `${t('shield_data.apply_sum_lead', 'In short:')} ${parts.join(' ')}`;
 }
 
-export function StepApply({ state, dispatch, ctx, t }: StepProps) {
+function StepApply({ state, dispatch, ctx, t }: StepProps) {
     const { apply } = state;
     const set = (col: SwitchCol) => (on: boolean) => dispatch({ type: 'set_apply', col, on });
     const allOff = !apply.detect && !apply.external && !apply.internal;

@@ -10,7 +10,7 @@ import type { TranslateFn } from '../../../../../../hooks/useTranslation';
  * Automations are only named when the shield also runs on them: an admin who
  * switched that off should not read that their own data is hidden there.
  */
-export function OwnDataIntro({
+function OwnDataIntro({
     automations = true, action, children, t,
 }: {
     /** Whether the shield also runs on automations; see above. */

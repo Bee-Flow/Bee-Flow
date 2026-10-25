@@ -3,7 +3,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import type { ChatMessage } from './messageTypes';
 import useTranslation from '../../../hooks/useTranslation';
 
-export interface ThinkingStep {
+interface ThinkingStep {
     status?: string;
     totalThoughts?: number;
     thoughtNumber?: number;
@@ -12,7 +12,7 @@ export interface ThinkingStep {
     thought?: string;
 }
 
-export function ThinkingStepsPanel({ steps }: { steps?: ThinkingStep[] }) {
+function ThinkingStepsPanel({ steps }: { steps?: ThinkingStep[] }) {
     const { t } = useTranslation();
     if (!steps || steps.length === 0) return null;
 

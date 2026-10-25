@@ -48,7 +48,7 @@ export interface DeadAirGap {
     kind: 'lead_in' | 'gap' | 'lead_out';
 }
 
-export interface FlowStats {
+interface FlowStats {
     windowSeconds: number;
     monologue: { seconds: number; totalSeconds: number; ratio: number; count: number } | null;
     deadAir: DeadAirGap[];
@@ -66,18 +66,18 @@ interface ChapterBlock {
 }
 
 /** A chapter; the speaker fields are stripped when the org disables per-person stats. */
-export type TopicBlock = ChapterBlock & (
+type TopicBlock = ChapterBlock & (
     | { topSpeakerId: string | null; topSpeakerShare: number; openedBy: string | null }
     | { topSpeakerId?: undefined; topSpeakerShare?: undefined; openedBy?: undefined }
 );
 
-export interface TopicsStats {
+interface TopicsStats {
     blocks: TopicBlock[];
     top: Array<{ title: string; seconds: number; share: number }>;
     tags: Array<{ tag: string; count: number; firstSeconds: number | null }>;
 }
 
-export interface FollowUpStats {
+interface FollowUpStats {
     total: number;
     open: number;
     done: number;

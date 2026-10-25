@@ -11,8 +11,8 @@ import { API_BASE, authFetch } from '../utils/helpers';
 import type { LessonUser } from './lessons.types';
 import { logger } from '../utils/logger';
 
-export const LEARNING_PATH_KEY = 'learningPath';
-export const PATH_VALUES = new Set<string>(['everyday', 'builder', 'admin', 'skipped', '']);
+const LEARNING_PATH_KEY = 'learningPath';
+const PATH_VALUES = new Set<string>(['everyday', 'builder', 'admin', 'skipped', '']);
 
 function withUser(user: LessonUser | null | undefined): void {
     try { if (user?.id) scopedStorage.setCurrentUser(user.id); } catch (err) { logger.debug('ignore', err); }

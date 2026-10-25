@@ -6,7 +6,7 @@ import { datatablesApi } from '../../Datatables/datatablesApi';
 const REFRESH_MS = 30_000;
 
 /** One question's tally; which fields are set depends on `breakdown.kind`. */
-export interface QuestionBreakdown {
+interface QuestionBreakdown {
     kind?: string;
     values?: Array<{ value: string; n: number; pct: number }>;
     yes?: number;
@@ -43,7 +43,7 @@ export interface AnswersRecent {
 }
 
 /** The numbers over the whole table and over the chosen period. */
-export interface AnswersTotals {
+interface AnswersTotals {
     all: number;
     inRange: number;
     today: number;

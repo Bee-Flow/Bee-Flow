@@ -20,7 +20,7 @@ type AddFn = (payload: StepPayload) => void;
  * canvas. A step this graph cannot accept stays visible, greyed, with the
  * reason as its tip, and is not draggable (BFSF-348).
  */
-export function ItemPill({ item, onAdd, origin = null }: { item: PaletteItem; onAdd: AddFn; origin?: string | null }) {
+function ItemPill({ item, onAdd, origin = null }: { item: PaletteItem; onAdd: AddFn; origin?: string | null }) {
     const { t } = useTranslation();
     return (
         <CmdButton

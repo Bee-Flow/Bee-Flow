@@ -106,7 +106,7 @@ function StandaloneLadder(props: LadderModalViewProps) {
     return <LadderModalView {...props} data={data} />;
 }
 
-export function LadderModalView({ open, onClose, kind = 'automation', target, data, onRecorded, now, zIndex }: LadderModalViewProps) {
+function LadderModalView({ open, onClose, kind = 'automation', target, data, onRecorded, now, zIndex }: LadderModalViewProps) {
     const { t, resolvedLocale } = useTranslation();
     const locale = resolvedLocale || 'en';
     const signals = data?.signals || null;
@@ -668,7 +668,7 @@ function MarkingCard({ signals, t, locale, now, busy, onEnable }: MarkingCardPro
     );
 }
 
-export function outcomeText(verdict: Verdict, containsAi: boolean, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+function outcomeText(verdict: Verdict, containsAi: boolean, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (containsAi && !(verdict.step1.answered && verdict.step3.answered)) {
         return t('compliance.ladder_outcome_pending', 'Outcome: pending — tick the chips of steps 1 and 3 to declare.');
     }

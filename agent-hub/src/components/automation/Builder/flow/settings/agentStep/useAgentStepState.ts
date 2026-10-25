@@ -17,7 +17,7 @@ import { allPermissionsOff, stepSkillRows, toggleDisabledSkill, withPermission }
 import type { StepSkillRow } from './agentStepModel';
 import type { ThinkingMode } from './ThinkingModeCards';
 
-export type QueryStatus = 'loading' | 'error' | 'ok';
+type QueryStatus = 'loading' | 'error' | 'ok';
 
 interface OutputFieldDraft { key?: string; type?: string }
 

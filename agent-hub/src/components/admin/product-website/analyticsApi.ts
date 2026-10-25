@@ -24,7 +24,7 @@ export interface AnalyticsRequestOpts {
 }
 
 /** The range a data route answers for. */
-export interface AnalyticsRange {
+interface AnalyticsRange {
     startAt: number;
     endAt: number;
     unit?: string;
@@ -46,7 +46,7 @@ export interface AnalyticsSite {
 }
 
 /** Umami `stats` totals; a field is `{ value, prev }` or a bare number depending on the version. */
-export interface AnalyticsTotals {
+interface AnalyticsTotals {
     visits?: StatField;
     sessions?: StatField;
     pageviews?: StatField;
@@ -56,7 +56,7 @@ export interface AnalyticsTotals {
 }
 
 /** One dimension that failed to load; `/overview` reports it instead of throwing. */
-export interface AnalyticsPartialError {
+interface AnalyticsPartialError {
     key: string;
     message: string;
 }

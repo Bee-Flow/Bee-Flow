@@ -5,7 +5,7 @@ import OutputFieldsEditor from './OutputFieldsEditor';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 
-export interface OutputEditorPanelProps {
+interface OutputEditorPanelProps {
     /** The JSON text BOTH faces write — the one piece of state the cap weighs. */
     text: string;
     /** `Invalid JSON: <msg>`, or whatever the save refused with; null when clean. */

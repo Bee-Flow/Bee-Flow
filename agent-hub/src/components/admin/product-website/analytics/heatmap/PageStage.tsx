@@ -185,4 +185,4 @@ function ScrollShade({ steps, height, width, viewportH }: ScrollShadeProps) {
     );
 }
 
-export { blockLabel };
+;

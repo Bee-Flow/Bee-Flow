@@ -135,7 +135,7 @@ interface PageMetaSectionProps {
     onSeoChange: (field: string, value: unknown) => void;
 }
 
-export function PageMetaSection({ page, allSlugs, onMetaChange, onSeoChange }: PageMetaSectionProps) {
+function PageMetaSection({ page, allSlugs, onMetaChange, onSeoChange }: PageMetaSectionProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 

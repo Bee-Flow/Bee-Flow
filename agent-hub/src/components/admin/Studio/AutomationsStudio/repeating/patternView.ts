@@ -11,7 +11,7 @@ import type { Pattern, ReasonCode, RepeatingSuggestion, ScanSourceGroup, Feedbac
  * computed. Nothing here estimates anything: a missing number shows nothing.
  */
 
-export type PillTone = 'neutral' | 'success' | 'warning' | 'ai' | 'trigger';
+type PillTone = 'neutral' | 'success' | 'warning' | 'ai' | 'trigger';
 export interface EvidencePill { id: string; text: string; tone: PillTone; title?: string }
 
 /* ── Names ──────────────────────────────────────────────────────────── */
@@ -28,7 +28,7 @@ export function groupLabel(id: string, t: TranslateFn): string {
 }
 
 /** "google_drive" / "google-drive" → "Google Drive", from the app registry or the id itself. */
-export function prettyAppId(id: string): string {
+function prettyAppId(id: string): string {
     const meta = (INTEGRATION_META as Record<string, { label?: string } | undefined>)[id.replace(/-/g, '_')];
     if (meta?.label) return meta.label;
     return id.replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || id;
@@ -50,7 +50,7 @@ export function makeLabelFor(groups: ScanSourceGroup[], t: TranslateFn): (id: st
 /* ── Cadence ────────────────────────────────────────────────────────── */
 
 /** Monday first: the order the strip draws, as Date#getDay indexes. */
-export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 
 export function weekdayShort(day: number, t: TranslateFn): string {
     switch (day) {
@@ -64,7 +64,7 @@ export function weekdayShort(day: number, t: TranslateFn): string {
     }
 }
 
-export function cadenceWord(kind: string, t: TranslateFn): string {
+function cadenceWord(kind: string, t: TranslateFn): string {
     switch (kind) {
         case 'daily': return t('automations.cadence_daily', 'Daily');
         case 'weekdays': return t('automations.repeating.cadenceWeekdays', 'Weekdays');
@@ -78,7 +78,7 @@ export function cadenceWord(kind: string, t: TranslateFn): string {
 const hh = (h: number) => String(Math.max(0, Math.min(24, Math.round(h)))).padStart(2, '0');
 
 /** [9, 10] → "09–10". */
-export function hourBandText(band: [number, number] | undefined | null): string {
+function hourBandText(band: [number, number] | undefined | null): string {
     return band ? `${hh(band[0])}–${hh(band[1])}` : '';
 }
 
@@ -133,7 +133,7 @@ export function appChain(apps: string[], labelFor: (id: string) => string): stri
 const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x) : []);
 
 /** The apps it needs that are not connected yet, by name. */
-export function missingApps(s: RepeatingSuggestion, labelFor: (id: string) => string): string[] {
+function missingApps(s: RepeatingSuggestion, labelFor: (id: string) => string): string[] {
     return list(s.unavailableIntegrations).map(labelFor);
 }
 

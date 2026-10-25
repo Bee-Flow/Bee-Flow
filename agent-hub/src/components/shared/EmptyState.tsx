@@ -9,7 +9,7 @@ import Illustration, { type IllustrationName } from './illustrations';
  * action is more than one button (an inline form, two buttons side by side).
  */
 
-export interface EmptyStateAction {
+interface EmptyStateAction {
     label: string;
     onClick: () => void;
     /** Defaults to 'primary'. Use 'secondary' for a quieter call to action. */

@@ -46,7 +46,7 @@ export interface RawPlan {
     stripe_price_id?: string | null;
 }
 
-export type PlanFeature = string | { label?: string };
+type PlanFeature = string | { label?: string };
 
 export interface NormalizedPlan {
     id: string | undefined;

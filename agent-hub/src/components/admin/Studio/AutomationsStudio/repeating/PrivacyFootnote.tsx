@@ -7,7 +7,7 @@ import { DetailsToggle } from './ScanFlow';
 import type { SourceStep } from './useRepeatingScan';
 
 /** "Looked at Mail, Files · 412 events · no personal data found", as parts. */
-export function summaryParts(summary: ScanSummary | null, labelFor: (id: string) => string, t: TranslateFn): string[] {
+function summaryParts(summary: ScanSummary | null, labelFor: (id: string) => string, t: TranslateFn): string[] {
     if (!summary) return [];
     const parts: string[] = [];
     const looked = summary.sources ?? summary.integrations ?? [];

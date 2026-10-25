@@ -16,7 +16,7 @@
 
 import { EMOJI_BY_ID } from './emojiCatalog.generated.mjs';
 
-export { EMOJI_CATEGORIES, EMOJI_BY_ID, ALL_EMOJI_IDS } from './emojiCatalog.generated.mjs';
+export { EMOJI_CATEGORIES,   } from './emojiCatalog.generated.mjs';
 
 export function defaultEmojiFor(id) {
     return EMOJI_BY_ID[id]?.defaultEmoji || null;

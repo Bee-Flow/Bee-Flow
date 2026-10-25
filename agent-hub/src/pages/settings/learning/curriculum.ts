@@ -28,7 +28,7 @@ export const CAPSTONE_COURSE_ID = 'course-hive-master';
 export const CAPSTONE_CHECK_ID = 'hive-master';
 
 /** Which certificate a path column reports on (the artboard's column header). */
-export const PATH_CERTIFICATE = Object.freeze({
+const PATH_CERTIFICATE = Object.freeze({
     everyday: 'cert-foundations',
     builder: 'cert-builder',
     admin: 'cert-practitioner',
@@ -124,7 +124,7 @@ export function lessonPlays(lesson: LessonLike | null | undefined) {
 }
 
 /** True when a lesson has a do-it-for-real step (action or tour). */
-export function lessonIsLearnAlong(lesson: LessonLike | null | undefined) {
+function lessonIsLearnAlong(lesson: LessonLike | null | undefined) {
     return (lesson?.steps || []).some((s) => {
         const k = stepType(s);
         return k === STEP_TYPES.ACTION || k === STEP_TYPES.TOUR;

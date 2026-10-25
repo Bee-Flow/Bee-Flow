@@ -17,7 +17,7 @@ import { useConfigChatModels } from '../api/queries/configModels';
  * (studioApps.jsx `create.onCreate`). Reserved: no webpage can have this id,
  * and the deep-link effect below reads it as "open the list ready to create".
  */
-export const NEW_WEBPAGE_ID = 'new';
+const NEW_WEBPAGE_ID = 'new';
 
 /**
  * WebpagesPage — the Studio "Webpages" section shell (Track W0 split).

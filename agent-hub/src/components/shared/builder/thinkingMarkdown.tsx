@@ -51,7 +51,7 @@ const GEMMA_STRING_FENCE = '<|">';
 type ThinkingSpan = { kind: 'text'; text: string } | { kind: 'call'; text: string; closed: boolean };
 
 /** Split reasoning text into prose and call spans. */
-export function splitCallSpans(text?: unknown): ThinkingSpan[] {
+function splitCallSpans(text?: unknown): ThinkingSpan[] {
     const src = typeof text === 'string' ? text : '';
     const out: ThinkingSpan[] = [];
     let pos = 0;
@@ -73,7 +73,7 @@ export function splitCallSpans(text?: unknown): ThinkingSpan[] {
 }
 
 /** The tool name a call span carries, or '' while it is not typed yet. */
-export function callSpanName(span?: { text?: string } | null): string {
+function callSpanName(span?: { text?: string } | null): string {
     const text = span && span.text ? span.text : '';
     const gemma = /call:\s*([A-Za-z_][\w.-]*)/.exec(text);
     if (gemma) return gemma[1];
@@ -242,7 +242,6 @@ function renderProse(src: string, blocks: React.ReactNode[]): void {
     closeList();
 }
 
-export default renderThinking;
 
 /**
  * The one line worth showing while the block is shut.

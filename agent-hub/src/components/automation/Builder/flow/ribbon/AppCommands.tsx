@@ -37,7 +37,7 @@ interface AppCommandProps extends OpenState {
     onAdd: AddFn;
 }
 
-export function AppCommand({ app, category = null, pooled = false, openKey, setOpenKey, onAdd }: AppCommandProps) {
+function AppCommand({ app, category = null, pooled = false, openKey, setOpenKey, onAdd }: AppCommandProps) {
     const { t } = useTranslation();
     const actions = app.actions || [];
     const desc = appDescription(app, t);

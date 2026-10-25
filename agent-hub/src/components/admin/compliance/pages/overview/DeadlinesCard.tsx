@@ -34,7 +34,7 @@ export type DeadlineCardItem = Omit<DeadlineRowItem, 'id' | 'kind'> & {
  * Only a request or an incident prints its ref. The kind labels' English is
  * the dictionary's (server/i18n/defaults/en/compliance.js), word for word.
  */
-export const KIND_LABEL: Readonly<Partial<Record<string, { key: string; en: string }>>> = Object.freeze({
+const KIND_LABEL: Readonly<Partial<Record<string, { key: string; en: string }>>> = Object.freeze({
     dsr: { key: 'compliance.deadline_kind_dsr', en: 'Data-subject request' },
     incident: { key: 'compliance.deadline_kind_incident', en: 'Incident notification' },
     cra_early_warning: { key: 'compliance.deadline_kind_cra_early_warning', en: 'CRA early warning' },

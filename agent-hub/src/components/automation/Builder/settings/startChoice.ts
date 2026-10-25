@@ -41,7 +41,7 @@ export function cardFromTrigger(trigger: TriggerStep | null | undefined): StartC
     return null;
 }
 
-export interface MailProvider { id: string; events: string[] }
+interface MailProvider { id: string; events: string[] }
 
 export interface ChoiceInput {
     card: StartCard;

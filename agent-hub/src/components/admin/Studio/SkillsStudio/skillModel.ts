@@ -51,10 +51,10 @@ import type {
 } from './skillModel.types';
 
 /** The three things a step may point at (S1 `steps[].refs[].kind`). */
-export const REF_KINDS = Object.freeze(['automation', 'kb', 'table']);
+const REF_KINDS = Object.freeze(['automation', 'kb', 'table']);
 
 /** The two polarities of a rule (S1 `rules_v2[].polarity`). */
-export const RULE_POLARITIES = Object.freeze(['must', 'never']);
+const RULE_POLARITIES = Object.freeze(['must', 'never']);
 
 /** How the "All skills" table can be ordered (artboard 1c, right). */
 export const SORT_MODES = Object.freeze<SortMode[]>(['used', 'recent', 'name']);
@@ -119,7 +119,7 @@ export function examplesOf(skill: Skill | null | undefined): Example[] {
 }
 
 /** The ids a skill may use, normalised to string arrays. */
-export function idsOf(skill: Skill | null | undefined, field: SkillIdField): string[] {
+function idsOf(skill: Skill | null | undefined, field: SkillIdField): string[] {
     return list(skill?.[field]).filter(v => typeof v === 'string' && v).map(String);
 }
 

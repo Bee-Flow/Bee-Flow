@@ -20,5 +20,87 @@
     "src/components/InitSetupWizard/**"
   ],
   "vite": false,
-  "vitest": false
+  "vitest": false,
+  "ignoreDependencies": [
+    "tailwindcss",
+    "@xyflow/system",
+    "@tanstack/table-core",
+    "geojson"
+  ],
+  "ignoreIssues": {
+    "src/components/automation/Builder/applyAddNode.types.ts": [
+      "types"
+    ],
+    "src/components/renderers/MarkdownRenderer.types.ts": [
+      "types"
+    ],
+    "src/test/**": [
+      "exports",
+      "types"
+    ],
+    "src/shared/**": [
+      "exports",
+      "types"
+    ],
+    "src/editor/**": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/autoMapEntity.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/autoMapIteration.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/deepFields.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/deepenForEach.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/itemRefs.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/upstream/sampleFields.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/keyPath.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/waitDuration.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/formState/approvalStages.ts": [
+      "exports",
+      "types"
+    ],
+    "src/utils/bindingHelpers.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/Runs/nowRunning.ts": [
+      "exports",
+      "types"
+    ],
+    "src/config/orgRoles.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/security/guardrails/orgShield/activity/specialCategories.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/renderers/markdownRules.ts": [
+      "exports",
+      "types"
+    ]
+  }
 }

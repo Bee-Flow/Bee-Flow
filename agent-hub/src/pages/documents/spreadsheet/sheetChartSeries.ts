@@ -1,7 +1,7 @@
 import { cellName, columnName, type Computed } from './sheetEngine';
 import { parseA1Range, type SheetChartConfig } from './sheetCharts';
 
-export interface ChartSeries { name: string; values: (number | null)[] }
+interface ChartSeries { name: string; values: (number | null)[] }
 export interface ChartSeriesData {
     categories: string[];
     /** The numeric x of a scatter chart (categoriesRange). */

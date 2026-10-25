@@ -39,7 +39,7 @@ export const OUTCOMES = Object.freeze([
     Object.freeze({ value: 'not_applicable', tone: 'neutral', labelKey: 'compliance.custom_outcome_not_applicable', fallback: 'Not applicable' }),
 ]);
 
-export const EXPIRY_WINDOW_DAYS = 30;
+const EXPIRY_WINDOW_DAYS = 30;
 const DAY_MS = 86_400_000;
 
 /** Pure: one framework row, whether it came from /frameworks or from /custom/frameworks. */

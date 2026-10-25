@@ -8,7 +8,7 @@ import type { After, Env, GridActions } from './gridTypes';
 import { cellName } from './sheetEngine';
 import { clipToUsed, parseTsv, toTsv, type Range } from './sheetModel';
 
-export type { After, Editing, Env, GridActions, Latest, Ui } from './gridTypes';
+export type {   Env, GridActions, Latest, Ui } from './gridTypes';
 
 const STEPS: Record<After, [number, number]> = { down: [0, 1], up: [0, -1], right: [1, 0], left: [-1, 0], none: [0, 0] };
 

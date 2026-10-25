@@ -79,7 +79,7 @@ export function followUp(body: unknown): { track: boolean; awaitingApproval: boo
 
 // ── Columns ──────────────────────────────────────────────────────────────────
 
-export type ActionId =
+type ActionId =
     | 'setup' | 'release_deploy_uat' | 'deploy' | 'promote' | 'request_approval'
     | 'apply_settings' | 'rollback' | 'cancel_request' | 'retry_converge';
 
@@ -92,9 +92,9 @@ export interface ColumnAction {
     deploymentId?: string | null;
 }
 
-export type DevState = 'no_stages' | 'blocked' | 'no_release' | 'ahead' | 'in_sync';
-export type StageState = 'not_set_up' | 'waiting' | 'empty' | 'behind' | 'promote' | 'current' | 'running' | 'awaiting_approval';
-export type Attention = 'failed' | 'warnings' | null;
+type DevState = 'no_stages' | 'blocked' | 'no_release' | 'ahead' | 'in_sync';
+type StageState = 'not_set_up' | 'waiting' | 'empty' | 'behind' | 'promote' | 'current' | 'running' | 'awaiting_approval';
+type Attention = 'failed' | 'warnings' | null;
 
 export interface Column {
     stage: 'dev' | StageKey;
@@ -117,7 +117,7 @@ const seqOf = (r: { seq?: number | null } | null | undefined): number | null =>
     r && typeof r.seq === 'number' ? r.seq : null;
 
 /** The newest release the UAT stage may receive (gate clean). */
-export function latestEligible(releases: PipelineRelease[] | null | undefined): PipelineRelease | null {
+function latestEligible(releases: PipelineRelease[] | null | undefined): PipelineRelease | null {
     let best: PipelineRelease | null = null;
     for (const r of Array.isArray(releases) ? releases : []) {
         if (!r || typeof r.seq !== 'number' || r.gate?.blocked === true) continue;
@@ -307,7 +307,7 @@ export function errorKind(res: Pick<Extract<ApiResult<unknown>, { ok: false }>, 
 }
 
 /** An error the user can fix by asking again after re-reading the plan. */
-export const isRetryable = (kind: ErrorKind): boolean => kind === 'plan_stale' || kind === 'network' || kind === 'capture_raced';
+const isRetryable = (kind: ErrorKind): boolean => kind === 'plan_stale' || kind === 'network' || kind === 'capture_raced';
 
 // ── The deploy dialog ────────────────────────────────────────────────────────
 

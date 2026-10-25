@@ -34,7 +34,7 @@ interface OwnDataListProps {
     t: TranslateFn;
 }
 
-export function OwnDataList(props: OwnDataListProps) {
+function OwnDataList(props: OwnDataListProps) {
     const {
         types, lists, canBlockExternal, readOnly, automations, guardDown, typeErrors, note, onAdd, onEdit, onTest, onRemove, onSwitch, t,
     } = props;

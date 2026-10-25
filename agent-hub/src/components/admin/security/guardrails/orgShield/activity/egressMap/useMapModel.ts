@@ -65,14 +65,14 @@ export function useElementSize(ref: RefObject<HTMLElement | null>): Size | null 
     return size;
 }
 
-export function buildGeo(atlas: Atlas, size: Size): MapGeo {
+function buildGeo(atlas: Atlas, size: Size): MapGeo {
     const projection = worldProjection(size);
     const path = geoPath(projection);
     const shapes = atlas.world.features.map((f, i) => ({ key: String(i), d: path(f) || '', code: f.properties?.code || null }));
     return { projection, shapes, world: worldBox(projection), size };
 }
 
-export function buildModel(geo: MapGeo, pins: Atlas['pins'], dests: MapDestination[], origin: MapOrigin | null): MapModel {
+function buildModel(geo: MapGeo, pins: Atlas['pins'], dests: MapDestination[], origin: MapOrigin | null): MapModel {
     const project = (lonLat: Pt) => geo.projection(lonLat) as Pt | null;
     const placement = placeDestinations(dests, pins, project);
     const o = origin ? project([origin.lon, origin.lat]) : null;

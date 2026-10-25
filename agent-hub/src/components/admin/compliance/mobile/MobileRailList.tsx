@@ -45,7 +45,7 @@ interface RailMetaTextProps {
     } | null;
 }
 
-export function RailMetaText({ meta }: RailMetaTextProps) {
+function RailMetaText({ meta }: RailMetaTextProps) {
     if (!meta) return null;
     if (meta.kind === 'text') {
         return <span className="text-[11px] whitespace-nowrap text-[var(--text-tertiary)]">{meta.text}</span>;
@@ -101,7 +101,7 @@ interface MobileSectionRowProps {
     t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
 }
 
-export function MobileSectionRow({ section, meta, hint = null, active, onClick, t }: MobileSectionRowProps) {
+function MobileSectionRow({ section, meta, hint = null, active, onClick, t }: MobileSectionRowProps) {
     const Icon = section.icon;
     const label = t(section.labelKey, section.labelFallback);
     const hintId = `${useId()}-hint`;

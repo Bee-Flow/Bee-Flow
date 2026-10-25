@@ -32,7 +32,7 @@ export interface GuardrailSection {
  *
  * `capability: null` means "exists today, always shown".
  */
-export const SECTIONS: GuardrailSection[] = [
+const SECTIONS: GuardrailSection[] = [
     {
         id: 'presets',
         labelKey: 'admin.gr_tab_presets',
@@ -133,7 +133,7 @@ export function isKnownButUnavailable(segment: string | null | undefined, sectio
     return known && !sections.some(s => s.id === segment);
 }
 
-export const BASE_PATH = 'admin/security/guardrails';
+const BASE_PATH = 'admin/security/guardrails';
 
 /** The navigation target for a section, for onNavigate(). */
 export function pathFor(sectionId: string) {

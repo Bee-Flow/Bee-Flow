@@ -32,7 +32,7 @@ import type { TranslateFn } from '../../hooks/useTranslation';
  * code. Anything outside this set — including a language nobody has invented
  * yet — is rendered as plain text instead.
  */
-export const INERT_FENCE_LANGUAGES = new Set([
+const INERT_FENCE_LANGUAGES = new Set([
     // plain / prose
     'plaintext', 'text', 'txt', 'plain', 'markdown', 'md', 'log', 'diff', 'patch',
     // data & config

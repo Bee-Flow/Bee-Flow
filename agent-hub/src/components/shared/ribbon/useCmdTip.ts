@@ -11,9 +11,9 @@ import { useEffect, useRef, useState } from 'react';
  * `onClick` inside it: spreading a handler bundle containing onClick over a
  * button's own onClick silently swallowed every click. The caller composes.
  */
-export const SHOW_DELAY_MS = 350;
+const SHOW_DELAY_MS = 350;
 
-export interface CmdTipHoverProps {
+interface CmdTipHoverProps {
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;
     onFocus?: () => void;

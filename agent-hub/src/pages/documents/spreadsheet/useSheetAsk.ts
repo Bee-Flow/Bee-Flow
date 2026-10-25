@@ -15,9 +15,9 @@ import type { SheetAssistant } from './useSheetAssistant';
 
 export const RESULT_MS = 8000;
 
-export type AskPhase = 'closed' | 'input' | 'working' | 'result';
-export interface AskSnapshot { range: Range; kind: SelectionKind; selection: string; label: string }
-export interface AskResult { id: number; reply: string; changed: boolean; undone: boolean }
+type AskPhase = 'closed' | 'input' | 'working' | 'result';
+interface AskSnapshot { range: Range; kind: SelectionKind; selection: string; label: string }
+interface AskResult { id: number; reply: string; changed: boolean; undone: boolean }
 
 export interface SheetAsk {
     phase: AskPhase;

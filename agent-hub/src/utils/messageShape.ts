@@ -214,4 +214,3 @@ export function normalizeLoadedMessages<T extends ShapedMessage>(messages: T[]):
     return messages.map(normalizeLoadedMessage);
 }
 
-export default normalizeLoadedMessage;

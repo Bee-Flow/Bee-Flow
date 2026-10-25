@@ -42,12 +42,12 @@ export interface PageDocumentOptions {
 }
 
 /** Live when a session exists and has not said this page is not co-edited. */
-export function isLive(handle: CollabHandle | null): handle is CollabHandle {
+function isLive(handle: CollabHandle | null): handle is CollabHandle {
     return !!handle && handle.status !== 'disabled';
 }
 
 /** A picture as a data: URL the page can carry, or an error when it is too large. */
-export function readImage(file: File, maxBytes = MAX_IMAGE_BYTES): Promise<{ src: string; alt: string }> {
+function readImage(file: File, maxBytes = MAX_IMAGE_BYTES): Promise<{ src: string; alt: string }> {
     return new Promise((resolve, reject) => {
         if (file.size > maxBytes) { reject(new Error('image_too_large')); return; }
         const reader = new FileReader();

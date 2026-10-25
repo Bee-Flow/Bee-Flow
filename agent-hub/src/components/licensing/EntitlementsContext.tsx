@@ -3,14 +3,14 @@ import { API_BASE } from '../../utils/helpers';
 import { errorMessage } from '../../utils/caughtError';
 import { request, RefusedError } from '../../api/mutate';
 
-export interface CapabilitySets {
+interface CapabilitySets {
     core: string[];
     beta: string[];
     integration: string[];
     mcp?: string[];
 }
 
-export interface CapabilityRegistryEntry {
+interface CapabilityRegistryEntry {
     id: string;
     licenseFeature?: string;
     [key: string]: unknown;

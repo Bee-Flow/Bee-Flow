@@ -309,7 +309,7 @@ function gradeLabel(t: TranslateFn, grade: string | undefined) {
     }
 }
 
-export function adaptRow(u: DatatableUsageRow | null | undefined) {
+function adaptRow(u: DatatableUsageRow | null | undefined) {
     if (!u || typeof u !== 'object') return null;
     const kind = u.consumerKind || 'automation';
     const id = u.consumerId || u.automationId;

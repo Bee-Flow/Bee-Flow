@@ -29,7 +29,7 @@ export interface BoundAgent {
     notGranted: boolean | null;
 }
 
-export interface AgentCandidate { id: string; name: string; description: string | null }
+interface AgentCandidate { id: string; name: string; description: string | null }
 
 export interface AgentBindings {
     bindings: BoundAgent[];
@@ -44,7 +44,7 @@ export interface AgentBindings {
     kept: number;
 }
 
-export const agentBindingKeys = {
+const agentBindingKeys = {
     one: (id: string) => ['automation-agent-bindings', id] as const,
 };
 
@@ -110,14 +110,14 @@ async function failure(res: { status: number; json: () => Promise<unknown> }): P
     return new AgentBindingsError(res.status, code, message);
 }
 
-export async function fetchAgentBindings(id: string, signal?: AbortSignal): Promise<AgentBindings> {
+async function fetchAgentBindings(id: string, signal?: AbortSignal): Promise<AgentBindings> {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/agent-bindings`, { signal });
     if (!res.ok) throw await failure(res);
     return parseAgentBindings(await res.json());
 }
 
 /** `agentIds` = the editable agents that should be linked after the save. */
-export async function saveAgentBindings(id: string, agentIds: string[]): Promise<AgentBindings> {
+async function saveAgentBindings(id: string, agentIds: string[]): Promise<AgentBindings> {
     const res = await authFetch(`${BASE}/${encodeURIComponent(id)}/agent-bindings`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -141,7 +141,7 @@ export function useAgentBindings(id: string | null | undefined, { enabled = true
  * The ids of the automations linked to one agent, for the agent editor. null =
  * could not be read (never "none"), so the editor then says nothing about links.
  */
-export async function fetchLinkedAutomationIds(agentId: string, signal?: AbortSignal): Promise<string[]> {
+async function fetchLinkedAutomationIds(agentId: string, signal?: AbortSignal): Promise<string[]> {
     const res = await authFetch(`${BASE}/by-agent/${encodeURIComponent(agentId)}/automation-ids`, { signal });
     if (!res.ok) throw await failure(res);
     const ids = obj(await res.json()).automationIds;

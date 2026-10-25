@@ -57,8 +57,8 @@ import { logger } from '../../utils/logger';
  * and dynamic activation survive a save from here untouched.
  */
 // Re-export for callers that already import ICONS from this module.
-export const ICONS = SKILL_EMOJI_ICONS;
-export const INSTRUCTION_LIMIT = 4000;
+const ICONS = SKILL_EMOJI_ICONS;
+const INSTRUCTION_LIMIT = 4000;
 
 const emptyForm = (): FormState => ({
     name: '',

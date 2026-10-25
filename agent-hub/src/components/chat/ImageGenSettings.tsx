@@ -18,7 +18,7 @@ const MODELS = [
 
 const STORAGE_KEY = 'imageGenSettings';
 
-export interface ImageGenSettingsValues {
+interface ImageGenSettingsValues {
     aspectRatio?: string;
     model?: string;
 }

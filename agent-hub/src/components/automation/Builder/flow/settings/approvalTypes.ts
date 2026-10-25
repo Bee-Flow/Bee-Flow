@@ -9,7 +9,7 @@ export type SeatSlot = ApprovalSeat | null;
 /** `set('field', value)` on the step's draft. */
 export type SetDraft = (key: string, value: unknown) => void;
 
-export interface DirectoryEntry { id: string; name: string }
+interface DirectoryEntry { id: string; name: string }
 
 /** The org directory that feeds the approver pickers. */
 export interface ApprovalDirectory { members: DirectoryEntry[]; groups: DirectoryEntry[] }

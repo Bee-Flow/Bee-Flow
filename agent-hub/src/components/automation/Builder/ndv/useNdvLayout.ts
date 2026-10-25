@@ -3,7 +3,7 @@ import { columnLayout, toggleSide, type ColumnLayout, type NdvSide } from './ndv
 import useElementWidth from './useElementWidth';
 
 /** Below this drawer width the quick drawer stacks its output under the settings. */
-export const QUICK_SIDE_BY_SIDE = 1100;
+const QUICK_SIDE_BY_SIDE = 1100;
 
 /**
  * The drawer's column plumbing on top of useNdvPanels: which side columns

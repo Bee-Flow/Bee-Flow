@@ -20,7 +20,7 @@ interface KeyValueProps {
 }
 
 // Mirror of keyValue.layout (componentSpecs.js).
-export default function KeyValueInspector({ node, definition, onCommit, disabled = false }: PanelProps<KeyValueProps>) {
+function KeyValueInspector({ node, definition, onCommit, disabled = false }: PanelProps<KeyValueProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LAYOUTS = [

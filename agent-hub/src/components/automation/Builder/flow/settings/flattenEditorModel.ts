@@ -10,7 +10,7 @@ import { routeLevels, withSuffix } from '@shared/expr/nested.mjs';
 import { humanizeFieldKey } from '../displayHelpers';
 
 export type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
-export interface FlattenField { from: string; to: string; mode: 'copy' | 'fill' }
+interface FlattenField { from: string; to: string; mode: 'copy' | 'fill' }
 export interface FlattenParent { overRef: string; itemVar: string; auto?: boolean; fields?: FlattenField[] }
 export interface FlattenDraft { arrayRef: string; parents: FlattenParent[] | null; keepEmpty: boolean; label?: string }
 export interface LevelOption { path: string; key: string; itemVar: string; count: number; outerCount: number | null }

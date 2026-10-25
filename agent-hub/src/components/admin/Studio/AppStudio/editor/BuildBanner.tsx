@@ -43,14 +43,14 @@ interface PlanTodo {
 }
 
 /** The plan progress: how many items are done, and the next open one (null when it repeats the verb). */
-export interface PlanProgress {
+interface PlanProgress {
     done: number;
     total: number;
     next: string | null;
 }
 
 /** "Plan 2/5 · Koppel de tabel" — only when the model published a plan. */
-export function planStrip(todos: readonly (PlanTodo | null | undefined)[] | null | undefined, verb: string | null | undefined): PlanProgress | null {
+function planStrip(todos: readonly (PlanTodo | null | undefined)[] | null | undefined, verb: string | null | undefined): PlanProgress | null {
     const list = Array.isArray(todos) ? todos : [];
     const total = list.length;
     if (!total) return null;
@@ -134,7 +134,7 @@ export type BannerState =
  * Whether to show, and what: the live cue while running, then the frozen
  * farewell for FAREWELL_MS after it ends. Pure over (cue, now).
  */
-export function bannerState(cue: BuildCueValue | null | undefined, prev: BannerState | null, now: number): BannerState {
+function bannerState(cue: BuildCueValue | null | undefined, prev: BannerState | null, now: number): BannerState {
     if (cue && cue.running) return { kind: 'live', cue, endedAt: null, farewell: null };
     if (prev && prev.kind === 'live') {
         // The build just ended: freeze what it was into the farewell.

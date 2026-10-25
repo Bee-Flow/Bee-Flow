@@ -15,13 +15,13 @@ import type { SchedulesPickerProps, ScheduleModalProps } from './SchedulePickers
 // Day-picker UI order — Monday-first (European convention). Token strings
 // match the server's tokens exactly. Date math lives in
 // shared/schedule/nextRun.mjs (weekday tokens from Intl, not getDay()).
-export const AUTOMATION_DOW_TOKENS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-export const AUTOMATION_DOW_LABELS: Record<string, string> = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
+const AUTOMATION_DOW_TOKENS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const AUTOMATION_DOW_LABELS: Record<string, string> = { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' };
 
 // Validated IANA timezone list. `Intl.supportedValuesOf('timeZone')` returns
 // the full ~400 zones the runtime supports (broadly available since 2022).
 // User's current TZ is hoisted to the top of the dropdown.
-export const AUTOMATION_TIMEZONES = (() => {
+const AUTOMATION_TIMEZONES = (() => {
     const all = (typeof Intl?.supportedValuesOf === 'function')
         ? Intl.supportedValuesOf('timeZone')
         : [];
@@ -35,7 +35,7 @@ export const AUTOMATION_TIMEZONES = (() => {
     return ordered.filter(tz => (tz && !seen.has(tz) && seen.add(tz)));
 })();
 
-export function formatScheduleNextRun(iso: string | number | Date, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
+function formatScheduleNextRun(iso: string | number | Date, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     if (!iso) return '—';
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '—';

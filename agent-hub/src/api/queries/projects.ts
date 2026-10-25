@@ -74,7 +74,7 @@ export interface ProjectShare {
 }
 
 /** A member as any viewer of the project sees them: a display name, never an e-mail address. */
-export interface ProjectPerson {
+interface ProjectPerson {
     name?: string;
     avatar?: string;
     avatarType?: 'emoji' | 'image' | 'url';
@@ -105,7 +105,7 @@ export interface ProjectActivityItem {
 
 /** One section of GET /:id/resources. `null` means "could not be read", never
  *  "empty": a failed store must not render as nothing filed. */
-export type ResourceSection = Array<Record<string, any>> | null;
+type ResourceSection = Array<Record<string, any>> | null;
 
 export interface ProjectResources {
     role?: ProjectRole;

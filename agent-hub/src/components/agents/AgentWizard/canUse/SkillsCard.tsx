@@ -9,7 +9,7 @@ import type { ReadState } from '../agentEditor.types';
 import type { skillRows } from './canUseFacts';
 
 /** One attached skill, as `canUseFacts.skillRows` builds it. */
-export type SkillCardRow = ReturnType<typeof skillRows>[number];
+type SkillCardRow = ReturnType<typeof skillRows>[number];
 
 export interface SkillsCardProps {
     t: TranslateFn;

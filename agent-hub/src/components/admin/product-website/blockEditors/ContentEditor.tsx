@@ -158,7 +158,7 @@ export function ContentEditor({ data = {}, pages = [], onChange }: ContentEditor
 
 // ── Column panel ───────────────────────────────────────────────────────
 
-export function ColumnPanel({ col, colIdx, pages, onChange }: ColumnPanelProps) {
+function ColumnPanel({ col, colIdx, pages, onChange }: ColumnPanelProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(true);
     const elements = Array.isArray(col?.elements) ? col.elements : [];
@@ -221,7 +221,7 @@ export function ColumnPanel({ col, colIdx, pages, onChange }: ColumnPanelProps) 
 
 // ── Element field renderer (per-kind) ──────────────────────────────────
 
-export function ElementFields({ el, pages, update }: ElementFieldsProps) {
+function ElementFields({ el, pages, update }: ElementFieldsProps) {
     const { t } = useTranslation();
     const setKind = (nextKind: string) => {
         if (nextKind === el.kind) return;

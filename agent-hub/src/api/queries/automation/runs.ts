@@ -10,10 +10,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { AutomationRequestError } from './http';
 
-export type RunOutcomeCode =
+type RunOutcomeCode =
     | 'success' | 'stopped_at' | 'waiting_approval' | 'waiting_form' | 'waiting_confirm' | 'cancelled';
 
-export interface RunOutcome {
+interface RunOutcome {
     code: RunOutcomeCode | string;
     params?: Record<string, unknown> | null;
     /** The server's English sentence, for codes this build cannot phrase. */
@@ -128,7 +128,7 @@ async function postJson<T>(path: string): Promise<T> {
 }
 
 /** The `since` for a period, or undefined for "all". Exported for the test. */
-export function sinceFor(period: RunPeriod, now: number = Date.now()): string | undefined {
+function sinceFor(period: RunPeriod, now: number = Date.now()): string | undefined {
     if (!period) return undefined;
     return new Date(now - period * 3600 * 1000).toISOString();
 }

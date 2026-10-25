@@ -8,13 +8,13 @@
 const DAY_MS = 86_400_000;
 
 /** An attestation is good for a year; without one there is no clock, not a red one. */
-export const ATTESTATION_MONTHS = 12;
+const ATTESTATION_MONTHS = 12;
 
 /** The clock draws in neutral ink while more than this is left. */
 export const QUIET_UNTIL_MS = 30 * DAY_MS;
 
 /** The button shows from 60 days before the attestation lapses. */
-export const REATTEST_WINDOW_MS = 60 * DAY_MS;
+const REATTEST_WINDOW_MS = 60 * DAY_MS;
 
 export interface AttestedPerson {
     attested_at?: string | null;

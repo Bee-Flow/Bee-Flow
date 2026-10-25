@@ -41,7 +41,7 @@ export interface WandRun {
 export interface WandOutcome { aiKeys: string[]; reasons: Record<string, string> }
 
 /** The one toast after a wand click. */
-export function wandToastText(t: TranslateFn, { mapped, ai = 0 }: { mapped: number; ai?: number }): { kind: 'success' | 'info'; text: string } {
+function wandToastText(t: TranslateFn, { mapped, ai = 0 }: { mapped: number; ai?: number }): { kind: 'success' | 'info'; text: string } {
     if (!mapped) {
         return { kind: 'info', text: t('automations.builder.automap.nothing', 'Nothing to auto-map: no field from the steps above fits the empty inputs.') };
     }

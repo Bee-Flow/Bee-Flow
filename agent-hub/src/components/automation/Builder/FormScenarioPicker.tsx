@@ -4,12 +4,12 @@ import type { ScenarioDetail, ScenarioItem } from '../../../api/queries/automati
 import { useFormScenario, useFormScenarios } from '../../../api/queries/automation/runChecks';
 
 /** The saved answers for one page: the start form's, or those of the paused page `stepId`. */
-export function answersForPage(detail: ScenarioDetail, stepId: string | null): Record<string, unknown> {
+function answersForPage(detail: ScenarioDetail, stepId: string | null): Record<string, unknown> {
     return (stepId ? detail.answers.pages[stepId] : detail.answers.trigger) ?? {};
 }
 
 /** Does this scenario hold answers for the page? */
-export function coversPage(s: ScenarioItem, stepId: string | null): boolean {
+function coversPage(s: ScenarioItem, stepId: string | null): boolean {
     return stepId ? s.pages.some(p => p.stepId === stepId) : s.hasTriggerAnswers;
 }
 

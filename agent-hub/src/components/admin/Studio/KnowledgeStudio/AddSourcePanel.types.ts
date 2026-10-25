@@ -1,7 +1,7 @@
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /** The config a new source is created with; which fields are set depends on its kind. */
-export interface NewSourceConfig {
+interface NewSourceConfig {
     text?: string;
     url?: string;
     crawl?: { maxPages: number };
@@ -20,7 +20,7 @@ export interface NewSource {
 }
 
 /** The fields of an existing source the automation signpost lists. */
-export interface SignpostSource {
+interface SignpostSource {
     id: string;
     kind?: string;
     name?: string;

@@ -26,7 +26,7 @@
  *   recommendations: ["Fix the broken login flow", "Add ARIA labels"]
  * }
  */
-export interface TestStep {
+interface TestStep {
     description?: string;
     action?: string;
 }

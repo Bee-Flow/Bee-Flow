@@ -34,7 +34,7 @@ interface AssessmentRow {
     current?: boolean;
 }
 
-export const OUTCOME_LABEL = Object.freeze({
+const OUTCOME_LABEL = Object.freeze({
     not_applicable: { key: 'compliance.ladder_outcome_chip_not_applicable', en: 'AI Act not applicable' },
     prohibited: { key: 'compliance.ladder_outcome_chip_prohibited', en: 'Prohibited (Art. 5)' },
     high_risk: { key: 'compliance.ladder_outcome_chip_high_risk', en: 'High-risk (Annex III)' },

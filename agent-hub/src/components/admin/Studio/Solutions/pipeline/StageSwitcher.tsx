@@ -25,7 +25,7 @@ export const STAGE_INK: Record<StageName, string> = {
     prd: 'text-[var(--stage-prd,var(--success))]',
 };
 
-export const STAGE_BORDER: Record<StageName, string> = {
+const STAGE_BORDER: Record<StageName, string> = {
     dev: 'border-[var(--border-default)]',
     uat: 'border-[var(--stage-uat,var(--warning))]',
     prd: 'border-[var(--stage-prd,var(--success))]',

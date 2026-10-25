@@ -344,4 +344,4 @@ function NotMeasured() {
     );
 }
 
-export { readVital, band, formatValue, METRICS };
+;

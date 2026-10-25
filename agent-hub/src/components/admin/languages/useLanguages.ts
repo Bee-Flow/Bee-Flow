@@ -7,7 +7,7 @@ import useConfirm from '../../shared/useConfirm';
 export { LANGUAGES_API };
 
 /** One installed locale. */
-export interface LocaleEntry {
+interface LocaleEntry {
     code: string;
     name: string;
     isDefault?: boolean;

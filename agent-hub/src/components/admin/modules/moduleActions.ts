@@ -32,7 +32,7 @@ export interface ModuleApiError extends Error {
 }
 
 /** consent_required payload → missing permission ids, else null. */
-export function consentRequiredPermissions(e: ModuleApiError) {
+function consentRequiredPermissions(e: ModuleApiError) {
     if (e?.body?.error === 'consent_required') return e.body.missingPermissions || [];
     return null;
 }

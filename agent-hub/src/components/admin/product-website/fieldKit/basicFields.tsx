@@ -39,7 +39,7 @@ interface AutoTextareaProps {
  * strips newlines, a textarea preserves them. Starts at one row, never
  * shows a scrollbar or drag handle, and re-measures on every value change.
  */
-export function AutoTextarea({ value, onChange, placeholder, className, ariaLabel, onKeyDown }: AutoTextareaProps) {
+function AutoTextarea({ value, onChange, placeholder, className, ariaLabel, onKeyDown }: AutoTextareaProps) {
     const ref = useRef<HTMLTextAreaElement | null>(null);
     const resize = () => {
         const el = ref.current;

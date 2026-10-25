@@ -16,7 +16,7 @@ export interface PrimaryContent {
     js: string;
 }
 
-export const PRIMARY_FILES: readonly PrimaryFile[] = ['html', 'css', 'js'];
+const PRIMARY_FILES: readonly PrimaryFile[] = ['html', 'css', 'js'];
 
 export function isPrimaryFile(file: unknown): file is PrimaryFile {
     return file === 'html' || file === 'css' || file === 'js';
