@@ -2,14 +2,15 @@ import { Sparkles, Send, CheckCircle2, Loader2, Flag, Tag as TagIcon, Users, Mes
 import { useEffect, useState, useCallback, SetStateAction, Dispatch } from 'react';
 import TicketTimeline from './TicketTimeline';
 import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { useSupportCanned, useSupportTags, useSupportTeammates } from '../../../../api/queries/studioSupport';
 import { toast } from '../../../shared/Toast';
 import EmailHtmlBody from '../../../support/EmailHtmlBody';
 import type { SupportTeammate } from './supportStudio.types';
 import type { ConvLabel } from '../../../shell/sidebar/EditLabelInline';
 import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
 import type { SupportThread, SupportMessage, TicketContext, TicketDetailProps, MessageBubbleProps } from './index.types';
-import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, request, RefusedError } from '../../../../api/mutate';
 import { NOT_SUPPORT_TAG, STATUS_IDS, PRIORITY_IDS, STATUS_COLORS, statusLabel, slaBreached } from './SupportStudio.helpers';
 
 export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: TicketDetailProps) {
@@ -20,9 +21,9 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
     const [internal, setInternal] = useState(false);
     const [busy, setBusy] = useState(false);
     const [drafting, setDrafting] = useState(false);
-    const [teammates, setTeammates] = useState<SupportTeammate[]>([]);
-    const [tagPalette, setTagPalette] = useState<ConvLabel[]>([]);
-    const [canned, setCanned] = useState<CannedResponse[]>([]);
+    const teammates = useSupportTeammates<SupportTeammate>();
+    const tagPalette = useSupportTags<ConvLabel>();
+    const canned = useSupportCanned<CannedResponse>();
     const [showCanned, setShowCanned] = useState(false);
     const [showActivity, setShowActivity] = useState(false);
     const [context, setContext] = useState<TicketContext | null>(null);
@@ -56,20 +57,18 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
     }, [threadId]);
     const toggleContext = () => setShowContext(v => { const nv = !v; if (nv && !context) loadContext(); return nv; });
 
-    // Reference data for the ticket controls (fetched once).
-    useEffect(() => {
-        authFetch(`${API_BASE}/api/support-inbox/teammates`).then(r => r.ok ? r.json() : { teammates: [] }).then(d => setTeammates(d.teammates || [])).catch(() => {});
-        authFetch(`${API_BASE}/api/support-inbox/tags`).then(r => r.ok ? r.json() : { tags: [] }).then(d => setTagPalette(d.tags || [])).catch(() => {});
-        authFetch(`${API_BASE}/api/support-inbox/canned`).then(r => r.ok ? r.json() : { canned: [] }).then(d => setCanned(d.canned || [])).catch(() => {});
-    }, []);
-
     const draftWithAi = async () => {
         setDrafting(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/threads/${threadId}/draft`, { method: 'POST' });
-            const d = await res.json().catch(() => ({}));
-            if (res.ok && d.message?.body) { setReply(d.message.body); setInternal(false); }
-            else if (!res.ok) toast.error(d.error || t('support.composer.draft_failed', 'Could not generate draft'));
+            try {
+                const res = await mutate(`${API_BASE}/api/support-inbox/threads/${threadId}/draft`, { method: 'POST' });
+                const d = await res.json().catch(() => ({}));
+                if (d.message?.body) { setReply(d.message.body); setInternal(false); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                toast.error(d.error || t('support.composer.draft_failed', 'Could not generate draft'));
+            }
             await load();
         } finally { setDrafting(false); }
     };
@@ -78,13 +77,18 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
         if (!reply.trim()) return;
         setBusy(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/threads/${threadId}/reply`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ body: reply, internalNote: internal }),
-            });
-            const d = await res.json().catch(() => ({}));
-            if (!res.ok) { toast.error(d.error || t('support.composer.send_failed', 'Could not send')); }
-            else { setReply(''); setInternal(false); await load(); onChanged?.(); }
+            try {
+                await mutate(`${API_BASE}/api/support-inbox/threads/${threadId}/reply`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ body: reply, internalNote: internal }),
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                toast.error(d.error || t('support.composer.send_failed', 'Could not send'));
+                return;
+            }
+            setReply(''); setInternal(false); await load(); onChanged?.();
         } finally { setBusy(false); }
     };
 
