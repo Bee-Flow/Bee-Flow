@@ -1,70 +1,25 @@
-import { Background, Handle, Position, ReactFlow, ReactFlowProvider } from '@xyflow/react';
-import { AlertTriangle, ChevronDown, ChevronUp, CornerDownRight, Plus, Server, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import '@xyflow/react/dist/style.css';
-
-import { NODE_W, layoutGraph } from './layout';
-import { newStep, paletteGroups, stepMeta, type ActionStep } from './stepCatalog';
-import {
-    canConnect, graphToSteps, makeId, parseId, scopesOf, SEP, stepsToGraph, stripStepIds, withStepIds,
-    type FlowStep,
-    type GraphEdge,
-    type GraphNode,
-    type StepNode,
-} from './stepGraph';
-import { isDanglingRef, labelForRef, type RefOption } from './stepReferences';
-import StepSettings from './StepSettings';
-import useStepReferences from './useStepReferences';
-import useTranslation from '../../../../../hooks/useTranslation';
-import NodeContextMenu from '../../../../automation/Builder/flow/NodeContextMenu';
-import { NodeRuntimeContext } from '../../../../automation/Builder/flow/NodeRuntimeContext';
-import StepNodeBase from '../../../../automation/Builder/flow/nodes/StepNodeBase';
-import IconButton from '../../../../shared/IconButton';
-import toast from '../../../../shared/Toast';
-import type { BandItem } from '../../../../automation/Builder/flow/rowBands';
+import { layoutGraph } from '../layout';
+import { newStep, paletteGroups, stepMeta, type ActionStep } from '../stepCatalog';
+import { canConnect, graphToSteps, makeId, parseId, SEP, stepsToGraph, stripStepIds, withStepIds, type FlowStep, type GraphNode, type StepNode } from '../stepGraph';
+import StepSettings from '../StepSettings';
+import useStepReferences from '../useStepReferences';
+import useTranslation from '../../../../../../hooks/useTranslation';
+import NodeContextMenu from '../../../../../automation/Builder/flow/NodeContextMenu';
+import { NodeRuntimeContext } from '../../../../../automation/Builder/flow/NodeRuntimeContext';
+import IconButton from '../../../../../shared/IconButton';
+import toast from '../../../../../shared/Toast';
+import type { BandItem } from '../../../../../automation/Builder/flow/rowBands';
 import type { Connection } from '@xyflow/system';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
-import type { AppAction, AppDefinition, AppNode, FormFieldRef } from '../inspector/appDefinition';
-import type { FlowBodyProps, FlowGraph, StepFlowNodeData, StepFlowNodeArgs, StepPaletteProps } from './ActionFlowEditor.types';
-
-/**
- * An action, as a picture you can build.
- *
- * A multi-step action could only ever be written by the AI builder — the
- * inspector edits four of the ten action kinds and none of the eighteen step
- * kinds. So "when this button is clicked, check something, then write a row,
- * then go to the next screen" was describable in a chat message and unreachable
- * any other way.
- *
- * ── WHY THIS IS NOT THE AUTOMATIONS CANVAS ──────────────────────────
- * That one draws a DAG whose runner gates fan-in. An App Studio action is a
- * strict tree, and it has to stay one: `stepIndex` is never stored, so the
- * browser and the server each derive it by walking the saved tree in the same
- * pre-order. A merge or a fan-out here would break that agreement silently, on
- * the server, at run time. stepGraph.canConnect is what refuses those, and
- * stepGraph.test.js pins the pre-order walk itself.
- *
- * What IS shared is the vocabulary: branches read `then` / `else` /
- * `case:<name>`, the same words the automation builder uses.
- *
- * `action` is a definition.actions entry; `onChange` emits the next one. Ids on
- * steps are assigned here and stripped on the way out — the schema addresses a
- * step by position, not by name.
- */
+import type { FlowBodyProps, StepPaletteProps } from '../ActionFlowEditor.types';
+import { indexAfter, spliceScope, dropScopeEdges, canMove, normalizeToSequence, summarise } from './ActionFlowEditor.helpers';
+import { StepFlowNode } from './StepFlowNode';
+import { FlowBodySection } from './FlowBodySection';
 
 const NODE_TYPES_KEY = 'appStudioStep';
 
-export default function ActionFlowEditor(props: React.JSX.IntrinsicAttributes&FlowBodyProps) {
-    // React Flow needs its provider; keeping it here means callers mount one
-    // component, not two.
-    return (
-        <ReactFlowProvider>
-            <FlowBody {...props} />
-        </ReactFlowProvider>
-    );
-}
-
-function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [] }: FlowBodyProps) {
+export function FlowBody({ action, onChange, definition, node = null, disabled = false, formFields = [] }: FlowBodyProps) {
     const { t } = useTranslation();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [adding, setAdding] = useState<{ prefix: string; after?: string } | null>(null);   // { prefix, after? } — where
@@ -378,229 +333,6 @@ function FlowBody({ action, onChange, definition, node = null, disabled = false,
         </div>
         </NodeRuntimeContext.Provider>
     );
-}
-
-function FlowBodySection({ rfNodes, rfEdges, nodeTypes, disabled, onConnect, setSelectedId, setAdding, rootEmpty, t }: {
-    rfNodes: {
-        id: string; type: string; position: { x: number; y: number; }; draggable: boolean; // position is derived; dragging would lie
-        selectable: boolean; data: {
-            node: GraphNode; selected: boolean; summary: { text: string; missing: boolean; }; onSelect: () => void; onAdd: () => void;
-            // The "+" on the node itself — add a step straight after this one,
-            // the same gesture the automation builder offers.
-            onAddAfter: (() => void) | null; onContextMenu: ((e: React.MouseEvent) => void) | undefined; disabled: boolean;
-        };
-    }[]; rfEdges: { id: string; source: string; target: string; type: string; }[]; nodeTypes: { appStudioStep: ({ id, data }: StepFlowNodeArgs) => React.JSX.Element; }; disabled: boolean; onConnect: (connection: Connection) => void; setSelectedId: React.Dispatch<React.SetStateAction<string | null>>; setAdding: React.Dispatch<React.SetStateAction<{ prefix: string; after?: string; } | null>>; rootEmpty: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string;
-}) {
-    return <div className="relative flex-1 min-w-0 rounded-md border border-[var(--border-subtle)] overflow-hidden">
-        <ReactFlow
-            nodes={rfNodes}
-            edges={rfEdges}
-            nodeTypes={nodeTypes}
-            onConnect={disabled ? undefined : onConnect}
-            // Order is changed with the move controls in the panel, not
-            // by dragging: the graph is always a complete chain, so every
-            // drag canConnect could receive is one it must refuse.
-            onPaneClick={() => { setSelectedId(null); setAdding(null); } }
-            fitView
-            proOptions={{ hideAttribution: true }}
-            nodesDraggable={false}
-            nodesConnectable={false}
-        >
-            <Background gap={16} size={1} color="var(--border-subtle)" />
-        </ReactFlow>
-
-        {rootEmpty ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-                <p className="text-xs text-[var(--text-secondary)]">{t('studio_apps_edit.action_flow.nothing_yet', 'Nothing happens yet.')}</p>
-                <button
-                    type="button"
-                    onClick={() => setAdding({ prefix: '' })}
-                    disabled={disabled}
-                    className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                >
-                    <Plus className="w-3.5 h-3.5" aria-hidden="true" /> {t('studio_apps_edit.action_flow.add_first', 'Add the first step')}
-                </button>
-            </div>
-        ) : null}
-    </div>;
-}
-
-/** Where a step added "after this one" lands in its scope. */
-function indexAfter(graph: FlowGraph, afterId: string | undefined) {
-    if (!afterId) return null;
-    const { prefix } = parseId(afterId);
-    const scoped = graph.nodes.filter((n) => n.prefix === prefix && !n.isEntry);
-    const at = scoped.findIndex((n) => n.id === afterId);
-    return at === -1 ? null : at + 1;
-}
-
-/**
- * Put `node` at position `at` among the non-entry nodes of one scope, leaving
- * every other scope exactly where it is. The node ARRAY carries the order —
- * see moveStep for why the scope's edges are dropped alongside it.
- */
-function spliceScope(nodes: GraphNode[], prefix: string, at: number, node: GraphNode) {
-    const scoped = nodes.filter((n) => n.prefix === prefix && !n.isEntry);
-    const anchor = scoped[at];
-    if (anchor) {
-        const i = nodes.indexOf(anchor);
-        return [...nodes.slice(0, i), node, ...nodes.slice(i)];
-    }
-    // Past the end of the scope: straight after its last node, so the new one
-    // stays inside the scope rather than drifting into whatever follows.
-    const last = scoped[scoped.length - 1];
-    if (!last) return [...nodes, node];
-    const i = nodes.indexOf(last);
-    return [...nodes.slice(0, i + 1), node, ...nodes.slice(i + 1)];
-}
-
-/** Forget one scope's edges — they encode the order the array now owns. */
-function dropScopeEdges(edges: GraphEdge[], prefix: string) {
-    return edges.filter((e) => parseId(e.from).prefix !== prefix);
-}
-
-/** Is there a neighbour that way, inside this step's own branch? */
-function canMove(graph: FlowGraph, id: string, delta: number) {
-    const { prefix } = parseId(id);
-    const scoped = graph.nodes.filter((n) => n.prefix === prefix && !n.isEntry);
-    const at = scoped.findIndex((n) => n.id === id);
-    return at !== -1 && at + delta >= 0 && at + delta < scoped.length;
-}
-
-/** A bare v1 action is an implicit one-step sequence — the runtime says so too. */
-function normalizeToSequence(action: AppAction | null | undefined): FlowStep {
-    if (!action) return { kind: 'sequence', steps: [] };
-    if (action.kind === 'sequence') return action as FlowStep;
-    return { kind: 'sequence', steps: [action as FlowStep] };
-}
-
-function StepFlowNode({ id, data }: StepFlowNodeArgs) {
-    const { t } = useTranslation();
-    const { node, selected, summary, onSelect, onAdd, onAddAfter, onContextMenu, disabled } = data;
-
-    if (node.isEntry) {
-        return (
-            <div style={{ width: NODE_W }}>
-                <Handle type="source" position={Position.Bottom} style={{ background: 'var(--editor-accent)' }} />
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
-                    <CornerDownRight className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                    <span className="font-medium">{node.scopeLabel}</span>
-                    <button
-                        type="button"
-                        onClick={onAdd}
-                        disabled={disabled}
-                        aria-label={t('studio_apps_edit.action_flow.add_step_to', 'Add a step to {scope}', { scope: node.scopeLabel })}
-                        className="ml-auto px-1.5 py-0.5 rounded border border-dashed border-[var(--border-default)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)]"
-                    >
-                        <Plus className="w-3 h-3" aria-hidden="true" />
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const meta = stepMeta(node.kind, t);
-    const Icon = meta.icon;
-    const branches = scopesOf(node.step, t);
-
-    const body = (
-        <div>
-            <div className="font-semibold truncate">{meta.label}</div>
-            <div
-                className={`mt-0.5 flex items-center gap-1 text-[10px] truncate ${
-                    summary?.missing ? 'text-[var(--error)]' : 'text-[var(--text-secondary)]'
-                }`}
-                data-step-missing-ref={summary?.missing ? 'true' : undefined}
-            >
-                {summary?.missing ? (
-                    <AlertTriangle className="w-3 h-3 shrink-0" aria-label={t('studio_apps_edit.action_flow.missing', 'This no longer exists')} />
-                ) : null}
-                <span className="truncate">{summary?.text}</span>
-            </div>
-        </div>
-    );
-
-    return (
-        <div
-            style={{ width: NODE_W }}
-            onClick={onSelect}
-            onContextMenu={onContextMenu}
-            data-step-node={node.id}
-            data-selected={selected || undefined}
-            className={selected ? 'rounded-lg ring-2 ring-[var(--editor-accent)]' : undefined}
-        >
-            <StepNodeBase
-                icon={<Icon size={14} />}
-                typeLabel={meta.label}
-                help={meta.blurb}
-                body={body}
-                badges={meta.server ? (
-                    <Server className="w-3 h-3 text-[var(--text-tertiary)]" aria-label={t('studio_apps_edit.action_flow.runs_on_server', 'Runs on the server')} />
-                ) : null}
-                // A reference pointing at something deleted is a real error, so
-                // it lights the same validation badge a bad automation step does.
-                issues={summary?.missing ? { errors: [{ path: '', message: t('studio_apps_edit.action_flow.missing', 'This no longer exists') }], warnings: [] } : undefined}
-                nodeId={id}
-                onAddAfter={disabled ? null : onAddAfter}
-                // condition/switch/loop get one output port per branch, the way
-                // the automation builder draws its own branching steps.
-                sourceHandles={branches.length
-                    ? branches.map((b) => ({ id: b.key, label: b.label, tone: 'neutral' }))
-                    : null}
-                sourceConnectable={false}
-            />
-        </div>
-    );
-}
-
-/**
- * The one line under a step's name — what it actually does, in its own words.
- *
- * It used to print the raw id for everything a step points at: a "Go to screen"
- * node read `→ scr_8f21`, "Add a row" read `tbl_9f3a2c`, "Run automation" read a
- * uuid. On a canvas whose whole job is showing what happens, the one line that
- * says WHICH thing was the one line nobody could read. `options` is the same
- * name lookup the settings pickers use; without it (nothing loaded yet) each
- * helper falls back to the id, so the node never goes blank.
- *
- * → { text, missing } — `missing` marks a step pointing at something that has
- * since been deleted, so the canvas can show it before the app is published.
- */
-function summarise(step: FlowStep | null, options: Record<string, RefOption[]> = {}, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
-    if (!step) return { text: '', missing: false };
-
-    const ref = (kind: string, id: unknown, empty: string) => {
-        if (!id) return { text: empty, missing: false };
-        return { text: labelForRef(options[kind], id), missing: isDanglingRef(options[kind], id) };
-    };
-    const plain = (text: string) => ({ text: text || '', missing: false });
-
-    switch (step.kind) {
-        case 'navigate': {
-            const r = ref('screen', step.screenId, t('studio_apps_edit.action_flow.no_screen', 'No screen picked yet'));
-            return { ...r, text: step.screenId ? `→ ${r.text}` : r.text };
-        }
-        case 'open_modal':
-        case 'close_modal': return ref('modal', step.modalId, t('studio_apps_edit.action_flow.no_dialog', 'No dialog picked yet'));
-        case 'toast': return plain(step.message || t('studio_apps_edit.action_flow.no_message', 'No message yet'));
-        case 'open_url': return plain(step.url || t('studio_apps_edit.action_flow.no_address', 'No address yet'));
-        case 'set_variable': return plain(step.name ? `vars.${step.name}` : t('studio_apps_edit.action_flow.no_variable', 'No variable picked yet'));
-        case 'condition':
-        case 'switch': return plain(step.expr || t('studio_apps_edit.action_flow.no_condition', 'No condition yet'));
-        case 'loop': return plain(step.itemVar ? t('studio_apps_edit.action_flow.each_item', 'each {item}', { item: step.itemVar }) : t('studio_apps_edit.action_flow.every_row', 'For every row'));
-        case 'create_record':
-        case 'update_record':
-        case 'delete_record': return ref('table', step.tableId, t('studio_apps_edit.action_flow.no_table', 'No table picked yet'));
-        case 'refresh': {
-            if (step.tableId) return ref('table', step.tableId, '');
-            if (step.datasetId) return ref('dataset', step.datasetId, '');
-            return plain(t('studio_apps_edit.action_flow.everything', 'Everything on the screen'));
-        }
-        case 'run_automation': return ref('automation', step.automationId, t('studio_apps_edit.action_flow.no_automation', 'No automation picked yet'));
-        case 'send_email': return ref('connector', step.connectorId, t('studio_apps_edit.action_flow.no_mailbox', 'No mailbox picked yet'));
-        case 'confirm': return plain(step.message || '');
-        default: return plain(step.resultVar ? `→ vars.${step.resultVar}` : '');
-    }
 }
 
 function StepPalette({ onPick, onCancel }: StepPaletteProps) {
