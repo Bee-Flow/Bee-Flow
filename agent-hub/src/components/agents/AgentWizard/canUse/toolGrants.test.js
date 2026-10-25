@@ -1,12 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { READ } from './canUseFacts';
-import {
-    ACT_AS, ACT_AS_KIND, CONFIRM,
-    applyAppSelection, automationRows, claimantsOf, effectiveActionsOf, grantedActionsOf,
-    initialSelection, keepRequiresGrantApps, paramPillsOf, sendsFor, setAppActAs, setAppActions,
-    setAppConfirm, toolRows,
-} from './toolGrants';
+import { applyAppSelection, automationRows, initialSelection, keepRequiresGrantApps, paramPillsOf, setAppActAs, setAppActions, setAppConfirm, toolRows } from './toolGrants';
+import { ACT_AS, ACT_AS_KIND, CONFIRM, claimantsOf, effectiveActionsOf, grantedActionsOf, sendsFor } from './toolGrants.helpers';
 
 /**
  * The GRANTS CONTRACT, on the writing side.

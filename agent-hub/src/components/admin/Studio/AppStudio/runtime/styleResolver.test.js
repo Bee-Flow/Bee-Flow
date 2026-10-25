@@ -2,18 +2,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import {
-    resolveBackground,
-    resolveNodeStyle,
-    resolveSectionStyle,
-    resolveWidthCss,
-    resolveHeightCss,
-    resolveSectionHeightCss,
-    applyWidth,
-    isFill,
-    spaceSteps,
-    SOFT_PRIMARY_GRADIENT,
-} from './styleResolver';
+import { resolveBackground, resolveNodeStyle, resolveSectionStyle, resolveWidthCss, resolveSectionHeightCss, applyWidth, spaceSteps } from './styleResolver';
+import { resolveHeightCss, isFill } from './styleResolver.helpers';
+import { SOFT_PRIMARY_GRADIENT } from './styleResolver.constants';
 
 /**
  * The background knob grew two look-pass values ('panel', 'gradient' —

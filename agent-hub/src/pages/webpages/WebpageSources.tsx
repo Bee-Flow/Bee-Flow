@@ -6,7 +6,7 @@ import {
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
@@ -363,29 +363,32 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1.5">
-                {sources.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-8">
-                        <div className="text-[11px] font-medium text-[var(--text-secondary)]">
-                            {t('webpages.knowledge.empty_title', 'No knowledge yet')}
-                        </div>
-                        <div className="text-[10px] mt-1 max-w-[200px] text-[var(--text-tertiary)]">
-                            {t('webpages.knowledge.empty_body', 'Add a file, URL, or paste text — the AI can use it as reference and inspiration.')}
-                        </div>
-                    </div>
-                ) : (
-                    sources.map(s => (
-                        <SourceCard
-                            key={s.id}
-                            source={s}
-                            onDelete={handleDelete}
-                            onRetry={handleRetry}
-                            onCancel={handleCancel}
-                        />
-                    ))
-                )}
-            </div>
+            <WebpageSourcesSection sources={sources} t={t} handleDelete={handleDelete} handleRetry={handleRetry} handleCancel={handleCancel} />
             {confirmDialog}
         </div>
     );
+}
+
+function WebpageSourcesSection({ sources, t, handleDelete, handleRetry, handleCancel }: { sources: WebpageSource[]; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; handleDelete: (sid: string) => Promise<void>; handleRetry: (sid: string) => Promise<void>; handleCancel: (sid: string) => Promise<void>; }) {
+    return <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-1.5">
+        {sources.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center py-8">
+                <div className="text-[11px] font-medium text-[var(--text-secondary)]">
+                    {t('webpages.knowledge.empty_title', 'No knowledge yet')}
+                </div>
+                <div className="text-[10px] mt-1 max-w-[200px] text-[var(--text-tertiary)]">
+                    {t('webpages.knowledge.empty_body', 'Add a file, URL, or paste text — the AI can use it as reference and inspiration.')}
+                </div>
+            </div>
+        ) : (
+            sources.map(s => (
+                <SourceCard
+                    key={s.id}
+                    source={s}
+                    onDelete={handleDelete}
+                    onRetry={handleRetry}
+                    onCancel={handleCancel} />
+            ))
+        )}
+    </div>;
 }

@@ -4,8 +4,8 @@
 import { Check, Loader2 } from 'lucide-react';
 import React from 'react';
 import { API_BASE } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { ServicesSectionProps } from './adminPanel.types';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import type { ServicesSectionProps, SetMessage } from './adminPanel.types';
 import { mutate, ApiError } from '../../../api/mutate';
 
 export default function ServicesSection({
@@ -28,140 +28,10 @@ export default function ServicesSection({
             <div className="p-6">
             <div className="max-w-4xl mx-auto space-y-8">
                 {/* LinkedIn Configuration */}
-                <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
-                        <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5 .92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>
-                            {t('integ.services_linkedin_configuration', 'LinkedIn Configuration')}
-                            {hasLinkedInConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
-                        </h3>
-                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                            {t('integ.services_set_linkedin_api_credentials_users_can', 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Connections.')}
-                        </p>
-                    </div>
-                    <div className="p-6 space-y-3">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={linkedinClientId}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkedinClientId(e.target.value)}
-                                placeholder={hasLinkedInConfig ? '••••••••••••••••' : 'Client ID'}
-                                className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties}
-                            />
-                            <input
-                                type="password"
-                                value={linkedinClientSecret}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkedinClientSecret(e.target.value)}
-                                placeholder={hasLinkedInConfig ? '••••••••••••••••' : 'Client Secret'}
-                                className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties}
-                            />
-                            <button
-                                onClick={async () => {
-                                    if (!linkedinClientId.trim() || !linkedinClientSecret.trim()) return;
-                                    setSavingLinkedIn(true);
-                                    try {
-                                        const res = await mutate(`${API_BASE}/ai/config`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ linkedinClientId, linkedinClientSecret }),
-                                        }).catch((err: unknown) => {
-                                            if (err instanceof ApiError) return null;
-                                            throw err;
-                                        });
-                                        if (res) {
-                                            setHasLinkedInConfig(true);
-                                            setLinkedinClientId('');
-                                            setLinkedinClientSecret('');
-                                            setMessage({ type: 'success', text: 'LinkedIn credentials saved' });
-                                        }
-                                    } catch (e) {
-                                        setMessage({ type: 'error', text: 'Failed to save LinkedIn credentials' });
-                                    }
-                                    setSavingLinkedIn(false);
-                                    setTimeout(() => setMessage(null), 3000);
-                                }}
-                                disabled={savingLinkedIn || !linkedinClientId.trim() || !linkedinClientSecret.trim()}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
-                            >
-                                {savingLinkedIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                {t('integ.services_save', 'Save')}
-                            </button>
-                        </div>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {t('integ.services_get_credentials_from_your', 'Get credentials from your')} <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('integ.services_linkedin_developer_app', 'LinkedIn Developer App')}</a> {t('integ.services_enable_share_on_linkedin_sign_in_with', '— enable "Share on LinkedIn" + "Sign In with LinkedIn using OpenID Connect".')}
-                        </p>
-                    </div>
-                </div>
+                <ServicesSectionSection t={t} hasLinkedInConfig={hasLinkedInConfig} linkedinClientId={linkedinClientId} setLinkedinClientId={setLinkedinClientId} linkedinClientSecret={linkedinClientSecret} setLinkedinClientSecret={setLinkedinClientSecret} setSavingLinkedIn={setSavingLinkedIn} setHasLinkedInConfig={setHasLinkedInConfig} setMessage={setMessage} savingLinkedIn={savingLinkedIn} />
 
                 {/* Withings Configuration */}
-                <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                    <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
-                        <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#00A9A6" /><path d="M5 12.5h3l1.6-3.4 2.3 6 1.7-3.6H19" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                            {t('integ.services_withings_configuration', 'Withings Configuration')}
-                            {hasWithingsConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
-                        </h3>
-                        <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                            {t('integ.services_set_withings_api_credentials_users_can', 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Connections.')}
-                        </p>
-                    </div>
-                    <div className="p-6 space-y-3">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={withingsClientId}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWithingsClientId(e.target.value)}
-                                placeholder={hasWithingsConfig ? '••••••••••••••••' : 'Client ID'}
-                                className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties}
-                            />
-                            <input
-                                type="password"
-                                value={withingsClientSecret}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWithingsClientSecret(e.target.value)}
-                                placeholder={hasWithingsConfig ? '••••••••••••••••' : 'Client Secret'}
-                                className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
-                                style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties}
-                            />
-                            <button
-                                onClick={async () => {
-                                    if (!withingsClientId.trim() || !withingsClientSecret.trim()) return;
-                                    setSavingWithings(true);
-                                    try {
-                                        const res = await mutate(`${API_BASE}/ai/config`, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ withingsClientId, withingsClientSecret }),
-                                        }).catch((err: unknown) => {
-                                            if (err instanceof ApiError) return null;
-                                            throw err;
-                                        });
-                                        if (res) {
-                                            setHasWithingsConfig(true);
-                                            setWithingsClientId('');
-                                            setWithingsClientSecret('');
-                                            setMessage({ type: 'success', text: 'Withings credentials saved' });
-                                        }
-                                    } catch (e) {
-                                        setMessage({ type: 'error', text: 'Failed to save Withings credentials' });
-                                    }
-                                    setSavingWithings(false);
-                                    setTimeout(() => setMessage(null), 3000);
-                                }}
-                                disabled={savingWithings || !withingsClientId.trim() || !withingsClientSecret.trim()}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
-                            >
-                                {savingWithings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                {t('integ.services_save', 'Save')}
-                            </button>
-                        </div>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {t('integ.services_register_an_app_in_the', 'Register an app in the')} <a href="https://developer.withings.com/dashboard/" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('integ.services_withings_developer_dashboard', 'Withings Developer Dashboard')}</a> {t('integ.services_and_set_its_callback_url_to', 'and set its callback URL to')} <code>{`${window.location.origin}/api/integrations/withings/callback`}</code>{t('integ.services_withings_requires_an_https_callback_so', '. Withings requires an HTTPS callback, so a local deployment needs a tunnel.')}
-                        </p>
-                    </div>
-                </div>
+                <ServicesSectionSection2 t={t} hasWithingsConfig={hasWithingsConfig} withingsClientId={withingsClientId} setWithingsClientId={setWithingsClientId} withingsClientSecret={withingsClientSecret} setWithingsClientSecret={setWithingsClientSecret} setSavingWithings={setSavingWithings} setHasWithingsConfig={setHasWithingsConfig} setMessage={setMessage} savingWithings={savingWithings} />
 
                 {/* Azure Document Processing */}
                 <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
@@ -360,4 +230,138 @@ export default function ServicesSection({
             </div>
             </div>
     );
+}
+
+function ServicesSectionSection2({ t, hasWithingsConfig, withingsClientId, setWithingsClientId, withingsClientSecret, setWithingsClientSecret, setSavingWithings, setHasWithingsConfig, setMessage, savingWithings }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; hasWithingsConfig: boolean; withingsClientId: string; setWithingsClientId: (value: string) => void; withingsClientSecret: string; setWithingsClientSecret: (value: string) => void; setSavingWithings: (value: boolean) => void; setHasWithingsConfig: (value: boolean) => void; setMessage: SetMessage; savingWithings: boolean; }) {
+    return <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
+        <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
+            <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#00A9A6" /><path d="M5 12.5h3l1.6-3.4 2.3 6 1.7-3.6H19" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                {t('integ.services_withings_configuration', 'Withings Configuration')}
+                {hasWithingsConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
+            </h3>
+            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
+                {t('integ.services_set_withings_api_credentials_users_can', 'Set Withings API credentials. Users can then connect their Health Mate accounts from Settings → Connections.')}
+            </p>
+        </div>
+        <div className="p-6 space-y-3">
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={withingsClientId}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWithingsClientId(e.target.value)}
+                    placeholder={hasWithingsConfig ? '••••••••••••••••' : 'Client ID'}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
+                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties} />
+                <input
+                    type="password"
+                    value={withingsClientSecret}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWithingsClientSecret(e.target.value)}
+                    placeholder={hasWithingsConfig ? '••••••••••••••••' : 'Client Secret'}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
+                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties} />
+                <button
+                    onClick={async () => {
+                        if (!withingsClientId.trim() || !withingsClientSecret.trim()) return;
+                        setSavingWithings(true);
+                        try {
+                            const res = await mutate(`${API_BASE}/ai/config`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ withingsClientId, withingsClientSecret }),
+                            }).catch((err: unknown) => {
+                                if (err instanceof ApiError) return null;
+                                throw err;
+                            });
+                            if (res) {
+                                setHasWithingsConfig(true);
+                                setWithingsClientId('');
+                                setWithingsClientSecret('');
+                                setMessage({ type: 'success', text: 'Withings credentials saved' });
+                            }
+                        } catch (e) {
+                            setMessage({ type: 'error', text: 'Failed to save Withings credentials' });
+                        }
+                        setSavingWithings(false);
+                        setTimeout(() => setMessage(null), 3000);
+                    } }
+                    disabled={savingWithings || !withingsClientId.trim() || !withingsClientSecret.trim()}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                >
+                    {savingWithings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {t('integ.services_save', 'Save')}
+                </button>
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">
+                {t('integ.services_register_an_app_in_the', 'Register an app in the')} <a href="https://developer.withings.com/dashboard/" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('integ.services_withings_developer_dashboard', 'Withings Developer Dashboard')}</a> {t('integ.services_and_set_its_callback_url_to', 'and set its callback URL to')} <code>{`${window.location.origin}/api/integrations/withings/callback`}</code>{t('integ.services_withings_requires_an_https_callback_so', '. Withings requires an HTTPS callback, so a local deployment needs a tunnel.')}
+            </p>
+        </div>
+    </div>;
+}
+
+function ServicesSectionSection({ t, hasLinkedInConfig, linkedinClientId, setLinkedinClientId, linkedinClientSecret, setLinkedinClientSecret, setSavingLinkedIn, setHasLinkedInConfig, setMessage, savingLinkedIn }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; hasLinkedInConfig: boolean; linkedinClientId: string; setLinkedinClientId: (value: string) => void; linkedinClientSecret: string; setLinkedinClientSecret: (value: string) => void; setSavingLinkedIn: (value: boolean) => void; setHasLinkedInConfig: (value: boolean) => void; setMessage: SetMessage; savingLinkedIn: boolean; }) {
+    return <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
+        <div className="px-6 py-4 border-b border-[var(--border-subtle)]">
+            <h3 className="font-semibold flex items-center gap-2 text-[var(--text-primary)]">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0A66C2" /><path d="M7.5 9.5h2v7h-2v-7zm1-3.2a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4zm3.5 3.2h1.9v1h0c.27-.5 .92-1.1 1.9-1.1 2 0 2.4 1.3 2.4 3.1v3.6h-2v-3.2c0-.8 0-1.8-1.1-1.8s-1.3.9-1.3 1.7v3.3h-2v-6.6z" fill="white" /></svg>
+                {t('integ.services_linkedin_configuration', 'LinkedIn Configuration')}
+                {hasLinkedInConfig && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500">{t('integ.services_configured', 'Configured')}</span>}
+            </h3>
+            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
+                {t('integ.services_set_linkedin_api_credentials_users_can', 'Set LinkedIn API credentials. Users can then connect their LinkedIn accounts from Settings → Connections.')}
+            </p>
+        </div>
+        <div className="p-6 space-y-3">
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={linkedinClientId}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkedinClientId(e.target.value)}
+                    placeholder={hasLinkedInConfig ? '••••••••••••••••' : 'Client ID'}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
+                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties} />
+                <input
+                    type="password"
+                    value={linkedinClientSecret}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinkedinClientSecret(e.target.value)}
+                    placeholder={hasLinkedInConfig ? '••••••••••••••••' : 'Client Secret'}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none focus:ring-2 transition-all"
+                    style={{ background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent-primary)' } as React.CSSProperties} />
+                <button
+                    onClick={async () => {
+                        if (!linkedinClientId.trim() || !linkedinClientSecret.trim()) return;
+                        setSavingLinkedIn(true);
+                        try {
+                            const res = await mutate(`${API_BASE}/ai/config`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ linkedinClientId, linkedinClientSecret }),
+                            }).catch((err: unknown) => {
+                                if (err instanceof ApiError) return null;
+                                throw err;
+                            });
+                            if (res) {
+                                setHasLinkedInConfig(true);
+                                setLinkedinClientId('');
+                                setLinkedinClientSecret('');
+                                setMessage({ type: 'success', text: 'LinkedIn credentials saved' });
+                            }
+                        } catch (e) {
+                            setMessage({ type: 'error', text: 'Failed to save LinkedIn credentials' });
+                        }
+                        setSavingLinkedIn(false);
+                        setTimeout(() => setMessage(null), 3000);
+                    } }
+                    disabled={savingLinkedIn || !linkedinClientId.trim() || !linkedinClientSecret.trim()}
+                    className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center gap-1.5 [background:var(--accent-primary)] [color:#fff]!"
+                >
+                    {savingLinkedIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {t('integ.services_save', 'Save')}
+                </button>
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">
+                {t('integ.services_get_credentials_from_your', 'Get credentials from your')} <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-primary)]">{t('integ.services_linkedin_developer_app', 'LinkedIn Developer App')}</a> {t('integ.services_enable_share_on_linkedin_sign_in_with', '— enable "Share on LinkedIn" + "Sign In with LinkedIn using OpenID Connect".')}
+            </p>
+        </div>
+    </div>;
 }

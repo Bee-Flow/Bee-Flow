@@ -3,17 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import EN_DEFAULTS from '../../i18n/en-defaults';
-import {
-    SKIP_REASONS,
-    STATUS_KEYS,
-    STATUS_TOKENS,
-    skipGroupOfStep,
-    statusLabel,
-    tokenFor,
-    tokenForSkip,
-    tokenForStep,
-    type StatusKey,
-} from './statusTokens';
+import { STATUS_TOKENS, statusLabel, tokenFor, tokenForSkip, tokenForStep } from './statusTokens';
+import { skipGroupOfStep } from './statusTokens/statusTokens.helpers';
+import { SKIP_REASONS } from './statusTokens/statusTokens.constants';
+import { STATUS_KEYS, type StatusKey } from './statusTokens/statusTokens.types';
 
 /**
  * The status vocabulary, and the two things it used to get wrong.

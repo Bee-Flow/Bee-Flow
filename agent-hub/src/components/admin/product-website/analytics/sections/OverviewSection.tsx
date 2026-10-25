@@ -23,10 +23,9 @@ import { analyticsApi, analyticsFetch } from '../../analyticsApi';
 import type { AnalyticsResponse } from '../../analyticsApi';
 import TrendChart from '../charts/TrendChart';
 import type { TrendSeries } from '../charts/TrendChart';
-import {
-    ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SkeletonGrid, StatGrid, StatTile,
-    BreakdownTable, SplitBar, fmt, statVal, fmtDurationSec, compare,
-} from '../ui';
+import { SERIES, Empty, SkeletonGrid, StatGrid, StatTile, BreakdownTable, SplitBar, fmt, statVal, fmtDurationSec, compare } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT } from '../BarList';
 import type { CompareKind, DrillHandler, SectionProps, XYRow } from '../ui.types';
 import { resolveWindow, densify, bucketLabel, lastBucketPartial } from '../window';
 

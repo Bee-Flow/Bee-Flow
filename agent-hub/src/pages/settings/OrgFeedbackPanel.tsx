@@ -7,7 +7,7 @@ import { shortModel, fmtTime, fmtDuration } from './usage/format';
 import { Card, MetricCard, MetricGrid, MonitorHero, TabHeader, AlertBanner, FilterChipBar, EmptyInline, TOKENS } from './usage/kit';
 import MarkdownRenderer from '../../components/renderers/MarkdownRenderer';
 import { SEMANTIC } from '../../config/analyticsConfig';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { ChipValue } from './usage/kit.types';
 import type { RangeParams } from '../../utils/usageHelpers';
@@ -150,22 +150,7 @@ export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps)
                 />
             )}
 
-            <MonitorHero
-                accent={heroColor}
-                eyebrow="Positive rate"
-                value={posPct === null ? '—' : `${posPct}%`}
-                valueColor={heroColor}
-                status={{ label: heroLabel, color: heroColor }}
-                subline={`${posCount} thumbs up · ${negCount} thumbs down · ${total} total`}
-                aside={
-                    <MetricGrid cols={2} gap={TOKENS.tileGap}>
-                        <MetricCard size="sm" icon={ThumbsUp} color={C.green} label={t('org.feedback_positive')} value={posCount} />
-                        <MetricCard size="sm" icon={ThumbsDown} color={C.rose} label={t('org.feedback_negative')} value={negCount} />
-                        <MetricCard size="sm" icon={MessageCircle} color={C.amber} label={t('org.feedback_with_comments')} value={Number(summary?.with_comments) || 0} />
-                        <MetricCard size="sm" icon={MessageSquare} color={C.blue} label={t('org.feedback_with_conversation')} value={withConvoCount} />
-                    </MetricGrid>
-                }
-            />
+            <OrgFeedbackPanelMonitorHero heroColor={heroColor} posPct={posPct} heroLabel={heroLabel} posCount={posCount} negCount={negCount} total={total} t={t} summary={summary} withConvoCount={withConvoCount} />
 
             <Card>
                 <div className="[display:flex] [gap:6px] [margin-bottom:12px] [flex-wrap:wrap] [align-items:center]">
@@ -308,3 +293,19 @@ const pagBtn = (disabled: boolean) => ({
     border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)',
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1,
 });
+
+function OrgFeedbackPanelMonitorHero({ heroColor, posPct, heroLabel, posCount, negCount, total, t, summary, withConvoCount }: { heroColor: string; posPct: number | null; heroLabel: string; posCount: number; negCount: number; total: number; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; summary: { total: number; thumbs_up: number; thumbs_down: number; with_comments: number; }; withConvoCount: number; }) {
+    return <MonitorHero
+        accent={heroColor}
+        eyebrow="Positive rate"
+        value={posPct === null ? '—' : `${posPct}%`}
+        valueColor={heroColor}
+        status={{ label: heroLabel, color: heroColor }}
+        subline={`${posCount} thumbs up · ${negCount} thumbs down · ${total} total`}
+        aside={<MetricGrid cols={2} gap={TOKENS.tileGap}>
+            <MetricCard size="sm" icon={ThumbsUp} color={C.green} label={t('org.feedback_positive')} value={posCount} />
+            <MetricCard size="sm" icon={ThumbsDown} color={C.rose} label={t('org.feedback_negative')} value={negCount} />
+            <MetricCard size="sm" icon={MessageCircle} color={C.amber} label={t('org.feedback_with_comments')} value={Number(summary?.with_comments) || 0} />
+            <MetricCard size="sm" icon={MessageSquare} color={C.blue} label={t('org.feedback_with_conversation')} value={withConvoCount} />
+        </MetricGrid>} />;
+}

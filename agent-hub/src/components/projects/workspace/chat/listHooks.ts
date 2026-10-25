@@ -2,7 +2,8 @@
 // fetching a thread's first message when it is older than the loaded page.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject, useEffectEvent } from 'react';
-import { newestSeq, useLoadOlderMessages, type TeamChatMessage, type TeamChatMessages } from '../../../../api/queries/projectChats';
+import { useLoadOlderMessages, type TeamChatMessage, type TeamChatMessages } from '../../../../api/queries/projectChats';
+import { newestSeq } from '../../../../api/queries/useTeamChatMessages';
 import useStickToBottom from '../../../../hooks/useStickToBottom';
 import { mainConversation, type MessageGroup } from './messageGroups';
 import useMarkRead from './useMarkRead';

@@ -5,7 +5,7 @@ import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
-import { ROLE_COLORS } from '../styleResolver';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import { Skeleton, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 

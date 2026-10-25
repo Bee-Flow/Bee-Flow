@@ -4,11 +4,11 @@ import WebpageTurnCard from './WebpageTurnCard';
 import InputArea from '../../components/chat/InputArea';
 import MessageItem from '../../components/chat/MessageItem';
 import SegmentedControl from '../../components/shared/SegmentedControl';
-import useConfirm from '../../components/shared/useConfirm';
+import useConfirm, { ConfirmOptions } from '../../components/shared/useConfirm';
 import { MessageErrorBoundary } from '../../components/shell/ErrorBoundary';
 import WebpageDiffCard from '../../components/webpages/WebpageDiffCard';
 import WebpagePlanCard from '../../components/webpages/WebpagePlanCard';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import type { ChatMessage } from '../../hooks/useChatEngine/types';
 import type { ChatAttachment } from '../../hooks/useChatEngine/historyAttachment';
 import type { RetryModelTiers } from '../../components/chat/MessageItem/MessageActionsRow';
@@ -141,67 +141,7 @@ export default function WebpageChat({
 
     return (
         <div className="flex flex-col h-full bg-[var(--vsc-editor-bg)] text-[var(--vsc-fg)]">
-            <div className="shrink-0 px-3 py-1.5 border-b flex items-center gap-2 border-[var(--vsc-border)]">
-                <span className="text-[11px] font-semibold uppercase tracking-wider [color:var(--vsc-fg-muted)]! [letter-spacing:0.06em]">
-                    {t('webpages.chat.title', 'AI Chat')}
-                </span>
-                {copyToast && (
-                    <span
-                        role="status"
-                        aria-live="polite"
-                        className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-                        style={{
-                            color: copyToast === 'copied' ? 'var(--accent-primary)' : 'var(--error)',
-                            background: 'color-mix(in srgb, currentColor 10%, transparent)',
-                        }}
-                    >
-                        {copyToast === 'copied'
-                            ? t('webpages.address.copied', 'Copied')
-                            : t('webpages.copy_failed', 'Copy failed')}
-                    </span>
-                )}
-                <span className="flex-1" />
-                {onChatModeChange && (
-                    /* Two segments, not three (plan W2). 'plan' folds into
-                       "Propose first": both stop before touching a file and
-                       ask, which is the only distinction a user is making
-                       here. A stored 'plan' keeps working and shows as the
-                       right-hand segment until the user picks again. */
-                    <SegmentedControl
-                        size="sm"
-                        ariaLabel={t('webpages.chat.mode', 'How the assistant edits')}
-                        value={chatMode === 'auto' ? 'auto' : 'ask'}
-                        onChange={onChatModeChange}
-                        options={[
-                            { value: 'auto', label: t('webpages.chat.mode_auto', 'Edit automatically') },
-                            { value: 'ask', label: t('webpages.chat.mode_ask', 'Propose first') },
-                        ]}
-                    />
-                )}
-                {onNewChat && (
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            if (messages.length === 0) return;
-                            if (await confirm({ title: t('webpages.chat.new_confirm', 'Start a new chat? The current conversation will be cleared.'), confirmLabel: t('webpages.chat.new', 'New chat') })) {
-                                onNewChat();
-                            }
-                        }}
-                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] hover:opacity-100 transition-opacity"
-                        style={{
-                            color: 'var(--vsc-fg-muted)',
-                            opacity: messages.length === 0 ? 0.4 : 0.8,
-                            cursor: messages.length === 0 ? 'default' : 'pointer',
-                        }}
-                        disabled={messages.length === 0}
-                        title={messages.length === 0
-                            ? t('webpages.chat.new_none', 'No conversation to clear')
-                            : t('webpages.chat.new_hint', 'Start a new chat')}
-                    >
-                        <Plus size={11} /> {t('webpages.chat.new', 'New chat')}
-                    </button>
-                )}
-            </div>
+            <WebpageChatSection t={t} copyToast={copyToast} onChatModeChange={onChatModeChange} chatMode={chatMode} onNewChat={onNewChat} messages={messages} confirm={confirm} />
 
             <div ref={containerRef} className="flex-1 overflow-y-auto custom-scrollbar px-3 py-3 space-y-3">
                 {messages.length === 0 && (
@@ -328,4 +268,67 @@ export default function WebpageChat({
             {confirmDialog}
         </div>
     );
+}
+
+function WebpageChatSection({ t, copyToast, onChatModeChange, chatMode, onNewChat, messages, confirm }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; copyToast: string | null; onChatModeChange: ((mode: string) => void) | undefined; chatMode: string; onNewChat: (() => void) | undefined; messages: ChatMessage[]; confirm: (opts?: ConfirmOptions | null) => Promise<boolean>; }) {
+    return <div className="shrink-0 px-3 py-1.5 border-b flex items-center gap-2 border-[var(--vsc-border)]">
+        <span className="text-[11px] font-semibold uppercase tracking-wider [color:var(--vsc-fg-muted)]! [letter-spacing:0.06em]">
+            {t('webpages.chat.title', 'AI Chat')}
+        </span>
+        {copyToast && (
+            <span
+                role="status"
+                aria-live="polite"
+                className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                style={{
+                    color: copyToast === 'copied' ? 'var(--accent-primary)' : 'var(--error)',
+                    background: 'color-mix(in srgb, currentColor 10%, transparent)',
+                }}
+            >
+                {copyToast === 'copied'
+                    ? t('webpages.address.copied', 'Copied')
+                    : t('webpages.copy_failed', 'Copy failed')}
+            </span>
+        )}
+        <span className="flex-1" />
+        {onChatModeChange && (
+            /* Two segments, not three (plan W2). 'plan' folds into
+               "Propose first": both stop before touching a file and
+               ask, which is the only distinction a user is making
+               here. A stored 'plan' keeps working and shows as the
+               right-hand segment until the user picks again. */
+            <SegmentedControl
+                size="sm"
+                ariaLabel={t('webpages.chat.mode', 'How the assistant edits')}
+                value={chatMode === 'auto' ? 'auto' : 'ask'}
+                onChange={onChatModeChange}
+                options={[
+                    { value: 'auto', label: t('webpages.chat.mode_auto', 'Edit automatically') },
+                    { value: 'ask', label: t('webpages.chat.mode_ask', 'Propose first') },
+                ]} />
+        )}
+        {onNewChat && (
+            <button
+                type="button"
+                onClick={async () => {
+                    if (messages.length === 0) return;
+                    if (await confirm({ title: t('webpages.chat.new_confirm', 'Start a new chat? The current conversation will be cleared.'), confirmLabel: t('webpages.chat.new', 'New chat') })) {
+                        onNewChat();
+                    }
+                } }
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] hover:opacity-100 transition-opacity"
+                style={{
+                    color: 'var(--vsc-fg-muted)',
+                    opacity: messages.length === 0 ? 0.4 : 0.8,
+                    cursor: messages.length === 0 ? 'default' : 'pointer',
+                }}
+                disabled={messages.length === 0}
+                title={messages.length === 0
+                    ? t('webpages.chat.new_none', 'No conversation to clear')
+                    : t('webpages.chat.new_hint', 'Start a new chat')}
+            >
+                <Plus size={11} /> {t('webpages.chat.new', 'New chat')}
+            </button>
+        )}
+    </div>;
 }

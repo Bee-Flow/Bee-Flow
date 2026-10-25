@@ -24,6 +24,8 @@ import type { FlowDefinition, FlowStep } from './types';
 import type { AutoMapDefinition } from '../mapping/autoMapInputs.types';
 import type { Position } from '../build/addStepModel';
 import type { ScopeStep, ScopeGraph } from './flowletScope.types';
+import { walkSteps } from './flowletScope.helpers';
+export { layerCallScopes } from './flowletScope.helpers';
 export type { ScopeStep, ScopeGraph } from './flowletScope.types';
 const LAYER_KEY_RE = /^[a-z][a-z0-9_]*$/;
 /**
@@ -275,29 +277,6 @@ export function deleteLayerAndCalls(def: ScopeGraph, key: string) {
 }
 
 /**
- * Where a flowlet is called from, as scope keys ('root' or a flowlet key),
- * one entry per call site. `countLayerRefs` gives the raw total; this names
- * the places, which is what a confirmation prompt needs to be honest about.
- *
- * @param {object|null} def whole (root) definition
- * @param {string} key
- * @returns {string[]}
- */
-export function layerCallScopes(def: ScopeGraph | null | undefined, key: string) {
-    if (!def || !key) return [];
-    const out = [];
-    for (const step of walkSteps(def.steps || [])) {
-        if (step?.type === 'call_layer' && step.layerKey === key) out.push('root');
-    }
-    for (const [k, layer] of Object.entries(def.layers || {})) {
-        for (const step of walkSteps(layer?.steps || [])) {
-            if (step?.type === 'call_layer' && step.layerKey === key) out.push(k);
-        }
-    }
-    return out;
-}
-
-/**
  * Rename a flowlet's display title (the key is immutable — bindings and
  * call_layer references address flowlets by key, never by title).
  *
@@ -369,25 +348,6 @@ export function getLayerDependencies(def: ScopeGraph | null | undefined, key: st
 }
 
 // ── internals ──────────────────────────────────────────────────────────
-
-/**
- * Depth-first walk over a steps array, descending into loop bodies
- * (`step.body`) and parallel branches (`step.branches` — either arrays
- * of steps or `{steps: []}` objects).
- */
-function* walkSteps(steps: ScopeStep[] | null | undefined): Generator<ScopeStep> {
-    for (const step of steps || []) {
-        if (!step) continue;
-        yield step;
-        if (Array.isArray(step.body)) yield* walkSteps(step.body);
-        if (Array.isArray(step.branches)) {
-            for (const branch of step.branches) {
-                if (Array.isArray(branch)) yield* walkSteps(branch);
-                else if (Array.isArray(branch?.steps)) yield* walkSteps(branch.steps);
-            }
-        }
-    }
-}
 
 /**
  * Slugify a title into a valid layer key and append a short random

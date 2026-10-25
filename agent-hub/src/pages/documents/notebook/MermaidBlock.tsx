@@ -11,204 +11,14 @@
  */
 import React, { useState, useRef, useEffect, useCallback, useEffectEvent } from 'react';
 import mermaid from 'mermaid';
-import type { MermaidConfig, RenderResult } from 'mermaid';
+import type { RenderResult } from 'mermaid';
 import { Code, Eye, Maximize2, X, Download, Copy, Check, Loader2 } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
 import type { MermaidBlockProps, ToolbarBtnProps } from './MermaidBlock.types';
+import { MERMAID_CONFIG } from './MermaidBlock.constants';
+import { postProcessSVG } from './MermaidBlock.helpers';
 
 let blockCounter = 0;
-/* ── Premium Theme Configuration ──────────────────────── */
-const MERMAID_CONFIG: MermaidConfig = {
-    startOnLoad: false,
-    // Pin this explicitly. Diagram source can arrive from an ingested document
-    // or an AI write, and 'loose' would let it emit click handlers and raw HTML
-    // labels — we render mermaid's output with innerHTML. It is mermaid's
-    // current default, but relying on a library default for a security boundary
-    // is not a decision worth leaving implicit.
-    securityLevel: 'strict',
-    theme: 'base',
-    themeVariables: {
-        darkMode: false,
-        background: '#ffffff',
-        // Core palette — calm blue-teal (Studio-aligned)
-        primaryColor: '#eff6ff',
-        primaryTextColor: '#1e3a8a',
-        primaryBorderColor: '#3b82f6',
-
-        secondaryColor: '#ecfdf5',
-        secondaryTextColor: '#064e3b',
-        secondaryBorderColor: '#34d399',
-
-        tertiaryColor: '#f0fdf4',
-        tertiaryTextColor: '#14532d',
-        tertiaryBorderColor: '#86efac',
-
-        // Edges & labels
-        lineColor: '#3b82f6',
-        textColor: '#1e293b',
-        edgeLabelBackground: '#ffffff',
-
-        // Flowchart nodes
-        mainBkg: '#eff6ff',
-        nodeBorder: '#3b82f6',
-        nodeTextColor: '#1e3a8a',
-
-        // Clusters / subgraphs
-        clusterBkg: '#f0f9ff',
-        clusterBorder: '#7dd3fc',
-
-        // Title
-        titleColor: '#1e3a8a',
-
-        // Sequence diagram
-        actorTextColor: '#1e3a8a',
-        actorBorder: '#3b82f6',
-        actorBkg: '#eff6ff',
-        signalColor: '#1d4ed8',
-        labelBoxBkgColor: '#eff6ff',
-
-        // Notes
-        noteBkgColor: '#fffbeb',
-        noteTextColor: '#78350f',
-        noteBorderColor: '#f59e0b',
-
-        // Misc
-        fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        fontSize: '15px',
-    },
-    fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-    fontSize: 15,
-    flowchart: {
-        htmlLabels: true,
-        curve: 'basis',
-        padding: 18,
-        nodeSpacing: 50,
-        rankSpacing: 60,
-        diagramPadding: 16,
-    },
-    sequence: {
-        diagramMarginX: 20,
-        diagramMarginY: 16,
-        actorMargin: 60,
-        messageMargin: 40,
-        boxMargin: 8,
-        boxTextMargin: 6,
-        noteMargin: 12,
-        mirrorActors: false,
-    },
-    mindmap: { padding: 20 },
-    gantt: { fontSize: 13 },
-};
-
-/* ── SVG Post-Processing ──────────────────────────────── */
-function postProcessSVG(svgElement: SVGSVGElement) {
-    if (!svgElement) return;
-
-    // Style: max-width responsive
-    svgElement.style.maxWidth = '100%';
-    svgElement.style.height = 'auto';
-
-    // Add drop-shadow filter definition to SVG
-    let defs = svgElement.querySelector('defs');
-    if (!defs) {
-        defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        svgElement.prepend(defs);
-    }
-
-    // Premium drop-shadow filter
-    if (!defs.querySelector('#premium-shadow')) {
-        const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-        filter.setAttribute('id', 'premium-shadow');
-        filter.setAttribute('x', '-10%');
-        filter.setAttribute('y', '-10%');
-        filter.setAttribute('width', '130%');
-        filter.setAttribute('height', '140%');
-        filter.innerHTML = `
-            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(59, 130, 246, 0.15)" flood-opacity="1"/>
-        `;
-        defs.appendChild(filter);
-    }
-
-    // Subtle glow filter for highlighted elements
-    if (!defs.querySelector('#node-glow')) {
-        const glow = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-        glow.setAttribute('id', 'node-glow');
-        glow.setAttribute('x', '-20%');
-        glow.setAttribute('y', '-20%');
-        glow.setAttribute('width', '150%');
-        glow.setAttribute('height', '150%');
-        glow.innerHTML = `
-            <feGaussianBlur stdDeviation="2" result="blur"/>
-            <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        `;
-        defs.appendChild(glow);
-    }
-
-    // Apply shadows and rounded corners to nodes
-    const nodeRects = svgElement.querySelectorAll<SVGElement>('.node rect, .node polygon, .node circle, .node ellipse');
-    nodeRects.forEach(el => {
-        el.style.filter = 'url(#premium-shadow)';
-        if (el.tagName === 'rect') {
-            // Soft rounded corners
-            if (!el.getAttribute('rx') || parseFloat(el.getAttribute('rx') as string) < 6) {
-                el.setAttribute('rx', '8');
-                el.setAttribute('ry', '8');
-            }
-        }
-    });
-
-    // Style cluster/subgraph backgrounds
-    const clusterRects = svgElement.querySelectorAll<SVGElement>('.cluster rect');
-    clusterRects.forEach(el => {
-        el.setAttribute('rx', '12');
-        el.setAttribute('ry', '12');
-        el.style.filter = 'url(#premium-shadow)';
-    });
-
-    // Thicker, smoother edge lines
-    const edges = svgElement.querySelectorAll('.edge-pattern, .flowchart-link, path.path');
-    edges.forEach(el => {
-        const currentStrokeWidth = el.getAttribute('stroke-width');
-        if (!currentStrokeWidth || parseFloat(currentStrokeWidth) < 1.8) {
-            el.setAttribute('stroke-width', '1.8');
-        }
-    });
-
-    // Better arrowhead markers
-    const markers = svgElement.querySelectorAll<SVGElement>('marker polygon, marker path');
-    markers.forEach(el => {
-        if (!el.style.fill || el.style.fill === '#333') {
-            el.style.fill = '#3b82f6';
-        }
-    });
-
-    // Enhance edge labels
-    const edgeLabels = svgElement.querySelectorAll('.edgeLabel rect, .labelBkg');
-    edgeLabels.forEach(el => {
-        el.setAttribute('rx', '6');
-        el.setAttribute('ry', '6');
-    });
-
-    // Actor styling for sequence diagrams
-    const actors = svgElement.querySelectorAll<SVGElement>('.actor');
-    actors.forEach(el => {
-        if (el.tagName === 'rect') {
-            el.setAttribute('rx', '10');
-            el.setAttribute('ry', '10');
-            el.style.filter = 'url(#premium-shadow)';
-        }
-    });
-
-    // Note styling for sequence diagrams
-    const notes = svgElement.querySelectorAll('.note rect');
-    notes.forEach(el => {
-        el.setAttribute('rx', '8');
-        el.setAttribute('ry', '8');
-    });
-}
 
 /* ── Export helpers ────────────────────────────────────── */
 
@@ -424,37 +234,7 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
                 contentEditable={false}
             >
                 {/* ── Glassmorphism Header ── */}
-                <div className="mermaid-block-header">
-                    <span className="mermaid-block-title">
-                        <span className="mermaid-block-icon">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
-                            </svg>
-                        </span>
-                        {t('notebooks.mermaid_title', 'Diagram')}
-                    </span>
-
-                    <div className="mermaid-toolbar">
-                        <ToolbarBtn onClick={() => setShowCode(!showCode)} title={showCode ? t('notebooks.mermaid_show_diagram', 'Show diagram') : t('notebooks.mermaid_show_code', 'Show code')} active={showCode}>
-                            {showCode ? <><Eye size={12} /> {t('notebooks.mermaid_preview', 'Preview')}</> : <><Code size={12} /> {t('notebooks.mermaid_code', 'Code')}</>}
-                        </ToolbarBtn>
-
-                        <ToolbarBtn onClick={handleCopy} title={t('notebooks.mermaid_copy_code', 'Copy code')} active={copied}>
-                            {copied ? <><Check size={12} /> {t('notebooks.mermaid_copied', 'Copied')}</> : <><Copy size={12} /></>}
-                        </ToolbarBtn>
-
-                        {!showCode && (
-                            <>
-                                <ToolbarBtn onClick={handleDownloadSVG} title={t('notebooks.mermaid_download_svg', 'Download SVG')}>
-                                    <Download size={12} />
-                                </ToolbarBtn>
-                                <ToolbarBtn onClick={() => setFullscreen(true)} title={t('notebooks.mermaid_fullscreen', 'Fullscreen')}>
-                                    <Maximize2 size={12} />
-                                </ToolbarBtn>
-                            </>
-                        )}
-                    </div>
-                </div>
+                <MermaidBlockSection t={t} ToolbarBtn={ToolbarBtn} setShowCode={setShowCode} showCode={showCode} handleCopy={handleCopy} copied={copied} handleDownloadSVG={handleDownloadSVG} setFullscreen={setFullscreen} />
 
                 {/* ── Code Editor ── */}
                 {showCode ? (
@@ -546,4 +326,38 @@ export default function MermaidBlock({ code, onCodeChange, editable = true }: Me
             )}
         </>
     );
+}
+
+function MermaidBlockSection({ t, ToolbarBtn, setShowCode, showCode, handleCopy, copied, handleDownloadSVG, setFullscreen }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; ToolbarBtn: ({ onClick, title, active, children }: ToolbarBtnProps) => React.JSX.Element; setShowCode: React.Dispatch<React.SetStateAction<boolean>>; showCode: boolean; handleCopy: () => void; copied: boolean; handleDownloadSVG: () => void; setFullscreen: React.Dispatch<React.SetStateAction<boolean>>; }) {
+    return <div className="mermaid-block-header">
+        <span className="mermaid-block-title">
+            <span className="mermaid-block-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
+                </svg>
+            </span>
+            {t('notebooks.mermaid_title', 'Diagram')}
+        </span>
+
+        <div className="mermaid-toolbar">
+            <ToolbarBtn onClick={() => setShowCode(!showCode)} title={showCode ? t('notebooks.mermaid_show_diagram', 'Show diagram') : t('notebooks.mermaid_show_code', 'Show code')} active={showCode}>
+                {showCode ? <><Eye size={12} /> {t('notebooks.mermaid_preview', 'Preview')}</> : <><Code size={12} /> {t('notebooks.mermaid_code', 'Code')}</>}
+            </ToolbarBtn>
+
+            <ToolbarBtn onClick={handleCopy} title={t('notebooks.mermaid_copy_code', 'Copy code')} active={copied}>
+                {copied ? <><Check size={12} /> {t('notebooks.mermaid_copied', 'Copied')}</> : <><Copy size={12} /></>}
+            </ToolbarBtn>
+
+            {!showCode && (
+                <>
+                    <ToolbarBtn onClick={handleDownloadSVG} title={t('notebooks.mermaid_download_svg', 'Download SVG')}>
+                        <Download size={12} />
+                    </ToolbarBtn>
+                    <ToolbarBtn onClick={() => setFullscreen(true)} title={t('notebooks.mermaid_fullscreen', 'Fullscreen')}>
+                        <Maximize2 size={12} />
+                    </ToolbarBtn>
+                </>
+            )}
+        </div>
+    </div>;
 }

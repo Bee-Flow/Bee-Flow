@@ -33,7 +33,8 @@
  * choosing.
  */
 
-import { applyAppSelection, hasCuratedGrants, initialSelection, isAppKey, setAppActions, type SelectionMap, type ToolsConfig } from './toolGrants';
+import { applyAppSelection, initialSelection, setAppActions, type SelectionMap, type ToolsConfig } from './toolGrants';
+import { hasCuratedGrants, isAppKey } from './toolGrants.helpers';
 import type { ToolApp } from './toolCatalogTypes';
 
 /**

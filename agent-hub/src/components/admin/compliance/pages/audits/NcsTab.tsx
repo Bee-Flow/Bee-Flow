@@ -10,7 +10,7 @@ import { editPatch } from './isoProcessHelpers';
 import type { OrgUser } from '../accessAuditLabels';
 import type { SetHeaderActions } from './useHeaderPrimary';
 import useHeaderPrimary from './useHeaderPrimary';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import type { DataTableContext } from '../../../../shared/DataTable';
 import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
@@ -268,67 +268,70 @@ export default function NcsTab({ audit, orgUsers, isMobile = false, focusId = nu
                     {!headerHasCreate && <ActionButton variant="primary" icon={Plus} onClick={() => { setSelectedId(null); setCreating(true); }} data-testid="nc-record">{recordLabel}</ActionButton>}
                 </>
             )}>
-            <DataTable
-                columns={columns}
-                rows={list}
-                loading={loading}
-                isMobile={isMobile}
-                rowKey={(n) => n.id}
-                ariaLabel={t('compliance.nc_tab', 'Nonconformities')}
-                testId="ncs-table"
-                empty={<EmptyState title={t('compliance.nc_empty_title', 'No nonconformities recorded')} description={t('compliance.nc_empty', 'No nonconformities recorded. That is only good news if you are genuinely finding none — audits and incidents should feed this register.')} />}
-                renderCard={(nc: Nonconformity) => {
-                    const closed = nc.status === 'closed';
-                    return (
-                        <button
-                            type="button"
-                            onClick={() => toggle(nc)}
-                            aria-selected={(!creating && String(selectedId) === String(nc.id)) || undefined}
-                            className="w-full text-left min-h-[44px] flex flex-col justify-center gap-1 min-w-0"
-                            data-testid={`nc-card-${nc.id}`}
-                        >
-                            <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{nc.title}</span>
-                            <span className="flex items-center gap-2 min-w-0 text-[11px]">
-                                <RegisterStatePill state={nc.status} testId={`nc-card-state-${nc.id}`}>{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill>
-                                <StatusPill tone={toneOf(NC_SEVERITY, nc.severity)}>{labelOf(t, NC_SEVERITY, nc.severity)}</StatusPill>
-                                <span className="truncate text-[var(--text-secondary)]">{labelOf(t, NC_SOURCE, nc.source)}</span>
-                            </span>
-                            <span className="flex items-center gap-2 min-w-0 text-[11px] text-[var(--text-secondary)]">
-                                {nc.due_at
-                                    ? <DeadlineClock variant="inline" dueAt={nc.due_at} doneAt={closed ? (nc.closed_at || nc.due_at) : undefined} testId={`nc-clock-card-${nc.id}`} />
-                                    : <span className="text-[var(--text-tertiary)]">—</span>}
-                                <span className="truncate">{userName(orgUsers, nc.owner_user_id) || '—'}</span>
-                            </span>
-                        </button>
-                    );
-                }}
-                renderRow={(nc: Nonconformity, ctx: DataTableContext) => {
-                    const closed = nc.status === 'closed';
-                    const overdue = isOverdue(nc.due_at, { closed });
-                    return (
-                        <TableRow key={nc.id} columns={ctx.columns} accent={overdue ? 'error' : toneOf(NC_STATUS, nc.status)} selected={!creating && String(selectedId) === String(nc.id)}
-                            onClick={() => toggle(nc)} testId={`nc-row-${nc.id}`}>
-                            <TableCell column={ctx.columns[0]} className="min-w-0">
-                                <div className="font-semibold text-[var(--text-primary)] truncate">{nc.title}</div>
-                                <div className="text-[11px] text-[var(--text-tertiary)] truncate">
-                                    {/* The severity's word while its own column is folded. */}
-                                    <span className={TABLE_FOLDED_ONLY[900]} data-testid={`nc-folded-severity-${nc.id}`}>{labelOf(t, NC_SEVERITY, nc.severity)}{nc.description ? ' · ' : ''}</span>
-                                    {nc.description}
-                                </div>
-                            </TableCell>
-                            <TableCell column={ctx.columns[1]}><RegisterStatePill state={nc.status} testId={`nc-state-${nc.id}`}>{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill></TableCell>
-                            <TableCell column={ctx.columns[2]}><StatusPill tone={toneOf(NC_SEVERITY, nc.severity)}>{labelOf(t, NC_SEVERITY, nc.severity)}</StatusPill></TableCell>
-                            <TableCell column={ctx.columns[3]} className="truncate text-[var(--text-secondary)]">{labelOf(t, NC_SOURCE, nc.source)}</TableCell>
-                            <TableCell column={ctx.columns[4]}>
-                                {nc.due_at
-                                    ? <DeadlineClock variant="inline" dueAt={nc.due_at} doneAt={closed ? (nc.closed_at || nc.due_at) : undefined} testId={`nc-clock-${nc.id}`} />
-                                    : <span className="text-[var(--text-tertiary)]">—</span>}
-                            </TableCell>
-                            <TableCell column={ctx.columns[5]} className="truncate text-[var(--text-secondary)]">{userName(orgUsers, nc.owner_user_id) || '—'}</TableCell>
-                        </TableRow>
-                    );
-                }}
-            />
+            <NcsTabDataTable columns={columns} list={list} loading={loading} isMobile={isMobile} t={t} toggle={toggle} creating={creating} selectedId={selectedId} orgUsers={orgUsers} />
         </RegisterLayout>
     );
+}
+
+function NcsTabDataTable({ columns, list, loading, isMobile, t, toggle, creating, selectedId, orgUsers }: { columns: ({ id: string; width: string; label: string; foldBelow?: undefined; } | { id: string; width: string; label: string; foldBelow: number; })[]; list: Nonconformity[]; loading: boolean; isMobile: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; toggle: (nc: Nonconformity) => void; creating: boolean; selectedId: string | number | null; orgUsers: OrgUser[] | null | undefined; }) {
+    return <DataTable
+        columns={columns}
+        rows={list}
+        loading={loading}
+        isMobile={isMobile}
+        rowKey={(n) => n.id}
+        ariaLabel={t('compliance.nc_tab', 'Nonconformities')}
+        testId="ncs-table"
+        empty={<EmptyState title={t('compliance.nc_empty_title', 'No nonconformities recorded')} description={t('compliance.nc_empty', 'No nonconformities recorded. That is only good news if you are genuinely finding none — audits and incidents should feed this register.')} />}
+        renderCard={(nc: Nonconformity) => {
+            const closed = nc.status === 'closed';
+            return (
+                <button
+                    type="button"
+                    onClick={() => toggle(nc)}
+                    aria-selected={(!creating && String(selectedId) === String(nc.id)) || undefined}
+                    className="w-full text-left min-h-[44px] flex flex-col justify-center gap-1 min-w-0"
+                    data-testid={`nc-card-${nc.id}`}
+                >
+                    <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{nc.title}</span>
+                    <span className="flex items-center gap-2 min-w-0 text-[11px]">
+                        <RegisterStatePill state={nc.status} testId={`nc-card-state-${nc.id}`}>{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill>
+                        <StatusPill tone={toneOf(NC_SEVERITY, nc.severity)}>{labelOf(t, NC_SEVERITY, nc.severity)}</StatusPill>
+                        <span className="truncate text-[var(--text-secondary)]">{labelOf(t, NC_SOURCE, nc.source)}</span>
+                    </span>
+                    <span className="flex items-center gap-2 min-w-0 text-[11px] text-[var(--text-secondary)]">
+                        {nc.due_at
+                            ? <DeadlineClock variant="inline" dueAt={nc.due_at} doneAt={closed ? (nc.closed_at || nc.due_at) : undefined} testId={`nc-clock-card-${nc.id}`} />
+                            : <span className="text-[var(--text-tertiary)]">—</span>}
+                        <span className="truncate">{userName(orgUsers, nc.owner_user_id) || '—'}</span>
+                    </span>
+                </button>
+            );
+        } }
+        renderRow={(nc: Nonconformity, ctx: DataTableContext) => {
+            const closed = nc.status === 'closed';
+            const overdue = isOverdue(nc.due_at, { closed });
+            return (
+                <TableRow key={nc.id} columns={ctx.columns} accent={overdue ? 'error' : toneOf(NC_STATUS, nc.status)} selected={!creating && String(selectedId) === String(nc.id)}
+                    onClick={() => toggle(nc)} testId={`nc-row-${nc.id}`}>
+                    <TableCell column={ctx.columns[0]} className="min-w-0">
+                        <div className="font-semibold text-[var(--text-primary)] truncate">{nc.title}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)] truncate">
+                            {/* The severity's word while its own column is folded. */}
+                            <span className={TABLE_FOLDED_ONLY[900]} data-testid={`nc-folded-severity-${nc.id}`}>{labelOf(t, NC_SEVERITY, nc.severity)}{nc.description ? ' · ' : ''}</span>
+                            {nc.description}
+                        </div>
+                    </TableCell>
+                    <TableCell column={ctx.columns[1]}><RegisterStatePill state={nc.status} testId={`nc-state-${nc.id}`}>{labelOf(t, NC_STATUS, nc.status)}</RegisterStatePill></TableCell>
+                    <TableCell column={ctx.columns[2]}><StatusPill tone={toneOf(NC_SEVERITY, nc.severity)}>{labelOf(t, NC_SEVERITY, nc.severity)}</StatusPill></TableCell>
+                    <TableCell column={ctx.columns[3]} className="truncate text-[var(--text-secondary)]">{labelOf(t, NC_SOURCE, nc.source)}</TableCell>
+                    <TableCell column={ctx.columns[4]}>
+                        {nc.due_at
+                            ? <DeadlineClock variant="inline" dueAt={nc.due_at} doneAt={closed ? (nc.closed_at || nc.due_at) : undefined} testId={`nc-clock-${nc.id}`} />
+                            : <span className="text-[var(--text-tertiary)]">—</span>}
+                    </TableCell>
+                    <TableCell column={ctx.columns[5]} className="truncate text-[var(--text-secondary)]">{userName(orgUsers, nc.owner_user_id) || '—'}</TableCell>
+                </TableRow>
+            );
+        } } />;
 }

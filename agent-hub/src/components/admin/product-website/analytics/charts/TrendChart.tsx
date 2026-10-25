@@ -15,7 +15,8 @@
  */
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import { ACCENT, fmt } from '../ui';
+import { fmt } from '../ui';
+import { ACCENT } from '../BarList';
 
 const PAD = { top: 10, right: 8, bottom: 20, left: 8 };
 

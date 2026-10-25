@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Check, X, RotateCcw, Loader2 } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { LessonStep, StepState } from '../../../api/lessons.types';
 import { gradePracticeItem } from '../practiceClient';
@@ -187,41 +187,7 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
                 </p>
             )}
 
-            <div className="flex flex-col gap-2">
-                {(step.choices || []).map((c) => {
-                    const isSelected = selected.has(c.id);
-                    const showCorrect = result === 'correct' && correctIds.has(c.id);
-                    const showWrong = result === 'wrong' && isSelected && !correctIds.has(c.id);
-                    let borderColor = 'var(--border-default)';
-                    let bg = 'var(--bg-card)';
-                    if (showCorrect) { borderColor = '#15803d'; bg = 'color-mix(in srgb, #22c55e 12%, transparent)'; }
-                    else if (showWrong) { borderColor = '#b91c1c'; bg = 'color-mix(in srgb, #ef4444 10%, transparent)'; }
-                    else if (isSelected) { borderColor = 'var(--accent-primary)'; bg = 'color-mix(in srgb, var(--accent-primary) 10%, transparent)'; }
-                    return (
-                        <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => toggle(c.id)}
-                            disabled={result === 'correct'}
-                            className="text-left px-3.5 py-2.5 rounded-lg border text-[13px] flex items-start gap-2.5 transition-colors"
-                            style={{ borderColor, background: bg, color: 'var(--text-primary)' }}
-                        >
-                            <span
-                                className="mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
-                                style={{ borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-default)' }}
-                                aria-hidden="true"
-                            >
-                                {showCorrect && <Check className="w-3 h-3 [color:#15803d]" />}
-                                {showWrong && <X className="w-3 h-3 [color:#b91c1c]" />}
-                                {!showCorrect && !showWrong && isSelected && (
-                                    <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
-                                )}
-                            </span>
-                            <span>{t(c.labelKey, c.labelFallback)}</span>
-                        </button>
-                    );
-                })}
-            </div>
+            <QuizStepSection step={step} selected={selected} result={result} correctIds={correctIds} toggle={toggle} t={t} />
 
             {result && (wrongChoiceFeedback || explanation) && (
                 <div
@@ -268,4 +234,42 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
             </div>
         </div>
     );
+}
+
+function QuizStepSection({ step, selected, result, correctIds, toggle, t }: { step: LessonStep; selected: Set<string>; result: string | null; correctIds: Set<string>; toggle: (id: string) => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div className="flex flex-col gap-2">
+        {(step.choices || []).map((c) => {
+            const isSelected = selected.has(c.id);
+            const showCorrect = result === 'correct' && correctIds.has(c.id);
+            const showWrong = result === 'wrong' && isSelected && !correctIds.has(c.id);
+            let borderColor = 'var(--border-default)';
+            let bg = 'var(--bg-card)';
+            if (showCorrect) { borderColor = '#15803d'; bg = 'color-mix(in srgb, #22c55e 12%, transparent)'; }
+            else if (showWrong) { borderColor = '#b91c1c'; bg = 'color-mix(in srgb, #ef4444 10%, transparent)'; }
+            else if (isSelected) { borderColor = 'var(--accent-primary)'; bg = 'color-mix(in srgb, var(--accent-primary) 10%, transparent)'; }
+            return (
+                <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggle(c.id)}
+                    disabled={result === 'correct'}
+                    className="text-left px-3.5 py-2.5 rounded-lg border text-[13px] flex items-start gap-2.5 transition-colors"
+                    style={{ borderColor, background: bg, color: 'var(--text-primary)' }}
+                >
+                    <span
+                        className="mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
+                        style={{ borderColor: isSelected ? 'var(--accent-primary)' : 'var(--border-default)' }}
+                        aria-hidden="true"
+                    >
+                        {showCorrect && <Check className="w-3 h-3 [color:#15803d]" />}
+                        {showWrong && <X className="w-3 h-3 [color:#b91c1c]" />}
+                        {!showCorrect && !showWrong && isSelected && (
+                            <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
+                        )}
+                    </span>
+                    <span>{t(c.labelKey, c.labelFallback)}</span>
+                </button>
+            );
+        })}
+    </div>;
 }

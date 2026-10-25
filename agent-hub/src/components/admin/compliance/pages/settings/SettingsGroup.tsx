@@ -1,7 +1,7 @@
 import { ChevronDown, GraduationCap, CheckCircle2, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import BreachRecipients from './BreachRecipients';
-import { RELEVANCE_OPTIONS } from './settingsFields';
+import { RELEVANCE_OPTIONS } from './settingsFields.helpers';
 import { SPAN_CLASS, groupProgress, isVisible, sectionsOf, spanOf, type SettingsForm, type SettingsSection } from './settingsLayout';
 import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
 import { FilterPill } from '../../../../shared/FilterPills';

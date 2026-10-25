@@ -8,7 +8,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { CheckSquare, Globe, Mic, Trash2, Type, Upload, type LucideIcon } from 'lucide-react';
 import ConfirmDialog from '../../../components/shared/ConfirmDialog';
 import EmptyState from '../../../components/shared/EmptyState';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
 import SourceActivity from './SourceActivity';
 import SourceCard from './sources/SourceCard';
 import SourcePreviewModal, { type SourcePreview } from './sources/SourcePreviewModal';
@@ -134,33 +134,7 @@ export default function NotebookSources({
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="shrink-0 px-3 py-2 border-b flex items-center justify-between border-[var(--border-subtle)]">
-                <h2 className="m-0 text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)]">{t('notebooks.sources', 'Sources')}</h2>
-                <div className="flex items-center gap-1.5">
-                    {sources.length > 0 && (
-                        <>
-                            {!readOnly && (
-                                <button
-                                    type="button"
-                                    onClick={() => { setSelectMode((v) => !v); setSelected(new Set()); }}
-                                    aria-pressed={selectMode}
-                                    className={`p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors ${selectMode ? 'text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)]'}`}
-                                    title={t('notebooks.select_multiple', 'Select multiple')}
-                                    aria-label={t('notebooks.select_multiple', 'Select multiple')}
-                                >
-                                    <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
-                                </button>
-                            )}
-                            <span
-                                className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
-                                title={t('notebooks.n_of_m_ready', { ready: readyCount, total: sources.length })}
-                            >
-                                {readyCount}<span className="opacity-50">/{sources.length}</span>
-                            </span>
-                        </>
-                    )}
-                </div>
-            </div>
+            <NotebookSourcesSection t={t} sources={sources} readOnly={readOnly} setSelectMode={setSelectMode} setSelected={setSelected} selectMode={selectMode} readyCount={readyCount} />
 
             {/* Add a source */}
             {!readOnly && (
@@ -328,4 +302,34 @@ export default function NotebookSources({
             />
         </div>
     );
+}
+
+function NotebookSourcesSection({ t, sources, readOnly, setSelectMode, setSelected, selectMode, readyCount }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; sources: SourceRow[]; readOnly: boolean; setSelectMode: React.Dispatch<React.SetStateAction<boolean>>; setSelected: React.Dispatch<React.SetStateAction<Set<string>>>; selectMode: boolean; readyCount: number; }) {
+    return <div className="shrink-0 px-3 py-2 border-b flex items-center justify-between border-[var(--border-subtle)]">
+        <h2 className="m-0 text-xs font-bold tracking-wide uppercase text-[var(--text-secondary)]">{t('notebooks.sources', 'Sources')}</h2>
+        <div className="flex items-center gap-1.5">
+            {sources.length > 0 && (
+                <>
+                    {!readOnly && (
+                        <button
+                            type="button"
+                            onClick={() => { setSelectMode((v) => !v); setSelected(new Set()); } }
+                            aria-pressed={selectMode}
+                            className={`p-1 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors ${selectMode ? 'text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)]'}`}
+                            title={t('notebooks.select_multiple', 'Select multiple')}
+                            aria-label={t('notebooks.select_multiple', 'Select multiple')}
+                        >
+                            <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                    )}
+                    <span
+                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
+                        title={t('notebooks.n_of_m_ready', { ready: readyCount, total: sources.length })}
+                    >
+                        {readyCount}<span className="opacity-50">/{sources.length}</span>
+                    </span>
+                </>
+            )}
+        </div>
+    </div>;
 }

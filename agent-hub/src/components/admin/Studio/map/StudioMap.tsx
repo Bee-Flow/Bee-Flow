@@ -1,10 +1,7 @@
 import { ShieldCheck } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import {
-    MAP_BLOCKS, MAP_EDGES, MAP_H, MAP_LANES, MAP_NODES, MAP_W, NO_EDGE_NODE_ID,
-    TILE_H, TILE_W, VERB_LABEL, blockMeta, countState, edgeGeometries, edgeTouches,
-    edgesOf, kindCardChrome, laneMeta, mapNode, scopeSentence, syntheticCardChrome,
-} from './studioMap';
+import { MAP_EDGES, blockMeta, countState, edgeGeometries, edgeTouches, edgesOf, kindCardChrome, laneMeta, mapNode, scopeSentence, syntheticCardChrome } from './studioMap';
+import { MAP_BLOCKS, MAP_H, MAP_LANES, MAP_NODES, MAP_W, NO_EDGE_NODE_ID, TILE_H, TILE_W, VERB_LABEL } from './studioMap.constants';
 import { useStudioCounts } from '../../../../hooks/useStudioCounts';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { kindColorVar, kindIcon, kindTileStyle } from '../../../shared/kindColors';

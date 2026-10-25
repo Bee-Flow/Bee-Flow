@@ -18,18 +18,8 @@ import { JsonPendingNote, PathAsTextNote } from './ValueNotes';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import {
-    inputFromBinding,
-    bindingFromInput,
-    canonicalRefPath,
-    detectTemplate,
-    isCleanPath,
-    isStructuredBinding,
-    refPathTokens,
-    structuredFromText,
-    formatPathForInsert,
-    getAutocompleteTokenFromPrefix,
-} from '../../../../utils/bindingHelpers';
+import { inputFromBinding, isStructuredBinding, structuredFromText, formatPathForInsert, getAutocompleteTokenFromPrefix } from '../../../../utils/bindingHelpers';
+import { bindingFromInput, canonicalRefPath, detectTemplate, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers.helpers';
 import { useAssistantField } from '../chat/AssistantFieldContext';
 import { useFormMode } from '../flow/settings/formDensity';
 import { denseInputClass, listBadgeClass, AMBER_NOTE, FOCUS_RING_INSET } from '../flow/settings/formStyles';

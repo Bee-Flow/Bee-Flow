@@ -15,7 +15,7 @@
  */
 import { scanTemplate } from '@/shared/expr';
 import { classifyRef, scanExprPaths } from '@/features/flow-editor/bindings/refTokens';
-import { canonicalRefPath, detectTemplate, isCleanPath } from '@/features/flow-editor/bindings/walkPath';
+import { canonicalRefPath, detectTemplate, isCleanPath } from '../../../../utils/bindingHelpers.helpers';
 import type { Binding } from './itemRefs';
 
 const USE_ROOTS = ['steps', 'trigger', 'loop'];

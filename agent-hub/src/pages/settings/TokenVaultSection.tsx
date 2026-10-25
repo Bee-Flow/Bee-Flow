@@ -2,7 +2,7 @@ import { Vault, Loader2, Trash2, Search, AlertTriangle, RefreshCw, EyeOff } from
 import React, { useCallback, useEffect, useState } from 'react';
 import useConfirm from '../../components/shared/useConfirm';
 
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { API_BASE } from '../../utils/helpers';
 import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 
@@ -128,45 +128,9 @@ const TokenVaultSection = () => {
 
     return (
         <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-5 space-y-4">
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <Vault className="w-5 h-5 text-[var(--accent-primary)]" />
-                    <div>
-                        <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                            {t('vault.title', 'Your placeholder vault')}
-                        </h3>
-                        <p className="text-xs text-[var(--text-muted)] mt-0.5 max-w-2xl leading-relaxed">
-                            {t('vault.description',
-                                'When Privacy Shield hides a personal detail from the AI, it stores which placeholder stood for which value here. Keeping the list means the same person or company gets the same placeholder in every conversation. Only you can see this.')}
-                        </p>
-                    </div>
-                </div>
-                <button
-                    onClick={() => load(offset, search)}
-                    className="shrink-0 p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-                    title={t('common.refresh', 'Refresh')}
-                    aria-label={t('common.refresh', 'Refresh')}
-                >
-                    <RefreshCw className="w-4 h-4" />
-                </button>
-            </div>
+            <TokenVaultSectionSection t={t} load={load} offset={offset} search={search} />
 
-            <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder={t('vault.search_placeholder', 'Search a value or placeholder…')}
-                        aria-label={t('vault.search_placeholder', 'Search a value or placeholder…')}
-                        className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-                    />
-                </div>
-                <span className="text-xs text-[var(--text-muted)] shrink-0">
-                    {t('vault.count', '{{n}} stored').replace('{{n}}', String(total))}
-                </span>
-            </div>
+            <TokenVaultSectionSection2 search={search} setSearch={setSearch} t={t} total={total} />
 
             {error && (
                 <div className="flex items-center gap-2 p-3 rounded-lg text-xs bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-[var(--error-ink)]">
@@ -274,3 +238,46 @@ const TokenVaultSection = () => {
 };
 
 export default TokenVaultSection;
+
+function TokenVaultSectionSection2({ search, setSearch, t, total }: { search: string; setSearch: React.Dispatch<React.SetStateAction<string>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; total: number; }) {
+    return <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+            <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t('vault.search_placeholder', 'Search a value or placeholder…')}
+                aria-label={t('vault.search_placeholder', 'Search a value or placeholder…')}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]" />
+        </div>
+        <span className="text-xs text-[var(--text-muted)] shrink-0">
+            {t('vault.count', '{{n}} stored').replace('{{n}}', String(total))}
+        </span>
+    </div>;
+}
+
+function TokenVaultSectionSection({ t, load, offset, search }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; load: (nextOffset?: number, nextSearch?: string) => Promise<void>; offset: number; search: string; }) {
+    return <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-2">
+            <Vault className="w-5 h-5 text-[var(--accent-primary)]" />
+            <div>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+                    {t('vault.title', 'Your placeholder vault')}
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 max-w-2xl leading-relaxed">
+                    {t('vault.description',
+                        'When Privacy Shield hides a personal detail from the AI, it stores which placeholder stood for which value here. Keeping the list means the same person or company gets the same placeholder in every conversation. Only you can see this.')}
+                </p>
+            </div>
+        </div>
+        <button
+            onClick={() => load(offset, search)}
+            className="shrink-0 p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
+            title={t('common.refresh', 'Refresh')}
+            aria-label={t('common.refresh', 'Refresh')}
+        >
+            <RefreshCw className="w-4 h-4" />
+        </button>
+    </div>;
+}

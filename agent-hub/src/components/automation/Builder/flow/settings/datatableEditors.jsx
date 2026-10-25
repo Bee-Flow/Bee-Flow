@@ -8,7 +8,8 @@
 // whose contents could become an identifier.
 import { Table2 } from 'lucide-react';
 import { useMemo } from 'react';
-import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import { ForEachSection, retryIsSet } from './collectionEditors';
+import { RetrySection } from './collectionEditors/RetrySection';
 import { controlSurfaceClass, FormRow, inputClass } from './formPrimitives';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { columnTypeKind, opTakesList, opTakesNoValue } from '../../../../admin/Studio/Datatables/datatableDisplay';

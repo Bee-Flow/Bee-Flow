@@ -19,7 +19,7 @@ import { errorMessage } from '../../../../utils/caughtError';
 import { copyText } from '../../../../utils/copyText';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import useConfirm from '../../../shared/useConfirm';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import { logger } from '../../../../utils/logger';
 
 type AccessMode = 'unlisted' | 'password' | 'email';
@@ -206,20 +206,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
 
     return (
         <div className="border-t border-[var(--border-default)] mt-1">
-            <div className="px-4 py-2 flex items-center justify-between">
-                <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
-                    {t('agent_wizard.external_share_external_link', 'External link')}
-                </div>
-                {!readOnly && !showForm && (
-                    <button
-                        type="button"
-                        onClick={() => { setShowForm(true); setJustCreated(null); }}
-                        className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
-                    >
-                        <Plus size={12} /> {t('agent_wizard.external_share_new_link', 'New link')}
-                    </button>
-                )}
-            </div>
+            <ExternalShareSectionSection t={t} readOnly={readOnly} showForm={showForm} setShowForm={setShowForm} setJustCreated={setJustCreated} />
 
             {/* One-time URL banner — shown only right after successful create. */}
             {justCreated && (
@@ -395,4 +382,21 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
             {confirmDialog}
         </div>
     );
+}
+
+function ExternalShareSectionSection({ t, readOnly, showForm, setShowForm, setJustCreated }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; readOnly: boolean; showForm: boolean; setShowForm: React.Dispatch<React.SetStateAction<boolean>>; setJustCreated: React.Dispatch<React.SetStateAction<{ url: string; shareId?: string; } | null>>; }) {
+    return <div className="px-4 py-2 flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
+            {t('agent_wizard.external_share_external_link', 'External link')}
+        </div>
+        {!readOnly && !showForm && (
+            <button
+                type="button"
+                onClick={() => { setShowForm(true); setJustCreated(null); } }
+                className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
+            >
+                <Plus size={12} /> {t('agent_wizard.external_share_new_link', 'New link')}
+            </button>
+        )}
+    </div>;
 }

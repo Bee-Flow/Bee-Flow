@@ -66,10 +66,10 @@
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/chat/answerTrace.test.js
  */
 
-import { ruleChipsOf } from './MessageItem/answerChips';
 import { documentCountOf } from './MessageItem/citationGroups';
-import { confirmDecisionOf, type ConfirmBook } from './MessageItem/toolConfirmStatus';
-import type { AnswerRow, HeldAction, HeldActionRow, MissingRow, OmittedFact, PhaseTrailEntry, QuestionRow, RuleRow, SourcesRow, ToolConfirmCall, ToolEntry, ToolTimes, TraceMessage, TraceRow, TraceSource } from './answerTrace.types';
+import { type ConfirmBook } from './MessageItem/toolConfirmStatus';
+import type { AnswerRow, MissingRow, OmittedFact, PhaseTrailEntry, SourcesRow, ToolEntry, TraceMessage, TraceRow, TraceSource } from './answerTrace.types';
+import { text, missing, sumDurations, toolDurationMs, questionRow, ruleRow, heldActionRow } from './answerTrace.helpers';
 
 /** De vijf regels, in leesvolgorde. */
 const TRACE_ROWS = Object.freeze(['question', 'sources', 'rule', 'held_action', 'answer']);
@@ -104,9 +104,6 @@ const OMITTED_FACTS = Object.freeze([
 /** Citations from a LIVE table row. No document, no passage. See sourcesRow. */
 const TABLE_ROW_KIND = 'datatable_row';
 
-/** De fases die samen "de vraag is ingelezen" opleveren. */
-const QUESTION_STAGES = Object.freeze(['processed_history', 'building_prompt']);
-
 /** The tool name with which an agent searches its own knowledge base. */
 const KB_TOOL = 'kb_search';
 
@@ -118,60 +115,13 @@ const UNKNOWN_DOC = 'Unknown Source';
 
 // ── Kleine hulpjes ───────────────────────────────────────────────────
 
-function text(value: unknown): string | null {
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    return trimmed || null;
-}
-
-function missing(id: string, reason: string): MissingRow {
-    return { id, state: 'missing', reason, omitted: [] };
-}
-
-/**
- * The durations of a series of steps added together.
- *
- * Only to be used on steps that FOLLOW EACH OTHER. Phases that slide over each
- * other (guardrails around privacy_scan) would be counted twice by this. For that
- * there is `traceSpanMs`.
- */
-function sumDurations(steps: Array<{ durationMs?: number | null } | null | undefined>) {
-    let total = null;
-    for (const s of steps) {
-        if (!s || !Number.isFinite(s.durationMs)) continue;
-        total = (total || 0) + (s.durationMs as number);
-    }
-    return total;
-}
-
 /** De tools die deze beurt draaide, zoals "How I got this answer" ze telt. */
 function toolStepsOf(msg: TraceMessage | null | undefined): ToolEntry[] {
     const history = Array.isArray(msg?.toolHistory) ? msg.toolHistory : [];
     return history.filter((t: ToolEntry | null) => t && t.name !== HIDDEN_TOOL);
 }
 
-/** The duration of a tool call, from its own clock ticks. */
-function toolDurationMs(tool: ToolEntry | null | undefined) {
-    return Number.isFinite(tool?.endTime) && Number.isFinite(tool?.startTime)
-        ? (tool as ToolTimes).endTime - (tool as ToolTimes).startTime
-        : null;
-}
-
 // ── De vijf regels ───────────────────────────────────────────────────
-
-/** 1: the question was read and turned into a prompt. Not: understood. */
-function questionRow(trail: PhaseTrailEntry[], hasTrail: boolean): QuestionRow | MissingRow {
-    const steps = trail.filter((r: PhaseTrailEntry) => QUESTION_STAGES.includes(r.stage));
-    if (steps.length === 0) return missing('question', hasTrail ? 'not_recorded' : 'no_trace');
-    return {
-        id: 'question',
-        state: 'recorded',
-        // The stages are listed so that the reader sees WHAT this rule rests on.
-        stages: steps.map((s: PhaseTrailEntry) => s.stage),
-        ms: sumDurations(steps),
-        omitted: [],
-    };
-}
 
 /**
  * 2: the knowledge base was searched, with what, and how much it yielded.
@@ -231,41 +181,6 @@ function sourcesRow(trail: PhaseTrailEntry[], msg: TraceMessage | null | undefin
     return {
         id: 'sources', state: 'recorded',
         query, queries, results, documents, rows, tables, ms, omitted,
-    };
-}
-
-/** 3: which rule of the role this answer followed. JUDGED, not minutes. */
-function ruleRow(msg: TraceMessage | null | undefined): RuleRow | MissingRow {
-    const rules = ruleChipsOf(msg);
-    if (rules.length === 0) return missing('rule', 'no_attribution');
-    return { id: 'rule', state: 'judged', rules, omitted: [] };
-}
-
-/** 4 — een actie die is aangeboden, en wat er daarna mee gebeurd is. */
-function heldActionRow(msg: TraceMessage | null | undefined, decided: ConfirmBook): HeldActionRow | MissingRow {
-    const calls = Array.isArray(msg?.pendingToolCalls)
-        ? msg.pendingToolCalls.filter((c: ToolConfirmCall | null) => c && typeof c === 'object')
-        : [];
-    // No `no_trace` here: held calls do not hang on the phase trail, so the absence
-    // says the same whether or not there is a trail.
-    if (calls.length === 0) return missing('held_action', 'not_recorded');
-
-    const actions = calls.map((call: ToolConfirmCall, i: number): HeldAction => {
-        const { status, by } = confirmDecisionOf(call, decided);
-        return {
-            key: text(call.argsKey) || text(call.callId) || `held-${i}`,
-            toolName: text(call.toolName),
-            effect: text(call.effect),
-            status,
-            by,
-        };
-    });
-    return {
-        id: 'held_action',
-        state: 'recorded',
-        actions,
-        openCount: actions.filter((a: HeldAction) => a.status === 'pending').length,
-        omitted: [],
     };
 }
 

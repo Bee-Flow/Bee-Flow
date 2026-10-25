@@ -16,10 +16,9 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { blockLabel } from '../heatmap/model';
 import { foldEventData, ctaLeaderboard, blockLeaderboard } from '../model';
-import {
-    ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, ShareBar, StatGrid, StatTile,
-    fmt, maxOf,
-} from '../ui';
+import { SERIES, Empty, StatGrid, StatTile, fmt } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT, ShareBar, maxOf } from '../BarList';
 import type { SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 

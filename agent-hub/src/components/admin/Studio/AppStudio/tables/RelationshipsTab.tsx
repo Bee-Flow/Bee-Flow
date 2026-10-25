@@ -7,7 +7,7 @@ import { AlertTriangle, Database, LayoutGrid, Link2, Trash2 } from 'lucide-react
 import { useCallback, useMemo, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 
 import {
     addRelation, fillersOfRelation, layoutTables, LAYOUT,
@@ -253,92 +253,95 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
                 </button>
             </div>
 
-            <div className="w-64 shrink-0 flex flex-col gap-2">
-                {selected && from && to ? (
-                    <div className="rounded-lg border p-3 flex flex-col gap-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                        <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                            <Link2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
-                            {tr('studio_apps_tables.rel.the_link', 'The link')}
-                        </p>
-                        <p className="text-xs text-[var(--text-primary)]">
-                            {tr('studio_apps_tables.rel.each_belongs_a', 'Each')} <strong>{from.name || from.key}</strong> {tr('studio_apps_tables.rel.each_belongs_b', 'belongs to one')}{' '}
-                            <strong>{to.name || to.key}</strong>.
-                        </p>
-                        <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.column_name', 'Column name')}</span>
-                            <input
-                                className="w-full rounded-md border px-2 py-1.5 text-sm [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!"
-                                value={selected.fieldName}
-                                disabled={disabled}
-                                aria-label={tr('studio_apps_tables.rel.column_name', 'Column name')}
-                                onChange={(e) => onChange(renameRelation(tables, {
-                                    tableId: selected.fromTableId, fieldId: selected.fieldId, name: e.target.value,
-                                }))}
-                            />
-                            <span className="text-[11px] text-[var(--text-tertiary)]">
-                                {tr('studio_apps_tables.rel.stored_in', 'Stored in')} <code>{from.key}.{selected.fieldKey}</code>. {tr('studio_apps_tables.rel.rename_note', 'Renaming the column key is a migration — that stays on the Tables tab.')}
-                            </span>
-                        </label>
-                        <label className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.points_at', 'Points at')}</span>
-                            <select
-                                className="w-full rounded-md border px-2 py-1.5 text-sm [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!"
-                                value={selected.toTableId || ''}
-                                disabled={disabled}
-                                aria-label={tr('studio_apps_tables.rel.related_table', 'Related table')}
-                                onChange={(e) => onChange(retargetRelation(tables, {
-                                    tableId: selected.fromTableId, fieldId: selected.fieldId, toTableId: e.target.value,
-                                }))}
-                            >
-                                {(tables || []).filter((t) => t.id !== selected.fromTableId).map((t) => (
-                                    <option key={t.id} value={t.id}>{t.name || t.key}</option>
-                                ))}
-                            </select>
-                        </label>
-                        <button
-                            type="button"
-                            onClick={deleteSelected}
-                            disabled={disabled}
-                            className="inline-flex items-center gap-1.5 self-start text-xs text-[var(--error)]"
-                        >
-                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {tr('studio_apps_tables.rel.remove_link', 'Remove this link')}
-                        </button>
-                    </div>
-                ) : (
-                    <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                        <p className="text-xs font-semibold text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.link_two', 'Link two tables')}</p>
-                        <p className="mt-1 text-xs text-[var(--text-tertiary)]">
-                            {tr('studio_apps_tables.rel.drag_help', 'Drag from the bottom of the table that has many, to the top of the one it belongs to — an attachment to its message. That adds a relation column to the first table.')}
-                        </p>
-                        <p className="mt-2 text-xs text-[var(--text-tertiary)]">
-                            {tr('studio_apps_tables.rel.click_help', 'Click a line to rename, repoint or remove it. Connectors with follow-up steps draw their own links and keep them filled.')}
-                        </p>
-                        <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
-                            {tr('studio_apps_tables.rel.layout_note', 'Where the cards sit is not saved — the layout is worked out from the links each time.')}
-                        </p>
-                    </div>
-                )}
-
-                {dangling.length ? (
-                    <p className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:rgba(217,119,6,0.4)] [background:rgba(217,119,6,0.1)] [color:#d97706]!">
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        <span>
-                            {dangling.length === 1
-                                ? tr('studio_apps_tables.rel.dangling_one', '{n} relation column points at a table that no longer exists ({keys}). Fix them on the Tables tab — the model will not save until you do.', { n: dangling.length, keys: dangling.map((r) => r.fieldKey).join(', ') })
-                                : tr('studio_apps_tables.rel.dangling_many', '{n} relation columns point at a table that no longer exists ({keys}). Fix them on the Tables tab — the model will not save until you do.', { n: dangling.length, keys: dangling.map((r) => r.fieldKey).join(', ') })}
-                        </span>
-                    </p>
-                ) : null}
-
-                {error ? (
-                    <p role="alert" className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:color-mix(in_srgb,var(--error)_40%,transparent)] [background:color-mix(in_srgb,var(--error)_10%,transparent)] [color:var(--error)]!">
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        <span>{error}</span>
-                    </p>
-                ) : null}
-            </div>
+            <CanvasSection selected={selected} from={from} to={to} tr={tr} disabled={disabled} onChange={onChange} tables={tables} deleteSelected={deleteSelected} dangling={dangling} error={error} />
         </div>
     );
+}
+
+function CanvasSection({ selected, from, to, tr, disabled, onChange, tables, deleteSelected, dangling, error }: { selected: RelationEdge | null; from: ModelTable | null | undefined; to: ModelTable | null | undefined; tr: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; disabled: boolean | undefined; onChange: (nextTables: ModelTable[]) => void; tables: ModelTable[]; deleteSelected: () => void; dangling: RelationEdge[]; error: string | null; }) {
+    return <div className="w-64 shrink-0 flex flex-col gap-2">
+        {selected && from && to ? (
+            <div className="rounded-lg border p-3 flex flex-col gap-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+                    <Link2 className="h-3.5 w-3.5 text-[var(--accent-primary)]" aria-hidden="true" />
+                    {tr('studio_apps_tables.rel.the_link', 'The link')}
+                </p>
+                <p className="text-xs text-[var(--text-primary)]">
+                    {tr('studio_apps_tables.rel.each_belongs_a', 'Each')} <strong>{from.name || from.key}</strong> {tr('studio_apps_tables.rel.each_belongs_b', 'belongs to one')}{' '}
+                    <strong>{to.name || to.key}</strong>.
+                </p>
+                <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.column_name', 'Column name')}</span>
+                    <input
+                        className="w-full rounded-md border px-2 py-1.5 text-sm [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!"
+                        value={selected.fieldName}
+                        disabled={disabled}
+                        aria-label={tr('studio_apps_tables.rel.column_name', 'Column name')}
+                        onChange={(e) => onChange(renameRelation(tables, {
+                            tableId: selected.fromTableId, fieldId: selected.fieldId, name: e.target.value,
+                        }))} />
+                    <span className="text-[11px] text-[var(--text-tertiary)]">
+                        {tr('studio_apps_tables.rel.stored_in', 'Stored in')} <code>{from.key}.{selected.fieldKey}</code>. {tr('studio_apps_tables.rel.rename_note', 'Renaming the column key is a migration — that stays on the Tables tab.')}
+                    </span>
+                </label>
+                <label className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.points_at', 'Points at')}</span>
+                    <select
+                        className="w-full rounded-md border px-2 py-1.5 text-sm [border-color:var(--border-default)] [background:var(--bg-tertiary)] [color:var(--text-primary)]!"
+                        value={selected.toTableId || ''}
+                        disabled={disabled}
+                        aria-label={tr('studio_apps_tables.rel.related_table', 'Related table')}
+                        onChange={(e) => onChange(retargetRelation(tables, {
+                            tableId: selected.fromTableId, fieldId: selected.fieldId, toTableId: e.target.value,
+                        }))}
+                    >
+                        {(tables || []).filter((t) => t.id !== selected.fromTableId).map((t) => (
+                            <option key={t.id} value={t.id}>{t.name || t.key}</option>
+                        ))}
+                    </select>
+                </label>
+                <button
+                    type="button"
+                    onClick={deleteSelected}
+                    disabled={disabled}
+                    className="inline-flex items-center gap-1.5 self-start text-xs text-[var(--error)]"
+                >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {tr('studio_apps_tables.rel.remove_link', 'Remove this link')}
+                </button>
+            </div>
+        ) : (
+            <div className="rounded-lg border p-3 border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                <p className="text-xs font-semibold text-[var(--text-secondary)]">{tr('studio_apps_tables.rel.link_two', 'Link two tables')}</p>
+                <p className="mt-1 text-xs text-[var(--text-tertiary)]">
+                    {tr('studio_apps_tables.rel.drag_help', 'Drag from the bottom of the table that has many, to the top of the one it belongs to — an attachment to its message. That adds a relation column to the first table.')}
+                </p>
+                <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                    {tr('studio_apps_tables.rel.click_help', 'Click a line to rename, repoint or remove it. Connectors with follow-up steps draw their own links and keep them filled.')}
+                </p>
+                <p className="mt-2 text-[11px] text-[var(--text-tertiary)]">
+                    {tr('studio_apps_tables.rel.layout_note', 'Where the cards sit is not saved — the layout is worked out from the links each time.')}
+                </p>
+            </div>
+        )}
+
+        {dangling.length ? (
+            <p className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:rgba(217,119,6,0.4)] [background:rgba(217,119,6,0.1)] [color:#d97706]!">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                    {dangling.length === 1
+                        ? tr('studio_apps_tables.rel.dangling_one', '{n} relation column points at a table that no longer exists ({keys}). Fix them on the Tables tab — the model will not save until you do.', { n: dangling.length, keys: dangling.map((r) => r.fieldKey).join(', ') })
+                        : tr('studio_apps_tables.rel.dangling_many', '{n} relation columns point at a table that no longer exists ({keys}). Fix them on the Tables tab — the model will not save until you do.', { n: dangling.length, keys: dangling.map((r) => r.fieldKey).join(', ') })}
+                </span>
+            </p>
+        ) : null}
+
+        {error ? (
+            <p role="alert" className="flex items-start gap-1.5 rounded-md border px-2 py-1.5 text-xs [border-color:color-mix(in_srgb,var(--error)_40%,transparent)] [background:color-mix(in_srgb,var(--error)_10%,transparent)] [color:var(--error)]!">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{error}</span>
+            </p>
+        ) : null}
+    </div>;
 }
 
 export default function RelationshipsTab(props: CanvasProps) {

@@ -38,7 +38,8 @@ vi.mock('../../../../hooks/useStudioCounts', async (importOriginal) => {
 
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-import { MAP_BLOCKS, MAP_EDGES, edgesOf, scopeSentence } from './studioMap';
+import { MAP_EDGES, edgesOf, scopeSentence } from './studioMap';
+import { MAP_BLOCKS } from './studioMap.constants';
 import StudioMap from './StudioMap';
 import { queryWrapper } from '../../../../test/queryWrapper';
 

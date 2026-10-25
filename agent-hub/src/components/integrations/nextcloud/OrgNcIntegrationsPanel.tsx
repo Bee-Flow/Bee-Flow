@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Cloud, Save, Loader2, Check, AlertTriangle, ChevronRight, Users } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
 import { mutate, ApiError } from '../../../api/mutate';
 
@@ -195,70 +195,73 @@ const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
             </section>
 
             {/* Per-group exceptions */}
-            <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
-                <div className="mb-3">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_per_group_exceptions', 'Per-group exceptions')}</h3>
-                    <p className="text-xs text-[var(--text-muted)]">
-                        {t('integ.org_nc_integrations_disable_specific_tools_for_a_nextcloud', 'Disable specific tools for a Nextcloud group. Groups inherit the org-wide settings unless something is checked below.')}
-                    </p>
-                </div>
-                {groups.length === 0 ? (
-                    <p className="text-xs text-[var(--text-muted)]">{t('integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync', 'No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use "Sync now" in Nextcloud Sync.')}</p>
-                ) : (
-                    <div className="space-y-1.5">
-                        {groups.map((g: NcGroup) => {
-                            const isOpen = expandedGroup === g.id;
-                            const disabledCount = (g.disabledIntegrations || []).length;
-                            return (
-                                <div key={g.id} className="rounded-xl overflow-hidden [background:var(--bg-tertiary)] [border:1px_solid_var(--border-subtle)]">
-                                    <button
-                                        type="button"
-                                        onClick={() => setExpandedGroup(isOpen ? null : g.id)}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left"
-                                    >
-                                        <ChevronRight className="w-3.5 h-3.5 transition-transform" style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none' }} />
-                                        <span className="text-[13px] font-medium flex-1 truncate text-[var(--text-primary)]">{g.name}</span>
-                                        <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-muted)]">
-                                            <Users className="w-3 h-3" /> {g.userCount}
-                                        </span>
-                                        {disabledCount > 0 && (
-                                            <span className="text-[11px] px-1.5 py-0.5 rounded [background:rgba(245,158,11,0.15)] [color:#d97706]!">
-                                                {t('integ.org_nc_integrations_disabled_count', '{count} disabled', { count: disabledCount })}
-                                            </span>
-                                        )}
-                                    </button>
-                                    {isOpen && (
-                                        <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 [border-top:1px_solid_var(--border-subtle)]">
-                                            {catalog.map((it: NcCatalogItem) => {
-                                                const orgOn = config.enabled.includes(it.id);
-                                                const groupDisabled = (g.disabledIntegrations || []).includes(it.id);
-                                                return (
-                                                    <label
-                                                        key={it.id}
-                                                        className={`flex items-center gap-2 p-2 rounded-lg text-[12px] ${orgOn ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
-                                                        title={orgOn ? `Block ${it.name} for this group` : 'Enable org-wide first'}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            disabled={!orgOn}
-                                                            checked={groupDisabled}
-                                                            onChange={() => orgOn && toggleGroupDisable(g.id, it.id)}
-                                                            className="accent-amber-500"
-                                                        />
-                                                        <span className="text-[var(--text-primary)]">{t('integ.org_nc_integrations_disable_name', 'Disable {name}', { name: it.name })}</span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </section>
+            <OrgNcIntegrationsPanelSection t={t} groups={groups} expandedGroup={expandedGroup} setExpandedGroup={setExpandedGroup} catalog={catalog} config={config} toggleGroupDisable={toggleGroupDisable} />
         </div>
     );
 };
 
 export default OrgNcIntegrationsPanel;
+
+function OrgNcIntegrationsPanelSection({ t, groups, expandedGroup, setExpandedGroup, catalog, config, toggleGroupDisable }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; groups: NcGroup[]; expandedGroup: string | null; setExpandedGroup: React.Dispatch<React.SetStateAction<string | null>>; catalog: NcCatalogItem[]; config: NcIntegrationsConfig; toggleGroupDisable: (groupId: string, integrationId: string) => Promise<void>; }) {
+    return <section className="rounded-2xl p-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
+        <div className="mb-3">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('integ.org_nc_integrations_per_group_exceptions', 'Per-group exceptions')}</h3>
+            <p className="text-xs text-[var(--text-muted)]">
+                {t('integ.org_nc_integrations_disable_specific_tools_for_a_nextcloud', 'Disable specific tools for a Nextcloud group. Groups inherit the org-wide settings unless something is checked below.')}
+            </p>
+        </div>
+        {groups.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)]">{t('integ.org_nc_integrations_no_nextcloud_groups_synced_yet_sync', 'No Nextcloud groups synced yet. Sync runs automatically every 6 hours, or use "Sync now" in Nextcloud Sync.')}</p>
+        ) : (
+            <div className="space-y-1.5">
+                {groups.map((g: NcGroup) => {
+                    const isOpen = expandedGroup === g.id;
+                    const disabledCount = (g.disabledIntegrations || []).length;
+                    return (
+                        <div key={g.id} className="rounded-xl overflow-hidden [background:var(--bg-tertiary)] [border:1px_solid_var(--border-subtle)]">
+                            <button
+                                type="button"
+                                onClick={() => setExpandedGroup(isOpen ? null : g.id)}
+                                className="w-full flex items-center gap-3 px-4 py-2.5 text-left"
+                            >
+                                <ChevronRight className="w-3.5 h-3.5 transition-transform" style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none' }} />
+                                <span className="text-[13px] font-medium flex-1 truncate text-[var(--text-primary)]">{g.name}</span>
+                                <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                                    <Users className="w-3 h-3" /> {g.userCount}
+                                </span>
+                                {disabledCount > 0 && (
+                                    <span className="text-[11px] px-1.5 py-0.5 rounded [background:rgba(245,158,11,0.15)] [color:#d97706]!">
+                                        {t('integ.org_nc_integrations_disabled_count', '{count} disabled', { count: disabledCount })}
+                                    </span>
+                                )}
+                            </button>
+                            {isOpen && (
+                                <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5 [border-top:1px_solid_var(--border-subtle)]">
+                                    {catalog.map((it: NcCatalogItem) => {
+                                        const orgOn = config.enabled.includes(it.id);
+                                        const groupDisabled = (g.disabledIntegrations || []).includes(it.id);
+                                        return (
+                                            <label
+                                                key={it.id}
+                                                className={`flex items-center gap-2 p-2 rounded-lg text-[12px] ${orgOn ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+                                                title={orgOn ? `Block ${it.name} for this group` : 'Enable org-wide first'}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    disabled={!orgOn}
+                                                    checked={groupDisabled}
+                                                    onChange={() => orgOn && toggleGroupDisable(g.id, it.id)}
+                                                    className="accent-amber-500" />
+                                                <span className="text-[var(--text-primary)]">{t('integ.org_nc_integrations_disable_name', 'Disable {name}', { name: it.name })}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        )}
+    </section>;
+}

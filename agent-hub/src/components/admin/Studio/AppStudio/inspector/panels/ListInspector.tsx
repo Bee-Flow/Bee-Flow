@@ -8,8 +8,8 @@ import { registerInspector } from '../registry';
 import FormField from '../../../../../shared/FormField';
 import Toggle from '../../../../../shared/Toggle';
 import { RepeatableList, inputCls } from '../../../../product-website/fields';
-import type { PanelProps } from '../appDefinition';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { CommonNodeProps, PanelProps } from '../appDefinition';
+import type { TranslateFn, TranslateParams } from '../../../../../../hooks/useTranslation';
 import type { FieldKeyFieldProps } from './kit';
 
 /** The props that name one field of a source row, each picked with a FieldKeyField. */
@@ -164,28 +164,7 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
 
             {fieldKey('groupKey', t('studio_apps_panels.kanban.group_by_field', 'Group by field'), t('studio_apps_panels.common.optional', 'Optional'), t('studio_apps_panels.list.group_by_hint', 'Rows are grouped under uppercase headers by this field.'))}
 
-            <FormField label={t('studio_apps_panels.list.group_order', 'Group order')} hint={t('studio_apps_panels.list.group_order_hint', 'Fixed order of group values; groups not listed follow in first-seen order.')}>
-                <fieldset disabled={disabled} className="min-w-0">
-                    <RepeatableList
-                        label={t('studio_apps_panels.list.group_order', 'Group order')}
-                        items={props.groupOrder || []}
-                        onChange={(items) => patch({ groupOrder: items })}
-                        makeNew={() => ''}
-                        addLabel={t('studio_apps_panels.list.add_group_value', 'Add group value')}
-                        itemLabel={(v) => v || t('studio_apps_panels.list.empty_value', '(empty)')}
-                        renderItem={(value, update) => (
-                            <input
-                                type="text"
-                                className={inputCls}
-                                value={value || ''}
-                                onChange={(e) => update(e.target.value)}
-                                placeholder={t('studio_apps_panels.list.group_value_placeholder', 'Field value (e.g. action_needed)')}
-                                spellCheck={false}
-                            />
-                        )}
-                    />
-                </fieldset>
-            </FormField>
+            <ListInspectorFormField t={t} disabled={disabled} props={props} patch={patch} />
 
             <FormField label={t('studio_apps_panels.list.group_labels', 'Group labels')} hint={t('studio_apps_panels.list.group_labels_hint', 'A readable header per group value. A value not listed shows its raw value.')}>
                 <SpecListField
@@ -276,3 +255,26 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
 }
 
 registerInspector('list', ListInspector);
+
+function ListInspectorFormField({ t, disabled, props, patch }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; disabled: boolean; props: CommonNodeProps & ListProps; patch: (p: Record<string, unknown>) => void; }) {
+    return <FormField label={t('studio_apps_panels.list.group_order', 'Group order')} hint={t('studio_apps_panels.list.group_order_hint', 'Fixed order of group values; groups not listed follow in first-seen order.')}>
+        <fieldset disabled={disabled} className="min-w-0">
+            <RepeatableList
+                label={t('studio_apps_panels.list.group_order', 'Group order')}
+                items={props.groupOrder || []}
+                onChange={(items) => patch({ groupOrder: items })}
+                makeNew={() => ''}
+                addLabel={t('studio_apps_panels.list.add_group_value', 'Add group value')}
+                itemLabel={(v) => v || t('studio_apps_panels.list.empty_value', '(empty)')}
+                renderItem={(value, update) => (
+                    <input
+                        type="text"
+                        className={inputCls}
+                        value={value || ''}
+                        onChange={(e) => update(e.target.value)}
+                        placeholder={t('studio_apps_panels.list.group_value_placeholder', 'Field value (e.g. action_needed)')}
+                        spellCheck={false} />
+                )} />
+        </fieldset>
+    </FormField>;
+}

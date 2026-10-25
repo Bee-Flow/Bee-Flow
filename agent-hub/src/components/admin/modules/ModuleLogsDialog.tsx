@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useModuleLogs } from '../../../api/queries/modules';
 import { useTranslation } from '../../../hooks/useTranslation';
 import Modal from '../../shared/Modal';
-import type { ModuleLogEntry } from '../../../api/queries/modules';
+import type { ModuleLogEntry } from '../../../api/queries/modules.types';
 
 interface ModuleLogsDialogProps {
     module: { id: string; name?: string };

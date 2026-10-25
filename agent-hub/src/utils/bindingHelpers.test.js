@@ -1,6 +1,7 @@
 import { evaluate } from '@shared/expr/engine.mjs';
 import { describe, it, expect } from 'vitest';
-import { getAutocompleteToken, replaceRange, suggestKeyFromPath, renderBindingValue, buildConditionExpr } from './bindingHelpers';
+import { getAutocompleteToken, replaceRange, suggestKeyFromPath } from './bindingHelpers';
+import { renderBindingValue, buildConditionExpr } from './bindingHelpers.helpers';
 
 // Real textarea (jsdom) so selectionStart/setSelectionRange behave like the
 // inspector's inputs. Caret defaults to end-of-value.

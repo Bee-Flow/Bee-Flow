@@ -7,10 +7,8 @@ vi.mock('../../../../utils/helpers', () => ({
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));
 
-import UpgradeDialog, {
-    PlanBody, UpdateBanner, fetchUpgradePlan, isNewer, nameIndex,
-    planRows, planTouchesNothing, readReport, runUpgrade, updateAvailability,
-} from './upgradeClient';
+import UpgradeDialog, { UpdateBanner, fetchUpgradePlan, isNewer, nameIndex, planRows, planTouchesNothing, readReport, runUpgrade, updateAvailability } from './upgradeClient';
+import { PlanBody } from './DialogBody';
 
 /**
  * The upgrade client: the banner, the plan, and the confirmation.

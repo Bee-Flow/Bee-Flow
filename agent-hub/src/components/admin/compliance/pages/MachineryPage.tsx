@@ -252,109 +252,7 @@ export default function MachineryPage(props: MachineryPageProps) {
                 </div>
             </section>
 
-            <DataTable
-                columns={columns}
-                rows={rows || []}
-                loading={rows === null}
-                isMobile={isMobile}
-                rowKey={(r) => r.subject_id}
-                ariaLabel={t('compliance.mach_title', 'Machinery Regulation — safety components')}
-                testId="mach-table"
-                empty={(
-                    <EmptyState
-                        title={t('compliance.mach_empty_title', 'No machine integrations found')}
-                        description={t('compliance.mach_empty_desc', 'The scan found no OPC-UA, Modbus, MQTT, S7 or comparable signal in your integrations, automations or connections.')}
-                    />
-                )}
-                renderCard={(row) => {
-                    const pill = assessmentPill(row.assessment);
-                    const signals = signalText(row.signals, t);
-                    return (
-                        <div className="w-full min-w-0 flex items-center gap-2" data-testid="mach-card" data-subject={row.subject_id}>
-                            <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                <span className="text-xs font-medium truncate" data-testid="mach-label">{row.label}</span>
-                                <span className="text-[10px] uppercase tracking-[.06em] text-[var(--text-tertiary)]" data-testid="mach-source">
-                                    {t(`compliance.mach_source_${row.source}`, row.source)}
-                                    <span className="normal-case tracking-normal"> · {t(`compliance.mach_confidence_${row.confidence}`, row.confidence)}</span>
-                                </span>
-                                {signals && <span className="text-[11px] text-[var(--text-secondary)] truncate" data-testid="mach-signals" title={signals}>{signals}</span>}
-                                <span className="flex items-center gap-2 min-w-0">
-                                    <StatusPill tone={pill.tone} testId="mach-assessment">
-                                        {pill.key ? t(pill.key, pill.fallback) : pill.fallback}
-                                        {pill.expired ? ` · ${t('compliance.mach_expired', 'expired')}` : ''}
-                                    </StatusPill>
-                                    {row.assessment?.expires_at && (
-                                        <DeadlineClock dueAt={row.assessment.expires_at} startedAt={row.assessment.attested_at} variant="inline" testId="mach-clock" />
-                                    )}
-                                </span>
-                            </div>
-                            <button
-                                type="button"
-                                className="inline-flex flex-shrink-0 items-center gap-1 min-h-[44px] px-2.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium"
-                                onClick={() => openSubject(row.subject_id)}
-                                data-testid="mach-attest"
-                            >
-                                <PenLine size={11} aria-hidden="true" />
-                                {row.assessment ? t('compliance.mach_reassess', 'Re-declare') : t('compliance.mach_assess', 'Declare')}
-                            </button>
-                        </div>
-                    );
-                }}
-                renderRow={(row, ctx) => {
-                    const pill = assessmentPill(row.assessment);
-                    const signals = signalText(row.signals, t);
-                    return (
-                        <TableRow
-                            key={row.subject_id}
-                            columns={ctx.columns}
-                            accent={pill.tone === 'neutral' ? null : pill.tone}
-                            selected={row.subject_id === openId}
-                            testId="mach-row"
-                        >
-                            <TableCell column={ctx.columns[0]} className="min-w-0">
-                                <div className="flex flex-col gap-0.5 min-w-0">
-                                    <span className="font-medium truncate" data-testid="mach-label" data-subject={row.subject_id}>{row.label}</span>
-                                    <span className="text-[10px] uppercase tracking-[.06em] text-[var(--text-tertiary)]" data-testid="mach-source">
-                                        {t(`compliance.mach_source_${row.source}`, row.source)}
-                                    </span>
-                                </div>
-                            </TableCell>
-                            <TableCell column={ctx.columns[1]} className="min-w-0 text-[11px] text-[var(--text-secondary)]">
-                                {signals
-                                    ? <span className="truncate block" data-testid="mach-signals" title={signals}>{signals}</span>
-                                    : <span className="text-[var(--text-tertiary)]">—</span>}
-                            </TableCell>
-                            <TableCell column={ctx.columns[2]}>
-                                <span className="text-[11px] text-[var(--text-secondary)]" data-testid="mach-confidence" data-confidence={row.confidence}>
-                                    {t(`compliance.mach_confidence_${row.confidence}`, row.confidence)}
-                                </span>
-                            </TableCell>
-                            <TableCell column={ctx.columns[3]}>
-                                <StatusPill tone={pill.tone} testId="mach-assessment">
-                                    {pill.key ? t(pill.key, pill.fallback) : pill.fallback}
-                                    {pill.expired ? ` · ${t('compliance.mach_expired', 'expired')}` : ''}
-                                </StatusPill>
-                            </TableCell>
-                            <TableCell column={ctx.columns[4]}>
-                                {row.assessment?.expires_at
-                                    ? <DeadlineClock dueAt={row.assessment.expires_at} startedAt={row.assessment.attested_at} variant="row" testId="mach-clock" />
-                                    : <span className="text-[11px] text-[var(--text-tertiary)]">—</span>}
-                            </TableCell>
-                            <TableCell column={ctx.columns[5]} align="right">
-                                <button
-                                    type="button"
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium"
-                                    onClick={() => openSubject(row.subject_id)}
-                                    data-testid="mach-attest"
-                                >
-                                    <PenLine size={11} aria-hidden="true" />
-                                    {row.assessment ? t('compliance.mach_reassess', 'Re-declare') : t('compliance.mach_assess', 'Declare')}
-                                </button>
-                            </TableCell>
-                        </TableRow>
-                    );
-                }}
-            />
+            <MachineryPageDataTable columns={columns} rows={rows} isMobile={isMobile} t={t} openSubject={openSubject} openId={openId} />
 
             <AttestDrawer
                 open={!!selected}
@@ -377,4 +275,108 @@ export default function MachineryPage(props: MachineryPageProps) {
             />
         </div>
     );
+}
+
+function MachineryPageDataTable({ columns, rows, isMobile, t, openSubject, openId }: { columns: ({ id: string; width: string; label: string; foldBelow?: undefined; } | { id: string; width: string; label: string; foldBelow: number; })[]; rows: SubjectRow[] | null; isMobile: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; openSubject: (subjectId: string) => Promise<void>; openId: string | null; }) {
+    return <DataTable
+        columns={columns}
+        rows={rows || []}
+        loading={rows === null}
+        isMobile={isMobile}
+        rowKey={(r) => r.subject_id}
+        ariaLabel={t('compliance.mach_title', 'Machinery Regulation — safety components')}
+        testId="mach-table"
+        empty={(
+            <EmptyState
+                title={t('compliance.mach_empty_title', 'No machine integrations found')}
+                description={t('compliance.mach_empty_desc', 'The scan found no OPC-UA, Modbus, MQTT, S7 or comparable signal in your integrations, automations or connections.')} />
+        )}
+        renderCard={(row) => {
+            const pill = assessmentPill(row.assessment);
+            const signals = signalText(row.signals, t);
+            return (
+                <div className="w-full min-w-0 flex items-center gap-2" data-testid="mach-card" data-subject={row.subject_id}>
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <span className="text-xs font-medium truncate" data-testid="mach-label">{row.label}</span>
+                        <span className="text-[10px] uppercase tracking-[.06em] text-[var(--text-tertiary)]" data-testid="mach-source">
+                            {t(`compliance.mach_source_${row.source}`, row.source)}
+                            <span className="normal-case tracking-normal"> · {t(`compliance.mach_confidence_${row.confidence}`, row.confidence)}</span>
+                        </span>
+                        {signals && <span className="text-[11px] text-[var(--text-secondary)] truncate" data-testid="mach-signals" title={signals}>{signals}</span>}
+                        <span className="flex items-center gap-2 min-w-0">
+                            <StatusPill tone={pill.tone} testId="mach-assessment">
+                                {pill.key ? t(pill.key, pill.fallback) : pill.fallback}
+                                {pill.expired ? ` · ${t('compliance.mach_expired', 'expired')}` : ''}
+                            </StatusPill>
+                            {row.assessment?.expires_at && (
+                                <DeadlineClock dueAt={row.assessment.expires_at} startedAt={row.assessment.attested_at} variant="inline" testId="mach-clock" />
+                            )}
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        className="inline-flex flex-shrink-0 items-center gap-1 min-h-[44px] px-2.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium"
+                        onClick={() => openSubject(row.subject_id)}
+                        data-testid="mach-attest"
+                    >
+                        <PenLine size={11} aria-hidden="true" />
+                        {row.assessment ? t('compliance.mach_reassess', 'Re-declare') : t('compliance.mach_assess', 'Declare')}
+                    </button>
+                </div>
+            );
+        } }
+        renderRow={(row, ctx) => {
+            const pill = assessmentPill(row.assessment);
+            const signals = signalText(row.signals, t);
+            return (
+                <TableRow
+                    key={row.subject_id}
+                    columns={ctx.columns}
+                    accent={pill.tone === 'neutral' ? null : pill.tone}
+                    selected={row.subject_id === openId}
+                    testId="mach-row"
+                >
+                    <TableCell column={ctx.columns[0]} className="min-w-0">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="font-medium truncate" data-testid="mach-label" data-subject={row.subject_id}>{row.label}</span>
+                            <span className="text-[10px] uppercase tracking-[.06em] text-[var(--text-tertiary)]" data-testid="mach-source">
+                                {t(`compliance.mach_source_${row.source}`, row.source)}
+                            </span>
+                        </div>
+                    </TableCell>
+                    <TableCell column={ctx.columns[1]} className="min-w-0 text-[11px] text-[var(--text-secondary)]">
+                        {signals
+                            ? <span className="truncate block" data-testid="mach-signals" title={signals}>{signals}</span>
+                            : <span className="text-[var(--text-tertiary)]">—</span>}
+                    </TableCell>
+                    <TableCell column={ctx.columns[2]}>
+                        <span className="text-[11px] text-[var(--text-secondary)]" data-testid="mach-confidence" data-confidence={row.confidence}>
+                            {t(`compliance.mach_confidence_${row.confidence}`, row.confidence)}
+                        </span>
+                    </TableCell>
+                    <TableCell column={ctx.columns[3]}>
+                        <StatusPill tone={pill.tone} testId="mach-assessment">
+                            {pill.key ? t(pill.key, pill.fallback) : pill.fallback}
+                            {pill.expired ? ` · ${t('compliance.mach_expired', 'expired')}` : ''}
+                        </StatusPill>
+                    </TableCell>
+                    <TableCell column={ctx.columns[4]}>
+                        {row.assessment?.expires_at
+                            ? <DeadlineClock dueAt={row.assessment.expires_at} startedAt={row.assessment.attested_at} variant="row" testId="mach-clock" />
+                            : <span className="text-[11px] text-[var(--text-tertiary)]">—</span>}
+                    </TableCell>
+                    <TableCell column={ctx.columns[5]} align="right">
+                        <button
+                            type="button"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[var(--border-default)] text-[11px] font-medium"
+                            onClick={() => openSubject(row.subject_id)}
+                            data-testid="mach-attest"
+                        >
+                            <PenLine size={11} aria-hidden="true" />
+                            {row.assessment ? t('compliance.mach_reassess', 'Re-declare') : t('compliance.mach_assess', 'Declare')}
+                        </button>
+                    </TableCell>
+                </TableRow>
+            );
+        } } />;
 }

@@ -1,7 +1,7 @@
 import { X, Plus, Trash2, PenTool, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useState, useEffect, useEffectEvent } from 'react';
+import { useState, useEffect, useEffectEvent, SetStateAction, Dispatch } from 'react';
 import Modal from '../../../components/shared/Modal';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
 
 // Stable id for signer rows so React can track focus/IME state across reorders.
 // crypto.randomUUID is supported in all modern browsers; the fallback handles
@@ -122,120 +122,7 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
                 </div>
 
                 {/* Body */}
-                <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                    {result ? (
-                        /* ── Success state ── */
-                        <div className="flex flex-col items-center gap-3 py-6">
-                            <CheckCircle className="w-12 h-12 [color:#22c55e]" />
-                            <h4 className="text-base font-semibold text-[var(--text-primary)]">
-                                {t('notebooks.sign_sent_title', 'Document sent for signing!')}
-                            </h4>
-                            <p className="text-sm text-center text-[var(--text-secondary)]">
-                                {result.message || t('notebooks.sign_sent_body', 'Your document has been sent to the signer(s).')}
-                            </p>
-                            {(result.signers?.length as number) > 0 && (
-                                <div className="w-full mt-2 rounded-xl border overflow-hidden border-[var(--border-subtle)]">
-                                    {(result.signers as NonNullable<SignResult['signers']>).map((s, i) => (
-                                        <div key={i} className="flex items-center gap-2 px-4 py-2 text-sm" style={{ borderBottom: i < (result.signers as NonNullable<SignResult['signers']>).length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                                            <span className="flex-1 truncate text-[var(--text-primary)]">
-                                                {s.name ? `${s.name} (${s.email})` : s.email}
-                                            </span>
-                                            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium [background:rgba(234,179,8,0.1)] [color:#ca8a04]!">
-                                                {s.status || t('notebooks.sign_pending', 'Pending')}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        /* ── Form state ── */
-                        <>
-                            {/* Signers */}
-                            <div>
-                                <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                                    {t('notebooks.signers', 'Signers')}
-                                </label>
-                                <div className="space-y-2 mt-2">
-                                    {signers.map((signer) => (
-                                        <div key={signer._uid} className="flex gap-2 items-start">
-                                            <div className="flex-1 grid grid-cols-3 gap-2">
-                                                <input
-                                                    type="email"
-                                                    placeholder={t('notebooks.signer_email', 'Email *')}
-                                                    aria-label={t('notebooks.signer_email', 'Email *')}
-                                                    value={signer.email}
-                                                    onChange={e => updateSigner(signer._uid, 'email', e.target.value)}
-                                                    className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder={t('notebooks.signer_first_name', 'First name')}
-                                                    aria-label={t('notebooks.signer_first_name', 'First name')}
-                                                    value={signer.first_name}
-                                                    onChange={e => updateSigner(signer._uid, 'first_name', e.target.value)}
-                                                    className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder={t('notebooks.signer_last_name', 'Last name')}
-                                                    aria-label={t('notebooks.signer_last_name', 'Last name')}
-                                                    value={signer.last_name}
-                                                    onChange={e => updateSigner(signer._uid, 'last_name', e.target.value)}
-                                                    className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                                                />
-                                            </div>
-                                            {signers.length > 1 && (
-                                                <button
-                                                    onClick={() => removeSigner(signer._uid)}
-                                                    className="p-2 rounded-lg hover:bg-[rgba(239,68,68,0.1)] transition-colors mt-0.5 text-[var(--error)]"
-                                                    title={t('notebooks.remove_signer', 'Remove signer')}
-                                                    aria-label={t('notebooks.remove_signer', 'Remove signer')}
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <button
-                                    onClick={addSigner}
-                                    className="flex items-center gap-1.5 mt-2 text-[12px] font-medium px-2 py-1 rounded-lg hover:bg-black/5 transition-colors text-[var(--accent-primary)]"
-                                >
-                                    <Plus className="w-3.5 h-3.5" /> {t('notebooks.add_signer', 'Add signer')}
-                                </button>
-                            </div>
-
-                            {/* Subject */}
-                            <div>
-                                <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                                    {t('notebooks.email_subject', 'Email subject')}
-                                </label>
-                                <input
-                                    type="text"
-                                    value={subject}
-                                    onChange={e => setSubject(e.target.value)}
-                                    placeholder={t('notebooks.email_subject_placeholder', 'e.g. Contract for review and signature')}
-                                    className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                                />
-                            </div>
-
-                            {/* Message */}
-                            <div>
-                                <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
-                                    {t('notebooks.message_optional', 'Message (optional)')}
-                                </label>
-                                <textarea
-                                    value={message}
-                                    onChange={e => setMessage(e.target.value)}
-                                    placeholder={t('notebooks.message_placeholder', 'Add a personal message to the signers…')}
-                                    rows={3}
-                                    className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors resize-none [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!"
-                                />
-                            </div>
-                        </>
-                    )}
-                </div>
+                <SendForSigningModalSection result={result} t={t} signers={signers} updateSigner={updateSigner} removeSigner={removeSigner} addSigner={addSigner} subject={subject} setSubject={setSubject} message={message} setMessage={setMessage} />
 
                 {/* Inline error — the page-level banner is behind this
                     modal's backdrop, so a failure here was invisible. */}
@@ -286,4 +173,116 @@ export default function SendForSigningModal({ open, onClose, onSend, sending, no
             </div>
         </Modal>
     );
+}
+
+function SendForSigningModalSection({ result, t, signers, updateSigner, removeSigner, addSigner, subject, setSubject, message, setMessage }: { result: SignResult | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; signers: { _uid: string; email: string; first_name: string; last_name: string; }[]; updateSigner: (uid: string, field: string, value: string) => void; removeSigner: (uid: string) => void; addSigner: () => void; subject: string; setSubject: Dispatch<SetStateAction<string>>; message: string; setMessage: Dispatch<SetStateAction<string>>; }) {
+    return <div className="px-6 py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+        {result ? (
+            /* ── Success state ── */
+            <div className="flex flex-col items-center gap-3 py-6">
+                <CheckCircle className="w-12 h-12 [color:#22c55e]" />
+                <h4 className="text-base font-semibold text-[var(--text-primary)]">
+                    {t('notebooks.sign_sent_title', 'Document sent for signing!')}
+                </h4>
+                <p className="text-sm text-center text-[var(--text-secondary)]">
+                    {result.message || t('notebooks.sign_sent_body', 'Your document has been sent to the signer(s).')}
+                </p>
+                {(result.signers?.length as number) > 0 && (
+                    <div className="w-full mt-2 rounded-xl border overflow-hidden border-[var(--border-subtle)]">
+                        {(result.signers as NonNullable<SignResult['signers']>).map((s, i) => (
+                            <div key={i} className="flex items-center gap-2 px-4 py-2 text-sm" style={{ borderBottom: i < (result.signers as NonNullable<SignResult['signers']>).length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                                <span className="flex-1 truncate text-[var(--text-primary)]">
+                                    {s.name ? `${s.name} (${s.email})` : s.email}
+                                </span>
+                                <span className="text-[11px] px-2 py-0.5 rounded-full font-medium [background:rgba(234,179,8,0.1)] [color:#ca8a04]!">
+                                    {s.status || t('notebooks.sign_pending', 'Pending')}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        ) : (
+            /* ── Form state ── */
+            <>
+                {/* Signers */}
+                <div>
+                    <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                        {t('notebooks.signers', 'Signers')}
+                    </label>
+                    <div className="space-y-2 mt-2">
+                        {signers.map((signer) => (
+                            <div key={signer._uid} className="flex gap-2 items-start">
+                                <div className="flex-1 grid grid-cols-3 gap-2">
+                                    <input
+                                        type="email"
+                                        placeholder={t('notebooks.signer_email', 'Email *')}
+                                        aria-label={t('notebooks.signer_email', 'Email *')}
+                                        value={signer.email}
+                                        onChange={e => updateSigner(signer._uid, 'email', e.target.value)}
+                                        className="col-span-3 sm:col-span-1 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                                    <input
+                                        type="text"
+                                        placeholder={t('notebooks.signer_first_name', 'First name')}
+                                        aria-label={t('notebooks.signer_first_name', 'First name')}
+                                        value={signer.first_name}
+                                        onChange={e => updateSigner(signer._uid, 'first_name', e.target.value)}
+                                        className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                                    <input
+                                        type="text"
+                                        placeholder={t('notebooks.signer_last_name', 'Last name')}
+                                        aria-label={t('notebooks.signer_last_name', 'Last name')}
+                                        value={signer.last_name}
+                                        onChange={e => updateSigner(signer._uid, 'last_name', e.target.value)}
+                                        className="px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                                </div>
+                                {signers.length > 1 && (
+                                    <button
+                                        onClick={() => removeSigner(signer._uid)}
+                                        className="p-2 rounded-lg hover:bg-[rgba(239,68,68,0.1)] transition-colors mt-0.5 text-[var(--error)]"
+                                        title={t('notebooks.remove_signer', 'Remove signer')}
+                                        aria-label={t('notebooks.remove_signer', 'Remove signer')}
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={addSigner}
+                        className="flex items-center gap-1.5 mt-2 text-[12px] font-medium px-2 py-1 rounded-lg hover:bg-black/5 transition-colors text-[var(--accent-primary)]"
+                    >
+                        <Plus className="w-3.5 h-3.5" /> {t('notebooks.add_signer', 'Add signer')}
+                    </button>
+                </div>
+
+                {/* Subject */}
+                <div>
+                    <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                        {t('notebooks.email_subject', 'Email subject')}
+                    </label>
+                    <input
+                        type="text"
+                        value={subject}
+                        onChange={e => setSubject(e.target.value)}
+                        placeholder={t('notebooks.email_subject_placeholder', 'e.g. Contract for review and signature')}
+                        className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                </div>
+
+                {/* Message */}
+                <div>
+                    <label className="text-[12px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                        {t('notebooks.message_optional', 'Message (optional)')}
+                    </label>
+                    <textarea
+                        value={message}
+                        onChange={e => setMessage(e.target.value)}
+                        placeholder={t('notebooks.message_placeholder', 'Add a personal message to the signers…')}
+                        rows={3}
+                        className="w-full mt-1.5 px-3 py-2 rounded-lg border outline-none text-[13px] focus:border-[var(--accent-primary)] transition-colors resize-none [background:var(--bg-primary)] [border-color:var(--border-default)]! [color:var(--text-primary)]!" />
+                </div>
+            </>
+        )}
+    </div>;
 }

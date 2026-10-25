@@ -108,21 +108,7 @@ const SearchableModelSelect = ({
     return (
         <>
             {/* Trigger button */}
-            <button
-                type="button"
-                onClick={() => { setOpen(true); setSearch(''); setActiveProvider(null); setActiveFamily(null); }}
-                className="w-full px-3 py-2.5 rounded-lg border outline-none text-sm text-left flex items-center justify-between transition-colors hover:border-[var(--accent-primary)]"
-                style={{
-                    background: 'var(--bg-secondary)',
-                    borderColor: 'var(--border-default)',
-                    color: selectedId ? 'var(--text-primary)' : 'var(--text-muted)',
-                }}
-            >
-                <span className="truncate">{label}</span>
-                <svg className="w-4 h-4 shrink-0 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
+            <SearchableModelSelectSection setOpen={setOpen} setSearch={setSearch} setActiveProvider={setActiveProvider} setActiveFamily={setActiveFamily} selectedId={selectedId} label={label} />
 
             {/* The picker, through the shared Modal: Escape and a press on the
                 backdrop close it (useOutsideDismiss did that before), Tab stays
@@ -364,3 +350,21 @@ const SearchableModelSelect = ({
 };
 
 export default SearchableModelSelect;
+
+function SearchableModelSelectSection({ setOpen, setSearch, setActiveProvider, setActiveFamily, selectedId, label }: { setOpen: React.Dispatch<React.SetStateAction<boolean>>; setSearch: React.Dispatch<React.SetStateAction<string>>; setActiveProvider: React.Dispatch<React.SetStateAction<string | null>>; setActiveFamily: React.Dispatch<React.SetStateAction<string | null>>; selectedId: string; label: React.ReactNode; }) {
+    return <button
+        type="button"
+        onClick={() => { setOpen(true); setSearch(''); setActiveProvider(null); setActiveFamily(null); } }
+        className="w-full px-3 py-2.5 rounded-lg border outline-none text-sm text-left flex items-center justify-between transition-colors hover:border-[var(--accent-primary)]"
+        style={{
+            background: 'var(--bg-secondary)',
+            borderColor: 'var(--border-default)',
+            color: selectedId ? 'var(--text-primary)' : 'var(--text-muted)',
+        }}
+    >
+        <span className="truncate">{label}</span>
+        <svg className="w-4 h-4 shrink-0 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>;
+}

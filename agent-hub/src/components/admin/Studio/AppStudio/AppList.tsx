@@ -11,7 +11,7 @@ import { CARD_CLASSES, CARD_STYLE } from './list/cardStyle';
 import NewAppModal from './list/NewAppModal';
 import OwnerMenu from './list/OwnerMenu';
 import { studioAppsApi } from './studioAppsApi';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
 import ConfirmDialog from '../../../shared/ConfirmDialog';
 import EmptyState from '../../../shared/EmptyState';
 import Modal from '../../../shared/Modal';
@@ -174,71 +174,7 @@ export default function AppList({ onOpen }: AppListProps) {
                 </div>
             )}
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-                {loading ? (
-                    <SkeletonGrid />
-                ) : isEmpty ? (
-                    <EmptyState
-                        icon={<LayoutGrid className="w-12 h-12" />}
-                        title={t('studio_apps_bi.list.empty_title', 'Build your first app')}
-                        description={t('studio_apps_bi.list.empty_desc', 'Turn an automation into a small internal tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the AI can build it for you.')}
-                        action={{
-                            label: t('studio_apps_bi.list.new_app', 'New app'),
-                            onClick: () => setShowCreate(true),
-                            icon: <Plus className="w-4 h-4" />,
-                        }}
-                    />
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                        {apps.map((app) => {
-                            const owned = ownedIds.has(app.id);
-                            if (!owned) {
-                                // Shared with me — open the end-user run view
-                                // at /app/apps/:id (AppRunPage).
-                                return (
-                                    <a
-                                        key={app.id}
-                                        href={`/app/apps/${app.id}`}
-                                        className={`${CARD_CLASSES} block no-underline`}
-                                        style={CARD_STYLE}
-                                    >
-                                        <CardBody app={app} />
-                                        <span
-                                            className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-secondary)]"
-                                        >
-                                            {t('studio_apps_bi.list.open', 'Open')} <ExternalLink className="w-3 h-3" />
-                                        </span>
-                                    </a>
-                                );
-                            }
-                            return (
-                                <div
-                                    key={app.id}
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => onOpen?.(app)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            onOpen?.(app);
-                                        }
-                                    }}
-                                    className={`${CARD_CLASSES} cursor-pointer`}
-                                    style={CARD_STYLE}
-                                >
-                                    <CardBody app={app} onUpgrade={setUpgradeTarget} />
-                                    <OwnerMenu
-                                        app={app}
-                                        onOpen={() => onOpen?.(app)}
-                                        onRename={() => startRename(app)}
-                                        onDelete={() => setDeleteTarget(app)}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+            <AppListSection loading={loading} isEmpty={isEmpty} t={t} setShowCreate={setShowCreate} apps={apps} ownedIds={ownedIds} onOpen={onOpen} setUpgradeTarget={setUpgradeTarget} startRename={startRename} setDeleteTarget={setDeleteTarget} />
 
             <NewAppModal
                 open={showCreate}
@@ -306,4 +242,70 @@ export default function AppList({ onOpen }: AppListProps) {
             />
         </div>
     );
+}
+
+function AppListSection({ loading, isEmpty, t, setShowCreate, apps, ownedIds, onOpen, setUpgradeTarget, startRename, setDeleteTarget }: { loading: boolean; isEmpty: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setShowCreate: React.Dispatch<React.SetStateAction<boolean>>; apps: StudioApp[]; ownedIds: Set<string>; onOpen: (app: { id?: string; } | null | undefined, openOptions?: { remix?: boolean; prompt?: string; }) => void; setUpgradeTarget: React.Dispatch<React.SetStateAction<StudioApp | null>>; startRename: (app: StudioApp) => void; setDeleteTarget: React.Dispatch<React.SetStateAction<StudioApp | null>>; }) {
+    return <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+        {loading ? (
+            <SkeletonGrid />
+        ) : isEmpty ? (
+            <EmptyState
+                icon={<LayoutGrid className="w-12 h-12" />}
+                title={t('studio_apps_bi.list.empty_title', 'Build your first app')}
+                description={t('studio_apps_bi.list.empty_desc', 'Turn an automation into a small internal tool — a form, a dashboard, a tracker — without writing code. Describe what you need and the AI can build it for you.')}
+                action={{
+                    label: t('studio_apps_bi.list.new_app', 'New app'),
+                    onClick: () => setShowCreate(true),
+                    icon: <Plus className="w-4 h-4" />,
+                }} />
+        ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {apps.map((app) => {
+                    const owned = ownedIds.has(app.id);
+                    if (!owned) {
+                        // Shared with me — open the end-user run view
+                        // at /app/apps/:id (AppRunPage).
+                        return (
+                            <a
+                                key={app.id}
+                                href={`/app/apps/${app.id}`}
+                                className={`${CARD_CLASSES} block no-underline`}
+                                style={CARD_STYLE}
+                            >
+                                <CardBody app={app} />
+                                <span
+                                    className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-medium opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-secondary)]"
+                                >
+                                    {t('studio_apps_bi.list.open', 'Open')} <ExternalLink className="w-3 h-3" />
+                                </span>
+                            </a>
+                        );
+                    }
+                    return (
+                        <div
+                            key={app.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onOpen?.(app)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    onOpen?.(app);
+                                }
+                            } }
+                            className={`${CARD_CLASSES} cursor-pointer`}
+                            style={CARD_STYLE}
+                        >
+                            <CardBody app={app} onUpgrade={setUpgradeTarget} />
+                            <OwnerMenu
+                                app={app}
+                                onOpen={() => onOpen?.(app)}
+                                onRename={() => startRename(app)}
+                                onDelete={() => setDeleteTarget(app)} />
+                        </div>
+                    );
+                })}
+            </div>
+        )}
+    </div>;
 }

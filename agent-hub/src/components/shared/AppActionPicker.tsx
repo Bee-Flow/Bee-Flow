@@ -244,52 +244,7 @@ export default function AppActionPicker({
         >
             <div className="flex-1 min-h-0 flex">
                 {/* Left: search + app list */}
-                <div className="w-[40%] flex flex-col border-r border-[var(--border-default)]">
-                    <div className="p-3">
-                        <div className="relative">
-                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder={txt.search}
-                                aria-label={txt.search}
-                                className="w-full bg-[var(--bg-secondary)] rounded-full pl-9 pr-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
-                                autoFocus
-                            />
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto px-2 pb-2">
-                        {filtered.length === 0 && (
-                            <div className="text-xs text-[var(--text-tertiary)] text-center py-6">{emptyLabel}</div>
-                        )}
-                        {filtered.map((app) => {
-                            const isFocus = app.id === focusedId;
-                            const count = countFor(app);
-                            return (
-                                <button
-                                    key={app.id}
-                                    type="button"
-                                    onClick={() => setFocusedId(app.id)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition ${isFocus ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]/60'}`}
-                                >
-                                    <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">{getIntegrationIcon(app.id)}</div>
-                                    <span className={`truncate flex-1 ${app.available === false ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
-                                        {app.label || app.id}
-                                    </span>
-                                    {count > 0 && (
-                                        <span
-                                            className="text-[10px] font-semibold text-[var(--bg-primary)] bg-[var(--accent)] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center"
-                                            aria-label={`${count} selected`}
-                                        >
-                                            {count}
-                                        </span>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                <AppActionPickerSection search={search} setSearch={setSearch} txt={txt} filtered={filtered} emptyLabel={emptyLabel} focusedId={focusedId} countFor={countFor} setFocusedId={setFocusedId} />
 
                 {/* Right: the focused app's actions */}
                 <div className="flex-1 flex flex-col relative min-w-0">
@@ -373,4 +328,52 @@ export default function AppActionPicker({
             </div>
         </Modal>
     );
+}
+
+function AppActionPickerSection({ search, setSearch, txt, filtered, emptyLabel, focusedId, countFor, setFocusedId }: { search: string; setSearch: React.Dispatch<React.SetStateAction<string>>; txt: PickerText; filtered: PickerApp[]; emptyLabel: string; focusedId: string | null; countFor: (app: PickerApp) => number; setFocusedId: React.Dispatch<React.SetStateAction<string | null>>; }) {
+    return <div className="w-[40%] flex flex-col border-r border-[var(--border-default)]">
+        <div className="p-3">
+            <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+                <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={txt.search}
+                    aria-label={txt.search}
+                    className="w-full bg-[var(--bg-secondary)] rounded-full pl-9 pr-3 py-2 text-sm outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
+                    autoFocus />
+            </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+            {filtered.length === 0 && (
+                <div className="text-xs text-[var(--text-tertiary)] text-center py-6">{emptyLabel}</div>
+            )}
+            {filtered.map((app) => {
+                const isFocus = app.id === focusedId;
+                const count = countFor(app);
+                return (
+                    <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => setFocusedId(app.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-sm transition ${isFocus ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]/60'}`}
+                    >
+                        <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">{getIntegrationIcon(app.id)}</div>
+                        <span className={`truncate flex-1 ${app.available === false ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
+                            {app.label || app.id}
+                        </span>
+                        {count > 0 && (
+                            <span
+                                className="text-[10px] font-semibold text-[var(--bg-primary)] bg-[var(--accent)] rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center"
+                                aria-label={`${count} selected`}
+                            >
+                                {count}
+                            </span>
+                        )}
+                    </button>
+                );
+            })}
+        </div>
+    </div>;
 }

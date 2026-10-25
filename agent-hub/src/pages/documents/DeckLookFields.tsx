@@ -217,30 +217,7 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
     const templateMode = !isDoc ? null : (deck.template === 'none' ? 'none' : (deck.template && typeof deck.template === 'object' ? 'own' : 'house'));
     return (
         <div className="space-y-4">
-            <div>
-                <div className="text-xs mb-1.5 text-[var(--text-muted)]">{t('documents.style.deck_preset', 'Style')}</div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="radiogroup" aria-label={t('documents.style.deck_preset', 'Style')}>
-                    {[...(isDoc ? [{ id: '', label: t('documents.style.deck_as_house', 'House style'), description: t('documents.style.deck_inherit_preset', 'The style the organisation chose.') }] : []), ...opt.presets].map((p) => {
-                        const active = (deck.preset || '') === p.id;
-                        return (
-                            <button
-                                key={p.id || 'inherit'}
-                                type="button"
-                                role="radio"
-                                aria-checked={active}
-                                disabled={disabled}
-                                onClick={() => setDeck('preset', p.id)}
-                                className="text-left rounded-lg p-2.5 text-xs disabled:opacity-60"
-                                style={{ background: active ? 'var(--bg-tertiary)' : 'transparent', border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-subtle)'}`, color: 'var(--text-primary)' }}
-                                data-testid={`${testPrefix}-preset-${p.id || 'inherit'}`}
-                            >
-                                <span className="block font-semibold">{p.label}</span>
-                                <span className="block mt-0.5 text-[var(--text-muted)]">{p.description}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
+            <DeckLookFieldsSection t={t} isDoc={isDoc} opt={opt} deck={deck} disabled={disabled} setDeck={setDeck} testPrefix={testPrefix} />
             <div className="flex flex-wrap gap-4">
                 <OptionalColour label={t('documents.style.deck_accent', 'Accent')} value={deck.accent} fallback={(style.deck && style.deck.accent) || style.accent} disabled={disabled} onChange={(v) => setDeck('accent', v)} testId={`${testPrefix}-accent`} />
                 <OptionalColour label={t('documents.style.deck_background', 'Slide background')} value={deck.background} fallback={(style.deck && style.deck.background) || '#ffffff'} disabled={disabled} onChange={(v) => setDeck('background', v)} />
@@ -349,4 +326,31 @@ export default function DeckLookFields({ deck: deckIn, setDeck, style = {}, set 
             </div>
         </div>
     );
+}
+
+function DeckLookFieldsSection({ t, isDoc, opt, deck, disabled, setDeck, testPrefix }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string; isDoc: boolean; opt: { presets: MegaItem[]; fonts: string[]; coverStyles: FeatureOption[]; tableStyles: FeatureOption[]; logoPlacements: FeatureOption[]; } | { presets: { id: string; label: string; description: string; }[]; fonts: string[]; coverStyles: { id: string; label: string; }[]; tableStyles: { id: string; label: string; }[]; logoPlacements: { id: string; label: string; }[]; }; deck: { preset?: string; accent?: string; background?: string; text?: string; titleFont?: string; bodyFont?: string; coverStyle?: string; tableStyle?: string; logoPlacement?: string; slideNumbers?: boolean | ""; brandOnSlides?: boolean | ""; footerText?: string; logo?: string; template?: DeckTemplate | string | null; }; disabled: boolean; setDeck: (key: string, value: unknown) => void; testPrefix: string; }) {
+    return <div>
+        <div className="text-xs mb-1.5 text-[var(--text-muted)]">{t('documents.style.deck_preset', 'Style')}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="radiogroup" aria-label={t('documents.style.deck_preset', 'Style')}>
+            {[...(isDoc ? [{ id: '', label: t('documents.style.deck_as_house', 'House style'), description: t('documents.style.deck_inherit_preset', 'The style the organisation chose.') }] : []), ...opt.presets].map((p) => {
+                const active = (deck.preset || '') === p.id;
+                return (
+                    <button
+                        key={p.id || 'inherit'}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        disabled={disabled}
+                        onClick={() => setDeck('preset', p.id)}
+                        className="text-left rounded-lg p-2.5 text-xs disabled:opacity-60"
+                        style={{ background: active ? 'var(--bg-tertiary)' : 'transparent', border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-subtle)'}`, color: 'var(--text-primary)' }}
+                        data-testid={`${testPrefix}-preset-${p.id || 'inherit'}`}
+                    >
+                        <span className="block font-semibold">{p.label}</span>
+                        <span className="block mt-0.5 text-[var(--text-muted)]">{p.description}</span>
+                    </button>
+                );
+            })}
+        </div>
+    </div>;
 }

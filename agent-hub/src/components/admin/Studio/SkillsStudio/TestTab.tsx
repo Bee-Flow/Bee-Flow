@@ -1,5 +1,5 @@
 import { Check, CircleAlert, FlaskConical, Play, TriangleAlert, type LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { SetStateAction, Dispatch, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refKindKey } from './skillModel';
 import { skillsApi, type SkillTestPayload, type SkillTestRun, type SkillTestStepResult } from '../../../../api/skillsApi';
 import type { JsonResourceError } from '../../../../api/client';
@@ -7,7 +7,7 @@ import useRelativeTime from '../../../../hooks/useRelativeTime';
 import useTranslation from '../../../../hooks/useTranslation';
 import { kindColorVar, kindTint } from '../../../shared/kindColors';
 import { usageHref } from '../../../shared/UsedByTab';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
 import type { Step } from './skillModel.types';
 import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
 import type { TestTabProps, StepRowProps, RunRowProps } from './TestTab.types';
@@ -206,25 +206,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
 
     return (
         <div className="flex flex-col gap-3 max-w-3xl" data-testid="skill-test">
-            <div className="flex items-center gap-2">
-                <FlaskConical size={14} aria-hidden="true" className="text-[var(--text-secondary)]" />
-                <h2 className="text-[13px] font-semibold text-[var(--text-primary)] m-0">
-                    {t('skills_studio.test.title', 'Test')}
-                </h2>
-                <span className="text-xs text-[var(--text-tertiary)]">
-                    {t('skills_studio.test.hint', 'one question through the steps')}
-                </span>
-                <button
-                    type="button"
-                    onClick={run}
-                    disabled={!canRun}
-                    data-testid="skill-test-run"
-                    className="ml-auto h-8 px-3 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                >
-                    <Play size={11} aria-hidden="true" />
-                    {running ? t('skills_studio.test.running', 'Running…') : t('skills_studio.test.run', 'Run')}
-                </button>
-            </div>
+            <TestTabSection2 t={t} run={run} canRun={canRun} running={running} />
 
             {locked && (
                 <p className="text-xs m-0 text-[var(--warning-ink)]" data-testid="skill-test-readonly">
@@ -235,29 +217,7 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
                 </p>
             )}
 
-            <div className="flex items-center gap-2">
-                <label className="text-xs text-[var(--text-secondary)]" htmlFor="skill-test-agent">
-                    {t('skills_studio.test.as_agent', 'as agent')}
-                </label>
-                <select
-                    id="skill-test-agent"
-                    data-testid="skill-test-agent"
-                    value={agentId}
-                    disabled={!Array.isArray(agents) || agents.length === 0}
-                    onChange={(e) => setAgentId(e.target.value)}
-                    className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-2 text-xs text-[var(--text-primary)] disabled:opacity-50"
-                >
-                    <option value="">{t('skills_studio.test.no_agent', 'Just this skill')}</option>
-                    {(Array.isArray(agents) ? agents : []).map(a => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                </select>
-                {agents === false && (
-                    <span className="text-xs text-[var(--warning-ink)]" data-testid="skill-test-agents-failed">
-                        {t('skills_studio.test.agents_failed', 'Could not load your agents, so a test cannot run as one.')}
-                    </span>
-                )}
-            </div>
+            <TestTabSection t={t} agentId={agentId} agents={agents} setAgentId={setAgentId} />
 
             <input
                 value={question}
@@ -369,6 +329,54 @@ const STATUS_COLOR: Record<string, string> = {
     warning: 'var(--warning)',
     error: 'var(--error)',
 };
+
+function TestTabSection2({ t, run, canRun, running }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; run: () => Promise<void>; canRun: boolean; running: boolean; }) {
+    return <div className="flex items-center gap-2">
+        <FlaskConical size={14} aria-hidden="true" className="text-[var(--text-secondary)]" />
+        <h2 className="text-[13px] font-semibold text-[var(--text-primary)] m-0">
+            {t('skills_studio.test.title', 'Test')}
+        </h2>
+        <span className="text-xs text-[var(--text-tertiary)]">
+            {t('skills_studio.test.hint', 'one question through the steps')}
+        </span>
+        <button
+            type="button"
+            onClick={run}
+            disabled={!canRun}
+            data-testid="skill-test-run"
+            className="ml-auto h-8 px-3 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
+        >
+            <Play size={11} aria-hidden="true" />
+            {running ? t('skills_studio.test.running', 'Running…') : t('skills_studio.test.run', 'Run')}
+        </button>
+    </div>;
+}
+
+function TestTabSection({ t, agentId, agents, setAgentId }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; agentId: string; agents: boolean | { id: string; name: string; }[] | null; setAgentId: Dispatch<SetStateAction<string>>; }) {
+    return <div className="flex items-center gap-2">
+        <label className="text-xs text-[var(--text-secondary)]" htmlFor="skill-test-agent">
+            {t('skills_studio.test.as_agent', 'as agent')}
+        </label>
+        <select
+            id="skill-test-agent"
+            data-testid="skill-test-agent"
+            value={agentId}
+            disabled={!Array.isArray(agents) || agents.length === 0}
+            onChange={(e) => setAgentId(e.target.value)}
+            className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] px-2 text-xs text-[var(--text-primary)] disabled:opacity-50"
+        >
+            <option value="">{t('skills_studio.test.no_agent', 'Just this skill')}</option>
+            {(Array.isArray(agents) ? agents : []).map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+        </select>
+        {agents === false && (
+            <span className="text-xs text-[var(--warning-ink)]" data-testid="skill-test-agents-failed">
+                {t('skills_studio.test.agents_failed', 'Could not load your agents, so a test cannot run as one.')}
+            </span>
+        )}
+    </div>;
+}
 
 function StepRow({ row, index }: StepRowProps) {
     // An unknown status is drawn as a warning, never as a pass — the same

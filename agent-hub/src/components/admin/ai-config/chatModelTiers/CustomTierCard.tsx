@@ -9,7 +9,7 @@ import type { CustomTier } from './tierTypes';
 import type { CustomTiersState } from './useCustomTiers';
 import { getModelDisplayName } from '../../../../api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 
 interface CustomTierCardProps extends ModelPickerSource {
     tier: CustomTier;
@@ -43,37 +43,7 @@ export default function CustomTierCard({
         return (
             <div key={tier.id} className="rounded-xl border overflow-hidden bg-[var(--bg-tertiary)] border-[var(--border-default)]">
                 <div className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                        <input
-                            type="text"
-                            value={tier.icon || ''}
-                            onChange={e => updateCustomTier(tier.id, { icon: e.target.value.slice(0, 4) })}
-                            maxLength={4}
-                            className="w-12 text-center text-xl px-1 py-1 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                            title={t('admin_ai_config.custom_icon_title', 'Icon or emoji')}
-                        />
-                        <div className="flex-1 min-w-0">
-                            <input
-                                type="text"
-                                value={tier.label || ''}
-                                onChange={e => renameCustomTier(tier.id, e.target.value)}
-                                placeholder={t('admin_ai_config.custom_name_placeholder', 'Tier name')}
-                                className="w-full text-sm font-semibold px-2 py-1 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                            />
-                            <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
-                        </div>
-                        <button
-                            onClick={() => setExpandedCustomId(isExpanded ? null : tier.id)}
-                            className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors text-[var(--text-muted)]"
-                        >
-                            {isExpanded ? t('admin_ai_config.custom_settings_open', '▲ Settings') : t('admin_ai_config.custom_settings_closed', '▼ Settings')}
-                        </button>
-                        <button
-                            onClick={() => removeCustomTier(tier.id)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/20 transition-colors text-[var(--text-muted)]"
-                            title={t('admin_ai_config.custom_delete_title', 'Delete tier')}
-                        >✕</button>
-                    </div>
+                    <CustomTierCardSection tier={tier} updateCustomTier={updateCustomTier} t={t} renameCustomTier={renameCustomTier} setExpandedCustomId={setExpandedCustomId} isExpanded={isExpanded} removeCustomTier={removeCustomTier} />
 
                     <input
                         type="text"
@@ -92,31 +62,7 @@ export default function CustomTierCard({
                         onToggleHidden={toggleHiddenModel}
                     />
 
-                    <div className="mt-3">
-                        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-[var(--text-muted)]">
-                            {t('admin_ai_config.custom_available_for', 'Available for')}
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                            {TASK_TYPES.map(tt => {
-                                const active = taskTypes.has(tt.key);
-                                return (
-                                    <button
-                                        key={tt.key}
-                                        type="button"
-                                        onClick={() => toggleCustomTaskType(tier.id, tt.key)}
-                                        className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                                        style={{
-                                            background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)',
-                                            color: active ? '#fff' : 'var(--text-muted)',
-                                            border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-default)'}`,
-                                        }}
-                                    >
-                                        {active ? '✓ ' : ''}{tt.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    <CustomTierCardSection2 t={t} taskTypes={taskTypes} toggleCustomTaskType={toggleCustomTaskType} tier={tier} />
                 </div>
 
                 {isExpanded && (
@@ -273,4 +219,64 @@ export default function CustomTierCard({
                 )}
             </div>
         );
+}
+
+function CustomTierCardSection2({ t, taskTypes, toggleCustomTaskType, tier }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; taskTypes: Set<string>; toggleCustomTaskType: (id: string, taskKey: string) => void; tier: CustomTier; }) {
+    return <div className="mt-3">
+        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5 text-[var(--text-muted)]">
+            {t('admin_ai_config.custom_available_for', 'Available for')}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+            {TASK_TYPES.map(tt => {
+                const active = taskTypes.has(tt.key);
+                return (
+                    <button
+                        key={tt.key}
+                        type="button"
+                        onClick={() => toggleCustomTaskType(tier.id, tt.key)}
+                        className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+                        style={{
+                            background: active ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+                            color: active ? '#fff' : 'var(--text-muted)',
+                            border: `1px solid ${active ? 'var(--accent-primary)' : 'var(--border-default)'}`,
+                        }}
+                    >
+                        {active ? '✓ ' : ''}{tt.label}
+                    </button>
+                );
+            })}
+        </div>
+    </div>;
+}
+
+function CustomTierCardSection({ tier, updateCustomTier, t, renameCustomTier, setExpandedCustomId, isExpanded, removeCustomTier }: { tier: CustomTier; updateCustomTier: (id: string, patch: Partial<CustomTier>) => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; renameCustomTier: (currentId: string, newLabel: string) => void; setExpandedCustomId: React.Dispatch<React.SetStateAction<string | null>>; isExpanded: boolean; removeCustomTier: (id: string) => Promise<void>; }) {
+    return <div className="flex items-center gap-3 mb-3">
+        <input
+            type="text"
+            value={tier.icon || ''}
+            onChange={e => updateCustomTier(tier.id, { icon: e.target.value.slice(0, 4) })}
+            maxLength={4}
+            className="w-12 text-center text-xl px-1 py-1 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+            title={t('admin_ai_config.custom_icon_title', 'Icon or emoji')} />
+        <div className="flex-1 min-w-0">
+            <input
+                type="text"
+                value={tier.label || ''}
+                onChange={e => renameCustomTier(tier.id, e.target.value)}
+                placeholder={t('admin_ai_config.custom_name_placeholder', 'Tier name')}
+                className="w-full text-sm font-semibold px-2 py-1 rounded-lg border outline-none [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
+            <p className="text-[10px] mt-0.5 font-mono text-[var(--text-muted)]">{tier.id}</p>
+        </div>
+        <button
+            onClick={() => setExpandedCustomId(isExpanded ? null : tier.id)}
+            className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors text-[var(--text-muted)]"
+        >
+            {isExpanded ? t('admin_ai_config.custom_settings_open', '▲ Settings') : t('admin_ai_config.custom_settings_closed', '▼ Settings')}
+        </button>
+        <button
+            onClick={() => removeCustomTier(tier.id)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-red-500/20 transition-colors text-[var(--text-muted)]"
+            title={t('admin_ai_config.custom_delete_title', 'Delete tier')}
+        >✕</button>
+    </div>;
 }

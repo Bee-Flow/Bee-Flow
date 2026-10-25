@@ -17,26 +17,24 @@
  * public site (see SessionRecorder.jsx). When recording is off we say so and
  * link to the toggle rather than rendering a convincing empty canvas.
  */
-import { Flame, ShieldAlert, MousePointerClick, MoveVertical, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Flame, ShieldAlert, MoveVertical, AlertTriangle } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import {
     toPoints, groupByWidth, attributeToBlocks, blockLabel, toScrollReach, reachAt,
     type ScrollReach,
 } from '../heatmap/model';
-import PageStage from '../heatmap/PageStage';
 import { usePreviewBackdrop } from '../heatmap/usePreviewBackdrop';
 import { rich } from '../rich';
-import { ACCENT, Card, Empty, ErrorNote, Skeleton, ShareBar, fmt } from '../ui';
+import { Empty, fmt } from '../ui';
+import { Card, Skeleton } from '../AsyncCard';
+import { ACCENT, ShareBar } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope, AnalyticsSite } from '../../analyticsApi';
 import type { XYRow } from '../ui.types';
-import type { SiteSettings, PageIndexRow, PreviewBlock, HeatmapPayload, HeatmapSectionProps, StageBodyProps, PageRailProps, StaleNoticeProps, BlockRankingProps, ReachMilestonesProps, ScrollLegendProps, RecordingOffProps, FigureProps } from './HeatmapSection.types';
-
-const MODES = [
-    { id: 'click', labelKey: 'cms_site.analytics.heatmap.mode_click', label: 'Clicks', icon: MousePointerClick },
-    { id: 'scroll', labelKey: 'cms_site.analytics.heatmap.mode_scroll', label: 'Scroll depth', icon: MoveVertical },
-];
+import type { SiteSettings, PageIndexRow, PreviewBlock, HeatmapPayload, HeatmapSectionProps, StaleNoticeProps, BlockRankingProps, ReachMilestonesProps, RecordingOffProps } from './HeatmapSection.types';
+import { PageRail } from './PageRail';
+import { StageBody } from './StageBody';
 
 export default function HeatmapSection({ scope, site, settings, onOpenSettings }: HeatmapSectionProps) {
     const { t } = useTranslation();
@@ -168,116 +166,6 @@ export default function HeatmapSection({ scope, site, settings, onOpenSettings }
     );
 }
 
-function StageBody({
-    detail, backdrop, loading, mode, points, scrollReach,
-    width, height, highlightId, onHighlight,
-}: StageBodyProps) {
-    const { t } = useTranslation();
-    // Only a failed DATA request replaces the stage; a failed backdrop leaves
-    // the numbers beside it perfectly usable.
-    if (detail.error) return <ErrorNote message={detail.error} onRetry={detail.reload} compact />;
-
-    const noData = !loading && (
-        mode === 'click' ? !points.length : !scrollReach.steps.length
-    );
-    const busy = loading || backdrop.status === 'loading';
-
-    return (
-        <>
-            {backdrop.status === 'error' && (
-                <div className="[margin-bottom:10px]">
-                    <ErrorNote message={t('cms_site.analytics.heatmap.backdrop_error', '{error} The numbers beside this are still accurate.', { error: backdrop.error })}
-                        onRetry={backdrop.reload} compact />
-                </div>
-            )}
-
-            <div className="[position:relative]">
-                <PageStage
-                    frameRef={backdrop.frameRef} src={backdrop.src}
-                    width={width} height={height}
-                    points={noData ? [] : points} blocks={backdrop.blocks}
-                    highlightId={highlightId} onHighlight={onHighlight}
-                    mode={mode} scroll={noData ? null : scrollReach}
-                />
-
-                {(busy || noData) && (
-                    <div className="[position:absolute] [inset:0] [display:flex] [align-items:center] [justify-content:center] [border-radius:10px] [background:rgba(10,10,20,0.72)] [backdrop-filter:blur(1px)] [font-size:12px] [color:var(--text-secondary,#ccc)] [text-align:center] [padding:20px]">
-                        {busy ? t('cms_site.analytics.heatmap.loading', 'Loading the page…') : (
-                            mode === 'click'
-                                ? t('cms_site.analytics.heatmap.no_clicks_page', 'No clicks recorded on this page yet.')
-                                : t('cms_site.analytics.heatmap.no_scroll_page', 'No scroll data for this page yet — visitors have to scroll for it to be recorded.')
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {!noData && (mode === 'click' ? <ClickLegend /> : <ScrollLegend reach={scrollReach} />)}
-        </>
-    );
-}
-
-function PageRail({
-    index, pages, urlPath, onSelectPath, mode, onSelectMode,
-    widthGroups, activeWidth, onSelectWidth, clicks, sessions, views,
-}: PageRailProps) {
-    const { t } = useTranslation();
-    return (
-        <Card title={t('cms_site.analytics.heatmap.title', 'Heatmap')} icon={Flame} action={
-            <div className="[display:flex] [gap:6px]">
-                {MODES.map(m => (
-                    <button key={m.id} onClick={() => onSelectMode(m.id)} style={chipStyle(mode === m.id)}>
-                        <m.icon className="w-[12px] h-[12px]" /> {t(m.labelKey, m.label)}
-                    </button>
-                ))}
-            </div>
-        }>
-            {index.error ? <ErrorNote message={index.error} onRetry={index.reload} compact />
-                : index.loading ? <Skeleton height={54} />
-                : pages.length === 0 ? (
-                    <Empty text={t('cms_site.analytics.heatmap.no_clicks', 'No clicks recorded yet. Recording starts once a visitor accepts your cookie banner.')} />
-                ) : (
-                    <div className="[display:flex] [gap:14px] [flex-wrap:wrap] [align-items:flex-end]">
-                        <label className="[display:flex] [flex-direction:column] [gap:4px]">
-                            <span style={labelStyle}>{t('cms_site.analytics.heatmap.page', 'Page')}</span>
-                            <select value={urlPath} onChange={(e) => onSelectPath(e.target.value)} style={selectStyle}>
-                                {pages.map(p => (
-                                    <option key={p.urlPath} value={p.urlPath}>
-                                        {t('cms_site.analytics.heatmap.page_option', '{path} — {n} clicks', { path: p.urlPath, n: fmt(p.count) })}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-
-                        {widthGroups.length > 1 && (
-                            <div className="[display:flex] [flex-direction:column] [gap:4px]">
-                                <span style={labelStyle}>{t('cms_site.analytics.heatmap.captured_at', 'Captured at')}</span>
-                                <div className="[display:flex] [gap:6px]">
-                                    {widthGroups.map(g => (
-                                        <button key={g.width} onClick={() => onSelectWidth(g.width)}
-                                            title={t('cms_site.analytics.heatmap.width_title', '{clicks} clicks at {width}px wide', { clicks: fmt(g.clicks), width: g.width })}
-                                            style={chipStyle(activeWidth === g.width)}>
-                                            {g.width}px · {Math.round(g.share)}%
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="[display:flex] [gap:18px] [margin-left:auto]">
-                            <Figure label={t('cms_site.analytics.heatmap.fig_clicks', 'Clicks')} value={fmt(clicks)} />
-                            <Figure label={t('cms_site.analytics.heatmap.fig_sessions', 'Sessions')} value={fmt(sessions)} />
-                            {views > 0 && <Figure label={t('cms_site.analytics.heatmap.fig_views', 'Views')} value={fmt(views)} />}
-                        </div>
-
-                        <a href={urlPath} target="_blank" rel="noreferrer" style={linkStyle}>
-                            {t('cms_site.analytics.heatmap.open_live', 'Open live page')} <ExternalLink className="w-[11px] h-[11px]" />
-                        </a>
-                    </div>
-                )}
-        </Card>
-    );
-}
-
 function StaleNotice({ liveH, recordedH }: StaleNoticeProps) {
     const { t } = useTranslation();
     return (
@@ -384,29 +272,6 @@ function ReachMilestones({ reach, blocks, pageHeight }: ReachMilestonesProps) {
     );
 }
 
-function ClickLegend() {
-    const { t } = useTranslation();
-    return (
-        <div className="[display:flex] [align-items:center] [gap:8px] [margin-top:10px] [font-size:11px] [color:var(--text-muted,#888)]">
-            <span>{t('cms_site.analytics.heatmap.legend_fewer', 'fewer clicks')}</span>
-            <span className="[display:inline-block] w-[120px] h-[8px] [border-radius:4px] [background:linear-gradient(90deg,#14b8a6,#10b981,#f59e0b,#f97316,#ef4444)]" />
-            <span>{t('cms_site.analytics.heatmap.legend_more', 'more')}</span>
-            <span className="[margin-left:10px]">{t('cms_site.analytics.heatmap.legend_hover', 'Hover the page to highlight a block.')}</span>
-        </div>
-    );
-}
-
-function ScrollLegend({ reach }: ScrollLegendProps) {
-    const { t } = useTranslation();
-    return (
-        <div className="[margin-top:10px] [font-size:11px] [color:var(--text-muted,#888)]">
-            {reach.totalSessions
-                ? t('cms_site.analytics.heatmap.scroll_legend_n', 'Darker means fewer visitors got that far — out of {n} recorded sessions.', { n: fmt(reach.totalSessions) })
-                : t('cms_site.analytics.heatmap.scroll_legend', 'Darker means fewer visitors got that far.')}
-        </div>
-    );
-}
-
 function RecordingOff({ site, settings, onOpenSettings }: RecordingOffProps) {
     const { t } = useTranslation();
     return (
@@ -439,38 +304,8 @@ function RecordingOff({ site, settings, onOpenSettings }: RecordingOffProps) {
     );
 }
 
-function Figure({ label, value }: FigureProps) {
-    return (
-        <div>
-            <div style={labelStyle}>{label}</div>
-            <div className="[font-size:16px] [font-weight:800] [color:var(--text-primary,#fff)]">{value}</div>
-        </div>
-    );
-}
-
-const labelStyle = {
-    fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.06em', color: 'var(--text-muted, #888)',
-};
-const selectStyle = {
-    background: 'var(--bg-primary, #0f0f1a)', color: 'var(--text-primary, #fff)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-    borderRadius: 8, padding: '7px 10px', fontSize: 12, minWidth: 240,
-};
-const linkStyle = {
-    display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
-    color: ACCENT, textDecoration: 'none', border: `1px solid ${ACCENT}44`,
-    borderRadius: 7, padding: '5px 10px',
-};
 const warnStyle = {
     display: 'flex', gap: 9, alignItems: 'flex-start', padding: '11px 14px',
     borderRadius: 10, background: 'rgba(245,158,11,0.08)',
     border: '1px solid rgba(245,158,11,0.25)', fontSize: 12, color: '#fcd34d',
 };
-const chipStyle = (active: boolean) => ({
-    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px',
-    borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: 700,
-    border: `1px solid ${active ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
-    background: active ? `${ACCENT}14` : 'transparent',
-    color: active ? ACCENT : 'var(--text-muted, #888)',
-});

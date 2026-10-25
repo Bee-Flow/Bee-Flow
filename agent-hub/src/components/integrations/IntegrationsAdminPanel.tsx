@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2, LucideIcon } from 'lucide-react';
 import React from 'react';
 import FeatureKillSwitches from './FeatureKillSwitches';
 import { useLicenseContext } from '../licensing/LicenseContext';
@@ -12,7 +12,7 @@ import useIntegrationDefaults from './IntegrationsAdminPanel/useIntegrationDefau
 import useIntegrationsAdminState from './IntegrationsAdminPanel/useIntegrationsAdminState';
 import useServiceEmailActions from './IntegrationsAdminPanel/useServiceEmailActions';
 import useTranscriptionSettings from './IntegrationsAdminPanel/useTranscriptionSettings';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 
 interface IntegrationsAdminPanelProps {
     activeSection?: string;
@@ -142,49 +142,7 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
     return (
         <div className="[display:flex] h-[100%] [overflow:hidden]">
             {/* ── Left Sidebar ── */}
-            <div className="w-[56px] [flex-shrink:0] [display:flex] [flex-direction:column] [gap:2px] [padding:8px_0] [background:var(--bg-secondary,#111)] [border-right:1px_solid_var(--border-default,rgba(255,255,255,0.08))]">
-                {visibleSections.map(sec => {
-                    const Icon = sec.icon;
-                    const isActive = active === sec.id;
-                    return (
-                        <button
-                            key={sec.id}
-                            onClick={() => handleSectionClick(sec.id)}
-                            title={t(sec.labelKey)}
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '3px',
-                                padding: '10px 4px',
-                                margin: '0 4px',
-                                borderRadius: '8px',
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                background: isActive ? `${sec.color}20` : 'transparent',
-                                borderLeft: isActive ? `3px solid ${sec.color}` : '3px solid transparent',
-                            }}
-                        >
-                            <Icon style={{
-                                width: 20, height: 20,
-                                color: isActive ? sec.color : 'var(--text-muted, #888)',
-                                transition: 'color 0.15s ease',
-                            }} />
-                            <span style={{
-                                fontSize: '9px',
-                                fontWeight: isActive ? '700' : '500',
-                                color: isActive ? sec.color : 'var(--text-muted, #888)',
-                                textAlign: 'center',
-                                lineHeight: 1.1,
-                                transition: 'color 0.15s ease',
-                            }}>
-                                {t(sec.labelKey)}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
+            <IntegrationsAdminPanelSection visibleSections={visibleSections} active={active} handleSectionClick={handleSectionClick} t={t} />
 
             {/* ── Main Content Panel ── */}
             <div className="[flex:1] [overflow:auto] [position:relative]">
@@ -366,4 +324,50 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
             </div>
         </div>
     );
+}
+
+function IntegrationsAdminPanelSection({ visibleSections, active, handleSectionClick, t }: { visibleSections: { id: string; labelKey: string; icon: LucideIcon; color: string; }[]; active: string; handleSectionClick: (id: string) => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div className="w-[56px] [flex-shrink:0] [display:flex] [flex-direction:column] [gap:2px] [padding:8px_0] [background:var(--bg-secondary,#111)] [border-right:1px_solid_var(--border-default,rgba(255,255,255,0.08))]">
+        {visibleSections.map(sec => {
+            const Icon = sec.icon;
+            const isActive = active === sec.id;
+            return (
+                <button
+                    key={sec.id}
+                    onClick={() => handleSectionClick(sec.id)}
+                    title={t(sec.labelKey)}
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '3px',
+                        padding: '10px 4px',
+                        margin: '0 4px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        background: isActive ? `${sec.color}20` : 'transparent',
+                        borderLeft: isActive ? `3px solid ${sec.color}` : '3px solid transparent',
+                    }}
+                >
+                    <Icon style={{
+                        width: 20, height: 20,
+                        color: isActive ? sec.color : 'var(--text-muted, #888)',
+                        transition: 'color 0.15s ease',
+                    }} />
+                    <span style={{
+                        fontSize: '9px',
+                        fontWeight: isActive ? '700' : '500',
+                        color: isActive ? sec.color : 'var(--text-muted, #888)',
+                        textAlign: 'center',
+                        lineHeight: 1.1,
+                        transition: 'color 0.15s ease',
+                    }}>
+                        {t(sec.labelKey)}
+                    </span>
+                </button>
+            );
+        })}
+    </div>;
 }

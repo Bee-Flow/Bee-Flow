@@ -45,9 +45,9 @@ import useComplianceCounts from './data/useComplianceCounts';
 import {
     useComplianceAttention, useComplianceDeadlines, useFrameworks, useCalendar,
 } from './data/aggregates';
-import {
-    useDsr, useRopa, useDpia, useIncidents, useSoa, usePolicies, useConnectors, useRisks, useAudit, useTraining, useAccessAudit, useOrgUsers,
-} from './data/registers';
+import { useDpia, useIncidents, useSoa, usePolicies, useConnectors, useRisks, useAudit, useTraining, useAccessAudit, useOrgUsers } from './data/registers';
+import { useDsr } from './data/useDsr';
+import { useRopa } from './data/useRopa';
 import { pageFor } from './data/pages';
 import ComplianceRail from './ComplianceRail';
 import ComplianceHeader from './ComplianceHeader';

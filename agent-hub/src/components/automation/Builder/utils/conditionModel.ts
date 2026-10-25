@@ -12,7 +12,7 @@ import {
     fieldShape, findTopLevelSymbol, quantifiedCall, readQuantifiedCall, splitCallArgs, splitTopLevel,
     TEST_OF_OP, UNARY_TESTS,
 } from '@shared/expr/rules.mjs';
-import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers';
+import { renderBindingValue, isCleanPath, bindingFromInput, canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 import { ISO_DATE_RE } from '../mapping/core';
 import type {
     Binding, Comparator, ConditionRow, FieldShape, Operator, OperatorOption, OperatorOptions, ParsedCall,

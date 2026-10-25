@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, SetStateAction, Dispatch } from 'react';
 import {
     Cpu, Bot, Users, MessageSquare, ChevronRight} from 'lucide-react';
 import {
@@ -8,7 +8,7 @@ import {
     type AgentUsage, type FilterState, type ModelUsage, type SortableColumn, type UsageRecord, type UserUsage,
 } from './shared';
 import type { ModelRate } from './drawer/drawerTypes';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 
 interface UsageExplorerPageProps {
     byModel: ModelUsage[];
@@ -169,68 +169,7 @@ export function UsageExplorerPage({
             </div>
 
             {/* By Agent — expandable with model sub-rows */}
-            <Card title={t('admin_monitoring.usage_by_agent', 'By Agent')} icon={Bot} style={{ marginBottom: '1.25rem' }}>
-                {filteredAgents.length === 0 ? <Empty text={t('admin_monitoring.usage_no_agent', 'No agent data')} /> : filteredAgents.map((a, i) => {
-                    const isExpanded = expandedAgent === (a.agent_name || a.agent_id);
-                    const style = getAgentStyle(a.agent_type);
-
-                    return (
-                        <div key={i}>
-                            <div
-                                onClick={() => setExpandedAgent(isExpanded ? null : (a.agent_name || a.agent_id))}
-                                className="[display:flex] [justify-content:space-between] [align-items:center] [padding:10px_2px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))] [cursor:pointer] [transition:background_0.12s] [border-radius:4px]"
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.03))'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                                <div className="[display:flex] [align-items:center] [gap:10px] min-w-[0]">
-                                    <span style={{
-                                        padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
-                                        background: style.bg, color: style.text, flexShrink: 0,
-                                    }}>{a.agent_type || 'chat'}</span>
-                                    <span className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
-                                </div>
-                                <div className="[display:flex] [align-items:center] [gap:16px] [flex-shrink:0]">
-                                    <span className="[font-size:12px] [color:var(--text-muted,#888)]">
-                                        {t('admin_monitoring.usage_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}
-                                    </span>
-                                    <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>
-                                        {fmt(a.total_tokens)}
-                                    </span>
-                                    <span className="[font-size:12px] [color:var(--text-muted,#888)]">
-                                        {t('admin_monitoring.usage_n_calls', '{n} calls', { n: a.calls })}
-                                    </span>
-                                    <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, minWidth: '50px', textAlign: 'right' }}>
-                                        {fmtCost(a.estimated_cost || 0)}
-                                    </span>
-                                    <ChevronRight style={{
-                                        width: 14, height: 14, color: 'var(--text-muted, #888)',
-                                        transform: isExpanded ? 'rotate(90deg)' : 'none',
-                                        transition: 'transform 0.2s',
-                                    }} />
-                                </div>
-                            </div>
-                            {/* Expanded sub-models */}
-                            {isExpanded && (a.models || []).length > 0 && (
-                                <div className="[padding:4px_0_8px_32px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))] [border-radius:0_0_8px_8px]">
-                                    {(a.models || []).map((m, mi) => (
-                                        <div key={mi} className="[display:flex] [align-items:center] [justify-content:space-between] [padding:6px_8px] [font-size:11px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.03))]">
-                                            <div className="[display:flex] [align-items:center] [gap:6px]">
-                                                <Cpu style={{ width: 11, height: 11, color: MODEL_COLORS[mi % MODEL_COLORS.length] }} />
-                                                <span className="[font-weight:600] [color:var(--text-primary,#fff)]">{shortModel(m.model)}</span>
-                                            </div>
-                                            <div className="[display:flex] [gap:12px] [align-items:center]">
-                                                <span style={{ color: COLORS.green, fontWeight: 600 }}>{fmt(m.total_tokens)}</span>
-                                                <span className="[color:var(--text-muted,#888)]">{t('admin_monitoring.usage_n_calls', '{n} calls', { n: m.calls })}</span>
-                                                <span style={{ color: COLORS.amber, fontWeight: 600 }}>{fmtCost(m.estimated_cost || 0)}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </Card>
+            <UsageExplorerPageCard t={t} filteredAgents={filteredAgents} expandedAgent={expandedAgent} setExpandedAgent={setExpandedAgent} />
 
             {/* By Conversation */}
             {filteredConversations.length > 0 && (
@@ -279,4 +218,69 @@ export function UsageExplorerPage({
             )}
         </div>
     );
+}
+
+function UsageExplorerPageCard({ t, filteredAgents, expandedAgent, setExpandedAgent }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; filteredAgents: AgentUsage[]; expandedAgent: string | null; setExpandedAgent: Dispatch<SetStateAction<string | null>>; }) {
+    return <Card title={t('admin_monitoring.usage_by_agent', 'By Agent')} icon={Bot} style={{ marginBottom: '1.25rem' }}>
+        {filteredAgents.length === 0 ? <Empty text={t('admin_monitoring.usage_no_agent', 'No agent data')} /> : filteredAgents.map((a, i) => {
+            const isExpanded = expandedAgent === (a.agent_name || a.agent_id);
+            const style = getAgentStyle(a.agent_type);
+
+            return (
+                <div key={i}>
+                    <div
+                        onClick={() => setExpandedAgent(isExpanded ? null : (a.agent_name || a.agent_id))}
+                        className="[display:flex] [justify-content:space-between] [align-items:center] [padding:10px_2px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))] [cursor:pointer] [transition:background_0.12s] [border-radius:4px]"
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary, rgba(255,255,255,0.03))'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                        <div className="[display:flex] [align-items:center] [gap:10px] min-w-[0]">
+                            <span style={{
+                                padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 700,
+                                background: style.bg, color: style.text, flexShrink: 0,
+                            }}>{a.agent_type || 'chat'}</span>
+                            <span className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{a.agent_name || a.agent_id || t('admin_monitoring.unknown', 'Unknown')}</span>
+                        </div>
+                        <div className="[display:flex] [align-items:center] [gap:16px] [flex-shrink:0]">
+                            <span className="[font-size:12px] [color:var(--text-muted,#888)]">
+                                {t('admin_monitoring.usage_avg', '{duration} avg', { duration: fmtDuration(a.avg_duration_ms) })}
+                            </span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>
+                                {fmt(a.total_tokens)}
+                            </span>
+                            <span className="[font-size:12px] [color:var(--text-muted,#888)]">
+                                {t('admin_monitoring.usage_n_calls', '{n} calls', { n: a.calls })}
+                            </span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: COLORS.amber, minWidth: '50px', textAlign: 'right' }}>
+                                {fmtCost(a.estimated_cost || 0)}
+                            </span>
+                            <ChevronRight style={{
+                                width: 14, height: 14, color: 'var(--text-muted, #888)',
+                                transform: isExpanded ? 'rotate(90deg)' : 'none',
+                                transition: 'transform 0.2s',
+                            }} />
+                        </div>
+                    </div>
+                    {/* Expanded sub-models */}
+                    {isExpanded && (a.models || []).length > 0 && (
+                        <div className="[padding:4px_0_8px_32px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))] [border-radius:0_0_8px_8px]">
+                            {(a.models || []).map((m, mi) => (
+                                <div key={mi} className="[display:flex] [align-items:center] [justify-content:space-between] [padding:6px_8px] [font-size:11px] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.03))]">
+                                    <div className="[display:flex] [align-items:center] [gap:6px]">
+                                        <Cpu style={{ width: 11, height: 11, color: MODEL_COLORS[mi % MODEL_COLORS.length] }} />
+                                        <span className="[font-weight:600] [color:var(--text-primary,#fff)]">{shortModel(m.model)}</span>
+                                    </div>
+                                    <div className="[display:flex] [gap:12px] [align-items:center]">
+                                        <span style={{ color: COLORS.green, fontWeight: 600 }}>{fmt(m.total_tokens)}</span>
+                                        <span className="[color:var(--text-muted,#888)]">{t('admin_monitoring.usage_n_calls', '{n} calls', { n: m.calls })}</span>
+                                        <span style={{ color: COLORS.amber, fontWeight: 600 }}>{fmtCost(m.estimated_cost || 0)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        })}
+    </Card>;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { StatusBadge } from './components';
 import { SUB_SECTIONS, TIERS } from './constants';
 import type { SubSection, Tier } from './constants';
@@ -252,44 +252,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
             )}
 
             {/* Sub-section tabs */}
-            <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
-                {SUB_SECTIONS.map((section: SubSection, i: number) => {
-                    const Icon = section.icon;
-                    const isActive = activeSection === section.id;
-                    const isLast = i === SUB_SECTIONS.length - 1;
-                    return (
-                        <button
-                            key={section.id}
-                            onClick={() => setActiveSection(section.id)}
-                            className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors"
-                            style={{
-                                background: isActive ? 'rgba(0,120,212,0.06)' : 'var(--bg-secondary)',
-                                borderBottom: !isLast ? '1px solid var(--border-subtle)' : 'none',
-                                borderLeft: isActive ? '3px solid #0078D4' : '3px solid transparent',
-                            }}
-                            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
-                        >
-                            <Icon style={{ width: '16px', height: '16px', color: isActive ? section.color : 'var(--text-muted)', flexShrink: 0 }} />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-medium" style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{t(section.labelKey)}</p>
-                                <p className="text-[11px] truncate text-[var(--text-muted)]">{t(section.descKey)}</p>
-                            </div>
-                            {/* Status indicators */}
-                            {section.id === 'openai' && (azureEndpoint || hasAzureApiKey) && (
-                                <StatusBadge configured={!!azureEndpoint && hasAzureApiKey} label={!!azureEndpoint && hasAzureApiKey ? t('azure.configured') : t('azure.partial')} />
-                            )}
-                            {section.id === 'chatModels' && (() => {
-                                const configured = TIERS.filter((t: Tier) => chatModelTiers[t.key]?.modelId).length;
-                                return configured > 0 ? <StatusBadge configured={true} label={`${configured}/${TIERS.length} ${t('azure.tiers')}`} /> : null;
-                            })()}
-                            {section.id === 'sso' && <StatusBadge configured={ssoConfigured} />}
-                            {section.id === 'docProcessing' && (hasAzureDocEndpoint && hasAzureDocKey) && <StatusBadge configured={true} />}
-                            <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0, transform: isActive ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }} />
-                        </button>
-                    );
-                })}
-            </div>
+            <OrgAzureConfigPanelSection activeSection={activeSection} setActiveSection={setActiveSection} t={t} azureEndpoint={azureEndpoint} hasAzureApiKey={hasAzureApiKey} chatModelTiers={chatModelTiers} ssoConfigured={ssoConfigured} hasAzureDocEndpoint={hasAzureDocEndpoint} hasAzureDocKey={hasAzureDocKey} />
 
             {/* Active section content */}
             <div className="rounded-xl px-6 py-5 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
@@ -297,4 +260,45 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
             </div>
         </div>
     );
+}
+
+function OrgAzureConfigPanelSection({ activeSection, setActiveSection, t, azureEndpoint, hasAzureApiKey, chatModelTiers, ssoConfigured, hasAzureDocEndpoint, hasAzureDocKey }: { activeSection: string; setActiveSection: React.Dispatch<React.SetStateAction<string>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; azureEndpoint: string; hasAzureApiKey: boolean; chatModelTiers: Record<string, TierConfig>; ssoConfigured: boolean; hasAzureDocEndpoint: boolean; hasAzureDocKey: boolean; }) {
+    return <div className="rounded-xl overflow-hidden [border:1px_solid_var(--border-subtle)]">
+        {SUB_SECTIONS.map((section: SubSection, i: number) => {
+            const Icon = section.icon;
+            const isActive = activeSection === section.id;
+            const isLast = i === SUB_SECTIONS.length - 1;
+            return (
+                <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors"
+                    style={{
+                        background: isActive ? 'rgba(0,120,212,0.06)' : 'var(--bg-secondary)',
+                        borderBottom: !isLast ? '1px solid var(--border-subtle)' : 'none',
+                        borderLeft: isActive ? '3px solid #0078D4' : '3px solid transparent',
+                    }}
+                    onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-tertiary)'; } }
+                    onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)'; } }
+                >
+                    <Icon style={{ width: '16px', height: '16px', color: isActive ? section.color : 'var(--text-muted)', flexShrink: 0 }} />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium" style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{t(section.labelKey)}</p>
+                        <p className="text-[11px] truncate text-[var(--text-muted)]">{t(section.descKey)}</p>
+                    </div>
+                    {/* Status indicators */}
+                    {section.id === 'openai' && (azureEndpoint || hasAzureApiKey) && (
+                        <StatusBadge configured={!!azureEndpoint && hasAzureApiKey} label={!!azureEndpoint && hasAzureApiKey ? t('azure.configured') : t('azure.partial')} />
+                    )}
+                    {section.id === 'chatModels' && (() => {
+                        const configured = TIERS.filter((t: Tier) => chatModelTiers[t.key]?.modelId).length;
+                        return configured > 0 ? <StatusBadge configured={true} label={`${configured}/${TIERS.length} ${t('azure.tiers')}`} /> : null;
+                    })()}
+                    {section.id === 'sso' && <StatusBadge configured={ssoConfigured} />}
+                    {section.id === 'docProcessing' && (hasAzureDocEndpoint && hasAzureDocKey) && <StatusBadge configured={true} />}
+                    <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0, transform: isActive ? 'rotate(90deg)' : 'none', transition: 'transform 150ms' }} />
+                </button>
+            );
+        })}
+    </div>;
 }

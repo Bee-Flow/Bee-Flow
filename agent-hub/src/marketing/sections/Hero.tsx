@@ -209,26 +209,30 @@ export default function Hero({ data }: { data?: HeroData }) {
 
     return (
         <SectionFrame id="hero" name="Hero" enabled={data.enabled}>
-            <section className={sectionClass} id="hero">
-                <BackgroundVideo video={data.backgroundVideo} />
-                <div className="container">
-                    {variant === 'split' ? (
-                        <div className="hero-inner">
-                            {copy}
-                            <div className="hero-split-media">{visual}</div>
-                        </div>
-                    ) : (
-                        <>
-                            {copy}
-                            {visual ? (
-                                (variant === 'panel' || variant === 'video')
-                                    ? <div className="hero-panel">{visual}</div>
-                                    : visual
-                            ) : null}
-                        </>
-                    )}
-                </div>
-            </section>
+            <HeroSection sectionClass={sectionClass} data={data} variant={variant} copy={copy} visual={visual} />
         </SectionFrame>
     );
+}
+
+function HeroSection({ sectionClass, data, variant, copy, visual }: { sectionClass: string; data: HeroData; variant: string | undefined; copy: React.JSX.Element; visual: React.JSX.Element | null; }) {
+    return <section className={sectionClass} id="hero">
+        <BackgroundVideo video={data.backgroundVideo} />
+        <div className="container">
+            {variant === 'split' ? (
+                <div className="hero-inner">
+                    {copy}
+                    <div className="hero-split-media">{visual}</div>
+                </div>
+            ) : (
+                <>
+                    {copy}
+                    {visual ? (
+                        (variant === 'panel' || variant === 'video')
+                            ? <div className="hero-panel">{visual}</div>
+                            : visual
+                    ) : null}
+                </>
+            )}
+        </div>
+    </section>;
 }

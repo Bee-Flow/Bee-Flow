@@ -14,7 +14,7 @@
 import { Brain, AlertTriangle, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE } from '../../../utils/helpers';
 import { errorMessage, messageOf } from '../../../utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
@@ -184,39 +184,7 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
 
             {/* The safety limit applies in BOTH modes, so it sits outside the
                 choice above rather than under one of the two cards. */}
-            <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] p-4">
-                <label htmlFor="ai-context-budget" className="block text-sm font-medium">
-                    {t('admin.ai_context.budget_label', 'Safety limit')}
-                </label>
-                <p className="text-xs opacity-70">
-                    {t(
-                        'admin.ai_context.safety_note',
-                        'A conversation can never overflow the model: once it reaches this share of the context window, the oldest part is summarised automatically.',
-                    )}
-                </p>
-                <div className="flex items-center gap-3">
-                    <input
-                        id="ai-context-budget"
-                        type="range"
-                        min={range.min}
-                        max={range.max}
-                        step={5}
-                        value={budgetPercent}
-                        disabled={saving}
-                        onChange={(e) => setBudgetPercent(Number(e.target.value))}
-                        className="flex-1 accent-blue-600"
-                        aria-valuetext={`${budgetPercent}%`}
-                    />
-                    <span className="w-12 text-right text-sm font-medium tabular-nums">{budgetPercent}%</span>
-                </div>
-                {examples.length > 0 && (
-                    <p className="text-xs opacity-70">
-                        {examples.map(ex => (
-                            `${ex.label} → ~${formatTokens(ex.contextWindow * budgetPercent / 100)} tokens`
-                        )).join('   ·   ')}
-                    </p>
-                )}
-            </div>
+            <OrgAiContextEditorSection t={t} range={range} budgetPercent={budgetPercent} saving={saving} setBudgetPercent={setBudgetPercent} examples={examples} />
 
             <div className="flex items-center gap-3 border-t border-black/10 pt-4 dark:border-white/10">
                 <button
@@ -243,4 +211,39 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
             </div>
         </div>
     );
+}
+
+function OrgAiContextEditorSection({ t, range, budgetPercent, saving, setBudgetPercent, examples }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; range: { min: number; max: number; }; budgetPercent: number; saving: boolean; setBudgetPercent: React.Dispatch<React.SetStateAction<number>>; examples: { label: string; contextWindow: number; }[]; }) {
+    return <div className="space-y-2 rounded-xl border border-[var(--border-subtle)] p-4">
+        <label htmlFor="ai-context-budget" className="block text-sm font-medium">
+            {t('admin.ai_context.budget_label', 'Safety limit')}
+        </label>
+        <p className="text-xs opacity-70">
+            {t(
+                'admin.ai_context.safety_note',
+                'A conversation can never overflow the model: once it reaches this share of the context window, the oldest part is summarised automatically.'
+            )}
+        </p>
+        <div className="flex items-center gap-3">
+            <input
+                id="ai-context-budget"
+                type="range"
+                min={range.min}
+                max={range.max}
+                step={5}
+                value={budgetPercent}
+                disabled={saving}
+                onChange={(e) => setBudgetPercent(Number(e.target.value))}
+                className="flex-1 accent-blue-600"
+                aria-valuetext={`${budgetPercent}%`} />
+            <span className="w-12 text-right text-sm font-medium tabular-nums">{budgetPercent}%</span>
+        </div>
+        {examples.length > 0 && (
+            <p className="text-xs opacity-70">
+                {examples.map(ex => (
+                    `${ex.label} → ~${formatTokens(ex.contextWindow * budgetPercent / 100)} tokens`
+                )).join('   ·   ')}
+            </p>
+        )}
+    </div>;
 }

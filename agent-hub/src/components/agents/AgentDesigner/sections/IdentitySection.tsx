@@ -1,9 +1,9 @@
-import { useState as useLocalState } from 'react';
+import { SetStateAction, RefObject, Dispatch, useState as useLocalState } from 'react';
 import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
 import ModelTierSelector from '../../../licensing/ModelTierSelector';
 import { toast } from '../../../shared/Toast';
 import VersionHistory from '../../VersionHistory';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
 import { mutate, ApiError } from '../../../../api/mutate';
 
@@ -60,118 +60,7 @@ export const IdentitySection = ({
                                                     </div>
 
                                                     {/* Avatar Picker */}
-                                                    <div className="relative">
-                                                        <label className="text-xs font-medium text-muted mb-2 block">{t('agent_studio.identity_avatar', 'Avatar')}</label>
-                                                        <div className="flex items-center gap-4">
-                                                            <div
-                                                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                                                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl cursor-pointer hover:bg-[var(--bg-tertiary)] transition-all overflow-hidden border border-[var(--border-subtle)]"
-                                                                title={t('agent_studio.identity_click_to_change_avatar', 'Click to change avatar')}
-                                                            >
-                                                                {isImageAvatar(avatar) ? (
-                                                                    <img src={resolveAvatarSrc(avatar)} alt="" className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    avatar
-                                                                )}
-                                                            </div>
-                                                            <div className="text-sm text-muted">
-                                                                <p>{t('agent_studio.identity_click_to_select_an_emoji_or_image', 'Click to select an emoji or image')}</p>
-                                                                <p className="text-xs opacity-70">{t('agent_studio.identity_supports_emoji_png_jpg_or_svg', 'Supports emoji, PNG, JPG, or SVG')}</p>
-                                                            </div>
-                                                        </div>
-                                                        {showEmojiPicker && (() => {
-                                                            const categories: Record<string, { label: string; title: string; emojis: string[]; }> = {
-                                                                smileys: { label: '😀', title: 'Smileys', emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😋', '😛', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤡', '🥹', '😏', '😌', '😔', '😴', '🤤', '😷', '🤒', '🤕', '🤢', '🤮', '🥵', '🥶', '😵', '🤯', '🥳', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸'] },
-                                                                people: { label: '👤', title: 'People', emojis: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '🦿', '👨‍💻', '👩‍💻', '👨‍🔬', '👩‍🔬', '👨‍🎨', '👩‍🎨', '🧙‍♂️', '🧙‍♀️', '🦸‍♂️', '🦸‍♀️', '🥷', '🧑‍🚀', '👮', '🕵️', '💂', '🧑‍🍳', '🧑‍🏫', '🧑‍⚕️'] },
-                                                                animals: { label: '🐾', title: 'Animals', emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🐠', '🐟', '🐬', '🐳', '🦈'] },
-                                                                food: { label: '🍕', title: 'Food', emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🧄', '🧅', '🥔', '🍞', '🥐', '🥖', '🥨', '🧀', '🥚', '🍳', '🥞', '🧇', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🫔', '🥗', '🍜'] },
-                                                                travel: { label: '✈️', title: 'Travel', emojis: ['🚗', '🚕', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🏍️', '🚲', '🛴', '🚂', '🚆', '🚇', '✈️', '🛫', '🛬', '🚀', '🛸', '🚁', '⛵', '🚢', '🏠', '🏡', '🏢', '🏣', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🗼', '🗽', '⛪', '🕌', '🛕', '🕍', '⛩️', '🕋', '⛲', '🌍'] },
-                                                                objects: { label: '💡', title: 'Objects', emojis: ['⌚', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '💽', '💾', '💿', '📀', '🎥', '📷', '📹', '🔍', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '🪔', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞️', '📑', '🔖', '🏷️', '💰', '🪙', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '✉️'] },
-                                                                symbols: { label: '⚡', title: 'Symbols', emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳'] },
-                                                                tech: { label: '🤖', title: 'Tech & Work', emojis: ['🤖', '🧠', '💡', '🔧', '🔨', '⚒️', '🛠️', '⚙️', '🧰', '📊', '📈', '📉', '💹', '🎯', '🚀', '⚡', '🔥', '💥', '✨', '🌟', '⭐', '🏆', '🥇', '🥈', '🥉', '🎖️', '🏅', '🎗️', '📝', '✏️', '🖊️', '🖋️', '📌', '📍', '📎', '🖇️', '📐', '📏', '🗂️', '📂', '📁', '🗃️', '🗄️', '🔒', '🔓', '🔐', '🔑', '🗝️', '🛡️', '⚔️'] }
-                                                            };
-                                                            const currentEmojis = categories[emojiCategory]?.emojis || categories.smileys.emojis;
-                                                            return (
-                                                                <div ref={emojiPickerRef} className="absolute top-full left-0 mt-2 rounded-xl border bg-[var(--bg-card)] shadow-xl z-50 [border-color:var(--border-default)] w-[400px]">
-                                                                    {/* Category Tabs */}
-                                                                    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-[var(--border-subtle)]">
-                                                                        {Object.entries(categories).map(([key, cat]) => (
-                                                                            <button
-                                                                                key={key}
-                                                                                onClick={() => setEmojiCategory(key)}
-                                                                                className={`flex-1 py-1.5 rounded-md text-sm transition-all ${emojiCategory === key
-                                                                                    ? 'bg-[var(--bg-tertiary)]'
-                                                                                    : 'hover:bg-[var(--bg-tertiary)]/50'
-                                                                                    }`}
-                                                                                title={cat.title}
-                                                                            >
-                                                                                {cat.label}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                    {/* Emoji Grid */}
-                                                                    <div className="p-2">
-                                                                        <div className="grid grid-cols-8 gap-0.5">
-                                                                            {currentEmojis.map(emoji => (
-                                                                                <button
-                                                                                    key={emoji}
-                                                                                    onClick={() => { setAvatar(emoji); setShowEmojiPicker(false); }}
-                                                                                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-xl hover:bg-[var(--bg-tertiary)] transition-colors ${avatar === emoji ? 'bg-[var(--bg-tertiary)] ring-2 ring-emerald-500' : ''}`}
-                                                                                >
-                                                                                    {emoji}
-                                                                                </button>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                    {/* Custom Input + Image Upload */}
-                                                                    <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--border-subtle)]">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={isImageAvatar(avatar) ? '' : avatar}
-                                                                            onChange={(e) => setAvatar(e.target.value.slice(-2) || DEFAULT_AGENT_EMOJI)}
-                                                                            className="input flex-1 py-1 text-center text-xl"
-                                                                            placeholder="🤖"
-                                                                            maxLength={2}
-                                                                        />
-                                                                        <input
-                                                                            type="file"
-                                                                            accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
-                                                                            className="hidden"
-                                                                            id="agent-avatar-upload"
-                                                                            onChange={(e) => {
-                                                                                const file = e.target.files?.[0];
-                                                                                if (!file) return;
-                                                                                if (file.size > 512 * 1024) {
-                                                                                    toast.error('Image must be under 512KB');
-                                                                                    return;
-                                                                                }
-                                                                                const reader = new FileReader();
-                                                                                reader.onload = (ev) => {
-                                                                                    setAvatar((ev.target as FileReader).result as string);
-                                                                                    setShowEmojiPicker(false);
-                                                                                };
-                                                                                reader.readAsDataURL(file);
-                                                                                e.target.value = '';
-                                                                            }}
-                                                                        />
-                                                                        <button
-                                                                            onClick={() => document.getElementById('agent-avatar-upload')?.click()}
-                                                                            className="px-3 py-1 text-xs font-medium rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors flex items-center gap-1.5 [color:var(--text-secondary)]!"
-                                                                            title={t('agent_studio.identity_upload_an_image_as_avatar', 'Upload an image as avatar')}
-                                                                        >
-                                                                            {t('agent_studio.identity_upload', '📷 Upload')}
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => setShowEmojiPicker(false)}
-                                                                            className="px-3 py-1 text-xs font-medium rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
-                                                                        >
-                                                                            {t('agent_studio.identity_done', 'Done')}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })()}
-                                                    </div>
+                                                    <IdentitySectionSection t={t} setShowEmojiPicker={setShowEmojiPicker} showEmojiPicker={showEmojiPicker} avatar={avatar} emojiCategory={emojiCategory} emojiPickerRef={emojiPickerRef} setEmojiCategory={setEmojiCategory} setAvatar={setAvatar} />
 
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                         <div>
@@ -310,3 +199,115 @@ export const IdentitySection = ({
                                                 </div>
   );
 };
+
+function IdentitySectionSection({ t, setShowEmojiPicker, showEmojiPicker, avatar, emojiCategory, emojiPickerRef, setEmojiCategory, setAvatar }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setShowEmojiPicker: Dispatch<SetStateAction<boolean>>; showEmojiPicker: boolean; avatar: string; emojiCategory: string; emojiPickerRef: RefObject<HTMLDivElement | null>; setEmojiCategory: Dispatch<SetStateAction<string>>; setAvatar: Dispatch<SetStateAction<string>>; }) {
+    return <div className="relative">
+        <label className="text-xs font-medium text-muted mb-2 block">{t('agent_studio.identity_avatar', 'Avatar')}</label>
+        <div className="flex items-center gap-4">
+            <div
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl cursor-pointer hover:bg-[var(--bg-tertiary)] transition-all overflow-hidden border border-[var(--border-subtle)]"
+                title={t('agent_studio.identity_click_to_change_avatar', 'Click to change avatar')}
+            >
+                {isImageAvatar(avatar) ? (
+                    <img src={resolveAvatarSrc(avatar)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                    avatar
+                )}
+            </div>
+            <div className="text-sm text-muted">
+                <p>{t('agent_studio.identity_click_to_select_an_emoji_or_image', 'Click to select an emoji or image')}</p>
+                <p className="text-xs opacity-70">{t('agent_studio.identity_supports_emoji_png_jpg_or_svg', 'Supports emoji, PNG, JPG, or SVG')}</p>
+            </div>
+        </div>
+        {showEmojiPicker && (() => {
+            const categories: Record<string, { label: string; title: string; emojis: string[]; }> = {
+                smileys: { label: '😀', title: 'Smileys', emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😋', '😛', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤡', '🥹', '😏', '😌', '😔', '😴', '🤤', '😷', '🤒', '🤕', '🤢', '🤮', '🥵', '🥶', '😵', '🤯', '🥳', '🤠', '😈', '👿', '👹', '👺', '💀', '👻', '👽', '🤖', '💩', '😺', '😸'] },
+                people: { label: '👤', title: 'People', emojis: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾', '🦿', '👨‍💻', '👩‍💻', '👨‍🔬', '👩‍🔬', '👨‍🎨', '👩‍🎨', '🧙‍♂️', '🧙‍♀️', '🦸‍♂️', '🦸‍♀️', '🥷', '🧑‍🚀', '👮', '🕵️', '💂', '🧑‍🍳', '🧑‍🏫', '🧑‍⚕️'] },
+                animals: { label: '🐾', title: 'Animals', emojis: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦗', '🕷️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🐠', '🐟', '🐬', '🐳', '🦈'] },
+                food: { label: '🍕', title: 'Food', emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🧄', '🧅', '🥔', '🍞', '🥐', '🥖', '🥨', '🧀', '🥚', '🍳', '🥞', '🧇', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🫔', '🥗', '🍜'] },
+                travel: { label: '✈️', title: 'Travel', emojis: ['🚗', '🚕', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🛵', '🏍️', '🚲', '🛴', '🚂', '🚆', '🚇', '✈️', '🛫', '🛬', '🚀', '🛸', '🚁', '⛵', '🚢', '🏠', '🏡', '🏢', '🏣', '🏥', '🏦', '🏨', '🏩', '🏪', '🏫', '🏬', '🏭', '🗼', '🗽', '⛪', '🕌', '🛕', '🕍', '⛩️', '🕋', '⛲', '🌍'] },
+                objects: { label: '💡', title: 'Objects', emojis: ['⌚', '📱', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '💽', '💾', '💿', '📀', '🎥', '📷', '📹', '🔍', '🔬', '🔭', '📡', '💡', '🔦', '🏮', '🪔', '📔', '📕', '📖', '📗', '📘', '📙', '📚', '📓', '📒', '📃', '📜', '📄', '📰', '🗞️', '📑', '🔖', '🏷️', '💰', '🪙', '💴', '💵', '💶', '💷', '💸', '💳', '🧾', '💹', '✉️'] },
+                symbols: { label: '⚡', title: 'Symbols', emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳'] },
+                tech: { label: '🤖', title: 'Tech & Work', emojis: ['🤖', '🧠', '💡', '🔧', '🔨', '⚒️', '🛠️', '⚙️', '🧰', '📊', '📈', '📉', '💹', '🎯', '🚀', '⚡', '🔥', '💥', '✨', '🌟', '⭐', '🏆', '🥇', '🥈', '🥉', '🎖️', '🏅', '🎗️', '📝', '✏️', '🖊️', '🖋️', '📌', '📍', '📎', '🖇️', '📐', '📏', '🗂️', '📂', '📁', '🗃️', '🗄️', '🔒', '🔓', '🔐', '🔑', '🗝️', '🛡️', '⚔️'] }
+            };
+            const currentEmojis = categories[emojiCategory]?.emojis || categories.smileys.emojis;
+            return (
+                <div ref={emojiPickerRef} className="absolute top-full left-0 mt-2 rounded-xl border bg-[var(--bg-card)] shadow-xl z-50 [border-color:var(--border-default)] w-[400px]">
+                    {/* Category Tabs */}
+                    <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-[var(--border-subtle)]">
+                        {Object.entries(categories).map(([key, cat]) => (
+                            <button
+                                key={key}
+                                onClick={() => setEmojiCategory(key)}
+                                className={`flex-1 py-1.5 rounded-md text-sm transition-all ${emojiCategory === key
+                                    ? 'bg-[var(--bg-tertiary)]'
+                                    : 'hover:bg-[var(--bg-tertiary)]/50'}`}
+                                title={cat.title}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Emoji Grid */}
+                    <div className="p-2">
+                        <div className="grid grid-cols-8 gap-0.5">
+                            {currentEmojis.map(emoji => (
+                                <button
+                                    key={emoji}
+                                    onClick={() => { setAvatar(emoji); setShowEmojiPicker(false); } }
+                                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-xl hover:bg-[var(--bg-tertiary)] transition-colors ${avatar === emoji ? 'bg-[var(--bg-tertiary)] ring-2 ring-emerald-500' : ''}`}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Custom Input + Image Upload */}
+                    <div className="flex items-center gap-2 px-3 py-2 border-t border-[var(--border-subtle)]">
+                        <input
+                            type="text"
+                            value={isImageAvatar(avatar) ? '' : avatar}
+                            onChange={(e) => setAvatar(e.target.value.slice(-2) || DEFAULT_AGENT_EMOJI)}
+                            className="input flex-1 py-1 text-center text-xl"
+                            placeholder="🤖"
+                            maxLength={2} />
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
+                            className="hidden"
+                            id="agent-avatar-upload"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 512 * 1024) {
+                                    toast.error('Image must be under 512KB');
+                                    return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = (ev) => {
+                                    setAvatar((ev.target as FileReader).result as string);
+                                    setShowEmojiPicker(false);
+                                };
+                                reader.readAsDataURL(file);
+                                e.target.value = '';
+                            } } />
+                        <button
+                            onClick={() => document.getElementById('agent-avatar-upload')?.click()}
+                            className="px-3 py-1 text-xs font-medium rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-primary)] hover:text-white transition-colors flex items-center gap-1.5 [color:var(--text-secondary)]!"
+                            title={t('agent_studio.identity_upload_an_image_as_avatar', 'Upload an image as avatar')}
+                        >
+                            {t('agent_studio.identity_upload', '📷 Upload')}
+                        </button>
+                        <button
+                            onClick={() => setShowEmojiPicker(false)}
+                            className="px-3 py-1 text-xs font-medium rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)]"
+                        >
+                            {t('agent_studio.identity_done', 'Done')}
+                        </button>
+                    </div>
+                </div>
+            );
+        })()}
+    </div>;
+}

@@ -772,54 +772,62 @@ export default function AcademyContentEditor() {
     /* ── Course list view ── */
     return (
         <div>
-            <div className="flex items-center justify-between gap-3 mb-4">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
-                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                            {t('org.academy.content.title', 'Custom courses')}
-                        </h2>
-                    </div>
-                    <p className="text-sm text-[var(--text-muted)]">
-                        {t('org.academy.content.subtitle', 'Author your own Academy courses. Drafts stay private until you publish them to your members.')}
-                    </p>
-                </div>
-                <PrimaryBtn onClick={newCourse}>
-                    <Plus className="w-3.5 h-3.5" />
-                    {t('org.academy.content.new_course', 'New course')}
-                </PrimaryBtn>
-            </div>
+            <AcademyContentEditorSection2 t={t} newCourse={newCourse} />
 
-            <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
-                {loadingList ? (
-                    <div className="animate-pulse space-y-2 p-5">
-                        {[...Array(3)].map((_, i) => (
-                            <div key={i} className="h-10 rounded-lg bg-[var(--bg-tertiary)]" />
-                        ))}
-                    </div>
-                ) : !courses || courses.length === 0 ? (
-                    <div className="p-8 text-sm text-center text-[var(--text-muted)]">
-                        {t('org.academy.content.empty', 'No custom courses yet — create your first one.')}
-                    </div>
-                ) : (
-                    <div className="divide-y divide-[var(--border-subtle)]">
-                        {courses.map((entry) => (
-                            <button key={entry.courseId} type="button" onClick={() => openCourse(entry)} disabled={busy}
-                                className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-60">
-                                <span className="text-sm font-medium flex-1 min-w-0 truncate text-[var(--text-primary)]">
-                                    {entry.title}
-                                </span>
-                                <StatusChip status={entry.status} t={t} />
-                                <span className="text-[11px] w-24 text-right flex-shrink-0 text-[var(--text-muted)]">
-                                    {entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString() : '—'}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <AcademyContentEditorSection loadingList={loadingList} courses={courses} t={t} openCourse={openCourse} busy={busy} />
             <ErrorText>{error}</ErrorText>
             {confirmDialog}
         </div>
     );
+}
+
+function AcademyContentEditorSection2({ t, newCourse }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; newCourse: () => void; }) {
+    return <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+            <div className="flex items-center gap-2 mb-1">
+                <BookOpen className="w-5 h-5 text-[var(--accent-primary)]" />
+                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    {t('org.academy.content.title', 'Custom courses')}
+                </h2>
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">
+                {t('org.academy.content.subtitle', 'Author your own Academy courses. Drafts stay private until you publish them to your members.')}
+            </p>
+        </div>
+        <PrimaryBtn onClick={newCourse}>
+            <Plus className="w-3.5 h-3.5" />
+            {t('org.academy.content.new_course', 'New course')}
+        </PrimaryBtn>
+    </div>;
+}
+
+function AcademyContentEditorSection({ loadingList, courses, t, openCourse, busy }: { loadingList: boolean; courses: CourseEntry[] | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; openCourse: (entry: CourseEntry) => Promise<void>; busy: boolean; }) {
+    return <div className="rounded-xl border overflow-hidden border-[var(--border-default)] bg-[var(--bg-card)]">
+        {loadingList ? (
+            <div className="animate-pulse space-y-2 p-5">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-10 rounded-lg bg-[var(--bg-tertiary)]" />
+                ))}
+            </div>
+        ) : !courses || courses.length === 0 ? (
+            <div className="p-8 text-sm text-center text-[var(--text-muted)]">
+                {t('org.academy.content.empty', 'No custom courses yet — create your first one.')}
+            </div>
+        ) : (
+            <div className="divide-y divide-[var(--border-subtle)]">
+                {courses.map((entry) => (
+                    <button key={entry.courseId} type="button" onClick={() => openCourse(entry)} disabled={busy}
+                        className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-[var(--bg-secondary)] transition-colors disabled:opacity-60">
+                        <span className="text-sm font-medium flex-1 min-w-0 truncate text-[var(--text-primary)]">
+                            {entry.title}
+                        </span>
+                        <StatusChip status={entry.status} t={t} />
+                        <span className="text-[11px] w-24 text-right flex-shrink-0 text-[var(--text-muted)]">
+                            {entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString() : '—'}
+                        </span>
+                    </button>
+                ))}
+            </div>
+        )}
+    </div>;
 }

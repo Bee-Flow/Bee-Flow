@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { buildPageGroups, buildSiteGroups } from './translatable';
 import type { FieldPath, TranslatableGroup, TranslatableRow } from './translatable';
 import type { CmsPageDoc, CmsSiteDoc } from './panel/cmsPanelTypes';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
 import AiTranslateControl from '../languages/AiTranslateControl';
 
@@ -231,72 +231,75 @@ export default function TranslationPanel({
             )}
 
             {/* rows */}
-            <div className="flex-1 overflow-y-auto">
-                {total === 0 ? (
-                    <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
-                        {t('cms_site.site.translation.nothing', 'Nothing to translate here yet.')}
-                    </p>
-                ) : visibleGroups.length === 0 ? (
-                    <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
-                        {t('cms_site.site.translation.no_match', 'No fields match.')}
-                    </p>
-                ) : visibleGroups.map(g => {
-                    const groupDone = counted(g).filter(r => (r.value || '').trim()).length;
-                    const closed = isCollapsed(g);
-                    const blockId = g.blockId;
-                    return (
-                        <div key={g.key}>
-                            <div className="w-full flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)]/60 border-b border-[var(--border-subtle)]">
-                                <button
-                                    type="button"
-                                    onClick={() => setCollapsed(c => ({ ...c, [g.key]: !closed }))}
-                                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                                    title={closed ? t('cms_site.site.translation.expand', 'Expand') : t('cms_site.site.translation.collapse', 'Collapse')}
-                                >
-                                    <AppIcon name={closed ? 'ChevronRight' : 'ChevronDown'} className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
-                                    <AppIcon name={g.icon || 'Type'} className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                                    <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{g.title}</span>
-                                </button>
-                                {blockId && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onSelectBlock?.(blockId)}
-                                        className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
-                                        title={t('cms_site.site.translation.show_block', 'Show this block in the preview')}
-                                    >
-                                        <AppIcon name="Crosshair" className="w-3 h-3" />
-                                    </button>
-                                )}
-                                {blockId && onClearAndRetranslateBlock && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onClearAndRetranslateBlock(blockId)}
-                                        disabled={running}
-                                        className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)] disabled:opacity-40"
-                                        title={t('cms_site.site.translation.clear_block', "Clear this block's translations and let AI retranslate them (use after changing the source text)")}
-                                    >
-                                        <AppIcon name="RefreshCw" className="w-3 h-3" />
-                                    </button>
-                                )}
-                                <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
-                                    {groupDone}/{counted(g).length}
-                                </span>
-                            </div>
-                            {!closed && g.visibleRows.map((r) => (
-                                <TranslationRow
-                                    key={r.key}
-                                    label={r.label}
-                                    source={r.source}
-                                    value={r.value}
-                                    onFocus={() => blockId && onSelectBlock?.(blockId)}
-                                    onChange={(v) => dispatch(r.target, v)}
-                                    disabled={running}
-                                />
-                            ))}
-                        </div>
-                    );
-                })}
-            </div>
+            <TranslationPanelSection total={total} t={t} visibleGroups={visibleGroups} counted={counted} isCollapsed={isCollapsed} setCollapsed={setCollapsed} onSelectBlock={onSelectBlock} onClearAndRetranslateBlock={onClearAndRetranslateBlock} running={running} dispatch={dispatch} />
         </div>
     );
+}
+
+function TranslationPanelSection({ total, t, visibleGroups, counted, isCollapsed, setCollapsed, onSelectBlock, onClearAndRetranslateBlock, running, dispatch }: { total: number; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; visibleGroups: { visibleRows: TranslatableRow[]; key: string; title: string; icon: string; rows: TranslatableRow[]; blockId?: string; }[]; counted: (g: TranslatableGroup) => TranslatableRow[]; isCollapsed: (g: TranslatableGroup) => boolean; setCollapsed: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; onSelectBlock: ((blockId: string) => void) | undefined; onClearAndRetranslateBlock: ((blockId: string) => void) | undefined; running: boolean; dispatch: (target: TranslatableRow["target"], v: string) => void; }) {
+    return <div className="flex-1 overflow-y-auto">
+        {total === 0 ? (
+            <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
+                {t('cms_site.site.translation.nothing', 'Nothing to translate here yet.')}
+            </p>
+        ) : visibleGroups.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)] text-center py-8 px-4">
+                {t('cms_site.site.translation.no_match', 'No fields match.')}
+            </p>
+        ) : visibleGroups.map(g => {
+            const groupDone = counted(g).filter(r => (r.value || '').trim()).length;
+            const closed = isCollapsed(g);
+            const blockId = g.blockId;
+            return (
+                <div key={g.key}>
+                    <div className="w-full flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)]/60 border-b border-[var(--border-subtle)]">
+                        <button
+                            type="button"
+                            onClick={() => setCollapsed(c => ({ ...c, [g.key]: !closed }))}
+                            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                            title={closed ? t('cms_site.site.translation.expand', 'Expand') : t('cms_site.site.translation.collapse', 'Collapse')}
+                        >
+                            <AppIcon name={closed ? 'ChevronRight' : 'ChevronDown'} className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+                            <AppIcon name={g.icon || 'Type'} className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
+                            <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{g.title}</span>
+                        </button>
+                        {blockId && (
+                            <button
+                                type="button"
+                                onClick={() => onSelectBlock?.(blockId)}
+                                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
+                                title={t('cms_site.site.translation.show_block', 'Show this block in the preview')}
+                            >
+                                <AppIcon name="Crosshair" className="w-3 h-3" />
+                            </button>
+                        )}
+                        {blockId && onClearAndRetranslateBlock && (
+                            <button
+                                type="button"
+                                onClick={() => onClearAndRetranslateBlock(blockId)}
+                                disabled={running}
+                                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)] disabled:opacity-40"
+                                title={t('cms_site.site.translation.clear_block', "Clear this block's translations and let AI retranslate them (use after changing the source text)")}
+                            >
+                                <AppIcon name="RefreshCw" className="w-3 h-3" />
+                            </button>
+                        )}
+                        <span className="shrink-0 text-[10px] text-[var(--text-muted)]">
+                            {groupDone}/{counted(g).length}
+                        </span>
+                    </div>
+                    {!closed && g.visibleRows.map((r) => (
+                        <TranslationRow
+                            key={r.key}
+                            label={r.label}
+                            source={r.source}
+                            value={r.value}
+                            onFocus={() => blockId && onSelectBlock?.(blockId)}
+                            onChange={(v) => dispatch(r.target, v)}
+                            disabled={running} />
+                    ))}
+                </div>
+            );
+        })}
+    </div>;
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck, Download } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
 import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 
@@ -227,141 +227,149 @@ const SystemKnowledgeBasesPanel = () => {
 
     return (
         <div className="space-y-3">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                        {t('knowledge.system_knowledge_bases_system_knowledge_bases', 'System knowledge bases')}
-                    </h3>
-                    <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                        {t('knowledge.system_knowledge_bases_read_only_collections_maintained_by', 'Read-only collections maintained by Bee Flow. Toggle a collection on to make it available to your agents and chat — same picker as your own KBs.')}
-                    </p>
-                </div>
-                <button
-                    onClick={load}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors text-[var(--text-muted)] bg-[var(--bg-tertiary)]"
-                    title={t('knowledge.system_knowledge_bases_refresh_status', 'Refresh status')}
-                >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    {t('knowledge.system_knowledge_bases_refresh', 'Refresh')}
-                </button>
-            </div>
+            <SystemKnowledgeBasesPanelSection2 t={t} load={load} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {items.map(item => {
-                    const isOn = !!item.enabledForOrg;
-                    const isBusy = toggling === item.betaFeatureId;
-                    return (
-                        <div
-                            key={item.id}
-                            className="rounded-lg border p-4 flex flex-col gap-3"
-                            style={{
-                                borderColor: isOn ? 'var(--accent-primary)' : 'var(--border-subtle)',
-                                background: 'var(--bg-secondary)',
-                            }}
-                        >
-                            <div className="flex items-start gap-3">
-                                <div className="text-2xl shrink-0">{item.icon || '📚'}</div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-[var(--text-primary)]">{item.name}</div>
-                                    {item.description && (
-                                        <div className="text-xs mt-1 text-[var(--text-muted)]">
-                                            {item.description}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-xs flex-wrap text-[var(--text-muted)]">
-                                <span>{item.documentCount === 1 ? t('knowledge.system_knowledge_bases_document_one', '{count} document', { count: 1 }) : t('knowledge.system_knowledge_bases_document_other', '{count} documents', { count: item.documentCount })}</span>
-                                <span>·</span>
-                                <span>{item.totalChunks === 1 ? t('knowledge.system_knowledge_bases_chunk_one', '{count} chunk', { count: 1 }) : t('knowledge.system_knowledge_bases_chunk_other', '{count} chunks', { count: item.totalChunks })}</span>
-                                {item.updatedAt && (
-                                    <>
-                                        <span>·</span>
-                                        <span title={item.updatedAt}>{t('knowledge.system_knowledge_bases_updated', 'Updated {date}', { date: new Date(item.updatedAt).toLocaleDateString() })}</span>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Refresh progress — visible while a seed is running or just finished. */}
-                            {(() => {
-                                const s = item.system_slug ? refreshStatus[item.system_slug] : null;
-                                if (!s) return null;
-                                if (s.running) {
-                                    const pct = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
-                                    return (
-                                        <div className="text-xs space-y-1 text-[var(--text-muted)]">
-                                            <div className="flex items-center gap-2">
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                <span>{t('knowledge.system_knowledge_bases_seeding_done_total_statutes_pct', 'Seeding {done} / {total} statutes ({pct}%)', { done: s.done, total: s.total, pct })}</span>
-                                            </div>
-                                            <div className="w-full h-1.5 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
-                                                <div className="h-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent-primary)' }} />
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                                if (s.finishedAt && (s.okCount || s.failCount)) {
-                                    return (
-                                        <div className="text-xs" style={{ color: s.failCount > 0 ? 'rgb(217, 119, 6)' : 'var(--text-muted)' }}>
-                                            {t('knowledge.system_knowledge_bases_last_seed_ok_count_ok_fail_count', 'Last seed: {ok_count} ok, {fail_count} failed · {time}', { ok_count: s.okCount, fail_count: s.failCount, time: new Date(s.finishedAt).toLocaleTimeString() })}
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            })()}
-
-                            <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
-                                <button
-                                    onClick={() => toggle(item)}
-                                    disabled={isBusy || !item.betaFeatureId || !orgId}
-                                    className="flex items-center gap-2 text-sm font-medium"
-                                    style={{ color: isOn ? 'var(--accent-primary)' : 'var(--text-secondary)', cursor: (!item.betaFeatureId || !orgId) ? 'not-allowed' : 'pointer' }}
-                                    title={!orgId ? 'No organisation to toggle on' : (isOn ? 'Click to disable for this organisation' : 'Click to enable for this organisation')}
-                                >
-                                    {isBusy ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : isOn ? (
-                                        <CheckCircle2 className="w-4 h-4" />
-                                    ) : (
-                                        <Circle className="w-4 h-4" />
-                                    )}
-                                    {isOn ? 'Enabled for organisation' : 'Disabled for organisation'}
-                                </button>
-                                {/* Super-admin always has access via their bypass; surface that
-                                    explicitly so they aren't confused by a "Disabled" label. */}
-                                {item.superAdminBypass && !isOn && (
-                                    <span
-                                        className="flex items-center gap-1 text-xs text-[var(--accent-primary)]"
-                                        title={t('knowledge.system_knowledge_bases_as_a_global_admin_you_can_use_this', 'As a global admin, you can use this knowledge base in your own chats regardless of organisation toggle.')}
-                                    >
-                                        <ShieldCheck className="w-3.5 h-3.5" />
-                                        {t('knowledge.system_knowledge_bases_available_to_you_super_admin', 'Available to you (super-admin)')}
-                                    </span>
-                                )}
-                                {isSuperAdmin && item.system_slug && (() => {
-                                    const s = refreshStatus[item.system_slug];
-                                    const running = !!s?.running;
-                                    return (
-                                        <button
-                                            onClick={() => refresh(item)}
-                                            disabled={running}
-                                            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
-                                            style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', cursor: running ? 'wait' : 'pointer' }}
-                                            title={t('knowledge.system_knowledge_bases_re_ingest_statutes_from_koop_wetten', 'Re-ingest statutes from KOOP (wetten.overheid.nl). Super-admin only.')}
-                                        >
-                                            {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                            {running ? 'Seeding…' : 'Refresh now'}
-                                        </button>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+            <SystemKnowledgeBasesPanelSection items={items} toggling={toggling} t={t} refreshStatus={refreshStatus} toggle={toggle} orgId={orgId} isSuperAdmin={isSuperAdmin} refresh={refresh} />
         </div>
     );
 };
 
 export default SystemKnowledgeBasesPanel;
+
+function SystemKnowledgeBasesPanelSection2({ t, load }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; load: () => Promise<void>; }) {
+    return <div className="flex items-center justify-between">
+        <div>
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {t('knowledge.system_knowledge_bases_system_knowledge_bases', 'System knowledge bases')}
+            </h3>
+            <p className="text-xs mt-0.5 text-[var(--text-muted)]">
+                {t('knowledge.system_knowledge_bases_read_only_collections_maintained_by', 'Read-only collections maintained by Bee Flow. Toggle a collection on to make it available to your agents and chat — same picker as your own KBs.')}
+            </p>
+        </div>
+        <button
+            onClick={load}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors text-[var(--text-muted)] bg-[var(--bg-tertiary)]"
+            title={t('knowledge.system_knowledge_bases_refresh_status', 'Refresh status')}
+        >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {t('knowledge.system_knowledge_bases_refresh', 'Refresh')}
+        </button>
+    </div>;
+}
+
+function SystemKnowledgeBasesPanelSection({ items, toggling, t, refreshStatus, toggle, orgId, isSuperAdmin, refresh }: { items: SystemKb[]; toggling: string | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; refreshStatus: Record<string, RefreshStatus>; toggle: (item: SystemKb) => Promise<void>; orgId: string | null; isSuperAdmin: boolean; refresh: (item: SystemKb, { force }?: { force?: boolean | undefined; }) => Promise<void>; }) {
+    return <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {items.map(item => {
+            const isOn = !!item.enabledForOrg;
+            const isBusy = toggling === item.betaFeatureId;
+            return (
+                <div
+                    key={item.id}
+                    className="rounded-lg border p-4 flex flex-col gap-3"
+                    style={{
+                        borderColor: isOn ? 'var(--accent-primary)' : 'var(--border-subtle)',
+                        background: 'var(--bg-secondary)',
+                    }}
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="text-2xl shrink-0">{item.icon || '📚'}</div>
+                        <div className="flex-1 min-w-0">
+                            <div className="font-medium text-[var(--text-primary)]">{item.name}</div>
+                            {item.description && (
+                                <div className="text-xs mt-1 text-[var(--text-muted)]">
+                                    {item.description}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs flex-wrap text-[var(--text-muted)]">
+                        <span>{item.documentCount === 1 ? t('knowledge.system_knowledge_bases_document_one', '{count} document', { count: 1 }) : t('knowledge.system_knowledge_bases_document_other', '{count} documents', { count: item.documentCount })}</span>
+                        <span>·</span>
+                        <span>{item.totalChunks === 1 ? t('knowledge.system_knowledge_bases_chunk_one', '{count} chunk', { count: 1 }) : t('knowledge.system_knowledge_bases_chunk_other', '{count} chunks', { count: item.totalChunks })}</span>
+                        {item.updatedAt && (
+                            <>
+                                <span>·</span>
+                                <span title={item.updatedAt}>{t('knowledge.system_knowledge_bases_updated', 'Updated {date}', { date: new Date(item.updatedAt).toLocaleDateString() })}</span>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Refresh progress — visible while a seed is running or just finished. */}
+                    {(() => {
+                        const s = item.system_slug ? refreshStatus[item.system_slug] : null;
+                        if (!s) return null;
+                        if (s.running) {
+                            const pct = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
+                            return (
+                                <div className="text-xs space-y-1 text-[var(--text-muted)]">
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>{t('knowledge.system_knowledge_bases_seeding_done_total_statutes_pct', 'Seeding {done} / {total} statutes ({pct}%)', { done: s.done, total: s.total, pct })}</span>
+                                    </div>
+                                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
+                                        <div className="h-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent-primary)' }} />
+                                    </div>
+                                </div>
+                            );
+                        }
+                        if (s.finishedAt && (s.okCount || s.failCount)) {
+                            return (
+                                <div className="text-xs" style={{ color: s.failCount > 0 ? 'rgb(217, 119, 6)' : 'var(--text-muted)' }}>
+                                    {t('knowledge.system_knowledge_bases_last_seed_ok_count_ok_fail_count', 'Last seed: {ok_count} ok, {fail_count} failed · {time}', { ok_count: s.okCount, fail_count: s.failCount, time: new Date(s.finishedAt).toLocaleTimeString() })}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
+                    <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
+                        <button
+                            onClick={() => toggle(item)}
+                            disabled={isBusy || !item.betaFeatureId || !orgId}
+                            className="flex items-center gap-2 text-sm font-medium"
+                            style={{ color: isOn ? 'var(--accent-primary)' : 'var(--text-secondary)', cursor: (!item.betaFeatureId || !orgId) ? 'not-allowed' : 'pointer' }}
+                            title={!orgId ? 'No organisation to toggle on' : (isOn ? 'Click to disable for this organisation' : 'Click to enable for this organisation')}
+                        >
+                            {isBusy ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : isOn ? (
+                                <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                                <Circle className="w-4 h-4" />
+                            )}
+                            {isOn ? 'Enabled for organisation' : 'Disabled for organisation'}
+                        </button>
+                        {/* Super-admin always has access via their bypass; surface that
+                        explicitly so they aren't confused by a "Disabled" label. */}
+                        {item.superAdminBypass && !isOn && (
+                            <span
+                                className="flex items-center gap-1 text-xs text-[var(--accent-primary)]"
+                                title={t('knowledge.system_knowledge_bases_as_a_global_admin_you_can_use_this', 'As a global admin, you can use this knowledge base in your own chats regardless of organisation toggle.')}
+                            >
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                {t('knowledge.system_knowledge_bases_available_to_you_super_admin', 'Available to you (super-admin)')}
+                            </span>
+                        )}
+                        {isSuperAdmin && item.system_slug && (() => {
+                            const s = refreshStatus[item.system_slug];
+                            const running = !!s?.running;
+                            return (
+                                <button
+                                    onClick={() => refresh(item)}
+                                    disabled={running}
+                                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
+                                    style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', cursor: running ? 'wait' : 'pointer' }}
+                                    title={t('knowledge.system_knowledge_bases_re_ingest_statutes_from_koop_wetten', 'Re-ingest statutes from KOOP (wetten.overheid.nl). Super-admin only.')}
+                                >
+                                    {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                    {running ? 'Seeding…' : 'Refresh now'}
+                                </button>
+                            );
+                        })()}
+                    </div>
+                </div>
+            );
+        })}
+    </div>;
+}

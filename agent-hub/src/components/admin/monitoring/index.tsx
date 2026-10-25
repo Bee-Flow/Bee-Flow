@@ -1,9 +1,6 @@
-import { useState, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import {
-    Activity, BarChart3, RefreshCw, 
-    ChevronRight, ThumbsUp, Clock, Calendar, AlertTriangle
-} from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { Activity, RefreshCw, ChevronRight, Calendar } from 'lucide-react';
 import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
 import { COLORS } from './shared/SvgAreaChart';
 import { OverviewPage, type UsageDeltas } from './OverviewPage';
@@ -17,106 +14,14 @@ import type { DrawerDetail, ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem } from './feedback/feedbackModel';
 import type { MonitoringPanelProps } from './index.types';
 import { logger } from '../../../utils/logger';
-import { request, RefusedError } from '../../../api/mutate';
+import { API, AI_API, FEEDBACK_API, RANGES, PAGES, styles } from './monitoring.constants';
+import { rangeToFilter, prevPeriodFilter, autoInterval, toLocalInput, fetchJson } from './monitoring.helpers';
 
-const API = (import.meta.env.VITE_API_URL || '') + '/api/usage';
-const AI_API = (import.meta.env.VITE_API_URL || '') + '/ai';
-const FEEDBACK_API = (import.meta.env.VITE_API_URL || '') + '/api/feedback';
 // authFetch, not raw fetch. Both send credentials, but authFetch also sets the
 // no-store handling that exists because the Nextcloud proxy path was replaying
 // stale per-user API responses from the browser cache — and usage figures are
 // exactly that kind of per-org, always-changing response. It is also the seam
 // the public demo transport hooks, so a raw fetch here silently bypasses it.
-
-const RANGES = [
-    { id: 'today', labelKey: 'admin.mon_today' },
-    { id: '7d', labelKey: 'admin.mon_7d' },
-    { id: '30d', labelKey: 'admin.mon_30d' },
-    { id: 'all', labelKey: 'admin.mon_all_time' },
-    { id: 'custom', labelKey: 'admin_monitoring.range_custom', label: 'Custom' },
-];
-
-function rangeToFilter(rangeId: string, customStart: string, customEnd: string): Record<string, string> {
-    if (rangeId === 'all') return {};
-    if (rangeId === 'custom') {
-        if (!customStart || !customEnd) return {};
-        return { startDate: new Date(customStart).toISOString(), endDate: new Date(customEnd).toISOString() };
-    }
-    const now = new Date();
-    let start: Date;
-    if (rangeId === 'today') {
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (rangeId === '7d') {
-        start = new Date(now.getTime() - 7 * 86400000);
-    } else {
-        start = new Date(now.getTime() - 30 * 86400000);
-    }
-    return { startDate: start.toISOString(), endDate: now.toISOString() };
-}
-
-// Previous period: same duration ending where current starts
-function prevPeriodFilter(rangeId: string, customStart: string, customEnd: string) {
-    if (rangeId === 'all') return null;
-    const now = new Date();
-    let start: Date, end: Date;
-    if (rangeId === 'custom') {
-        if (!customStart || !customEnd) return null;
-        const s = new Date(customStart), e = new Date(customEnd);
-        const dur = e.getTime() - s.getTime();
-        if (dur <= 0) return null;
-        end = s;
-        start = new Date(s.getTime() - dur);
-    } else if (rangeId === 'today') {
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        start = new Date(end.getTime() - 86400000);
-    } else if (rangeId === '7d') {
-        end = new Date(now.getTime() - 7 * 86400000);
-        start = new Date(end.getTime() - 7 * 86400000);
-    } else {
-        end = new Date(now.getTime() - 30 * 86400000);
-        start = new Date(end.getTime() - 30 * 86400000);
-    }
-    return { startDate: start.toISOString(), endDate: end.toISOString() };
-}
-
-// Decide chart interval based on the date span
-function autoInterval(rangeId: string, customStart: string, customEnd: string) {
-    if (rangeId === 'today') return 'hour';
-    if (rangeId === 'custom' && customStart && customEnd) {
-        const diffMs = new Date(customEnd).getTime() - new Date(customStart).getTime();
-        if (diffMs <= 86400000) return 'hour'; // ≤ 1 day
-        return 'day';
-    }
-    return 'day';
-}
-
-// Format a datetime-local string from a Date
-function toLocalInput(date: Date) {
-    const d = new Date(date);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-const PAGES = [
-    { id: 'overview', labelKey: 'admin.mon_overview', icon: BarChart3, descriptionKey: 'admin_monitoring.desc_overview', description: 'Dashboard & cost overview' },
-    { id: 'usage', labelKey: 'admin.mon_usage_explorer', icon: Activity, descriptionKey: 'admin_monitoring.desc_usage', description: 'Explore models, agents, users & conversations' },
-    { id: 'feedback', labelKey: 'admin.mon_feedback', icon: ThumbsUp, descriptionKey: 'admin_monitoring.desc_feedback', description: 'User feedback on AI responses' },
-    { id: 'activity', labelKey: 'admin.mon_activity', icon: Clock, descriptionKey: 'admin_monitoring.desc_activity', description: 'Recent API call log' },
-    { id: 'terminations', labelKey: 'admin.mon_terminations', icon: AlertTriangle, descriptionKey: 'admin_monitoring.desc_terminations', description: 'Prematurely ended tasks & errors' },
-];
-
-async function fetchJson(url: string) {
-    try {
-        let r: Response;
-        try {
-            r = await request(url);
-        } catch (err) {
-            if (!(err instanceof RefusedError)) throw err;
-            return null;
-        }
-        return await r.json();
-    } catch { return null; }
-}
 
 export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
     const { t } = useTranslation();
@@ -247,38 +152,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     return (
         <div style={styles.container}>
             {/* ── Sidebar ── */}
-            <div style={styles.sidebar}>
-                <div style={styles.sidebarHeader}>
-                    <Activity style={{ width: 20, height: 20, color: COLORS.primary }} />
-                    <span style={styles.sidebarTitle}>{t('admin_monitoring.title', 'AI Monitor')}</span>
-                </div>
-
-                <nav style={styles.nav}>
-                    {PAGES.map(p => (
-                        <button
-                            key={p.id}
-                            onClick={() => { if (onNavigate) onNavigate(`admin/monitoring/${p.id}`); }}
-                            style={{
-                                ...styles.navItem,
-                                ...(page === p.id ? styles.navItemActive : {}),
-                            }}
-                        >
-                            <p.icon style={{
-                                width: 18, height: 18,
-                                color: page === p.id ? COLORS.primary : 'var(--text-muted, #666)',
-                                flexShrink: 0
-                            }} />
-                            <div className="[flex:1] [text-align:left]">
-                                <div style={{
-                                    fontSize: '13px', fontWeight: page === p.id ? 600 : 500,
-                                    color: page === p.id ? 'var(--text-primary, #fff)' : 'var(--text-secondary, #aaa)',
-                                }}>{t(p.labelKey)}</div>
-                            </div>
-                            {page === p.id && <ChevronRight style={{ width: 14, height: 14, color: COLORS.primary, flexShrink: 0 }} />}
-                        </button>
-                    ))}
-                </nav>
-            </div>
+            <MonitoringPanelSection t={t} onNavigate={onNavigate} page={page} />
 
             {/* ── Main Content ── */}
             <div style={styles.main}>
@@ -397,104 +271,38 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
     );
 }
 
-const styles = {
-    container: {
-        display: 'flex', height: '100%', fontFamily: 'var(--font-sans)',
-        background: 'var(--bg-primary, #0f0f1a)',
-    },
-    sidebar: {
-        width: '200px', flexShrink: 0,
-        background: 'var(--bg-secondary, #1a1a2e)',
-        borderRight: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-        display: 'flex', flexDirection: 'column',
-        padding: '16px 0',
-    },
-    sidebarHeader: {
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '0 18px', marginBottom: '20px',
-    },
-    sidebarTitle: {
-        fontSize: '16px', fontWeight: 800,
-        color: 'var(--text-primary, #fff)',
-        letterSpacing: '-0.3px',
-    },
-    nav: {
-        display: 'flex', flexDirection: 'column', gap: '2px',
-        padding: '0 8px', flex: 1,
-    },
-    navItem: {
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '9px 12px', borderRadius: '10px',
-        background: 'transparent', border: 'none',
-        cursor: 'pointer', transition: 'all 0.15s',
-        width: '100%',
-    },
-    navItemActive: {
-        background: 'var(--accent-primary, #6366f1)' + '12',
-    },
-    main: {
-        flex: 1, display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-    },
-    topBar: {
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '16px 24px',
-        borderBottom: '1px solid var(--border-default, rgba(255,255,255,0.06))',
-        flexShrink: 0,
-    },
-    pageTitle: {
-        fontSize: '18px', fontWeight: 700,
-        color: 'var(--text-primary, #fff)', margin: 0,
-    },
-    pageDesc: {
-        fontSize: '12px', color: 'var(--text-muted, #888)',
-        margin: '2px 0 0', fontWeight: 400,
-    },
-    rangeGroup: {
-        display: 'flex', borderRadius: '10px', overflow: 'hidden',
-        border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-    },
-    rangeBtn: {
-        padding: '7px 14px', fontSize: '12px', fontWeight: 500,
-        border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-        background: 'var(--bg-secondary, #1a1a2e)',
-        color: 'var(--text-muted, #888)',
-    },
-    rangeBtnActive: {
-        background: COLORS.primary, color: '#fff', fontWeight: 700,
-    },
-    datePickerRow: {
-        display: 'flex', alignItems: 'center', gap: '6px',
-        padding: '4px 10px', borderRadius: '10px',
-        background: 'var(--bg-secondary, #1a1a2e)',
-        border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-        animation: 'fadeIn 0.2s ease',
-    },
-    datePickerField: {
-        display: 'flex', flexDirection: 'column', gap: '1px',
-    },
-    datePickerLabel: {
-        fontSize: '9px', fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.05em', color: 'var(--text-muted, #666)',
-        lineHeight: 1,
-    },
-    dateInput: {
-        background: 'var(--bg-primary, #0f0f1a)',
-        border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-        borderRadius: '6px', padding: '4px 8px',
-        fontSize: '12px', fontWeight: 500, fontFamily: 'inherit',
-        color: 'var(--text-primary, #fff)',
-        outline: 'none', cursor: 'pointer',
-        colorScheme: 'dark',
-    },
-    refreshBtn: {
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '34px', height: '34px', borderRadius: '10px',
-        border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-        background: 'var(--bg-secondary, #1a1a2e)', cursor: 'pointer',
-        color: 'var(--text-muted, #888)', transition: 'all 0.15s',
-    },
-    content: {
-        flex: 1, overflow: 'auto', padding: '20px 24px',
-    },
-} satisfies Record<string, CSSProperties>;
+
+function MonitoringPanelSection({ t, onNavigate, page }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigate: ((path: string) => void) | undefined; page: string; }) {
+    return <div style={styles.sidebar}>
+        <div style={styles.sidebarHeader}>
+            <Activity style={{ width: 20, height: 20, color: COLORS.primary }} />
+            <span style={styles.sidebarTitle}>{t('admin_monitoring.title', 'AI Monitor')}</span>
+        </div>
+
+        <nav style={styles.nav}>
+            {PAGES.map(p => (
+                <button
+                    key={p.id}
+                    onClick={() => { if (onNavigate) onNavigate(`admin/monitoring/${p.id}`); } }
+                    style={{
+                        ...styles.navItem,
+                        ...(page === p.id ? styles.navItemActive : {}),
+                    }}
+                >
+                    <p.icon style={{
+                        width: 18, height: 18,
+                        color: page === p.id ? COLORS.primary : 'var(--text-muted, #666)',
+                        flexShrink: 0
+                    }} />
+                    <div className="[flex:1] [text-align:left]">
+                        <div style={{
+                            fontSize: '13px', fontWeight: page === p.id ? 600 : 500,
+                            color: page === p.id ? 'var(--text-primary, #fff)' : 'var(--text-secondary, #aaa)',
+                        }}>{t(p.labelKey)}</div>
+                    </div>
+                    {page === p.id && <ChevronRight style={{ width: 14, height: 14, color: COLORS.primary, flexShrink: 0 }} />}
+                </button>
+            ))}
+        </nav>
+    </div>;
+}

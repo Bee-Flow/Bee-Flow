@@ -1,4 +1,4 @@
-import { useState, useEffect, useEffectEvent } from 'react';
+import { useState, useEffect, useEffectEvent, SetStateAction, Dispatch } from 'react';
 import DirectChatConfig from './DirectChatConfig';
 import EmbeddingsConfig from './EmbeddingsConfig';
 import LimitsConfig from './LimitsConfig';
@@ -9,7 +9,7 @@ import EuGptApiKeyCard from './ProviderCards/EuGptCard';
 import GoogleApiKeyCard from './ProviderCards/GoogleCard';
 import MistralApiKeyCard from './ProviderCards/MistralCard';
 import ScalewayApiKeyCard from './ProviderCards/ScalewayCard';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE } from '../../../utils/helpers';
 import { getModelMeta, CAT_COLORS } from '../../../api/modelMeta';
 
@@ -157,26 +157,7 @@ const AIConfigPanel = () => {
     return (
         <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
             {/* Left Sidebar */}
-            <div className="w-64 flex flex-col p-2 border-r border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <div className="p-4 mb-2">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_ai_config.index_title', 'AI Configuration')}</h3>
-                </div>
-                <div className="space-y-1">
-                    {navItems.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-left ${activeTab === item.id
-                                ? 'bg-[var(--accent-primary)] text-white shadow-md'
-                                : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
-                                }`}
-                        >
-                            <span className="text-lg">{item.icon}</span>
-                            {item.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <AIConfigPanelSection t={t} navItems={navItems} setActiveTab={setActiveTab} activeTab={activeTab} />
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-8 bg-[var(--bg-primary)]">
@@ -295,3 +276,25 @@ const AIConfigPanel = () => {
 };
 
 export default AIConfigPanel;
+
+function AIConfigPanelSection({ t, navItems, setActiveTab, activeTab }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; navItems: { id: string; label: string; icon: string; }[]; setActiveTab: Dispatch<SetStateAction<string>>; activeTab: string; }) {
+    return <div className="w-64 flex flex-col p-2 border-r border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        <div className="p-4 mb-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_ai_config.index_title', 'AI Configuration')}</h3>
+        </div>
+        <div className="space-y-1">
+            {navItems.map(item => (
+                <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all text-left ${activeTab === item.id
+                        ? 'bg-[var(--accent-primary)] text-white shadow-md'
+                        : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'}`}
+                >
+                    <span className="text-lg">{item.icon}</span>
+                    {item.label}
+                </button>
+            ))}
+        </div>
+    </div>;
+}

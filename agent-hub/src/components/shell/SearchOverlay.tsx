@@ -1,18 +1,13 @@
-import { Search, X, MessageSquare, Calendar, Bot, Clock, type LucideIcon } from 'lucide-react';
+import { Search, X, Clock, type LucideIcon } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { loadRecent, saveRecent } from './searchRecents';
-import { highlightSnippet } from './searchHighlight';
-import { isImageAvatar, resolveAvatarSrc } from '../../utils/agentAvatar';
-import { formatRelativeDate } from '../../utils/dateFormatters';
 import { API_BASE } from '../../utils/helpers';
-import useTranslation from '../../hooks/useTranslation';
-import type { SearchMessage, SearchConversation, SearchResult, SearchOverlayProps, PillGroupProps, FilterPillProps, ResultRowProps, EmptyStateProps } from './SearchOverlay.types';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
+import type { SearchMessage, SearchConversation, SearchResult, SearchOverlayProps, EmptyStateProps } from './SearchOverlay.types';
 import { logger } from '../../utils/logger';
 import { request, RefusedError } from '../../api/mutate';
-
-const formatDate = (dateStr: string | number | Date | null) => formatRelativeDate(dateStr, {
-    fallbackOptions: { year: 'numeric', month: 'short', day: 'numeric' },
-});
+import { SearchOverlaySection } from './SearchOverlaySection';
+import { ResultRow } from './ResultRow';
 
 const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchOverlayProps) => {
     const { t } = useTranslation();
@@ -202,84 +197,10 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
                 data-testid="search-overlay"
             >
                 {/* Header: icon + input + clear + close */}
-                <div className="flex-shrink-0 flex items-center gap-3 px-5 h-16 border-b border-[var(--border-subtle)]">
-                    <Search className="w-[18px] h-[18px] text-[var(--text-tertiary)] flex-shrink-0" />
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={query}
-                        onChange={handleInput}
-                        placeholder={t('sidebar.search_placeholder', 'Search conversations and messages…')}
-                        className="flex-1 bg-transparent border-none text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:ring-0 focus:outline-none"
-                        data-testid="search-input"
-                        aria-label={t('sidebar.search_query', 'Search query')}
-                        aria-controls="search-results"
-                        aria-activedescendant={sortedResults[selectedIdx] ? `search-result-${sortedResults[selectedIdx].id}` : undefined}
-                    />
-                    {query && (
-                        <button
-                            onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); }}
-                            className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                            aria-label={t('sidebar.search_clear', 'Clear search')}
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                        aria-label={t('sidebar.search_close', 'Close search')}
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
+                <SearchOverlaySection2 inputRef={inputRef} query={query} handleInput={handleInput} t={t} sortedResults={sortedResults} selectedIdx={selectedIdx} setQuery={setQuery} setResults={setResults} onClose={onClose} />
 
                 {/* Filter bar — all chips share the same pill chrome so it reads as one row */}
-                <div
-                    className="flex-shrink-0 flex items-center flex-wrap gap-2 px-5 py-3 border-b border-[var(--border-subtle)]"
-                >
-                    <PillGroup
-                        value={source}
-                        onChange={setSource}
-                        options={[
-                            { value: 'all', label: 'All' },
-                            { value: 'agent', label: 'Agents' },
-                            { value: 'direct', label: 'Direct' },
-                        ]}
-                        ariaLabel="Source filter"
-                    />
-                    <FilterPill
-                        icon={Bot}
-                        value={selectedAgent}
-                        onChange={setSelectedAgent}
-                        disabled={source === 'direct'}
-                        options={[
-                            { value: 'all', label: 'All agents' },
-                            ...(Array.isArray(agents) ? agents.map(a => ({ value: a.id, label: a.name })) : []),
-                        ]}
-                    />
-                    <FilterPill
-                        icon={Clock}
-                        value={dateRange}
-                        onChange={setDateRange}
-                        options={[
-                            { value: 'all', label: 'Any time' },
-                            { value: '7d', label: 'Last 7 days' },
-                            { value: '30d', label: 'Last 30 days' },
-                            { value: '90d', label: 'Last 90 days' },
-                        ]}
-                    />
-                    <div className="flex-1" />
-                    <PillGroup
-                        value={sortBy}
-                        onChange={setSortBy}
-                        options={[
-                            { value: 'relevance', label: 'Relevance' },
-                            { value: 'date', label: 'Date' },
-                        ]}
-                        ariaLabel="Sort by"
-                    />
-                </div>
+                <SearchOverlaySection source={source} setSource={setSource} selectedAgent={selectedAgent} setSelectedAgent={setSelectedAgent} agents={agents} dateRange={dateRange} setDateRange={setDateRange} sortBy={sortBy} setSortBy={setSortBy} />
 
                 {/* Results */}
                 <div ref={listRef} className="flex-1 overflow-y-auto custom-scrollbar" id="search-results" role="listbox">
@@ -351,126 +272,6 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-const PillGroup = ({ value, onChange, options, ariaLabel }: PillGroupProps) => (
-    <div role="radiogroup" aria-label={ariaLabel} className="inline-flex h-8 bg-[var(--bg-tertiary)]/60 rounded-full p-0.5 border border-[var(--border-subtle)]">
-        {options.map(opt => (
-            <button
-                key={opt.value}
-                role="radio"
-                aria-checked={value === opt.value}
-                onClick={() => onChange(opt.value)}
-                className={`px-3 text-[12px] font-medium rounded-full transition-all ${
-                    value === opt.value
-                        ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm'
-                        : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                }`}
-            >
-                {opt.label}
-            </button>
-        ))}
-    </div>
-);
-
-/* Pill-shaped filter dropdown — matches the chrome of PillGroup so the whole
-   filter row reads as one consistent set of chips. The native <select> sits
-   transparently over the pill so the label updates without a custom popup. */
-const FilterPill = ({ icon: Icon, value, onChange, options, disabled }: FilterPillProps) => {
-    const active = value !== 'all' && value !== undefined && value !== null;
-    return (
-        <div
-            className={`relative inline-flex items-center h-8 px-3 rounded-full border transition-colors ${
-                disabled
-                    ? 'opacity-40 pointer-events-none border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/30'
-                    : active
-                        ? 'border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/60 hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'
-            }`}
-        >
-            <Icon className={`w-3.5 h-3.5 mr-1.5 flex-shrink-0 ${active ? 'text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)]'}`} />
-            <select
-                value={value}
-                onChange={e => onChange(e.target.value)}
-                disabled={disabled}
-                className="bg-transparent border-none text-[12px] font-medium focus:ring-0 focus:outline-none cursor-pointer pr-4 appearance-none [color:inherit]!"
-            >
-                {options.map(o => <option key={o.value} value={o.value} className="text-[var(--text-primary)] bg-[var(--bg-card)]">{o.label}</option>)}
-            </select>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="absolute right-2.5 pointer-events-none opacity-60">
-                <path d="M2 4L5 7L8 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-        </div>
-    );
-};
-
-const ResultRow = ({ result, query, idx, selected, onSelect, onHover }: ResultRowProps) => {
-    const isDirect = result.kind === 'direct';
-    const agentName = result.agent_name || (isDirect ? 'Direct Chat' : 'Agent');
-    const avatar = result.agent_avatar;
-    const hasImageAvatar = isImageAvatar(avatar);
-
-    return (
-        <button
-            id={`search-result-${result.id}`}
-            data-idx={idx}
-            data-testid={`search-result-${result.id}`}
-            role="option"
-            aria-selected={selected}
-            onClick={() => onSelect(result)}
-            onMouseEnter={onHover}
-            className={`w-full text-left p-3 rounded-lg transition-colors flex gap-3 ${
-                selected
-                    ? 'bg-[var(--bg-secondary)]'
-                    : 'hover:bg-[var(--bg-secondary)]/60'
-            }`}
-        >
-            {/* Icon / Avatar */}
-            <div className="flex-shrink-0 mt-0.5">
-                {isDirect ? (
-                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-secondary)]">
-                        <MessageSquare className="w-4 h-4" />
-                    </div>
-                ) : hasImageAvatar ? (
-                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-                        <img src={resolveAvatarSrc(avatar)} alt="" className="w-full h-full object-contain" />
-                    </div>
-                ) : avatar ? (
-                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] flex items-center justify-center text-base leading-none">
-                        {avatar}
-                    </div>
-                ) : (
-                    <div className="w-8 h-8 rounded-lg bg-[var(--accent-primary)]/10 border border-[var(--border-subtle)] flex items-center justify-center text-xs font-semibold text-[var(--accent-primary)]">
-                        {agentName[0]?.toUpperCase() || '?'}
-                    </div>
-                )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
-                        {result.title || 'Untitled Conversation'}
-                    </span>
-                    <span className={`flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                        isDirect
-                            ? 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-[var(--border-subtle)]'
-                            : 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20'
-                    }`}>
-                        {isDirect ? (result.model_tier ? `Direct · ${result.model_tier}` : 'Direct') : agentName}
-                    </span>
-                </div>
-                <div
-                    className="text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: highlightSnippet(result.snippet || '', query) }}
-                />
-                <div className="flex items-center gap-1 mt-1 text-[10px] text-[var(--text-muted)]">
-                    <Calendar className="w-2.5 h-2.5" />
-                    {formatDate(result.updated_at)}
-                </div>
-            </div>
-        </button>
-    );
-};
-
 const SkeletonRow = () => (
     <div className="flex gap-3 p-3 animate-pulse">
         <div className="w-8 h-8 rounded-lg bg-[var(--bg-secondary)]" />
@@ -501,3 +302,37 @@ const EmptyState = ({ title, hint, action }: EmptyStateProps) => (
 );
 
 export default SearchOverlay;
+
+function SearchOverlaySection2({ inputRef, query, handleInput, t, sortedResults, selectedIdx, setQuery, setResults, onClose }: { inputRef: React.RefObject<HTMLInputElement | null>; query: string; handleInput: (e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>) => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; sortedResults: SearchResult[]; selectedIdx: number; setQuery: React.Dispatch<React.SetStateAction<string>>; setResults: React.Dispatch<React.SetStateAction<SearchResult[]>>; onClose: () => void; }) {
+    return <div className="flex-shrink-0 flex items-center gap-3 px-5 h-16 border-b border-[var(--border-subtle)]">
+        <Search className="w-[18px] h-[18px] text-[var(--text-tertiary)] flex-shrink-0" />
+        <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={handleInput}
+            placeholder={t('sidebar.search_placeholder', 'Search conversations and messages…')}
+            className="flex-1 bg-transparent border-none text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:ring-0 focus:outline-none"
+            data-testid="search-input"
+            aria-label={t('sidebar.search_query', 'Search query')}
+            aria-controls="search-results"
+            aria-activedescendant={sortedResults[selectedIdx] ? `search-result-${sortedResults[selectedIdx].id}` : undefined} />
+        {query && (
+            <button
+                onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); } }
+                className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={t('sidebar.search_clear', 'Clear search')}
+            >
+                <X className="w-4 h-4" />
+            </button>
+        )}
+        <button
+            onClick={onClose}
+            className="p-1.5 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+            aria-label={t('sidebar.search_close', 'Close search')}
+        >
+            <X className="w-4 h-4" />
+        </button>
+    </div>;
+}
+

@@ -1,61 +1,13 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback, useState, RefObject } from 'react';
 import RichTextEditor from '../../editor/react/RichTextEditor.jsx';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { useTranslation } from '../../hooks/useTranslation';
-import {
-    X, ExternalLink, Download, FileDown,
-    Loader2, ChevronDown, FileText,
-} from 'lucide-react';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
-import type { NotebookEditorFacade, NotebookEditorHandle } from '../../pages/documents/notebook/detail/editorHandle';
 import type { WorkspaceNotebookProps } from './WorkspaceNotebook.types';
 import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
-/** The editor ref as this panel uses it: the facade also carries TipTap's storage and commands. */
-interface WorkspaceEditorHandle extends NotebookEditorHandle {
-    getEditor?: () => (NotebookEditorFacade & {
-        storage: { markdown?: { getMarkdown?: () => string } };
-        commands: { setContent: (content: string, options?: { emitUpdate?: boolean }) => void };
-    }) | null;
-    setMarkdownContent?: (md: string) => void;
-}
-/* ── Embed images as base64 for export ───────────────────────── */
-async function embedImagesAsBase64(html: string) {
-    const imgRegex = /<img([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi;
-    const matches = [...html.matchAll(imgRegex)];
-    const replacements = await Promise.allSettled(
-        matches.map(async (match) => {
-            const [fullMatch, before, src, after] = match;
-            if (src.startsWith('data:')) return { fullMatch, newTag: fullMatch };
-            try {
-                const resolvedUrl = src.startsWith('http') ? src : `${window.location.origin}${src}`;
-                const res = await fetch(resolvedUrl, { credentials: 'include' });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const blob = await res.blob();
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-                let widthStyle = '';
-                const widthMatch = (before + after).match(/data-width=["'](\d+)["']/);
-                const styleMatch = (before + after).match(/style=["']([^"']*?width[^"']*?)["']/);
-                if (widthMatch) widthStyle = ` style="width:${widthMatch[1]}px;height:auto;max-width:100%"`;
-                else if (styleMatch) widthStyle = ` style="${styleMatch[1]}"`;
-                return { fullMatch, newTag: `<img src="${dataUrl}"${widthStyle} alt="" />` };
-            } catch (err) {
-                console.warn('[Export] Failed to embed image:', src, (err as Error).message);
-                return { fullMatch, newTag: fullMatch };
-            }
-        })
-    );
-    let result = html;
-    for (const r of replacements) {
-        if (r.status === 'fulfilled') result = result.replace(r.value.fullMatch, r.value.newTag);
-    }
-    return result;
-}
+import { type WorkspaceEditorHandle, embedImagesAsBase64 } from './WorkspaceNotebook.helpers';
+import { WorkspaceNotebookSection } from './WorkspaceNotebookSection';
 
 export default function WorkspaceNotebook({
     content,
@@ -384,103 +336,25 @@ export default function WorkspaceNotebook({
     return (
         <div className="flex flex-col h-full bg-[var(--bg-primary)]">
             {/* ── Header Bar ── */}
-            <div
-                className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
-            >
-                <div className="flex items-center gap-2">
-                    <span className="text-sm">📓</span>
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">
-                        {t('notebooks.panel_title', 'Notebook')}
-                    </h3>
-                    {saving && (
-                        <span className="text-[10px] animate-pulse ml-1 text-[var(--accent-primary)]">
-                            {t('notebooks.saving', 'Saving…')}
-                        </span>
-                    )}
-                </div>
-
-                <div className="flex items-center gap-0.5">
-
-                    {/* Export dropdown */}
-                    {user?.featureFlags?.export !== false && (
-                    <div className="relative" ref={exportMenuRef}>
-                        <button
-                            onClick={() => setExportMenuOpen(p => !p)}
-                            disabled={!!exporting}
-                            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] flex items-center gap-0.5"
-                            style={{ color: exporting ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}
-                            title={t('notebooks.export_title')}
-                        >
-                            {exporting
-                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                : <Download className="w-3.5 h-3.5" />}
-                            <ChevronDown className="w-2.5 h-2.5" />
-                        </button>
-
-                        {exportMenuOpen && (
-                            <div
-                                className="absolute right-0 top-full mt-1 rounded-xl border py-1 shadow-xl z-50 min-w-[150px] bg-[var(--bg-primary)] border-[var(--border-default)]"
-                            >
-                                <button
-                                    onClick={() => handleExport('pdf')}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                                >
-                                    <FileDown className="w-3.5 h-3.5 text-red-500" />
-                                    {t('notebooks.export_pdf')}
-                                </button>
-                                <button
-                                    onClick={() => handleExport('docx')}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                                >
-                                    <FileText className="w-3.5 h-3.5 text-blue-500" />
-                                    {t('notebooks.export_word')}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                    )}
-
-                    {/* Open in full Notebook */}
-                    {user?.featureFlags?.openInNotebook !== false && (
-                    <button
-                        onClick={handleOpenNotebook}
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--accent-primary)]"
-                        title={t('notebooks.open_in_notebook_title')}
-                    >
-                        <ExternalLink className="w-3 h-3" />
-                        {t('notebooks.open_in_notebook')}
-                    </button>
-                    )}
-
-                    {/* Divider */}
-                    {(user?.featureFlags?.export !== false || user?.featureFlags?.openInNotebook !== false) && (
-                        <div className="w-px h-4 mx-1 bg-[var(--border-subtle)]" />
-                    )}
-
-                    {/* Close — flush first; closing is not unmounting everywhere. */}
-                    <button
-                        onClick={() => { flushSaveRef.current?.(); onClose?.(); }}
-                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
-                        title={t('notebooks.close')}
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
+            <WorkspaceNotebookSection t={t} saving={saving} user={user} exportMenuRef={exportMenuRef} setExportMenuOpen={setExportMenuOpen} exporting={exporting} exportMenuOpen={exportMenuOpen} handleExport={handleExport} handleOpenNotebook={handleOpenNotebook} flushSaveRef={flushSaveRef} onClose={onClose} />
 
             {/* ── TipTap Editor ── */}
-            <div className="flex-1 min-h-0 overflow-hidden">
-                <RichTextEditor
-                    ref={editorRef}
-                    content={initialContent}
-                    onChange={handleEditorChange}
-                    onSave={() => onSave?.(getMarkdown())}
-                    onAIAction={handleAIAction}
-                    saving={saving}
-                    notebookId={notebookId || 'workspace'}
-                    askAiEnabled={user?.featureFlags?.askAi !== false}
-                />
-            </div>
+            <WorkspaceNotebookSection2 editorRef={editorRef} initialContent={initialContent} handleEditorChange={handleEditorChange} onSave={onSave} getMarkdown={getMarkdown} handleAIAction={handleAIAction} saving={saving} notebookId={notebookId} user={user} />
         </div>
     );
 }
+
+function WorkspaceNotebookSection2({ editorRef, initialContent, handleEditorChange, onSave, getMarkdown, handleAIAction, saving, notebookId, user }: { editorRef: RefObject<WorkspaceEditorHandle | null>; initialContent: string; handleEditorChange: () => void; onSave: ((md: string, notebookId?: string) => unknown) | undefined; getMarkdown: () => string; handleAIAction: (actionKey: string, selectedText: string, range: unknown, customQuery: string) => void; saving: boolean; notebookId: string | null; user: { featureFlags?: { export?: boolean; openInNotebook?: boolean; askAi?: boolean;[key: string]: boolean | undefined; }; } | null | undefined; }) {
+    return <div className="flex-1 min-h-0 overflow-hidden">
+        <RichTextEditor
+            ref={editorRef}
+            content={initialContent}
+            onChange={handleEditorChange}
+            onSave={() => onSave?.(getMarkdown())}
+            onAIAction={handleAIAction}
+            saving={saving}
+            notebookId={notebookId || 'workspace'}
+            askAiEnabled={user?.featureFlags?.askAi !== false} />
+    </div>;
+}
+

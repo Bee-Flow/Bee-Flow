@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useEffect, useMemo, useRef, type JSX } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import EmailHtmlBody from '../../../../../support/EmailHtmlBody';
 import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { ROLE_COLORS, roleFillContrast } from '../styleResolver';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import type { BindingInput, StaticBinding } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
-import type { ChipsProps, MessageThreadProps } from './AppMessageThread.types';
+import type { MessageThreadProps } from './AppMessageThread.types';
+import { toneStyle, formatStamp, textOrNull, initials, resolveSide } from './AppMessageThread.helpers';
+import { Chips } from './Chips';
 
 /**
  * App Studio runtime — 'message_thread'. Spec: server/appStudio/componentSpecs.js.
@@ -26,35 +28,6 @@ import type { ChipsProps, MessageThreadProps } from './AppMessageThread.types';
  */
 
 const SIDE_ALIGN: Record<string, string> = { left: 'items-start', right: 'items-end', center: 'items-center' };
-
-function toneStyle(side: string, tone: string | null) {
-    if (side === 'center') {
-        return { background: 'transparent', color: 'var(--text-muted)', border: 'none' };
-    }
-    // 'neutral' is the incoming default: a plain surface bubble. Any other role
-    // tints the bubble so the eye can separate the two parties at a glance.
-    if (!tone || tone === 'neutral') {
-        return { background: 'var(--bg-tertiary)', color: 'var(--text-primary)' };
-    }
-    const color = ROLE_COLORS[tone] || ROLE_COLORS.primary;
-    // OUR side gets a filled bubble, not a 14% wash of one. That wash is the
-    // difference between "a chat with two clearly different voices" and "a list
-    // of grey boxes, one very slightly warmer" — which is what every screenshot
-    // of this component actually looked like.
-    if (side === 'right') {
-        // White was hardcoded on the raw role colour, so a warning/info/success
-        // bubble printed its text at well under 4.5:1.
-        return { background: color, color: roleFillContrast(tone) };
-    }
-    return { background: `color-mix(in srgb, ${color} 14%, transparent)`, color: 'var(--text-primary)' };
-}
-
-function formatStamp(value: unknown) {
-    if (value == null || value === '') return null;
-    const d = new Date(value as string | number | Date);
-    if (Number.isNaN(d.getTime())) return displayValue(value);
-    return d.toLocaleString();
-}
 
 /**
  * Would this HTML paint anything?
@@ -79,84 +52,11 @@ function hasVisibleHtml(html: unknown) {
     return text.trim().length > 0;
 }
 
-/** Whitespace-only text is empty text — let displayValue print the em dash. */
-const textOrNull = (text: unknown) => (typeof text === 'string' && !text.trim() ? null : text);
-
 /** Marks a row that came from eventsSource rather than from the conversation. */
 const EVENT_FLAG = '__appThreadEvent';
 
 /** Stand-in binding so the optional sources still resolve on every render. */
 const EMPTY_BINDING: StaticBinding = { kind: 'static', value: [] };
-
-/** Up to two initials from an author name, for the mail-header avatar. */
-function initials(name: unknown) {
-    const s = typeof name === 'string' ? name.trim() : '';
-    if (!s) return '?';
-    const parts = s.split(/\s+/).filter(Boolean);
-    const first = parts[0]?.[0] || '';
-    const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
-    return (first + last).toUpperCase() || '?';
-}
-
-/** The sideMap entry matching this row, or a left/neutral default. */
-function resolveSide(row: Record<string, unknown>, sideField: string | null, sideMap: { value: string; side: string; tone: string }[]) {
-    if (!sideField) return { side: 'left', tone: 'neutral' };
-    const raw = walkPath(row, sideField);
-    const value = raw == null ? '' : String(raw);
-    const hit = (Array.isArray(sideMap) ? sideMap : []).find((m) => m && String(m.value) === value);
-    return {
-        side: hit?.side === 'right' || hit?.side === 'center' ? hit.side : 'left',
-        tone: hit?.tone || 'neutral',
-    };
-}
-
-/**
- * How many chips a message shows before it asks. One order in the app this was
- * built for arrived as a zip that unpacked to 243 drawings, all hanging off a
- * single mail: rendered flat, the chips buried the conversation and pushed the
- * reply box off-screen. A message says what came with it; the file list itself
- * belongs in a gallery.
- */
-const CHIP_CAP = 6;
-
-function Chips({ items, labelKey, testId }: ChipsProps) {
-    const { t } = useTranslation();
-    const [expanded, setExpanded] = useState(false);
-    const list = Array.isArray(items) ? items : [];
-    if (list.length === 0) return null;
-    const shown = expanded ? list : list.slice(0, CHIP_CAP);
-    const hidden = list.length - shown.length;
-    return (
-        <div
-            className={`flex flex-wrap gap-1 mt-1.5${expanded ? ' max-h-40 overflow-y-auto' : ''}`}
-            data-app-thread-chips={testId}
-            data-app-thread-chips-total={list.length}
-        >
-            {shown.map((item, i) => {
-                const label = typeof item === 'string' ? item : displayValue(walkPath(item, labelKey));
-                if (label == null || label === '') return null;
-                return (
-                    <span
-                        key={i}
-                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] rounded [background:var(--bg-secondary)] [color:var(--text-secondary)]!"
-                    >
-                        {label}
-                    </span>
-                );
-            })}
-            {(hidden > 0 || expanded) && (
-                <button
-                    type="button"
-                    onClick={() => setExpanded(!expanded)}
-                    className="inline-flex items-center px-1.5 py-0.5 text-[11px] rounded font-medium [background:var(--bg-secondary)] [color:var(--app-primary)]!"
-                    data-app-thread-chips-toggle={expanded ? 'less' : 'more'}
-                >
-                    {expanded ? t('studio_apps_runtime.thread.show_less', 'Show less') : t('studio_apps_runtime.thread.more', '+{n} more', { n: hidden })}
-                </button>
-            )}
-        </div>
-    );
-}
 
 export default function AppMessageThread({ node }: NodeProps<MessageThreadProps>) {
     const { t } = useTranslation();

@@ -14,7 +14,7 @@ import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import { getKnobsForType } from '../inspector/styleKnobMeta';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import { useRuntime } from '../runtime/RuntimeContext';
-import { isFill } from '../runtime/styleResolver';
+import { isFill } from '../runtime/styleResolver.helpers';
 import { useAppEditorState } from '../state/appEditorState';
 import { duplicateNode, removeNode } from '../state/definitionOps';
 

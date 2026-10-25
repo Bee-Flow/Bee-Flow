@@ -684,70 +684,76 @@ function App() {
 
     return (
         <SubscriptionProvider user={user}>
-        <RecorderProvider>
+        <AppRecorderProvider user={user} navigateToPage={navigateToPage} isAuthenticated={isAuthenticated} currentPage={currentPage} deploymentMode={deploymentMode} isMobile={isMobile} renderContent={renderContent} />
+        </SubscriptionProvider>
+    );
+}
+
+export default AuthedApp;
+
+function AppRecorderProvider({ user, navigateToPage, isAuthenticated, currentPage, deploymentMode, isMobile, renderContent }: { user: AuthedUser | null; navigateToPage: (page: string, { replace }?: { replace?: boolean; }) => void; isAuthenticated: boolean; currentPage: string; deploymentMode: string; isMobile: boolean; renderContent: () => void | React.JSX.Element | null; }) {
+    return <RecorderProvider>
         <CaptureProvider>
-        <ProjectCaptureProvider key={user?.id || 'anonymous'} onNavigate={navigateToPage}>
-        <div className="flex flex-col h-[var(--app-height)]">
+            <ProjectCaptureProvider key={user?.id || 'anonymous'} onNavigate={navigateToPage}>
+                <div className="flex flex-col h-[var(--app-height)]">
 
-            {/* Deployment warning. Above everything, in the layout flow rather
-                than floating: a rollout severs open SSE streams, so an answer
-                can stop mid-sentence, and that deserves more weight than a
-                dismissible toast. Renders nothing when no window is open, and
-                only polls for signed-in users. */}
-            {isAuthenticated && <MaintenanceBanner />}
+                    {/* Deployment warning. Above everything, in the layout flow rather
+            than floating: a rollout severs open SSE streams, so an answer
+            can stop mid-sentence, and that deserves more weight than a
+            dismissible toast. Renders nothing when no window is open, and
+            only polls for signed-in users. */}
+                    {isAuthenticated && <MaintenanceBanner />}
 
-            {/* No-subscription gate: org users without an active plan can
-                only reach the License & Usage page so they can subscribe. */}
-            {isAuthenticated && (
-                <SubscriptionGate
-                    user={user}
-                    currentPage={currentPage}
-                    deploymentMode={deploymentMode}
-                    navigateToPage={navigateToPage}
-                />
-            )}
+                    {/* No-subscription gate: org users without an active plan can
+            only reach the License & Usage page so they can subscribe. */}
+                    {isAuthenticated && (
+                        <SubscriptionGate
+                            user={user}
+                            currentPage={currentPage}
+                            deploymentMode={deploymentMode}
+                            navigateToPage={navigateToPage} />
+                    )}
 
-            {/* Mobile access control: bounce disallowed pages to /app on phones.
-                Catches hard deep-links/refresh and viewport resize/rotate (the
-                cases navigateToPage's own gate can't see). */}
-            {isAuthenticated && (
-                <MobileRouteGuard
-                    isMobile={isMobile}
-                    currentPage={currentPage}
-                    navigateToPage={navigateToPage}
-                />
-            )}
+                    {/* Mobile access control: bounce disallowed pages to /app on phones.
+            Catches hard deep-links/refresh and viewport resize/rotate (the
+            cases navigateToPage's own gate can't see). */}
+                    {isAuthenticated && (
+                        <MobileRouteGuard
+                            isMobile={isMobile}
+                            currentPage={currentPage}
+                            navigateToPage={navigateToPage} />
+                    )}
 
-            {/* Content */}
-            <div className="flex-1 overflow-hidden">
-                {renderContent() as React.ReactNode}
-            </div>
+                    {/* Content */}
+                    <div className="flex-1 overflow-hidden">
+                        {renderContent() as React.ReactNode}
+                    </div>
 
-            {/* Pre-flight DLP preview modal — globally mounted, listens for
-                `beeflow:dlp_preview` window events emitted by useChatEngine. */}
-            {isAuthenticated && <DlpPreviewModal />}
+                    {/* Pre-flight DLP preview modal — globally mounted, listens for
+            `beeflow:dlp_preview` window events emitted by useChatEngine. */}
+                    {isAuthenticated && <DlpPreviewModal />}
 
 
-            {/* Global Meeting Notes surfaces — mounted once, available from any page. */}
-            {isAuthenticated && <CaptureModal />}
-            {isAuthenticated && <MeetingCommandPalette user={user} onNavigate={navigateToPage} />}
+                    {/* Global Meeting Notes surfaces — mounted once, available from any page. */}
+                    {isAuthenticated && <CaptureModal />}
+                    {isAuthenticated && <MeetingCommandPalette user={user} onNavigate={navigateToPage} />}
 
-            {/* New-user product tour — auto-starts once per new user, replayable
-                from Settings → Help & Support. Mounted here so it floats above
-                the app shell and can drive navigation via navigateToPage. */}
-            {isAuthenticated && <OnboardingTour user={user} onNavigate={navigateToPage} currentPage={currentPage} />}
+                    {/* New-user product tour — auto-starts once per new user, replayable
+            from Settings → Help & Support. Mounted here so it floats above
+            the app shell and can drive navigation via navigateToPage. */}
+                    {isAuthenticated && <OnboardingTour user={user} onNavigate={navigateToPage} currentPage={currentPage} />}
 
-            {/* Learning Center — focused player for rich (slide/quiz/exercise/
-                sim/action) lessons. Pure-tour lessons are routed back to
-                OnboardingTour; verified hands-on steps navigate via
-                navigateToPage while the player collapses to a pill. */}
-            {isAuthenticated && <LessonPlayerHost user={user} onNavigate={navigateToPage} />}
+                    {/* Learning Center — focused player for rich (slide/quiz/exercise/
+            sim/action) lessons. Pure-tour lessons are routed back to
+            OnboardingTour; verified hands-on steps navigate via
+            navigateToPage while the player collapses to a pill. */}
+                    {isAuthenticated && <LessonPlayerHost user={user} onNavigate={navigateToPage} />}
 
-            {/* The floating customer-support drawer was retired — the user-side
-                support inbox now lives at /app/settings → Help & Support. */}
+                    {/* The floating customer-support drawer was retired — the user-side
+            support inbox now lives at /app/settings → Help & Support. */}
 
-            {/* Dropdown animation keyframe */}
-            <style>{`
+                    {/* Dropdown animation keyframe */}
+                    <style>{`
                 @keyframes dropdownIn {
                     from { opacity: 0; transform: translateY(-4px); }
                     to { opacity: 1; transform: translateY(0); }
@@ -761,7 +767,7 @@ function App() {
                     to { opacity: 1; transform: scale(1) translateY(0); }
                 }
             `}</style>
-            <style>{`
+                    <style>{`
                 @keyframes bannerSlideIn {
                     from { transform: translateY(-100%); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
@@ -770,12 +776,8 @@ function App() {
 
 
 
-        </div>
-        </ProjectCaptureProvider>
+                </div>
+            </ProjectCaptureProvider>
         </CaptureProvider>
-        </RecorderProvider>
-        </SubscriptionProvider>
-    );
+    </RecorderProvider>;
 }
-
-export default AuthedApp;

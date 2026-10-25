@@ -9,7 +9,8 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import { ACCENT, fmt } from '../ui';
+import { fmt } from '../ui';
+import { ACCENT } from '../BarList';
 
 /** One minute of the strip: `t` is the bucket start (ms); `overlay` is the second measure (0 when there is none).
  * Required: `toMinuteStrip` always fills it; the `!= null` at the tooltip predates the type. */

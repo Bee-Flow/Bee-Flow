@@ -1,5 +1,4 @@
-import { Suspense, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import AppRefBreadcrumb from './AppRefBreadcrumb';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { buildHeaderProps, secondaryTriggerOptions } from './builderHeaderState';
 import { makeBuilderSend } from './builderSend';
 import BuilderShellView from './BuilderShellView';
@@ -17,7 +16,6 @@ import useBuilderReview from './useBuilderReview';
 import useBuilderRuns from './useBuilderRuns';
 import { useAssistantAsk, useSettingsSection, useWorkModePrefs } from './useBuilderShellState';
 import useBuilderTabUrl from './useBuilderTabUrl';
-import UsedByButtonsCapsule from './UsedByButtonsCapsule';
 import useFlowletActions from './useFlowletActions';
 import useFlowletScope from './useFlowletScope';
 import useManagedPart from './useManagedPart';
@@ -28,35 +26,10 @@ import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useAutomationBuilderStream from '../../../hooks/useAutomationBuilderStream';
 import useTranslation from '../../../hooks/useTranslation';
-import { lazyWithI18n } from '../../../utils/lazyWithReload';
-import ManagedPartBanner from '../../shared/ManagedPartBanner';
 import useConfirm from '../../shared/useConfirm';
 import type { FlowDefinition, FlowStep } from './flow/types';
-import type { BuilderTab, BuilderUrlState, BuilderRunStatePatch } from './useBuilderTabUrl';
-import type { AppRef } from '../../admin/Studio/AppStudio/inspector/appDefinition';
-import type { PatternOrigin } from './usePatternOrigin';
-import type { ManagedPart } from '../../shared/managedPart';
-import type { AppUserLike } from '../../projects/workspace/types';
-
-/**
- * Split-view conversational builder.
- *
- * Reuses the EXACT same <InputArea> as direct chat (directMode=true) so
- * users get apps menu, model-tier selector, web search toggle, and file
- * attachments. State (tier, web-search, disabled media) lives in
- * scopedStorage so it persists across sessions just like direct chat.
- */
-/**
- * Whether the builder should auto-fire an `autoSendInput` spec ("Build it
- * directly" from a suggestion card). Only on a brand-new builder (no
- * automationId) with no existing conversation — never into an automation the
- * user is already editing. Pure so it can be unit-tested without the shell.
- */
-interface CanAutoSendArgs {
-    autoSendInput: string | null;
-    automationId: string | null;
-    messageCount: number;
-}
+import { type CanAutoSendArgs, type BuilderShellProps } from './BuilderShell.types';
+import { breadcrumbSlot, historySlot } from './BuilderShell.helpers';
 
 export function canAutoSend({ autoSendInput, automationId, messageCount }: CanAutoSendArgs) {
     return !!autoSendInput && !automationId && (messageCount || 0) === 0;
@@ -65,53 +38,6 @@ export function canAutoSend({ autoSendInput, automationId, messageCount }: CanAu
 
 /** The org groups a Step shares with, until the query has answered. */
 const NO_GROUPS: never[] = [];
-
-// Hosting hooks for a page that DRIVES the builder (Studio Playbooks):
-//   onTurnEnd({ finalized, aborted, error, automationId, messageCount })
-//     fires once per turn when the stream stops — the only way a host can
-//     tell a finished build from one that asked a question or aborted
-//     (onBuilderStateChange is URL state, onPublished is Step mode only).
-//   forcedTier — a tier the host pins for every send of this mount; never
-//     written to the user's remembered preference.
-//   backLabel — the header's back destination in the host's words.
-//   forceAssistantOpen — the host is about to auto-send a brief, so the
-//     chat must be visible: `automationsAssistantOpen` is a per-user
-//     preference and defaults to CLOSED, which meant a playbook could fire
-//     its brief into a pane nobody could see and the room watched a static
-//     canvas. The person may still close it; only the initial state is
-//     forced, and the host's mount never writes the preference back.
-//   seedMetadata — { title?, description? } a host already knows for the
-//     draft the first send CREATES (the playbook stage reads `Title "…"`
-//     off its brief). Sent with every send; the server honours it only
-//     when that send creates the draft, so a re-send cannot rename.
-//   patternOrigin — the "Find repeating work" pattern this new build
-//     was opened from ({ signature?, suggestion }); usePatternOrigin
-//     records `built` for it once the build is done.
-interface BuilderShellProps {
-    user?: AppUserLike | null;
-    autoSendInput?: string | null;
-    initialTab?: BuilderTab | null;
-    initialRunId?: string | null;
-    onTurnEnd?: ((info: { finalized: boolean; aborted: boolean; error: string | null; automationId: string | null; messageCount: number }) => void) | null;
-    automationId: string | null;
-    onBack: (() => void) | null;
-    onOpenList?: (() => void) | null;
-    onExportJson?: (() => Promise<void>) | null | undefined;
-    initialChatInput?: string;
-    onAutomationIdResolved?: ((automationId: string) => void) | null;
-    initialScopeKey?: string | null;
-    onScopeChange?: ((scopeKey: string | null) => void) | null;
-    mode?: 'automation' | 'step';
-    onPublished?: (() => void) | null;
-    initialRunStepId?: string | null;
-    onBuilderStateChange?: ((state?: Partial<BuilderUrlState>) => void) | null;
-    initialAppRef?: AppRef | null;
-    forcedTier?: string | null;
-    backLabel?: string | null;
-    forceAssistantOpen?: boolean;
-    seedMetadata?: { title: string; } | null;
-    patternOrigin?: PatternOrigin | null;
-}
 
 export default function BuilderShell({ automationId, onBack, onOpenList = null, onExportJson = null, user, initialChatInput = '', autoSendInput = null, onAutomationIdResolved = null, initialScopeKey = null, onScopeChange = null, mode = 'automation', onPublished = null, initialTab = null, initialRunId = null, initialRunStepId = null, onBuilderStateChange = null, initialAppRef = null,
     onTurnEnd = null, forcedTier = null, backLabel = null, forceAssistantOpen = false, seedMetadata = null, patternOrigin = null }: BuilderShellProps) {
@@ -399,84 +325,3 @@ export default function BuilderShell({ automationId, onBack, onOpenList = null, 
 // surfaces these records as a sticky bottom-right pill on the Build tab
 // instead of a top-of-canvas row that pushes content down.
 
-/**
- * The strips the header renders itself, so they follow the bar into BuildTab's
- * ribbon instead of only existing on the other views.
- *
- * Two strips that answer different questions: the breadcrumb says "you came
- * from here" (one button, from the URL or from the trigger), the capsule says
- * "this is run by these" (every app button, from the index). An automation
- * opened through a link shows both; one opened from the list shows only the
- * second.
- *
- * Not for a reusable Step: AUTOMATIONS call it, not app buttons, and
- * `automation_usage` is not about that.
- */
-interface BreadcrumbSlotArgs {
-    appRef: AppRef | null;
-    isStep: boolean;
-    persistedAutomationId: string | null;
-    readOnly: boolean;
-    managedPart: ManagedPart | null;
-    managedNotDeployed: boolean;
-}
-
-function breadcrumbSlot({ appRef, isStep, persistedAutomationId, readOnly, managedPart, managedNotDeployed }: BreadcrumbSlotArgs) {
-    if (!(appRef || (!isStep && persistedAutomationId) || readOnly)) return null;
-    return (
-        <>
-            {readOnly ? <ManagedPartBanner managed={managedPart} notDeployed={managedNotDeployed} /> : null}
-            {appRef ? <AppRefBreadcrumb appRef={appRef} /> : null}
-            {!isStep && persistedAutomationId
-                ? <UsedByButtonsCapsule automationId={persistedAutomationId} />
-                : null}
-        </>
-    );
-}
-
-// The runs tab (compare, goldens, table and file chips) is big and only opens on demand: keep it out of the entry chunks.
-const RunsTab = lazyWithI18n(() => import('./runs/RunsTab'));
-// The Step execution list pulls in the whole run viewer: load it only when a Step's history opens.
-const ExecutionsPanel = lazyWithI18n(() => import('../../admin/Studio/Executions/ExecutionsPanel'));
-
-/** A Step lists its executions, an automation its runs; neither before it has an id. */
-interface HistorySlotArgs {
-    automationId: string | null;
-    isStep: boolean;
-    active: boolean;
-    initialRunId: string | null;
-    initialRunStepId: string | null;
-    onRunStateChange: (patch?: BuilderRunStatePatch, opts?: { replace?: boolean; }) => void;
-    onOpenEditor: (stepId?: string | null) => void;
-}
-
-function historySlot({ automationId, isStep, active, initialRunId, initialRunStepId, onRunStateChange, onOpenEditor }: HistorySlotArgs) {
-    if (!automationId) return null;
-    if (!isStep) {
-        return (
-            <Suspense fallback={null}>
-                <RunsTab
-                    automationId={automationId}
-                    active={active}
-                    initialRunId={initialRunId}
-                    initialStepId={initialRunStepId}
-                    onRunStateChange={onRunStateChange}
-                    onOpenEditor={onOpenEditor}
-                />
-            </Suspense>
-        );
-    }
-    return (
-        <Suspense fallback={null}>
-            <ExecutionsPanel
-                scope="step"
-                stepId={automationId}
-                active={active}
-                initialRunId={initialRunId}
-                initialStepId={initialRunStepId}
-                onRunStateChange={onRunStateChange}
-                onOpenEditor={() => onOpenEditor()}
-            />
-        </Suspense>
-    );
-}

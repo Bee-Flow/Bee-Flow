@@ -11,10 +11,28 @@
 //                <feature>.ts` (`useQuery`, authFetch kept INSIDE queryFn so
 //                the existing test mocks of authFetch keep working) and the
 //                component reads `data / loading / error` from it.
-// mutation mode  `const res = await authFetch(url, { method: 'POST'|... })`
-//                whose Response is checked through `res.ok` becomes `mutate()`
-//                (api/mutate.ts, throws ApiError on non-2xx); the `!res.ok`
-//                branch moves into a catch of ApiError.
+// loader mode    (part of query mode) `const load = useCallback(async () => { single GET; setX })`
+//                (or a plain async function) that ONE effect only calls (`useEffect(() => { load(); },
+//                [load])`) becomes the same hook; every other `load();` / `await load();` /
+//                `void load();` becomes `query.refetch()`. Skipped when `load` is used as a value
+//                (a prop, a dependency), or has a guard and other callers (refetch ignores `enabled`).
+// mutation mode  `const res = await authFetch(url, { method: 'POST'|... })` whose Response is checked
+//                becomes `mutate()` (api/mutate.ts, throws RefusedError, an ApiError with a numeric
+//                status, on non-2xx). The checked shapes:
+//                  - `if (!res.ok) { …; exit }`, the refused branch moving into a catch; it may read
+//                    `res.status` (-> err.status) and `await res.json().catch(() => X)`
+//                    (-> `errorBody(err) ?? X`: mutate() has read that body already);
+//                  - json first: `const d = await res.json().catch(() => X); if (!res.ok) {…}`: the
+//                    catch rebuilds `d` from the error, the success path keeps the original line;
+//                  - `if (res.ok) {A} else {B}`: B stays an else, or moves into the catch when it reads
+//                    the answer (A stays behind `if (res)`).
+//                A checked GET outside an effect body takes the same shapes through `request()` (the
+//                same function under a name that does not say "mutation"); a GET in an effect is left
+//                to query mode.
+// Left alone, with a reason: a JSON read without a fallback (it throws on a non-JSON body, errorBody
+// does not), a file the vitest setup loads (src/test/setup.ts closure: api/mutate would pin the real
+// authFetch before a suite's helpers mock exists), a file that binds one of the imported names, and,
+// with --max-lines N, a conversion that would push a file from N lines or fewer over N.
 //
 // Tests that render a converted component without a QueryClient are LISTED in
 // the report (`testsNeedingClient`); the tool never rewrites tests.

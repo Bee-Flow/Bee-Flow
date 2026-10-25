@@ -1,13 +1,13 @@
 import { BadgeCheck, ExternalLink, KeyRound, Loader2, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
 import { useId, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import Modal from '../shared/Modal';
 import Toggle from '../shared/Toggle';
 import useConfirm from '../shared/useConfirm';
 import toast from '../shared/Toast';
 import { useRefreshMcpServer, useSetSharedMcpKey, useUninstallMcpServer, useUpdateMcpServer } from '../../api/queries/mcpLibrary';
-import type { CatalogEntry, InstalledServer } from '../../api/queries/mcpLibrary';
-import { useTranslation } from '../../hooks/useTranslation';
+import type { CatalogEntry, InstalledServer, UpdateInput, McpLibraryError } from '../../api/queries/mcpLibrary';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import AccessPicker from './AccessPicker';
 import type { AccessValue } from './AccessPicker';
 import { InstalledStatus } from './LibraryCards';
@@ -15,6 +15,7 @@ import { blockedText, errorText } from './libraryText';
 import ServerLogo from './ServerLogo';
 import ToolPicker from './ToolPicker';
 import { ALERT_ERROR, ALERT_WARNING, CHIP_SUCCESS, DANGER_BTN, EYEBROW, HINT, INPUT, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from './ui';
+import { UseMutationResult } from '@tanstack/react-query';
 
 function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
     return (
@@ -214,30 +215,7 @@ export default function ServerDrawer({ server, catalog, groups, onClose }: Serve
                     )}
                 </Section>
 
-                <Section
-                    title={t('mcp_library.review.tools', 'Tools')}
-                    aside={(
-                        <button type="button" className={QUIET_BTN} onClick={checkForNew} disabled={anyBusy || server.blockedByPolicy}>
-                            <RefreshCw size={12} className={refresh.isPending ? 'animate-spin' : ''} aria-hidden="true" />
-                            {t('mcp_library.drawer.check_new', 'Check for new tools')}
-                        </button>
-                    )}
-                >
-                    {newTools.length > 0 && (
-                        <p className="m-0 text-[12px] text-[var(--info-ink)]">
-                            {t('mcp_library.drawer.new_tools', 'The server has new tools. They stay off until you switch them on.')}
-                        </p>
-                    )}
-                    <ToolPicker tools={server.tools} selected={tools} onChange={setTools} disabled={anyBusy} newTools={newTools} />
-                    {toolsDirty && (
-                        <div>
-                            <button type="button" className={PRIMARY_BTN} onClick={saveTools} disabled={tools.length === 0 || anyBusy}>
-                                {update.isPending && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
-                                {t('mcp_library.drawer.save_tools', 'Save tools')}
-                            </button>
-                        </div>
-                    )}
-                </Section>
+                <ServerDrawerSection t={t} checkForNew={checkForNew} anyBusy={anyBusy} server={server} refresh={refresh} newTools={newTools} tools={tools} setTools={setTools} toolsDirty={toolsDirty} saveTools={saveTools} update={update} />
 
                 <Section title={t('mcp_library.drawer.danger', 'Remove')}>
                     <p className="m-0 text-[12px] leading-snug text-[var(--text-tertiary)]">
@@ -254,4 +232,31 @@ export default function ServerDrawer({ server, catalog, groups, onClose }: Serve
             {confirmDialog}
         </Modal>
     );
+}
+
+function ServerDrawerSection({ t, checkForNew, anyBusy, server, refresh, newTools, tools, setTools, toolsDirty, saveTools, update }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; checkForNew: () => void; anyBusy: boolean; server: InstalledServer; refresh: UseMutationResult<{ server: InstalledServer; newTools: string[]; }, McpLibraryError, string, unknown>; newTools: string[]; tools: string[]; setTools: Dispatch<SetStateAction<string[]>>; toolsDirty: boolean; saveTools: () => void; update: UseMutationResult<InstalledServer, McpLibraryError, { id: string; patch: UpdateInput; }, unknown>; }) {
+    return <Section
+        title={t('mcp_library.review.tools', 'Tools')}
+        aside={(
+            <button type="button" className={QUIET_BTN} onClick={checkForNew} disabled={anyBusy || server.blockedByPolicy}>
+                <RefreshCw size={12} className={refresh.isPending ? 'animate-spin' : ''} aria-hidden="true" />
+                {t('mcp_library.drawer.check_new', 'Check for new tools')}
+            </button>
+        )}
+    >
+        {newTools.length > 0 && (
+            <p className="m-0 text-[12px] text-[var(--info-ink)]">
+                {t('mcp_library.drawer.new_tools', 'The server has new tools. They stay off until you switch them on.')}
+            </p>
+        )}
+        <ToolPicker tools={server.tools} selected={tools} onChange={setTools} disabled={anyBusy} newTools={newTools} />
+        {toolsDirty && (
+            <div>
+                <button type="button" className={PRIMARY_BTN} onClick={saveTools} disabled={tools.length === 0 || anyBusy}>
+                    {update.isPending && <Loader2 size={13} className="animate-spin" aria-hidden="true" />}
+                    {t('mcp_library.drawer.save_tools', 'Save tools')}
+                </button>
+            </div>
+        )}
+    </Section>;
 }
