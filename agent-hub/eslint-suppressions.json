@@ -7863,11 +7863,6 @@
       "count": 1
     }
   },
-  "src/components/renderers/PageOverlay.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/renderers/ResearchRenderer.tsx": {
     "complexity": {
       "count": 1
@@ -8704,11 +8699,6 @@
   },
   "src/hooks/useStickToBottom.ts": {
     "react-hooks/immutability": {
-      "count": 1
-    }
-  },
-  "src/hooks/useStudioCounts.test.js": {
-    "import/order": {
       "count": 1
     }
   },
