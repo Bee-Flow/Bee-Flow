@@ -2,10 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { getNode } from './doc';
 import { textSelection, pos } from './selection.js';
-import {
-  makeTable, appendRow, appendColumn, toggleHeaderRow,
-  addRowAfter, addColumnAfter, deleteRow, deleteColumn,
-} from './tables';
+import { makeTable, appendRow, appendColumn, toggleHeaderRow, addColumnAfter, deleteRow } from './tables';
+import { addRowAfter, deleteColumn } from './tables.helpers';
 
 // A state whose caret sits in cell [row,col] of a single table at doc index 0.
 function tableState(rows, cols, header = true, row = 0, col = 0) {

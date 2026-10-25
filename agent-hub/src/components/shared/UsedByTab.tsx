@@ -45,42 +45,15 @@
  * Colours: CSS custom properties only, via kindColors — a kind cannot be
  * blue here and teal on the rail.
  */
-import { ArrowUpRight, FolderKanban, Loader2, MessageSquare, NotebookPen } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { ArrowUpRight, Loader2 } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { kindColorVar, kindIcon, kindOf, kindTint } from './kindColors';
 import useRelativeTime from '../../hooks/useRelativeTime';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import useTranslation from '../../hooks/useTranslation';
 import type { KindLabelFn, KindVisual, UsageAdapter, UsageEntry, UsageRowProps, UsageSourceRow, UsageSummaryProps, UsedByTabProps } from './UsedByTab.types';
-
-export const USAGE_ROLES = Object.freeze([
-    'read', 'write', 'readwrite', 'contains', 'invokes', 'chat', 'ai_step', 'answer_block',
-]);
-
-/**
- * Kinds that appear in a usage list but are not Studio kinds (kindColors
- * knows the ten things you MAKE; a chat or a project is where a thing is
- * USED). A chat borrows the agent's blue — Agents artboard 1b draws the Chat
- * row with `message-square` in `--type-ai`.
- */
-const EXTRA_KIND: Readonly<Record<string, KindVisual | undefined>> = Object.freeze({
-    chat: { Icon: MessageSquare, color: 'var(--type-ai)' },
-    project: { Icon: FolderKanban, color: 'var(--text-secondary)' },
-    notebook: { Icon: NotebookPen, color: 'var(--text-secondary)' },
-});
-
-/** Studio deep-link segment per kind — only kinds with a detail page. */
-const STUDIO_PATH: Readonly<Record<string, string | undefined>> = Object.freeze({
-    automation: 'automations',
-    agent: 'agents',
-    app: 'apps',
-    webpage: 'webpages',
-    kb: 'knowledge',
-    skill: 'skills',
-    datatable: 'datatables',
-    solution: 'solutions',
-});
+import { EXTRA_KIND, STUDIO_PATH, HEAD_STYLE, ROW_STYLE, KIND_NOUNS } from './UsedByTab.constants';
+export { USAGE_ROLES } from './UsedByTab.constants';
 
 /** The kind key for a row: a Studio kind via kindOf, else one of the extras. */
 export function usageKind(row?: UsageEntry | null): string | null {
@@ -146,27 +119,6 @@ export function countByKind(rows: UsageEntry[]): { kind: string; n: number }[] {
     }
     return [...counts.entries()].map(([kind, n]) => ({ kind, n }));
 }
-
-const HEAD_STYLE: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 120px 120px 32px',
-    gap: 12,
-    padding: '8px 14px',
-    borderBottom: '1px solid var(--border-default)',
-    fontSize: 10,
-    letterSpacing: '.08em',
-    textTransform: 'uppercase',
-    fontWeight: 600,
-    color: 'var(--text-tertiary)',
-};
-
-const ROW_STYLE: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: '1fr 120px 120px 32px',
-    gap: 12,
-    alignItems: 'center',
-    padding: '9px 14px',
-};
 
 /**
  * Props: `rows` is null while not loaded and [] when loaded with nothing;
@@ -384,28 +336,6 @@ export function roleLabelFor(t: TranslateFn, role?: string | null): string {
         default: return role ? String(role) : '';
     }
 }
-
-/**
- * Singular/plural noun per kind, for the pills and the untitled fallback.
- * Keys `usage.kind_<kind>` / `usage.kind_<kind>_plural`, English fallbacks
- * inline so the i18n guard can read them.
- */
-const KIND_NOUNS: Readonly<Record<string, readonly [string, string] | undefined>> = Object.freeze({
-    automation: ['automation', 'automations'],
-    datatable: ['table', 'tables'],
-    app: ['app', 'apps'],
-    webpage: ['webpage', 'webpages'],
-    form: ['form', 'forms'],
-    agent: ['agent', 'agents'],
-    skill: ['skill', 'skills'],
-    kb: ['knowledge base', 'knowledge bases'],
-    meeting: ['meeting note', 'meeting notes'],
-    solution: ['solution', 'solutions'],
-    chat: ['chat', 'chats'],
-    project: ['project', 'projects'],
-    notebook: ['notebook', 'notebooks'],
-    other: ['item', 'items'],
-});
 
 /**
  * A kind this list does not know keeps its OWN name.

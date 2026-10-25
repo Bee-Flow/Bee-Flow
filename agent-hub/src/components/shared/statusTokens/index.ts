@@ -14,7 +14,12 @@ import {
     ShieldQuestion,
     XCircle,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { STATUS_KEYS, type StatusKey, type StatusToken, type SkipGroup, type RunStepLike } from './statusTokens.types';
+import { NEUTRAL_SOLID, NEUTRAL_SUBTLE, NEUTRAL_BADGE, ALIASES } from './statusTokens.constants';
+import { own, skipGroupOfStep } from './statusTokens.helpers';
+export { skipGroupOfStep } from './statusTokens.helpers';
+export { SKIP_REASONS } from './statusTokens.constants';
+export { STATUS_KEYS, type StatusKey, type StatusToken, type SkipGroup, type RunStepLike } from './statusTokens.types';
 
 /**
  * Status token table — single source of truth for the colours, icons, and
@@ -106,60 +111,6 @@ import type { LucideIcon } from 'lucide-react';
  * The phone carries a hand port of this table in
  * mobile/src/features/automate/format.ts, pinned by statusLockstep.test.ts.
  */
-
-export const STATUS_KEYS = [
-    'success',
-    'error',
-    'running',
-    'queued',
-    'paused',
-    'cancelled',
-    'awaiting_approval',
-    'awaiting_form',
-    'skipped',
-    'nothing_to_do',
-    'handled_error',
-    'pinned',
-    'edited',
-    'warning',
-    'info',
-    'idle',
-] as const;
-
-export type StatusKey = typeof STATUS_KEYS[number];
-
-export interface StatusToken {
-    solid: string;
-    subtle: string;
-    badge: string;
-    /**
-     * The raw custom property behind this row, for the surfaces that paint
-     * with inline styles instead of Tailwind classes — the builder canvas
-     * draws a card's border, its status ring, its pulse and its minimap
-     * swatch from this one.
-     *
-     * RAW, never the `-ink` step: the ink is the darker (or, on the dark
-     * themes, lighter) variant that keeps a WORD legible against the page,
-     * while a 1.5px border is the colour itself. It is the same token
-     * `subtle` and `badge` tint from — the invariant the test checks.
-     *
-     * `null` on the neutral rows. A canvas has no grey chrome to offer: a
-     * neutral state keeps the card's ordinary border, which is exactly what
-     * "this state makes no claim" looks like there.
-     */
-    cssVar: string | null;
-    icon: LucideIcon;
-    spin: boolean;
-    /** i18n key — translate with `statusLabel(t, token)`, never render raw. */
-    labelKey: string;
-    /** English fallback, passed as t()'s second argument. */
-    labelEn: string;
-}
-
-/** The neutral recipe — four states share it; see `paused` for why. */
-const NEUTRAL_SOLID = 'text-[var(--text-tertiary)]';
-const NEUTRAL_SUBTLE = 'bg-[var(--bg-secondary)]';
-const NEUTRAL_BADGE = 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]';
 
 export const STATUS_TOKENS: Record<StatusKey, StatusToken> = {
     success: {
@@ -345,29 +296,6 @@ export const STATUS_TOKENS: Record<StatusKey, StatusToken> = {
     },
 };
 
-/**
- * Read a table entry only when the table itself declares it.
- *
- * `'constructor' in ALIASES` and `TABLE['__proto__']` are both TRUE of every
- * object literal, so a plain lookup answers a question about Object.prototype
- * rather than about statuses: `tokenFor('constructor')` used to return
- * undefined (the alias branch was taken, and there is no such alias), and the
- * first call site to read `.solid` off it threw — from a function whose whole
- * contract is that it never does. Not reachable from today's server enum;
- * reachable the moment a status word comes from a URL, a saved filter or a
- * pasted definition.
- */
-function own<T>(table: Readonly<Record<string, T>>, key: string): T | undefined {
-    return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
-}
-
-/** Server-side spellings that mean a canonical key. */
-const ALIASES: Record<string, StatusKey> = {
-    failed: 'error',
-    awaiting_confirm: 'awaiting_approval',
-    paused_breakpoint: 'paused',
-};
-
 /** The canonical key for a raw status string, or null when there is none. */
 function canonicalKey(status: string | null | undefined): StatusKey | null {
     if (!status) return null;
@@ -406,103 +334,6 @@ export function statusLabel(
 }
 
 // ── Skips: which grey, which amber ──────────────────────────────────
-
-/**
- * What a skip MEANS, per reason code.
- *
- *   configured  the step never ran because someone switched it off. A
- *               configuration fact. Grey, always: colouring it would put
- *               every automation that has one disabled node permanently on
- *               amber, and a warning that is always on is not a warning.
- *   no_work     the step ran and had nothing to do — an empty summary, a
- *               source list that did not resolve, a column that is not
- *               there. An OUTCOME, and the one the run view should show in
- *               amber: it used to pass as a green success with an empty
- *               result, which is how an automation could report "done" for
- *               weeks while writing nothing.
- *   pinned      not a skip at all in the UI — the step was replaced by
- *               frozen data and gets its own status. Listed so this table
- *               covers every code the runner can emit.
- *
- * These are the codes `server/core/automationRunner/*` sets as
- * `skippedReason`; execCollections.js calls them "the stable code tests and
- * run-history facets match on", which is exactly what makes them safe to key
- * a colour off. The runner's English sentence on `output.skipped` is NOT
- * consulted — a colour decided by parsing prose breaks the first time the
- * sentence is reworded or translated.
- */
-export type SkipGroup = 'configured' | 'no_work' | 'pinned';
-
-export const SKIP_REASONS: Readonly<Record<string, SkipGroup>> = Object.freeze({
-    // execution.js — the two "this step is not meant to run" cases.
-    disabled: 'configured',
-    note: 'configured',
-    // execCollections.js / execFlow.js — a bound list that did not resolve,
-    // or a field no item carries.
-    arrayref_unresolved: 'no_work',
-    overref_unresolved: 'no_work',
-    aggregate_field_absent: 'no_work',
-    summarize_field_absent: 'no_work',
-    flatten_no_match: 'no_work', // a flatten whose inner list is on none of the outer items
-    // execDateTime.js
-    datetime_unresolved_input: 'no_work',
-    // execDatatable.js
-    datatable_column_unknown: 'no_work',
-    datatable_filter_unresolved: 'no_work',
-    datatable_values_unresolved: 'no_work',
-    table_source_unresolved: 'no_work', // execTable.js
-    // execKnowledgeWrite.js
-    knowledge_write_empty: 'no_work',
-    knowledge_write_no_kb: 'no_work',
-    knowledge_write_too_long: 'no_work',
-    knowledge_write_refused: 'no_work',
-    // execOutbound.js — a notification whose only channel was email, and the
-    // mail was not sent (runNotifications.js emailSkipOf).
-    no_service_email: 'no_work',
-    no_owner_email: 'no_work',
-    not_sent: 'no_work',
-    // execution.js — recorded as its own status by runDag, never as 'skipped'.
-    pinned: 'pinned',
-});
-
-/** A recorded run-step row, as much of it as this module reads. */
-export interface RunStepLike {
-    status?: string | null;
-    /** The runner's code. Not persisted yet — see skipGroupOfStep. */
-    skippedReason?: string | null;
-    output?: unknown;
-}
-
-/**
- * Which group a recorded skip belongs to, or null when the row cannot say.
- *
- * `skippedReason` is the answer whenever it is there, and one day it always
- * will be: the runner sets it on every skip, but `recordRunStep`
- * (server/stores/automationStore/runs.js) has no parameter for it and
- * `automation_run_steps` has no column, so today it never reaches a client.
- *
- * Until it does, the row's SHAPE carries the same fact without anyone having
- * to read a sentence:
- *   - `output.disabled === true` is what execution.js emits for a switched-off
- *     step, and only for that;
- *   - `output.skipped` is a string on every one of the fifteen `no_work` codes
- *     and on none of the others (each exec module builds it through its own
- *     `skipped()` helper, which puts the code top-level and the sentence
- *     there). Its PRESENCE is the signal; its text is never inspected.
- * Anything else is unknown, and an unknown skip stays grey.
- */
-export function skipGroupOfStep(step: RunStepLike | null | undefined): SkipGroup | null {
-    const reason = step?.skippedReason;
-    const known = reason ? own(SKIP_REASONS, String(reason).toLowerCase()) : undefined;
-    if (known) return known;
-    const output = step?.output;
-    if (output && typeof output === 'object') {
-        const shape = output as { disabled?: unknown; skipped?: unknown };
-        if (shape.disabled === true) return 'configured';
-        if (typeof shape.skipped === 'string' && shape.skipped.trim()) return 'no_work';
-    }
-    return null;
-}
 
 /** The token a skip group wears. Unknown → the neutral `skipped` token. */
 export function tokenForSkip(group: SkipGroup | null | undefined): StatusToken {

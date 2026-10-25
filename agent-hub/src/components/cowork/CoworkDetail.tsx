@@ -39,7 +39,7 @@ import { statusLabel } from '../shared/statusTokens';
 import type { CoworkAgent, CoworkItem } from '../../api/cowork.types';
 import type { CoworkUpdate } from '../../api/cowork.types';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import type { StatusToken } from '../shared/statusTokens';
+import type { StatusToken } from '../shared/statusTokens/statusTokens.types';
 
 const AgentIcon = kindIcon('agent');
 

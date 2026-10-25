@@ -1,10 +1,8 @@
 import { Lock, Building2, Users, Plus, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import AnchoredMenu from './AnchoredMenu';
-import {
-    PERSONAL, ORG, GROUPS,
-    audienceModeOf, makeGroupNamer, useAudienceActions, GroupChecklist,
-} from './VisibilityCapsule';
+import { audienceModeOf, makeGroupNamer, GroupChecklist } from './VisibilityCapsule';
+import { PERSONAL, ORG, GROUPS, useAudienceActions } from './useAudienceActions';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { AudienceRowsProps } from './VisibilityCapsule.types';
 

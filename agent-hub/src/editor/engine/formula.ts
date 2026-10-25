@@ -13,7 +13,7 @@
  * A1 always means the cell the user sees under column A even when the table
  * contains merged cells.
  */
-import { tableGrid } from './tables';
+import { tableGrid } from './tables.helpers';
 import { colLabel, colToIndex, parseAnyRef } from './formulaRefs.js';
 import type { CellRef } from './formulaRefs.js';
 import type { DocNode } from '../model/schema.js';
