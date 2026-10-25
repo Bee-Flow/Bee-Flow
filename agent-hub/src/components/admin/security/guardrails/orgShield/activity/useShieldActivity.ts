@@ -51,7 +51,8 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { messageOf } from '../../../../../../utils/caughtError';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { API_BASE } from '../../../../../../utils/helpers';
+import { settled } from '../../../../../../api/settled';
 
 const DETAIL_LIMIT = 200;
 const REFRESH_MS = 30_000;
@@ -108,10 +109,12 @@ function mergeInteg(i: Fetched) {
 const rowsOf = (r: Fetched) => (r.notFound || !Array.isArray(r.data) ? [] : r.data);
 
 async function fetchJson(url: string) {
-    const res = await authFetch(url);
-    if (res.status === 404) return { notFound: true };
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return { data: await res.json() };
+    const res = await settled(url, undefined, 'empty');
+    if (!res.ok) {
+        if (res.status === 404) return { notFound: true };
+        throw new Error(`HTTP ${res.status}`);
+    }
+    return { data: await res.res.json() };
 }
 
 interface UseShieldActivityOptions {

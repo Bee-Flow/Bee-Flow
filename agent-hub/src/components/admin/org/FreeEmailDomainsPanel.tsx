@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
 import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
-import { request, RefusedError } from '../../../api/mutate';
+import { request, mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 interface DomainMessage {
     type: 'success' | 'error';
@@ -61,20 +61,20 @@ export default function FreeEmailDomainsPanel() {
     const persist = async (nextExtra: string[]) => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/free-email-domains`, {
+            const res = await mutate(`${API_BASE}/auth/free-email-domains`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ extra: nextExtra }),
             });
             const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-                setExtra(Array.isArray(data.extra) ? data.extra : nextExtra);
-                notify('success', t('admin.fed_saved', 'Email-domain blocklist updated'));
-                return true;
+            setExtra(Array.isArray(data.extra) ? data.extra : nextExtra);
+            notify('success', t('admin.fed_saved', 'Email-domain blocklist updated'));
+            return true;
+        } catch (err) {
+            if (err instanceof RefusedError) {
+                notify('error', (errorBody(err) ?? {}).error || t('admin.fed_save_failed', 'Failed to save'));
+                return false;
             }
-            notify('error', data.error || t('admin.fed_save_failed', 'Failed to save'));
-            return false;
-        } catch {
             notify('error', t('admin.fed_save_failed', 'Failed to save'));
             return false;
         } finally {

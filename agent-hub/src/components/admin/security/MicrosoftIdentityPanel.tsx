@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { settled } from '../../../api/settled';
 import type { AuthFetchOptions } from '../../../utils/helpers.types';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
@@ -25,10 +26,9 @@ export default function MicrosoftIdentityPanel() {
     const [error, setError] = useState<string | undefined>('');
     const [busy, setBusy] = useState(false);
     const request = useCallback(async (path: string, options?: AuthFetchOptions) => {
-        const res = await authFetch(`${API_BASE}/auth/microsoft/${path}`, options);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || t('common.error'));
-        return data;
+        const res = await settled(`${API_BASE}/auth/microsoft/${path}`, options);
+        if (!res.ok) throw new Error(res.body.error || t('common.error'));
+        return await res.res.json();
     }, [t]);
     const refresh = useCallback(async () => {
         try {

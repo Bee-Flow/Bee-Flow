@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ModalShell from './ModalShell';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { messageOf } from '../../../../utils/caughtError';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 
 interface CmsAsset {
     key: string;
@@ -42,8 +43,8 @@ export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }:
 
     useEffect(() => {
         let cancelled = false;
-        authFetch(`${API_BASE}/api/cms/admin/assets`)
-            .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+        settled(`${API_BASE}/api/cms/admin/assets`, undefined, 'empty')
+            .then(r => (r.ok ? r.res.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
             .then(data => {
                 if (cancelled) return;
                 setState({

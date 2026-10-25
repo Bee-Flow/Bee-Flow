@@ -1,31 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import React, { useState } from 'react';
+import { API_BASE } from '../../../utils/helpers';
+import { useDirectChatPrompt } from '../../../api/queries/orgAdminReads';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
 import { mutate, ApiError } from '../../../api/mutate';
 
 const DirectChatConfig = () => {
     const { t } = useTranslation();
-    const [systemPrompt, setSystemPrompt] = useState('');
-    const [loading, setLoading] = useState(true);
+    const { prompt: loadedPrompt, loading } = useDirectChatPrompt();
+    // null until the admin types: the field shows the loaded prompt, an edit replaces it.
+    const [draft, setDraft] = useState<string | null>(null);
+    const systemPrompt = draft ?? loadedPrompt;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/config/direct-chat`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setSystemPrompt(data.systemPrompt || '');
-                }
-            } catch (e) {
-                console.error('Failed to fetch direct chat config:', e);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, []);
 
     const handleSave = async () => {
         setSaving(true);
@@ -77,7 +64,7 @@ const DirectChatConfig = () => {
                     <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.direct_prompt_label', 'System Prompt')}</label>
                     <textarea
                         value={systemPrompt}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSystemPrompt(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
                         placeholder={t('admin_ai_config.direct_prompt_placeholder', 'You are a helpful AI assistant. Respond thoughtfully and concisely.')}
                         rows={8}
                         className="w-full px-4 py-3 rounded-lg border outline-none focus:border-[var(--accent-primary)] resize-y font-mono text-sm leading-relaxed [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]! min-h-[120px]"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { settled } from '../../../api/settled';
 import { logger } from '../../../utils/logger';
 
 /**
@@ -131,22 +132,22 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
             // fetched here: the only thing left reading it was a badge that
             // counted three of its rows, and the panel is about ORG roles.
             const [usersRes, groupsRes, orgsRes, orgRolesRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/users`),
-                authFetch(`${API_BASE}/auth/groups`),
-                authFetch(`${API_BASE}/auth/organizations`),
-                authFetch(`${API_BASE}/auth/org-roles`),
+                settled(`${API_BASE}/auth/users`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/groups`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/organizations`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/org-roles`, undefined, 'empty'),
             ]);
-            if (usersRes.ok) setUsers(await usersRes.json());
-            if (groupsRes.ok) setGroups(await groupsRes.json());
+            if (usersRes.ok) setUsers(await usersRes.res.json());
+            if (groupsRes.ok) setGroups(await groupsRes.res.json());
             // An install running an older server has no /auth/org-roles; the
             // Roles tab then says so rather than inventing a list.
             if (orgRolesRes.ok) {
-                const body: { roles?: OrgRolePermissions[]; editablePermissions?: string[] } | null = await orgRolesRes.json();
+                const body: { roles?: OrgRolePermissions[]; editablePermissions?: string[] } | null = await orgRolesRes.res.json();
                 setOrgRolePerms(body?.roles || []);
                 setEditablePermissions(body?.editablePermissions || []);
             }
             if (orgsRes.ok) {
-                const orgs: Organization[] = await orgsRes.json();
+                const orgs: Organization[] = await orgsRes.res.json();
                 setOrganizations(orgs);
                 const myOrg = user?.organizationId
                     ? orgs.find(o => o.id === user.organizationId)
@@ -169,9 +170,9 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     useEffect(() => {
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/ai/config/custom-tiers-list`);
+                const res = await settled(`${API_BASE}/ai/config/custom-tiers-list`, undefined, 'empty');
                 if (res.ok) {
-                    const data: { tiers?: CustomTierMeta[] } | null = await res.json();
+                    const data: { tiers?: CustomTierMeta[] } | null = await res.res.json();
                     if (Array.isArray(data?.tiers)) setCustomTiersMeta(data.tiers);
                 }
             } catch (err) { logger.debug('non-critical', err); }
@@ -183,9 +184,9 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         let cancelled = false;
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/api/usage/by-user?days=30`);
+                const res = await settled(`${API_BASE}/api/usage/by-user?days=30`, undefined, 'empty');
                 if (!res.ok) return;
-                const rows: Array<{ user_id: string; calls?: unknown; estimated_cost?: unknown }> = await res.json();
+                const rows: Array<{ user_id: string; calls?: unknown; estimated_cost?: unknown }> = await res.res.json();
                 if (cancelled) return;
                 const map = new Map<string, MemberUsage>();
                 for (const r of rows) {
@@ -208,11 +209,11 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         setAutoApprove(next);
         setSavingAutoApprove(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${myOrgId}`, {
+            const res = await settled(`${API_BASE}/auth/organizations/${myOrgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ autoApproveSSO: next }),
-            });
+            }, 'empty');
             if (!res.ok) {
                 setAutoApprove(!next);
             }

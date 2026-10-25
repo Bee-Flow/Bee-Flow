@@ -1,10 +1,10 @@
 import { Loader2, Layers, Sparkles, Settings, Lock, Info } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { getIntegrationIcon } from '../../../../config/integrationIcons';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { useGroupAccessRead } from '../../../../api/queries/orgAdminReads';
 import type { AccessCapability, AccessData, AccessKindSection } from './accessTypes';
-import { messageOf } from '../../../../utils/caughtError';
 
 /**
  * CeilingReadOnly — the org-admin view of the ceiling. The ceiling (what the
@@ -26,29 +26,15 @@ const BLUE = '#3b82f6';
 
 export default function CeilingReadOnly({ orgId = null }: { orgId?: string | null }) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<AccessData | null>(null);
-    const [error, setError] = useState<string | null>(null);
-
     const readPath = orgId
         ? `${API_BASE}/auth/organizations/${encodeURIComponent(orgId)}/group-access`
         : `${API_BASE}/auth/me/group-access`;
 
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            setLoading(true);
-            try {
-                const res = await authFetch(readPath);
-                if (!res.ok) { if (alive) setError(t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: res.status })); return; }
-                const j = await res.json();
-                if (alive) setData(j);
-            } catch (e) {
-                if (alive) setError(messageOf(e, t('admin_org.access_matrix_failed_load', 'Failed to load')));
-            } finally { if (alive) setLoading(false); }
-        })();
-        return () => { alive = false; };
-    }, [readPath, t]);
+    const { data, error, loading } = useGroupAccessRead<AccessData>(
+        readPath,
+        (status) => t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status }),
+        t('admin_org.access_matrix_failed_load', 'Failed to load'),
+    );
 
     const byKind = useMemo(() => {
         const ceiling = new Set(data?.ceiling || []);
