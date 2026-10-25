@@ -31,7 +31,8 @@ function stub(id, exports) {
     require.cache[resolved] = m;
 }
 
-const calls = { create: [], update: [] };
+const calls = { create: [], update: [], move: [], del: [], orgChecks: [] };
+let moveImpl = async (id, parentId) => ({ id, parentId });
 let createImpl = async (input) => ({ id: 'f1', ...input });
 let updateImpl = async (id, patch) => ({ id, ...patch });
 let existing = { id: 'f1', name: 'Old' };
@@ -40,6 +41,9 @@ stub('stores/automationStore', {
     createFolder: async (input) => { calls.create.push(input); return createImpl(input); },
     updateFolder: async (id, patch) => { calls.update.push({ id, patch }); return updateImpl(id, patch); },
     getFolder: async () => existing,
+    getFolderInOrg: async (id, org) => { calls.orgChecks.push({ id, org }); return existing; },
+    moveFolder: async (id, parentId, org) => { calls.move.push({ id, parentId, org }); return moveImpl(id, parentId, org); },
+    deleteFolder: async (id) => { calls.del.push(id); return { detached: 2, reparented: 1 }; },
     listFolders: async () => [],
     getAutomation: async () => null,
     getAutomationsForUser: async () => [],
@@ -68,6 +72,10 @@ test.after(async () => { if (server) await new Promise((r) => server.close(r)); 
 test.beforeEach(() => {
     calls.create.length = 0;
     calls.update.length = 0;
+    calls.move.length = 0;
+    calls.del.length = 0;
+    calls.orgChecks.length = 0;
+    moveImpl = async (id, parentId) => ({ id, parentId });
     createImpl = async (input) => ({ id: 'f1', ...input });
     updateImpl = async (id, patch) => ({ id, ...patch });
     existing = { id: 'f1', name: 'Old' };
@@ -127,6 +135,58 @@ describe('what reaches the store', () => {
         const { status } = await send('PUT', '/folders/f1', { name: 'Paid' });
         assert.equal(status, 200);
         assert.deepEqual(calls.update[0], { id: 'f1', patch: { name: 'Paid' } });
+    });
+
+    test('a folder is looked up in the caller organisation before it is changed or deleted', async () => {
+        await send('PUT', '/folders/f1', { name: 'Paid' });
+        await send('DELETE', '/folders/f1');
+        assert.deepEqual(calls.orgChecks, [{ id: 'f1', org: 'org-1' }, { id: 'f1', org: 'org-1' }]);
+    });
+
+    test('a delete of a folder outside the organisation is a 404 and deletes nothing', async () => {
+        existing = null;
+        const { status } = await send('DELETE', '/folders/f1');
+        assert.equal(status, 404);
+        assert.equal(calls.del.length, 0);
+    });
+
+    test('a delete says how many automations were detached and subfolders moved up', async () => {
+        const { body } = await send('DELETE', '/folders/f1');
+        assert.deepEqual(body, { success: true, detached: 2, reparented: 1 });
+    });
+
+    test('a subfolder is created with parentId', async () => {
+        const { status } = await send('POST', '/folders', { name: 'Sub', parentId: 'f1' });
+        assert.equal(status, 201);
+        assert.deepEqual(calls.create[0], { organizationId: 'org-1', name: 'Sub', parentId: 'f1' });
+    });
+
+    test('a rename cannot carry a parentId: moving has its own route', async () => {
+        const { status } = await send('PUT', '/folders/f1', { parentId: 'f2' });
+        assert.equal(status, 400);
+        assert.equal(calls.update.length, 0);
+    });
+
+    test('a move passes the caller organisation, and null means the top level', async () => {
+        const a = await send('PUT', '/folders/f1/parent', { parentId: 'f2' });
+        const b = await send('PUT', '/folders/f1/parent', { parentId: null });
+        assert.equal(a.status, 200);
+        assert.equal(b.status, 200);
+        assert.deepEqual(calls.move, [{ id: 'f1', parentId: 'f2', org: 'org-1' }, { id: 'f1', parentId: null, org: 'org-1' }]);
+    });
+
+    test('a move without parentId is a 400', async () => {
+        const { status } = await send('PUT', '/folders/f1/parent', {});
+        assert.equal(status, 400);
+        assert.equal(calls.move.length, 0);
+    });
+
+    test('a refused move (loop, depth, other organisation) is the store code and status', async () => {
+        const { FolderError } = require('../../stores/automationStore/folders');
+        moveImpl = async () => { throw new FolderError(409, 'folder_cycle', 'A folder cannot be moved into itself or into one of its own subfolders.'); };
+        const { status, body } = await send('PUT', '/folders/f1/parent', { parentId: 'f2' });
+        assert.equal(status, 409);
+        assert.equal(body.code, 'folder_cycle');
     });
 
     test('an update of a folder that is gone is a 404', async () => {

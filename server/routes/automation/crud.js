@@ -19,6 +19,7 @@ const { registerTemplateAndImportRoutes, registerExportRoute } = require('./impo
 const { agentsFor, knownVarNamesFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = require('../../automation/liveSideEffects');
 const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
+const { FolderError } = require('../../stores/automationStore/folders');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
@@ -471,7 +472,13 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     // top level, so the value is copied on `!== undefined` rather than on
     // truthiness — otherwise an automation could be filed but never unfiled.
     if (req.body.folderId !== undefined) {
-        updates.folderId = req.body.folderId || null;
+        // The folder must exist in the caller's organisation: an id from the client is not trusted.
+        try {
+            updates.folderId = (await automationStore.requireFolderForAutomation(req.body.folderId || null, await orgOf(req)))?.id ?? null;
+        } catch (e) {
+            if (e instanceof FolderError) return res.status(e.status).json({ error: e.message, code: e.code });
+            throw e;
+        }
     }
 
     // Test on `!== undefined`, NOT truthiness: line 199 already copied the
