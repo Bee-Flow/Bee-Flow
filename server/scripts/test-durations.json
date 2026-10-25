@@ -1347,7 +1347,7 @@
     "middleware/uploadGuard.test.js": 790,
     "migrateDb.integration.test.js": 64677,
     "migrateDb.registration.test.js": 148,
-    "migrations/add-kb-ai-step-context.test.js": 2896,
+    "stores/ddl/add-kb-ai-step-context.test.js": 2896,
     "migrations/add-nl-app-studio-builder-translations.test.js": 339,
     "migrations/add-nl-builder-fixes-2026-10.test.js": 2230,
     "migrations/add-nl-builder-handoff5-translations.test.js": 2059,

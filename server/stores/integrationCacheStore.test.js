@@ -108,7 +108,7 @@ const mock = createRecordingDb({
         return { rows: [], rowCount: 0 };
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = installResolveStub({ '../db': mock.db, '../../db': mock.db });
 after(() => restore());
 
 const store = require('./integrationCacheStore');
@@ -364,6 +364,6 @@ test('the backfill sizes rows written before payload_bytes existed', async () =>
     // which is the direction that lets an unbounded table grow.
     rows.push(fakeRow(1, { payload: 'abcd', payload_bytes: null }));
     rows.push(fakeRow(2, { payload: 'abcdefg', payload_bytes: null }));
-    await require('../migrations/integration-response-cache-2026-09').up();
+    await require('./ddl/integration-response-cache-2026-09').up();
     assert.deepStrictEqual(rows.map(r => r.payload_bytes), [4, 7]);
 });

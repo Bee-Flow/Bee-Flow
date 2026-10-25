@@ -42,9 +42,9 @@ function makeSchemaInit({ exec, getOne, runDdl, CODES, log, ensureSourcesSchema 
         // /* tolerate */ also let a timeout or dead connection pass silently.
         // Drop the deprecated per-KB default_lang column on existing deployments
         // (no-op once applied). Idempotent.
-        try { await require('../../migrations/drop-kb-default-lang').up(); } catch (e) { log.error('[KnowledgeBases] migratie drop-kb-default-lang gefaald:', /** @type {Error} */ (e).message); }
+        try { await require('../ddl/drop-kb-default-lang').up(); } catch (e) { log.error('[KnowledgeBases] migratie drop-kb-default-lang gefaald:', /** @type {Error} */ (e).message); }
         // Add usage_contexts + source_kind columns and backfill auto-created KBs.
-        try { await require('../../migrations/add-kb-usage-contexts').up(); } catch (e) { log.error('[KnowledgeBases] migratie add-kb-usage-contexts gefaald:', /** @type {Error} */ (e).message); }
+        try { await require('../ddl/add-kb-usage-contexts').up(); } catch (e) { log.error('[KnowledgeBases] migratie add-kb-usage-contexts gefaald:', /** @type {Error} */ (e).message); }
         // SWITCHED OFF (Track Z): the migration `add-nl-kb-usage-translations` seeded NL values
         // for the seven keys kb_detail.usage_label / .usage_agents / .usage_agents_hint /
         // .usage_direct_chat / .usage_direct_chat_hint / .usage_webpages / .usage_webpages_hint.
@@ -58,7 +58,7 @@ function makeSchemaInit({ exec, getOne, runDdl, CODES, log, ensureSourcesSchema 
         // Give every agent-usable KB the 'ai_step' context BEFORE the link-time
         // check starts demanding it — otherwise every existing automation fails its
         // next activation on a base nobody changed.
-        try { await require('../../migrations/add-kb-ai-step-context').up(); } catch (e) { log.error('[KnowledgeBases] migratie add-kb-ai-step-context gefaald:', /** @type {Error} */ (e).message); }
+        try { await require('../ddl/add-kb-ai-step-context').up(); } catch (e) { log.error('[KnowledgeBases] migratie add-kb-ai-step-context gefaald:', /** @type {Error} */ (e).message); }
 
         await exec(`
         CREATE TABLE IF NOT EXISTS documents (

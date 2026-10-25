@@ -22,7 +22,7 @@
  * the collapse is a no-op once only one row per pair remains.
  */
 
-const { exec, getAll, run } = require('../db');
+const { exec, getAll, run } = require('../../db');
 
 const OAUTH_PROVIDERS = ['google', 'microsoft', 'nextcloud'];
 

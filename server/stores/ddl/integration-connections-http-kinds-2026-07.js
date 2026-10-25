@@ -13,7 +13,7 @@
  * DROP IF EXISTS + re-ADD converges on the widened list on every run.
  */
 
-const { exec } = require('../db');
+const { exec } = require('../../db');
 
 async function up() {
     await exec(`ALTER TABLE integration_connections DROP CONSTRAINT IF EXISTS integration_connections_kind_check`);

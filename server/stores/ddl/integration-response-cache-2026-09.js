@@ -21,7 +21,7 @@
  * before a standalone `db:migrate` has run.
  */
 
-const { exec, run } = require('../db');
+const { exec, run } = require('../../db');
 
 const TABLE = 'integration_response_cache';
 

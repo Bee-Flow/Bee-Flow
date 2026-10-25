@@ -15,7 +15,7 @@
  * Manual usage: `node server/migrations/drop-kb-default-lang.js`
  */
 
-const { exec } = require('../db');
+const { exec } = require('../../db');
 
 async function up() {
     await exec(`ALTER TABLE knowledge_bases DROP COLUMN IF EXISTS default_lang`);

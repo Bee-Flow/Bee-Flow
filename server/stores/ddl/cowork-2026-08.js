@@ -19,7 +19,7 @@
  * IF NOT EXISTS throughout so re-running is safe.
  */
 
-const { exec } = require('../db');
+const { exec } = require('../../db');
 
 async function up() {
     await exec(`

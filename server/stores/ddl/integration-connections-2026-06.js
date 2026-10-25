@@ -17,7 +17,7 @@
  * later phases. Additive — no existing table changes, full back-compat.
  */
 
-const { exec } = require('../db');
+const { exec } = require('../../db');
 
 async function up() {
     // ── integration_connections ─────────────────────────────────────

@@ -30,7 +30,7 @@ const log = require('../telemetry/log');
 const initDB = makeStoreInit('CoworkStore', _initDB);
 
 async function _initDB() {
-    await require('../migrations/cowork-2026-08').up();
+    await require('./ddl/cowork-2026-08').up();
     // CW-13: `produced_output` as its OWN fact alongside `status`.
     //
     // A run that had nothing to report is SUCCESSFUL — it is only empty. Without

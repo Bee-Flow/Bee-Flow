@@ -18,8 +18,8 @@
  *   node server/migrations/add-kb-usage-contexts.js
  */
 
-const { exec } = require('../db');
-const log = require('../telemetry/log');
+const { exec } = require('../../db');
+const log = require('../../telemetry/log');
 
 async function up() {
     await exec(`

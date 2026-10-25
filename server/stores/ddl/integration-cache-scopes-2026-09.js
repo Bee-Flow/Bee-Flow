@@ -24,7 +24,7 @@
  * that already carries `scopes`.
  */
 
-const { exec, getAll, run } = require('../db');
+const { exec, getAll, run } = require('../../db');
 
 const CONFIG_KEY_PREFIX = 'org_integration_cache_';
 

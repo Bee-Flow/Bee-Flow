@@ -91,6 +91,7 @@ const stageStub = { managedPayloadFor: async (args) => { TRACE.push({ hook: 'man
 
 const restore = installResolveStub({
     '../db': db,
+    '../../db': db,
     './managedPartsDefault': partsStub,
     './kbSources': sourcesStub,
     './solutionStageStore': stageStub,

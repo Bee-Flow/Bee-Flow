@@ -29,7 +29,7 @@
  *   node server/migrations/add-kb-ai-step-context.js
  */
 
-const { exec } = require('../db');
+const { exec } = require('../../db');
 
 async function up() {
     // `usage_contexts` is jsonb holding an array of strings; `?` asks whether
