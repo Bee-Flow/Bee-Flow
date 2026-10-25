@@ -1,12 +1,12 @@
 // @typecheck strict
 
 // ── Config keys ──────────────────────────────────────────────────────
+// These are the names of configStore entries, not credentials.
 const KEY_URL       = 'cms_analytics_url';
-
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a config key name, not a username
 const KEY_USERNAME  = 'cms_analytics_username';
-
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- a config key name, not a password
 const KEY_PASSWORD  = 'cms_analytics_password';
-
 const KEY_API_TOKEN = 'cms_analytics_api_token';
 
 const ENDPOINT_CACHE_TTL_MS = 10_000;

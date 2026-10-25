@@ -23,6 +23,7 @@ const ASSISTANT_MENTION = /(^|[^\w@])@(ai|assistant)(?![\w-])/i;
  * @param {string|null} [agentName]
  */
 function mentionsAssistant(content, agentName = null) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a fixed mention pattern and an escapeRegExp()d agent name with no nested repeats: linear
     const text = String(content || '');
     if (ASSISTANT_MENTION.test(text)) return true;
     const name = typeof agentName === 'string' ? agentName.trim() : '';

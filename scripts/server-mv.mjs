@@ -149,6 +149,7 @@ export function move(pairs, opts = {}) {
             let isDirLit = false;
             if (!hit && isDir(abs)) { target = abs; isDirLit = true; }
             if (!target) {
+                // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: an anchored literal over a source file it reads itself: linear
                 if (moved && /require\(\s*$/.test(src.slice(0, src.indexOf(whole)))) warnings.push(`${rel(root, file)}: unresolved require ${spec}`);
                 return whole;
             }
@@ -286,6 +287,7 @@ export function move(pairs, opts = {}) {
  */
 export function aliasStubKeys(text, pairs) {
     const added = [];
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: fixed literal patterns over test files it reads itself: linear
     let out = text;
     let n = 0;
     for (const [oldSpec, newSpec] of pairs) {
