@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { buildPdfExportHtml } from './messageItemHelpers';
 import type { ChatMessage } from './messageTypes';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { mutate } from '../../../api/mutate';
 
 type Translate = (key: string, fallback?: string) => string;
 
@@ -58,7 +59,7 @@ async function submitFeedback(c: FeedbackContext, rating: string | null, comment
                 model: m.model || null,
             }));
         }
-        await authFetch(API, {
+        await mutate(API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

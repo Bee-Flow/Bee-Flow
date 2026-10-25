@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck, Download } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useSystemKnowledgeBases } from '../../api/queries/systemKnowledgeBases';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
 import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
@@ -29,41 +30,27 @@ interface RefreshStatus {
     finishedAt?: string;
 }
 
+const NO_ITEMS: SystemKb[] = [];
+
 const SystemKnowledgeBasesPanel = () => {
     const { t } = useTranslation();
-    const [items, setItems] = useState<SystemKb[]>([]);
-    const [orgId, setOrgId] = useState<string | null>(null);
-    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const listQuery = useSystemKnowledgeBases<SystemKb>();
+    const items = listQuery.data?.items ?? NO_ITEMS;
+    const orgId = listQuery.data?.orgId ?? null;
+    const isSuperAdmin = listQuery.data?.isSuperAdmin ?? false;
+    const loading = listQuery.isFetching;
     const [toggling, setToggling] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [actionError, setError] = useState<string | null>(null);
+    const error = actionError ?? (listQuery.isError ? (listQuery.error.message || 'Load failed') : null);
     // slug → { running, total, done, okCount, failCount, finishedAt, ... }
     const [refreshStatus, setRefreshStatus] = useState<Record<string, RefreshStatus>>({});
     const pollRef = useRef<NodeJS.Timeout | null>(null);
 
+    const { refetch } = listQuery;
     const load = useCallback(async () => {
-        setLoading(true);
         setError(null);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/kb/system`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`Load failed (${err.status})`);
-            }
-            const j = await res.json();
-            setItems(Array.isArray(j.items) ? j.items : []);
-            setOrgId(j.orgId || null);
-            setIsSuperAdmin(!!j.isSuperAdmin);
-        } catch (e) {
-            setError((e as Error).message || 'Load failed');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
+        await refetch();
+    }, [refetch]);
 
     // Poll the per-slug seed status while any refresh is running. Stops as
     // soon as the server reports `running: false` for every slug; restarts
@@ -109,14 +96,16 @@ const SystemKnowledgeBasesPanel = () => {
         if (!isSuperAdmin || !item.system_slug) return;
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/system/${item.system_slug}/refresh`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ force }),
-            });
-            if (!res.ok && res.status !== 202) {
-                const txt = await res.text().catch(() => '');
-                throw new Error(`Refresh kick-off failed (${res.status}): ${txt.slice(0, 200)}`);
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/system/${item.system_slug}/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ force }),
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`Refresh kick-off failed (${err.status}): ${err.message.slice(0, 200)}`);
             }
             const j = await res.json();
             setRefreshStatus(prev => ({ ...prev, [item.system_slug as string]: j.status }));

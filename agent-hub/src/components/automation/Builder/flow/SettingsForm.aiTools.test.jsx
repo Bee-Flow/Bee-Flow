@@ -1,7 +1,8 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
+import { queryWrapper } from '../../../../test/queryWrapper';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 
@@ -48,6 +49,10 @@ function renderForm(step, { onPatch = vi.fn() } = {}) {
 
 // Advanced is a mode now (the header's switch), not a button: its settings show in the full view.
 const openAdvanced = () => {};
+
+
+// The code under test reads through react-query: every render gets its own client.
+const render = (ui, opts = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('SettingsForm — AI step tool picker', () => {
     beforeEach(() => {

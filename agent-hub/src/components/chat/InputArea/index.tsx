@@ -21,7 +21,7 @@ import useKnowledgeBaseSelection from './useKnowledgeBaseSelection';
 import usePasteAttachments from './usePasteAttachments';
 import useAppsCatalog from '../../../hooks/useAppsCatalog';
 import useTranslation from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useComposerOrgSettings } from '../../../api/queries/composerSettings';
 import { memoryLockOf, MemoryMode, readStoredMemoryMode, storeMemoryMode } from '../../../utils/memoryMode';
 import scopedStorage from '../../../utils/scopedStorage';
 import useVoiceChatReady from '../Voice/useVoiceChatReady';
@@ -180,11 +180,14 @@ const InputArea = ({
         availableKBs, selectedKBIds, onChangeKBIds, directConversationId,
         showKBPicker, setShowKBPicker, kbPickerSearch,
     });
-    const [orgDisableSearchOnUpload, setOrgDisableSearchOnUpload] = useState(false);
-    const [searchProviderConfig, setSearchProviderConfig] = useState('agent-search');
-    const [orgEnabledIntegrations, setOrgEnabledIntegrations] = useState<string[] | null>(null);
-    const [hasGoogleKey, setHasGoogleKey] = useState(false);
-    const [hasElevenLabsKey, setHasElevenLabsKey] = useState(false);
+    // Chat-only slices of the user settings. The apps half of this payload
+    // (enabledApps, the per-integration flags, n8n / MCP / Steps) moved to
+    // useAppsCatalog, which reads it through the module-cached
+    // useIntegrationStatus rather than fetching it a second time.
+    const {
+        orgEnabledIntegrations, hasGoogleKey, hasElevenLabsKey,
+        disableSearchOnUpload: orgDisableSearchOnUpload, searchProvider: searchProviderConfig,
+    } = useComposerOrgSettings();
     // Which apps exist, which are on, and how to flip one — shared with the
     // Cowork composer so both render the same picker off the same list.
     const { availableApps, isAppEnabled, toggleApp } = useAppsCatalog({ agentIntegrations });
@@ -205,24 +208,6 @@ const InputArea = ({
         el.style.height = Math.min(el.scrollHeight, 180) + 'px';
         el.style.overflowY = needsScroll ? 'auto' : 'hidden';
     }, [input]);
-
-    // Chat-only slices of the user settings. The apps half of this payload
-    // (enabledApps, the per-integration flags, n8n / MCP / Steps) moved to
-    // useAppsCatalog, which reads it through the module-cached
-    // useIntegrationStatus rather than fetching it a second time.
-    useEffect(() => {
-        authFetch(`${API_BASE}/ai/user-settings`)
-            .then(r => r.ok ? r.json() : null)
-            .then(data => {
-                if (!data) return;
-                if (data.orgEnabledIntegrations !== undefined) setOrgEnabledIntegrations(data.orgEnabledIntegrations);
-                if (data.hasGoogleKey !== undefined) setHasGoogleKey(data.hasGoogleKey);
-                if (data.hasElevenLabsKey !== undefined) setHasElevenLabsKey(data.hasElevenLabsKey);
-                if (data.disableSearchOnUpload) setOrgDisableSearchOnUpload(true);
-                if (data.searchProvider) setSearchProviderConfig(data.searchProvider);
-            })
-            .catch(() => { });
-    }, []);
 
     // The hidden file input and the drop zone, both funnelling into one
     // processFiles — which usePasteAttachments is handed as well.

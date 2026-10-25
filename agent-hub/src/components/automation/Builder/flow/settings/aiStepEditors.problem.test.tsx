@@ -1,4 +1,5 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { render as rtlRender, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ComponentType, ReactNode } from 'react';
 import SettingsFormJs from '../SettingsForm';
@@ -38,6 +39,11 @@ function renderForm(runStep: Record<string, unknown>) {
 }
 
 const t: TranslateFn = (_key, fallback) => (typeof fallback === 'string' ? fallback : '');
+
+import { queryWrapper } from '../../../../../test/queryWrapper';
+
+// The code under test reads through react-query: every render gets its own client.
+const render = (ui: ReactElement, opts: Parameters<typeof rtlRender>[1] = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('runStepProblem', () => {
     it('reads the setting and the title of a failed row only', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { fetchAppRefRecord } from '../../../../api/queries/automationBuilderReads';
 import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoutes';
 import type { FlowDefinition } from './types';
 import type { AppRef } from '../../../admin/Studio/AppStudio/inspector/appDefinition';
@@ -102,9 +102,7 @@ export function loadAppRef(ref: AppRef | null | undefined): Promise<AppRefRecord
     if (hit !== undefined) return Promise.resolve(hit);
     if (inflight.has(key)) return inflight.get(key) as Promise<AppRefRecord | null>;
 
-    const qs = new URLSearchParams({ screenId: ref.screenId, ...(ref.nodeId ? { nodeId: ref.nodeId } : {}) });
-    const p = authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(ref.appId)}/ref?${qs}`)
-        .then((res) => (res.ok ? res.json() : null))
+    const p = fetchAppRefRecord<AppRefRecord>(ref)
         .then((record) => {
             // A body without a status is not an answer — treating it as one
             // would let a proxy's HTML error page render as a breadcrumb.

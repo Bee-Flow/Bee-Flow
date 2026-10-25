@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render as rtlRender, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +36,11 @@ beforeEach(() => { cleanup(); vi.clearAllMocks(); });
 const open = (props = {}) => render(
     <SkillFormModal onSave={vi.fn()} onCancel={vi.fn()} saving={false} {...props} />,
 );
+
+import { queryWrapper } from '../../test/queryWrapper';
+
+// The code under test reads through react-query: every render gets its own client.
+const render = (ui, opts = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('SkillFormModal', () => {
     it('warns that rewriting the workflow text replaces the steps Studio owns', async () => {

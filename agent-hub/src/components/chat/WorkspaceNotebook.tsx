@@ -1,13 +1,37 @@
 import { useRef, useEffect, useCallback, useState, RefObject } from 'react';
 import RichTextEditor from '../../editor/react/RichTextEditor.jsx';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { useTranslation } from '../../hooks/useTranslation';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
 import type { WorkspaceNotebookProps } from './WorkspaceNotebook.types';
-import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
+import { mutate, request, ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { type WorkspaceEditorHandle, embedImagesAsBase64 } from './WorkspaceNotebook.helpers';
 import { WorkspaceNotebookSection } from './WorkspaceNotebookSection';
+
+/** Write the pane's text over the notebook's current version (compare-and-set); a 409 means somebody saved newer. */
+async function syncNotebookText(notebookId: string, md: string) {
+    const cur = await request(`${API_BASE}/api/notebooks/${notebookId}`).catch((err: unknown) => {
+        if (err instanceof RefusedError) return null;
+        throw err;
+    });
+    const data = cur ? await cur.json().catch(() => null) : null;
+    const nb = data?.notebook;
+    const unchanged = nb && (nb.documentMd === md || nb.documentContent === md);
+    if (!nb || unchanged || nb.role === 'viewer') return;
+    const body: { documentContent: string; expectedVersion?: number } = { documentContent: md };
+    if (Number.isFinite(nb.version)) body.expectedVersion = nb.version;
+    try {
+        await mutate(`${API_BASE}/api/notebooks/${notebookId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        if (err.status !== 409) console.warn('[WorkspaceNotebook] content sync before opening was refused:', err.status);
+    }
+}
 
 export default function WorkspaceNotebook({
     content,
@@ -276,20 +300,7 @@ export default function WorkspaceNotebook({
         const md = getMarkdown();
         if (notebookId) {
             try {
-                const cur = await authFetch(`${API_BASE}/api/notebooks/${notebookId}`);
-                const data = cur.ok ? await cur.json().catch(() => null) : null;
-                const nb = data?.notebook;
-                const unchanged = nb && (nb.documentMd === md || nb.documentContent === md);
-                if (nb && !unchanged && nb.role !== 'viewer') {
-                    const body: { documentContent: string; expectedVersion?: number } = { documentContent: md };
-                    if (Number.isFinite(nb.version)) body.expectedVersion = nb.version;
-                    const res = await authFetch(`${API_BASE}/api/notebooks/${notebookId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body),
-                    });
-                    if (!res.ok && res.status !== 409) console.warn('[WorkspaceNotebook] content sync before opening was refused:', res.status);
-                }
+                await syncNotebookText(notebookId, md);
             } catch (e) {
                 console.warn('[WorkspaceNotebook] Failed to sync content before opening:', e);
             }
