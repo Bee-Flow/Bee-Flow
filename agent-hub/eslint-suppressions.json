@@ -201,7 +201,7 @@
   },
   "src/components/NcOnboardingWizard/index.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1

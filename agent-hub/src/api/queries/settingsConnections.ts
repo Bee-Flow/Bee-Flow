@@ -7,6 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { logger } from '../../utils/logger';
 
 const connectionsKeys = {
     list: ['settings', 'named-connections'] as const,
@@ -28,7 +29,7 @@ export function useNamedConnections<C, G>() {
                     try {
                         const body = await cRes.json();
                         if (body && typeof body.error === 'string') message = body.error;
-                    } catch { /* empty or non-JSON body */ }
+                    } catch (err) { logger.debug('empty or non-JSON body', err); }
                     throw new Error(message);
                 }
                 const c = await cRes.json();

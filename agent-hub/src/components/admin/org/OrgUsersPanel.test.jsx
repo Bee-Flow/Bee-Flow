@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { withQueryClient } from '@/test/render';
 import OrgUsersPanel from './OrgUsersPanel';
 import { authFetch } from '../../../utils/helpers';
-
 /**
  * Characterisation suite for OrgUsersPanel — the org rights screen.
  *

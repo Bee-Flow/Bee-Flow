@@ -4,6 +4,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { logger } from '../../utils/logger';
 
 const coreKnowledgeBaseKeys = {
     driveConnected: ['knowledgeBases', 'gdriveStatus'] as const,
@@ -14,7 +15,7 @@ async function readFlag(url: string, field: string): Promise<boolean> {
     try {
         const res = await authFetch(url);
         if (res.ok) { const d = await res.json(); return !!d[field]; }
-    } catch { /* best-effort flag */ }
+    } catch (err) { logger.debug('best-effort flag', err); }
     return false;
 }
 

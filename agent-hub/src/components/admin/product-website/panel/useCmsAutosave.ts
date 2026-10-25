@@ -29,7 +29,8 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
  * without colliding (real keys are 'site' or a pg_… id, never 'locale:').
  */
 /** One save's answer: whether the server took it, its status, and its JSON body ({} when it had none). */
-interface SaveAnswer { ok: boolean; status: number; d: any }
+interface SaveAnswer { ok: boolean; status: number; d: SaveBody }
+interface SaveBody { code?: string; error?: string; dropped?: unknown; mediaWarning?: unknown; localeOverrides?: unknown; [field: string]: unknown }
 
 async function put(url: string, init: AuthFetchOptions): Promise<SaveAnswer> {
     const r = await settled(url, init, 'empty');

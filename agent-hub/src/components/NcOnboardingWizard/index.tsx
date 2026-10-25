@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
-import { useNcOnboardingOrg, useNcSyncGroups } from '../../api/queries/settingsNcOnboarding';
+import { useOrgForm, useGroups } from './useOnboardingData';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
@@ -38,44 +38,6 @@ const PII_CATEGORIES = [
 ];
 
 const DEFAULT_PII = ['Person', 'Email', 'PhoneNumber', 'Address', 'BankAccountNumber'];
-
-interface OrgForm {
-    name: string; email: string; tagline: string; description: string;
-    address: string; phone: string; website: string; kvk: string; vat: string;
-}
-const BLANK_ORG: OrgForm = { name: '', email: '', tagline: '', description: '', address: '', phone: '', website: '', kvk: '', vat: '' };
-const NO_GROUPS: string[] = [];
-
-/**
- * Organisation form. Pre-filled from GET /auth/organizations/:id, falling back to the NC
- * bootstrap data (orgName prop, user email) when the org row's fields are still empty;
- * the person's own typing wins over the pre-fill.
- */
-function useOrgForm(orgId: string | undefined, orgName: string | null | undefined, userEmail: string | undefined): [OrgForm, (next: OrgForm) => void] {
-    const orgQuery = useNcOnboardingOrg(orgId);
-    const j = orgQuery.data;
-    const [edited, setEdited] = useState<OrgForm | null>(null);
-    const prefill: OrgForm = orgQuery.isSuccess
-        ? {
-            name: j?.name || orgName || '',
-            email: j?.email || userEmail || '',
-            tagline: j?.tagline || '',
-            description: j?.description || '',
-            address: j?.address || '',
-            phone: j?.phone || '',
-            website: j?.website || '',
-            kvk: j?.kvk || '',
-            vat: j?.vat || '',
-        }
-        : BLANK_ORG;
-    return [edited ?? prefill, setEdited];
-}
-
-function useGroups(orgId: string | undefined) {
-    const query = useNcSyncGroups(orgId);
-    // Without an org there is nothing to load (the spinner then stays, as it always did).
-    return { groups: query.data ?? NO_GROUPS, groupsLoading: !orgId || query.isPending };
-}
 
 const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud' }: { user: { organizationId?: string; email?: string } | null; orgName?: string | null; onComplete?: () => void; deploymentMode?: string }) => {
     const { t } = useTranslation();
