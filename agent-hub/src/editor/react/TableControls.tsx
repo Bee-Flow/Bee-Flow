@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { mkTt } from './toolbarPrimitives.jsx';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { colLabel } from '../engine/formulaRefs.js';
-import { tableGrid as tableGridJs } from '../engine/tables';
+import { tableGrid as tableGridJs } from '../engine/tables.helpers';
 import * as Tbl from '../engine/tables';
 
 /** A table/row/cell/text node of the document model. */

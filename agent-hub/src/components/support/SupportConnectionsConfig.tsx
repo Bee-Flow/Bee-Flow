@@ -4,6 +4,7 @@ import { authFetch, API_BASE } from '../../utils/helpers';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
+import { type YouTrackConnection, type ChatNotifications, type ChatPatch, PROVIDERS, EVENT_LABELS } from './SupportConnectionsConfig.helpers';
 
 /**
  * Where support connects to the outside world: YouTrack, and the team chat
@@ -14,51 +15,6 @@ import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
  * query string — so the URL *is* the credential and the server only reports
  * the host it points at.
  */
-
-/** GET /api/support/youtrack/status. */
-interface YouTrackConnection {
-    configured?: boolean;
-    ok?: boolean;
-    host?: string;
-    error?: string;
-    defaultProject?: string;
-    includeSubject?: boolean;
-    projects?: Array<{ id: string; shortName: string; name: string }>;
-}
-
-/** GET /api/support/notifications. */
-interface ChatNotifications {
-    configured?: boolean;
-    enabled?: boolean;
-    host?: string;
-    provider?: string;
-    events?: string[];
-    availableEvents?: string[];
-}
-
-/** What a chat settings save sends; the webhook URL is added from the field. */
-interface ChatPatch {
-    events?: string[];
-    provider?: string;
-    enabled?: boolean;
-    webhookUrl?: string;
-}
-
-const PROVIDERS = [
-    { id: 'google_chat', label: 'Google Chat' },
-    { id: 'slack', label: 'Slack' },
-    { id: 'teams', label: 'Microsoft Teams' },
-    { id: 'generic', label: 'Plain JSON webhook' },
-];
-
-// Written from the reader's side: what happens, not which table it touches.
-const EVENT_LABELS: Record<string, string> = {
-    ticket_created: 'A new ticket arrives',
-    customer_message: 'A customer replies',
-    sla_breach: 'An SLA is breached',
-    escalation: 'A ticket is escalated to engineering',
-    issue_resolved: 'A linked issue is resolved',
-};
 
 function Row({ label, hint, children }: { label: React.ReactNode; hint?: React.ReactNode; children?: React.ReactNode }) {
     return (
