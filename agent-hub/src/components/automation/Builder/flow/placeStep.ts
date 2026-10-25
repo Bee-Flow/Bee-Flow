@@ -1,5 +1,5 @@
 import { toolLayoutHeights } from './aiToolNodes';
-import { COL_PITCH, ROW_PITCH } from './buildChoreography';
+import { COL_PITCH, ROW_PITCH } from './buildChoreography.constants';
 import { isInlineId } from './inlineFlowlets';
 
 /**

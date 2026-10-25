@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { setLayerDescription, listLayers, renameLayer, getLayerDependencies, isLayerEmpty, deleteLayerAndCalls, layerCallScopes } from './flowletScope';
+import { setLayerDescription, listLayers, renameLayer, getLayerDependencies, isLayerEmpty, deleteLayerAndCalls } from './flowletScope';
+import { layerCallScopes } from './flowletScope.helpers';
 
 const baseDef = () => ({
     trigger: { id: 'trg', type: 'trigger', kind: 'manual' },

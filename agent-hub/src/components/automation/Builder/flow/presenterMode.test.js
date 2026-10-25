@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { DEFAULT_SHOTS, getActiveShots, setActiveShots, shotFor } from './buildChoreography';
+import { getActiveShots, setActiveShots, shotFor } from './buildChoreography';
+import { DEFAULT_SHOTS } from './buildChoreography.constants';
 import {
     PRESENTER_KEY, PRESENTER_LOD_BREAKS, readPresenter, writePresenter, presenterLod, presenterShots, applyPresenterShots,
 } from './presenterMode';

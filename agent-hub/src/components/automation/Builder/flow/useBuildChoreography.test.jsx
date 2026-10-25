@@ -2,8 +2,10 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { MIN_MOVE_GAP_MS, WRAP_HOLD_MS, ROW_PITCH, COL_PITCH, REVEAL_STAGGER_MS } from './buildChoreography';
-import { useBuildChoreography, FLAG_TTL_MS, GHOST_ID } from './useBuildChoreography';
+import { MIN_MOVE_GAP_MS, REVEAL_STAGGER_MS } from './buildChoreography';
+import { WRAP_HOLD_MS, ROW_PITCH, COL_PITCH } from './buildChoreography.constants';
+import { useBuildChoreography } from './useBuildChoreography';
+import { FLAG_TTL_MS, GHOST_ID } from './useBuildChoreography.constants';
 
 // React Flow's fit-on-mount fires onMoveStart with a null event a frame or two
 // after the canvas mounts, so the hook owns the camera for a grace period after

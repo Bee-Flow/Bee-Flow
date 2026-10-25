@@ -1,25 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import {
-    diffDefinitions,
-    revealSchedule,
-    orderAdded,
-    nextSlotFor,
-    shotFor,
-    isRectInView,
-    planCameraMove,
-    phaseFor,
-    chapterOf,
-    isRefusedCall,
-    COL_PITCH,
-    ROW_PITCH,
-    MIN_MOVE_GAP_MS,
-    WRAP_HOLD_MS,
-    REVEAL_STAGGER_MS,
-    REVEAL_STAGGER_MIN_MS,
-    REVEAL_BUDGET_MS,
-    BURST_WIDE_MIN,
-} from './buildChoreography';
+import { diffDefinitions, revealSchedule, orderAdded, nextSlotFor, shotFor, isRectInView, planCameraMove, phaseFor, chapterOf, isRefusedCall, MIN_MOVE_GAP_MS, REVEAL_STAGGER_MS, REVEAL_STAGGER_MIN_MS, REVEAL_BUDGET_MS } from './buildChoreography';
+import { COL_PITCH, ROW_PITCH, WRAP_HOLD_MS, BURST_WIDE_MIN } from './buildChoreography.constants';
 
 const trigger = { id: 'trg', type: 'trigger', kind: 'manual' };
 const step = (id, over = {}) => ({ id, type: 'ai_step', label: id, ...over });
