@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { resolveRunPolicy } = require('./runPolicy');
 
 const LABELS = Object.freeze({ google: 'Google', microsoft: 'Microsoft', nextcloud: 'Nextcloud', withings: 'Withings' });
@@ -7,7 +7,10 @@ const NOTICE_REQUIRED_CLASS = 'caller_notice_required';
 
 const NOTICE_REQUIRED_MESSAGE = 'Open this automation once and confirm which of your connections it uses, then try again.';
 
-/** Stable keys for the acknowledged set: `app:google`, `dest:knowledge_base`. */
+/**
+ * Stable keys for the acknowledged set: `app:google`, `dest:knowledge_base`.
+ * @param {{ providers: string[], destinations: string[] }} found
+ */
 const itemsOf = ({ providers, destinations }) => [...providers.map((p) => `app:${p}`), ...destinations.map((d) => `dest:${d}`)].sort();
 
 /**
@@ -36,7 +39,7 @@ async function describeCallerNotice({ automation, userId, store, providerForTool
     return {
         applies: true,
         seen: ack !== null && items.every((i) => acknowledged.has(i)),
-        providers: found.providers.map((p) => LABELS[p] || p),
+        providers: found.providers.map((p) => /** @type {Record<string, string>} */ (LABELS)[p] || p),
         destinations: found.destinations,
         items,
     };

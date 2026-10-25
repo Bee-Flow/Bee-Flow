@@ -1,11 +1,15 @@
+// @typecheck strict
 /**
  * @param {string} s
  */
 const fold = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+/** @param {{ name?: string, key?: string }} t */
 const tokens = (t) => new Set(fold(`${t.name || ''} ${t.key || ''}`).split(/[^a-z0-9]+/).filter((w) => w.length >= 3));
 
 /**
+ * @param {{ id: string, name?: string, key?: string }} table
+ * @param {{ _datatables?: Array<{ id: string, name?: string, key?: string, pending?: boolean, canWrite?: boolean }> }} draftWrap
  * @param {boolean} write
  */
 function alternatives(table, draftWrap, write) {
@@ -21,7 +25,12 @@ function alternatives(table, draftWrap, write) {
 
 const ASK_HINT = 'Reject reason: existing table not chosen by the user. Call builder_ask_questions with _askArgs (write the prompt and createLabel in the user\'s language), say at most one sentence, and stop. Bind the step after the answer. Never pick a table yourself.';
 
-/** The refusal for a table the user has not chosen; `sameName` = a create request that collides with it. */
+/**
+ * The refusal for a table the user has not chosen; `sameName` = a create request that collides with it.
+ * @param {{ id: string, name?: string, key?: string }} table
+ * @param {{ _datatables?: Array<{ id: string, name?: string, key?: string, pending?: boolean, canWrite?: boolean }> }} draftWrap
+ * @param {{ op?: string | null, sameName?: boolean }} [opts]
+ */
 function choiceRequiredError(table, draftWrap, { op = null, sameName = false } = {}) {
     const write = !!op && op !== 'find_rows' && op !== 'count_rows';
     return {

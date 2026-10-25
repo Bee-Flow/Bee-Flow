@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { fallback } = require('../../utils/bestEffort');
 
 /** Providers whose connection is a per-user OAuth / vault entry. */
@@ -41,7 +41,7 @@ async function collectRequirements(definition, lookups) {
         seen.add(node);
         if (Array.isArray(node)) { queue.push(...node); continue; }
         // Places the OWNER controls and can read back: named in the one-time notice.
-        const sink = DESTINATION_OF_STEP[node.type];
+        const sink = /** @type {Record<string, string>} */ (DESTINATION_OF_STEP)[node.type];
         if (sink) destinations.add(sink);
         if ((node.type === 'fill_document' || node.type === 'presentation') && node.saveCopy) destinations.add('document_library');
         if (node.type === 'http_request' && node.cacheInto && node.cacheInto.datatableId) destinations.add('tables');

@@ -1,9 +1,14 @@
-// @typecheck
+// @typecheck strict
 
-function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
+/** @param {unknown} v @returns {v is Record<string, any>} */
+function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
 // Walk a graph's steps, descending into loop bodies and parallel branches —
 // the same nesting validate.js/portability.js walk. Flat for everything else.
+/**
+ * @param {unknown} steps
+ * @param {(step: Record<string, any>) => void} fn
+ */
 function walkSteps(steps, fn) {
     if (!Array.isArray(steps)) return;
     for (const s of steps) {
@@ -16,7 +21,10 @@ function walkSteps(steps, fn) {
     }
 }
 
-/** The declared input params of a Step (root layer_input trigger). */
+/**
+ * The declared input params of a Step (root layer_input trigger).
+ * @param {Record<string, any> | null | undefined} definition
+ */
 function stepParams(definition) {
     const params = definition?.trigger?.params;
     if (!Array.isArray(params)) return [];
@@ -26,9 +34,12 @@ function stepParams(definition) {
         .filter(p => p.name);
 }
 
-/** The output field names a Step returns (its single layer_output step). */
+/**
+ * The output field names a Step returns (its single layer_output step).
+ * @param {Record<string, any> | null | undefined} definition
+ */
 function stepOutputFields(definition) {
-    const out = (definition?.steps || []).find(s => s && s.type === 'layer_output');
+    const out = (definition?.steps || []).find((/** @type {Record<string, any>} */ s) => s && s.type === 'layer_output');
     const fields = out && isObject(out.fields) ? out.fields : {};
     return Object.keys(fields);
 }

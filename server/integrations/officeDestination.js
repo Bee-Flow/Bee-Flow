@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
@@ -7,6 +7,9 @@ const { fallback } = require('../utils/bestEffort');
  * ending in `.<ext>` is the file itself, anything else is the folder the file
  * (named `fileName`) goes into. Only a string is a path: `true` from the model
  * must not become the folder "true".
+ * @param {unknown} raw
+ * @param {string} ext
+ * @param {string} fileName
  */
 function destinationPath(raw, ext, fileName) {
     const p = typeof raw === 'string' ? raw.trim() : '';
@@ -21,6 +24,9 @@ const ONEDRIVE_NOT_CONNECTED = 'OneDrive is not connected: the user has to sign 
  * Put a built file in the signed-in user's OneDrive at `path`. Graph creates
  * missing folders and, with conflictBehavior=rename, never replaces a file
  * that is already there. Returns { success, path, name, fileId, webUrl } or { error }.
+ * @param {{ contentType: string, buffer: Buffer }} built
+ * @param {{ session?: any }} ctx
+ * @param {string} path
  */
 async function uploadToOneDrive(built, ctx, path) {
     const { graphRequest, isMicrosoftConnected } = require('./msGraphClient');
@@ -31,7 +37,7 @@ async function uploadToOneDrive(built, ctx, path) {
     let res;
     try {
         res = await graphRequest(`/me/drive/root:/${target}:/content?@microsoft.graph.conflictBehavior=rename`, ctx.session, {
-            method: 'PUT', headers: { 'Content-Type': built.contentType }, body: built.buffer,
+            method: 'PUT', headers: { 'Content-Type': built.contentType }, body: /** @type {BodyInit} */ (/** @type {unknown} */ (built.buffer)),
         });
     } catch (e) {
         if (e.message === 'NOT_CONNECTED') return { error: ONEDRIVE_NOT_CONNECTED };

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * The capability vocabulary — one entry per outward surface the sandbox
  * actually gates, spelled the way codeSandbox gates it, and mapped to the
@@ -29,6 +30,7 @@ const TOOL_CAPABILITY_RE = /^tool:([A-Za-z0-9][A-Za-z0-9_.-]{0,79})$/;
 
 /**
  * One manifest entry → { kind, tool } , or null when it is not a capability.
+ * @param {unknown} raw
  *
  * A bare `tool` is null on purpose: the sandbox gates per tool NAME, so
  * "tool" grants nothing that can be checked and would read as if it granted
@@ -46,7 +48,10 @@ function parseCapability(raw) {
     return null;
 }
 
-/** Canonical spelling of one parsed capability — what the manifest stores. */
+/**
+ * Canonical spelling of one parsed capability — what the manifest stores.
+ * @param {{ kind: string, tool: string | null }} cap
+ */
 function capabilityId(cap) {
     return cap.kind === 'tool' ? `tool:${cap.tool}` : cap.kind;
 }
@@ -55,6 +60,7 @@ function capabilityId(cap) {
  * The declared manifest, normalized: recognised entries only, deduped, in
  * declaration order. Same division of labour as appTriggerContract — the
  * readers get the usable half, validateCustomNode reports the junk.
+ * @param {{ capabilities?: unknown } | null | undefined} definition
  */
 function declaredCapabilities(definition) {
     const raw = definition?.capabilities;
@@ -72,7 +78,10 @@ function declaredCapabilities(definition) {
     return out;
 }
 
-/** The tool names the manifest declares, sorted unique. */
+/**
+ * The tool names the manifest declares, sorted unique.
+ * @param {{ capabilities?: unknown } | null | undefined} definition
+ */
 function capabilityToolNames(definition) {
     return [...new Set(declaredCapabilities(definition).filter(c => c.kind === 'tool').map(c => c.tool))].sort();
 }

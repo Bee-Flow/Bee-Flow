@@ -1,7 +1,9 @@
+// @typecheck strict
 const { PENDING_DATATABLE_RE } = require('../validate/constants');
 
 const MAX_WALK_DEPTH = 60;
 
+/** @param {unknown} v */
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
@@ -16,6 +18,7 @@ const isPendingDatatableId = (id) => typeof id === 'string' && PENDING_DATATABLE
  * container added next year is covered too. `visit(obj, scope)` gets the name
  * of the layer the object sits in (null for the root graph).
  * @param {WeakKey} def
+ * @param {(node: { datatableId: string }, scope: string | null) => void} visit
  */
 function walkDatatableRefs(def, visit) {
     const seen = new WeakSet();
@@ -28,7 +31,7 @@ function walkDatatableRefs(def, visit) {
         if (!node || typeof node !== 'object' || depth > MAX_WALK_DEPTH || seen.has(node)) return;
         seen.add(node);
         if (Array.isArray(node)) { for (const x of node) walk(x, scope, depth + 1); return; }
-        if (typeof node.datatableId === 'string') visit(node, scope);
+        if (typeof /** @type {Record<string, unknown>} */ (node).datatableId === 'string') visit(/** @type {{ datatableId: string }} */ (node), scope);
         for (const [k, v] of Object.entries(node)) {
             if (!v || typeof v !== 'object') continue;
             if (k === 'layers' && isObj(v) && depth <= 1) {
