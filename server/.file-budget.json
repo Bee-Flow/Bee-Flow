@@ -1,6 +1,6 @@
 {
   "_comment": "Per-file line budget for server (scripts/file-budget.mjs, npm run lint:file-budget). A source file may have at most `limit` lines, a test file `testLimit`; a file listed under `files` was already over it and may not grow past its ceiling. Ceilings only come down: `node scripts/file-budget.mjs server --update` lowers them after a split. Touch a budgeted file, split it. Adding a file or raising a ceiling is a deliberate edit that belongs in a commit message with a reason. `data` lists generated files, fixtures, templates and dictionaries whose length is content, each with a reason; they are skipped.",
-  "_generated": "2026-10-24",
+  "_generated": "2026-10-25",
   "limit": 400,
   "testLimit": 1000,
   "data": [
@@ -230,7 +230,7 @@
     "integrations/nextcloudTablesTools.js": 669,
     "integrations/nextcloudTalkTools.js": 746,
     "integrations/nextcloudTasksTools.js": 486,
-    "integrations/nmbrsTools.js": 670,
+    "integrations/nmbrsTools.js": 666,
     "integrations/outlookTools.js": 605,
     "integrations/supportTools.js": 464,
     "integrations/transcriptionTools.js": 734,

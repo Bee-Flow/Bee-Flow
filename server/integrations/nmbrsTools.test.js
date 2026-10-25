@@ -169,27 +169,61 @@ function soapResponse(method, innerXml) {
 
     // ── SOAP mode: list employees ─────────────────────────────────────
     setCreds('soapU', { mode: 'soap', subdomain: 'acme', email: 'me@acme.nl', token: TOKEN, env: 'production' });
-    scriptFetch([{ text: soapResponse('Employee_GetByCompany', '<Employee><Id>1</Id><Name>Alice</Name></Employee><Employee><Id>2</Id><Name>Bob</Name></Employee>') }]);
+    scriptFetch([{ text: soapResponse('List_GetByCompany', '<Employee><Id>1</Id><Name>Alice</Name></Employee><Employee><Id>2</Id><Name>Bob</Name></Employee>') }]);
     {
         const r = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9' }, 'soapU');
         assert.strictEqual(fetchCalls.length, 1);
         assert.strictEqual(fetchCalls[0].url, 'https://api.nmbrs.nl/soap/v3/EmployeeService.asmx');
         assert.strictEqual(fetchCalls[0].opts.method, 'POST');
         assert.strictEqual(fetchCalls[0].opts.redirect, 'error');
-        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/EmployeeService/Employee_GetByCompany');
+        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/EmployeeService/List_GetByCompany');
         const body = fetchCalls[0].opts.body;
         assert.ok(body.includes('<tns:Username>me@acme.nl</tns:Username>') && body.includes('<tns:Domain>acme</tns:Domain>'));
-        assert.ok(body.includes('Employee_GetByCompany') && body.includes('<tns:CompanyId>9</tns:CompanyId>'));
+        assert.ok(body.includes('List_GetByCompany') && body.includes('<tns:CompanyId>9</tns:CompanyId>'));
+        // Active only: Nmbrs EmployeeType 2, payroll employees in service.
+        assert.ok(body.includes('<tns:EmployeeType>2</tns:EmployeeType>'));
         // Read-only: the envelope must contain no mutation verb.
         assert.ok(!/Insert|Update|Delete|Create|Set_|_Save/.test(body), 'SOAP body contains no mutation verb');
         assert.strictEqual(r.count, 2);
         assert.deepStrictEqual(r.items, [{ Id: '1', Name: 'Alice' }, { Id: '2', Name: 'Bob' }]);
     }
-    // activeOnly:false switches to Employee_GetAllByCompany.
-    scriptFetch([{ text: soapResponse('Employee_GetAllByCompany', '<Employee><Id>3</Id></Employee>') }]);
+    // activeOnly:false asks for payroll (2) and former payroll (4) employees, de-duplicated by Id.
+    scriptFetch([
+        { text: soapResponse('List_GetByCompany', '<Employee><Id>1</Id></Employee><Employee><Id>3</Id></Employee>') },
+        { text: soapResponse('List_GetByCompany', '<Employee><Id>3</Id></Employee><Employee><Id>4</Id></Employee>') },
+    ]);
     {
-        await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', activeOnly: false }, 'soapU');
-        assert.ok(fetchCalls[0].opts.headers.SOAPAction.endsWith('Employee_GetAllByCompany'));
+        const r = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', activeOnly: false }, 'soapU');
+        assert.strictEqual(fetchCalls.length, 2);
+        assert.ok(fetchCalls.every((c) => c.opts.headers.SOAPAction.endsWith('EmployeeService/List_GetByCompany')));
+        assert.ok(fetchCalls[0].opts.body.includes('<tns:EmployeeType>2</tns:EmployeeType>'));
+        assert.ok(fetchCalls[1].opts.body.includes('<tns:EmployeeType>4</tns:EmployeeType>'));
+        assert.deepStrictEqual(r.items.map((e) => e.Id), ['1', '3', '4']);
+    }
+
+    // ── SOAP mode: debtors and companies use the WSDL's List_* names ───
+    scriptFetch([{ text: soapResponse('List_GetAll', '<Debtor><Id>1</Id></Debtor>') }]);
+    {
+        await executeNmbrsTool('nmbrs_list_debtors', {}, 'soapU');
+        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/DebtorService/List_GetAll');
+    }
+    scriptFetch([{ text: soapResponse('List_GetAll', '<Company><Id>56665</Id></Company>') }]);
+    {
+        await executeNmbrsTool('nmbrs_list_companies', {}, 'soapU');
+        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/CompanyService/List_GetAll');
+    }
+    scriptFetch([{ text: soapResponse('List_GetByDebtor', '<Company><Id>56664</Id></Company>') }]);
+    {
+        await executeNmbrsTool('nmbrs_list_companies', { debtorId: '1' }, 'soapU');
+        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/CompanyService/List_GetByDebtor');
+        assert.ok(fetchCalls[0].opts.body.includes('<tns:DebtorId>1</tns:DebtorId>'));
+    }
+    // Payslips have no per-employee SOAP call: a clear error, and no request is sent.
+    scriptFetch([]);
+    {
+        const r = await executeNmbrsTool('nmbrs_list_payslips', { employeeId: '3', year: 2026 }, 'soapU');
+        assert.ok(String(r.error).includes('REST'));
+        assert.strictEqual(fetchCalls.length, 0);
     }
 
     // ── REST mode: same logical call, backend-agnostic result shape ───
