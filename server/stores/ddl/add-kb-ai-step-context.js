@@ -29,6 +29,7 @@
  *   node server/migrations/add-kb-ai-step-context.js
  */
 
+const log = require('../../telemetry/log');
 const { exec } = require('../../db');
 
 async function up() {
@@ -56,6 +57,6 @@ module.exports = { up };
 
 if (require.main === module) {
     up()
-        .then(() => { console.log('[Migration] ai_step usage-context backfill complete.'); process.exit(0); })
-        .catch((e) => { console.error('[Migration] failed:', e.message); process.exit(1); });
+        .then(() => { log.info('[Migration] ai_step usage-context backfill complete.'); process.exit(0); })
+        .catch((e) => { log.error('[Migration] failed:', e.message); process.exit(1); });
 }

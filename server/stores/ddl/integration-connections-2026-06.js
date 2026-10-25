@@ -17,6 +17,7 @@
  * later phases. Additive — no existing table changes, full back-compat.
  */
 
+const log = require('../../telemetry/log');
 const { exec } = require('../../db');
 
 async function up() {
@@ -74,7 +75,7 @@ async function up() {
     await exec(`CREATE INDEX IF NOT EXISTS idx_congrant_connection ON connection_grants(connection_id)`);
     await exec(`CREATE INDEX IF NOT EXISTS idx_congrant_org ON connection_grants(org_id)`);
 
-    console.log('[Migration] integration-connections-2026-06 applied');
+    log.info('[Migration] integration-connections-2026-06 applied');
 }
 
 module.exports = { up };

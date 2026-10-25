@@ -68,14 +68,14 @@ async function up() {
            AND usage_contexts = '["agent","direct_chat","webpage"]'::jsonb
     `);
 
-    console.log('[Migration] add-kb-usage-contexts applied');
+    log.info('[Migration] add-kb-usage-contexts applied');
 }
 
 module.exports = { up };
 
 if (require.main === module) {
     up().then(() => process.exit(0)).catch(err => {
-        console.error(err);
+        log.error(err);
         process.exit(1);
     });
 }

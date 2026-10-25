@@ -13,6 +13,7 @@
  * DROP IF EXISTS + re-ADD converges on the widened list on every run.
  */
 
+const log = require('../../telemetry/log');
 const { exec } = require('../../db');
 
 async function up() {
@@ -21,7 +22,7 @@ async function up() {
         ALTER TABLE integration_connections ADD CONSTRAINT integration_connections_kind_check
             CHECK (kind IN ('oauth','api_key','basic','mcp','bearer','oauth2_cc'))
     `);
-    console.log('[Migration] integration-connections-http-kinds-2026-07 applied');
+    log.info('[Migration] integration-connections-http-kinds-2026-07 applied');
 }
 
 module.exports = { up };

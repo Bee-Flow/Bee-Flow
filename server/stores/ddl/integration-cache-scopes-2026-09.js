@@ -24,6 +24,7 @@
  * that already carries `scopes`.
  */
 
+const log = require('../../telemetry/log');
 const { exec, getAll, run } = require('../../db');
 
 const CONFIG_KEY_PREFIX = 'org_integration_cache_';
@@ -63,7 +64,7 @@ async function up() {
             [row.key, JSON.stringify(blob)]);
         stamped++;
     }
-    if (stamped) console.log(`[Migration] integration-cache-scopes-2026-09: stamped ${stamped} opted-in org(s) with scopes`);
+    if (stamped) log.info(`[Migration] integration-cache-scopes-2026-09: stamped ${stamped} opted-in org(s) with scopes`);
 }
 
 module.exports = { up, CONFIG_KEY_PREFIX };

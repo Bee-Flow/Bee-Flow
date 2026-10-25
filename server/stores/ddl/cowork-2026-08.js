@@ -19,6 +19,7 @@
  * IF NOT EXISTS throughout so re-running is safe.
  */
 
+const log = require('../../telemetry/log');
 const { exec } = require('../../db');
 
 async function up() {
@@ -77,7 +78,7 @@ async function up() {
         -- "every existing schedule may only search the web".
         ALTER TABLE cowork_schedules ADD COLUMN IF NOT EXISTS enabled_apps TEXT;
     `);
-    console.log('[Migration] cowork-2026-08 applied');
+    log.info('[Migration] cowork-2026-08 applied');
 }
 
 module.exports = { up };

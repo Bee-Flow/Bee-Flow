@@ -21,6 +21,7 @@
  * Additive — no existing table changes, full back-compat.
  */
 
+const log = require('../../telemetry/log');
 const { exec } = require('../../db');
 
 async function up() {
@@ -67,7 +68,7 @@ async function up() {
         )
     `);
 
-    console.log('[Migration] org-custom-integrations-2026-06 applied');
+    log.info('[Migration] org-custom-integrations-2026-06 applied');
 }
 
 module.exports = { up };

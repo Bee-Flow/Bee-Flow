@@ -15,18 +15,19 @@
  * Manual usage: `node server/migrations/drop-kb-default-lang.js`
  */
 
+const log = require('../../telemetry/log');
 const { exec } = require('../../db');
 
 async function up() {
     await exec(`ALTER TABLE knowledge_bases DROP COLUMN IF EXISTS default_lang`);
-    console.log('[Migration] drop-kb-default-lang applied');
+    log.info('[Migration] drop-kb-default-lang applied');
 }
 
 module.exports = { up };
 
 if (require.main === module) {
     up().then(() => process.exit(0)).catch(err => {
-        console.error(err);
+        log.error(err);
         process.exit(1);
     });
 }

@@ -22,6 +22,7 @@
  * the collapse is a no-op once only one row per pair remains.
  */
 
+const log = require('../../telemetry/log');
 const { exec, getAll, run } = require('../../db');
 
 const OAUTH_PROVIDERS = ['google', 'microsoft', 'nextcloud'];
@@ -79,9 +80,9 @@ async function up() {
     }
 
     if (collapsed > 0) {
-        console.log(`[Migration] integration-connections-hardening-2026-07 collapsed ${collapsed} duplicate OAuth row(s), re-pointed ${regrafted} grant(s)`);
+        log.info(`[Migration] integration-connections-hardening-2026-07 collapsed ${collapsed} duplicate OAuth row(s), re-pointed ${regrafted} grant(s)`);
     }
-    console.log('[Migration] integration-connections-hardening-2026-07 applied');
+    log.info('[Migration] integration-connections-hardening-2026-07 applied');
 }
 
 module.exports = { up };

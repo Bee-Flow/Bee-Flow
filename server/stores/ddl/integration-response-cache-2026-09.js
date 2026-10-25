@@ -21,6 +21,7 @@
  * before a standalone `db:migrate` has run.
  */
 
+const log = require('../../telemetry/log');
 const { exec, run } = require('../../db');
 
 const TABLE = 'integration_response_cache';
@@ -57,7 +58,7 @@ async function up() {
     const { rowCount } = await run(
         `UPDATE ${TABLE} SET payload_bytes = length(payload) WHERE payload_bytes IS NULL`,
     );
-    if (rowCount) console.log(`[Migration] integration-response-cache-2026-09: sized ${rowCount} existing row(s)`);
+    if (rowCount) log.info(`[Migration] integration-response-cache-2026-09: sized ${rowCount} existing row(s)`);
 }
 
 module.exports = { up, TABLE };
