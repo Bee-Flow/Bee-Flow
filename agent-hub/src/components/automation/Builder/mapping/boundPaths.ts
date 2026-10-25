@@ -14,7 +14,7 @@
  */
 import { scanTemplate } from '@shared/expr/path.mjs';
 import { classifyRef, scanExprPaths } from './refTokens';
-import { canonicalRefPath, detectTemplate, isCleanPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath, detectTemplate, isCleanPath } from '../../../../utils/bindingHelpers.helpers';
 import type { Binding } from './itemRefs';
 
 const USE_ROOTS = ['steps', 'trigger', 'loop'];

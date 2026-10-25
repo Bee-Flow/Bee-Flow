@@ -27,7 +27,8 @@
 import { compile, parseExpr } from '@shared/expr/engine.mjs';
 import { parseJsonText, scanTemplate } from '@shared/expr/path.mjs';
 import { classifyRef, fieldTailLabel, resolveChipLabel } from './refTokens';
-import { bindingFromInput, canonicalRefPath, INLINE_STEP_PATH_RE, refPathTokens } from '../../../../utils/bindingHelpers';
+import { INLINE_STEP_PATH_RE } from '../../../../utils/bindingHelpers';
+import { bindingFromInput, canonicalRefPath, refPathTokens } from '../../../../utils/bindingHelpers.helpers';
 
 export interface ValueTransform {
     id: string;

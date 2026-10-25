@@ -1,4 +1,5 @@
-import { canonicalRefPath, previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import { previewValue, walkPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 import { type TranslateParams } from '../../../../hooks/useTranslation';
 import { fieldValueLabel } from './VariableTree';
 import type { GroupField, UpstreamGroup } from './deepFields';

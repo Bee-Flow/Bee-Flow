@@ -74,7 +74,7 @@
     "src/components/automation/Builder/flow/SettingsForm.tsx": 569,
     "src/components/automation/Builder/flow/stepPalette.ts": 903,
     "src/components/automation/Builder/flow/useBuildChoreography.ts": 527,
-    "src/components/automation/Builder/mapping/BindingField.tsx": 576,
+    "src/components/automation/Builder/mapping/BindingField.tsx": 566,
     "src/components/automation/Builder/NodeDetailView.tsx": 408,
     "src/components/chat/InputArea/index.tsx": 601,
     "src/components/chat/WorkspaceNotebook.tsx": 486,
@@ -106,7 +106,6 @@
     "src/pages/settings/LearningCenterSection.tsx": 464,
     "src/pages/settings/usage/OverviewTab.tsx": 536,
     "src/utils/bfElementsRuntime.ts": 798,
-    "src/utils/bindingHelpers.ts": 653,
     "src/utils/helpers.ts": 458,
     "src/utils/integrationLogos.tsx": 599
   }

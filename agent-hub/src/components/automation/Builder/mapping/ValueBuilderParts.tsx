@@ -5,7 +5,7 @@ import { pillTint, PILL_TINT_CLASS } from './refEditorDom.helpers';
 import { classifyRef, scanExprPaths } from './refTokens';
 import { describeDataPath } from './valueParts';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { canonicalRefPath, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers.helpers';
 import { denseInputClass, FOCUS_RING } from '../flow/settings/formStyles';
 import type { LabelLookup } from './refTokens';
 import type { ValuePart } from './valueParts';

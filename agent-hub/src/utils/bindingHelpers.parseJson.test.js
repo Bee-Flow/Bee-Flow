@@ -6,7 +6,8 @@
  * never drift from what the runtime extracts.
  */
 import { describe, it, expect } from 'vitest';
-import { walkPath, walkRelativePath } from './bindingHelpers';
+import { walkPath } from './bindingHelpers';
+import { walkRelativePath } from './bindingHelpers.helpers';
 
 describe('walkRelativePath — server parity', () => {
     it('empty path, "$", and nullish path return the whole source', () => {

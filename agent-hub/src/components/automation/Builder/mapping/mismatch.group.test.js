@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { detectMismatch, mismatchSentence, remediesFor } from './mismatch';
-import { walkPath, walkRelativePath } from '../../../../utils/bindingHelpers';
+import { walkPath } from '../../../../utils/bindingHelpers';
+import { walkRelativePath } from '../../../../utils/bindingHelpers.helpers';
 
 /**
  * The GROUP and TABLE branches of the one remedy source (artboard 2a/2c).

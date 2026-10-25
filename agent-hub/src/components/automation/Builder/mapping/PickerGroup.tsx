@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useState } from 'react';
-import { canonicalRefPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { listBadgeClass } from '../flow/settings/formStyles';
 import { startPathDrag } from './bindingDnd';
