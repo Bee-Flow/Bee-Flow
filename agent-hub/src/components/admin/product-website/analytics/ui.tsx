@@ -15,7 +15,8 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import React, { type CSSProperties, type ReactNode } from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { TrendChip } from '../../../../pages/settings/usage/kit';
-import { Card as BaseCard, Empty, SortableTable, fmt } from '../../monitoring/shared';
+import { Card as BaseCard, SortableTable } from '../../monitoring/shared';
+import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
 import type { AsyncCardProps, BarListProps, BreakdownRow, BreakdownTableProps, CardProps, CompareKind, CompareResult, ErrorNoteProps, RenderStatTileArgs, ShareBarProps, SkeletonProps, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';
 
 export const ACCENT = '#14b8a6';                                  // teal

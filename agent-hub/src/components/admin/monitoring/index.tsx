@@ -4,7 +4,8 @@ import {
     Activity, BarChart3, RefreshCw, 
     ChevronRight, ThumbsUp, Clock, Calendar, AlertTriangle
 } from 'lucide-react';
-import { COLORS, rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
+import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
+import { COLORS } from './shared/SvgAreaChart';
 import { OverviewPage, type UsageDeltas } from './OverviewPage';
 import { UsageExplorerPage } from './UsageExplorerPage';
 import { FeedbackPage } from './FeedbackPage';

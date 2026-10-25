@@ -2,11 +2,10 @@ import { useMemo } from 'react';
 import {
     Zap, BarChart3, Clock, DollarSign, Cpu, Bot, Wrench, TrendingUp, Database, Brain
 } from 'lucide-react';
-import {
-    fmt, fmtCost, fmtDuration, COLORS, MODEL_COLORS,
-    MetricCard, Card, Empty, SvgAreaChart, DonutChart, ModelRow, AgentRow, shortModel,
-    type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary,
-} from './shared';
+import { fmtDuration, MetricCard, Card, AgentRow, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary } from './shared';
+import { DonutChart } from './shared/DonutChart';
+import { fmtCost, MODEL_COLORS, ModelRow, shortModel } from './shared/ModelRow';
+import { fmt, COLORS, Empty, SvgAreaChart } from './shared/SvgAreaChart';
 import type { ModelRate } from './drawer/drawerTypes';
 import { useTranslation } from '../../../hooks/useTranslation';
 

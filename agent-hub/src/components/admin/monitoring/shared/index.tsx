@@ -4,29 +4,19 @@ import {
     Users, Bot, Cpu, Activity,
     type LucideIcon,
 } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { UsageRow, ModelRate } from './drawer/drawerTypes';
-import type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, CardProps, EmptyProps, MetricCardProps, InOutBarProps, InOutLabelProps, SvgAreaChartProps, DonutItem, DonutChartProps, FilterOption, FilterSelectProps, FilterState, FilterBarProps, SortableColumn, SortableTableProps, ModelRowProps, SkeletonProps, SkeletonGridProps } from './shared.types';
-export type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, FilterOption, FilterState, SortableColumn } from './shared.types';
+import { useTranslation } from '../../../../hooks/useTranslation';
+import type { UsageRow, ModelRate } from '../drawer/drawerTypes';
+import type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, CardProps, MetricCardProps, InOutLabelProps, DonutItem, FilterOption, FilterSelectProps, FilterState, FilterBarProps, SortableColumn, SortableTableProps, SkeletonProps, SkeletonGridProps } from '../shared.types';
+import { fmt, COLORS, Empty } from './SvgAreaChart';
+import { fmtCost } from './ModelRow';
+export { DonutChart } from './DonutChart';
+export { fmtCost, shortModel, MODEL_COLORS, InOutBar, ModelRow } from './ModelRow';
+export { fmt, COLORS, Empty, SvgAreaChart } from './SvgAreaChart';
+export type { UsageRecord, ModelUsage, AgentUsage, UserUsage, ToolUsage, UsageSummary, ChartPoint, FilterOption, FilterState, SortableColumn } from '../shared.types';
 
 // ── Row shapes ──────────────────────────────────────────────────────────────
 
 // ── Formatters ──────────────────────────────────────────────────────────────
-
-export function fmt(n: number | null | undefined) {
-    if (n == null) return '0';
-    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
-    return String(Math.round(n));
-}
-
-export function fmtCost(n: number | null | undefined) {
-    if (!n || n === 0) return '$0.00';
-    if (n >= 1) return '$' + n.toFixed(2);
-    if (n >= 0.01) return '$' + n.toFixed(3);
-    if (n >= 0.001) return '$' + n.toFixed(4);
-    return '$' + n.toFixed(6);
-}
 
 // Cache-aware provider cost (USD) for a usage row, given its rate entry `c`
 // ({ input, output, cacheRead } per 1M tokens from the model-costs map).
@@ -70,27 +60,7 @@ export function fmtPct(n: number) {
     return `${sign}${n.toFixed(1)}%`;
 }
 
-export function shortModel(m: string | null | undefined) {
-    if (!m) return 'Unknown';
-    return m.replace(/^(openai\/|anthropic\/|google\/|azure\/|mistral\/)/, '')
-        .replace(/-\d{4}-\d{2}-\d{2}$/, '');
-}
-
 // ── Colors ──────────────────────────────────────────────────────────────────
-
-export const COLORS = {
-    primary: '#6366f1',
-    purple: '#8b5cf6',
-    blue: '#3b82f6',
-    green: '#10b981',
-    emerald: '#059669',
-    amber: '#f59e0b',
-    orange: '#f97316',
-    rose: '#f43f5e',
-    pink: '#ec4899',
-    cyan: '#06b6d4',
-    teal: '#14b8a6',
-};
 
 export const AGENT_COLORS: Readonly<Record<string, { bg: string; text: string; label: string }>> = {
     chat: { bg: '#6366f115', text: '#818cf8', label: '💬 Chat' },
@@ -100,11 +70,6 @@ export const AGENT_COLORS: Readonly<Record<string, { bg: string; text: string; l
 export function getAgentStyle(type: string | undefined) {
     return AGENT_COLORS[String(type)] || AGENT_COLORS.chat;
 }
-
-export const MODEL_COLORS = [
-    '#6366f1', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981',
-    '#f59e0b', '#f97316', '#ec4899', '#f43f5e', '#14b8a6',
-];
 
 export const SOURCE_MAP: Readonly<Record<string, { label: string; icon: LucideIcon; color: string }>> = {
     agent: { label: 'Agent Chat', icon: Bot, color: '#6366f1' },
@@ -138,14 +103,6 @@ export function Card({ title, icon: Icon, children, style: extraStyle, action }:
                 </div>
             )}
             {children}
-        </div>
-    );
-}
-
-export function Empty({ text }: EmptyProps) {
-    return (
-        <div className="[padding:2.5rem_1rem] [text-align:center] [color:var(--text-muted,#666)] [font-size:13px] [border-radius:10px] [background:var(--bg-tertiary,rgba(255,255,255,0.02))]">
-            {text}
         </div>
     );
 }
@@ -188,18 +145,6 @@ export function MetricCard({ icon: Icon, label, value, color, subtitle, delta, d
 
 // ── InOut Bar (stacked input/output bar) ────────────────────────────────────
 
-export function InOutBar({ input, output, height = 5, style }: InOutBarProps) {
-    const total = (input || 0) + (output || 0);
-    if (total === 0) return <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary, rgba(255,255,255,0.06))', ...style }} />;
-    const inputPct = ((input || 0) / total) * 100;
-    return (
-        <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary, rgba(255,255,255,0.06))', overflow: 'hidden', display: 'flex', ...style }}>
-            <div style={{ height: '100%', width: `${inputPct}%`, background: COLORS.blue, borderRadius: '99px 0 0 99px', transition: 'width 0.4s ease' }} />
-            <div style={{ height: '100%', flex: 1, background: COLORS.amber, borderRadius: '0 99px 99px 0', transition: 'width 0.4s ease' }} />
-        </div>
-    );
-}
-
 export function InOutLabel({ input, output, inputCost, outputCost, showCost }: InOutLabelProps) {
     return (
         <div style={{ display: 'flex', gap: showCost ? 14 : 10, fontSize: '11px', color: 'var(--text-muted, #888)' }}>
@@ -219,131 +164,7 @@ export function InOutLabel({ input, output, inputCost, outputCost, showCost }: I
 
 // ── SVG Area Chart ──────────────────────────────────────────────────────────
 
-export function SvgAreaChart({ data, yKey = 'total_tokens', label = 'value', color = COLORS.primary, height = 140, formatY = fmt, formatLabel }: SvgAreaChartProps) {
-    const [hover, setHover] = useState<number | null>(null);
-    if (!data || data.length === 0) return <Empty text="No data to display" />;
-    const maxY = Math.max(...data.map(d => d[yKey] || 0), 1);
-    const points = data.map((d, i) => {
-        const x = (i / Math.max(data.length - 1, 1)) * 100;
-        const y = 100 - ((d[yKey] || 0) / maxY) * 90; // 90% max to leave top padding
-        return { x, y, d };
-    });
-    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-    const areaPath = `${linePath} L100,100 L0,100 Z`;
-    return (
-        <div style={{ position: 'relative', height }}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-[100%] h-[100%] [overflow:visible]">
-                <defs>
-                    <linearGradient id={`grad-${yKey}-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-                        <stop offset="100%" stopColor={color} stopOpacity="0.02" />
-                    </linearGradient>
-                </defs>
-                <path d={areaPath} fill={`url(#grad-${yKey}-${color.replace('#', '')})`} />
-                <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                {/* Hover zones */}
-                {points.map((p, i) => (
-                    <rect
-                        key={i}
-                        x={i === 0 ? 0 : (points[i - 1].x + p.x) / 2}
-                        y="0"
-                        width={i === 0 ? (points[1]?.x || 100) / 2 : i === points.length - 1 ? 100 - (points[i - 1].x + p.x) / 2 : (points[i + 1].x - points[i - 1].x) / 2}
-                        height="100"
-                        fill="transparent"
-                        onMouseEnter={() => setHover(i)}
-                        onMouseLeave={() => setHover(null)}
-                        className="[cursor:crosshair]"
-                    />
-                ))}
-                {/* Hover dot */}
-                {hover != null && points[hover] && (
-                    <circle cx={points[hover].x} cy={points[hover].y} r="3" fill={color} stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-                )}
-            </svg>
-            {/* Hover tooltip */}
-            {hover != null && points[hover] && (
-                <div style={{
-                    position: 'absolute',
-                    left: `${points[hover].x}%`, top: '-6px',
-                    transform: 'translateX(-50%)',
-                    padding: '4px 10px', borderRadius: '8px',
-                    background: 'var(--bg-primary, #0f0f1a)',
-                    border: '1px solid var(--border-default, rgba(255,255,255,0.12))',
-                    fontSize: '11px', fontWeight: 600, color: 'var(--text-primary, #fff)',
-                    whiteSpace: 'nowrap', pointerEvents: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                    zIndex: 10,
-                }}>
-                    <div style={{ color }}>{formatY(points[hover].d[yKey] || 0)}</div>
-                    <div className="[font-size:10px] [color:var(--text-muted,#888)] [margin-top:1px]">
-                        {formatLabel ? formatLabel(points[hover].d) : points[hover].d.period || ''}
-                    </div>
-                </div>
-            )}
-            {/* X-axis labels */}
-            <div className="[display:flex] [justify-content:space-between] [margin-top:6px]">
-                <span className="[font-size:10px] [color:var(--text-muted,#666)]">{data[0]?.period?.slice(5) || ''}</span>
-                <span className="[font-size:10px] [color:var(--text-muted,#666)]">{data[data.length - 1]?.period?.slice(5) || ''}</span>
-            </div>
-        </div>
-    );
-}
-
 // ── SVG Donut Chart ─────────────────────────────────────────────────────────
-
-export function DonutChart({ items, size = 160, centerLabel, centerValue }: DonutChartProps) {
-    const total = items.reduce((s, i) => s + (i.value || 0), 0) || 1;
-    const starts: number[] = [];
-    items.reduce((acc, i) => { starts.push(acc); return acc + (i.value || 0) / total; }, 0);
-    const arcs = items.map((item, idx) => {
-        const pct = (item.value || 0) / total;
-        const startAngle = starts[idx] * 360;
-        const endAngle = (starts[idx] + pct) * 360;
-        const large = pct > 0.5 ? 1 : 0;
-        const r = 40;
-        const cx = 50, cy = 50;
-        const toRad = (deg: number) => (deg - 90) * (Math.PI / 180);
-        const x1 = cx + r * Math.cos(toRad(startAngle));
-        const y1 = cy + r * Math.sin(toRad(startAngle));
-        const x2 = cx + r * Math.cos(toRad(endAngle - 0.1));
-        const y2 = cy + r * Math.sin(toRad(endAngle - 0.1));
-        const path = `M${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2}`;
-        return { ...item, path, pct, color: item.color || MODEL_COLORS[idx % MODEL_COLORS.length] };
-    });
-    return (
-        <div className="[display:flex] [align-items:center] [gap:20px]">
-            <svg width={size} height={size} viewBox="0 0 100 100">
-                {arcs.map((arc, i) => (
-                    <path key={i} d={arc.path} fill="none" stroke={arc.color} strokeWidth="14" strokeLinecap="round"
-                        className="[transition:stroke-dashoffset_0.4s_ease]" />
-                ))}
-                {centerLabel && (
-                    <>
-                        <text x="50" y="46" textAnchor="middle" fill="var(--text-muted, #888)" fontSize="6" fontWeight="600" className="[text-transform:uppercase] [letter-spacing:0.05em]">
-                            {centerLabel}
-                        </text>
-                        <text x="50" y="58" textAnchor="middle" fill="var(--text-primary, #fff)" fontSize="12" fontWeight="800">
-                            {centerValue}
-                        </text>
-                    </>
-                )}
-            </svg>
-            <div className="[display:flex] [flex-direction:column] [gap:6px] min-w-[0]">
-                {arcs.map((arc, i) => (
-                    <div key={i} className="[display:flex] [align-items:center] [gap:6px] [font-size:11px]">
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: arc.color, flexShrink: 0 }} />
-                        <span className="[color:var(--text-secondary,#aaa)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] max-w-[110px]">
-                            {arc.label}
-                        </span>
-                        <span className="[color:var(--text-muted,#888)] [font-weight:600] [margin-left:auto]">
-                            {(arc.pct * 100).toFixed(0)}%
-                        </span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 // ── Filter Bar ──────────────────────────────────────────────────────────────
 
@@ -488,38 +309,6 @@ export function SortableTable<Row extends object>({ columns, data, onRowClick, e
 }
 
 // ── Model / Agent Rows (lightweight) ────────────────────────────────────────
-
-export function ModelRow({ model: m, index, maxTokens, cost }: ModelRowProps) {
-    const { t } = useTranslation();
-    const cached = m.cached_tokens || 0;
-    const reasoning = m.reasoning_tokens || 0;
-    return (
-        <div className="[display:flex] [align-items:center] [gap:10px] [padding:10px_0] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))]">
-            <div style={{
-                width: '6px', height: '6px', borderRadius: '50%',
-                background: MODEL_COLORS[index % MODEL_COLORS.length], flexShrink: 0,
-            }} />
-            <div className="[flex:1] min-w-[0]">
-                <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
-                    {shortModel(m.model || 'unknown')}
-                </div>
-                <InOutBar input={m.prompt_tokens} output={m.completion_tokens} height={3} style={{ marginTop: '4px', maxWidth: '120px' }} />
-                {(cached > 0 || reasoning > 0) && (
-                    <div className="[font-size:10px] [color:var(--text-muted,#888)] [margin-top:2px] [display:flex] [gap:8px]">
-                        {cached > 0 && <span title={t('admin_monitoring.shared_cached_title', 'Cached input tokens')}>💾 {fmt(cached)}</span>}
-                        {reasoning > 0 && <span title={t('admin_monitoring.shared_reasoning_title', 'Reasoning / thinking tokens (billed at output rate)')}>🧠 {fmt(reasoning)}</span>}
-                    </div>
-                )}
-            </div>
-            <div className="[text-align:right] [flex-shrink:0]">
-                <div style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>{fmt(m.total_tokens)}</div>
-                <div className="[font-size:10px] [color:var(--text-muted,#888)]">
-                    {t('admin_monitoring.shared_n_calls', '{n} calls', { n: m.calls })}{cost ? ` · ${fmtCost(cost)}` : ''}
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export function AgentRow({ agent: a, index, detailed }: { agent: UsageRecord; index: number; detailed?: boolean }) {
     const { t } = useTranslation();
