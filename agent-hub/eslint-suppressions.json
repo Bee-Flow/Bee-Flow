@@ -132,14 +132,6 @@
       "count": 1
     }
   },
-  "src/api/modelMeta.ts": {
-    "complexity": {
-      "count": 2
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
   "src/api/queries/automation/versions.ts": {
     "complexity": {
       "count": 1
@@ -501,11 +493,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/editor/resize.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/editor/shell/useCanvasDrag.ts": {
     "max-lines-per-function": {
       "count": 1
@@ -664,11 +651,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/actionKindCatalog.ts": {
-    "complexity": {
       "count": 1
     }
   },
@@ -891,9 +873,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/rbac/useAppRoles.ts": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -923,9 +902,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/BrowserRunContext.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "react-hooks/exhaustive-deps": {
       "count": 1
     },
@@ -934,16 +910,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/RuntimeContext.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/runtime/actionRunner/automationBridge.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/runtime/actionRunner/bareAction.ts": {
     "complexity": {
       "count": 1
     }
@@ -1272,9 +1238,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/CadThumb.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -2552,11 +2515,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Solutions/pipeline/settings/DangerZone.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/Solutions/pipeline/settings/GateSection.tsx": {
     "complexity": {
       "count": 1
@@ -2589,11 +2547,6 @@
   "src/components/admin/Studio/Solutions/pipeline/settings/seatShapes.ts": {
     "complexity": {
       "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/pipeline/settings/stageSettingsModel.ts": {
-    "complexity": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/Solutions/relatedParts.ts": {
@@ -2690,9 +2643,6 @@
     }
   },
   "src/components/admin/Studio/studioAi/DescribeItPanel.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -2757,22 +2707,13 @@
     }
   },
   "src/components/admin/ai-config/RerankerConfig.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
   },
   "src/components/admin/ai-config/WebSearchInferenceConfig.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 2
-    },
-    "max-statements": {
-      "count": 1
     }
   },
   "src/components/admin/ai-config/chatModelTiers/ChatTiersSection.tsx": {
@@ -2825,9 +2766,6 @@
     }
   },
   "src/components/admin/compliance/data/registers.ts": {
-    "complexity": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     },
@@ -2846,9 +2784,6 @@
     }
   },
   "src/components/admin/compliance/index.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-statements": {
       "count": 1
     }
@@ -3012,7 +2947,7 @@
   },
   "src/components/admin/compliance/pages/SoaPage.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -3119,7 +3054,7 @@
   },
   "src/components/admin/compliance/pages/dsr/DsrDrawer.tsx": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -3131,11 +3066,6 @@
   "src/components/admin/compliance/pages/dsr/DsrTable.tsx": {
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "src/components/admin/compliance/pages/dsr/dsrArticles.ts": {
-    "complexity": {
-      "count": 2
     }
   },
   "src/components/admin/compliance/pages/framework/CheckExpansion.tsx": {
@@ -3163,9 +3093,6 @@
     }
   },
   "src/components/admin/compliance/pages/framework/EvidenceTab.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -3265,11 +3192,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/compliance/pages/settings/settingsFields.ts": {
-    "complexity": {
       "count": 1
     }
   },
@@ -5095,7 +5017,7 @@
   },
   "src/components/automation/Builder/chat/BuilderActivity.tsx": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/chat/MessageBubble.tsx": {
@@ -5108,22 +5030,12 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/chat/PlanReview.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/chat/RunProgressBanner.tsx": {
     "react-hooks/purity": {
       "count": 1
     }
   },
   "src/components/automation/Builder/chat/WorkModePicker.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/chat/proposalChanges.ts": {
     "complexity": {
       "count": 1
     }
@@ -5207,11 +5119,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/DiagramReactFlow.tsx": {
-    "complexity": {
       "count": 1
     }
   },
@@ -5312,14 +5219,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/flow/edgeHops.ts": {
-    "complexity": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/flow/edges.tsx": {
     "complexity": {
       "count": 1
@@ -5336,16 +5235,6 @@
       "count": 2
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/flowletScope.helpers.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/flowletScope.ts": {
-    "complexity": {
       "count": 1
     }
   },
@@ -5392,11 +5281,6 @@
     },
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/nodeSummaries.ts": {
-    "complexity": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/flow/nodeTypeColors.ts": {
@@ -5482,11 +5366,6 @@
     }
   },
   "src/components/automation/Builder/flow/privacyModel.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/renameFormField.ts": {
     "complexity": {
       "count": 1
     }
@@ -5656,13 +5535,13 @@
   },
   "src/components/automation/Builder/flow/settings/actionEditors/curlImport.ts": {
     "complexity": {
-      "count": 3
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/flow/settings/actionEditors/dataExtractionFields.tsx": {
@@ -5697,9 +5576,6 @@
     }
   },
   "src/components/automation/Builder/flow/settings/actionEditors/httpRequestFields.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -5831,7 +5707,7 @@
   },
   "src/components/automation/Builder/flow/settings/formState/extract/documents.ts": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/flow/settings/formState/extract/trigger.ts": {
@@ -5855,11 +5731,6 @@
   "src/components/automation/Builder/flow/settings/formState/patch/documents.ts": {
     "complexity": {
       "count": 3
-    }
-  },
-  "src/components/automation/Builder/flow/settings/formState/patch/trigger.ts": {
-    "complexity": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/flow/settings/privacyEditors.tsx": {
@@ -5927,11 +5798,6 @@
   },
   "src/components/automation/Builder/flow/settings/useRouteEdits.ts": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/stepDrag.ts": {
-    "complexity": {
       "count": 1
     }
   },
@@ -6246,9 +6112,6 @@
     }
   },
   "src/components/automation/Builder/mapping/VariablePicker.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -6294,11 +6157,6 @@
     }
   },
   "src/components/automation/Builder/mapping/listShape.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/mapping/loopLists.ts": {
     "complexity": {
       "count": 1
     }
@@ -7616,11 +7474,6 @@
       "count": 1
     }
   },
-  "src/components/onboarding/actionChecks.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/onboarding/courses.ts": {
     "complexity": {
       "count": 1
@@ -7752,9 +7605,6 @@
     }
   },
   "src/components/projects/workspace/ProjectLiveContext.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -7768,11 +7618,6 @@
     },
     "react-hooks/refs": {
       "count": 3
-    }
-  },
-  "src/components/projects/workspace/chat/AnswerTrace.tsx": {
-    "complexity": {
-      "count": 1
     }
   },
   "src/components/projects/workspace/chat/ChatComposer.tsx": {
@@ -7819,16 +7664,6 @@
       "count": 1
     }
   },
-  "src/components/projects/workspace/content/NotebooksTab.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/projects/workspace/projectErrorText.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/projects/workspace/tasks/BoardCard.tsx": {
     "react-hooks/refs": {
       "count": 8
@@ -7839,11 +7674,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/projects/workspace/tasks/PokerSession.tsx": {
-    "complexity": {
       "count": 1
     }
   },
@@ -8041,11 +7871,6 @@
       "count": 1
     }
   },
-  "src/components/shared/Pager.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/shared/SideDrawer.tsx": {
     "complexity": {
       "count": 1
@@ -8086,19 +7911,6 @@
     }
   },
   "src/components/shared/deadlineMath.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/shared/ribbon/CmdButton.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 1
-    }
-  },
-  "src/components/shared/ribbon/RibbonDropdown.tsx": {
     "complexity": {
       "count": 1
     }
@@ -8299,11 +8111,6 @@
       "count": 1
     }
   },
-  "src/components/webpages/WebpageDiffCard.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/webpages/WebpagePickerPopover.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -8328,9 +8135,6 @@
     }
   },
   "src/demo/fixtures/appStudio.ts": {
-    "complexity": {
-      "count": 3
-    },
     "max-lines": {
       "count": 1
     },

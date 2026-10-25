@@ -89,36 +89,28 @@ function encryptionText(t: TranslateFn, code: string | null): string | null {
     }
 }
 
+const FIXED_ERRORS = new Map<string, (t: TranslateFn) => string>([
+    ['invalid_date_range', (t) => t('project_tasks.invalid_date_range', 'The start date must be on or before the due date.')],
+    ['owner_changed', (t) => t('project_home.transfer.owner_changed', 'The owner changed in the meantime. Reload the page and try again.')],
+    ['project_archived', (t) => t('project_home.archived.refused', 'This project is archived and read-only. The owner can restore it.')],
+    ['transfer_first', (t) => t('project_home.transfer.transfer_first', 'Transfer the project to someone else first.')],
+    ['not_a_member', (t) => t('project_home.transfer.not_a_member', 'Only a member of this project can become its owner.')],
+    ['KIND_NOT_ALLOWED', (t) => t('project_home.errors.kind_not_allowed', 'This cannot be added here. Documents and meeting notes belong in a project; automations, apps and tables belong in a Studio Solution.')],
+    ['SOLUTION_HOLDS_NO_CHATS', (t) => t('project_home.errors.solution_holds_no_chats', 'This is a Studio Solution, and a Solution holds no chats. Start the chat in a project instead.')],
+    ['SOLUTION_HOLDS_NO_FILES', (t) => t('project_home.errors.solution_holds_no_files', 'A Studio Solution has no project files. Link a knowledge base to it in Studio instead.')],
+    ['PROJECT_KEY_UNAVAILABLE', (t) => t('project_home.errors.project_key_unavailable', 'The project’s encryption key is not available right now, so nothing was changed. Try again in a moment.')],
+    ['document_read_only', (t) => t('project_home.errors.document_read_only', 'You can read this document, but only the project’s editors can change it.')],
+    ['document_owner_only', (t) => t('project_home.errors.document_owner_only', 'Only the owner of this document can do that. The project owner can remove it from the project.')],
+]);
+
 export function projectErrorText(t: TranslateFn, source: unknown, fallback?: string): string {
     const { code, details, message } = projectErrorInfo(source);
     const known = chatOrContentText(t, code) || encryptionText(t, code);
     if (known) return known;
-    switch (code) {
-        case 'invalid_date_range': return t('project_tasks.invalid_date_range', 'The start date must be on or before the due date.');
-        case 'SHARED_CHATS_REMAIN': return sharedChatsRemain(t, details);
-        case 'owner_changed':
-            return t('project_home.transfer.owner_changed', 'The owner changed in the meantime. Reload the page and try again.');
-        case 'project_archived':
-            return t('project_home.archived.refused', 'This project is archived and read-only. The owner can restore it.');
-        case 'transfer_first':
-            return t('project_home.transfer.transfer_first', 'Transfer the project to someone else first.');
-        case 'not_a_member':
-            return t('project_home.transfer.not_a_member', 'Only a member of this project can become its owner.');
-        case 'KIND_ALREADY_SET': return kindAlreadySet(t, details);
-        case 'KIND_HOLDS_OTHER_CONTENT': return kindHoldsOtherContent(t, details);
-        case 'KIND_NOT_ALLOWED':
-            return t('project_home.errors.kind_not_allowed', 'This cannot be added here. Documents and meeting notes belong in a project; automations, apps and tables belong in a Studio Solution.');
-        case 'SOLUTION_HOLDS_NO_CHATS':
-            return t('project_home.errors.solution_holds_no_chats', 'This is a Studio Solution, and a Solution holds no chats. Start the chat in a project instead.');
-        case 'SOLUTION_HOLDS_NO_FILES':
-            return t('project_home.errors.solution_holds_no_files', 'A Studio Solution has no project files. Link a knowledge base to it in Studio instead.');
-        case 'PROJECT_KEY_UNAVAILABLE':
-            return t('project_home.errors.project_key_unavailable', 'The project’s encryption key is not available right now, so nothing was changed. Try again in a moment.');
-        case 'document_read_only':
-            return t('project_home.errors.document_read_only', 'You can read this document, but only the project’s editors can change it.');
-        case 'document_owner_only':
-            return t('project_home.errors.document_owner_only', 'Only the owner of this document can do that. The project owner can remove it from the project.');
-        default:
-            return message || fallback || t('project_home.errors.generic', 'That did not work. Try again.');
-    }
+    const fixed = code ? FIXED_ERRORS.get(code) : undefined;
+    if (fixed) return fixed(t);
+    if (code === 'SHARED_CHATS_REMAIN') return sharedChatsRemain(t, details);
+    if (code === 'KIND_ALREADY_SET') return kindAlreadySet(t, details);
+    if (code === 'KIND_HOLDS_OTHER_CONTENT') return kindHoldsOtherContent(t, details);
+    return message || fallback || t('project_home.errors.generic', 'That did not work. Try again.');
 }

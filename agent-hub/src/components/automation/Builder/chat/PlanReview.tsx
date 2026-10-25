@@ -41,6 +41,50 @@ interface Props {
     onReject?: (() => void) | null;
 }
 
+function namedTables(list: PlanTable[] | null | undefined): PlanTable[] {
+    return Array.isArray(list) ? list.filter((d: PlanTable) => d?.name) : [];
+}
+
+function PlanTables({ newTables, usedTables }: { newTables: PlanTable[]; usedTables: PlanTable[] }) {
+    const { t } = useTranslation();
+    if (newTables.length === 0 && usedTables.length === 0) return null;
+    return <section className="space-y-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 sm:px-5" data-testid="plan-tables">
+                    {newTables.length > 0 && <div className="space-y-2">
+                        <h3 className="flex items-center gap-2 text-sm font-semibold"><Table2 size={16} className="text-[var(--type-ai)]" />{t('automations.assistant.plan_tables', 'Tables to create')}</h3>
+                        {newTables.map((table: PlanTable, i: number) => <div key={`${table.name}-${i}`} data-testid="plan-new-table">
+                            <p className="text-sm font-medium">{table.name}</p>
+                            {Array.isArray(table.fields) && table.fields.length > 0 && <ul className="mt-1 flex flex-wrap gap-1">{table.fields.map((f: PlanField, j: number) => <li key={`${f.name}-${j}`} title={Array.isArray(f.options) && f.options.length ? f.options.join(', ') : undefined} className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[11px]">{f.name} · {f.type}</li>)}</ul>}
+                        </div>)}
+                    </div>}
+                    {usedTables.length > 0 && <div className="space-y-1">
+                        <h3 className="flex items-center gap-2 text-sm font-semibold"><Table2 size={16} className="text-[var(--text-tertiary)]" />{t('automations.assistant.plan_existing_tables', 'Existing tables used')}</h3>
+                        <ul className="space-y-0.5">{usedTables.map((table: PlanTable) => <li key={table.id || table.key || table.name} className="text-sm" data-testid="plan-used-table">{table.name}</li>)}</ul>
+                    </div>}
+                </section>;
+}
+
+interface PlanFooterProps {
+    waiting: string;
+    running: boolean;
+    paused: boolean;
+    pauseAfterStep: boolean;
+    onPauseChange: (value: boolean) => void;
+    onApprove: (pauseAfterStep: boolean) => void;
+    onReject: (() => void) | null;
+}
+
+function PlanFooter({ waiting, running, paused, pauseAfterStep, onPauseChange, onApprove, onReject }: PlanFooterProps) {
+    const { t } = useTranslation();
+    return <div className="shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3 sm:px-6 sm:py-4">
+            <div className="mx-auto flex max-w-[820px] flex-wrap items-center gap-x-5 gap-y-3">
+                <div className="min-w-0 flex-1 basis-60"><p className="text-xs leading-5 text-[var(--text-secondary)]">{waiting}</p><label className="mt-1.5 inline-flex cursor-pointer items-center gap-2 text-[11px] text-[var(--text-tertiary)]"><input type="checkbox" disabled={running} checked={pauseAfterStep} onChange={(e: React.ChangeEvent<HTMLInputElement>) => onPauseChange(e.target.checked)} className="h-3.5 w-3.5 rounded accent-[var(--type-ai)]" /><Pause size={11} />{t('automations.assistant.pause_each', 'Pause after each step')}</label></div>
+                <div className="flex items-center gap-2">{onReject && <button type="button" disabled={running} onClick={onReject} className="rounded-xl px-3 py-2.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50">{t('automations.assistant.discard', 'Discard')}</button>}
+                    <button type="button" disabled={running} onClick={() => onApprove(pauseAfterStep)} className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-xs font-semibold text-[var(--bg-primary)] transition-opacity hover:opacity-90 disabled:opacity-50"><Hammer size={14} />{paused ? t('automations.assistant.continue_plan', 'Continue plan') : t('automations.assistant.build_plan', 'Build this plan')}</button>
+                </div>
+            </div>
+        </div>;
+}
+
 export default function PlanReview({ plan, running = false, onApprove, onComment = null, onClose, onReject = null }: Props) {
     const { t } = useTranslation();
     const sectionId = useId();
@@ -55,15 +99,16 @@ export default function PlanReview({ plan, running = false, onApprove, onComment
         ['prerequisites', t('automations.assistant.prerequisites', 'What is needed'), ShieldCheck],
         ['tests', t('automations.assistant.tests', 'How I will test it'), FlaskConical],
     ] as Section[]).filter(([key]: Section) => Array.isArray(plan[key]) && (plan[key] as string[]).length > 0);
-    const newTables = Array.isArray(plan.datatables) ? plan.datatables.filter((d: PlanTable) => d?.name) : [];
-    const usedTables = Array.isArray(plan.useDatatables) ? plan.useDatatables.filter((d: PlanTable) => d?.name) : [];
-    const waiting = plan.status === 'paused' ? t('automations.assistant.plan_paused', 'Building is paused. Continue to allow the next step.') : t('automations.assistant.plan_waiting', 'The flow stays unchanged until you approve this plan.');
+    const newTables = namedTables(plan.datatables);
+    const usedTables = namedTables(plan.useDatatables);
+    const paused = plan.status === 'paused';
+    const waiting = paused ? t('automations.assistant.plan_paused', 'Building is paused. Continue to allow the next step.') : t('automations.assistant.plan_waiting', 'The flow stays unchanged until you approve this plan.');
     return <div className="absolute inset-0 z-30 flex flex-col bg-[var(--bg-secondary)]" data-testid="plan-review">
         <div className="flex shrink-0 items-center gap-3 border-b border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3 sm:px-6">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--type-ai)_10%,transparent)] text-[var(--type-ai)]"><ClipboardList size={16} /></span>
             <span className="text-sm font-semibold text-[var(--text-primary)]">{t('automations.assistant.plan', 'Plan')}</span><span className="rounded-md border border-[var(--border-default)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--text-tertiary)]">v{plan.version}</span>
             <span className="flex-1" />
-            {canBuild && <span className="hidden items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[var(--type-ai)]" />{plan.status === 'paused' ? t('automations.assistant.paused', 'Paused') : t('automations.assistant.ready_review', 'Ready for review')}</span>}
+            {canBuild && <span className="hidden items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[var(--type-ai)]" />{paused ? t('automations.assistant.paused', 'Paused') : t('automations.assistant.ready_review', 'Ready for review')}</span>}
             <button type="button" onClick={onClose} aria-label={t('automations.assistant.show_canvas', 'Show canvas')} className="rounded-lg p-2 text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"><X size={16} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto scroll-smooth px-4 py-6 text-[var(--text-primary)] sm:px-8 sm:py-8">
@@ -83,29 +128,10 @@ export default function PlanReview({ plan, running = false, onApprove, onComment
                     </div>)}</div>
                     </details>
                 </section>)}
-                {(newTables.length > 0 || usedTables.length > 0) && <section className="space-y-3 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3.5 sm:px-5" data-testid="plan-tables">
-                    {newTables.length > 0 && <div className="space-y-2">
-                        <h3 className="flex items-center gap-2 text-sm font-semibold"><Table2 size={16} className="text-[var(--type-ai)]" />{t('automations.assistant.plan_tables', 'Tables to create')}</h3>
-                        {newTables.map((table: PlanTable, i: number) => <div key={`${table.name}-${i}`} data-testid="plan-new-table">
-                            <p className="text-sm font-medium">{table.name}</p>
-                            {Array.isArray(table.fields) && table.fields.length > 0 && <ul className="mt-1 flex flex-wrap gap-1">{table.fields.map((f: PlanField, j: number) => <li key={`${f.name}-${j}`} title={Array.isArray(f.options) && f.options.length ? f.options.join(', ') : undefined} className="rounded-md border border-[var(--border-default)] bg-[var(--bg-secondary)] px-1.5 py-0.5 text-[11px]">{f.name} · {f.type}</li>)}</ul>}
-                        </div>)}
-                    </div>}
-                    {usedTables.length > 0 && <div className="space-y-1">
-                        <h3 className="flex items-center gap-2 text-sm font-semibold"><Table2 size={16} className="text-[var(--text-tertiary)]" />{t('automations.assistant.plan_existing_tables', 'Existing tables used')}</h3>
-                        <ul className="space-y-0.5">{usedTables.map((table: PlanTable) => <li key={table.id || table.key || table.name} className="text-sm" data-testid="plan-used-table">{table.name}</li>)}</ul>
-                    </div>}
-                </section>}
+                <PlanTables newTables={newTables} usedTables={usedTables} />
                 {!canBuild && plan.status === 'built' && <p className="flex items-center gap-2 px-1 text-xs text-[var(--text-secondary)]"><CheckCircle2 size={14} className="text-[var(--type-ai)]" />{t('automations.assistant.plan_built', 'This plan has been built.')}</p>}
             </div>
         </div>
-        {canBuild && <div className="shrink-0 border-t border-[var(--border-default)] bg-[var(--bg-card)] px-4 py-3 sm:px-6 sm:py-4">
-            <div className="mx-auto flex max-w-[820px] flex-wrap items-center gap-x-5 gap-y-3">
-                <div className="min-w-0 flex-1 basis-60"><p className="text-xs leading-5 text-[var(--text-secondary)]">{waiting}</p><label className="mt-1.5 inline-flex cursor-pointer items-center gap-2 text-[11px] text-[var(--text-tertiary)]"><input type="checkbox" disabled={running} checked={pauseAfterStep} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPauseAfterStep(e.target.checked)} className="h-3.5 w-3.5 rounded accent-[var(--type-ai)]" /><Pause size={11} />{t('automations.assistant.pause_each', 'Pause after each step')}</label></div>
-                <div className="flex items-center gap-2">{onReject && <button type="button" disabled={running} onClick={onReject} className="rounded-xl px-3 py-2.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50">{t('automations.assistant.discard', 'Discard')}</button>}
-                    <button type="button" disabled={running} onClick={() => onApprove(pauseAfterStep)} className="flex items-center gap-2 rounded-xl bg-[var(--text-primary)] px-4 py-2.5 text-xs font-semibold text-[var(--bg-primary)] transition-opacity hover:opacity-90 disabled:opacity-50"><Hammer size={14} />{plan.status === 'paused' ? t('automations.assistant.continue_plan', 'Continue plan') : t('automations.assistant.build_plan', 'Build this plan')}</button>
-                </div>
-            </div>
-        </div>}
+        {canBuild && <PlanFooter waiting={waiting} running={running} paused={paused} pauseAfterStep={pauseAfterStep} onPauseChange={setPauseAfterStep} onApprove={onApprove} onReject={onReject} />}
     </div>;
 }

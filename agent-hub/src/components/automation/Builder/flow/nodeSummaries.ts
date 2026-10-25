@@ -187,9 +187,20 @@ export function dateTimeSummary(step: NodeStep) {
 export function generateDocumentSummary(step: NodeStep) {
     const kind = step.format === 'docx' ? 'Word' : 'PDF';
     if (!step.content) return { muted: `${kind} — no text chosen yet` };
+    return fileKindSummary(step, kind);
+}
+
+/** "PDF · Report · Corporate, no logo": the file kind, its name and the look chosen for it. */
+function fileKindSummary(step: NodeStep, kind: string): string {
     const name = step.fileName || step.title;
     const look = step.preset || step.logo === 'none' ? ` · ${step.preset || ''}${step.preset && step.logo === 'none' ? ', ' : ''}${step.logo === 'none' ? 'no logo' : ''}` : '';
     return `${name ? `${kind} · ${name}` : kind}${look}`;
+}
+
+function slideVisual(step: NodeStep, chart: { type?: string } | null): string {
+    if (chart) return ` · ${chart.type || 'column'} chart`;
+    if (step.stats) return ' · KPI tiles';
+    return step.layout === 'timeline' ? ' · timeline' : '';
 }
 
 /** "Omzet" / "one per item" — the slide's title, or what it still needs. */
@@ -197,20 +208,20 @@ export function slideSummary(step: NodeStep) {
     const chart = step.chart && typeof step.chart === 'object' ? step.chart : null;
     const has = (step.title || '').trim() || (step.content || '').trim() || (step.image || '').trim() || chart || step.stats;
     if (!has) return { muted: 'no title or content yet' };
-    const visual = chart ? ` · ${chart.type || 'column'} chart` : (step.stats ? ' · KPI tiles' : (step.layout === 'timeline' ? ' · timeline' : ''));
+    const visual = slideVisual(step, chart);
     const per = step.forEach ? ' · one per item' : '';
     return `${(step.title || '').trim() || 'untitled'}${visual}${per}`;
+}
+
+function slidesEmpty(s: unknown): boolean {
+    return s === undefined || s === null || (typeof s === 'string' && !s.trim()) || (Array.isArray(s) && s.length === 0);
 }
 
 /** "PowerPoint · Q3 review" — the file kind and its name, or what it still needs. */
 export function presentationSummary(step: NodeStep) {
     const kind = step.format === 'pdf' ? 'PDF deck' : 'PowerPoint';
-    const s = step.slides;
-    const empty = s === undefined || s === null || (typeof s === 'string' && !s.trim()) || (Array.isArray(s) && s.length === 0);
-    if (empty) return { muted: `${kind} — no slides chosen yet` };
-    const name = step.fileName || step.title;
-    const look = step.preset || step.logo === 'none' ? ` · ${step.preset || ''}${step.preset && step.logo === 'none' ? ', ' : ''}${step.logo === 'none' ? 'no logo' : ''}` : '';
-    return `${name ? `${kind} · ${name}` : kind}${look}`;
+    if (slidesEmpty(step.slides)) return { muted: `${kind} — no slides chosen yet` };
+    return fileKindSummary(step, kind);
 }
 
 /**

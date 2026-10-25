@@ -321,6 +321,14 @@ function DrawerHeader({ request, t }: DrawerHeaderProps) {
     );
 }
 
+/** The drawer body wrapper: carries the request state and a read-only flag once it is closed. */
+function DrawerContents({ request, testId, children }: { request: NonNullable<DsrDrawerProps['request']>; testId: string; children: React.ReactNode }) {
+    const closed = isClosed(request);
+    return (
+        <div className="contents" data-testid={`${testId}-body`} data-state={closed ? 'done' : stateOf(request)} data-readonly={closed || undefined}>{children}</div>
+    );
+}
+
 export default function DsrDrawer({
     request = null,
     open = false,
@@ -363,14 +371,14 @@ export default function DsrDrawer({
         return (
             <Modal open onClose={onClose} placement="right" size="md" title={<DrawerHeader request={request} t={t} />} className={testId}>
                 <div className="flex flex-col gap-3.5 min-h-full" data-testid={testId} data-mode="modal">
-                    <div className="contents" data-testid={`${testId}-body`} data-state={isClosed(request) ? 'done' : stateOf(request)} data-readonly={isClosed(request) || undefined}>{body}</div>
+                    <DrawerContents request={request} testId={testId}>{body}</DrawerContents>
                 </div>
             </Modal>
         );
     }
     return (
         <SideDrawer open onClose={onClose} mode={mode} width={width} ariaLabel={ariaLabel} header={<DrawerHeader request={request} t={t} />} testId={testId}>
-            <div className="contents" data-testid={`${testId}-body`} data-state={isClosed(request) ? 'done' : stateOf(request)} data-readonly={isClosed(request) || undefined}>{body}</div>
+            <DrawerContents request={request} testId={testId}>{body}</DrawerContents>
         </SideDrawer>
     );
 }

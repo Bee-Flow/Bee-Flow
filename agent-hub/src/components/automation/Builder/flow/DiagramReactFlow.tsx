@@ -59,6 +59,11 @@ export function DiagramReactFlow({
         onSelectionChange, onNodeDoubleClick, onNodeDrag, onNodeDragStop, onNodesChange, onEdgesChange,
         onConnect, onConnectEnd, onEdgesDelete, onNodesDelete, onNodeContextMenu,
     } = handlers;
+    // The edit handlers only attach when editing is on.
+    const editHandlers: Partial<ReactFlowProps> = editable ? {
+        onSelectionChange, onNodeDrag, onNodeDragStop, onNodesChange, onEdgesChange,
+        onConnect, onConnectEnd, onEdgesDelete, onNodesDelete, onNodeContextMenu,
+    } : {};
     return (
         <ReactFlow
             nodes={nodes}
@@ -115,22 +120,13 @@ export function DiagramReactFlow({
             selectionKeyCode="Shift"
             multiSelectionKeyCode={['Meta', 'Control']}
             selectNodesOnDrag={false}
-            onSelectionChange={editable ? onSelectionChange : undefined}
             onNodeClick={clickable ? onNodeClick : undefined}
             onNodeDoubleClick={interactive ? onNodeDoubleClick : undefined}
             nodesDraggable={allowDrag}
             nodesConnectable={allowConnect}
             elementsSelectable={interactive || clickable}
-            onNodeDrag={editable ? onNodeDrag : undefined}
-            onNodeDragStop={editable ? onNodeDragStop : undefined}
-            onNodesChange={editable ? onNodesChange : undefined}
-            onEdgesChange={editable ? onEdgesChange : undefined}
-            onConnect={editable ? onConnect : undefined}
-            onConnectEnd={editable ? onConnectEnd : undefined}
-            onEdgesDelete={editable ? onEdgesDelete : undefined}
-            onNodesDelete={editable ? onNodesDelete : undefined}
-            onNodeContextMenu={editable ? onNodeContextMenu : undefined}
             deleteKeyCode={editable ? ['Backspace', 'Delete'] : null}
+            {...editHandlers}
         >
             {children}
         </ReactFlow>

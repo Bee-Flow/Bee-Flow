@@ -153,27 +153,29 @@ export type BindingProblem =
     | 'connection_missing' | 'hosts_required' | 'hosts_invalid' | 'no_seat' | 'no_recipient' | 'slug_invalid' | 'id_missing';
 
 
+function connectionProblem(o: Json, stage: StageKey): BindingProblem | null {
+    if (!nonEmpty(o.connectionId)) return 'connection_missing';
+    const hosts = Array.isArray(o.allowedHosts) ? o.allowedHosts : [];
+    if (parseHosts(hosts.map(String).join(' ')) === null) return 'hosts_invalid';
+    return stage === 'prd' && hosts.length === 0 ? 'hosts_required' : null;
+}
+
+function hasRecipient(e: unknown): boolean {
+    return isObject(e) && ((Array.isArray(e.recipients) && e.recipients.length > 0) || nonEmpty(e.talkRoom));
+}
+
+function seatsProblem(slot: string, o: Json): BindingProblem | null {
+    if (slot.startsWith('notify:')) return ['onError', 'onApproval', 'onSuccess'].some(ev => hasRecipient(o[ev])) ? null : 'no_recipient';
+    return seatShapeHasSeat(o) ? null : 'no_seat';
+}
+
 /** The reason a draft value cannot be saved, or null. The server checks again (binding_invalid). */
 export function bindingProblem(req: Pick<Requirement, 'slot' | 'kind'>, value: unknown, stage: StageKey): BindingProblem | null {
     if (value === null || value === undefined) return null;
     const o = isObject(value) ? value : {};
     switch (req.kind) {
-        case 'connection': {
-            if (!nonEmpty(o.connectionId)) return 'connection_missing';
-            const hosts = Array.isArray(o.allowedHosts) ? o.allowedHosts : [];
-            if (parseHosts(hosts.map(String).join(' ')) === null) return 'hosts_invalid';
-            return stage === 'prd' && hosts.length === 0 ? 'hosts_required' : null;
-        }
-        case 'approver_seats': {
-            if (req.slot.startsWith('notify:')) {
-                const any = ['onError', 'onApproval', 'onSuccess'].some(ev => {
-                    const e = o[ev];
-                    return isObject(e) && ((Array.isArray(e.recipients) && e.recipients.length > 0) || nonEmpty(e.talkRoom));
-                });
-                return any ? null : 'no_recipient';
-            }
-            return seatShapeHasSeat(o) ? null : 'no_seat';
-        }
+        case 'connection': return connectionProblem(o, stage);
+        case 'approver_seats': return seatsProblem(req.slot, o);
         case 'webpage_slug': return /^[a-z0-9-]{1,128}$/.test(text(o.slug).trim().toLowerCase()) ? null : 'slug_invalid';
         case 'table': return nonEmpty(o.datatableId) ? null : 'id_missing';
         case 'document': return nonEmpty(o.documentId) ? null : 'id_missing';
@@ -296,20 +298,35 @@ export type SettingsError =
     | { kind: 'variable'; code: string; name: string | null }
     | { kind: 'licence' } | { kind: 'forbidden' } | { kind: 'network' } | { kind: 'other'; code: string | null };
 
+type ErrorRes = Pick<Extract<ApiResult<unknown>, { ok: false }>, 'status' | 'code' | 'body'>;
+
+const strOrNull = (v: unknown): string | null => (nonEmpty(v) ? v : null);
+const detailsOf = (body: ErrorRes['body']): Json => (body && isObject(body.details) ? body.details : {});
+const steeringError = (d: Json): SettingsError => ({ kind: 'steering_owner_only', name: strOrNull(d.name) });
+
+const CODE_ERRORS = new Map<string, (d: Json) => SettingsError>([
+    ['settings_stale', d => ({ kind: 'stale', settingsVersion: typeof d.settingsVersion === 'number' ? d.settingsVersion : null })],
+    ['binding_invalid', d => ({ kind: 'binding_invalid', slot: strOrNull(d.slot), why: strOrNull(d.why) })],
+    ['managed_part_not_deployed', () => ({ kind: 'not_deployed' })],
+    ['steering_owner_only', steeringError],
+    ['steering_not_here', steeringError],
+    ['approval_policy_needs_approver', d => ({ kind: 'policy_needs_approver', stageKey: strOrNull(d.stageKey) })],
+]);
+
+function forbiddenError(res: ErrorRes): SettingsError {
+    // The licence gate answers 403 `{ error: 'feature_locked' }` with no `code`.
+    return res.body && res.body.error === 'feature_locked' ? { kind: 'licence' } : { kind: 'forbidden' };
+}
+
 /** Every write sends settingsVersion; the answer to a lost race is 409 `settings_stale`. */
-export function settingsError(res: Pick<Extract<ApiResult<unknown>, { ok: false }>, 'status' | 'code' | 'body'>): SettingsError {
-    const details = res.body && isObject(res.body.details) ? res.body.details : {};
+export function settingsError(res: ErrorRes): SettingsError {
     const code = res.code;
     if (res.status === 0 || code === 'network') return { kind: 'network' };
-    if (code === 'settings_stale') return { kind: 'stale', settingsVersion: typeof details.settingsVersion === 'number' ? details.settingsVersion : null };
-    if (code === 'binding_invalid') return { kind: 'binding_invalid', slot: nonEmpty(details.slot) ? details.slot : null, why: nonEmpty(details.why) ? details.why : null };
-    if (code === 'managed_part_not_deployed') return { kind: 'not_deployed' };
-    if (code === 'steering_owner_only' || code === 'steering_not_here') return { kind: 'steering_owner_only', name: nonEmpty(details.name) ? details.name : null };
-    if (code === 'approval_policy_needs_approver') return { kind: 'policy_needs_approver', stageKey: nonEmpty(details.stageKey) ? details.stageKey : null };
-    if (code && /^variable_/.test(code)) return { kind: 'variable', code, name: nonEmpty(details.name) ? details.name : null };
-    // The licence gate answers 403 `{ error: 'feature_locked' }` with no `code`.
-    if (res.status === 403 && res.body && res.body.error === 'feature_locked') return { kind: 'licence' };
-    if (res.status === 403) return { kind: 'forbidden' };
+    const details = detailsOf(res.body);
+    const build = code ? CODE_ERRORS.get(code) : undefined;
+    if (build) return build(details);
+    if (code && /^variable_/.test(code)) return { kind: 'variable', code, name: strOrNull(details.name) };
+    if (res.status === 403) return forbiddenError(res);
     return { kind: 'other', code: code || null };
 }
 

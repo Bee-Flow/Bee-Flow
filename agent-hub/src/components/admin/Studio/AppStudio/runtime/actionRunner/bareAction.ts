@@ -40,54 +40,54 @@ function reportUnsupported(ctx: RunnerContext, actionId: string, action: Runnabl
     showToast('danger', message);
 }
 
+/** The actions that finish in the browser, without a request. True when `action` was one of them. */
+function runInlineAction(ctx: RunnerContext, action: RunnableAction, opts: RunOpts): boolean {
+    switch (action.kind) {
+        case 'navigate':
+            navigate(ctx, action, opts);
+            return true;
+        case 'toast':
+            showToast(action.tone, action.message);
+            return true;
+        case 'open_url': {
+            const url = String(action.url || '').trim();
+            if (!url.toLowerCase().startsWith('https://')) return true;
+            window.open(url, action.newTab === false ? '_self' : '_blank', 'noopener,noreferrer');
+            return true;
+        }
+        case 'open_modal':
+            if (action.modalId) openAppModal(action.modalId);
+            return true;
+        case 'close_modal':
+            if (action.modalId) closeAppModal(action.modalId);
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Native AI and email actions are server steps — run them through the
+// sequence coordinator (a bare action normalizes to a 1-step
+// sequence, which dispatches to /step and threads the result into
+// resultVar).
+// create_record joined this group when it became an ACTION kind as
+// well as a step kind ("add a row" is one of the four things a
+// button most often does). The /step endpoint resolves a bare
+// action through the same normalizeSequence the client uses, so it
+// needed no path of its own — only this one line. Without it, the
+// button was a silent no-op.
+const SERVER_STEP_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'send_email', 'create_record']);
+
 export async function runActionById(ctx: RunnerContext, actionId: string, opts: RunOpts = {}): Promise<void> {
     const action = ctx.live.current.definition?.actions?.[actionId];
     if (!action) return;
 
     // v2 sequences use the coordinator; bare v1 actions keep their exact
     // legacy behaviour so existing call sites and semantics are unchanged.
-    if (action.kind === 'sequence') {
+    if (action.kind === 'sequence' || SERVER_STEP_KINDS.has(action.kind as string)) {
         return runSequence(ctx, actionId, action, opts);
     }
-
-    switch (action.kind) {
-        case 'navigate':
-            navigate(ctx, action, opts);
-            return;
-        case 'toast':
-            showToast(action.tone, action.message);
-            return;
-        case 'open_url': {
-            const url = String(action.url || '').trim();
-            if (!url.toLowerCase().startsWith('https://')) return;
-            window.open(url, action.newTab === false ? '_self' : '_blank', 'noopener,noreferrer');
-            return;
-        }
-        case 'open_modal':
-            if (action.modalId) openAppModal(action.modalId);
-            return;
-        case 'close_modal':
-            if (action.modalId) closeAppModal(action.modalId);
-            return;
-        case 'run_automation':
-            return runAutomationAction(ctx, actionId, action, opts);
-        // Native AI and email actions are server steps — run them through the
-        // sequence coordinator (a bare action normalizes to a 1-step
-        // sequence, which dispatches to /step and threads the result into
-        // resultVar).
-        // create_record joined this group when it became an ACTION kind as
-        // well as a step kind ("add a row" is one of the four things a
-        // button most often does). The /step endpoint resolves a bare
-        // action through the same normalizeSequence the client uses, so it
-        // needed no path of its own — only this one line. Without it, the
-        // button was a silent no-op.
-        case 'ai_extract':
-        case 'ai_generate':
-        case 'kb_query':
-        case 'send_email':
-        case 'create_record':
-            return runSequence(ctx, actionId, action, opts);
-        default:
-            reportUnsupported(ctx, actionId, action);
-    }
+    if (runInlineAction(ctx, action, opts)) return;
+    if (action.kind === 'run_automation') return runAutomationAction(ctx, actionId, action, opts);
+    reportUnsupported(ctx, actionId, action);
 }

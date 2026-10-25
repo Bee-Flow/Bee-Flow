@@ -67,6 +67,10 @@ interface ActivityRowProps {
  * list, "Testing the automation… · Read file content · 1/4", and the row before
  * it gets its tick. The real call replaces it when the run lands.
  */
+function tr(t: BuilderActivityProps['t'], key: string, fallback: string): string {
+    return t ? t(key, fallback) : fallback;
+}
+
 export default function BuilderActivity({ toolCalls, running = false, liveRun = null, t = null, onFocusStep = null }: BuilderActivityProps) {
     const calls = Array.isArray(toolCalls) ? toolCalls : [];
     if (calls.length === 0) return null;
@@ -91,8 +95,8 @@ export default function BuilderActivity({ toolCalls, running = false, liveRun = 
                     : <Hammer size={13} className="flex-shrink-0" />}
                 <span className="font-medium">
                     {running
-                        ? (t ? t('automations.builder.act.building', 'Building') : 'Building')
-                        : (t ? t('automations.builder.act.built', 'Built') : 'Built')}
+                        ? tr(t, 'automations.builder.act.building', 'Building')
+                        : tr(t, 'automations.builder.act.built', 'Built')}
                 </span>
                 <span className="text-[10px] text-[var(--text-tertiary)]">{rows.length}</span>
                 {failed > 0 && (

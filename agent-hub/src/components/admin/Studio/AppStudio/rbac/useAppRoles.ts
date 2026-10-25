@@ -335,22 +335,28 @@ export default function useAppRoles(appId: string | null | undefined) {
 export function mergeAccess(current: AccessBlock, patch?: AccessPatch | null) {
     const out: Required<Omit<AccessBlock, 'default'>> & { default?: string } = {
         default: current.default,
-        roles: { ...(current.roles && typeof current.roles === 'object' ? current.roles : {}) },
-        rowFilters: { ...(current.rowFilters && typeof current.rowFilters === 'object' ? current.rowFilters : {}) },
+        roles: { ...asRecord(current.roles) },
+        rowFilters: { ...asRecord(current.rowFilters) },
     };
     if (!patch || typeof patch !== 'object') return out;
     if (typeof patch.default === 'string') out.default = patch.default;
     if (patch.roles && typeof patch.roles === 'object') {
-        for (const [k, v] of Object.entries(patch.roles)) {
-            if (v == null) delete out.roles[k]; else out.roles[k] = v;
-        }
+        mergeEntries(out.roles, patch.roles, (v) => v == null);
     }
     if (patch.rowFilters && typeof patch.rowFilters === 'object') {
-        for (const [k, v] of Object.entries(patch.rowFilters)) {
-            if (v == null || v === '') delete out.rowFilters[k]; else out.rowFilters[k] = v;
-        }
+        mergeEntries(out.rowFilters, patch.rowFilters, (v) => v == null || v === '');
     }
     return out;
+}
+
+const asRecord = <T>(value: Record<string, T> | null | undefined): Record<string, T> =>
+    (value && typeof value === 'object' ? value : {});
+
+/** Copy `patch` into `target` key by key; an entry that `drops` removes the key instead. */
+function mergeEntries<T>(target: Record<string, T>, patch: Record<string, T | null>, drops: (value: T | null) => boolean): void {
+    for (const [k, v] of Object.entries(patch)) {
+        if (drops(v)) delete target[k]; else target[k] = v as T;
+    }
 }
 
 /**

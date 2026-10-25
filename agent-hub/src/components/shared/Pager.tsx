@@ -11,6 +11,14 @@ interface PagerProps {
     testId?: string;
 }
 
+function hasRows(total: PagerProps['total'], n: number): boolean {
+    return total !== null && total !== undefined && Number.isFinite(n) && n > 0;
+}
+
+function suffixed(testId: string | undefined, suffix: string): string | undefined {
+    return testId ? `${testId}-${suffix}` : undefined;
+}
+
 /**
  * Pager — the table footer of artboard 1d ("Rij 1–12 van 93 · Vorige ·
  * Volgende"): an offset/limit pager for a DataTable, whether the host pages
@@ -28,7 +36,7 @@ interface PagerProps {
 export default function Pager({ offset = 0, limit = 12, total = null, onOffset, className = '', testId = undefined }: PagerProps) {
     const { t } = useTranslation();
     const n = Number(total);
-    if (total === null || total === undefined || !Number.isFinite(n) || n <= 0) return null;
+    if (!hasRows(total, n)) return null;
     const size = Math.max(1, Number(limit) || 1);
     const at = Math.min(Math.max(0, Number(offset) || 0), Math.max(0, n - 1));
     const from = at + 1;
@@ -42,7 +50,7 @@ export default function Pager({ offset = 0, limit = 12, total = null, onOffset, 
             data-testid={testId}
             className={`flex items-center gap-2 px-3.5 py-2 text-[11px] text-[var(--text-tertiary)] ${className}`.trim()}
         >
-            <span className="tabular-nums" data-testid={testId ? `${testId}-range` : undefined}>
+            <span className="tabular-nums" data-testid={suffixed(testId, 'range')}>
                 {t('common.pager_range', 'Rows {from}–{to} of {total}', { from, to, total: n })}
             </span>
             <span className="ml-auto inline-flex gap-1">
@@ -50,7 +58,7 @@ export default function Pager({ offset = 0, limit = 12, total = null, onOffset, 
                     type="button"
                     disabled={prevDisabled}
                     onClick={() => onOffset?.(Math.max(0, at - size))}
-                    data-testid={testId ? `${testId}-prev` : undefined}
+                    data-testid={suffixed(testId, 'prev')}
                     className={`${btn} ${prevDisabled ? '' : 'text-[var(--text-primary)]'}`.trim()}
                 >
                     {t('common.previous', 'Previous')}
@@ -59,7 +67,7 @@ export default function Pager({ offset = 0, limit = 12, total = null, onOffset, 
                     type="button"
                     disabled={nextDisabled}
                     onClick={() => onOffset?.(at + size)}
-                    data-testid={testId ? `${testId}-next` : undefined}
+                    data-testid={suffixed(testId, 'next')}
                     className={`${btn} ${nextDisabled ? '' : 'text-[var(--text-primary)]'}`.trim()}
                 >
                     {t('common.next', 'Next')}

@@ -73,29 +73,34 @@ interface CmdButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonEleme
     buttonRef?: ((el: HTMLButtonElement | null) => void) | React.RefObject<HTMLButtonElement | null> | null;
 }
 
+function assignRef(ref: CmdButtonProps['buttonRef'], el: HTMLButtonElement | null): void {
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
+}
+
 export default function CmdButton({
-    icon: Icon = null,
-    glyph = null,
+    icon: Icon,
+    glyph,
     label,
     title,
     // The heading of the screen tip, when the button's own label is an
     // abbreviated form of the real name — an app shown as "Talk" inside a
     // cluster captioned NEXTCLOUD still has "Nextcloud Talk" as its name, and
     // the tip is where the full one belongs.
-    tipTitle = null,
-    desc = null,
-    tipFooter = null,
+    tipTitle,
+    desc,
+    tipFooter,
     onClick,
-    big = false,
-    accent = false,
-    disabled = false,
-    dragging = false,
-    grabbable = false,
-    buttonRef = null,
+    big,
+    accent,
+    disabled,
+    dragging,
+    grabbable,
+    buttonRef,
     // Composed below, never spread raw: the tip's own id has to join whatever
     // the caller sends (dnd-kit's drag instructions), or a screen reader gets
     // one description and loses the other.
-    'aria-describedby': describedBy = null,
+    'aria-describedby': describedBy,
     ...rest
 }: CmdButtonProps) {
     // The rich tip and the native tooltip are mutually exclusive: showing both
@@ -105,8 +110,7 @@ export default function CmdButton({
     // measure) and is forwarded to the caller's ref in whichever shape it has.
     const setRefs = (el: HTMLButtonElement | null) => {
         localRef.current = el;
-        if (typeof buttonRef === 'function') buttonRef(el);
-        else if (buttonRef) buttonRef.current = el;
+        assignRef(buttonRef, el);
     };
     const tipped = !!desc;
     const { open, hoverProps, dismiss } = useCmdTip(tipped);

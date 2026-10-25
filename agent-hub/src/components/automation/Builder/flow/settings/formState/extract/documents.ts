@@ -5,6 +5,12 @@
 import { isEmptyExtractionSource, readExtractionFields } from '../extractionFields';
 import type { TypeExtractor } from '../types';
 
+/** `value || ''`: the editor wants a string for anything unset. */
+const orEmpty = <T>(value: T): T | '' => value || '';
+
+/** How long a generated file's link lives; 7 days unless the step names a number. */
+const expiryDays = (step: { expiresInDays?: unknown }): number => (Number.isFinite(Number(step.expiresInDays)) ? Number(step.expiresInDays) : 7);
+
 export const documentExtractors: Record<string, TypeExtractor> = {
     generate_document: (step, base) => ({
         ...base,
@@ -49,28 +55,28 @@ export const documentExtractors: Record<string, TypeExtractor> = {
         slidesMode: Array.isArray(step.slides) ? 'list' : 'source',
         slides: typeof step.slides === 'string' ? step.slides : '',
         slideRows: Array.isArray(step.slides) ? step.slides.map((s) => (typeof s === 'string' ? s : JSON.stringify(s))) : [],
-        title: step.title || '',
-        subtitle: step.subtitle || '',
-        fileName: step.fileName || '',
+        title: orEmpty(step.title),
+        subtitle: orEmpty(step.subtitle),
+        fileName: orEmpty(step.fileName),
         format: step.format === 'pdf' ? 'pdf' : 'pptx',
         houseStyle: step.houseStyle !== false,
         // The look: '' means "the house style decides".
-        preset: step.preset || '',
-        accent: step.accent || '',
-        background: step.background || '',
-        font: step.font || '',
-        titleFont: step.titleFont || '',
-        coverStyle: step.coverStyle || '',
-        tableStyle: step.tableStyle || '',
-        logo: step.logo || '',
-        logoPlacement: step.logoPlacement || '',
-        footerText: step.footerText || '',
+        preset: orEmpty(step.preset),
+        accent: orEmpty(step.accent),
+        background: orEmpty(step.background),
+        font: orEmpty(step.font),
+        titleFont: orEmpty(step.titleFont),
+        coverStyle: orEmpty(step.coverStyle),
+        tableStyle: orEmpty(step.tableStyle),
+        logo: orEmpty(step.logo),
+        logoPlacement: orEmpty(step.logoPlacement),
+        footerText: orEmpty(step.footerText),
         // Three states: '' follows the house style, true/false overrides it.
         slideNumbers: typeof step.slideNumbers === 'boolean' ? String(step.slideNumbers) : '',
         template: step.template === 'none' ? 'none' : '',
         saveCopy: step.saveCopy === true,
-        copyName: step.copyName || '',
-        expiresInDays: Number.isFinite(Number(step.expiresInDays)) ? Number(step.expiresInDays) : 7,
+        copyName: orEmpty(step.copyName),
+        expiresInDays: expiryDays(step),
     }),
     fill_document: (step, base) => ({
         ...base,

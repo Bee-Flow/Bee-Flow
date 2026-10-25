@@ -114,15 +114,21 @@ const IDENTITY_STATES = Object.freeze(['verified_link', 'verified_manual', 'empl
  * unverified`), else `identity_verified_at`, else unknown. Anything that
  * starts with "verified" counts as confirmed.
  */
+const IDENTITY_BY_STATUS: ReadonlyMap<string, string> = new Map([
+    ['verified_email_link', 'verified_link'], ['verified_link', 'verified_link'], ['email_link', 'verified_link'],
+    ['verified_manual', 'verified_manual'], ['manual', 'verified_manual'],
+    ['confirmed', 'verified_link'],
+    ['employee', 'employee'], ['sso', 'employee'], ['account', 'employee'],
+    ['pending', 'pending'], ['unverified', 'pending'], ['not_verified', 'pending'],
+]);
+
 export function identityOf(row: RowLike) {
     const s = String(row?.identity_status || '').toLowerCase();
-    if (s === 'verified_email_link' || s === 'verified_link' || s === 'email_link') return 'verified_link';
-    if (s === 'verified_manual' || s === 'manual') return 'verified_manual';
-    if (s.startsWith('verified') || s === 'confirmed') return 'verified_link';
-    if (s === 'employee' || s === 'sso' || s === 'account') return 'employee';
-    if (row?.identity_verified_at) return 'verified_link';
-    if (s === 'pending' || s === 'unverified' || s === 'not_verified') return 'pending';
-    return 'unknown';
+    const exact = IDENTITY_BY_STATUS.get(s);
+    // 'pending' and its aliases only count when no verification timestamp says otherwise.
+    if (exact && exact !== 'pending') return exact;
+    if (s.startsWith('verified') || row?.identity_verified_at) return 'verified_link';
+    return exact ?? 'unknown';
 }
 
 function isIdentityVerified(row: RowLike) {
@@ -214,14 +220,21 @@ export function sortByDeadline<T extends RowLike>(rows: readonly T[] | null | un
  * never holds the full address, so the query is matched against what is shown
  * plus the domain).
  */
-export function matchesQuery(row: RowLike, query: string, shownEmail: string) {
-    const q = String(query || '').trim().toLowerCase();
-    if (!q) return true;
-    const num = q.replace(/^#/, '');
-    if (num && String(row?.id ?? '') === num) return true;
-    if (String(row?.id ?? '').includes(num) && /^\d+$/.test(num)) return true;
+function idMatches(row: RowLike, num: string): boolean {
+    const id = String(row?.id ?? '');
+    if (num && id === num) return true;
+    return id.includes(num) && /^\d+$/.test(num);
+}
+
+function emailMatches(shownEmail: string, q: string): boolean {
     const email = String(shownEmail || '').toLowerCase();
     if (email && email.includes(q)) return true;
     const domain = email.includes('@') ? email.slice(email.indexOf('@') + 1) : '';
     return Boolean(domain && domain.includes(q.replace(/^@/, '')));
+}
+
+export function matchesQuery(row: RowLike, query: string, shownEmail: string) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return true;
+    return idMatches(row, q.replace(/^#/, '')) || emailMatches(shownEmail, q);
 }

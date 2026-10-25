@@ -105,6 +105,40 @@ function crossing(h: { x1: number; y1: number; x2: number; y2: number; horizonta
     return { x: v.x1, y: h.y1 };
 }
 
+type HorizontalOp = PathOp & { from: Point; to: Point };
+type PathSegment = { x1: number; y1: number; x2: number; y2: number; horizontal: boolean };
+
+/** The path text for the bridges one horizontal segment needs over the given verticals. */
+function hopsOnSegment(op: HorizontalOp, verticals: PathSegment[], radius: number): { text: string; hopped: boolean } {
+    const seg = { x1: op.from.x, y1: op.from.y, x2: op.to.x, y2: op.to.y, horizontal: true };
+    const rightwards = op.to.x > op.from.x;
+    const points = (verticals
+        .map(v => crossing(seg, v))
+        .filter(Boolean) as Point[])
+        // Along the direction of travel, and never two bridges so close they
+        // would merge into one wide bump.
+        .sort((a, b) => (rightwards ? a.x - b.x : b.x - a.x))
+        .filter((p, i, arr) => i === 0 || Math.abs(p.x - arr[i - 1].x) > radius * 2);
+    const lo = Math.min(op.from.x, op.to.x);
+    const hi = Math.max(op.from.x, op.to.x);
+    let text = '';
+    let hopped = false;
+    for (const p of points) {
+        const enter = rightwards ? p.x - radius : p.x + radius;
+        const exit = rightwards ? p.x + radius : p.x - radius;
+        // Guard against a bridge that would overshoot its own segment.
+        const overshoots = rightwards ? (enter < lo || exit > hi) : (enter > hi || exit < lo);
+        if (overshoots) continue;
+        text += `L${fmt(enter)},${fmt(p.y)}`;
+        // sweep-flag picks the side of the chord the arc bulges to, and SVG's
+        // y axis points DOWN — so 0 is "up" going right and 1 is "up" going
+        // left. Every hop arcs over the line it crosses, never under it.
+        text += `A${fmt(radius)},${fmt(radius)} 0 0 ${rightwards ? 0 : 1} ${fmt(exit)},${fmt(p.y)}`;
+        hopped = true;
+    }
+    return { text, hopped };
+}
+
 /**
  * Rewrite `d` so it bridges over every vertical segment in `others` that one of
  * its horizontal segments crosses. Returns the original string when there is
@@ -127,30 +161,9 @@ export function hopPath(d: string, others: { x1: number; y1: number; x2: number;
         const horizontal = Math.abs(op.to.y - op.from.y) < EPS && Math.abs(op.to.x - op.from.x) >= EPS;
         if (!horizontal) { out += `L${fmt(op.to.x)},${fmt(op.to.y)}`; continue; }
 
-        const seg = { x1: op.from.x, y1: op.from.y, x2: op.to.x, y2: op.to.y, horizontal: true };
-        const rightwards = op.to.x > op.from.x;
-        const points = (verticals
-            .map(v => crossing(seg, v))
-            .filter(Boolean) as Point[])
-            // Along the direction of travel, and never two bridges so close they
-            // would merge into one wide bump.
-            .sort((a, b) => (rightwards ? a.x - b.x : b.x - a.x))
-            .filter((p, i, arr) => i === 0 || Math.abs(p.x - arr[i - 1].x) > radius * 2);
-
-        for (const p of points) {
-            const enter = rightwards ? p.x - radius : p.x + radius;
-            const exit = rightwards ? p.x + radius : p.x - radius;
-            // Guard against a bridge that would overshoot its own segment.
-            if ((rightwards && (enter < Math.min(op.from.x, op.to.x) || exit > Math.max(op.from.x, op.to.x)))
-                || (!rightwards && (enter > Math.max(op.from.x, op.to.x) || exit < Math.min(op.from.x, op.to.x)))) continue;
-            out += `L${fmt(enter)},${fmt(p.y)}`;
-            // sweep-flag picks the side of the chord the arc bulges to, and SVG's
-            // y axis points DOWN — so 0 is "up" going right and 1 is "up" going
-            // left. Every hop arcs over the line it crosses, never under it.
-            out += `A${fmt(radius)},${fmt(radius)} 0 0 ${rightwards ? 0 : 1} ${fmt(exit)},${fmt(p.y)}`;
-            hopped = true;
-        }
-        out += `L${fmt(op.to.x)},${fmt(op.to.y)}`;
+        const hops = hopsOnSegment(op as HorizontalOp, verticals, radius);
+        out += hops.text + `L${fmt(op.to.x)},${fmt(op.to.y)}`;
+        if (hops.hopped) hopped = true;
     }
 
     return hopped ? out : d;

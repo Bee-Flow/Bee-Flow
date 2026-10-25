@@ -39,21 +39,26 @@ async function settleRunResponse(ctx: RunnerContext, res: Response, initial: Run
     const { tr } = ctx;
     let body = initial;
     if (res.status === 202) {
-        const runId = body?.runId ?? body?.id;
-        if (runId != null) {
-            body = await pollRun(ctx, runId);
-        } else if (body?.status === 'pending') {
-            return 'pending';
-        } else {
-            throw new Error((body?.error as string) || (body?.message as string) || tr('studio_apps_runtime.actions.no_result', 'The action was accepted but never returned a result.'));
-        }
+        const accepted = await settleAccepted(ctx, body);
+        if (accepted === 'pending') return 'pending';
+        body = accepted;
     } else if (!res.ok) {
-        throw new Error((body?.error as string) || (body?.message as string) || tr('studio_apps_runtime.actions.failed_status', 'The action failed ({status})', { status: res.status }));
+        throw new Error(errorTextOf(body, tr('studio_apps_runtime.actions.failed_status', 'The action failed ({status})', { status: res.status })));
     }
     if (body?.status === 'error') {
         throw new Error((body?.error as string) || tr('studio_apps_runtime.actions.failed', 'The action failed.'));
     }
     return body;
+}
+
+const errorTextOf = (body: RunBody, fallback: string): string => (body?.error as string) || (body?.message as string) || fallback;
+
+/** A 202: poll the run when there is a handle, settle neutrally when it is pending, otherwise fail. */
+async function settleAccepted(ctx: RunnerContext, body: RunBody): Promise<RunBody | 'pending'> {
+    const runId = body?.runId ?? body?.id;
+    if (runId != null) return pollRun(ctx, runId);
+    if (body?.status === 'pending') return 'pending';
+    throw new Error(errorTextOf(body, ctx.tr('studio_apps_runtime.actions.no_result', 'The action was accepted but never returned a result.')));
 }
 
 export async function runAutomationAction(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<void> {
