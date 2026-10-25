@@ -32,7 +32,7 @@ const SRC = [
 ].map(f => fs.readFileSync(f, 'utf8')).join('\n');
 
 /** Every `'compliance.some_key', 'Some English'` pair, whichever call it sits in. */
-function keyFallbackPairs(src) {
+function keyFallbackPairs(src: string) {
     const rx = /'(compliance\.[A-Za-z0-9_.]+)',\s*\n?\s*'((?:[^'\\]|\\.)*)'/g;
     const out = [];
     for (const m of src.matchAll(rx)) out.push({ key: m[1], en: m[2] });
@@ -55,7 +55,7 @@ describe('compliance toast keys', () => {
         // Named explicitly so a future edit that folds two of them back
         // together fails here with the sentence it would have swallowed.
         const pairs = keyFallbackPairs(SRC);
-        const enOf = (key) => [...new Set(pairs.filter(p => p.key === key).map(p => p.en))];
+        const enOf = (key: string) => [...new Set(pairs.filter(p => p.key === key).map(p => p.en))];
         expect(enOf('compliance.risk_toast_failed')).toEqual(['Could not save the risk']);
         expect(enOf('compliance.risk_treatment_toast_failed')).toEqual(['Could not save the treatment']);
         expect(enOf('compliance.risk_seed_toast_failed')).toEqual(['Could not seed risks']);
@@ -69,7 +69,7 @@ describe('compliance toast keys', () => {
         // These three already had their keys in both dictionaries; renaming or
         // resplitting them would orphan a landed translation.
         const pairs = keyFallbackPairs(SRC);
-        const enOf = (key) => [...new Set(pairs.filter(p => p.key === key).map(p => p.en))];
+        const enOf = (key: string) => [...new Set(pairs.filter(p => p.key === key).map(p => p.en))];
         expect(enOf('compliance.scc_toast_failed')).toEqual(['Could not update the SCC attestation']);
         expect(enOf('compliance.dpia_toast_failed')).toEqual(['Could not save the DPIA']);
         expect(enOf('compliance.inc_toast_failed')).toEqual(['Could not save the incident']);

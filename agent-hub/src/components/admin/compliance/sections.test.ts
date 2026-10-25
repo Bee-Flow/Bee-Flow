@@ -137,7 +137,7 @@ describe('compliance sections registry', () => {
 
     it('every labelKey, group label and tab label names a key that exists (dictionary or pending keys file)', () => {
         const known = knownKeys();
-        const missing = [];
+        const missing: string[] = [];
         for (const g of GROUPS) if (!known.has(g.labelKey)) missing.push(g.labelKey);
         for (const s of SECTIONS) {
             if (!known.has(s.labelKey)) missing.push(s.labelKey);
