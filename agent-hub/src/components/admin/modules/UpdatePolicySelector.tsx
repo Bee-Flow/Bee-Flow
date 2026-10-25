@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
-import type { UpdatePolicy } from '../../../api/queries/modules';
+import type { UpdatePolicy } from '../../../api/queries/modules.types';
 
 export interface PolicyChange {
     channel: string;

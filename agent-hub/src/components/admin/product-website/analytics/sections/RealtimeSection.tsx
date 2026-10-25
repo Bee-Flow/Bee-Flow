@@ -23,10 +23,9 @@ import type { SVGProps } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import MinuteBars from '../charts/MinuteBars';
 import type { MinuteBucket } from '../charts/MinuteBars';
-import {
-    ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SkeletonGrid,
-    StatGrid, StatTile, BarList, mapToRows, fmtAgo, fmt,
-} from '../ui';
+import { SERIES, Empty, SkeletonGrid, StatGrid, StatTile, mapToRows, fmtAgo, fmt } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT, BarList } from '../BarList';
 import type { DrillHandler, SectionProps } from '../ui.types';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import { parseBucket, floorTo } from '../window';

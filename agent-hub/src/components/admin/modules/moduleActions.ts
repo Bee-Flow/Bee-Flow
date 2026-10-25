@@ -8,19 +8,8 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { normalizePermissions } from './permissionCopy';
 import { buildPurchaseReturnUrls } from './purchaseReturn';
 import type { PolicyChange } from './UpdatePolicySelector';
-import {
-    useActivateStaged,
-    useInstallModule,
-    useInstallProgress,
-    usePurchaseModule,
-    useReactivateModule,
-    useRefreshEntitlements,
-    useRollbackModule,
-    useUpdateModule,
-    useUpdatePolicy,
-    type MarketplaceModule,
-    type UpdatePolicy,
-} from '../../../api/queries/modules';
+import { useActivateStaged, useInstallModule, useInstallProgress, usePurchaseModule, useReactivateModule, useRefreshEntitlements, useRollbackModule, useUpdateModule, useUpdatePolicy } from '../../../api/queries/modules';
+import { type MarketplaceModule, type UpdatePolicy } from '../../../api/queries/modules.types';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import { reloadRemoteModules } from '../../../moduleRuntime/registry';
 import { logger } from '../../../utils/logger';

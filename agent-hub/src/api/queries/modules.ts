@@ -12,6 +12,8 @@ import {
 import { ApiError, apiClient } from '../client';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
+import { type AdminModule, type ModuleMutationResponse, type MarketplacePage, type ConnectResponse, type PurchaseResponse, type RefreshEntitlementsResponse, type InstallProgress, type UpdateResponse, type ModuleHealthRow, type ModulesHealthResponse, type ModuleLogsResponse, type ModuleAuditResponse, type LedgerVersion, type SideloadResponse, type UpdatePolicy, type MarketplaceModuleDetail, type PurchaseVars, type InstallVars, type UpdateVars, type RollbackVars, type SideloadVars, type OfflineGrantVars, type UpdatePolicyVars } from './modules.types';
+export { type ModuleRequirement, type ModuleCapability, type AdminModule, type ModuleMutationResponse, type ModulePricingType, type ModuleBillingInterval, type MarketplacePricing, type MarketplaceEntitlement, type MarketplaceModule, type MarketplacePage, type ConnectResponse, type PurchaseResponse, type RefreshEntitlementsResponse, type InstallProgress, type UpdateResponse, type LedgerVersionStatus, type ModuleHealthRow, type ModulesHealthResponse, type ModuleLogEntry, type ModuleLogsResponse, type ModuleAuditResponse, type LedgerVersion, type SideloadResponse, type UpdatePolicy, type ModulePermissionEntry, type MarketplaceMediaEntry, type MarketplaceHubVersion, type MarketplaceModuleDetail, type PurchaseVars, type InstallVars, type UpdateVars, type RollbackVars, type SideloadVars, type OfflineGrantVars, type UpdatePolicyVars } from './modules.types';
 
 export const moduleKeys = {
     all: ['admin-modules'] as const,
@@ -25,42 +27,6 @@ export const moduleKeys = {
     audit: (moduleId: string) => [...moduleKeys.all, 'audit', moduleId] as const,
     versions: (id: string) => [...moduleKeys.all, 'versions', id] as const,
 };
-
-export interface ModuleRequirement {
-    id: string;
-    label: string;
-    met: boolean;
-    detail?: string;
-}
-
-export interface ModuleCapability {
-    id: string;
-    label: string;
-    // null when the capability id no longer resolves in the server registry
-    kind: string | null;
-}
-
-export interface AdminModule {
-    id: string;
-    name: string;
-    description: string;
-    category: string;
-    icon: string;
-    version: string;
-    available: boolean;
-    status: 'imported' | 'removed' | 'unavailable';
-    source: 'default' | 'explicit';
-    importedAt: string | null;
-    importedBy: string | null;
-    requirementsMet: boolean;
-    requirements: ModuleRequirement[];
-    capabilities: ModuleCapability[];
-}
-
-export interface ModuleMutationResponse {
-    ok: true;
-    module: AdminModule;
-}
 
 export function useAdminModules() {
     return useQuery<AdminModule[], Error>({
@@ -96,186 +62,9 @@ export function useRemoveModule() {
 // list above. All are requireSuperAdmin server-side; the panel derives display
 // state (buy / entitled / installing / expired / update) from these shapes.
 
-export type ModulePricingType = 'free' | 'one_time' | 'subscription';
-export type ModuleBillingInterval = 'month' | 'year';
-
-// Server-derived typed pricing (v3.1). Never hand-build this from `prices[]`
-// on the client — the server owns the derivation.
-export interface MarketplacePricing {
-    type: ModulePricingType;
-    amount?: number | null;    // minor units (cents)
-    currency?: string | null;
-    interval?: ModuleBillingInterval | null;
-}
-
-export interface MarketplaceEntitlement {
-    status: string;            // active | pending | expired | revoked | …
-    expiresAt: string | null;  // ISO; null for perpetual (one-time / free)
-}
-
-export interface MarketplaceModule {
-    id: string;
-    name: string;
-    description: string;
-    category: string;
-    icon: string;
-    vendor?: string | null;
-    latestVersion: string;
-    // null (or absent on a v1 hub) reads as free — render defensively.
-    pricing?: MarketplacePricing | null;
-    channels?: string[];
-    installCount?: number | null;
-    pendingRestart?: boolean;
-    entitled: boolean;
-    entitlement?: MarketplaceEntitlement | null;
-    installed: boolean;
-    installedVersion?: string | null;
-    updateAvailable: boolean;
-    // Derived server-side; 'expired' means a lapsed subscription whose module
-    // capabilities have dropped even though the package may still be on disk.
-    status: 'available' | 'entitled' | 'installed' | 'expired';
-}
-
-export interface MarketplacePage {
-    connected: boolean;
-    hubUrl?: string;
-    stale?: boolean;
-    modules: MarketplaceModule[];
-    nextCursor?: string | null;
-}
-
-// POST /connect echoes hubClient.connect(): the hub-issued install identity.
-export interface ConnectResponse {
-    ok: true;
-    connection: { install_id: string; tier: string | null; subject: string | null };
-}
-
-export interface PurchaseResponse {
-    ok: true;
-    checkoutUrl?: string;   // present for paid modules → open in a new tab
-    purchaseId?: string;
-    status?: 'active' | 'pending';
-}
-
-export interface RefreshEntitlementsResponse {
-    ok: true;
-    entitledModuleIds: string[];
-}
-
-export interface InstallProgress {
-    // 'staged' is terminal: the package is verified + stored but needs a server
-    // restart (or explicit activate-staged) before it runs.
-    phase: 'downloading' | 'verifying' | 'migrating' | 'activating' | 'staged' | 'done' | 'error';
-    pct?: number;
-    error?: string;         // e.g. 'consent_required'
-    detail?: { missingPermissions?: string[] } | null;
-}
-
-export interface UpdateResponse {
-    ok: true;
-    version?: string;
-    requiresRestart?: boolean;
-}
-
 // ─── M1 runtime health / logs / audit ───────────────────────────────────────
 
-export type LedgerVersionStatus =
-    'active' | 'retired' | 'staged' | 'failed' | 'incompatible' | 'quarantined';
-
-export interface ModuleHealthRow {
-    moduleId: string;
-    ledgerStatus: LedgerVersionStatus | null;
-    version: string | null;
-    running: boolean;
-    pendingRestart: boolean;
-    source: string | null;   // 'hub' | 'sideload' | …
-    entitlement: { state: string; kind: string | null; exp: number | null } | null;
-    lastActivationError: string | null;
-    crashesInWindow: number;
-    disposeTimeouts: number;
-    restartAdvised: boolean;
-    capabilityConflicts: unknown[];
-    healTerminal: string | null;
-}
-
-export interface ModulesHealthResponse {
-    hub: unknown;
-    refresher: unknown;
-    runtime: unknown;
-    modules: ModuleHealthRow[];
-}
-
-export interface ModuleLogEntry {
-    ts: number | string;
-    seq: number;
-    level: string;
-    msg: string;
-}
-
-export interface ModuleLogsResponse {
-    logs: ModuleLogEntry[];
-    replica?: string | null;
-}
-
-export interface ModuleAuditResponse {
-    audit: Array<Record<string, unknown>>;
-}
-
 // ─── M3/M4 versions / sideload / policy / detail ─────────────────────────────
-
-export interface LedgerVersion {
-    moduleId: string;
-    version: string;
-    status: LedgerVersionStatus;
-    source: string | null;
-    prunedAt: string | null;
-    hasPackageFile: boolean;
-    installedAt: string | null;
-    error?: string | null;
-}
-
-export interface SideloadResponse {
-    ok: true;
-    version: string;
-    requiresRestart?: boolean;
-}
-
-export interface UpdatePolicy {
-    channel: 'stable' | 'beta';
-    pin: 'none' | 'major' | 'minor';
-}
-
-export interface ModulePermissionEntry {
-    id: string;
-    reason?: string | null;
-}
-
-export interface MarketplaceMediaEntry {
-    media_id: string;
-    content_type: string;
-}
-
-export interface MarketplaceHubVersion {
-    version: string;
-    channel?: string | null;
-    changelog?: string | null;
-    yanked?: boolean;
-}
-
-// GET /marketplace/:id. A v1 hub omits most of the rich fields — every
-// consumer must treat them as optional.
-export interface MarketplaceModuleDetail extends MarketplaceModule {
-    readme?: string | null;
-    media?: MarketplaceMediaEntry[];
-    permissions?: Array<string | ModulePermissionEntry>;
-    capabilities?: unknown[];
-    versions?: MarketplaceHubVersion[];
-    ledgerVersions?: LedgerVersion[];
-    grantedPermissions?: { list: string[]; acceptedBy?: string | null; acceptedAt?: string | null } | null;
-    updatePolicy?: UpdatePolicy | null;
-    prices?: unknown[];
-    install_count?: number | null;
-}
 
 /** Marketplace media bytes endpoint — usable directly as an <img src>. */
 export function moduleMediaUrl(moduleId: string, mediaId: string): string {
@@ -323,14 +112,6 @@ export function useDisconnectHub() {
     });
 }
 
-export interface PurchaseVars {
-    id: string;
-    /** Stripe Checkout return URLs — forwarded to the hub so the customer
-     *  lands back on the marketplace tab after paying / cancelling. */
-    successUrl?: string;
-    cancelUrl?: string;
-}
-
 export function usePurchaseModule() {
     const qc = useQueryClient();
     return useMutation<PurchaseResponse | null, Error, PurchaseVars>({
@@ -346,14 +127,6 @@ export function useRefreshEntitlements() {
         mutationFn: () => apiClient.post<RefreshEntitlementsResponse>('/api/admin/modules/entitlements/refresh'),
         onSuccess: () => { qc.invalidateQueries({ queryKey: moduleKeys.all }); },
     });
-}
-
-export interface InstallVars {
-    id: string;
-    version?: string;
-    // Permission ids the operator accepted in the consent dialog. A package
-    // needing more than granted ∪ accepted fails progress with consent_required.
-    acceptedPermissions?: string[];
 }
 
 export function useInstallModule() {
@@ -384,11 +157,6 @@ export function useInstallProgress(id: string | null, opts: { enabled?: boolean 
             return 1000;
         },
     });
-}
-
-export interface UpdateVars {
-    id: string;
-    acceptedPermissions?: string[];
 }
 
 export function useUpdateModule() {
@@ -476,12 +244,6 @@ export function useModuleVersions(id: string | null, opts: { enabled?: boolean }
     });
 }
 
-export interface RollbackVars {
-    id: string;
-    version?: string;
-    force?: boolean;
-}
-
 export function useRollbackModule() {
     const qc = useQueryClient();
     return useMutation<{ ok: true; version: string } | null, Error, RollbackVars>({
@@ -489,12 +251,6 @@ export function useRollbackModule() {
             apiClient.post<{ ok: true; version: string }>(`/api/admin/modules/${id}/rollback`, { version, force }),
         onSuccess: () => { qc.invalidateQueries({ queryKey: moduleKeys.all }); },
     });
-}
-
-export interface SideloadVars {
-    // Raw .bfmod bytes; File and Blob both satisfy BodyInit.
-    file: Blob | ArrayBuffer;
-    acceptedPermissions?: string[];
 }
 
 // Sideload posts RAW bytes (application/octet-stream), which apiClient can't
@@ -523,12 +279,6 @@ export function useSideloadModule() {
     });
 }
 
-export interface OfflineGrantVars {
-    id: string;
-    // Parsed .bfgrant JSON, posted verbatim.
-    grant: Record<string, unknown>;
-}
-
 export function useOfflineGrant() {
     const qc = useQueryClient();
     return useMutation<{ ok: true; entitlement: { kind: string; exp: number | null } } | null, Error, OfflineGrantVars>({
@@ -550,10 +300,6 @@ export function useActivateStaged() {
 }
 
 // ─── M4: update policy / marketplace detail ──────────────────────────────────
-
-export interface UpdatePolicyVars extends UpdatePolicy {
-    id: string;
-}
 
 export function useUpdatePolicy() {
     const qc = useQueryClient();

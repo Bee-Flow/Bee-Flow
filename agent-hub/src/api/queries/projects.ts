@@ -9,11 +9,10 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
 import { toProjectError } from './projectErrors';
-
-/** A collaborative workspace, or a Studio Solution. `null` is a project from
- *  before the split that nobody has classified yet; it shows in both places. */
-export type ProjectKind = 'workspace' | 'solution';
-export type ProjectRole = 'owner' | 'editor' | 'viewer';
+import { type ProjectKind, type ProjectRole, type ProjectForm, type ProjectMembers, type ProjectActivityItem, type ProjectResources, type ProjectThread, type MyProjectChat, type InviteForm, type ProjectPrincipals, type TransferOwnerForm } from './projects.types';
+import { projectKeys, enc, useMemberMutation } from './useSetMemberColor';
+export { projectKeys, useSetMemberColor } from './useSetMemberColor';
+export { type ProjectKind, type ProjectRole, type ProjectForm, type ProjectShare, type ProjectPerson, type ProjectMembers, type ProjectActivityItem, type ResourceSection, type ProjectResources, type ProjectThread, type MyProjectChat, type InviteForm, type ProjectPrincipals, type TransferOwnerForm } from './projects.types';
 
 export interface Project {
     id: string;
@@ -49,115 +48,6 @@ export interface Project {
     muted?: boolean;
 }
 
-export interface ProjectForm {
-    name?: string;
-    description?: string;
-    customInstructions?: string;
-    color?: string;
-    icon?: string;
-    knowledgeBaseIds?: string[];
-    extractMemories?: boolean;
-    kind?: ProjectKind;
-    /** Owner only. */
-    editorsCanInvite?: boolean;
-    /** I muted this project's notifications (when the server says so; there is no other read for it). */
-    muted?: boolean;
-}
-
-export interface ProjectShare {
-    /** Share row id: the `:memberId` in the member routes. */
-    id: string;
-    sharedWithType: 'user' | 'group';
-    sharedWithId: string;
-    permission: 'editor' | 'viewer';
-    createdAt?: string;
-}
-
-/** A member as any viewer of the project sees them: a display name, never an e-mail address. */
-export interface ProjectPerson {
-    name?: string;
-    avatar?: string;
-    avatarType?: 'emoji' | 'image' | 'url';
-    /** The colour the project gave this person; absent for the automatic one. */
-    color?: string;
-}
-
-export interface ProjectMembers {
-    ownerId: string;
-    /** The organisation of the project, '' for none: only its own people and groups can be invited. */
-    organizationId?: string;
-    members: ProjectShare[];
-    /** Display names for the owner and user members, keyed by user id. */
-    people: Record<string, ProjectPerson>;
-    /** Display names for group members, keyed by group id. */
-    groups: Record<string, { name?: string }>;
-}
-
-export interface ProjectActivityItem {
-    id: string;
-    action: string;
-    actorId?: string;
-    targetType?: string | null;
-    targetId?: string | null;
-    details?: Record<string, unknown>;
-    createdAt: string;
-}
-
-/** One section of GET /:id/resources. `null` means "could not be read", never
- *  "empty": a failed store must not render as nothing filed. */
-export type ResourceSection = Array<Record<string, any>> | null;
-
-export interface ProjectResources {
-    role?: ProjectRole;
-    kind?: ProjectKind | null;
-    notebooks?: ResourceSection;
-    documents?: ResourceSection;
-    meetings?: ResourceSection;
-    knowledgeBases?: ResourceSection;
-    [section: string]: unknown;
-}
-
-export interface ProjectThread {
-    id: string;
-    type: 'direct' | 'agent';
-    /** The agent an agent chat is opened through; null for a direct chat. */
-    agentId?: string | null;
-    ownerId: string;
-    title?: string;
-    updatedAt?: string;
-    createdAt?: string;
-}
-
-export interface MyProjectChat {
-    id: string;
-    type: 'direct' | 'agent';
-    agentId?: string | null;
-    title?: string;
-    updatedAt?: string;
-    shared: boolean;
-}
-
-export const projectKeys = {
-    all: ['projects'] as const,
-    list: (kind?: ProjectKind, includeArchived = false) => (includeArchived
-        ? ['projects', 'list', kind ?? 'all', 'with-archived'] as const
-        : ['projects', 'list', kind ?? 'all'] as const),
-    principals: (id: string, q: string) => ['projects', id, 'principals', q] as const,
-    project: (id: string) => ['projects', id] as const,
-    detail: (id: string) => ['projects', id, 'detail'] as const,
-    members: (id: string) => ['projects', id, 'members'] as const,
-    activity: (id: string) => ['projects', id, 'activity'] as const,
-    resources: (id: string) => ['projects', id, 'resources'] as const,
-    threads: (id: string) => ['projects', id, 'threads'] as const,
-    myChats: (id: string) => ['projects', id, 'my-chats'] as const,
-    chats: (id: string) => ['projects', id, 'chats'] as const,
-    chat: (id: string, chatId: string) => ['projects', id, 'chats', chatId] as const,
-    messages: (id: string, chatId: string) => ['projects', id, 'chats', chatId, 'messages'] as const,
-    files: (id: string) => ['projects', id, 'files'] as const,
-    tasks: (id: string) => ['projects', id, 'tasks'] as const,
-    sprints: (id: string) => ['projects', id, 'sprints'] as const,
-};
-
 /** A PUT refused because someone else saved first. `current` is their version. */
 export class ProjectConflictError extends Error {
     current: Project | null;
@@ -167,8 +57,6 @@ export class ProjectConflictError extends Error {
         this.current = current;
     }
 }
-
-const enc = encodeURIComponent;
 
 /** A refusal (404 removed or deleted, 403 no longer a member) will not change on a second try: show it at once. */
 export const retryUnlessRefused = (failures: number, error: unknown): boolean =>
@@ -315,35 +203,10 @@ export function useProjectMembersQuery(projectId: string | null | undefined) {
     });
 }
 
-export interface InviteForm { sharedWithType: 'user' | 'group'; sharedWithId: string; permission: 'editor' | 'viewer' }
-
-function useMemberMutation<TVars>(projectId: string, run: (vars: TVars) => Promise<unknown>, fallback: string) {
-    const qc = useQueryClient();
-    return useMutation<void, Error, TVars>({
-        mutationFn: async (vars) => {
-            try {
-                await run(vars);
-            } catch (e) {
-                throw toProjectError(e, fallback);
-            }
-        },
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: projectKeys.members(projectId) });
-            qc.invalidateQueries({ queryKey: projectKeys.activity(projectId) });
-        },
-    });
-}
-
 export function useInviteMember(projectId: string) {
     return useMemberMutation<InviteForm>(projectId,
         (form) => apiClient.post(`/api/projects/${enc(projectId)}/share`, form, { retry: false }),
         'Could not invite this member');
-}
-
-/** A person or group the invite picker can offer. The server never sends an e-mail address. */
-export interface ProjectPrincipals {
-    users: Array<{ id: string; name: string; avatar?: { type?: string; value?: string } | null }>;
-    groups: Array<{ id: string; name: string; memberCount: number }>;
 }
 
 /** Search the project's organisation for people and groups to invite; waits for 2+ characters. */
@@ -360,8 +223,6 @@ export function useProjectPrincipals(projectId: string | null | undefined, q: st
         },
     });
 }
-
-export interface TransferOwnerForm { toUserId: string; keepMeAs: 'editor' | 'viewer' | 'none'; expectedOwnerId?: string }
 
 /** Hand the project to a member (owner, or an organisation admin as a rescue). 409 `owner_changed` when the owner moved meanwhile. */
 export function useTransferOwner(projectId: string) {
@@ -387,13 +248,6 @@ export function useChangeMemberRole(projectId: string) {
     return useMemberMutation<{ memberId: string; role: 'editor' | 'viewer' }>(projectId,
         ({ memberId, role }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(memberId)}`, { role }, { retry: false }),
         'Could not change the role');
-}
-
-/** Give a person a colour in this project (`null`: the automatic one). The owner may for anyone, everybody for themselves. */
-export function useSetMemberColor(projectId: string) {
-    return useMemberMutation<{ userId: string; color: string | null }>(projectId,
-        ({ userId, color }) => apiClient.put(`/api/projects/${enc(projectId)}/members/${enc(userId)}/color`, { color }, { retry: false }),
-        'Could not change the colour');
 }
 
 export function useRemoveMember(projectId: string) {

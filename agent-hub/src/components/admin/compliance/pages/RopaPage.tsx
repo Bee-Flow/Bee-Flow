@@ -12,7 +12,7 @@ import { Fact, ActionButton, ReadFailed, RegisterLayout } from './audits/auditFo
 import type { SetHeaderActions } from './audits/useHeaderPrimary';
 import RopaProjects from './ropa/RopaProjects';
 import SccCell from './ropa/RopaScc';
-import { LEGAL_BASES, RESIDENCY } from './settings/settingsFields';
+import { LEGAL_BASES, RESIDENCY } from './settings/settingsFields.helpers';
 import type { SettingsOption } from './settings/settingsFields.types';
 import type { RopaActivity, RopaBody, RopaPageProps, RopaProcessor, RopaState } from './ropa/ropa.types';
 

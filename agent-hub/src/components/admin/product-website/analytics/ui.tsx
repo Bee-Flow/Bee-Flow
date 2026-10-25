@@ -11,15 +11,17 @@
  * COLORS.primary is #6366f1 — so every chart/card here is passed an explicit
  * colour and nothing is allowed to fall back to the shared default.
  */
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import React, { type CSSProperties, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { TrendChip } from '../../../../pages/settings/usage/kit';
-import { Card as BaseCard, SortableTable } from '../../monitoring/shared';
+import { SortableTable } from '../../monitoring/shared';
 import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
-import type { AsyncCardProps, BarListProps, BreakdownRow, BreakdownTableProps, CardProps, CompareKind, CompareResult, ErrorNoteProps, RenderStatTileArgs, ShareBarProps, SkeletonProps, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';
+import type { BreakdownRow, BreakdownTableProps, CompareKind, CompareResult, RenderStatTileArgs, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';
+import { ACCENT, ShareBar } from './BarList';
+import { Skeleton } from './AsyncCard';
+export { Card, ErrorNote, Skeleton, AsyncCard } from './AsyncCard';
+export { ACCENT, maxOf, ShareBar, BarList } from './BarList';
 
-export const ACCENT = '#14b8a6';                                  // teal
 export const PALETTE = ['#3b82f6', '#14b8a6', '#10b981', '#f59e0b', '#f97316', '#06b6d4', '#f43f5e', '#0ea5e9'];
 export const paletteAt = (i: number) => PALETTE[i % PALETTE.length];
 
@@ -36,37 +38,6 @@ export const SERIES = Object.freeze({
 });
 
 export { Empty, SortableTable, fmt };
-
-/**
- * Card, shadowing MonitoringPanel's.
- *
- * Identical prop surface, but the icon defaults to ACCENT instead of
- * COLORS.primary — which is #6366f1, the indigo this project bans. Wrapping
- * here fixes every card on the dashboard without touching the monitoring
- * dashboard that legitimately uses the shared one.
- */
-export function Card({ title, icon: Icon, children, style, action, iconColor = ACCENT }: CardProps) {
-    // Memoised: a component type created inline during render is a new type on
-    // every render, which would remount the icon each time.
-    const Tinted = React.useMemo(
-        () => (Icon ? (props: { style?: CSSProperties }) => <Icon {...props} style={{ ...props?.style, color: iconColor }} /> : undefined),
-        [Icon, iconColor],
-    );
-    return (
-        <BaseCard title={title} icon={Tinted} action={action} style={style}>
-            {children}
-        </BaseCard>
-    );
-}
-
-/** Max of a numeric list without spreading it — `Math.max(...arr)` blows the
- *  argument limit (and throws RangeError) somewhere around 100k entries, which
- *  a busy heatmap page reaches easily. */
-export function maxOf(values: Iterable<number>, initial = 1): number {
-    let m = initial;
-    for (const v of values) if (Number.isFinite(v) && v > m) m = v;
-    return m;
-}
 
 // ── Value helpers ────────────────────────────────────────────────────
 
@@ -259,43 +230,6 @@ export function StatGrid({ children, min = 170 }: { children?: ReactNode; min?: 
 
 // ── Failure + loading states ─────────────────────────────────────────
 
-/**
- * A card whose data failed to load.
- *
- * This exists because the previous dashboard rendered upstream failures as an
- * ordinary empty table — which is how a hard 400 on every "Top pages" request
- * went unnoticed. An empty state must mean "no data", never "we broke".
- */
-export function ErrorNote({ message, onRetry, compact = false }: ErrorNoteProps) {
-    const { t } = useTranslation();
-    return (
-        <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 8,
-            padding: compact ? '8px 10px' : '10px 14px', borderRadius: 10,
-            background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.25)',
-            color: '#fda4af', fontSize: 12,
-        }}>
-            <AlertTriangle className="w-[14px] h-[14px] [flex-shrink:0] [margin-top:1px]" />
-            <span className="[flex:1] [word-break:break-word]">{message}</span>
-            {onRetry && (
-                <button onClick={onRetry} title={t('cms_site.analytics.common.retry', 'Retry')} className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:1px_solid_rgba(244,63,94,0.35)] [border-radius:7px] [color:#fda4af] [font-size:11px] [font-weight:700] [padding:3px_8px] [cursor:pointer] [flex-shrink:0]">
-                    <RefreshCw className="w-[11px] h-[11px]" /> {t('cms_site.analytics.common.retry', 'Retry')}
-                </button>
-            )}
-        </div>
-    );
-}
-
-export function Skeleton({ height = 80, style }: SkeletonProps) {
-    return (
-        <div style={{
-            height, borderRadius: 10, background: 'var(--bg-secondary, rgba(255,255,255,0.04))',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.06))',
-            animation: 'bf-analytics-pulse 1.4s ease-in-out infinite', ...style,
-        }} />
-    );
-}
-
 export function SkeletonGrid({ count = 4, height = 80, min = 170 }: { count?: number; height?: number; min?: number }) {
     return (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
@@ -311,20 +245,6 @@ export function AnalyticsStyles() {
             @keyframes bf-analytics-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.45 } }
         `}</style>
     );
-}
-
-/**
- * Wraps a section body in the three states every panel needs. Keeps each
- * section from re-implementing loading/error/empty inconsistently.
- */
-export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, emptyText, children, right, height = 120 }: AsyncCardProps) {
-    const { t } = useTranslation();
-    let body;
-    if (loading) body = <Skeleton height={height} />;
-    else if (error) body = <ErrorNote message={error} onRetry={onRetry} compact />;
-    else if (isEmpty) body = <Empty text={emptyText || t('cms_site.analytics.common.no_data', 'No data')} />;
-    else body = children;
-    return <Card title={title} icon={icon} action={right}>{body}</Card>;
 }
 
 // ── Breakdown table with drill-down ──────────────────────────────────
@@ -384,26 +304,6 @@ export function BreakdownTable({
 }
 
 /**
- * The "bar in a table cell" every section wanted its own table for. It is a
- * cell renderer, not a table — `SortableTable` stays the only table.
- */
-export function ShareBar({ value, of, color = ACCENT, height = 5, width, label }: ShareBarProps) {
-    const pct = of > 0 ? Math.max(0, Math.min(100, (Number(value) / of) * 100)) : 0;
-    return (
-        <span
-            title={label || `${pct.toFixed(1)}%`}
-            style={{
-                display: 'inline-block', width: width || '100%', height,
-                borderRadius: 99, background: 'var(--bg-tertiary, rgba(255,255,255,0.08))',
-                overflow: 'hidden', verticalAlign: 'middle', flexShrink: 0,
-            }}
-        >
-            <span style={{ display: 'block', width: `${pct}%`, height: '100%', borderRadius: 99, background: color }} />
-        </span>
-    );
-}
-
-/**
  * A composition bar — one row showing how a whole divides into parts.
  * `mode: 'diverging'` splits positive/negative around a centre line, for
  * period-over-period change.
@@ -450,51 +350,3 @@ export function SplitBar({ segments, mode = 'stacked', height = 10, legend = fal
     );
 }
 
-/**
- * Horizontal bar list — better than a table when the shape is a ranking.
- *
- * Single-hue by default: in a ranking, bar length already carries magnitude and
- * the label carries identity, so per-rank colours add nothing and actively
- * mislead — the same item changes colour when the list is filtered. Pass
- * `color` to override, or `peak` to keep the scale stable across two lists.
- */
-export function BarList({
-    rows, onDrill, max = 8, formatValue = fmt, emptyText,
-    color = ACCENT, peak: peakProp, blankLabel,
-}: BarListProps) {
-    const { t } = useTranslation();
-    const items = (Array.isArray(rows) ? rows : []).slice(0, max);
-    if (!items.length) return <Empty text={emptyText ?? t('cms_site.analytics.common.no_data', 'No data')} />;
-    const peak = peakProp || maxOf(items.map(r => r.y || 0));
-    return (
-        <div className="[display:flex] [flex-direction:column] [gap:7px]">
-            {items.map((r, i) => {
-                const isBlank = !r.x;
-                const label = isBlank ? (blankLabel ?? t('cms_site.analytics.common.unknown', 'Unknown')) : r.x;
-                const clickable = !!onDrill && !isBlank;
-                return (
-                    <button
-                        key={`${i}-${label}`}
-                        onClick={clickable ? () => onDrill(label) : undefined}
-                        title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: label }) : label}
-                        style={{
-                            display: 'block', width: '100%', textAlign: 'left', background: 'transparent',
-                            border: 'none', padding: 0, cursor: clickable ? 'pointer' : 'default',
-                        }}
-                    >
-                        <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
-                            <span style={{
-                                fontSize: 12, overflow: 'hidden',
-                                color: isBlank ? 'var(--text-muted, #888)' : 'var(--text-primary, #fff)',
-                                fontStyle: isBlank ? 'italic' : 'normal',
-                                textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                            }}>{label}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, flexShrink: 0 }}>{formatValue(r.y || 0)}</span>
-                        </div>
-                        <ShareBar value={r.y || 0} of={peak} color={color} />
-                    </button>
-                );
-            })}
-        </div>
-    );
-}

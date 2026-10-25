@@ -17,10 +17,9 @@ import { Globe, Monitor, Languages, MapPin } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { pivot, screenBuckets, screenLabel, type BreakdownRow, type PivotOut } from '../model';
-import {
-    ACCENT, Card, Empty, ErrorNote, Skeleton, ShareBar, BreakdownTable,
-    fmt, maxOf,
-} from '../ui';
+import { Empty, BreakdownTable, fmt } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT, ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';

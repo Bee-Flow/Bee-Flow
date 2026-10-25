@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     AlertTriangle, AlertOctagon, ZapOff, RefreshCcw, XCircle,
     Clock, Filter, Search, Bot, Paperclip, FileWarning,
@@ -9,55 +9,15 @@ import {
     Card, Empty, MetricCard
 } from './shared';
 import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
-import type { TypeMeta, TerminationRow, TerminationSummary, TimelineRow, AgentTerminations, TypeBadgeProps, Bucket, TerminationsPageProps, DetailRowProps } from './TerminationsPage.types';
-import { request, RefusedError } from '../../../api/mutate';
-
-const API = (import.meta.env.VITE_API_URL || '') + '/api/terminations';
+import { useTranslation } from '../../../hooks/useTranslation';
+import type { TypeMeta, TerminationRow, TerminationSummary, TimelineRow, AgentTerminations, TypeBadgeProps, TerminationsPageProps, DetailRowProps } from './TerminationsPage.types';
+import { API, TYPE_META, typeLabel, fetchJson, rangeQuery, fmtBytes, filterSelectWrapper, filterSelectStyle } from './TerminationsPage.helpers';
+import { StackedBarChart } from './StackedBarChart';
 // authFetch, not raw fetch. Both send credentials, but authFetch also sets the
 // no-store handling that exists because the Nextcloud proxy path was replaying
 // stale per-user API responses from the browser cache — and usage figures are
 // exactly that kind of per-org, always-changing response. It is also the seam
 // the public demo transport hooks, so a raw fetch here silently bypasses it.
-
-const TYPE_META: Record<string, TypeMeta> = {
-    max_tokens:     { label: 'Max tokens',     color: COLORS.amber,  icon: ZapOff },
-    max_iterations: { label: 'Max iterations', color: COLORS.orange, icon: RefreshCcw },
-    error:          { label: 'Error',          color: COLORS.rose,   icon: AlertOctagon },
-    aborted:        { label: 'Aborted',        color: COLORS.cyan,   icon: XCircle },
-};
-
-function typeLabel(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, type: string) {
-    switch (type) {
-        case 'max_tokens': return t('admin_monitoring.term_type_max_tokens', 'Max tokens');
-        case 'max_iterations': return t('admin_monitoring.term_type_max_iterations', 'Max iterations');
-        case 'error': return t('admin_monitoring.term_type_error', 'Error');
-        case 'aborted': return t('admin_monitoring.term_type_aborted', 'Aborted');
-        default: return type;
-    }
-}
-
-async function fetchJson(url: string) {
-    try {
-        let r: Response;
-        try {
-            r = await request(url);
-        } catch (err) {
-            if (!(err instanceof RefusedError)) throw err;
-            return null;
-        }
-        return await r.json();
-    } catch { return null; }
-}
-
-function rangeQuery(range: string, customStart: string | number | Date, customEnd: string | number | Date) {
-    if (range === 'all') return '';
-    if (range === 'custom' && customStart && customEnd) {
-        return `?startDate=${encodeURIComponent(new Date(customStart).toISOString())}&endDate=${encodeURIComponent(new Date(customEnd).toISOString())}`;
-    }
-    const days = range === 'today' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 30;
-    return `?days=${days}`;
-}
 
 function TypeBadge({ type }: TypeBadgeProps) {
     const { t } = useTranslation();
@@ -75,14 +35,6 @@ function TypeBadge({ type }: TypeBadgeProps) {
     );
 }
 
-function fmtBytes(n: number | null | undefined) {
-    if (!n || n <= 0) return '0 B';
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
-
 function LargeInputBadge() {
     const { t } = useTranslation();
     return (
@@ -96,51 +48,6 @@ function LargeInputBadge() {
             <FileWarning className="w-[10px] h-[10px]" />
             {t('admin_monitoring.term_large_input', 'Large input')}
         </span>
-    );
-}
-
-function StackedBarChart({ data }: { data: TimelineRow[] }) {
-    const { t } = useTranslation();
-    if (!data || data.length === 0) return <Empty text={t('admin_monitoring.term_no_data', 'No data to display')} />;
-
-    // data: [{ period, type, count }, ...]; aggregate by period
-    const buckets: Record<string, Bucket> = {};
-    for (const r of data) {
-        if (!buckets[r.period]) buckets[r.period] = { period: r.period };
-        buckets[r.period][r.type] = Number(buckets[r.period][r.type] || 0) + r.count;
-    }
-    const periods = Object.values(buckets).sort((a, b) => a.period.localeCompare(b.period));
-    const maxTotal = Math.max(...periods.map(p => TYPE_ORDER.reduce((s, ty) => s + Number(p[ty] || 0), 0)), 1);
-    return (
-        <div className="[display:flex] [align-items:flex-end] [gap:4px] h-[140px] [padding:8px_0]">
-            {periods.map(p => {
-                const total = TYPE_ORDER.reduce((s, ty) => s + Number(p[ty] || 0), 0);
-                const heightPct = (total / maxTotal) * 100;
-                return (
-                    <div key={p.period} className="[flex:1] [display:flex] [flex-direction:column] [align-items:center] [gap:4px] min-w-[8px]">
-                        <div title={`${p.period} · ${total} terminations`} style={{
-                            width: '100%', height: `${heightPct}%`, minHeight: total > 0 ? 2 : 0,
-                            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                            borderRadius: '4px 4px 0 0', overflow: 'hidden',
-                        }}>
-                            {TYPE_ORDER.map(ty => {
-                                const v = Number(p[ty] || 0);
-                                if (v === 0) return null;
-                                return (
-                                    <div key={ty} style={{
-                                        height: `${(v / total) * 100}%`,
-                                        background: TYPE_META[ty].color,
-                                    }} />
-                                );
-                            })}
-                        </div>
-                        <span className="[font-size:9px] [color:var(--text-muted,#888)] [white-space:nowrap]">
-                            {p.period.slice(5)}
-                        </span>
-                    </div>
-                );
-            })}
-        </div>
     );
 }
 
@@ -423,13 +330,3 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
     );
 }
 
-const filterSelectWrapper: CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-    borderRadius: 8, background: 'var(--bg-primary, #0f0f1a)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-};
-
-const filterSelectStyle: CSSProperties = {
-    background: 'transparent', border: 'none', outline: 'none',
-    fontSize: 12, color: 'var(--text-primary, #fff)', cursor: 'pointer',
-};

@@ -12,15 +12,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
-import { API, API_DSR, fetchJson, json, jsonInit, asArray } from '../../../../api/complianceApi';
+import { API, fetchJson, json, jsonInit, asArray } from '../../../../api/complianceApi';
 import useResource from './useResource';
-import type { DsrRequestRow } from './aggregates';
 import type { SoaControl } from '../pages/soa/SoaTable';
 import type { AccessAuditRow } from '../pages/accessAuditLabels';
 import type { DpiaRecord } from '../pages/dpia/DpiaDrawer';
-import type { Id, UseDsrArgs, UseRopaArgs, UseDpiaArgs, UseIncidentsArgs, UseSoaArgs, SoaBody, UsePoliciesArgs, UseConnectorsArgs, UseRisksArgs, UseAuditArgs, UseTrainingArgs, UseAccessAuditArgs, AccessAuditLog, AccessAuditFilter, OrgUserRow, UseOrgUsersArgs } from './registers.types';
+import type { Id, UseDpiaArgs, UseIncidentsArgs, UseSoaArgs, SoaBody, UsePoliciesArgs, UseConnectorsArgs, UseRisksArgs, UseAuditArgs, UseTrainingArgs, UseAccessAuditArgs, AccessAuditLog, AccessAuditFilter, OrgUserRow, UseOrgUsersArgs } from './registers.types';
+import { noop } from './useRopa';
+export { useDsr } from './useDsr';
+export { useRopa } from './useRopa';
 export type { OrgUserRow } from './registers.types';
-const noop = () => {};
 /**
  * Shared busy/mutate wrapper: set busy → run → refresh → toast on failure.
  * Keeps its historic name `_isoMutate`: the i18n guard registers it as a
@@ -34,111 +35,6 @@ function useIsoMutate(refresh: () => Promise<unknown>, onChanged: () => void) {
         catch (e) { toast.error(t(errKey, errFallback)); }
         finally { setBusy(null); }
     }, [refresh, onChanged]);
-}
-
-// ── DSR ────────────────────────────────────────────────────────────────────
-export function useDsr({ enabled = false, onChanged = noop, refreshCore = noop }: UseDsrArgs = {}) {
-    const { t } = useTranslation();
-    const res = useResource<DsrRequestRow[]>(`${API_DSR}/requests`, {
-        enabled,
-        parse: (b) => (asArray(b) ?? ((b as { requests?: unknown[] } | null) && Array.isArray((b as { requests?: unknown[] }).requests) ? (b as { requests: unknown[] }).requests : [])) as DsrRequestRow[],
-        onError: (e: unknown) => { console.error('[ComplianceHub] DSR fetch error:', (e as Error).message); return []; },
-    });
-    const [busyId, setBusyId] = useState<Id | null>(null);
-    const fulfil = async (id: Id, body: unknown) => {
-        setBusyId(id);
-        try {
-            await fetchJson(`${API_DSR}/requests/${encodeURIComponent(id)}/fulfil`, json(body));
-            await Promise.all([res.refresh(), refreshCore()]);
-            onChanged();
-            toast.success(t('compliance.dsr_toast_updated', 'Request updated'));
-        } catch (e) {
-            console.error('[ComplianceHub] DSR update error:', (e as Error).message);
-            toast.error(t('compliance.dsr_toast_update_failed', 'Could not update the request'));
-        } finally { setBusyId(null); }
-    };
-    const post = (id: string | number | boolean, action: string, body?: unknown) => fetchJson(`${API_DSR}/requests/${encodeURIComponent(id)}/${action}`, json(body));
-    const capture = async (body: unknown) => {
-        const r = await fetchJson(`${API_DSR}/requests/manual`, json(body));
-        await res.refresh(); onChanged();
-        toast.success(t('compliance.dsr_toast_captured', 'Request recorded — the one-month clock is running'));
-        return r;
-    };
-    const start = async (id: string | number | boolean) => { await post(id, 'start'); await res.refresh(); onChanged(); };
-    const extend = async (id: Id, reason: string) => {
-        setBusyId(id);
-        try { await post(id, 'extend', { reason }); await res.refresh(); onChanged(); }
-        catch (e) { toast.error(t('compliance.dsr_toast_extend_failed', 'Could not extend the deadline')); throw e; }
-        finally { setBusyId(null); }
-    };
-    const verifyIdentity = async (id: Id, body: unknown) => { await post(id, 'verify-identity', body); await res.refresh(); };
-    const loadDetail = (id: string | number | boolean) => fetchJson(`${API_DSR}/requests/${encodeURIComponent(id)}`);
-    // The route answers `{ id, timeline }`, not a bare array — asArray on the
-    // envelope gives null, which reads as "could not load" for a request whose
-    // timeline loaded fine.
-    const loadTimeline = (id: string | number | boolean) => fetchJson(`${API_DSR}/requests/${encodeURIComponent(id)}/timeline`)
-        .then(r => asArray(r && typeof r === 'object' && !Array.isArray(r) ? r.timeline : r));
-    const loadDiscovery = (id: string | number | boolean) => fetchJson(`${API_DSR}/requests/${encodeURIComponent(id)}/discovery`);
-    const exportUrlFor = (id: string | number | boolean) => `${API_DSR}/requests/${encodeURIComponent(id)}/export`;
-    return {
-        requests: res.data, busyId, failed: res.failed, refresh: res.refresh,
-        fulfil, update: fulfil, capture, start, extend, verifyIdentity, loadDetail, loadTimeline, loadDiscovery, exportUrlFor,
-    };
-}
-
-// ── ROPA ───────────────────────────────────────────────────────────────────
-export function useRopa({ enabled = false, onChanged = noop, refreshCore = noop }: UseRopaArgs = {}) {
-    const { t } = useTranslation();
-    const res = useResource(`${API}/ropa`, {
-        enabled,
-        onError: (e: unknown) => { console.error('[ComplianceHub] ROPA fetch error:', (e as Error).message); return { error: true }; },
-    });
-    const [busy, setBusy] = useState(false);
-    const review = async () => {
-        setBusy(true);
-        try {
-            await fetchJson(`${API}/ropa/review`, { method: 'POST' });
-            await Promise.all([res.refresh(), refreshCore()]);
-            onChanged();
-            toast.success(t('compliance.ropa_toast_reviewed', 'Processing register marked as reviewed'));
-        } catch (e) {
-            toast.error(t('compliance.ropa_toast_review_failed', 'Could not mark the register as reviewed'));
-        } finally { setBusy(false); }
-    };
-    const sccToggle = async (operator: string | null | undefined, confirmed: boolean) => {
-        setBusy(true);
-        try {
-            await fetchJson(`${API}/settings/scc`, json({ operator, confirmed }));
-            await Promise.all([res.refresh(), refreshCore()]);
-            onChanged();
-            toast.success(confirmed
-                ? t('compliance.scc_toast_confirmed', 'SCC attestation recorded')
-                : t('compliance.scc_toast_revoked', 'SCC attestation withdrawn'));
-        } catch (e) {
-            toast.error(t('compliance.scc_toast_failed', 'Could not update the SCC attestation'));
-        } finally { setBusy(false); }
-    };
-    // Collaborative projects with personal data and their processing records
-    // (GET/PUT/DELETE /ropa/projects). A save or removal throws back to the
-    // form that asked, which says it inline; the register rebuilds after it.
-    const projects = useResource(`${API}/ropa/projects`, {
-        enabled,
-        onError: (e: unknown) => { console.error('[ComplianceHub] ROPA projects fetch error:', (e as Error).message); return { error: true }; },
-    });
-    const saveProject = async (projectId: Id, body: unknown) => {
-        await fetchJson(`${API}/ropa/projects/${encodeURIComponent(projectId)}`, jsonInit('PUT', body));
-        await Promise.all([projects.refresh(), res.refresh()]);
-        onChanged();
-    };
-    const removeProject = async (projectId: string | number | boolean) => {
-        await fetchJson(`${API}/ropa/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' });
-        await Promise.all([projects.refresh(), res.refresh()]);
-        onChanged();
-    };
-    return {
-        ropa: res.data, busy, refresh: res.refresh, review, sccToggle,
-        projects: projects.data, refreshProjects: projects.refresh, saveProject, removeProject,
-    };
 }
 
 // ── DPIA ───────────────────────────────────────────────────────────────────
