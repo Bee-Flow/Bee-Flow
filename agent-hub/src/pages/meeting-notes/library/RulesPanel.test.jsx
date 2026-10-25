@@ -22,7 +22,7 @@ vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
 
 vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-import RulesPanel, { consequenceParts, runLabel } from './RulesPanel';
+import RulesPanel, { consequenceParts, runLabel } from './RuleCard';
 import { COMPOSER_SEED } from '../lib/meetingRules';
 
 const t = (key, fallback, vars) => {

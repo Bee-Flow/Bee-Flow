@@ -1,25 +1,16 @@
-import { AlertCircle, ArrowUpRight, Loader2, Plus, RefreshCw, Sparkles, Workflow } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
+import { AlertCircle, Loader2, Plus, RefreshCw, Sparkles, Workflow } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildMessageFromSuggestion } from '../../../components/automation/taskFormatters';
-import { cardRadius, kindColorVar, kindTileStyle, kindTint } from '../../../components/shared/kindColors';
+import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useAutomationApi from '../../../hooks/useAutomationApi';
 import useTranslation from '../../../hooks/useTranslation';
-import { automation as automationStatus } from '../../../components/shared/statusOf';
-import {
-    RULE_TRIGGER_PROVIDER,
-    composerSeed,
-    consequencesOf,
-    facetsReadable,
-    newRuleDefinition,
-    openability,
-    ruleHref,
-    runCountOf,
-    triggerConditionOf,
-} from '../lib/meetingRules';
-import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RunLabelInput, RuleFooterProps, RuleCardProps, ComposerProps, RulesPanelProps, TriggerCondition, Consequences } from './RulesPanel.types';
+import { RULE_TRIGGER_PROVIDER, composerSeed, facetsReadable, newRuleDefinition, ruleHref } from '../lib/meetingRules';
+import type { TranslateFn, RuleRow, RuleIdea, SuggestDone, RulesState, RunFacets, RunsState, RunFacetsBody, IdeasState, CreatedAutomation, RulesPanelProps } from './RulesPanel.types';
 import { describeError, errorCode, errorMessage, errorStatus, messageOf } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
+import { list, RuleCard } from './RuleCard';
+import { ERROR_BANNER, WARN_BANNER, smallButton, Composer } from './Composer';
+export { conditionSentence, consequenceParts, runLabel, RuleCard } from './RuleCard';
 
 /**
  * "Rules" — the automations that run on a COMPLETED meeting note, as readable sentences (M5, part D).
@@ -48,7 +39,6 @@ const RANGE_HOURS = 24;
 // How many ideas the composer shows. The server supplies at most six
 // (SUGGEST_MAX_SUGGESTIONS); in a 300px rail three are enough.
 const MAX_IDEAS = 3;
-const list = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 
 /**
  * The licence gate speaks in MACHINE TOKENS, not in English sentences.
@@ -75,261 +65,9 @@ export function licenceMessage(err: unknown, t: TranslateFn): string | null {
 
 /* ── zinnen ──────────────────────────────────────────────────────────── */
 
-/**
- * "When a meeting tagged sales, support is finished" — the WHEN half.
- *
- * "… is finished" is the sentence of `meeting.processed`, and that appears only when THAT is the event. `meetingTriggersOf` deliberately filters on the PROVIDER and not on the event, so that a later `meeting.scheduled` automatically lands in the list — but then this sentence would tell the story of `meeting.processed` about every future event. Also reachable today: an unknown app_event event is a WARNING for the validator, not an error, so such a definition is saved, appears here, and never fires.
- */
-export function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
-    if (!condition) return null;
-    const tags = list(condition.tags);
-    if (!condition.onlyProcessed) {
-        const events = list(condition.events).filter(Boolean);
-        return events.length
-            ? t('meetings.rules_when_event', 'When meeting notes fire {event}', { event: events.join(', ') })
-            : t('meetings.rules_when_event_unknown', 'When meeting notes fire an event this card cannot name');
-    }
-    if (!tags.length) return t('meetings.rules_when_any', 'When any meeting note is finished');
-    return nOf(
-        t, 'meetings.rules_when_tagged', tags.length,
-        'When a meeting tagged {tags} is finished',
-        'When a meeting tagged any of {tags} is finished',
-        { tags: tags.join(', ') },
-    );
-}
-
-/**
- * The THEN half, as separate pieces (the card places ` · ` between them).
- *
- * Separate pieces and not a ready-made sentence: a list with "and" between is different in every language, and the separator here is the same character that the rest of this product places between facts (AutomationTile).
- */
-export function consequenceParts(consequences: Consequences, t: TranslateFn): string[] {
-    if (!consequences || consequences.readable === false) {
-        return [t('meetings.rules_steps_unreadable', 'its steps could not be read')];
-    }
-    const parts: string[] = [];
-    if (consequences.kb) parts.push(t('meetings.rules_does_kb', 'files it in a knowledge base'));
-    if (consequences.notify) parts.push(t('meetings.rules_does_notify', 'sends a notification'));
-    if (consequences.table) parts.push(t('meetings.rules_does_table', 'writes a row to a datatable'));
-    if (consequences.other > 0) {
-        parts.push(nOf(
-            t, 'meetings.rules_does_other', consequences.other,
-            '{count} more step this card cannot describe',
-            '{count} more steps this card cannot describe',
-        ));
-    }
-    if (!parts.length) {
-        // "No steps" and "steps present, but none that this card counts as a
-        // consequence" are different answers. Showing them together as "has no
-        // steps" makes an author think his work was not saved.
-        parts.push(consequences.steps > 0
-            ? nOf(
-                t, 'meetings.rules_does_internal', consequences.steps,
-                '{count} step that only prepares data — nothing leaves the run',
-                '{count} steps that only prepare data — nothing leaves the run',
-            )
-            : t('meetings.rules_does_nothing', 'nothing yet — this rule has no steps'));
-    }
-    return parts;
-}
-
-/**
- * The run line of one card, or NULL if there is nothing to say.
- *
- * NULL for a failed or still-running read — never a 0, because that would be a claim about runs we could not count. If the read succeeded and the automation is not in the facets, that is a real zero over a real range, and the sentence says so.
- */
-export function runLabel({ facets, facetsError, automationId, hours }: RunLabelInput, t: TranslateFn): string | null {
-    if (facetsError || !facets) return null;
-    const n = runCountOf(facets, automationId);
-    // NULL here means "nobody has counted" (no automationId map in the answer),
-    // not "zero runs". Those were two different things with the same answer, and
-    // the card made "no runs of yours" of it.
-    if (n === null) return null;
-    if (n === 0) {
-        return t('meetings.rules_runs_none', 'no runs of yours in the last {hours} hours', { hours });
-    }
-    return nOf(
-        t, 'meetings.rules_runs_mine', n,
-        '{count} run of yours in the last {hours} hours',
-        '{count} runs of yours in the last {hours} hours',
-        { hours },
-    );
-}
-
 /* ── presentatie ─────────────────────────────────────────────────────── */
 
-const ERROR_BANNER = {
-    background: 'color-mix(in srgb, var(--error) 8%, var(--bg-secondary))',
-    borderColor: 'var(--error)',
-    color: 'var(--text-primary)',
-};
-const WARN_BANNER = {
-    background: 'color-mix(in srgb, var(--warning) 8%, var(--bg-secondary))',
-    borderColor: 'var(--warning)',
-    color: 'var(--text-primary)',
-};
-
-const smallButton = 'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0';
-
-/**
- * Active / paused / DRAFT — the shared three-state word list (`components/shared/statusOf.automation`, where `isDraft` beats `isActive`). Two states was a real error here: every rule that the "+ Rule" button of this panel creates comes out of the store as `is_active=FALSE, is_draft=TRUE`, and therefore got the word "Paused" — the same word as a finished rule that you deliberately switched off. The trigger bus skips a draft for a DIFFERENT reason (`dispatch.js` looks at `!isActive` AND at `isDraft`), and `crud.js` computes for the same reason `live = isActive && !isDraft`.
- */
-function StateChip({ row, t }: { row: RuleRow; t: TranslateFn }) {
-    // `undefined` is not "off": a row without these columns gets no chip.
-    if (typeof row?.isActive !== 'boolean' && typeof row?.isDraft !== 'boolean') return null;
-    const status = automationStatus(row);
-    const style = status === 'live'
-        ? { background: 'color-mix(in srgb, var(--success) 12%, transparent)', color: 'var(--success-ink)' }
-        : status === 'draft'
-            ? { background: 'color-mix(in srgb, var(--warning) 14%, transparent)', color: 'var(--warning-ink)' }
-            : { background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' };
-    const label = status === 'live'
-        ? t('meetings.rules_active', 'Active')
-        : status === 'draft'
-            ? t('meetings.rules_draft', 'Draft')
-            : t('meetings.rules_paused', 'Paused');
-    return (
-        <span
-            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0"
-            style={style}
-            title={status === 'draft' ? t('meetings.rules_draft_hint', 'Still a draft, so it does not run yet — open it and activate it.') : undefined}
-        >
-            {label}
-        </span>
-    );
-}
-
-/** The line under the sentence: whose runs they are, and whether the rule can be opened. */
-function RuleFooter({ row, runs, open, onOpen, t }: RuleFooterProps) {
-    return (
-        <div className="flex items-center justify-between gap-2 min-w-0">
-            <span className="text-[11px] truncate text-[var(--text-tertiary)]" data-testid="rule-runs">
-                {runs || ''}
-            </span>
-            {open === 'ok' && typeof onOpen === 'function' ? (
-                <button
-                    type="button"
-                    onClick={() => onOpen(row.id)}
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium flex-shrink-0 text-[var(--accent-primary)]"
-                    data-testid="rule-open"
-                >
-                    {t('meetings.rules_open', 'Open automation')}
-                    <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
-                </button>
-            ) : open === 'foreign' ? (
-                <span className="text-[11px] flex-shrink-0 text-[var(--text-tertiary)]" data-testid="rule-foreign">
-                    {t('meetings.rules_someone_elses', 'Someone else’s rule')}
-                </span>
-            ) : null}
-        </div>
-    );
-}
-
-export function RuleCard({ row, facets, facetsError, hours, currentUserId, onOpen, t }: RuleCardProps) {
-    const condition = triggerConditionOf(row?.definition);
-    const parts = consequenceParts(consequencesOf(row?.definition), t);
-    const runs = runLabel({ facets, facetsError, automationId: row?.id, hours }, t);
-
-    const reprocessed = condition?.reprocessed === true
-        ? t('meetings.trigger_reprocessed_again', 'Only a reprocess or a new summary')
-        : (condition?.reprocessed === false ? t('meetings.trigger_reprocessed_first', 'Only a brand-new note') : null);
-    const narrowing = [
-        reprocessed,
-        condition?.extra ? t('meetings.rules_extra_conditions', 'narrowed further by conditions this card cannot show') : null,
-    ].filter(Boolean);
-
-    const tile = kindTileStyle('automation', 28);
-
-    return (
-        <div
-            className="flex flex-col gap-1.5 p-2.5 mb-1 border"
-            style={{ borderRadius: cardRadius('automation'), borderColor: 'var(--border-subtle)', background: 'var(--bg-card)' }}
-            data-testid="rule-card"
-        >
-            <div className="flex items-start gap-2 min-w-0">
-                <span style={tile.tile} aria-hidden="true"><Workflow style={tile.glyph} /></span>
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[13px] font-medium truncate text-[var(--text-primary)]">
-                            {row?.title || t('meetings.rules_untitled', 'Untitled rule')}
-                        </span>
-                        <StateChip row={row} t={t} />
-                    </div>
-                    <p className="text-[11px] leading-snug text-[var(--text-secondary)]" data-testid="rule-sentence">
-                        {conditionSentence(condition, t) || t('meetings.rules_when_unknown', 'This rule no longer starts on a meeting note')}
-                        {' → '}
-                        {parts.join(' · ')}
-                    </p>
-                    {narrowing.length > 0 && (
-                        <p className="text-[11px] leading-snug text-[var(--text-tertiary)]" data-testid="rule-narrowing">
-                            {narrowing.join(' · ')}
-                        </p>
-                    )}
-                </div>
-            </div>
-            <RuleFooter row={row} runs={runs} open={openability(row, currentUserId)} onOpen={onOpen} t={t} />
-        </div>
-    );
-}
-
 /* ── de composer ─────────────────────────────────────────────────────── */
-
-function Composer({ text, onText, ideas, onRun, onUseIdea, creating, t }: ComposerProps) {
-    return (
-        <div className="mx-3 mb-2 px-2.5 py-2 rounded-lg border flex flex-col gap-1.5 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-            <label className="text-[11px] text-[var(--text-tertiary)]" htmlFor="meeting-rules-composer">
-                {t('meetings.rules_ai_hint', 'Say what should happen after a meeting; the ideas stay inside meeting notes.')}
-            </label>
-            <input
-                id="meeting-rules-composer"
-                type="text"
-                value={text}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onText(e.target.value)}
-                placeholder={t('meetings.rules_ai_placeholder', 'put the decisions in the sales knowledge base')}
-                className="w-full px-2 py-1 rounded-md border text-[12px] [border-color:var(--border-default)] [background:var(--bg-card)] [color:var(--text-primary)]!"
-            />
-            <button
-                type="button" onClick={onRun} disabled={ideas.busy}
-                className={`${smallButton} self-start [border-color:var(--accent-primary)] [color:var(--accent-primary)]`}
-                data-testid="rules-composer-run"
-            >
-                {ideas.busy
-                    ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-                    : <Sparkles className="w-3 h-3" aria-hidden="true" />}
-                {ideas.busy ? t('meetings.rules_ai_busy_label', 'Looking…') : t('meetings.rules_ai_go', 'Get ideas')}
-            </button>
-
-            {ideas.error && (
-                <div className="px-2 py-1.5 rounded-md border text-[11px]" style={ERROR_BANNER} role="status" data-testid="rules-ai-error">
-                    {ideas.error}
-                </div>
-            )}
-            {!ideas.busy && ideas.ran && !ideas.error && ideas.items.length === 0 && (
-                <div className="px-2 py-1.5 rounded-md border text-[11px]" style={WARN_BANNER} data-testid="rules-ai-reason">
-                    {ideas.reason === 'no_integrations'
-                        ? t('meetings.rules_ai_no_apps', 'No connected apps to look at yet, so there is nothing to base an idea on.')
-                        : ideas.reason === 'no_patterns'
-                            ? t('meetings.rules_ai_no_patterns', 'The scan ran and found nothing worth turning into a rule yet.')
-                            : t('meetings.rules_ai_empty', 'The scan ran and came back with nothing.')}
-                </div>
-            )}
-            {ideas.items.map((idea: RuleIdea, i: number) => (
-                <div key={idea?.id ?? `idea-${i}`} className="px-2 py-1.5 rounded-md border flex flex-col gap-1 border-[var(--border-subtle)] bg-[var(--bg-card)]" data-testid="rules-idea">
-                    <span className="text-[12px] font-medium text-[var(--text-primary)]">{idea?.title}</span>
-                    {idea?.description && (
-                        <span className="text-[11px] leading-snug text-[var(--text-tertiary)]">{idea.description}</span>
-                    )}
-                    <button
-                        type="button" onClick={() => onUseIdea(idea)} disabled={creating}
-                        className={`${smallButton} self-start [border-color:var(--border-default)] [color:var(--text-secondary)]`}
-                    >
-                        {t('meetings.rules_idea_build', 'Start this rule')}
-                    </button>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 /* ── het paneel ──────────────────────────────────────────────────────── */
 

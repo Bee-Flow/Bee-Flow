@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 import { isForeignRow, kindLabelFor, usageHref } from '../../../components/shared/UsedByTab';
 import useTranslation from '../../../hooks/useTranslation';
 import { formatSpeakerLabel } from '../lib/format';
-import { buildFollowUpStats, buildInsightsModel } from '../lib/insightsMetrics';
+import { buildInsightsModel } from '../lib/insightsMetrics';
+import { buildFollowUpStats } from '../lib/insightsMetrics.helpers';
 import { buildSpeakerColorMap, speakerColor, type ColorSpeaker } from '../lib/playerData';
 import {
     KNOWLEDGE_LINES,

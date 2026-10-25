@@ -1,20 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import {
-    buildActionsPerTopic,
-    buildAirtimeWindows,
-    buildDeadAir,
-    buildFollowUpStats,
-    buildHandoffPairs,
-    buildInsightsModel,
-    buildMonologueRatio,
-    buildSilentAttendees,
-    buildSpeakerMetrics,
-    buildTagMentions,
-    buildTopicOwnership,
-    countWords,
-    insightsWindowSeconds,
-} from './insightsMetrics';
+import { buildActionsPerTopic, buildDeadAir, buildHandoffPairs, buildInsightsModel, buildMonologueRatio, buildTagMentions, buildTopicOwnership } from './insightsMetrics';
+import { buildAirtimeWindows, buildFollowUpStats, buildSilentAttendees, buildSpeakerMetrics, countWords, insightsWindowSeconds } from './insightsMetrics.helpers';
 import { normalizeChapters } from './playerData';
 
 /** Alternating 30s turns: Tom 0-30, Jeroen 30-60, Tom 60-90… */

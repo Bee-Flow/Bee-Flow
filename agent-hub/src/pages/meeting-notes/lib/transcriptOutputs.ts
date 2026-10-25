@@ -16,7 +16,7 @@
  * `buildInsightsModel` does not build `people` at all when the organisation has per-person statistics switched off. This panel reads that model and does not go around it: `buildSpeakerCheck` receives the gate, and with the gate closed it names no name — only two counts, the same narrowing that `topics.blocks` already does (duration stays, attribution disappears).
  */
 
-import { buildSilentAttendees } from './insightsMetrics';
+import { buildSilentAttendees } from './insightsMetrics.helpers';
 import type { InsightsModel } from '../detail/insights/insights.types';
 
 /** De drie antwoorden op "hebben we iedereen herkend?". */

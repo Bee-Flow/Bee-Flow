@@ -34,7 +34,7 @@ vi.mock('./components/admin/Studio', () => ({ default: (p: any) => { seen.studio
 vi.mock('./components/agents/AgentStudio/index', () => ({ default: (p: any) => { seen.agentStudio = p; return <div data-testid="slot-agent-studio" />; } }));
 vi.mock('./components/cowork/CoworkPage', () => ({ default: (p: any) => { seen.cowork = p; return <div data-testid="slot-cowork" />; } }));
 vi.mock('./pages/documents/DocumentsPage', () => ({ default: (p: any) => { seen.documents = p; return <div data-testid="slot-documents" />; } }));
-vi.mock('./pages/apps/AppsHomePage', () => ({ default: () => <div data-testid="slot-apps" /> }));
+vi.mock('./pages/apps/AppsHomePage/index', () => ({ default: () => <div data-testid="slot-apps" /> }));
 vi.mock('./pages/forms/FormsHomePage', () => ({ default: (p: any) => { seen.forms = p; return <div data-testid="slot-forms" />; } }));
 vi.mock('./pages/PublicFormPage', () => ({ default: (p: any) => { seen.formView = p; return <div data-testid="slot-form-view" />; } }));
 vi.mock('./components/skills/SkillsPanel', () => ({ default: (p: any) => { seen.skills = p; return <div data-testid="slot-skills" />; } }));
