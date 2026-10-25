@@ -71,7 +71,7 @@
     "src/components/admin/Studio/AppStudio/tables/RowsTab.tsx": 411,
     "src/components/admin/Studio/AppStudio/variables/VariablesManager.tsx": 428,
     "src/components/admin/Studio/Approvals/ApprovalDetail.tsx": 542,
-    "src/components/admin/Studio/AutomationsStudio/AutomationsOverview.tsx": 637,
+    "src/components/admin/Studio/AutomationsStudio/AutomationsOverview.tsx": 436,
     "src/components/admin/Studio/Datatables/ColumnDesigner.tsx": 687,
     "src/components/admin/Studio/Datatables/DatatableDetail.tsx": 592,
     "src/components/admin/Studio/Datatables/DatatableSharing.tsx": 528,

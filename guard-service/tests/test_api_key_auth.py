@@ -10,7 +10,7 @@ from __future__ import annotations
 import unittest
 
 try:
-    from app.api_key_auth import APIKeyMiddleware
+    from app.shared.api_key_auth import APIKeyMiddleware
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 

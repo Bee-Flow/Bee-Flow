@@ -29,7 +29,7 @@ const correctnessRules = {
 };
 
 /**
- * @param {object} globals   the package's `globals` module
+ * @param {any} globals   the package's `globals` module
  * @param {object} [opts]
  * @param {'commonjs'|'module'} [opts.js]  how plain .js files load (package.json "type")
  * @param {string[]} [opts.ignores]        extra ignore globs

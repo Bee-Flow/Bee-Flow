@@ -306,7 +306,7 @@ function rpcDenied(res, status, id = null, retryAfter) {
 }
 
 module.exports = {
-    evaluateAccess, evaluateAccessForOrgs, gateRequest, rpcDenied,
+    evaluateAccess, evaluateAccessForOrgs, gateRequest, rpcDenied, checkLimiter,
     RATE_LIMIT_PER_MINUTE, USER_RATE_LIMIT_PER_MINUTE,
     _test: { rateLimitCheck, userRateLimitCheck, requestCost },
 };

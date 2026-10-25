@@ -19,6 +19,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+# app.main builds its module-level app on import, and the service refuses to start
+# without a key. The suite runs open on purpose; the fail-closed tests unset this.
+os.environ.setdefault("SERVICES_ALLOW_OPEN", "1")
+
 from app.config import settings
 from app.routers import classify as classify_router
 from app.services import classifier as classifier_module

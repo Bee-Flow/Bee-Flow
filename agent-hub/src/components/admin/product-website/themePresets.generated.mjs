@@ -1,5 +1,5 @@
 // GENERATED from server/i18n/defaults/themePresets.js by scripts/gen-shared-mirror.mjs — do not edit
-// @typecheck
+// @typecheck strict
 /**
  * Theme presets — SCHEMA OF RECORD.
  *

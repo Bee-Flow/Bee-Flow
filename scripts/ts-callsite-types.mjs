@@ -152,6 +152,8 @@ function isUselessObjectType(ts, checker, t) {
  * the checker would widen them to `any` and drop them from a union, and a
  * caller that passes null would either poison the slot or lose its null.
  */
+/** @type {string | undefined} */
+unionText.why = undefined;
 function unionText(ts, checker, types, enclosing, file, imports, { keepLiterals = false } = {}) {
     let sawNull = false; let sawUndefined = false; const rest = [];
     for (const t of types) {

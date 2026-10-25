@@ -84,6 +84,8 @@ const INSTRUCTIONS = [
     '',
     'A finalised automation is still INACTIVE. Activation is a human decision made in the product — these tools cannot switch an automation on, and that is deliberate: an automation sends real mail and writes to real systems.',
     '',
+    'automations_run starts a real run of an automation a person has ALREADY activated (the token needs the run permission). It never activates or edits anything and refuses an inactive automation: build, verify with the dry run, ask the person to activate, and only then run it. Follow the returned runId with automations_get_run_steps.',
+    '',
     'Tool results carry `_fixHint` when a call was rejected, and `validationErrors` when a save landed but the definition is not yet valid. Both are worth reading: they are how this API teaches its own shape.',
 ].join('\n');
 
@@ -121,7 +123,7 @@ async function assertEntitled(userId) {
 }
 
 /**
- * @param {{ token?: { scopes?: object } }|null} [access]  what the access gate
+ * @param {{ token?: { id?: string|null, name?: string, legacy?: boolean, scopes?: object } }|null} [access]  what the access gate
  *        resolved for this request. Its token's scopes narrow tools/list and
  *        are re-checked on tools/call. Absent (unit tests calling this
  *        directly) = no narrowing.
@@ -185,7 +187,7 @@ async function handleRpc(message, userId, access = null, deps = {}) {
             }
 
             try {
-                const { result, text } = await mcpBuilder.callTool(name, args, { userId });
+                const { result, text } = await mcpBuilder.callTool(name, args, { userId, tokenId: access?.token?.id || null });
                 const isError = !!(result && typeof result === 'object' && result.error);
                 return rpcResult(id, {
                     content: [{ type: 'text', text: text ?? JSON.stringify(result ?? null) }],
@@ -242,9 +244,6 @@ router.get('/', async (req, res) => {
     return res.status(405).json(rpcError(null, -32000, 'This MCP endpoint is POST-only; it does not open an SSE stream.'));
 });
 
-module.exports = router;
-module.exports.handleRpc = handleRpc;
-module.exports.INSTRUCTIONS = INSTRUCTIONS;
-// The same entitlement test, for routes/mcpTokens.js: a token may not carry the
-// automations server for a user this check would refuse.
-module.exports.assertEntitled = assertEntitled;
+// assertEntitled is the same entitlement test, for routes/mcpTokens.js: a token
+// may not carry the automations server for a user this check would refuse.
+module.exports = Object.assign(router, { handleRpc, INSTRUCTIONS, assertEntitled });

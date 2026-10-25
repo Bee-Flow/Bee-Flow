@@ -338,3 +338,14 @@ test('the repo tree has no stray file under its generated roots', async () => {
     assert.ok(roots.includes('mobile/src/features/flow-editor/bindings/mirror'));
     assert.deepStrictEqual(strayFiles(normaliseManifest(manifest), roots, path.resolve(HERE, '..')), []);
 });
+
+test('Python bytecode caches are neither copied nor reported as extra', (t) => {
+    const dir = sandbox(t, { ...SOURCE, '__pycache__/engine.cpython-312.pyc': 'x' });
+    const r = run(dir);
+    assert.strictEqual(r.code, 0, r.stderr);
+    assert.deepStrictEqual(listing(dir), ['engine.mjs', 'functions.mjs', 'index.mjs'], 'the cache is not copied');
+    fs.mkdirSync(mirror(dir, '__pycache__'));
+    fs.writeFileSync(mirror(dir, '__pycache__/stale.cpython-312.pyc'), 'x');
+    const check = run(dir, ['--check']);
+    assert.strictEqual(check.code, 0, check.stderr);
+});

@@ -15,15 +15,18 @@
     "sign": "node scripts/sign.mjs",
     "test": "node --test 'test/*.test.mjs' 'modules/*/test/*.test.js'",
     "test:coverage": "c8 node --test 'test/*.test.mjs' 'modules/*/test/*.test.js'",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "esbuild": "^0.28.2",
     "jszip": "^3.10.2"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "c8": "^12.0.0",
     "eslint": "^9.39.5",
-    "globals": "^17.13.0"
+    "globals": "^17.13.0",
+    "typescript": "7.0.2"
   }
 }

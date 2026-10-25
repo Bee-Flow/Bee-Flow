@@ -138,7 +138,7 @@ class ClassifierService:
             return True
         try:
             self._load(cfg)
-        except Exception as exc:  # surfaced via /health and /ready
+        except Exception as exc:  # surfaced via /health and /ready  # noqa: BLE001 - a failed load is surfaced via /health and /ready
             self.load_error = f"{type(exc).__name__}: {exc}"
             logger.error("[classify] model load failed: %s", self.load_error)
             return False

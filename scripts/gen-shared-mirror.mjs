@@ -88,8 +88,10 @@ export function listMirrorFiles(dir, rel = '') {
     const out = [];
     for (const entry of fs.readdirSync(here, { withFileTypes: true })) {
         const child = rel ? `${rel}/${entry.name}` : entry.name;
-        if (entry.isDirectory()) out.push(...listMirrorFiles(dir, child));
-        else if (entry.isFile() && !isTest(entry.name)) out.push(child);
+        if (entry.isDirectory()) {
+            if (entry.name !== '__pycache__') out.push(...listMirrorFiles(dir, child));
+        }
+        else if (entry.isFile() && !isTest(entry.name) && !entry.name.endsWith('.pyc')) out.push(child);
     }
     return out.sort();
 }

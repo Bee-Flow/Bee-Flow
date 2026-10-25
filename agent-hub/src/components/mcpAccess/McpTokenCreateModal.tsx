@@ -108,12 +108,14 @@ interface ServerCardProps {
     onPatch: (p: Partial<ServerDraft>) => void;
     publish: boolean;
     onPublish: (on: boolean) => void;
+    run: boolean;
+    onRun: (on: boolean) => void;
     /** What the caller may put on a token. Absent = everything (an older server). */
     eligibility?: McpServerEligibility;
 }
 
 /** One server: its switch, and (when on) access level, optional tool list and, for the CMS, the publish scope. */
-function ServerCard({ server, draft, onPatch, publish, onPublish, eligibility }: ServerCardProps) {
+function ServerCard({ server, draft, onPatch, publish, onPublish, run, onRun, eligibility }: ServerCardProps) {
     const { t } = useTranslation();
     const serverName = useServerName();
     const groupId = useId();
@@ -151,6 +153,15 @@ function ServerCard({ server, draft, onPatch, publish, onPublish, eligibility }:
                         placeholder={t('mcp_access.create.tools_placeholder', 'tool_one, tool_two')}
                         value={draft.tools} onChange={e => onPatch({ tools: e.target.value })} />
                     <p className={`${HINT} mt-0`}>{t('mcp_access.create.tools_hint', 'Separate names with commas or new lines. Empty means every tool the access level allows.')}</p>
+                    {server.id === 'automations' && (
+                        <div className="flex flex-col gap-1.5">
+                            <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
+                                <input type="checkbox" checked={run && draft.level === 'write'} disabled={draft.level !== 'write'} onChange={e => onRun(e.target.checked)} />
+                                {t('mcp_access.create.run', 'May start automation runs')}
+                            </label>
+                            <p className={`${HINT} mt-0`}>{t('mcp_access.create.run_warn', 'A run really sends mail and writes to real systems. Only automations you have already activated can be started, and the client can never activate one. Leave this off unless the client must start runs. Needs read and write access.')}</p>
+                        </div>
+                    )}
                     {server.id === 'cms' && (
                         <div className="flex flex-col gap-1.5">
                             <label className="inline-flex items-center gap-1.5 text-[12px] text-[var(--text-primary)] cursor-pointer">
@@ -210,7 +221,7 @@ function expiryState(choice: ExpiryChoice, date: string) {
     return { expiryIso, expiryBad: choice === 'date' && (!expiryIso || new Date(expiryIso).getTime() <= Date.now()) };
 }
 
-function scopesFrom(servers: Record<McpServerId, ServerDraft>, publish: boolean, eligibility?: McpEligibility): McpScopes {
+function scopesFrom(servers: Record<McpServerId, ServerDraft>, publish: boolean, run: boolean, eligibility?: McpEligibility): McpScopes {
     const scopes: McpScopes = {};
     for (const s of MCP_SERVERS) {
         const d = servers[s.id];
@@ -220,6 +231,7 @@ function scopesFrom(servers: Record<McpServerId, ServerDraft>, publish: boolean,
             level: d.level,
             ...(tools.length ? { tools } : {}),
             ...(s.id === 'cms' ? { publish: d.level === 'write' && publish && eligibility?.cms?.canPublish !== false } : {}),
+            ...(s.id === 'automations' && d.level === 'write' && run ? { run: true } : {}),
         };
     }
     return scopes;
@@ -236,6 +248,7 @@ export default function McpTokenCreateModal({ onClose }: { onClose: () => void }
     const [name, setName] = useState('');
     const [servers, setServers] = useState(EMPTY_SERVERS);
     const [publish, setPublish] = useState(false);
+    const [run, setRun] = useState(false);
     const [ipText, setIpText] = useState('');
     const [expiry, setExpiry] = useState<ExpiryChoice>('none');
     const [expiryDate, setExpiryDate] = useState('');
@@ -254,7 +267,7 @@ export default function McpTokenCreateModal({ onClose }: { onClose: () => void }
         setTried(true);
         if (invalid || create.isPending) return;
         create.mutate(
-            { name: name.trim(), scopes: scopesFrom(servers, publish, eligibility), ipAllowlist: ips, expiresAt: expiryIso },
+            { name: name.trim(), scopes: scopesFrom(servers, publish, run, eligibility), ipAllowlist: ips, expiresAt: expiryIso },
             { onSuccess: setCreated },
         );
     };
@@ -290,7 +303,7 @@ export default function McpTokenCreateModal({ onClose }: { onClose: () => void }
                     <legend className={LABEL}>{t('mcp_access.create.servers', 'Servers')}</legend>
                     <p className={`${HINT} mt-0 mb-1`}>{t('mcp_access.create.servers_hint', 'A server you leave off cannot be reached with this token.')}</p>
                     {offered.map(s => (
-                        <ServerCard key={s.id} server={s} draft={servers[s.id]} publish={publish} onPublish={setPublish} eligibility={eligibility?.[s.id]}
+                        <ServerCard key={s.id} server={s} draft={servers[s.id]} publish={publish} onPublish={setPublish} run={run} onRun={setRun} eligibility={eligibility?.[s.id]}
                             onPatch={p => setServers(all => ({ ...all, [s.id]: { ...all[s.id], ...p } }))} />
                     ))}
                     {tried && !anyOn && <p className="m-0 text-[11.5px] text-[var(--error-ink)]">{t('mcp_access.create.no_server', 'Switch on at least one server.')}</p>}

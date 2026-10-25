@@ -11,6 +11,7 @@ const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware
 const http = require('http');
 const https = require('https');
 const config = require('./config');
+const log = require('./log');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
 // Deliberately not a whole-request timeout: an SSE chat turn legitimately
@@ -286,8 +287,8 @@ function buildApiProxy() {
                     }
                 }
             },
-            error: (err, req, res) => {
-                console.error(`[Proxy] ${req.method} ${req.url}: ${err.message}${req.__beeflowRetried ? ' (after retry)' : ''}`);
+            error: (err, req, /** @type {any} */ res) => {
+                log.error(`[Proxy] ${req.method} ${req.url}: ${err.message}${req.__beeflowRetried ? ' (after retry)' : ''}`);
                 const respond502 = () => {
                     if (!res.headersSent) {
                         res.status(502).json({
@@ -296,7 +297,7 @@ function buildApiProxy() {
                     }
                 };
                 if (retryOnceOnNetworkError({ err, req, res, agent, middleware: mw, onExhausted: respond502 })) {
-                    console.warn(`[Proxy] retrying ${req.method} ${req.url} on a fresh socket (${err.code})`);
+                    log.warn(`[Proxy] retrying ${req.method} ${req.url} on a fresh socket (${err.code})`);
                     return;
                 }
                 respond502();
@@ -351,12 +352,12 @@ function buildEmbedProxy() {
                 // is the one that cannot regress.
                 proxyReq.setHeader('accept-encoding', 'identity');
             },
-            error: (err, req, res) => {
+            error: (err, req, /** @type {any} */ res) => {
                 // Retry once on a fresh socket, then fall through to the
                 // baked /public bundle rather than 502 (shell requests are
                 // all GET, so every one qualifies for the retry).
                 const fallback = () => {
-                    console.warn(`[EmbedProxy] ${req.method} ${req.url}: ${err.message} — falling back to baked /public`);
+                    log.warn(`[EmbedProxy] ${req.method} ${req.url}: ${err.message} — falling back to baked /public`);
                     if (!res.headersSent && typeof req.__shellNext === 'function') {
                         return req.__shellNext();
                     }
@@ -365,7 +366,7 @@ function buildEmbedProxy() {
                     }
                 };
                 if (retryOnceOnNetworkError({ err, req, res, agent, middleware: mw, onExhausted: fallback })) {
-                    console.warn(`[EmbedProxy] retrying ${req.method} ${req.url} on a fresh socket (${err.code})`);
+                    log.warn(`[EmbedProxy] retrying ${req.method} ${req.url} on a fresh socket (${err.code})`);
                     return;
                 }
                 fallback();

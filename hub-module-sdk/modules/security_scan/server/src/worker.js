@@ -38,12 +38,12 @@ function shQuote(v) {
 
 /**
  * @param {object} deps
- * @param {object} deps.store       — the security scan store instance
- * @param {object} deps.scanRunner  — the scanRunner.service (dockerode lifecycle)
- * @param {object} deps.driver      — the driver instance (makeDriver(...))
- * @param {object} deps.host        — the module host API (net.isPrivateTarget)
+ * @param {any} deps.store       — the security scan store instance
+ * @param {any} deps.scanRunner  — the scanRunner.service (dockerode lifecycle)
+ * @param {any} deps.driver      — the driver instance (makeDriver(...))
+ * @param {any} deps.host        — the module host API (net.isPrivateTarget)
  */
-function makeWorker({ store, scanRunner, driver, host } = {}) {
+function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({})) {
     if (!store || !scanRunner || !driver || !host) throw new Error('makeWorker: store, scanRunner, driver and host are required');
     const securityScanStore = store;
     const securityScanDriver = driver;

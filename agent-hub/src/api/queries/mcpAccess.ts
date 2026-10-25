@@ -20,6 +20,8 @@ export interface McpServerScope {
     tools?: string[];
     /** CMS only: may publish / set a site live. */
     publish?: boolean;
+    /** Automations only: may start a real run (automations_run). Off unless granted. */
+    run?: boolean;
 }
 
 /** A server absent from the object = no access to that server. */

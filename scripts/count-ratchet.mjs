@@ -65,6 +65,11 @@
  *                     type, `unknown` plus narrowing, or a generic.
  *   jsdoc-loose-type  a server JSDoc type that is exactly `{any}`, `{*}`, `{Function}`, `{Object}`
  *                     or `{object}`: a value the compiler stops checking, written in a comment.
+ *   eslint-disable    `eslint-disable`, `eslint-disable-next-line` and
+ *                     `eslint-disable-line` comments in non-test code: a rule
+ *                     switched off where it fires. The target is to fix the code
+ *                     or, for a rule that is wrong for the whole file or folder,
+ *                     to change the config with a reason.
  *   as-unknown-as     `as unknown as T` double casts in non-test code: a
  *                     conversion the compiler would refuse. The target is a
  *                     type guard or a correct type at the source.
@@ -501,6 +506,12 @@ const METRICS = {
         measure: countMatches(/\{\s*(?:any|\*|Function|Object|object)\s*\}/g),
         what: 'JSDoc types that are any, *, Function, Object or object',
         advice: 'name the real type: the shape as a typedef or inline object type, a function signature `(a: string) => void`, `unknown` plus narrowing, or a generic',
+    },
+    'eslint-disable': {
+        include: (rel) => !TEST_FILE.test(rel) && /\.[cm]?[jt]sx?$/.test(rel),
+        measure: countMatches(/(?:\/\/|\/\*)\s*eslint-disable\b/g),
+        what: 'eslint-disable comments',
+        advice: 'fix what the rule flags; a rule that is wrong for a whole file belongs in the eslint config, with its reason',
     },
     'as-unknown-as': {
         include: (rel) => !TEST_FILE.test(rel),

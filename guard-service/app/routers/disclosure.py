@@ -77,4 +77,4 @@ async def classify_disclosure(req: DisclosureRequest) -> DisclosureResponse:
     except Exception:  # logging must never break a classification response
         logger.debug("disclosure.classify log line failed", exc_info=True)
 
-    return DisclosureResponse(**result)
+    return DisclosureResponse.model_validate(result)

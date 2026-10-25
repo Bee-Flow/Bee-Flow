@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import threading
 from contextlib import suppress
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 # ── Chunking ───────────────────────────────────────────────────────────
 # GLiNER (mDeBERTa) truncates inputs to config.max_len TOKENS (~384) and
@@ -77,7 +77,7 @@ class _ThreadLocalTokenizer:
     far worse — silently return a different chunk boundary.
     """
 
-    def __init__(self, factory):
+    def __init__(self, factory: Any) -> None:
         self._factory = factory
         self._local = threading.local()
         # Built eagerly so attribute reads on the loading thread work before any
@@ -87,7 +87,7 @@ class _ThreadLocalTokenizer:
         self._instances = 1
 
     @property
-    def _tok(self):
+    def _tok(self) -> Any:
         tok = getattr(self._local, "tok", None)
         if tok is None:
             tok = self._factory()
@@ -95,21 +95,21 @@ class _ThreadLocalTokenizer:
             self._instances += 1
         return tok
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self._tok(*args, **kwargs)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._prototype)
 
-    def __contains__(self, item):
+    def __contains__(self, item: Any) -> bool:
         return item in self._prototype
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         # Only reached for attributes this proxy does not define itself.
         return getattr(self._tok, name)
 
 
-def _model_limits(model) -> tuple[object | None, int]:
+def _model_limits(model: Any) -> tuple[object | None, int]:
     """Return ``(tokenizer, max_len)`` for a loaded GLiNER model.
 
     Robust to gliner version drift: reads ``config.max_len`` (falls back to
@@ -135,14 +135,14 @@ def _model_limits(model) -> tuple[object | None, int]:
     return tokenizer, max_len
 
 
-def _supports_offsets(tokenizer) -> bool:
+def _supports_offsets(tokenizer: Any) -> bool:
     """True when the tokenizer is a fast one that returns char offset mappings."""
     try:
         enc = tokenizer(
             "probe tekst", add_special_tokens=False, return_offsets_mapping=True
         )
         return bool(enc.get("offset_mapping"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - tokenizer failure falls back to character chunking
         return False
 
 
@@ -151,7 +151,7 @@ def _overlap_tokens_for(budget: int) -> int:
     return min(budget // 2, max(48, budget * 15 // 100))
 
 
-def _label_prompt_width(tokenizer, labels: list[str]) -> int:
+def _label_prompt_width(tokenizer: Any, labels: list[str]) -> int:
     """Tokens a label set puts in front of EVERY chunk it is asked about.
 
     The prompts themselves plus GLiNER's framing: one ``<<ENT>>`` marker per
@@ -163,27 +163,27 @@ def _label_prompt_width(tokenizer, labels: list[str]) -> int:
     return len(ids) + len(labels) + 1
 
 
-def _label_prompt_width_max(tokenizer, label_groups: list[list[str]]) -> int:
+def _label_prompt_width_max(tokenizer: Any, label_groups: list[list[str]]) -> int:
     """The widest _label_prompt_width over the shipped groups. Same coarse
     guess as _label_prompt_tokens where the tokenizer cannot answer."""
     worst = 0
     for group in label_groups:
         try:
             width = _label_prompt_width(tokenizer, group)
-        except Exception:
+        except Exception:  # noqa: BLE001 - tokenizer failure falls back to character chunking
             width = len(group) * 4 + len(group) + 1
         worst = max(worst, width)
     return worst
 
 
-def _label_prompt_tokens(tokenizer, label_groups: list[list[str]]) -> int:
+def _label_prompt_tokens(tokenizer: Any, label_groups: list[list[str]]) -> int:
     """Token length of the LARGEST label-group prompt (prepended to the text)."""
     worst = 0
     for group in label_groups:
         try:
             ids = tokenizer(" ".join(group), add_special_tokens=False)["input_ids"]
             worst = max(worst, len(ids))
-        except Exception:
+        except Exception:  # noqa: BLE001 - tokenizer failure falls back to character chunking
             worst = max(worst, len(group) * 4)  # coarse guess
     return worst
 
@@ -291,7 +291,7 @@ def _chunk_text_chars(text: str, limit: int | None = None) -> list[tuple[int, st
 
 def _chunk_text_tokens(
     text: str,
-    tokenizer,
+    tokenizer: Any,
     budget_tokens: int,
     overlap_tokens: int,
     char_limit: int | None = None,
@@ -307,7 +307,7 @@ def _chunk_text_tokens(
     try:
         enc = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
         offsets = enc["offset_mapping"]
-    except Exception:
+    except Exception:  # noqa: BLE001 - tokenizer failure falls back to character chunking
         return _chunk_text_chars(text, char_limit)
 
     n = len(offsets)
@@ -345,7 +345,7 @@ def _chunk_text_tokens(
 
 def _chunk_text(
     text: str,
-    tokenizer=None,
+    tokenizer: Any = None,
     budget_tokens: int | None = None,
     overlap_tokens: int | None = None,
     char_limit: int | None = None,

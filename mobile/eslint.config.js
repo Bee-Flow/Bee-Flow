@@ -130,6 +130,10 @@ const layerRules = [
 
 module.exports = [
     ...expo,
+    // A disable comment whose rule no longer fires is an error: the comment stays
+    // the exception it claims to be. (scripts/count-ratchet.mjs eslint-disable
+    // counts them; the count may only fall.)
+    { linterOptions: { reportUnusedDisableDirectives: 'error' } },
     {
         // `src/shared/expr/vendor` is the web's expression engine copied byte
         // for byte (exprVendor.lockstep.test.ts); linting it here would only

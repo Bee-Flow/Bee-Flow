@@ -39,6 +39,7 @@
 
 const config = require('./config');
 const rateLimit = require('./rateLimit');
+const log = require('./log');
 
 function originOf(url) {
     try { return new URL(url).origin; } catch { return null; }
@@ -121,12 +122,12 @@ function frameAncestorsFor(req) {
         const oversized = origin.length > MAX_ORIGIN_KEY_LEN;
         if (!shouldWarnAboutOrigin(oversized ? OVERSIZED_ORIGIN_KEY : origin)) continue;
         if (oversized) {
-            console.warn(`[Security] ignoring an oversized ${hdr} header (${origin.length} bytes) — `
+            log.warn(`[Security] ignoring an oversized ${hdr} header (${origin.length} bytes) — `
                 + 'no real origin is that long, so it is neither listed in frame-ancestors nor '
                 + 'remembered.');
             continue;
         }
-        console.warn(`[Security] refusing to allow ${origin} to frame this app — it is not this `
+        log.warn(`[Security] refusing to allow ${origin} to frame this app — it is not this `
             + `Nextcloud's origin. If the app is embedded there legitimately, add it to `
             + `BEEFLOW_TRUSTED_EMBED_ORIGINS (occ app_api:app:setenv ${config.appId} `
             + `BEEFLOW_TRUSTED_EMBED_ORIGINS ${origin}).`);
@@ -164,7 +165,7 @@ function rejectCrossSiteWrites(req, res, next) {
     if (SAFE_METHODS.has(req.method)) return next();
     const site = req.headers['sec-fetch-site'];
     if (site !== 'cross-site') return next();
-    console.warn(`[Security] blocked cross-site ${req.method} ${req.path} `
+    log.warn(`[Security] blocked cross-site ${req.method} ${req.path} `
         + `(origin: ${req.headers.origin || 'unknown'})`);
     return res.status(403).json({
         ok: false,

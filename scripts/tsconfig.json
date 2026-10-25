@@ -1,0 +1,23 @@
+{
+  // Type checking of the plain-JS repo tooling (scripts/*.mjs), no build step:
+  // `npm run lint:scripts-types`. Loose on purpose (strict off): it finds the
+  // wrong property, the wrong argument count and the undefined name, not every
+  // missing annotation. The tests are not checked: their fixtures are loose objects
+  // by design (a half-built manifest, a stub server) and would only add noise.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "node20",
+    "moduleResolution": "node16",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node"]
+  },
+  "include": ["./*.mjs", "./*.cjs", "./*.js", "./ambient.d.ts"],
+  "exclude": ["node_modules", "./*.test.mjs"]
+}

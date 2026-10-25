@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { LEVELS, LEVEL_OPTIONS, checkLevels, checkedFiles, cleanAt, levelOfText, markedFiles, measure, parseDiagnostics, promote, runTypecheck, withLevel } from './typecheck.mjs';
+import { LEVELS, MTS_OPTIONS, LEVEL_OPTIONS, checkLevels, checkedFiles, cleanAt, levelOfText, markedFiles, measure, parseDiagnostics, promote, runTypecheck, withLevel } from './typecheck.mjs';
 
 function sandbox({ marked, dep }) {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'typecheck-'));
@@ -45,6 +45,16 @@ test('an error in a marked file is reported with file, position and code', (t) =
     assert.equal(diagnostics[0].file, 'marked.js');
     assert.equal(diagnostics[0].line, 4);
     assert.equal(diagnostics[0].code, 'TS2322');
+});
+
+test('an .mts file needs no marker and is checked strictly, with only erasable syntax', (t) => {
+    const dir = sandbox({ marked: 'module.exports = {};\n', dep: CLEAN_DEP });
+    writeFileSync(path.join(dir, 'tree.mts'), 'export const f = (x) => x;\nexport enum E { A }\nexport const ok: number = 1;\n');
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    assert.deepEqual(checkedFiles(dir), ['tree.mts'], 'listed without a marker, next to unmarked .js');
+    const { diagnostics, crashed } = runTypecheck(['tree.mts'], { dir, level: 'mts' });
+    assert.equal(crashed, false);
+    assert.deepEqual(diagnostics.map((d) => d.code).sort(), ['TS1294', 'TS7006']);
 });
 
 test('an error in an unmarked dependency is not reported', (t) => {
@@ -102,7 +112,8 @@ test('withLevel rewrites only the marker line', () => {
 });
 
 test('the strict level switches on the strict family and leaves catch variables alone', () => {
-    assert.deepEqual(LEVELS, ['base', 'noImplicitAny', 'strict']);
+    assert.deepEqual(LEVELS, ['base', 'noImplicitAny', 'strict', 'mts']);
+    assert.deepEqual(LEVEL_OPTIONS.mts, MTS_OPTIONS);
     assert.deepEqual(LEVEL_OPTIONS.base, {});
     assert.deepEqual(Object.keys(LEVEL_OPTIONS.strict).sort(), ['alwaysStrict', 'noImplicitAny', 'noImplicitThis', 'strictBindCallApply', 'strictFunctionTypes', 'strictNullChecks', 'useUnknownInCatchVariables']);
     assert.equal(LEVEL_OPTIONS.strict.useUnknownInCatchVariables, false);
@@ -114,7 +125,7 @@ function levelSandbox(files) {
     return dir;
 }
 
-test('markedFiles includes .mts and .cts, skips declarations, and reports each level', (t) => {
+test('markedFiles includes .mts (always level mts, marker or not) and .cts, skips declarations, and reports each level', (t) => {
     const dir = levelSandbox({
         'a.mts': '// @typecheck strict\nexport const a: number = 1;\n',
         'b.cts': '// @typecheck noImplicitAny\nexport {};\n',
@@ -123,11 +134,11 @@ test('markedFiles includes .mts and .cts, skips declarations, and reports each l
     });
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     assert.deepEqual(markedFiles(dir), [
-        { file: 'a.mts', level: 'strict' },
+        { file: 'a.mts', level: 'mts' },
         { file: 'b.cts', level: 'noImplicitAny' },
         { file: 'marked.js', level: 'base' },
     ]);
-    assert.deepEqual(checkedFiles(dir, '', 'strict'), ['a.mts']);
+    assert.deepEqual(checkedFiles(dir, '', 'mts'), ['a.mts']);
 });
 
 test('each level is checked under its own options: an implicit any fails only from noImplicitAny up', (t) => {

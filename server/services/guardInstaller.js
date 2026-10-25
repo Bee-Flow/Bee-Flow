@@ -21,6 +21,8 @@ const Docker = require('dockerode');
 const configStore = require('../stores/configStore');
 const { invalidateGuardEndpointCache } = require('../core/privacy/piiDetection');
 const log = require('../telemetry/log');
+const { resolveGuardApiKey } = require('./guardApiKey');
+const { startRedis: startGuardRedis } = require('./guardRedis');
 const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     removeContainerIfExists: removeContainer,
@@ -427,42 +429,8 @@ async function resolveGuardImage(docker) {
     return buildTag;
 }
 
-async function ensureVolume(docker, name) {
-    try {
-        await docker.getVolume(name).inspect();
-        return;
-    } catch (err) {
-        if (err.statusCode !== 404) throw err;
-    }
-    await docker.createVolume({ Name: name });
-}
-
 function removeContainerIfExists(docker, name) {
     return removeContainer(docker, name, 10);
-}
-
-async function startRedis(docker) {
-    await ensureVolume(docker, REDIS_VOLUME);
-    const container = await docker.createContainer({
-        name: REDIS_CONTAINER,
-        Image: 'redis:7-alpine',
-        Cmd: ['redis-server', '--maxmemory', '256mb', '--maxmemory-policy', 'allkeys-lru'],
-        HostConfig: {
-            Binds: [`${REDIS_VOLUME}:/data`],
-            RestartPolicy: { Name: 'unless-stopped' },
-            NetworkMode: GUARD_NETWORK,
-        },
-        NetworkingConfig: {
-            EndpointsConfig: { [GUARD_NETWORK]: { Aliases: [REDIS_CONTAINER] } },
-        },
-        Healthcheck: {
-            Test: ['CMD', 'redis-cli', 'ping'],
-            Interval: 10_000_000_000,
-            Timeout: 5_000_000_000,
-            Retries: 3,
-        },
-    });
-    await container.start();
 }
 
 /**
@@ -548,7 +516,7 @@ async function waitForHealth(url, apiKey) {
     throw new Error('guard-service did not become healthy within 300s');
 }
 
-async function _doInstall({ apiKey, model }) {
+async function _doInstall({ apiKey: requestedApiKey, model }) {
     await configStore.setConfig('pii_guard_installed', STATUS.INSTALLING);
     await configStore.setConfig('pii_guard_last_error', '');
     _setProgress('starting', { message: 'Preparing install…', percent: 0 });
@@ -560,6 +528,8 @@ async function _doInstall({ apiKey, model }) {
 
     try {
         const docker = getDocker();
+        // The guard refuses to start without a key (it fails closed): never an empty one.
+        const apiKey = await resolveGuardApiKey(requestedApiKey, () => configStore.getSecret('pii_guard_api_key'));
         await ensureNetwork(docker, GUARD_NETWORK);
 
         // Decide how the server will reach the guard container.
@@ -574,7 +544,7 @@ async function _doInstall({ apiKey, model }) {
         await ensureImage(docker, 'redis:7-alpine', 'redis:7-alpine');
         _setProgress('starting', { message: 'Starting Redis cache…', percent: null });
         await removeContainerIfExists(docker, REDIS_CONTAINER);
-        await startRedis(docker);
+        await startGuardRedis(docker, { container: REDIS_CONTAINER, volume: REDIS_VOLUME, network: GUARD_NETWORK });
 
         // resolveGuardImage emits its own pull/build progress events.
         stage = 'guard-image';
@@ -589,7 +559,7 @@ async function _doInstall({ apiKey, model }) {
         await waitForHealth(guardUrl, apiKey || '');
 
         await configStore.setConfig('pii_guard_url', guardUrl);
-        if (apiKey) await configStore.setSecret('pii_guard_api_key', apiKey);
+        await configStore.setSecret('pii_guard_api_key', apiKey);
         if (model) await configStore.setConfig('pii_guard_model', model);
         await configStore.setConfig('pii_guard_installed', STATUS.RUNNING);
         invalidateGuardEndpointCache();

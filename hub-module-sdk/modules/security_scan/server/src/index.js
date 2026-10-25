@@ -31,7 +31,7 @@ const TICK_INTERVAL_MS = 15000;
 const REAP_INTERVAL_MS = 120000;
 
 /**
- * @param {import('../../test/hostMock.js').Host} host
+ * @param {any} host
  */
 function createModule(host) {
     // Wire the pieces via small factories, each receiving only the host

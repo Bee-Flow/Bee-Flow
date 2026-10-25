@@ -1,0 +1,5 @@
+{
+  "_comment": "Most errors `tsc -p hub-module-sdk/tsconfig.strict.json` may report. Lower it with `node scripts/tsc-error-ratchet.mjs hub-module-sdk --update` after typing code; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-10-24",
+  "errors": 364
+}

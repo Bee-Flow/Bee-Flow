@@ -9,7 +9,7 @@ const router = express.Router();
 // The caller's organisation (see crudContext.js for why it is async and read
 // fresh), the knowledge-base findings and the one access answer.
 const { orgOf, kbFindingsFor, automationAccess, worded } = require('./crudContext');
-const { registerFolderRoutes } = require('./folders');
+const { registerFolderRoutes, folderIdForUpdate } = require('./folders');
 const { registerFormRoutes } = require('./forms');
 const { registerTemplateAndImportRoutes, registerExportRoute } = require('./importExport');
 
@@ -476,9 +476,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     // Which sidebar folder this automation sits in. `null` puts it back at the
     // top level, so the value is copied on `!== undefined` rather than on
     // truthiness — otherwise an automation could be filed but never unfiled.
-    if (req.body.folderId !== undefined) {
-        updates.folderId = req.body.folderId || null;
-    }
+    if (req.body.folderId !== undefined) updates.folderId = await folderIdForUpdate(req.body.folderId, await orgOf(req));
 
     // Test on `!== undefined`, NOT truthiness: line 199 already copied the
     // field in on `!== undefined`, so a null/falsy definition used to skip

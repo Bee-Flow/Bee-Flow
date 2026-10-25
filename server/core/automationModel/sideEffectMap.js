@@ -66,8 +66,8 @@ const READ_ONLY = new Set([
     // AFAS Profit (read-only integration by design) / NMBRS payroll reads
     'afas_list_connectors', 'afas_describe_connector', 'afas_query',
     'nmbrs_list_debtors', 'nmbrs_list_companies', 'nmbrs_list_employees', 'nmbrs_get_employee',
-    'nmbrs_list_employee_contracts', 'nmbrs_list_employee_salaries',
-    'nmbrs_list_employee_wage_components', 'nmbrs_list_payslips',
+    'nmbrs_list_employee_contracts', 'nmbrs_list_employee_salaries', 'nmbrs_list_employee_wage_components', 'nmbrs_list_payslips',
+    'nmbrs_list_company_employments', 'nmbrs_list_company_lease_cars', 'nmbrs_list_company_svw_settings', 'nmbrs_list_company_runs', 'nmbrs_list_company_personal_info', 'nmbrs_list_company_contracts',
     // vPlan (read-only planning integration by design)
     'vplan_whoami', 'vplan_list_boards', 'vplan_list_resources', 'vplan_get_resource_availability',
     'vplan_list_activities', 'vplan_list_collections', 'vplan_get_collection', 'vplan_list_cards',

@@ -9,6 +9,7 @@ therefore also part of the engine fingerprint — hence the digest here.
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Iterator
 
 from .categories import GLINER_LABELS_TO_CATEGORY
 
@@ -108,7 +109,7 @@ def label_groups() -> list[list[str]]:
 
 
 @contextlib.contextmanager
-def use_label_groups(groups: list[list[str]]):
+def use_label_groups(groups: list[list[str]]) -> Iterator[None]:
     """Run a block against a candidate partition instead of the shipped one.
 
     For the eval harness. A context manager rather than a setter because a

@@ -216,7 +216,7 @@ export async function loadFeeds(pins, fetchImpl = fetch) {
     return { nodeIndex, eol };
 }
 
-export async function run({ root = ROOT, files, fetchImpl = fetch, today = new Date().toISOString().slice(0, 10) } = {}) {
+export async function run({ root = ROOT, files, fetchImpl = fetch, today = new Date().toISOString().slice(0, 10) } = /** @type {any} */ ({})) {
     const pins = discover(root, files);
     const feeds = await loadFeeds(pins, fetchImpl);
     return { pins: pins.length, findings: pins.flatMap((p) => judge(p, feeds, today)) };

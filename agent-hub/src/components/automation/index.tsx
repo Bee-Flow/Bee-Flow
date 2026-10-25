@@ -57,6 +57,7 @@ function AutomationListSection({ library, visibleAutomations, visibleStepCount, 
                 folders={folders}
                 filtering={filtering}
                 onCreateFolder={library.createFolder}
+                onMoveFolder={library.moveFolder}
                 onRenameFolder={library.renameFolder}
                 onDeleteFolder={library.deleteFolder}
                 onMoveToFolder={library.moveToFolder}

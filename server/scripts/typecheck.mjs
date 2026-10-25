@@ -25,7 +25,8 @@
  *   // @typecheck strict           strictNullChecks, noImplicitAny, strictBindCallApply,
  *                                  strictFunctionTypes, noImplicitThis, alwaysStrict
  *                                  (useUnknownInCatchVariables stays off)
- * .js, .cjs, .mjs, .mts and .cts files count. A new file starts at `strict`
+ * .js, .cjs, .mjs and .cts files count. A .mts file needs no marker: it is always checked at the
+ * fourth level, 'mts' (strict plus erasableSyntaxOnly, see MTS_OPTIONS). A new file starts at `strict`
  * (scripts/check-new-code-types.mjs); an old one moves up a level at a time.
  * scripts/checkjs-ratchet.mjs keeps the number of files per level from falling.
  *
@@ -56,9 +57,16 @@ export const SOURCE_FILE = /\.(?:[cm]?js|[cm]ts)$/;
 const DECLARATION = /\.d\.[cm]?ts$/;
 const TEST_FILE = /\.test\.[cm]?[jt]s$|\.testkit\.|\.testutil\./;
 
-/** @typedef {'base' | 'noImplicitAny' | 'strict'} Level */
+/** @typedef {'base' | 'noImplicitAny' | 'strict' | 'mts'} Level */
 /** @type {Level[]} */
-export const LEVELS = ['base', 'noImplicitAny', 'strict'];
+export const LEVELS = ['base', 'noImplicitAny', 'strict', 'mts'];
+
+/**
+ * What `.mts` files are checked under, on top of jsconfig.json: strict, and only
+ * syntax Node can strip (no enums, namespaces or parameter properties), because
+ * these files run as they are written.
+ */
+export const MTS_OPTIONS = Object.freeze({ strict: true, noImplicitAny: true, strictNullChecks: true, erasableSyntaxOnly: true });
 
 /** Compiler options each level adds on top of jsconfig.json. */
 export const LEVEL_OPTIONS = {
@@ -73,6 +81,8 @@ export const LEVEL_OPTIONS = {
         alwaysStrict: true,
         useUnknownInCatchVariables: false,
     },
+    // .mts files: no marker, always strict, erasable syntax only (see MTS_OPTIONS).
+    mts: { ...MTS_OPTIONS },
 };
 
 /**
@@ -117,6 +127,9 @@ export function markedFiles(dir = SERVER_DIR, prefix = '') {
         const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
         if (entry.isDirectory()) {
             if (!SKIP.has(entry.name)) out.push(...markedFiles(path.join(dir, entry.name), rel));
+        } else if (entry.isFile() && /\.mts$/.test(entry.name) && !DECLARATION.test(entry.name)) {
+            // TypeScript source needs no marker: it is always checked, strictly (level 'mts').
+            out.push({ file: rel, level: 'mts' });
         } else if (entry.isFile() && SOURCE_FILE.test(entry.name) && !DECLARATION.test(entry.name)) {
             const level = levelOfText(readFileSync(path.join(dir, entry.name), 'utf8'));
             if (level) out.push({ file: rel, level });
@@ -167,15 +180,15 @@ export function parseDiagnostics(output) {
  * With `single` the generated config gets a per-process name, so parallel
  * `--file` runs never overwrite each other's.
  * @param {string[]} files
- * @param {{ dir?: string, single?: boolean, tsc?: string, level?: Level }} [opts]
+ * @param {{ dir?: string, single?: boolean, tsc?: string, level?: Level, compilerOptions?: Record<string, unknown> }} [opts]
  */
-export function runTypecheck(files, { dir = SERVER_DIR, single = false, tsc = TSC, level = 'base' } = {}) {
+export function runTypecheck(files, { dir = SERVER_DIR, single = false, tsc = TSC, level = 'base', compilerOptions = {} } = {}) {
     const ambient = readdirSafe(path.join(dir, 'types')).filter((f) => f.endsWith('.d.ts')).map((f) => `types/${f}`);
     const tag = level === 'base' ? '' : `${level.toLowerCase()}.`;
     const configPath = path.join(dir, single ? `.typecheck.${tag}${process.pid}.tsconfig.json` : `.typecheck.${tag}tsconfig.json`);
     const config = {
         extends: './jsconfig.json',
-        compilerOptions: { checkJs: true, noEmit: true, ...LEVEL_OPTIONS[level] },
+        compilerOptions: { checkJs: true, noEmit: true, ...LEVEL_OPTIONS[level], ...compilerOptions },
         files: [...files, ...ambient],
     };
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
@@ -344,9 +357,9 @@ function main(args) {
     const diagnostics = runs.flatMap((r) => r.diagnostics.map((d) => ({ ...d, level: r.level })));
     if (diagnostics.length > 0) {
         for (const d of diagnostics) console.log(`${formatDiagnostic(d)}${d.level === 'base' ? '' : `  [${d.level}]`}`);
-        console.error(`\ntypecheck: ${diagnostics.length} error(s) in ${single ? marked[0].file : 'files marked // @typecheck'}`);
+        console.error(`\ntypecheck: ${diagnostics.length} error(s) in ${single ? marked[0].file : 'files marked // @typecheck or .mts'}`);
         process.exit(1);
     }
     const counts = LEVELS.map((l) => `${marked.filter((f) => f.level === l).length} ${l}`).join(', ');
-    console.log(single ? `typecheck: ${marked[0].file}, no errors` : `typecheck: ${marked.length} file(s) with // @typecheck (${counts}), no errors`);
+    console.log(single ? `typecheck: ${marked[0].file}, no errors` : `typecheck: ${marked.length} file(s) (// @typecheck or .mts: ${counts}), no errors`);
 }

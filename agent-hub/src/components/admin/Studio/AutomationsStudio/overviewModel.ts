@@ -129,6 +129,17 @@ export function triggerKindOf(a: AutomationRecord | null | undefined) {
     return TRIGGER_KINDS.includes(kind) ? kind : 'other';
 }
 
+/**
+ * The trigger kinds the overview's filter folds into "Other", still named in
+ * a row's own text: "Form submitted" says more than "Other".
+ */
+const OTHER_KIND_TEXT: Readonly<Record<string, [string, string]>> = Object.freeze({
+    form: ['studio_misc.overview.trigger_form', 'Form submitted'],
+    app_trigger: ['studio_misc.overview.trigger_app_trigger', 'App button'],
+    agent_call: ['studio_misc.overview.trigger_agent_call', 'Called by an agent'],
+    layer_input: ['studio_misc.overview.trigger_layer_input', 'Flowlet input'],
+});
+
 /** "meeting-notes" → "Meeting notes"; "meeting.processed" → "meeting processed". */
 const words = (s: string) => String(s || '').replace(/[-_.]+/g, ' ').trim();
 
@@ -154,6 +165,11 @@ export function triggerTextOf(a: AutomationRecord | null | undefined, t: Transla
         return ev?.provider || ev?.event ? appEventText(ev) : triggerLabelOf('app_event', t);
     }
     if (kind === 'manual') return t ? t('studio_misc.overview.trigger_by_hand', 'Started by hand') : 'Started by hand';
+    if (kind === 'other') {
+        const raw = a?.triggerType || (a?.definition as AutomationDefinition | null | undefined)?.trigger?.kind || '';
+        const named = OTHER_KIND_TEXT[raw];
+        if (named) return t ? t(named[0], named[1]) : named[1];
+    }
     return triggerLabelOf(kind, t);
 }
 
@@ -302,6 +318,9 @@ export function countFolders(rows: AutomationRecord[], folders: ProjectContextPi
     }
     return counts;
 }
+
+/** A folder's name in the filter: its path ("Finance / Invoices"), so two folders called "2026" can be told apart. */
+export { folderPath as folderLabel } from '../../../automation/folderTree';
 
 const ts = (v: DateLike) => {
     if (!v) return null;

@@ -1,5 +1,5 @@
 // GENERATED from server/core/cms/emojiCatalog.js by scripts/gen-shared-mirror.mjs — do not edit
-// @typecheck
+// @typecheck strict
 /**
  * Emoji Catalog — the canonical list of themable emojis the Appearance panel
  * exposes. Every entry has a stable `id`, a human `label`, and a `defaultEmoji`

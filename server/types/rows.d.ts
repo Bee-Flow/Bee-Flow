@@ -442,6 +442,7 @@ declare namespace DbRow {
         id: string;
         name: string;
         organization_id: string | null;
+        parent_id: string | null;
         updated_at: Date | null;
     }
     /** Row of `automation_form_pages`. */

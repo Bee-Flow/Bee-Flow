@@ -40,13 +40,21 @@ class DisclosureService:
     _instance: DisclosureService | None = None
     _singleton_lock = threading.Lock()
 
+    _encoder: SentenceEncoder
+    _anchor_vectors: list[list[float]]
+    _anchor_ids: list[str]
+    _split: int
+    _ready: bool
+    _load_error: str | None
+    _fingerprint: str | None
+
     def __new__(cls) -> DisclosureService:
         with cls._singleton_lock:
             if cls._instance is None:
                 obj = super().__new__(cls)
                 obj._encoder = SentenceEncoder()
-                obj._anchor_vectors: list[list[float]] = []
-                obj._anchor_ids: list[str] = []
+                obj._anchor_vectors = []
+                obj._anchor_ids = []
                 obj._split = 0
                 obj._ready = False
                 obj._load_error = None
@@ -121,9 +129,7 @@ class DisclosureService:
             self._load_error = f"{type(exc).__name__}: {exc}"
             self._anchor_vectors, self._anchor_ids, self._split = [], [], 0
             self._fingerprint = None
-            logger.error(
-                "[Disclosure] anchor bank failed to embed: %s", exc, exc_info=True
-            )
+            logger.exception("[Disclosure] anchor bank failed to embed: %s", exc)
 
     # ── classification ───────────────────────────────────────────────────
     def _no_opinion(self, reason: str, segment_count: int = 0) -> dict:
@@ -155,7 +161,7 @@ class DisclosureService:
             return self._no_opinion("no_scannable_text")
         try:
             vectors = self._encoder.encode(pieces)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - an encoder failure answers no opinion
             logger.warning("[Disclosure] encode failed: %s", exc)
             return self._no_opinion("encode_failed", len(pieces))
         if len(vectors) != len(pieces):
@@ -173,12 +179,19 @@ class DisclosureService:
         # The text's verdict is its BEST segment's — a disclosure is one
         # sentence in a page of instructions, so the page's average says
         # nothing about whether that sentence is in it.
-        best = None
+        # Seeded below any real gap; `vectors` is non-empty here, so the loop replaces it.
+        best: tuple[float, float, float, str | None, str | None] = (
+            float("-inf"),
+            0.0,
+            0.0,
+            None,
+            None,
+        )
         for vec in vectors:
             pos, pos_id = best_similarity(vec, pos_vecs, pos_ids)
             neg, neg_id = best_similarity(vec, neg_vecs, neg_ids)
             gap = pos - neg
-            if best is None or gap > best[0]:
+            if gap > best[0]:
                 best = (gap, pos, neg, pos_id, neg_id)
 
         gap, pos, neg, pos_id, neg_id = best

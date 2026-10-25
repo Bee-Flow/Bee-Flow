@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
@@ -39,7 +40,7 @@ def reset_gate() -> None:
     _gate = None
 
 
-def not_ready_detail(service) -> str:
+def not_ready_detail(service: Any) -> str:
     return "model_error" if service.load_error else "model_loading"
 
 
@@ -73,7 +74,9 @@ def _result(scored: Scored, char_cut: bool, threshold: float | None) -> Classify
     )
 
 
-async def _score(service, req: ClassifyRequest) -> tuple[list[ClassifyResult], float]:
+async def _score(
+    service: Any, req: ClassifyRequest
+) -> tuple[list[ClassifyResult], float]:
     texts, char_cut = _cut(req.texts, settings.max_chars)
     started = time.perf_counter()
     try:
@@ -82,7 +85,7 @@ async def _score(service, req: ClassifyRequest) -> tuple[list[ClassifyResult], f
         scored = await asyncio.to_thread(
             service.classify, texts, req.labels, settings.label_mode
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - any engine failure becomes the service error answer
         logger.error(
             "classify.failed error=%s texts=%d labels=%d",
             type(exc).__name__,

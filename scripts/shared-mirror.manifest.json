@@ -10,7 +10,9 @@
         "mobile/src/features/orgPeople/mirror",
         "mobile/src/features/projects/mirror",
         "mobile/src/features/orgShield/mirror",
-        "mobile/src/shared/markdown/mirror"
+        "mobile/src/shared/markdown/mirror",
+        "guard-service/app/shared",
+        "classify-service/app/shared"
     ],
     "entries": [
         {
@@ -319,6 +321,28 @@
             "target": "mobile/src/shared/markdown/mirror/markdownRules.ts",
             "transform": "none",
             "why": "The pure rules of the web's MarkdownRenderer (wrapping-fence and :::directive patterns, webpage/document link cards, heading slug and anchor key, code-block language labels): the phone's parse/ and renderers/ tests run the web's own copy beside their ports."
+        },
+        {
+            "source": "python-shared/beeflow_service",
+            "target": "guard-service/app/shared",
+            "transform": "none",
+            "include": [
+                "__init__.py",
+                "api_key_auth.py",
+                "startup.py"
+            ],
+            "why": "The API-key middleware and the fail-closed start-up check, identical in both sidecars. The guard-service image builds with context ./guard-service and cannot see python-shared/; tests live in python-shared/tests."
+        },
+        {
+            "source": "python-shared/beeflow_service",
+            "target": "classify-service/app/shared",
+            "transform": "none",
+            "include": [
+                "__init__.py",
+                "api_key_auth.py",
+                "startup.py"
+            ],
+            "why": "The API-key middleware and the fail-closed start-up check, identical in both sidecars. The classify-service image builds with context ./classify-service and cannot see python-shared/; tests live in python-shared/tests."
         }
     ]
 }

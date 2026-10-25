@@ -157,6 +157,7 @@ function killTree(child) {
     }
 }
 
+/** @type {Set<import('node:child_process').ChildProcess>} */
 const running = new Set();
 
 /** Run one gate. Resolves to { code, signal, output, timedOut, error, ms }. */
@@ -166,12 +167,14 @@ function runGate(gate, { root, env, bash, timeoutMs }) {
         const chunks = [];
         let timedOut = false;
         let timer = null;
+        /** @type {import('node:child_process').ChildProcess} */
         let child;
         const finish = (fields) => {
             clearTimeout(timer);
             running.delete(child);
             resolve({ code: null, signal: null, timedOut, ...fields, output: Buffer.concat(chunks).toString('utf8'), ms: Date.now() - started });
         };
+        /** @type {import('node:child_process').SpawnOptions} */
         const opts = {
             cwd: root,
             env,
@@ -288,7 +291,7 @@ const USAGE = 'usage: node scripts/check-fast.mjs [--list [--slack]] [--only <su
  * @param {string[]} [o.argv]      CLI arguments
  * @param {string} [o.root]        directory holding the package.json
  * @param {(candidates?: string[]) => string|null} [o.findBash]
- * @param {(root: string) => object[]} [o.branchGates]
+ * @param {(root: string) => any[]} [o.branchGates]
  * @param {number} [o.parallel]
  * @param {number} [o.timeoutMs]
  * @param {number} [o.slowMs]      a gate slower than this is named in the summary
@@ -408,7 +411,7 @@ export async function main({
 // Run as a command, not imported by a test (see entry-point.mjs).
 if (isEntryPoint(import.meta.url)) {
     // Ctrl-C: the gates run in their own process groups, so take them along.
-    for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143]]) {
+    for (const [sig, code] of /** @type {[NodeJS.Signals, number][]} */ ([['SIGINT', 130], ['SIGTERM', 143]])) {
         process.on(sig, () => {
             for (const child of running) killTree(child);
             process.exit(code);

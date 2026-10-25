@@ -1,31 +1,21 @@
-import {
-    ArrowDown, ArrowUp, Bot, Clock, Mail, MoreVertical, MousePointer2, Plus, Webhook, Workflow,
-    type LucideIcon,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Workflow } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import ContextMenu from './ContextMenu';
 import {
     GROUPS, NO_FOLDER, SORTS, TRIGGER_KINDS, VIEWS,
-    type AutomationRecord, type OverviewLane, type RunIdSet,
-    countFolders, countStates, countTriggers, filterRows, flowSummaryOf, groupRows, isFailing, sortRows,
-    statusLabelOf, triggerKindOf, triggerLabelOf, triggerTextOf,
+    countFolders, countStates, countTriggers, filterRows, flowSummaryOf, folderLabel, groupRows, sortRows,
+    statusLabelOf, triggerLabelOf, triggerTextOf,
 } from './overviewModel';
+import { OutcomeBit, StatusBadge, TriggerTile, titleOf, useRowMenu } from './OverviewBits';
+import { Card, CardsView } from './OverviewCards';
 import OverviewToolbar, { type PillOption } from './OverviewToolbar';
-import StepStrip from './StepStrip';
-import { buildAutomationMenuItems } from './automationMenuItems';
 import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { formatNextRun } from '../../../automation/taskFormatters';
 import EmptyState from '../../../shared/EmptyState';
-import { kindColorVar } from '../../../shared/kindColors';
 import Modal from '../../../shared/Modal';
-import { automation as lifecycleOf } from '../../../shared/statusOf';
-import { STATUS_TOKENS, statusLabel, tokenFor } from '../../../shared/statusTokens';
-import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill';
-import type { AutomationRowProps } from './AutomationRow';
-import type { Point } from '../map/studioMap.types';
-import type { RowPropsFn, AutomationsOverviewProps, NewFolderDialogProps, LifecycleChipProps, OutcomeChipProps, TriggerGlyphProps, SortHeadProps, ListViewProps, NameCellProps, ListRowProps, CardsViewProps, CardProps, BoardViewProps } from './AutomationsOverview.types';
+import { STATUS_TOKENS } from '../../../shared/statusTokens';
+import type { AutomationsOverviewProps, NewFolderDialogProps, SortHeadProps, ListViewProps, NameCellProps, ListRowProps, BoardViewProps } from './AutomationsOverview.types';
 import { logger } from '../../../../utils/logger';
 
 /**
@@ -71,8 +61,6 @@ import { logger } from '../../../../utils/logger';
 const VIEW_KEY = 'automationsOverviewView';
 const SORT_KEY = 'automationsOverviewSort';
 const GROUP_KEY = 'automationsOverviewGroup';
-
-const TRIGGER_ICON: Record<string, LucideIcon> = { schedule: Clock, manual: MousePointer2, webhook: Webhook, app_event: Mail, other: Bot };
 
 // The column every view shares on a wide screen: the toolbar, the table, the
 // cards and the board stay in one centred column instead of spreading a
@@ -164,7 +152,7 @@ export default function AutomationsOverview({
     const folderOptions = folders.length === 0 ? [] : [
         { value: 'all', label: t('studio_misc.overview.filter_any_folder', 'Any folder'), count: folderCounts.all },
         { value: NO_FOLDER, label: t('studio_misc.overview.no_folder', 'No folder'), count: folderCounts[NO_FOLDER] },
-        ...folders.map(f => ({ value: f.id, label: f.name || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
+        ...folders.map(f => ({ value: f.id, label: folderLabel(folders, f.id) || t('studio_misc.overview.untitled_folder', 'Untitled folder'), count: folderCounts[f.id] })),
     ];
 
     let body: React.JSX.Element;
@@ -195,7 +183,7 @@ export default function AutomationsOverview({
             </div>
         );
     } else if (view === 'cards') {
-        body = <CardsView rows={rows} rowProps={rowProps} activeRunIds={activeRunIds} />;
+        body = <CardsView rows={rows} folders={folders} rowProps={rowProps} activeRunIds={activeRunIds} column={COLUMN} />;
     } else if (view === 'board') {
         body = <BoardView lanes={lanes} groupBy={groupBy} rowProps={rowProps} activeRunIds={activeRunIds} />;
     } else {
@@ -288,117 +276,6 @@ function NewFolderDialog({ onCreate, onClose }: NewFolderDialogProps) {
     );
 }
 
-// ── Building blocks shared by the three views ───────────────────────
-
-function LifecycleChip({ automation }: LifecycleChipProps) {
-    const { t } = useTranslation();
-    const status = lifecycleOf(automation);
-    const live = status === 'live';
-    return (
-        <span
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium"
-            data-testid="overview-lifecycle"
-            data-status={status}
-            style={{ color: live ? 'var(--success-ink)' : 'var(--text-secondary)' }}
-        >
-            <span
-                className="h-1.5 w-1.5 rounded-full"
-                aria-hidden="true"
-                style={live
-                    ? { background: 'var(--success)' }
-                    : status === 'draft'
-                        ? { background: 'transparent', boxShadow: 'inset 0 0 0 1.5px var(--text-tertiary)' }
-                        : { background: 'var(--text-tertiary)' }}
-            />
-            {statusLabelOf(status, t)}
-        </span>
-    );
-}
-
-function OutcomeChip({ automation, liveRunning, t }: OutcomeChipProps) {
-    if (liveRunning) {
-        const tok = STATUS_TOKENS.running;
-        const Icon = tok.icon;
-        return (
-            <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${tok.badge}`}>
-                <Icon className="w-3 h-3 animate-spin" aria-hidden="true" />{statusLabel(t, tok)}
-            </span>
-        );
-    }
-    if (!automation.lastStatus) return <span className="text-xs text-[var(--text-tertiary)]">{t('studio_misc.overview.never_ran', 'Never ran')}</span>;
-    const tok = tokenFor(automation.lastStatus);
-    const Icon = tok.icon;
-    return (
-        <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${tok.badge}`}>
-            <Icon className={`w-3 h-3 ${tok.spin ? 'animate-spin' : ''}`} aria-hidden="true" />{statusLabel(t, tok)}
-        </span>
-    );
-}
-
-function TriggerGlyph({ automation, size = 14, className = '' }: TriggerGlyphProps) {
-    const Icon = TRIGGER_ICON[triggerKindOf(automation)];
-    return <Icon size={size} aria-hidden="true" className={className} />;
-}
-
-/**
- * The icon tile's colours: the automation kind's teal while the automation is
- * on, plain grey when it is off or a draft, red when its last run failed —
- * so a column of tiles reads as a column of states before a word is read.
- */
-function tileStyle(automation: AutomationRecord | null) {
-    if (isFailing(automation)) {
-        return { background: 'color-mix(in srgb, var(--error) 12%, transparent)', color: 'var(--error-ink)' };
-    }
-    if (lifecycleOf(automation) === 'live') {
-        const c = kindColorVar('automation');
-        return { background: `color-mix(in srgb, ${c} 12%, transparent)`, color: c };
-    }
-    return { background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' };
-}
-
-/** The kebab + its menu — one per row/card/tile, opened on click or right-click. */
-function useRowMenu(props: AutomationRowProps | null | undefined) {
-    const { t } = useTranslation();
-    const [pos, setPos] = useState<Point | null>(null);
-    const items = useMemo(() => buildAutomationMenuItems({
-        isAutomation: true,
-        isActive: !!props?.automation?.isActive,
-        onToggleActive: props?.onToggleActive,
-        onOpenRuns: props?.onOpenRuns,
-        onDuplicate: props?.onDuplicate,
-        onExportJson: props?.onExportJson,
-        onMoveToFolder: props?.onMoveToFolder,
-        onCopyId: props?.onCopyId,
-        onDelete: props?.onDelete,
-        t,
-    }), [props, t]);
-    const onContextMenu = (e: React.MouseEvent) => {
-        if (!items.length) return;
-        e.preventDefault();
-        setPos({ x: e.clientX, y: e.clientY });
-    };
-    const onKebab = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-        e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
-        setPos({ x: rect.right, y: rect.bottom });
-    };
-    const menu = <ContextMenu position={pos} items={items} onClose={() => setPos(null)} />;
-    const kebab = items.length > 0 && (
-        <button
-            type="button"
-            onClick={onKebab}
-            title={t('studio_misc.overview.more_options', 'More options')}
-            aria-label={t('studio_misc.overview.more_options', 'More options')}
-            className="opacity-60 group-hover:opacity-100 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] rounded p-0.5 transition"
-        >
-            <MoreVertical size={14} aria-hidden="true" />
-        </button>
-    );
-    return { onContextMenu, kebab, menu };
-}
-
-const TITLE = (a: AutomationRecord, t: TranslateFn) => a.title || t('studio_misc.overview.untitled_automation', 'Untitled automation');
-
 // ── List ─────────────────────────────────────────────────────────────
 
 // The columns by the overview's OWN width (@container/overview). A laptop
@@ -470,16 +347,14 @@ function NameCell({ automation: a, liveRunning, onSelect }: NameCellProps) {
     const secondLine = description || flowSummaryOf(a, t);
     return (
         <button type="button" onClick={onSelect} className="text-left min-w-0 flex items-center gap-3">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md shrink-0" style={tileStyle(a)}>
-                <TriggerGlyph automation={a} size={13} />
-            </span>
+            <TriggerTile automation={a} size="md" />
             {/* Narrow: the description sits under the title, so neither
                 is cut to a stub. Wide: beside it, where the description
                 gives way first and the title only truncates once it
                 alone is wider than the column. */}
             <span className="flex-1 min-w-0 flex flex-col @[76rem]/overview:flex-row @[76rem]/overview:items-baseline @[76rem]/overview:gap-2">
                 <span className="min-w-0 flex items-center gap-2 @[76rem]/overview:shrink-0 @[76rem]/overview:max-w-full">
-                    <span className="text-[13px] font-medium truncate text-[var(--text-primary)]" title={TITLE(a, t)}>{TITLE(a, t)}</span>
+                    <span className="text-[13px] font-medium truncate text-[var(--text-primary)]" title={titleOf(a, t)}>{titleOf(a, t)}</span>
                     {liveRunning && <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${STATUS_TOKENS.running.solid} bg-current shrink-0`} aria-hidden="true" />}
                 </span>
                 <span className="min-w-0 @[76rem]/overview:flex-1 text-xs text-[var(--text-tertiary)] truncate" title={secondLine}>
@@ -508,10 +383,9 @@ function ListRow({ automation: a, props, liveRunning }: ListRowProps) {
             >
                 <NameCell automation={a} liveRunning={liveRunning} onSelect={props?.onSelect} />
                 <span className={`text-xs text-[var(--text-secondary)] truncate ${WITH_TRIGGER}`} title={triggerTextOf(a, t)}>{triggerTextOf(a, t)}</span>
-                <LifecycleChip automation={a} />
+                <span><StatusBadge automation={a} /></span>
                 <span className="flex items-center gap-2 min-w-0">
-                    <OutcomeChip automation={a} liveRunning={liveRunning} t={t} />
-                    {a.lastRunAt && <span className="text-[11px] text-[var(--text-tertiary)] truncate">{rel(a.lastRunAt)}</span>}
+                    <OutcomeBit automation={a} liveRunning={liveRunning} when={a.lastRunAt ? rel(a.lastRunAt) : null} />
                 </span>
                 <span className={`text-xs truncate ${nextRun ? 'text-[var(--text-secondary)]' : 'text-[var(--border-default)]'} ${WITH_NEXT_RUN}`}>
                     {nextRun || '—'}
@@ -520,81 +394,6 @@ function ListRow({ automation: a, props, liveRunning }: ListRowProps) {
                     {a.updatedAt ? rel(a.updatedAt) : '—'}
                 </span>
                 <span className="flex justify-end">{kebab}</span>
-            </div>
-            {menu}
-        </>
-    );
-}
-
-// ── Cards ────────────────────────────────────────────────────────────
-
-function CardsView({ rows, rowProps, activeRunIds }: CardsViewProps) {
-    return (
-        // As many columns as fit at 21rem, by the overview's own width: two on a
-        // laptop, five in the centred column of an ultrawide. auto-fill keeps
-        // empty tracks, so three automations stay card-sized instead of stretching.
-        <div className={`${COLUMN} grid grid-cols-[repeat(auto-fill,minmax(min(21rem,100%),1fr))] gap-3 p-4`} data-testid="automations-overview-cards">
-            {rows.map(a => <Card key={a.id} automation={a} props={rowProps?.(a)} liveRunning={!!activeRunIds?.has?.(a.id)} />)}
-        </div>
-    );
-}
-
-function Card({ automation: a, props, liveRunning, compact = false, hideLifecycle = false }: CardProps) {
-    const { t } = useTranslation();
-    const rel = useRelativeTime();
-    const { onContextMenu, kebab, menu } = useRowMenu(props);
-    const failing = isFailing(a);
-    return (
-        <>
-            <div
-                role="button"
-                tabIndex={0}
-                data-testid="automations-overview-card"
-                data-automation-id={a.id}
-                onClick={props?.onSelect}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props?.onSelect?.(); } }}
-                onContextMenu={onContextMenu}
-                className={`group relative flex flex-col rounded-xl border text-left transition-all hover:shadow-md cursor-pointer ${compact ? 'p-3' : 'p-3.5'} ${
-                    props?.selected ? 'ring-2 ring-[var(--accent-primary)]' : ''
-                }`}
-                style={{
-                    borderColor: failing ? 'var(--error)' : 'var(--border-subtle)',
-                    background: 'var(--bg-card)',
-                    opacity: a.isActive || a.isDraft ? 1 : 0.75,
-                }}
-            >
-                <div className="flex items-start gap-2.5 mb-2">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg shrink-0" style={tileStyle(a)}>
-                        <TriggerGlyph automation={a} size={16} />
-                    </span>
-                    <div className="flex-1 min-w-0 pt-0.5">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-semibold truncate text-[var(--text-primary)]">{TITLE(a, t)}</span>
-                            {liveRunning && <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${STATUS_TOKENS.running.solid} bg-current shrink-0`} aria-hidden="true" />}
-                        </div>
-                        <div className="text-xs mt-0.5 truncate text-[var(--text-tertiary)]" title={triggerTextOf(a, t)}>{triggerTextOf(a, t)}</div>
-                    </div>
-                    <span className="-mr-1 -mt-1">{kebab}</span>
-                </div>
-                {!compact && (a.description || '').trim() && (
-                    <p className="text-xs m-0 mb-2 line-clamp-2 text-[var(--text-secondary)]">{a.description?.trim()}</p>
-                )}
-                <div className="mb-2.5 min-w-0">
-                    <StepStrip automation={a} small={compact} />
-                </div>
-                <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
-                    <span className="flex items-center gap-2">
-                        {!hideLifecycle && <LifecycleChip automation={a} />}
-                        <OutcomeChip automation={a} liveRunning={liveRunning} t={t} />
-                    </span>
-                    <span className="text-[10.5px] text-[var(--text-tertiary)] truncate">
-                        {a.nextRunAt && a.isActive
-                            ? t('studio_misc.overview.next_at', 'Next {when}', { when: formatNextRun(a.nextRunAt) })
-                            : a.lastRunAt
-                                ? t('studio_misc.overview.ran_at', 'Ran {when}', { when: rel(a.lastRunAt) })
-                                : ''}
-                    </span>
-                </div>
             </div>
             {menu}
         </>

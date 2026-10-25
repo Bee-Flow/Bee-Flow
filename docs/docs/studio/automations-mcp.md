@@ -71,6 +71,22 @@ The same tools the in-product builder agent uses — `builder_propose_trigger`,
 | `automations_list` | The automations this token's user owns. |
 | `automations_create` | A new, empty draft automation. |
 
+### Folders
+
+Automations can be filed in folders, and folders can hold subfolders. Four tools manage them:
+
+| Tool | Purpose |
+| --- | --- |
+| `automations_folder_list` | Every folder of the organisation with its `parentId`, path, depth and how many of your automations sit directly in it. |
+| `automations_folder_create` | A folder, or a subfolder with `parentId`. Names are unique within one parent. |
+| `automations_folder_move` | Move a folder, with everything in it, under another folder or to the top level (`parentId` null). Never into itself or one of its own subfolders, and not deeper than the depth limit. |
+| `automations_move_to_folder` | File up to 20 of your automations in a folder, or take them out (`folderId` null). Each automation is answered on its own. |
+
+Only the owner of an automation can move it, and only into a folder of its own organisation. The
+write tools need a token with the write level for automations; a read-only token sees `automations_folder_list` only.
+Nothing here deletes a folder. The depth limit is `AUTOMATION_FOLDER_MAX_DEPTH` (default 8, 0 = unlimited);
+the folder tools share a per-person budget of `AUTOMATION_MCP_FOLDER_WRITES_PER_MINUTE` changes a minute (default 120, 0 = unlimited).
+
 `builder_add_ai_step` and `builder_update_step` also take the reliability settings of an AI
 step (`temperature`, `enumFrom`, `checks`, `fallback`, `askOnce`) and `forEach.concurrency`;
 see [Reliable AI steps](ai-steps.md). The guide carries a section with the same examples.
