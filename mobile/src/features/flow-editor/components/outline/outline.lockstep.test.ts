@@ -108,10 +108,11 @@ describe('the card glyphs', () => {
         for (const step of steps) expect(aiStepVariant(step)).toBe(webAiTools.aiStepVariant(step));
     });
 
-    it('draws the datatable operations, the trigger kinds and the app events as TriggerNode and DatatableNode do', () => {
+    it('draws the datatable operations, the trigger kinds and the app events as the trigger glyph map and DatatableNode do', () => {
         const table = read('nodes/DatatableNode.tsx');
         for (const [op, icon] of Object.entries(DATATABLE_OP_ICON)) expect(table).toMatch(new RegExp(`${op}: ${icon},`));
-        const trigger = read('nodes/TriggerNode.tsx');
+        // The trigger glyphs live in one map the canvas card and the library share.
+        const trigger = read('triggerIcons.ts');
         for (const [kind, icon] of Object.entries(TRIGGER_ICON)) expect(trigger).toMatch(new RegExp(`${kind}:\\s+${icon},`));
         for (const [event, icon] of Object.entries(APP_EVENT_ICON)) expect(trigger).toMatch(new RegExp(`'${event.replace(/\./g, '\\.')}':\\s+${icon},`));
         expect(read('nodes/FormPageNode.tsx')).toMatch(/isEnding \? <CheckCircle2/);
