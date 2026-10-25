@@ -6,7 +6,8 @@ import FilterRowsEditor, { NO_VALUE_OPS, type FilterRow } from './FilterRowsEdit
 import useAppTables, { fieldsForTable } from './useAppTables';
 import useDatasets from './useDatasets';
 import useTranslation from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../../../../../api/mutate';
 import Modal from '../../../../shared/Modal';
 import toast from '../../../../shared/Toast';
 import { inputCls, RepeatableList } from '../../../product-website/fields';
@@ -152,15 +153,19 @@ export function buildDescriptor(tableId: string, fields: TableColumn[], groupBy:
 }
 
 async function runPreview(appId: string | null | undefined, payload: { tableId: string; descriptor: unknown }, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
-    const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tableId: payload.tableId, aggregate: payload.descriptor }),
-    });
-    if (res.status === 404) return { rows: [] };
     let body = null;
-    try { body = await res.json(); } catch { body = null; }
-    if (!res.ok) throw new Error(body?.error || t('studio_apps_bi.query.preview_failed_status', 'Preview failed ({status})', { status: res.status }));
+    try {
+        const res = await mutate(`${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tableId: payload.tableId, aggregate: payload.descriptor }),
+        });
+        try { body = await res.json(); } catch { body = null; }
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        if (err.status === 404) return { rows: [] };
+        throw new Error(errorBody(err)?.error || t('studio_apps_bi.query.preview_failed_status', 'Preview failed ({status})', { status: err.status }));
+    }
     return { rows: Array.isArray(body?.rows) ? body.rows : [] };
 }
 export default function QueryBuilder({ open, onClose, appId, componentType = 'chart', onSave, onOpenTables = null }: QueryBuilderProps) {

@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, Clock, Download, FileText, Loader2, LogIn, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { API_BASE } from '../../../../../../utils/helpers';
 import { FormRichText } from '../../../../../forms/PublicFormRenderer';
 import ApprovalDecisionControls, { type ApprovalField } from '../../../Approvals/ApprovalDecisionControls';
 import { approvalStatusChip, formatWhen, stageChainInfo, type ApprovalRowLike, type ApprovalStageInfo } from '../../../Approvals/approvalDisplay';
@@ -11,7 +11,7 @@ import { useRuntime } from '../RuntimeContext';
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import type React from 'react';
 import type { NodeProps } from './appNode.types';
-import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
+import { mutate, request, errorBody, RefusedError } from '../../../../../../api/mutate';
 
 /**
  * App Studio runtime — 'approval_list'. Spec: server/appStudio/componentSpecs.js.
@@ -122,10 +122,16 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
             if (status) q.set('status', status);
             q.set('limit', String(Math.max(1, Math.min(50, Number(limit) || 10))));
             if (scope === 'app' && appId) q.set('appId', appId);
-            const res = await authFetch(`${API_BASE}/api/automation/approvals?${q}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/automation/approvals?${q}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                if (g === gen.current) setError(errorBody(err)?.error || tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals'));
+                return;
+            }
             const body = await res.json().catch(() => null);
             if (g !== gen.current) return;
-            if (!res.ok) { setError(body?.error || tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals')); return; }
             setError(null);
             setRows(Array.isArray(body?.approvals) ? body.approvals : []);
         } catch {
@@ -151,10 +157,15 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
         setOpenId(row.id);
         setDetail(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/automation/approvals/${encodeURIComponent(row.id)}`);
-            const body = await res.json().catch(() => null);
-            if (res.ok) setDetail(body);
-            else setDetail({ error: body?.error || tr('studio_apps_runtime.approvals.open_failed', 'Could not open this approval') });
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/automation/approvals/${encodeURIComponent(row.id)}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setDetail({ error: errorBody(err)?.error || tr('studio_apps_runtime.approvals.open_failed', 'Could not open this approval') });
+                return;
+            }
+            setDetail(await res.json().catch(() => null));
         } catch {
             setDetail({ error: tr('studio_apps_runtime.approvals.open_failed', 'Could not open this approval') });
         }

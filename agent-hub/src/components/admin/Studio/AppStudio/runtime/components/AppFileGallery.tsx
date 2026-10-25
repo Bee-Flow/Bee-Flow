@@ -1,7 +1,7 @@
 import { File, FileImage, FileSpreadsheet, FileText, PencilRuler, Presentation, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { authFetch } from '../../../../../../utils/helpers';
+import { studioAppFetch } from '../../../../../../api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -106,7 +106,7 @@ function useThumbnails(rows: GalleryRow[], fileKey: string, appId: string | null
                 try {
                     const href = entryHref({ fileId }, appId);
                     if (!href) continue;
-                    const res = await authFetch(href);
+                    const res = await studioAppFetch(href);
                     if (!res.ok) continue;          // a thumbnail is never worth an error state
                     const url = URL.createObjectURL(await res.blob());
                     if (!alive) { URL.revokeObjectURL(url); return; }

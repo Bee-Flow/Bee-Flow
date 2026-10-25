@@ -2,11 +2,11 @@ import { AlertTriangle, CheckCircle2, Link2Off, Loader2, RefreshCw } from 'lucid
 import { useCallback, useEffect, useState, type JSX } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { API_BASE } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver.constants';
-import { request, RefusedError } from '../../../../../../api/mutate';
+import { mutate, request, RefusedError, errorBody } from '../../../../../../api/mutate';
 
 /**
  * App Studio runtime — 'connector_status'. Spec: server/appStudio/componentSpecs.js.
@@ -124,14 +124,24 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
         setSyncing(true);
         setNote(null);
         try {
-            const res = await authFetch(
-                `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/runtime/connectors/${encodeURIComponent(connectorId)}/refresh`,
-                { method: 'POST' },
-            );
-            const body = await res.json().catch(() => null);
-            if (res.status === 429) setNote(t('studio_apps_runtime.connector.just_checked', 'Just checked — give it a minute.'));
-            else if (res.status === 202) setNote(t('studio_apps_runtime.connector.refresh_running', 'A refresh is already running.'));
-            else if (!res.ok) setNote(body?.error || t('studio_apps_runtime.connector.check_failed', 'Could not check right now.'));
+            let status: number;
+            let ok: boolean;
+            let body: { error?: string; rowsWritten?: number } | null;
+            try {
+                const res = await mutate(
+                    `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/runtime/connectors/${encodeURIComponent(connectorId)}/refresh`,
+                    { method: 'POST' },
+                );
+                status = res.status; ok = true;
+                body = await res.json().catch(() => null);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                status = err.status; ok = false;
+                body = errorBody(err) as typeof body;
+            }
+            if (status === 429) setNote(t('studio_apps_runtime.connector.just_checked', 'Just checked — give it a minute.'));
+            else if (status === 202) setNote(t('studio_apps_runtime.connector.refresh_running', 'A refresh is already running.'));
+            else if (!ok) setNote(body?.error || t('studio_apps_runtime.connector.check_failed', 'Could not check right now.'));
             else setNote(body?.rowsWritten
                 ? t('studio_apps_runtime.connector.rows_new', '{n} new', { n: body.rowsWritten })
                 : t('studio_apps_runtime.connector.up_to_date', 'Up to date'));

@@ -5,7 +5,7 @@ import { initialInputValues, inputsOf, needsApprover, type RecipeInput, type Rec
 import { RECIPES } from './recipes';
 import { readOrgGroups, type OrgGroup } from '../../../../api/queries/orgGroups';
 import useTranslation, { readingLocale } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useModelTiersQuery } from '../../../../api/queries/modelTiers';
 import { DEPTH_TIER_KEYS, configuredTierKeys, tierI18nKey, tierLabel } from '../../../licensing/tierMeta';
 import Modal from '../../../shared/Modal';
 import SegmentedControl from '../../../shared/SegmentedControl';
@@ -13,7 +13,6 @@ import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import ChoiceCard from '../Datatables/ChoiceCard';
 import { canLinkNextcloud } from '../Datatables/datatableDisplay';
 import { datatablesApi } from '../Datatables/datatablesApi';
-import type { ModelTierConfig } from '../../../../hooks/useModelTierSelection';
 import type { PermissionUser } from '../../../../hooks/usePermissionCheck';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { PlaybookListItem } from './PlaybookCard';
@@ -91,7 +90,6 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
     const [datatableId, setDatatableId] = useState('');
     const [inputs, setInputs] = useState(() => initialInputValues(recipes[0]));
     const [tier, setTier] = useState('fast');
-    const [modelTiers, setModelTiers] = useState<Record<string, ModelTierConfig> | null>(null);
     const [approverGroupId, setApproverGroupId] = useState('');
     const [tables, setTables] = useState<{ id: string; name: string; rowCount: number; managedKind: string }[] | null>(null);
     const [groups, setGroups] = useState<OrgGroup[] | null>(null);
@@ -124,14 +122,7 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
     // endpoint as both builders (a playbook drives them, so 'automation' is the
     // task type), narrowed to the DEPTH axis: Flow, Swarm, Write and custom
     // tiers are a KIND of work, and a playbook's phases are pinned to one depth.
-    useEffect(() => {
-        let alive = true;
-        authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=automation`)
-            .then((r) => (r.ok ? r.json() : null))
-            .then((b) => { if (alive) setModelTiers(b && typeof b === 'object' && !Array.isArray(b) ? b : null); })
-            .catch(() => { if (alive) setModelTiers(null); });
-        return () => { alive = false; };
-    }, []);
+    const modelTiers = useModelTiersQuery('automation').data ?? null;
 
     const tierKeys = useMemo(() => {
         const keys = configuredTierKeys(modelTiers || {}).filter((k) => DEPTH_TIER_KEYS.includes(k));

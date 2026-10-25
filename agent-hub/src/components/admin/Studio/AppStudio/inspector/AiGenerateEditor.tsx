@@ -9,7 +9,7 @@ import Toggle from '../../../../shared/Toggle';
 import IconButton from '../../../../shared/IconButton';
 import ModelTierSelector from '../../../../licensing/ModelTierSelector';
 import useModelTierSelection from '../../../../../hooks/useModelTierSelection';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { useStudioKnowledgeBases } from '../../../../../api/queries/studioApps';
 import { bindingForField, fieldNameFromBinding, sanitizeVarName, type SchemaField } from './aiFieldMatching';
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { AiAction, KnowledgeBase, SchemaMeta, ModelTierRowProps, FieldSourcePickerProps, SchemaFieldsEditorProps, KbMultiSelectProps, ResultVarFieldProps, AiGenerateEditorProps } from './AiActionEditors.types';
@@ -178,18 +178,7 @@ export function SchemaFieldsEditor({ fields, onChange, disabled, hint }: SchemaF
 
 export function KbMultiSelect({ value, onChange, disabled }: KbMultiSelectProps) {
     const { t } = useTranslation();
-    const [kbs, setKbs] = useState<KnowledgeBase[] | null>(null); // null = loading
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const r = await authFetch(`${API_BASE}/api/kb`);
-                const body = r.ok ? await r.json() : [];
-                if (alive) setKbs(Array.isArray(body) ? body : (body?.knowledge_bases || body?.kbs || []));
-            } catch { if (alive) setKbs([]); }
-        })();
-        return () => { alive = false; };
-    }, []);
+    const kbs = useStudioKnowledgeBases<KnowledgeBase>(); // null = loading
     const selected = new Set(Array.isArray(value) ? value : []);
     const toggle = (id: string) => {
         const next = new Set(selected);

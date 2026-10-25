@@ -8,7 +8,8 @@ import useRemote, { readJson } from './useRemote';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { Catalog } from '../../../automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 import Modal from '../../../shared/Modal';
 
 /**
@@ -210,17 +211,17 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
                 continue;
             }
             try {
-                const res = await authFetch(`${API_BASE}/api/webpages/${encodeURIComponent(webpageId)}/grants/integrations`, {
+                await mutate(`${API_BASE}/api/webpages/${encodeURIComponent(webpageId)}/grants/integrations`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tool: row.tool }),
                 });
-                if (!res.ok) {
-                    const body = await readJson<{ error?: string }>(res);
+            } catch (err) {
+                if (err instanceof RefusedError) {
                     problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
-                        { tool: row.tool, why: body?.error || String(res.status) }));
+                        { tool: row.tool, why: (errorBody(err) as { error?: string } | null)?.error || String(err.status) }));
+                    continue;
                 }
-            } catch {
                 problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
                     { tool: row.tool, why: t('solutions.install_unreachable', 'the server could not be reached') }));
             }
@@ -232,17 +233,17 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
         const problems = [];
         for (const entry of access) {
             try {
-                const res = await authFetch(`${API_BASE}/api/projects/${encodeURIComponent(String(projectId))}/share`, {
+                await mutate(`${API_BASE}/api/projects/${encodeURIComponent(String(projectId))}/share`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sharedWithType: entry.type, sharedWithId: entry.id, permission: entry.permission }),
                 });
-                if (!res.ok) {
-                    const body = await readJson<{ error?: string }>(res);
+            } catch (err) {
+                if (err instanceof RefusedError) {
                     problems.push(t('solutions.install_share_failed', '{who} could not be added: {why}',
-                        { who: entry.id, why: body?.error || String(res.status) }));
+                        { who: entry.id, why: (errorBody(err) as { error?: string } | null)?.error || String(err.status) }));
+                    continue;
                 }
-            } catch {
                 problems.push(t('solutions.install_share_failed', '{who} could not be added: {why}',
                     { who: entry.id, why: t('solutions.install_unreachable', 'the server could not be reached') }));
             }
@@ -254,17 +255,21 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
         setBusy(true);
         setError('');
         try {
-            const res = await authFetch(INSTALL_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...(source?.blueprintId ? { blueprintId: source.blueprintId } : { manifest }),
-                    ...(name.trim() ? { name: name.trim() } : {}),
-                    resolutions: buildResolutions(read.requires, choices),
-                }),
-            });
-            const payload = await readJson<InstallPayload>(res);
-            if (!res.ok) {
+            let payload: InstallPayload | null;
+            try {
+                const res = await mutate(INSTALL_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...(source?.blueprintId ? { blueprintId: source.blueprintId } : { manifest }),
+                        ...(name.trim() ? { name: name.trim() } : {}),
+                        resolutions: buildResolutions(read.requires, choices),
+                    }),
+                });
+                payload = await readJson<InstallPayload>(res);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                payload = errorBody(err) as InstallPayload | null;
                 setError(payload?.error === 'feature_locked'
                     ? t('projects.blueprint_locked', 'Installing a Blueprint is not part of this plan.')
                     : (payload?.error || t('projects.blueprint_install_failed', 'The install failed.')));

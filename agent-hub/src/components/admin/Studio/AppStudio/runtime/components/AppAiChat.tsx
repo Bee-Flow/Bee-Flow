@@ -1,8 +1,9 @@
 import { Send, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownBlocks } from './AppMarkdown';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import useTranslation, { type TranslateFn } from '../../../../../../hooks/useTranslation';
+import { API_BASE } from '../../../../../../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
@@ -47,6 +48,24 @@ interface ChatStreamEvent {
     error?: string;
 }
 
+
+/** POST the turn and hand back the open SSE answer; a refused or body-less answer becomes the Error the bubble shows. */
+async function openChatStream(url: string, payload: unknown, t: TranslateFn): Promise<Response> {
+    let res: Response;
+    try {
+        res = await mutate(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error((errorBody(err) as { error?: string } | null)?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: err.status }));
+    }
+    if (!res.body) {
+        let body: { error?: string } | null = null;
+        try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
+        throw new Error(body?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: res.status }));
+    }
+    return res;
+}
+
 export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
     const { t } = useTranslation();
     const { mode } = useRuntime();
@@ -80,16 +99,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
         setBusy(true);
         try {
             const qs = draft ? '?draft=1' : '';
-            const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/ai/chat${qs}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nodeId: node.id, messages: outgoing }),
-            });
-            if (!res.ok || !res.body) {
-                let body: { error?: string } | null = null;
-                try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
-                throw new Error(body?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: res.status }));
-            }
+            const res = await openChatStream(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/ai/chat${qs}`, { nodeId: node.id, messages: outgoing }, t);
 
             let answer = '';
             await parseSseStream(res, (evt: ChatStreamEvent) => {

@@ -1,7 +1,8 @@
 import { Dna, Loader2, UploadCloud, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { API_BASE } from '../../../../../../utils/helpers';
+import { useStudioLargeDatasets } from '../../../../../../api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
@@ -59,7 +60,6 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
     const id = `${node.id}-input`;
     const live = mode === 'run' && !!appId;
 
-    const [existing, setExisting] = useState<{ id: string; name: string; status: string; build: string; variantCount: number }[]>([]);
     const [phase, setPhase] = useState('idle'); // idle | uploading | ingesting
     const [progress, setProgress] = useState<{ pct: number; note: string; } | null>(null); // { pct, note }
     const [uploadError, setUploadError] = useState<string | null>(null);
@@ -74,18 +74,8 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
         abort();
     }, [abort]);
 
-    const refreshExisting = useCallback(async () => {
-        if (!live || !allowExisting) return;
-        try {
-            const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/large-datasets`);
-            const data = await res.json().catch(() => ({}));
-            if (res.ok && Array.isArray(data.datasets)) {
-                setExisting(data.datasets.filter((d: { status: string; }) => d.status === 'ready'));
-            }
-        } catch (err) { logger.debug('the picker just stays empty', err); }
-    }, [appId, live, allowExisting]);
-
-    useEffect(() => { refreshExisting(); }, [refreshExisting]);
+    const { existing, refresh: refreshQuery } = useStudioLargeDatasets(appId, live && allowExisting);
+    const refreshExisting = useCallback(() => { if (live && allowExisting) refreshQuery(); }, [live, allowExisting, refreshQuery]);
 
     const commit = useCallback((ds: { id: string; name: string; status: string; build: string } | null) => {
         const descriptor = ds ? { kind: 'studio_dataset', datasetId: ds.id, name: ds.name, build: ds.build || null } : null;

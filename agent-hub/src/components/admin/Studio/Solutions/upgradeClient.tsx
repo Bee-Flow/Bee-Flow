@@ -2,7 +2,8 @@ import { ArrowUpCircle, HelpCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Strip } from './solutionNotices';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import type { IsNewerArgs, UpdateAvailabilityArgs, PlanItem, PlanManifest, PlanRow, PlanRows, UpgradeBody, UpgradeReport, ReadReport, PlanOutcome, UpgradeOutcome, FetchUpgradePlanArgs, RunUpgradeArgs, UpdateBannerProps, PlanState, DialogFooterProps, UpgradeDialogProps } from './upgradeClient.types';
@@ -160,13 +161,18 @@ export function planTouchesNothing(rows: PlanRows | undefined) {
 // ── De twee requests ───────────────────────────────────────────────────────
 
 async function post(url: string, body: { blueprintId: string | null | undefined }) {
-    const res = await authFetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
-    const parsed = await res.json().catch(() => null);
-    return { ok: res.ok, body: parsed };
+    try {
+        const res = await mutate(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const parsed = await res.json().catch(() => null);
+        return { ok: true, body: parsed };
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return { ok: false, body: errorBody(err) };
+    }
 }
 
 export async function fetchUpgradePlan({ projectId, blueprintId }: FetchUpgradePlanArgs): Promise<PlanOutcome> {
