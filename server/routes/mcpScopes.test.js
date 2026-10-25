@@ -19,6 +19,7 @@ const studio = require('./mcpStudio');
 const automations = require('./mcpAutomations');
 const studioBuilder = require('../appStudio/mcpBuilder');
 const automationBuilder = require('../automation/mcpBuilder');
+const { FLAGGED_TOOLS } = require('../auth/mcpAccess/scopes');
 // Entitlements are not what is under test; they say yes. The builders and the
 // tool classification are the real ones.
 const deps = { entitled: async () => true };
@@ -38,7 +39,9 @@ for (const [server, surface, builder] of [['studio', studio, studioBuilder], ['a
     });
 
     test(`${server}: level write lists everything, level read lists only read-only tools`, async () => {
-        assert.equal((await list(surface, { [server]: { level: 'write' } })).length, all.length);
+        // A tool with a switch of its own (automations_run) is not part of a plain write token.
+        const plainWrite = all.filter((t) => !Object.hasOwn(FLAGGED_TOOLS, t.name));
+        assert.equal((await list(surface, { [server]: { level: 'write' } })).length, plainWrite.length);
         const names = (await list(surface, { [server]: { level: 'read' } })).map((t) => t.name);
         assert.deepEqual(names, readOnly.map((t) => t.name));
     });

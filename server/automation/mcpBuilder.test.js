@@ -81,7 +81,8 @@ test('read-only hints match what the dispatcher actually persists on', () => {
     for (const tool of mcpBuilder.buildToolList()) {
         const writes = MUTATING_TOOLS.has(tool.name)
             || tool.name === 'builder_finalize'
-            || tool.name === 'automations_create';
+            || tool.name === 'automations_create'
+            || tool.name === 'automations_run'; // starts a real run
         assert.equal(
             tool.annotations.readOnlyHint, !writes,
             `${tool.name}: readOnlyHint disagrees with whether the call writes`,

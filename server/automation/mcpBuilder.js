@@ -124,7 +124,7 @@ function toMcpTool(fn) {
     // kind of call a client should be able to confirm.
     const writes = MUTATING_TOOLS.has(fn.name)
         || fn.name === 'builder_finalize'
-        || fn.name === 'automations_create';
+        || fn.name === 'automations_create' || runTools.RUN_WRITE_TOOL_NAMES.has(fn.name); // a started run sends real mail
 
     const inputSchema = { ...params, type: 'object', properties };
     if (required.length) inputSchema.required = required;
@@ -433,7 +433,7 @@ async function runCreate(userId, args) {
  * tool result, because a coding agent recovers from a described error and
  * cannot recover from a transport-level exception.
  */
-async function callTool(name, rawArgs, { userId }) {
+async function callTool(name, rawArgs, { userId, tokenId = null }) {
     if (!TOOL_NAMES.has(name)) {
         return { result: { error: `Unknown tool: ${name}` } };
     }
@@ -447,7 +447,7 @@ async function callTool(name, rawArgs, { userId }) {
     }
     if (name === 'automations_list') return { result: await runList(userId, args) };
     if (name === 'automations_create') return { result: await runCreate(userId, args) };
-    if (runTools.RUN_TOOL_NAMES.has(name)) return { result: await runTools.callRunTool(name, args, { userId }) };
+    if (runTools.RUN_TOOL_NAMES.has(name)) return { result: await runTools.callRunTool(name, args, { userId, tokenId }) };
 
     const automationId = typeof args.automationId === 'string' ? args.automationId.trim() : '';
     delete args.automationId; // never reaches the builder tool — it is our envelope

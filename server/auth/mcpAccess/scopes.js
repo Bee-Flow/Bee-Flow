@@ -23,6 +23,15 @@ const { badRequest } = require('../../shared/httpErrors');
 const SERVERS = Object.freeze(['integrations', 'automations', 'studio', 'cms']);
 const LEVELS = Object.freeze(['read', 'write']);
 const MAX_TOOLS = 200;
+
+/**
+ * Tools that need a switch of their own on top of the level: `{ [tool]: { server, flag } }`.
+ * A token reaches one only when its scope for that server has `flag: true`. Kept
+ * here, not in each router, so no router can forget the check.
+ */
+const FLAGGED_TOOLS = Object.freeze({
+    automations_run: Object.freeze({ server: 'automations', flag: 'run' }),
+});
 const MAX_TOOL_NAME = 128;
 
 /** A pre-existing `bfmcp.` token: every server at write level, no publishing. */
@@ -41,7 +50,7 @@ function isPlainObject(v) {
  * Validate a requested scope object and return its canonical form.
  *
  * @param {unknown} input
- * @returns {Record<string, {level: 'read'|'write', tools?: string[], publish?: boolean}>}
+ * @returns {Record<string, {level: 'read'|'write', tools?: string[], publish?: boolean, run?: boolean}>}
  * @throws {import('../../shared/httpErrors').HttpError} 400 on bad input
  */
 function normalizeScopes(input) {
@@ -57,7 +66,7 @@ function normalizeScopes(input) {
         const spec = input[server];
         if (!isPlainObject(spec)) throw badRequest('invalid_scopes', `The scope for "${server}" must be an object.`);
         for (const key of Object.keys(spec)) {
-            if (key === 'level' || key === 'tools' || (key === 'publish' && server === 'cms')) continue;
+            if (key === 'level' || key === 'tools' || (key === 'publish' && server === 'cms') || (key === 'run' && server === 'automations')) continue;
             throw badRequest('invalid_scopes', `"${key}" is not a valid setting for "${server}".`);
         }
         if (!LEVELS.includes(spec.level)) {
@@ -85,6 +94,15 @@ function normalizeScopes(input) {
             }
             entry.publish = spec.publish === true;
         }
+        if (server === 'automations') {
+            if (spec.run !== undefined && typeof spec.run !== 'boolean') {
+                throw badRequest('invalid_scopes', 'automations.run must be true or false.');
+            }
+            if (spec.run === true && spec.level === 'read') {
+                throw badRequest('invalid_scopes', 'automations.run needs the "write" level.');
+            }
+            if (spec.run === true) entry.run = true;
+        }
         out[server] = entry;
     }
     return out;
@@ -108,6 +126,8 @@ function scopeAllowsTool(scopes, server, toolName, { readOnly = false, publish =
     if (spec.level !== 'read' && spec.level !== 'write') return false;
     if (spec.level === 'read' && readOnly !== true) return false;
     if (publish === true && spec.publish !== true) return false;
+    const flagged = Object.hasOwn(FLAGGED_TOOLS, toolName) ? FLAGGED_TOOLS[toolName] : null;
+    if (flagged && flagged.server === server && spec[flagged.flag] !== true) return false;
     if (Array.isArray(spec.tools) && !spec.tools.includes(toolName)) return false;
     return true;
 }
@@ -131,4 +151,4 @@ function filterToolsByScope(scopes, server, tools, { isReadOnly, isPublish } = {
     }));
 }
 
-module.exports = { SERVERS, LEVELS, LEGACY_SCOPES, normalizeScopes, scopeAllowsTool, filterToolsByScope };
+module.exports = { FLAGGED_TOOLS, SERVERS, LEVELS, LEGACY_SCOPES, normalizeScopes, scopeAllowsTool, filterToolsByScope };
