@@ -197,7 +197,7 @@ function validateConnectorSync(sync, tableIds, where, errors, kind = null, table
             // cron the editor accepts is one the job can actually schedule.
             /** @type {string | null} */
             let next = null;
-            try { next = require('../../automation/cron').nextRunAt(String(sch.cron), typeof sch.tz === 'string' ? sch.tz : undefined); } catch { next = null; }
+            try { next = require('../../core/scheduling/cron').nextRunAt(String(sch.cron), typeof sch.tz === 'string' ? sch.tz : undefined); } catch { next = null; }
             if (!next) errors.push(`${sw}.cron "${sch.cron}" is not a valid 5-field cron expression`);
         } else if (sch.everyMinutes !== undefined) {
             const m = sch.everyMinutes;

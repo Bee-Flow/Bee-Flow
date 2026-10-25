@@ -12,7 +12,7 @@ const {
 } = require('./shared');
 const { writeRecord, writeRecordBatch } = require('./records');
 const log = require('../../telemetry/log');
-const { replaceTemplate, parsePath, walkTokens } = require('../../automation/expr');
+const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
 // ai_extract / ai_generate / kb_query resolve the app OWNER's model tier and

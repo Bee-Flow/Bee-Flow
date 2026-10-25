@@ -65,7 +65,7 @@ const {
 // The shared expression engine, via the project's CJS re-export (same boundary
 // appStudio/validate.js uses). The formula vocabulary is DERIVED from it — see
 // renderFormulaFunctions.
-const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../automation/expr');
+const { EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES } = require('../../shared/expr/index.mjs');
 // The validation-rule vocabulary, from the same module that declares it to the
 // tool schemas — so the catalog and the tool surface cannot teach two lists.
 const { NODE_VALIDATION_TYPES } = require('../builderTools/schemas');

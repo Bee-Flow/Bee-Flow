@@ -254,7 +254,7 @@ async function deriveRunOutcome(run) {
     if (run.status !== 'success') return { output: null, appEffects: null };
     try {
         const automationStore = require('../../stores/automationStore');
-        const { isTruncatedOutput } = require('../../automation/payloadTruncation');
+        const { isTruncatedOutput } = require('../../core/automationModel/payloadTruncation');
         const { withFullOutput } = require('../../core/automationRunner/replaySeeding');
         const steps = await automationStore.getRunSteps(run.id);
         let output = null;

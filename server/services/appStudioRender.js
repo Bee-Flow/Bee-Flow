@@ -27,11 +27,11 @@ const path = require('path');
 const stableJson = require('../utils/stableJson');
 
 const { collectDataBindings } = require('../appStudio/collectDataBindings');
-const queryCompiler = require('../appStudio/queryCompiler');
+const queryCompiler = require('../core/dataEngine/queryCompiler');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
-const { compile, tryEvaluate } = require('../automation/expr');
+const { compile, tryEvaluate } = require('../shared/expr/index.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');

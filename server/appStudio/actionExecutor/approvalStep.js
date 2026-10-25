@@ -8,7 +8,7 @@
 
 'use strict';
 
-const { tryEvaluate } = require('../../automation/expr');
+const { tryEvaluate } = require('../../shared/expr/index.mjs');
 const {
     findTable, buildServerScope, resolveBinding, resolveValues, coerceRecordId, coerceText,
 } = require('./shared');

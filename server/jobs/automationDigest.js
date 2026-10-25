@@ -30,9 +30,9 @@
 'use strict';
 
 const log = require('../telemetry/log');
-const { normalizeNotificationSettings } = require('../automation/notificationDefaults');
-const { resolveDigestRecipientIds } = require('../automation/notificationRecipients');
-const { bundleMessage, composeDigest, talkText } = require('../automation/notificationMessages');
+const { normalizeNotificationSettings } = require('../core/automationModel/notificationDefaults');
+const { resolveDigestRecipientIds } = require('../core/automationModel/notificationRecipients');
+const { bundleMessage, composeDigest, talkText } = require('../core/automationModel/notificationMessages');
 const { fallback } = require('../utils/bestEffort');
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -72,10 +72,10 @@ function defaultDeps() {
         postTalk: (/** @type {Parameters<typeof import('../automation/approvalDelivery').postTalkCard>[0]} */ o) => require('../automation/approvalDelivery').postTalkCard(o),
         nextSlot: (/** @type {string} */ time, /** @type {string} */ tz, /** @type {number} */ fromTs) => {
             const [h, m] = time.split(':').map(Number);
-            return require('../automation/cron').nextRunAt(`${m} ${h} * * *`, tz, fromTs);
+            return require('../core/scheduling/cron').nextRunAt(`${m} ${h} * * *`, tz, fromTs);
         },
         absoluteUrl: (/** @type {string} */ path) => {
-            try { return `${require('../automation/publicUrl').resolvePublicBaseUrl()}${path}`; } catch { return path; }
+            try { return `${require('../utils/publicUrl').resolvePublicBaseUrl()}${path}`; } catch { return path; }
         },
         appPaths: require('../utils/appPaths'),
     };
