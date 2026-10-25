@@ -18,7 +18,8 @@ import { BookOpen } from 'lucide-react';
 import { useMemo } from 'react';
 import TemplateField from '../../mapping/TemplateField';
 import AccordionSection from '../AccordionSection';
-import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
+import type { ActionCatalog } from './actionEditors/integrationActionFields';
+import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from './collectionEditors';
 import { FormRow, inputClass } from './formPrimitives';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import useForEachRequest from '../../mapping/useForEachRequest';
@@ -31,7 +32,12 @@ const FALLBACK_STRATEGIES = [
     { value: 'add', label: 'Add it anyway', blurb: 'Store it as its own document, even if a similar one exists.' },
 ];
 
-function DestinationSection({ draft, set, onFocusField, errorSections, bases }) {
+type Bases = NonNullable<ActionCatalog['knowledgeBases']>;
+type Strategies = NonNullable<ActionCatalog['knowledgeWriteStrategies']>;
+/** What every section receives: the step editor props, with the sections set always present. */
+type Sectioned = StepEditorProps & { errorSections: Set<string> };
+
+function DestinationSection({ draft, set, onFocusField, errorSections, bases }: Sectioned & { bases: Bases }) {
     const { t } = useTranslation();
     const base = useMemo(() => bases.find(b => b.id === draft.knowledgeBaseId) || null, [bases, draft.knowledgeBaseId]);
 
@@ -83,7 +89,7 @@ function DestinationSection({ draft, set, onFocusField, errorSections, bases }) 
     );
 }
 
-function ContentSection({ draft, set, onFocusField, previewSample, errorSections }) {
+function ContentSection({ draft, set, onFocusField, previewSample, errorSections }: Sectioned) {
     const { t } = useTranslation();
     // A separate run per item (under a field's More) sets this step's forEach.
     const forEach = useForEachRequest(draft, set);
@@ -152,7 +158,7 @@ function ContentSection({ draft, set, onFocusField, previewSample, errorSections
     );
 }
 
-function AdvancedSection({ draft, set, groups, onFocusField, errorSections, strategies }) {
+function AdvancedSection({ draft, set, groups, onFocusField, errorSections, strategies }: Sectioned & { strategies: Strategies }) {
     const { t } = useTranslation();
     const strategy = draft.nearDuplicateStrategy || 'skip';
 
@@ -189,10 +195,10 @@ function AdvancedSection({ draft, set, groups, onFocusField, errorSections, stra
     );
 }
 
-/** @param {{ draft: unknown, set: unknown, groups: unknown, onFocusField?: unknown, previewSample?: unknown, errorSections?: Set<string>, catalog?: object | null }} props */ export default function KnowledgeWriteFields({
+export default function KnowledgeWriteFields({
     draft, set, groups, onFocusField, previewSample,
     errorSections = new Set(), catalog = null,
-}) {
+}: StepEditorProps & { catalog?: ActionCatalog | null }) {
     const bases = useMemo(() => (catalog?.knowledgeBases || []), [catalog]);
     const strategies = useMemo(
         () => (catalog?.knowledgeWriteStrategies?.length ? catalog.knowledgeWriteStrategies : FALLBACK_STRATEGIES),

@@ -9,4 +9,4 @@ interface FocusFieldHandle {
 }
 
 /** The broadcast callback the settings forms hand down to every field. */
-export type OnFocusField = (handle: FocusFieldHandle) => void;
+export type OnFocusField = (handle: FocusFieldHandle | null) => void;
