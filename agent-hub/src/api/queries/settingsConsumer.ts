@@ -13,6 +13,7 @@ const consumerKeys = {
     userSettings: ['settings', 'consumer-user-settings'] as const,
     shield: ['settings', 'consumer-shield'] as const,
     guardStatus: ['settings', 'consumer-guard-status'] as const,
+    mapsKey: ['settings', 'org-maps-key'] as const,
     billing: ['settings', 'consumer-billing'] as const,
     usage: (days: number) => ['settings', 'consumer-usage', days] as const,
 };
@@ -166,6 +167,23 @@ export function useConsumerBillingData<U, P>() {
                 snapshot.error = errorMessage(e);
             }
             return snapshot;
+        },
+        ...READ,
+    });
+}
+
+/** GET /ai/config: whether a Google Maps key is stored. A failure reads as "no key" (the card then offers to add one). */
+export function useHasGoogleMapsKey() {
+    return useQuery<boolean, Error>({
+        queryKey: consumerKeys.mapsKey,
+        queryFn: async () => {
+            try {
+                const res = await authFetch(`${API_BASE}/ai/config`);
+                const d = await res.json();
+                return !!d.hasGoogleMapsKey;
+            } catch {
+                return false;
+            }
         },
         ...READ,
     });

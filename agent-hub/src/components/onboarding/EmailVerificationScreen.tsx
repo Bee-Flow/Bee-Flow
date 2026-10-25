@@ -1,22 +1,11 @@
 import React, { useState, useEffect, useEffectEvent, useRef } from 'react';
 import { API_BASE } from '../../utils/helpers';
-import { mutate, errorBody, RefusedError, type JsonBody } from '../../api/mutate';
+import { postForBody } from '../../api/postForBody';
 import beeFlowIcon from '../../assets/bee-flow-logo.svg';
 
 interface EmailVerificationScreenProps {
     verification?: { organizationName?: string } | null;
     t?: (key: string, fallback: string) => string;
-}
-
-/** POST and read the JSON body whatever the status: the screen acts on the body's `code`, a refusal included. */
-async function postForBody(url: string, init: Parameters<typeof mutate>[1]): Promise<{ ok: boolean; body: JsonBody }> {
-    try {
-        const res = await mutate(url, init);
-        return { ok: true, body: await res.json().catch(() => ({})) };
-    } catch (err) {
-        if (!(err instanceof RefusedError)) throw err;
-        return { ok: false, body: errorBody(err) ?? {} };
-    }
 }
 
 /**
