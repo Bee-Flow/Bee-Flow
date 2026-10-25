@@ -97,7 +97,7 @@ function recordWriteFailure(row, err) {
  *
  *   complianceStore.addEvidence(row).catch(onEvidenceWriteFailed(row));
  *
- * @param {object} row the evidence row handed to addEvidence
+ * @param {{ organization_id?: string; check_id?: string | null; subject_type?: string | null; subject_id?: string | null; }} row the evidence row handed to addEvidence
  * @returns {(err: Error) => void}
  */
 function onEvidenceWriteFailed(row) {

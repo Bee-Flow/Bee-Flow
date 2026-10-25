@@ -95,7 +95,7 @@ function parseHermesCall(inner) {
  * spans removed. A call whose name is not in `toolNames` (a Set; omit to
  * accept any) or whose arguments do not parse lands in `rejected` with the
  * reason, never in `calls`.
- * @param {any} text
+ * @param {string} text
  * @param {{ toolNames?: Set<string> }} [opts]
  * @returns {{ calls: Array<{name:string,args:object,raw:string,format:string}>,
  *             rejected: Array<{name:string|null,reason:'unknown_tool'|'unparsable',raw:string,format:string}>,

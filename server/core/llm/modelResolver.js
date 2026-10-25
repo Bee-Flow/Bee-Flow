@@ -261,7 +261,7 @@ const LEGACY_TIER_ALIASES = { smart: 'thinking' };
  * Normalize a stored/incoming model string, rewriting legacy `tier:<alias>`
  * values to their canonical tier (e.g. `tier:smart` → `tier:thinking`).
  * Non-tier strings and unknown tiers pass through unchanged.
- * @param {*} model
+ * @param {string} model
  * @returns {*} the normalized model (same value/type as the input when no alias applies)
  */
 function normalizeTierModel(model) {
@@ -281,7 +281,7 @@ function normalizeTierModel(model) {
  * never once called the smart model. Anyone indexing a tier map should route
  * through here rather than re-deriving the prefix/alias rules.
  *
- * @param {*} value - 'thinking' | 'tier:thinking' | 'smart' | 'tier:smart' | …
+ * @param {string} value - 'thinking' | 'tier:thinking' | 'smart' | 'tier:smart' | …
  * @returns {string|null} bare canonical tier name, or null when not a string
  */
 function canonicalTierName(value) {

@@ -529,8 +529,8 @@ async function appendMessages(conversationId, type, messagesArray, ctx = PLAINTE
  *
  * @param {string} conversationId
  * @param {'agent'|'direct'} type
- * @param {any} fromCtx crypto context the rows were written under
- * @param {any} toCtx   crypto context to rewrite them under
+ * @param {Readonly<import("./messageCrypto").CryptoContext>} fromCtx crypto context the rows were written under
+ * @param {Readonly<import("./messageCrypto").CryptoContext>} toCtx   crypto context to rewrite them under
  * @returns {Promise<number>} messages converted
  */
 async function rekeyConversation(conversationId, type, fromCtx, toCtx) {

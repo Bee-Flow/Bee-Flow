@@ -438,7 +438,7 @@ function checkLoopBindings(value, graph, forEach, draftWrap, { label = 'inputs',
  * forEach.overRef. Returns { arrayRef, notes, error }; a non-string comes
  * back untouched for the step's own validation to report. `strictRoot`
  * refuses an unknown root (the set step always did); elsewhere it is a note.
- * @param {*} raw @param {*} graph @param {{ draftWrap?: *, strictRoot?: boolean }} [opts]
+ * @param {string} raw @param {*} graph @param {{ draftWrap?: *, strictRoot?: boolean }} [opts]
  */
 function sanitizeArrayRef(raw, graph, { draftWrap, strictRoot = false } = {}) {
     if (typeof raw !== 'string' || !raw.trim()) return { arrayRef: raw, notes: [], error: null };

@@ -31,7 +31,7 @@ const { fallback } = require('../utils/bestEffort');
 /** @typedef {{ kind: 'error', error: Error }} Fail */
 /** @typedef {{ kind: 'ok', user: any }} Ok */
 
-/** @param {number} status @param {object} body @returns {Reject} */
+/** @param {number} status @param {{ error: string; code?: string; }} body @returns {Reject} */
 function reject(status, body) { return { kind: 'reject', status, body }; }
 /** @param {Error} error @returns {Fail} */
 function fail(error) { return { kind: 'error', error }; }

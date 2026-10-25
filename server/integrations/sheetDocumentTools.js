@@ -49,7 +49,7 @@ function pickTab(doc, wanted) {
 /**
  * Evaluation options for a tab whose formulas point at other tabs
  * (`Klanten!A1`): those tabs' typed cells by name (core/documents/sheetWorkbook.js).
- * @param {any} doc
+ * @param {{ userId: string; }} doc
  * @param {{ tabs: any[], tab: any }} picked
  * @param {Record<string, string>} cells  the read tab's cells
  * @param {any} sheetCells

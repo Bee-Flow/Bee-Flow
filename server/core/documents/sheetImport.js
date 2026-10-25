@@ -88,7 +88,7 @@ function functionsIn(formula) {
 /**
  * One SheetJS cell → what a person would have typed.
  * @param {any} cell
- * @param {any} XLSX
+ * @param {typeof import("@e965/xlsx")} XLSX
  * @param {{ serialToIso: (n: number) => string|null }} cellsLib
  */
 function typedText(cell, XLSX, cellsLib) {

@@ -63,6 +63,8 @@
  *   explicit-any      `: any`, `as any` and `<any>` in non-test TypeScript: a
  *                     value the compiler stops checking. The target is a real
  *                     type, `unknown` plus narrowing, or a generic.
+ *   jsdoc-loose-type  a server JSDoc type that is exactly `{any}`, `{*}`, `{Function}`, `{Object}`
+ *                     or `{object}`: a value the compiler stops checking, written in a comment.
  *   as-unknown-as     `as unknown as T` double casts in non-test code: a
  *                     conversion the compiler would refuse. The target is a
  *                     type guard or a correct type at the source.
@@ -493,6 +495,12 @@ const METRICS = {
         measure: countMatches(/:\s*any\b|(?<![\w$])as\s+any\b|<any>/g),
         what: 'explicit any types',
         advice: 'give it a real type, use unknown and narrow it, or make the function generic',
+    },
+    'jsdoc-loose-type': {
+        include: (rel) => !TEST_FILE.test(rel) && /\.[cm]?[jt]s$/.test(rel) && !rel.endsWith('.d.ts'),
+        measure: countMatches(/\{\s*(?:any|\*|Function|Object|object)\s*\}/g),
+        what: 'JSDoc types that are any, *, Function, Object or object',
+        advice: 'name the real type: the shape as a typedef or inline object type, a function signature `(a: string) => void`, `unknown` plus narrowing, or a generic',
     },
     'as-unknown-as': {
         include: (rel) => !TEST_FILE.test(rel),

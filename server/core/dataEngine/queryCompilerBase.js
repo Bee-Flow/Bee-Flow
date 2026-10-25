@@ -60,7 +60,7 @@ class RowsLockedError extends Error {
  * the caller is the deploy itself (`allowLockedRows: true`). Exported so a
  * caller can refuse BEFORE it spends a quota read or synthesises a preview.
  *
- * @param {any} tableMeta
+ * @param {{ rowsLocked: boolean; }} tableMeta
  * @param {{ allowLockedRows?: boolean }} [opts]
  */
 function assertRowsWritable(tableMeta, opts) {

@@ -64,7 +64,7 @@ const DEFAULTS = Object.freeze({
  */
 
 /**
- * @param {any} req
+ * @param {{ on: (arg0: string, arg1: () => void) => void; }} req
  * @param {any} res
  * @param {{
  *   cursor: number,

@@ -50,7 +50,7 @@ function parseTimed(value, label) {
 }
 
 /**
- * @param {any} t
+ * @param {import("ical.js").Time} t
  * @param {number} days
  */
 function plusDays(t, days) {
@@ -141,7 +141,7 @@ function syncAttendees(vevent, wanted) {
 /**
  * Wall-clock time of a UTC instant in an IANA zone, as a floating ICAL time.
  * Returns null when the zone name is unknown to the runtime.
- * @param {any} utcTime @param {string} tzid
+ * @param {{ toJSDate: () => number | Date | undefined; }} utcTime @param {string} tzid
  */
 function wallClockIn(utcTime, tzid) {
     try {

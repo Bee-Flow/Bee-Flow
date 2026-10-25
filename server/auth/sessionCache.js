@@ -169,7 +169,7 @@ function wrapWithRedisCache(pgStore, redis) {
  *
  * @param {any} liveStore - the store object handed to express-session
  * @param {any} pgStore   - the connect-pg-simple store
- * @param {any} redis     - the shared ioredis client, or null without Redis
+ * @param {{ status: string; once: (arg0: string, arg1: () => void) => void; }} redis     - the shared ioredis client, or null without Redis
  * @returns {boolean} whether activation is pending or done
  */
 function installRedisCacheWhenReady(liveStore, pgStore, redis) {

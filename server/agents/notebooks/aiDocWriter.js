@@ -73,7 +73,7 @@ function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store 
         return { ok: false, conflict: true };
     }
 
-    /** @param {string} realHtml @param {any} facade */
+    /** @param {string} realHtml @param {notebookCollab.CollabFacade} facade */
     async function snapshotBefore(realHtml, facade) {
         try {
             const fresh = await store.getNotebook(notebookId, userId);

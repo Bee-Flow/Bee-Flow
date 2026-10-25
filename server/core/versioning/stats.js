@@ -72,7 +72,7 @@ function partsOf(c) {
 /** @param {unknown} n */
 const count = (n) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Math.round(Number(n)) : 0);
 
-/** @param {any} s @returns {ChangeStats} */
+/** @param {Readonly<{ wordsAdded: 0; wordsRemoved: 0; blocksChanged: 0; }> | Partial<ChangeStats>} s @returns {ChangeStats} */
 function cleanStats(s) {
     return {
         wordsAdded: count(s && s.wordsAdded),

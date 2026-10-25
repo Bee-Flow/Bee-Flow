@@ -96,7 +96,9 @@ export function run({ files, write = false, serverDir } = {}) {
                 const diag = asker.diagnostics(f).find((d) => d.code === 7006 && ts.flattenDiagnosticMessageText(d.messageText, ' ').includes(`'${tag.name}'`));
                 let type = null;
                 if (diag) {
-                    const fixes = asker.svc.service.getCodeFixesAtPosition(f, diag.start, diag.start + diag.length, [7006], FORMAT, PREFS).filter((x) => x.fixId === 'inferFromUsage');
+                    let fixes = [];
+                    // The language service's formatter can fail on an odd file: that tag stays as it is.
+                    try { fixes = asker.svc.service.getCodeFixesAtPosition(f, diag.start, diag.start + diag.length, [7006], FORMAT, PREFS).filter((x) => x.fixId === 'inferFromUsage'); } catch { fixes = []; }
                     for (const fix of fixes) for (const c of fix.changes.flatMap((x) => x.textChanges)) type ??= typeInFix(c.newText, tag.name);
                 }
                 if (type && concrete(type)) edits.push({ at: tag.typeStart, end: tag.typeEnd, text: type });

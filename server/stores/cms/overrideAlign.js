@@ -41,7 +41,7 @@ const ORPHAN_CAP = 100;
 
 /** @typedef {{ get: (key: string) => Promise<any>, set: (key: string, value: any) => Promise<void>, keysLike: (pattern: string) => Promise<string[]> }} ConfigIo */
 
-/** @param {any} item */
+/** @param {{ id: string; }} item */
 function itemKey(item) {
     if (isPlainObject(item) && typeof item.id === 'string' && item.id !== '') return `id:${item.id}`;
     // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a content fingerprint to pair items, not a security use

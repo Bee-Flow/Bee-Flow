@@ -322,6 +322,19 @@ test('explicit-any counts any annotations, casts and type arguments in TypeScrip
     assert.strictEqual(budgetOf(dir, 'explicit-any'), 3);
 });
 
+test('jsdoc-loose-type counts JSDoc types that are exactly any, *, Function, Object or object, not tests or compound types', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.js': '/**\n * @param {any} a\n * @param {*} b\n * @param {Object} c\n * @param {object} d\n * @param {Function} e\n * @param {string} f\n * @param {Array<any>} g\n */\n',
+            'b.js': '/** @returns {any} */\n',
+            'a.test.js': '/** @param {any} a */\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'jsdoc-loose-type').code, 0);
+    assert.strictEqual(budgetOf(dir, 'jsdoc-loose-type'), 6);
+});
+
 test('as-unknown-as counts double casts in source and leaves single casts and tests alone', () => {
     const dir = sandbox({
         src: false,
