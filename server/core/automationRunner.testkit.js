@@ -80,3 +80,18 @@ function installRunnerStoreStubs() {
 }
 
 module.exports = { installRunnerStoreStubs, stub };
+
+/**
+ * What createRun is called with.
+ * @typedef {{ automationId?: string, version?: number, userId?: string, triggerKind?: string, triggerPayload?: unknown, mode?: string, parentRunId?: string|null }} FakeRunArgs
+ */
+
+/**
+ * An in-memory run row, shaped like rowToRun's output.
+ * @typedef {{ id: string, automationId: string, version: number, userId: string, triggerKind: string,
+ *   triggerPayload: unknown, mode: string, status: string, startedAt: string, finishedAt: string|null,
+ *   durationMs: number|null, error: string|null, summary: unknown, parentRunId: string|null,
+ *   cancelRequested: boolean, awaitingStepId: string|null, approvalToken: string|null,
+ *   awaitingStepExpiresAt: string|null, errorClass: string|null, handledErrorCount: number,
+ *   rootRunId?: string, [key: string]: unknown }} FakeRun
+ */

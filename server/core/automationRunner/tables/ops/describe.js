@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * describe: what each column holds, so a later step (or a person, or a
@@ -19,15 +19,34 @@ const PHONE_RE = /^(?:\+|0)[\d\s().-]{7,20}$/;
 const SAMPLE_CHARS = 80;
 const SHARE = 0.95;
 
+/** @typedef {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.describe>} DescribeOp */
+/** @typedef {{ value: string, count: number }} Counted */
+/** @typedef {ReturnType<typeof newAcc>} Acc */
+/**
+ * @typedef {{ key: string, label: string, kind: string, storageType: string, filled: number, empty: number, distinct: number,
+ *   distinctCapped: boolean, options?: Counted[], separator?: string, min?: number|string|null, max?: number|string|null,
+ *   mean?: number|null, usableAsSplit?: boolean, looksPersonal?: boolean, sampleValues?: string[] }} ColumnDescription
+ */
+
+/**
+ * @param {string[]} candidates
+ * @param {number} cap
+ */
 function newAcc(candidates, cap) {
     return {
         filled: 0, empty: 0, cap, capped: false, allUnique: true,
-        distinct: new Map(), numeric: 0, allInt: true, min: Infinity, max: -Infinity, sum: 0,
-        dates: 0, dateMin: null, dateMax: null, personal: 0, samples: [],
-        sep: Object.fromEntries(candidates.map((c) => [c, { cells: 0, items: new Map(), overflow: false }])),
+        distinct: /** @type {Map<string, Counted>} */ (new Map()), numeric: 0, allInt: true, min: Infinity, max: -Infinity, sum: 0,
+        dates: 0, dateMin: /** @type {string|null} */ (null), dateMax: /** @type {string|null} */ (null), personal: 0, samples: /** @type {string[]} */ ([]),
+        sep: Object.fromEntries(candidates.map((c) => [c, { cells: 0, items: /** @type {Map<string, Counted>} */ (new Map()), overflow: false }])),
     };
 }
 
+/**
+ * @param {Acc} acc
+ * @param {unknown} cell
+ * @param {number} sampleLimit
+ * @param {number} itemCap
+ */
 function feed(acc, cell, sampleLimit, itemCap) {
     if (isBlankCell(cell)) { acc.empty++; return; }
     acc.filled++;
@@ -64,8 +83,12 @@ function feed(acc, cell, sampleLimit, itemCap) {
     }
 }
 
-const byCount = (a, b) => b.count - a.count;
+const byCount = (/** @type {{ count: number; }} */ a, /** @type {{ count: number; }} */ b) => b.count - a.count;
 
+/**
+ * @param {Acc} acc
+ * @param {DescribeOp} op
+ */
 function classify(acc, op) {
     const f = acc.filled;
     if (f === 0) return { kind: 'empty' };
@@ -82,8 +105,14 @@ function classify(acc, op) {
     return { kind: 'free_text' };
 }
 
+/**
+ * @param {Acc} acc
+ * @param {import('./index').TableColumn} col
+ * @param {DescribeOp} op
+ */
 function finish(acc, col, op) {
     const { kind, separator } = classify(acc, op);
+    /** @type {ColumnDescription} */
     const out = { key: col.key, label: col.label ?? col.key, kind, storageType: col.type || 'mixed', filled: acc.filled, empty: acc.empty, distinct: acc.distinct.size, distinctCapped: acc.capped };
     let optionCount = 0;
     if (kind === 'single') {
@@ -107,6 +136,11 @@ function finish(acc, col, op) {
     return out;
 }
 
+/**
+ * @param {DescribeOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 async function apply(op, input, ctx) {
     const cols = op.columns
         ? op.columns.map((name, i) => requireColumn(input.columns, name, { opId: op.id, field: `columns[${i}]` }))

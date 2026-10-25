@@ -400,3 +400,17 @@ module.exports = {
     removeBridgeGrantEntry,
     checkGrant,
 };
+
+/** @typedef {{enabled: boolean, groundOnPage: boolean, publicEnabled: boolean, publicGroundOnPage: boolean, publicSpendCapUsd: number, publicDefaultTier: string, defaultTier?: string}} AiGrant */
+
+/** @typedef {{ automationId: string, label?: string }} AutomationGrant */
+
+/** @typedef {{ tool: string, fixedArgs?: Record<string, any>, label?: string }} IntegrationGrant */
+
+/** @typedef {{ datatableId: string, mode: string, columns: string[], publicColumns: string[] }} TableGrant */
+
+/** @typedef {{ agentId: string }} AgentGrant */
+
+/** @typedef {{ ai: AiGrant, automations: AutomationGrant[], integrations: IntegrationGrant[], tables: TableGrant[], agent: AgentGrant | null }} BridgeGrants */
+
+/** @typedef {'integrations' | 'automations' | 'tables'} GrantList */

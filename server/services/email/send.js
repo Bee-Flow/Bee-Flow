@@ -376,3 +376,17 @@ module.exports = {
     mintMessageId,
     _escapeHtml,
 };
+
+/**
+ * @typedef {{ accessToken?: string, refreshToken?: string, scope?: string, expiryDate?: number }} MailTokens
+ * @typedef {{ address?: string, displayName?: string, mode?: 'personal'|'shared' }} MailSendMailbox
+ * @typedef {{
+ *   provider?: 'gmail'|'outlook', tokens: MailTokens, onRefresh: (blob: object) => unknown, mailbox: MailSendMailbox,
+ *   to: string|string[], cc?: string|string[], subject: string, textBody?: string, htmlBody?: string,
+ *   inReplyTo?: string, references?: string, providerThreadId?: string, sourceProviderMessageId?: string,
+ *   messageId?: string, messageIdSeed?: string, attachments?: unknown[], replyStrategy?: 'reply'|'createReply',
+ * }} MailSendInput
+ * @typedef {{ providerMessageId: string | null, providerThreadId: string | null, rfc822MessageId: string | null }} MailSendResult
+ * @typedef {{ subject?: string, body?: { contentType: string, content: string },
+ *   toRecipients?: Array<{ emailAddress: { address: string } }>, ccRecipients?: Array<{ emailAddress: { address: string } }> }} GraphMessage
+ */

@@ -148,3 +148,5 @@ module.exports = {
     sanitizePlainText,
     sanitizePlainTextFields,
 };
+
+/** @typedef {{ nodeType: number, tagName?: string, textContent: string, childNodes: Iterable<DomNode> }} DomNode */

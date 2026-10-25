@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: undo a wrong `origin = 'explicit'` from an earlier build's backfill.
  *
@@ -11,6 +12,7 @@
  * LOOSE_MIGRATIONS.
  */
 
+/** @param {{ run?: typeof import("../db").run }} [deps] */
 async function up(deps = {}) {
     const run = deps.run || require('../db').run;
     let res;

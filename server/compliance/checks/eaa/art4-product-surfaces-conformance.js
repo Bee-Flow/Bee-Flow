@@ -187,3 +187,5 @@ module.exports = {
         };
     },
 };
+
+/** @typedef {{ id: string, status: string, url_path?: string, skip_reason?: string, violations?: number, rules?: { id: string, impact: string, nodes: number, targets?: string[] }[] }} Surface */

@@ -51,8 +51,8 @@ const MAX_SHARED_WITH = 50;
  * @param {string} [opts.title]              calendar event title (titleHint)
  * @param {string} [opts.language]           BCP-47-ish lang code (default 'nl')
  * @param {string} [opts.contextTerms]       bias terms for the transcriber
- * @param {object[]} [opts.attendees]        calendar attendees ({email, displayName})
- * @returns {Promise<object>} the saved-note payload (+ `dedup`)
+ * @param {Array<{ email?: string, displayName?: string | null }>} [opts.attendees]        calendar attendees ({email, displayName})
+ * @returns {Promise<{ id: string, title?: string | null, dedup?: boolean, sourceUri?: string }>} the saved-note payload (+ `dedup`)
  */
 async function ingestGmeetRecording(opts) {
     const {
@@ -149,8 +149,12 @@ async function ingestGmeetRecording(opts) {
 /**
  * Display-name roster for diarization anchoring. `listParticipantNames` is
  * best-effort by contract ([] on any API error), so this never throws.
+ * @param {import('./gmeetArtifacts').GoogleSession} session
+ * @param {string} conferenceRecordName
+ * @param {Array<{ email?: string, displayName?: string | null }>} attendees
  */
 async function resolveRoster(session, conferenceRecordName, attendees) {
+    /** @type {string[]} */
     const names = [];
     for (const a of Array.isArray(attendees) ? attendees : []) {
         const name = String(a?.displayName || '').trim();
@@ -171,9 +175,12 @@ async function resolveRoster(session, conferenceRecordName, attendees) {
  * index for those configs, so batch-read the per-user keys in one SELECT and
  * invert. Excludes the owner, capped at MAX_SHARED_WITH. Best-effort: [] on
  * any error.
+ * @param {string} ownerId
+ * @param {Array<{ email?: string, displayName?: string | null }>} attendees
  */
 async function resolveSharedWith(ownerId, attendees) {
     try {
+        /** @type {string[]} */
         const emails = [];
         for (const a of Array.isArray(attendees) ? attendees : []) {
             const email = String(a?.email || '').trim().toLowerCase();
@@ -192,6 +199,7 @@ async function resolveSharedWith(ownerId, attendees) {
             if (email && !userByEmail.has(email)) userByEmail.set(email, u.id);
         }
 
+        /** @type {string[]} */
         const ids = [];
         for (const email of emails) {
             const uid = userByEmail.get(email);
@@ -206,6 +214,7 @@ async function resolveSharedWith(ownerId, attendees) {
     }
 }
 
+/** @param {string} p */
 function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = {

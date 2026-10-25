@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The builder's live preview of a `table` step:
  *
@@ -67,6 +67,7 @@ const Body = z.object({
     limit: z.number().int().min(1).max(MAX_PREVIEW_ROWS).optional(),
 }).strict();
 
+/** @param {Record<string, unknown>} s */
 const isRunRef = (s) => !!s && typeof s.tableId === 'string';
 
 /**
@@ -74,6 +75,8 @@ const isRunRef = (s) => !!s && typeof s.tableId === 'string';
  * the step itself accepts (a list of records, `{ rows }`, `{ columns, rows }`,
  * a Code step's `{ result }`), read by `listToTable` so the preview types the
  * columns exactly as a run would. Capped at `previewInputRows`.
+ * @param {unknown} src
+ * @param {ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} limits
  */
 function inlineTable(src, limits) {
     const cap = limits.previewInputRows;
@@ -90,7 +93,11 @@ function inlineTable(src, limits) {
     return { columns, rows, inputCapped: listed.truncated };
 }
 
-/** Where in the step an engine error points, in the finding's relative-path form. */
+/**
+ * Where in the step an engine error points, in the finding's relative-path form.
+ * @param {{ opId?: string | null, field?: string }} e
+ * @param {Array<{ id?: string } | null>} ops
+ */
 function pathOfError(e, ops) {
     if (!e.opId) return '';
     const i = ops.findIndex(op => op && op.id === e.opId);
@@ -98,6 +105,7 @@ function pathOfError(e, ops) {
     return `ops[${i}]${e.field ? `.${e.field}` : ''}`;
 }
 
+/** @param {{ name?: string, code?: string } | null | undefined} e */
 const isMissingObject = (e) => !!e && (e.name === 'NoSuchKey' || e.code === 'ENOENT' || e.code === 'NoSuchKey');
 
 /**
@@ -117,7 +125,9 @@ function makeTablePreviewRouter(overrides = {}) {
     const router = express.Router();
     const { store, tables, limitsNow, access, journey } = tableRouterDeps(overrides);
 
+    /** @type {{ rpm: number, run: ReturnType<typeof perUserRateLimit> | null }} */
     let limiter = { rpm: 0, run: null };
+    /** @type {import('express').RequestHandler} */
     const previewLimiter = (req, res, next) => {
         const rpm = limitsNow().previewRpm;
         if (rpm <= 0) return next();
@@ -125,7 +135,13 @@ function makeTablePreviewRouter(overrides = {}) {
         return limiter.run(req, res, next);
     };
 
-    /** A table of one of this automation's runs, capped; null after a 403 was written. */
+    /**
+     * A table of one of this automation's runs, capped; null after a 403 was written.
+     * @param {import('express').Request<{ id: string }>} req
+     * @param {import('express').Response} res
+     * @param {import('zod').infer<typeof RunRef>} ref
+     * @param {ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} limits
+     */
     async function runTable(req, res, ref, limits) {
         const found = await journey(req, res, ref.runId);
         if (!found) return null;
@@ -143,12 +159,18 @@ function makeTablePreviewRouter(overrides = {}) {
         return { columns: row.columns, rows: page.rows, inputCapped: !!page.hasMore };
     }
 
-    /** One source of the request as columns and rows; null after a 403 was written. */
+    /**
+     * One source of the request as columns and rows; null after a 403 was written.
+     * @param {import('express').Request<{ id: string }>} req
+     * @param {import('express').Response} res
+     * @param {import('zod').infer<typeof SourceShape>} src
+     * @param {ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} limits
+     */
     const resolveSource = (req, res, src, limits) => (isRunRef(src)
-        ? runTable(req, res, src, limits)
+        ? runTable(req, res, /** @type {import('zod').infer<typeof RunRef>} */ (src), limits)
         : Promise.resolve(inlineTable(src, limits)));
 
-    router.post('/:id/table-preview', previewLimiter, validate({ body: Body }), async (req, res) => {
+    router.post('/:id/table-preview', previewLimiter, validate({ body: Body }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const automation = await store().getAutomation(req.params.id);
         if (!automation) throw new HttpError(404, 'automation_not_found', 'Not found');
         const me = req.session.user.id;
@@ -169,6 +191,7 @@ function makeTablePreviewRouter(overrides = {}) {
         }
 
         let input;
+        /** @type {Record<string, NonNullable<Awaited<ReturnType<typeof resolveSource>>>>} */
         const joins = {};
         try {
             input = await resolveSource(req, res, body.source, limits);
@@ -187,8 +210,8 @@ function makeTablePreviewRouter(overrides = {}) {
         const step = spec.normalizeTableStep({ source: null, ops: body.ops });
         // The preview supplies the input itself, so a missing step-level source is not a finding here.
         const findings = (spec.validateTableStep(step, { columns: input.columns }) || [])
-            .filter(f => !(typeof f.path === 'string' && /^source(\b|\.|\[|$)/.test(f.path)));
-        if (findings.some(f => f.severity === 'error')) {
+            .filter((/** @type {{ path?: unknown, severity?: string, message?: string }} */ f) => !(typeof f.path === 'string' && /^source(\b|\.|\[|$)/.test(f.path)));
+        if (findings.some((/** @type {{ severity?: string }} */ f) => f.severity === 'error')) {
             return res.json({ ok: false, findings, opResults: [] });
         }
 
@@ -204,9 +227,13 @@ function makeTablePreviewRouter(overrides = {}) {
         }
         const vars = await runVarsFor(automation);
 
-        const joinOps = step.ops.filter(o => o && o.op === 'join');
+        const joinOps = step.ops.filter((/** @type {{ op?: string, id?: string } | null} */ o) => o && o.op === 'join');
 
         /** The sample the request supplied for a join, by the operation that asks for it. */
+        /**
+         * @param {unknown} binding
+         * @param {string | null} [opId]
+         */
         const resolveTable = async (binding, opId) => {
             const keys = Object.keys(joins);
             // A lone source stands in only when the step has a single join: with two, each must be asked for by its own id.
@@ -243,7 +270,7 @@ function makeTablePreviewRouter(overrides = {}) {
             }
             const warnings = [...new Set([
                 ...(result.warnings || []),
-                ...findings.filter(f => f.severity === 'warning').map(f => f.message),
+                ...findings.filter((/** @type {{ severity?: string }} */ f) => f.severity === 'warning').map((/** @type {{ message?: string }} */ f) => f.message),
             ])];
             return res.json({
                 ok: true,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The session half of the OAuth callback (./providerCallbackRoutes.js): where
  * the user stands with an organisation (binding an org-less account by
@@ -23,6 +23,7 @@ const microsoftLogin = require('./microsoftLogin');
 /**
  * The fresh row, whether it belongs to an organisation (binding it by
  * domain/tenant when it does not), and whether it awaits approval.
+ * @param {{ provider: string, user: import('./providerCallbackRoutes').OAuthUser, msTenant?: string, signupIntent?: import('./ssoUserProvisioning').SignupIntent | null }} opts
  */
 async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     // Check if user belongs to any organisation.
@@ -88,7 +89,10 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     return { freshUser, userHasOrg, pendingApproval, isPersonalAccount };
 }
 
-/** Write the signed-in session: identity, tokens (and their vault copy), approval and encryption flags. */
+/**
+ * Write the signed-in session: identity, tokens (and their vault copy), approval and encryption flags.
+ * @param {{ req: import('express').Request, provider: string, user: import('./providerCallbackRoutes').OAuthUser, freshUser: import('./ssoUserProvisioning').UserRow | null, tokenData: import('./providerCallbackRoutes').OAuthTokenResponse, pendingApproval: boolean, userHasOrg: boolean, isPersonalAccount: boolean }} opts
+ */
 async function writeOAuthSession({ req, provider, user, freshUser, tokenData, pendingApproval, userHasOrg, isPersonalAccount }) {
     let microsoftLoginIdentity;
     if (provider === 'microsoft') {

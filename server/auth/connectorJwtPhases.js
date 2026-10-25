@@ -247,3 +247,11 @@ module.exports = {
     _resolveRequesterNcUid,
     _resolveSessionNcUid,
 };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} UserRec */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getOrganization>>>} OrgRec */
+
+/** @typedef {{ sub?: string, email?: string, name?: string, nc_admin?: boolean }} ConnectorPayload The verified JWT claims this module reads. */
+
+/** @typedef {import('express').Request & { connectorAuth?: { orgId: string, ncUid: string | null } }} ConnectorReq */

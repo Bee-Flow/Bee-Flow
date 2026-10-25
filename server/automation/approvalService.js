@@ -323,3 +323,5 @@ module.exports = {
     _panelTest: { evaluatePanel, mergeVoteAnswers, isSeatedOnPanel, isFinalApprover },
     _stageTest: { evaluateStage, nextStageRemindAt },
 };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */

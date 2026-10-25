@@ -303,3 +303,17 @@ module.exports = {
     callerOnlyUserId, refusesMissingStarter, collectRequirements, sessionHasProvider, buildCallerIdentity,
     assertCallerReady, failRunBeforeSteps, applyCallerOnly,
 };
+
+/**
+ * What execution.js hands in (its RUN_DEPS): RunDeps plus the caller lookups.
+ * @typedef {import('./runSetup').RunDeps & {
+ *   loadConnectionResolution: () => typeof import('../integrations/connectionResolution'),
+ *   loadConnectionStore: () => typeof import('../../stores/integrationConnectionStore'),
+ *   loadBlockDefinition: ReturnType<typeof import('./callerLookups').blockDefinitionLoader>,
+ *   loadStepProviders: ReturnType<typeof import('./callerLookups').stepProvidersLoader>,
+ * }} CallerDeps
+ */
+
+/** @typedef {import('./runSetup').RunAutomation} RunAutomation */
+
+/** @typedef {Awaited<ReturnType<typeof buildCallerIdentity>>} CallerIdentity */

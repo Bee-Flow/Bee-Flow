@@ -52,3 +52,7 @@ function patchDataExtraction(graph, step, patch, next, draftWrap, patchNotes) {
 }
 
 module.exports = { patchDataExtraction };
+
+/** @typedef {import('../../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../../pendingDatatables').DraftWrap} DraftWrap */

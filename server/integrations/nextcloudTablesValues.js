@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 const { fallback } = require('../utils/bestEffort');
 
@@ -17,6 +17,14 @@ const { fallback } = require('../utils/bestEffort');
  * @typedef {{ id: number|string, label: string }} SelectionOption
  * @typedef {{ id?: number|string, title?: string, type?: string, subtype?: string|null,
  *   selectionOptions?: unknown, numberDecimals?: number|null }} TablesColumn
+ * @typedef {{ id?: number, title?: string, emoji?: string, ownership?: string, isShared?: boolean,
+ *   archived?: boolean, rowsCount?: number, columns?: unknown[], columnsCount?: number }} RawTablesTable
+ * @typedef {{ id?: number, title?: string, type?: string, subtype?: string, mandatory?: boolean,
+ *   description?: string, selectionOptions?: unknown, numberDecimals?: number, orderWeight?: number,
+ *   selectionDefault?: unknown, numberPrefix?: string, numberSuffix?: string, datetimeDefault?: unknown,
+ *   customSettings?: Record<string, unknown> }} RawTablesColumn
+ * @typedef {{ id: number, title: string, type: string, subtype: string|null, mandatory: boolean,
+ *   description: string, selectionOptions?: SelectionOption[], numberDecimals?: number }} MappedColumn
  */
 
 /**
@@ -51,7 +59,7 @@ function columnKind(col) {
     return 'other';
 }
 
-const isBlank = (v) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+const isBlank = (/** @type {unknown} */ v) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
 
 /** @param {TablesColumn} col @param {unknown} item @returns {{ id: number|string }|{ error: string }} */
 function optionId(col, item) {
@@ -96,6 +104,7 @@ function toWireValue(col, value) {
     }
     if (kind === 'multi') {
         const items = Array.isArray(value) ? value : String(value).split(',');
+        /** @type {(string | number)[]} */
         const ids = [];
         for (const item of items) {
             const hit = optionId(col, item);
@@ -146,6 +155,7 @@ function fromWireValue(col, value) {
     return Array.isArray(ids) ? ids.map(labelOf) : labelOf(ids);
 }
 
+/** @param {RawTablesTable} t */
 function mapTable(t) {
     return {
         id: t.id,
@@ -159,7 +169,9 @@ function mapTable(t) {
     };
 }
 
+/** @param {RawTablesColumn} c @returns {MappedColumn} */
 function mapColumn(c) {
+    /** @type {MappedColumn} */
     const out = {
         id: c.id,
         title: c.title,
@@ -182,6 +194,7 @@ function mapColumn(c) {
  * has them — the relation settings. `mapColumn` above stays the slim agent
  * view; this one parses what the API hands over as JSON-in-a-string.
  */
+/** @param {RawTablesColumn} c */
 function describeColumn(c) {
     return {
         ...mapColumn(c),

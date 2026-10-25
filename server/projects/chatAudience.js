@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Who a project chat answer is visible to, and which agents it may answer as.
@@ -18,7 +19,7 @@ const AUDIENCE_CAP = 200;
  * people): the caller then narrows to what everyone can read for certain.
  *
  * @param {{ id: string, ownerId?: string|null }} project
- * @param {{ getProjectShares?: Function, groupMemberIds?: Function }} [deps]
+ * @param {{ getProjectShares?: typeof import('../stores/projectStore').getProjectShares, groupMemberIds?: typeof import('../core/automationRunner/approvalLifecycle').groupMemberIds }} [deps]
  * @returns {Promise<string[]|null>}
  */
 async function listProjectAudience(project, deps = {}) {
@@ -39,10 +40,19 @@ async function listProjectAudience(project, deps = {}) {
         }
         return ids.size > 0 ? [...ids] : null;
     } catch (err) {
-        log.warn(`[ProjectChat] project audience of ${project && project.id} unknown: ${err && err.message}`);
+        log.warn(`[ProjectChat] project audience of ${project && project.id} unknown: ${err && /** @type {Error} */ (err).message}`);
         return null;
     }
 }
+
+/**
+ * @typedef {object} ChatAgentDeps  replaceable collaborators (a test's doubles)
+ * @property {typeof import('../stores/agentStore')} [agentStore]
+ * @property {(id: string) => Promise<{ organizationId?: string|null }|null|undefined>} [getUser]
+ * @property {(id: string) => Promise<string[]|null|undefined>} [resolveUserGroups]
+ * @property {(project: { id: string }) => Promise<string[]|null>} [listAudience]
+ * @property {typeof listChatAgents} [listChatAgents]
+ */
 
 /**
  * The agents a project chat may answer as: ones EVERY member of the project
@@ -51,9 +61,9 @@ async function listProjectAudience(project, deps = {}) {
  * are not in, is not a choice. An audience we cannot list (too large, or a
  * lookup failed) narrows to agents published organisation-wide.
  *
- * @param {object} project
+ * @param {{ id: string }} project
  * @param {{ userId: string }} p  the member choosing
- * @param {object} [deps]
+ * @param {ChatAgentDeps} [deps]
  * @returns {Promise<Array<{ id: string, name: string, icon?: string }>>}
  */
 async function listChatAgents(project, { userId }, deps = {}) {
@@ -64,6 +74,9 @@ async function listChatAgents(project, { userId }, deps = {}) {
     const { mayAutomationUseAgent } = require('../automation/agentCatalog');
     const SYSTEM_OWNERS = ['system', 'swarm'];
 
+    /**
+     * @param {string} id
+     */
     const identityOf = async (id) => {
         const user = await getUser(id);
         return { userId: id, orgId: user?.organizationId || null, groups: (await resolveUserGroups(id)) || [] };
@@ -82,7 +95,7 @@ async function listChatAgents(project, { userId }, deps = {}) {
     let members = null;
     if (audience) {
         try { members = await Promise.all(audience.map(identityOf)); } catch (err) {
-            log.warn(`[ProjectChat] members of ${project.id} unreadable for the agent list: ${err && err.message}`);
+            log.warn(`[ProjectChat] members of ${project.id} unreadable for the agent list: ${err && /** @type {Error} */ (err).message}`);
         }
     }
     const usable = [...byId.values()].filter((agent) => (members
@@ -94,7 +107,12 @@ async function listChatAgents(project, { userId }, deps = {}) {
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
 
-/** Is this agent one the whole project may chat with? */
+/**
+ * Is this agent one the whole project may chat with?
+ * @param {{ id: string }} project
+ * @param {{ agentId: string, userId: string }} p
+ * @param {ChatAgentDeps} [deps]
+ */
 async function isChatAgentAllowed(project, { agentId, userId }, deps = {}) {
     const list = await (deps.listChatAgents || listChatAgents)(project, { userId }, deps);
     return list.some((a) => a.id === agentId);

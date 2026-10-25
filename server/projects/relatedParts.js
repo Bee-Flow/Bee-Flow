@@ -90,7 +90,22 @@ const STATUS = Object.freeze({
     NOT_FOUND: 'not_found',
 });
 
-/** The pointer registry's names for a target, in the membership registry's. */
+/**
+ * Where a part stands for the caller (see `standing`).
+ * @typedef {{ status: string, name: string|null, payload: object|null, solutionName?: string|null }} Standing
+ */
+
+/**
+ * One part the walk found, root or related; `standing` fills the rest in.
+ * @typedef {{ key: string, kind: string, id: string, root: boolean,
+ *   parents: Map<string, { node: WalkNode, relation: string }>, children: string[],
+ *   status?: string, name?: string|null, payload?: object|null, solutionName?: string|null }} WalkNode
+ */
+
+/**
+ * The pointer registry's names for a target, in the membership registry's.
+ * @type {Readonly<Record<string, string>>}
+ */
 const MEMBER_KIND = Object.freeze({
     automation: 'automation',
     datatable: 'datatable',
@@ -100,12 +115,21 @@ const MEMBER_KIND = Object.freeze({
     document: 'document_template',
 });
 
-const isId = (v) => typeof v === 'string' && v.trim() !== '';
+const isId = (/** @type {string} */ v) => typeof v === 'string' && v.trim() !== '';
+/**
+ * @param {string} kind
+ * @param {string} id
+ */
 const keyOf = (kind, id) => `${kind}:${id}`;
 
 // ── Edges ───────────────────────────────────────────────────────────────────
 
-/** How a pointer reads to a person: the relation code for (holder, pointer). */
+/**
+ * How a pointer reads to a person: the relation code for (holder, pointer).
+ * @param {string} holder
+ * @param {import('../core/packaging/pointers').Pointer} ptr
+ * @param {(stepId: string|null|undefined) => string} tableMode
+ */
 function relationOf(holder, ptr, tableMode) {
     switch (ptr.targetKind) {
         case 'automation':
@@ -134,7 +158,8 @@ function relationOf(holder, ptr, tableMode) {
 function edgesOf(kind, payload) {
     const usage = kind === 'automation' ? collectDatatableUsage(payload?.definition) : [];
     const modeByStep = new Map(usage.map(u => [u.stepId, u.mode]));
-    const tableMode = (stepId) => modeByStep.get(stepId) || 'read';
+    const tableMode = (/** @type {string|null|undefined} */ stepId) => modeByStep.get(stepId) || 'read';
+    /** @type {Array<{kind: string, id: string, relation: string}>} */
     const out = [];
     const seen = new Set();
     visitPointers(kind, payload, (ptr) => {
@@ -154,7 +179,11 @@ function edgesOf(kind, payload) {
 
 // ── Reading ─────────────────────────────────────────────────────────────────
 
-/** A row the id of which the column type refuses is no row. */
+/**
+ * A row the id of which the column type refuses is no row.
+ * @param {string} sql
+ * @param {string} id
+ */
 async function readRow(sql, id) {
     try { return await require('../db').getOne(sql, [String(id)]); } catch (err) {
         if (err?.code === '22P02') return null;
@@ -162,9 +191,12 @@ async function readRow(sql, id) {
     }
 }
 
-const jsonList = (v) => (Array.isArray(v) ? v : []);
+const jsonList = (/** @type {unknown} */ v) => (Array.isArray(v) ? v : []);
 
-/** name + holder payload per kind. A leaf kind has no payload. */
+/**
+ * name + holder payload per kind. A leaf kind has no payload.
+ * @type {Record<string, (id: string, userId?: string) => Promise<{ name: string|null, payload: object|null }|null>>}
+ */
 const READERS = {
     automation: async (id) => {
         const a = await require('../stores/automationStore').getAutomation(id);
@@ -214,19 +246,41 @@ const READERS = {
 
 /** The default data sources. Swap a member in a test; see the header. */
 const seams = {
-    /** @returns {Promise<string|null>} who owns the part, null when there is no such part */
+    /**
+     * @param {string} kind
+     * @param {string} id
+     * @returns {Promise<string|null>} who owns the part, null when there is no such part
+     */
     ownerOf: (kind, id) => membership.getKind(kind).ownerOf(id),
-    /** @returns {Promise<string|null>} the project the part is filed in */
+    /**
+     * @param {string} kind
+     * @param {string} id
+     * @returns {Promise<string|null>} the project the part is filed in
+     */
     projectOf: (kind, id) => membership.getKind(kind).projectOf(id),
-    /** @returns {Promise<{name: string|null, payload: object|null}|null>} */
+    /**
+     * @param {string} kind
+     * @param {string} id
+     * @param {string} userId
+     * @returns {Promise<{name: string|null, payload: object|null}|null>}
+     */
     readPart: (kind, id, userId) => READERS[kind](id, userId),
-    /** May this caller attach the base? The very check setKnowledgeBaseProject makes. */
+    /**
+     * May this caller attach the base? The very check setKnowledgeBaseProject makes.
+     * @param {import('express').Request|null} req
+     * @param {string} kbId
+     * @param {{ organizationId?: string }} project
+     */
     async canAttachKnowledgeBase(req, kbId, project) {
         if (!req) return false;
         const { validateKnowledgeBaseIds } = require('./knowledgeBaseMembership');
         return (await validateKnowledgeBaseIds(req, [kbId], project?.organizationId)).ok;
     },
-    /** The project's name when the caller has a role on it, else null. */
+    /**
+     * The project's name when the caller has a role on it, else null.
+     * @param {string} userId
+     * @param {string} projectId
+     */
     async visibleProjectName(userId, projectId) {
         const role = await require('../auth/projectAccess').getProjectRole(userId, projectId);
         if (!role) return null;
@@ -239,9 +293,16 @@ const seams = {
 /**
  * Where a part stands for this caller and this Solution: its status, name and
  * (only when it may be expanded) the payload its edges are read from.
+ * @param {string} kind
+ * @param {string} id
+ * @param {{ project: {id: string, kind?: string|null, knowledgeBaseIds?: string[], organizationId?: string},
+ *   userId: string, req: import('express').Request|null }} ctx
+ * @param {typeof seams} d
+ * @returns {Promise<Standing>}
  */
 async function standing(kind, id, { project, userId, req }, d) {
     const entry = membership.getKind(kind);
+    /** @type {string} */
     let status;
     let projectIn = null;
 
@@ -271,6 +332,7 @@ async function standing(kind, id, { project, userId, req }, d) {
 
     const read = await d.readPart(kind, id, userId);
     if (!read) return { status: STATUS.NOT_FOUND, name: null, payload: null };
+    /** @type {Standing} */
     const out = { status, name: read.name, payload: status === STATUS.ADDABLE ? read.payload : null };
     if (status === STATUS.IN_OTHER_SOLUTION) out.solutionName = await d.visibleProjectName(userId, projectIn);
     return out;
@@ -280,35 +342,39 @@ async function standing(kind, id, { project, userId, req }, d) {
  * @param {object} input
  * @param {{id: string, kind?: string|null, knowledgeBaseIds?: string[], organizationId?: string}} input.project
  * @param {string} input.userId
- * @param {object} [input.req]      the request, for the knowledge-base read check
+ * @param {import('express').Request|null} [input.req]      the request, for the knowledge-base read check
  * @param {Array<{kind: string, id: string}>} input.items   what is being added
- * @param {object} [d]              data sources; `seams` by default
- * @returns {Promise<{related: Array, truncated: boolean, items: Array}>}
+ * @param {typeof seams} [d]              data sources; `seams` by default
+ * @returns {Promise<{related: Array<Record<string, unknown>>, truncated: boolean, items: Array<Record<string, unknown>>}>}
  *          `items` repeats the roots with their standing, so the client can tell
  *          a part that will not file from one that will.
  */
 async function findRelatedParts({ project, userId, req = null, items }, d = seams) {
     const ctx = { project, userId, req };
+    /** @type {Map<string, WalkNode>} */
     const nodes = new Map();
     let truncated = false;
     let relatedCount = 0;
 
+    /** @type {WalkNode[]} */
     const roots = [];
     for (const { kind, id } of items) {
         const key = keyOf(kind, id);
         if (nodes.has(key)) continue;
+        /** @type {WalkNode} */
         const node = { key, kind, id, root: true, parents: new Map(), children: [] };
         nodes.set(key, node);
         roots.push(node);
     }
 
-    const settle = async (batch) => {
+    const settle = async (/** @type {WalkNode[]} */ batch) => {
         await Promise.all(batch.map(async (node) => Object.assign(node, await standing(node.kind, node.id, ctx, d))));
     };
     await settle(roots);
 
     let frontier = roots;
     while (frontier.length) {
+        /** @type {WalkNode[]} */
         const fresh = [];
         for (const node of frontier) {
             if (node.status !== STATUS.ADDABLE || !node.payload || !membership.getKind(node.kind)) continue;
@@ -335,9 +401,10 @@ async function findRelatedParts({ project, userId, req = null, items }, d = seam
 
     // Dependencies first: post-order over the discovered edges. A cycle (two
     // automations calling each other) is cut by the visited set.
+    /** @type {WalkNode[]} */
     const ordered = [];
     const visited = new Set();
-    const visit = (node) => {
+    const visit = (/** @type {WalkNode} */ node) => {
         if (visited.has(node.key)) return;
         visited.add(node.key);
         for (const childKey of node.children) visit(nodes.get(childKey));
@@ -349,6 +416,7 @@ async function findRelatedParts({ project, userId, req = null, items }, d = seam
         const via = [...node.parents.values()].map(({ node: parent, relation }) => ({
             kind: parent.kind, id: parent.id, name: parent.name || null, relation,
         }));
+        /** @type {Record<string, unknown>} */
         const part = {
             kind: node.kind, id: node.id, name: node.name || null,
             relation: via[0]?.relation || null, via, status: node.status,

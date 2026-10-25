@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO Obligation Store — the single due-date engine for the ISMS process
  * layer (ISO 27001 cl. 9.2/9.3, A.5.36, A.6.3, A.8.8 …).
@@ -60,7 +60,15 @@ const DEFAULT_OFFSETS = [30, 7, 0];
 const NOTIFY_HORIZON_DAYS = 60;
 const DAY_MS = 86400000;
 
+/**
+ * The editable fields of an obligation as the routes send them.
+ * @typedef {{ kind?: string, subject?: string | null, title?: string, owner_user_id?: string | null,
+ *   due_at?: string | number | Date, recur_months?: number | string | null,
+ *   notify_offsets?: unknown[] | null }} ObligationInput
+ */
+
 /** Days-before-due tiers: non-negative ints, deduped, largest first. */
+/** @param {unknown} v */
 function normalizeOffsets(v) {
     const arr = (Array.isArray(v) ? v : DEFAULT_OFFSETS)
         .map(Number)
@@ -69,13 +77,18 @@ function normalizeOffsets(v) {
     return uniq.length ? uniq : [...DEFAULT_OFFSETS];
 }
 
+/** @param {unknown} v */
 function toRecurMonths(v) {
     if (v === null || v === undefined || v === '') return null;
     const n = Number(v);
     return Number.isInteger(n) && n > 0 && n <= 120 ? n : null;
 }
 
-/** Calendar roll, clamped to the last day of the target month (31 Jan +1 → 28/29 Feb). */
+/**
+ * Calendar roll, clamped to the last day of the target month (31 Jan +1 → 28/29 Feb).
+ * @param {string | number | Date} date
+ * @param {number} months
+ */
 function addMonths(date, months) {
     const d = new Date(date);
     const day = d.getUTCDate();
@@ -86,8 +99,13 @@ function addMonths(date, months) {
     return d;
 }
 
+/**
+ * @param {string} orgId
+ * @param {{ openOnly?: boolean, limit?: number }} [opts]
+ */
 async function listObligations(orgId, { openOnly = false, limit = 200 } = {}) {
     await initDB();
+    /** @type {(string | number)[]} */
     const params = [orgId];
     let where = 'organization_id = $1';
     if (openOnly) where += ' AND completed_at IS NULL';
@@ -100,11 +118,20 @@ async function listObligations(orgId, { openOnly = false, limit = 200 } = {}) {
     `, params);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string | number} id
+ */
 async function getObligation(orgId, id) {
     await initDB();
     return getOne(`SELECT * FROM iso_obligations WHERE organization_id = $1 AND id = $2`, [orgId, id]);
 }
 
+/**
+ * @param {string} orgId
+ * @param {ObligationInput} input
+ * @param {string | null} [actorId]
+ */
 async function createObligation(orgId, input, actorId = null) {
     await initDB();
     if (!orgId) throw new Error('organization_id is required');
@@ -137,6 +164,10 @@ async function createObligation(orgId, input, actorId = null) {
  * the open-obligation identity and is deliberately NOT editable; completion
  * stamps only ever come from completeObligation. Changing `due_at` resets
  * `last_notified_offset` so the reminder tiers fire again for the new date.
+ * @param {string} orgId
+ * @param {string | number} id
+ * @param {ObligationInput} [patch]
+ * @param {string | null} [_actorId]
  */
 async function updateObligation(orgId, id, patch = {}, _actorId = null) {
     await initDB();
@@ -179,6 +210,9 @@ async function updateObligation(orgId, id, patch = {}, _actorId = null) {
  * DO NOTHING respects the open-obligation unique index, so a manually
  * re-created duplicate can never appear.
  * Returns { completed, next } — next is null when non-recurring.
+ * @param {string} orgId
+ * @param {string | number} id
+ * @param {string | null} [actorId]
  */
 async function completeObligation(orgId, id, actorId = null) {
     await initDB();
@@ -255,6 +289,10 @@ async function listDueForNotification() {
 }
 
 /** Record that the reminder for a tier went out — keyed by id, notifier-global. */
+/**
+ * @param {string | number} id
+ * @param {number | string} offset
+ */
 async function markNotified(id, offset) {
     await initDB();
     await run(`
@@ -266,6 +304,7 @@ async function markNotified(id, offset) {
 }
 
 /** Counters for the readiness dashboard. */
+/** @param {string} orgId */
 async function getStats(orgId) {
     await initDB();
     const row = await getOne(`

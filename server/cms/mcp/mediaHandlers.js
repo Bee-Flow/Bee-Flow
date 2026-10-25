@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The media CMS-over-MCP tools (./dispatch.js maps tool names to them): the
@@ -14,12 +14,27 @@ const SHOT_MAX_PER_WINDOW = 24;
 const UPLOAD_PATH = '/mcp/cms/upload';
 const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|vtt)$/i;
 
-/** The asset library and upload tickets. */
+
+/**
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ * @typedef {import('./handlerKit').HandlerKit} HandlerKit
+ */
+
+/**
+ * The asset library and upload tickets.
+ * @param {Pick<HandlerKit, 'deps' | 'resolveSite'>} kit
+ */
 function createAssetHandlers({ deps, resolveSite }) {
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function listAssets(args, ctx) {
         const limit = Math.min(200, Math.max(1, Number.isInteger(args.limit) ? args.limit : 100));
         const search = typeof args.search === 'string' ? args.search.toLowerCase() : '';
         try {
+            /** @type {string[]} */
             const keys = await deps.storage.listKeys('cms/');
             const assets = keys
                 .filter((k) => ASSET_LIST_EXT_RE.test(k) && (!search || k.toLowerCase().includes(search)))
@@ -28,10 +43,14 @@ function createAssetHandlers({ deps, resolveSite }) {
                 .map((key) => ({ key, url: assetUrlFor(key), ...(ctx.baseUrl ? { absoluteUrl: `${ctx.baseUrl}${assetUrlFor(key)}` } : {}) }));
             return { result: { assets } };
         } catch (_) {
-            return { result: { assets: [], unavailable: true, note: 'The asset library cannot be listed on this installation (no object storage).' } };
+            return { result: { assets: /** @type {unknown[]} */ ([]), unavailable: true, note: 'The asset library cannot be listed on this installation (no object storage).' } };
         }
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function requestUpload(args, ctx) {
         // A legacy token cannot be re-checked as finely when the PUT arrives (no id,
         // no scopes of its own), so it gets no upload URLs at all.
@@ -85,6 +104,10 @@ function createAssetHandlers({ deps, resolveSite }) {
         };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function uploadStatus(args, ctx) {
         const status = await deps.tickets.status(String(args.ticketId || ''), ctx.userId);
         if (!status) return err('No upload with that ticketId for this user. Check the id from cms_request_upload.');
@@ -94,10 +117,17 @@ function createAssetHandlers({ deps, resolveSite }) {
     return { listAssets, requestUpload, uploadStatus };
 }
 
-/** Screenshots of a draft or published page, under a per-user budget. */
+/**
+ * Screenshots of a draft or published page, under a per-user budget.
+ * @param {Pick<HandlerKit, 'deps' | 'resolveSite'> & { takeBudget: ReturnType<typeof import('./handlerKit').createTakeBudget>, shotBudget: Map<string, { count: number, resetAt: number }> }} kit
+ */
 function createScreenshotHandler({ deps, resolveSite, takeBudget, shotBudget }) {
-    const takeScreenshotBudget = (userId) => takeBudget(shotBudget, userId, SHOT_MAX_PER_WINDOW, SHOT_WINDOW_MS);
+    const takeScreenshotBudget = (/** @type {string} */ userId) => takeBudget(shotBudget, userId, SHOT_MAX_PER_WINDOW, SHOT_WINDOW_MS);
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function screenshot(args, ctx) {
         if (!takeScreenshotBudget(ctx.userId)) {
             return { result: { note: 'Screenshot budget spent' }, text: `Screenshot budget spent (${SHOT_MAX_PER_WINDOW} per ${SHOT_WINDOW_MS / 60000} minutes); each one is a headless browser page. Keep editing and take the next one when the budget refills.` };

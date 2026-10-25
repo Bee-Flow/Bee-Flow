@@ -212,3 +212,18 @@ module.exports = {
     groundAiStepWithKB,
     groundAiStepWithSkills,
 };
+
+/**
+ * What execAi hands over (lazy getters for the lazy requires).
+ * @typedef {{ resolveMemoryPolicy: typeof import('../memory/memoryPolicy').resolveMemoryPolicy,
+ *   memoryStore: () => typeof import('../../stores/memoryStore'),
+ *   configStore: () => typeof import('../../stores/configStore'),
+ *   aiAgent: () => typeof import('../aiAgent'),
+ *   scrubMemoryContext: () => typeof import('../memory/scrubMemoryContext'),
+ *   knowledgeSearch: () => typeof import('../agentRuntime/knowledgeSearch'),
+ *   aiStepAgent: () => typeof import('./aiStepAgent'),
+ *   skillInjection: () => typeof import('../tools/skillInjection') }} GroundingDeps
+ * @typedef {import('./aiStepAgent').AgentAiStep & { id?: string, useMemory?: unknown, prompt?: string }} GroundingStep
+ * @typedef {{ userId?: string, orgId?: string|null, userGroupIds?: string[], automationId?: string|null,
+ *   orgShield?: { enabled?: boolean } | null }} GroundingCtx
+ */

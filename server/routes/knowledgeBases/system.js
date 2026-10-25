@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — system-managed KB status.
  *
@@ -25,7 +25,7 @@ const { fallback } = require('../../utils/bestEffort');
 // the user's bypass) currently has the matching beta feature enabled.
 // Super-admins get an extra `superAdminBypass: true` flag — they can
 // always use the system KB in their own chats regardless of org toggle.
-router.get('/system', requireAuth, async (req, res) => {
+router.get('/system', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     getUserId(req);
     const orgIds = await resolveUserOrgIds(req);
     const isSuperAdmin = orgIds === null
@@ -35,6 +35,7 @@ router.get('/system', requireAuth, async (req, res) => {
     // Pick the org whose toggle state we'll report. Super-admins fall
     // back to the first org in the system (same rule as
     // /auth/me/active-features) so the panel has something to manage.
+    /** @type {string | null} */
     let orgId = null;
     if (orgIds instanceof Set && orgIds.size > 0) {
         orgId = Array.from(orgIds)[0];
@@ -57,7 +58,7 @@ router.get('/system', requireAuth, async (req, res) => {
     }
 
     const all = await kbStore.listSystemKBs();
-    const payload = all.map(kb => {
+    const payload = all.map((/** @type {Record<string, any>} */ kb) => {
         const slug = kb.system_slug || null;
         const enabledForOrg = !!(slug && orgAllowed.has(slug) && orgActive.has(slug));
         const allowedForOrg = !!(slug && orgAllowed.has(slug));

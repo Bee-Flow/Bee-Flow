@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The short-lived claims on a co-edited document (collab_docs), next to the
  * store that owns the table (stores/collabDocStore.js spreads them into its

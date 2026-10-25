@@ -64,6 +64,7 @@ function getEmbedAllowedHost() {
     try { return new URL(raw).origin; }
     catch { return 'https://beeflow.nl'; }
 }
+/** @param {unknown} src */
 function isAllowedEmbedSrc(src) {
     if (typeof src !== 'string' || !src) return false;
     let u;
@@ -84,7 +85,8 @@ const IFRAME_ATTR_ALLOWLIST = new Set([
 
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
     if (data.tagName !== 'iframe') return;
-    const src = node.getAttribute && node.getAttribute('src');
+    // tagName is 'iframe', so the node is an Element.
+    const src = /** @type {Element} */ (node).getAttribute && /** @type {Element} */ (node).getAttribute('src');
     if (!isAllowedEmbedSrc(src)) {
         // Returning here is not enough — we have to remove the node ourselves
         // since DOMPurify doesn't know we want it gone. parentNode.removeChild
@@ -94,14 +96,15 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
     }
     // Strip any attributes that aren't on the allowlist. Iterate over a
     // snapshot of names because we mutate the live NamedNodeMap.
-    const attrs = Array.from(node.attributes || []);
+    const attrs = Array.from(/** @type {Element} */ (node).attributes || []);
     for (const a of attrs) {
         if (!IFRAME_ATTR_ALLOWLIST.has(a.name.toLowerCase())) {
-            node.removeAttribute(a.name);
+            /** @type {Element} */ (node).removeAttribute(a.name);
         }
     }
 });
 
+/** @type {{ USE_PROFILES: { html: boolean, svg: boolean }, FORBID_TAGS: string[], FORBID_ATTR?: string[], ALLOWED_ATTR?: string[], ADD_TAGS: string[], ADD_ATTR: string[], KEEP_CONTENT: boolean }} */
 const SANITIZE_HTML_CONFIG = {
     USE_PROFILES: { html: true, svg: true },
     // `iframe` removed from FORBID_TAGS — the uponSanitizeElement hook above
@@ -127,12 +130,14 @@ const SANITIZE_SVG_CONFIG = {
     FORBID_TAGS: ['script', 'foreignObject'],
 };
 
+/** @param {unknown} html */
 function sanitizeHtml(html) {
     if (!html) return '';
     const clean = DOMPurify.sanitize(String(html), SANITIZE_HTML_CONFIG);
     return harden(clean);
 }
 
+/** @param {unknown} svg */
 function sanitizeSvg(svg) {
     if (!svg) return '';
     return DOMPurify.sanitize(String(svg), SANITIZE_SVG_CONFIG);
@@ -142,6 +147,7 @@ function sanitizeSvg(svg) {
  * Belt-and-braces post-pass on sanitized HTML. DOMPurify already handles
  * these, but a single regex sweep adds a cheap second line of defence in
  * case a future config change accidentally loosens the policy.
+ * @param {string} html
  */
 function harden(html) {
     return String(html)
@@ -164,6 +170,7 @@ function harden(html) {
  *   • expression()     — same
  * Modern CSS isn't capable of script execution on its own, so we leave the
  * rest alone (font URLs, web fonts, etc. are fine).
+ * @param {unknown} css
  */
 function sanitizeCss(css) {
     if (!css) return '';
@@ -175,6 +182,7 @@ function sanitizeCss(css) {
 }
 
 const TEXT_LIKE_MIMES = ['text/html', 'image/svg', 'text/css'];
+/** @param {string | null | undefined} mime */
 function shouldSanitizeExtra(mime) {
     if (!mime) return false;
     return TEXT_LIKE_MIMES.some(p => mime.startsWith(p));
@@ -183,6 +191,8 @@ function shouldSanitizeExtra(mime) {
 /**
  * Sanitize a single text extra-file by mime. Plain text/markdown/json pass
  * through unchanged — they're served by the viewer to inspect, not execute.
+ * @param {string} content
+ * @param {string | null | undefined} mime
  */
 function sanitizeExtra(content, mime) {
     if (!shouldSanitizeExtra(mime)) return content;
@@ -206,6 +216,9 @@ function sanitizeExtra(content, mime) {
  * that the page used that table while the published copy did not show it.
  *
  * HTML only: css and svg know no `bf-*` elements.
+ * @param {string} content
+ * @param {string | null | undefined} mime
+ * @param {{ webpageId: string, ownerId: string }} ctx
  */
 async function expandAndSanitizeExtra(content, mime, { webpageId, ownerId }) {
     if (typeof mime === 'string' && mime.startsWith('text/html')) {
@@ -326,6 +339,7 @@ async function writeSnapshot({ shareId, webpageId, ownerId, includeExtraFiles = 
  * stubbed bridges (composeReactDoc) + the script-allowing CSP scoped to the
  * react `/content` response. Throws on a bundle failure so share creation can
  * surface it (and roll back) and the fire-and-forget re-snapshot can log it.
+ * @param {{ shareId: string, webpageId: string, ownerId: string }} args
  */
 async function writeReactSnapshot({ shareId, webpageId, ownerId }) {
     const { files, assetMap } = await loadReactFiles(webpageId, ownerId);
@@ -348,6 +362,11 @@ async function writeReactSnapshot({ shareId, webpageId, ownerId }) {
     return { reactDoc: docBuf.length, html: 0, css: 0, extras: 0 };
 }
 
+/**
+ * @param {string} ownerId
+ * @param {string} webpageId
+ * @param {string} path
+ */
 async function readExtraBytes(ownerId, webpageId, path) {
     // webpageStore doesn't export the raw RustFS read for extras directly,
     // so use readExtraFile and pluck `bytes`. Returns null when missing.
@@ -359,6 +378,8 @@ async function readExtraBytes(ownerId, webpageId, path) {
 /**
  * Read a snapshot slot back. Returns '' when the slot wasn't written (e.g.
  * the page had no CSS). The viewer route uses this to compose the response.
+ * @param {string} shareId
+ * @param {'html'|'css'|'js'|'db'|'reactdoc'} slot
  */
 async function readSnapshotSlot(shareId, slot) {
     if (!storageStore.isAvailable()) return '';
@@ -373,6 +394,10 @@ async function readSnapshotSlot(shareId, slot) {
     }
 }
 
+/**
+ * @param {string} shareId
+ * @param {string} path
+ */
 async function readSnapshotExtra(shareId, path) {
     if (!storageStore.isAvailable()) return null;
     try {

@@ -304,3 +304,13 @@ module.exports = {
     resolveArrayRef, unresolvedListMessage, skippedArrayRef, collectionCap,
     execFilter, execFlatten, execLimit, execDedupe, execAggregate, execSummarize,
 };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/** @typedef {Parameters<typeof prepareTopics>[2]} CollectionCtx */
+
+/**
+ * The config fields the collection steps read.
+ * @typedef {{ id?: string, arrayRef?: string, maxItems?: number, expr?: string, count?: number|string, mode?: string,
+ *   keyField?: string, field?: string, op?: string, [key: string]: unknown }} CollectionStep
+ */

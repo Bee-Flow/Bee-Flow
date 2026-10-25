@@ -629,3 +629,15 @@ function validateMailboxConnector(c, where, errors) {
 }
 
 module.exports = { validateConnectors };
+
+/**
+ * The persisted shapes as this gate reads them. The input is untrusted (an
+ * author or the AI wrote it), so every field is optional and every one is
+ * checked with `typeof` before it is believed.
+ * @typedef {{ tableId?: string, level?: number, parentLevel?: number, relationField?: string, keyField?: string, mode?: string, retentionField?: string, retentionCascade?: boolean }} SyncChildCfg
+ * @typedef {{ tableId?: string, retentionField?: string, retentionCascade?: boolean, parentTableId?: string, relationField?: string }} SyncDependentCfg
+ * @typedef {{ tableId?: string, mode?: string, keyField?: string, incremental?: { field?: string, param?: string | null, format?: string } | null, schedule?: { cron?: string | null, tz?: string, everyMinutes?: number } | null, refreshOnView?: boolean, retentionField?: string, retentionDays?: number | null, children?: SyncChildCfg[], dependents?: SyncDependentCfg[] }} SyncCfg
+ * @typedef {{ tool?: string, argsFrom?: Record<string, unknown>, fixedArgs?: Record<string, unknown>, expand?: string | null, ownTable?: boolean, merge?: string, alias?: string }} ChainStepCfg
+ * @typedef {{ id?: string, kind?: string, name?: string, params?: Array<{ key?: string, type?: unknown }>, headers?: Record<string, unknown>, chain?: ChainStepCfg[], auth?: { type?: string, header?: string, credentialProvider?: unknown, [k: string]: unknown }, sync?: SyncCfg, tool?: string, fixedArgs?: Record<string, unknown>, integrationId?: string, runAs?: string, rowsPath?: string, automationId?: string, url?: string, maxRows?: number, nextPagePath?: string, provider?: string, mode?: string, address?: string, sharedMode?: string | null, folder?: string, query?: string, lookbackDays?: number, maxPerRun?: number, groupIntoThreads?: boolean, [k: string]: unknown }} ConnectorCfg
+ * @typedef {{ id?: string, key: string, fields?: Array<{ key?: string, type?: string, relation?: { table?: string } }> }} ConnectorTableCfg
+ */

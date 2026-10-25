@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Practice topic registry — what the AI practice generator may write questions
 // about, and the ground truth it is grounded in.
 //
@@ -222,8 +222,9 @@ const LEGACY_PRACTICE_TOPICS = {
 
 const PRACTICE_TOPICS = { ...LEGACY_PRACTICE_TOPICS, ...GEN.PRACTICE_TOPICS };
 
+/** @param {string} lessonId */
 function getPracticeTopic(lessonId) {
-    return PRACTICE_TOPICS[lessonId] || null;
+    return /** @type {Record<string, typeof PRACTICE_TOPICS[keyof typeof PRACTICE_TOPICS]>} */ (PRACTICE_TOPICS)[lessonId] || null;
 }
 
 const PRACTICE_LESSON_IDS = Object.keys(PRACTICE_TOPICS);

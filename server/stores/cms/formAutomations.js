@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // The allow-list of automations a website form may start, and which form
 // blocks may target each.
 //
@@ -63,7 +63,7 @@ async function getFormAutomation(automationId) {
  * @param {{ organizationId: string | null, enabledBy: string | null }} meta
  */
 async function enableFormAutomation(automationId, meta) {
-    await configStore.mutateConfig(keyOf(automationId), (current) => asEntry(current) || {
+    await configStore.mutateConfig(keyOf(automationId), /** @param {unknown} current */ (current) => asEntry(current) || {
         organizationId: meta.organizationId,
         enabledAt: new Date().toISOString(),
         enabledBy: meta.enabledBy,
@@ -84,7 +84,7 @@ async function disableFormAutomation(automationId) {
  */
 async function setBlockApproved(automationId, blockId, approved) {
     const key = keyOf(automationId);
-    const next = await configStore.mutateConfig(key, (current) => {
+    const next = await configStore.mutateConfig(key, /** @param {unknown} current */ (current) => {
         const entry = asEntry(current);
         if (!entry) return null;
         const rest = entry.blockIds.filter((b) => b !== blockId);
@@ -101,7 +101,7 @@ async function listFormAutomations() {
     /** @type {Map<string, FormAutomationEntry>} */
     const out = new Map();
     for (const key of keys) {
-        const entry = asEntry(rows[key]);
+        const entry = asEntry(/** @type {Record<string, unknown>} */ (rows)[key]);
         if (entry) out.set(key.slice(KEY_PREFIX.length), entry);
     }
     return out;

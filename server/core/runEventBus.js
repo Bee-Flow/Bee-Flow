@@ -47,3 +47,10 @@ function onAny(handler) {
 }
 
 module.exports = { emitRunEvent, onRunEvent, onAny };
+
+/**
+ * What a handler receives: the emitted payload plus `type` and `at`.
+ * @typedef {{ type: string, at: string, runId?: string, automationId?: string, userId?: string, triggerKind?: string,
+ *   stepId?: string, stepType?: string, status?: string, durationMs?: number, errorClass?: string,
+ *   error?: string }} RunEvent
+ */

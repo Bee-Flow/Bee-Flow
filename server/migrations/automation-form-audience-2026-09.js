@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: who may fill in a form (2026-09).
  *

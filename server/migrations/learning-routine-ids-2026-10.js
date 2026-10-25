@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Data migration: Learning Center progress follows the lessons that were
  * renamed from "routine" to "automation" (2026-10).
@@ -19,19 +20,28 @@
 
 const ID_MAP = require('./data/learning-routine-id-map.json');
 
+/**
+ * @param {string} k
+ */
 const has = (k) => Object.prototype.hasOwnProperty.call(ID_MAP, k);
 
-/** `value` with every old id replaced; `changed.n` counts the replacements. Pure. */
+/**
+ * `value` with every old id replaced; `changed.n` counts the replacements. Pure.
+ * @param {unknown} value
+ * @param {{ n: number; }} [changed]
+ * @returns {unknown}
+ */
 function renameIds(value, changed = { n: 0 }) {
     if (typeof value === 'string') {
-        if (has(value)) { changed.n += 1; return ID_MAP[value]; }
+        if (has(value)) { changed.n += 1; return /** @type {Record<string, string>} */ (ID_MAP)[value]; }
         return value;
     }
     if (Array.isArray(value)) return value.map((v) => renameIds(v, changed));
     if (value && typeof value === 'object') {
+        /** @type {Record<string, unknown>} */
         const out = {};
         for (const [k, v] of Object.entries(value)) {
-            const key = has(k) ? ID_MAP[k] : k;
+            const key = has(k) ? /** @type {Record<string, string>} */ (ID_MAP)[k] : k;
             if (key !== k) changed.n += 1;
             // Both spellings present: the new one is newer progress, keep it.
             if (key !== k && Object.prototype.hasOwnProperty.call(value, key)) continue;

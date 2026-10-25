@@ -301,3 +301,5 @@ module.exports.toCustomerSafeProblem = toCustomerSafeProblem;
 module.exports.CUSTOMER_SAFE_WORDING = CUSTOMER_SAFE_WORDING;
 module.exports.DEFAULT_SAFE = DEFAULT_SAFE;
 module.exports.BILLING_SENSITIVE_CODES = BILLING_SENSITIVE_CODES;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

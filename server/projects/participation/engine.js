@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The participation engine: when a human writes in a conversation whose AI
  * mode is `auto`, decide — later, quietly, cheaply — whether the AI joins.
@@ -57,6 +57,8 @@ const { thresholdFor } = require('./policy');
 
 const BREAKER_THRESHOLD = 3;
 const BREAKER_COOLDOWN_MS = 30_000;
+/** @typedef {{ id: string, seq?: number, authorKind: string, authorUserId: string, text: string, replyTo?: string|null, createdAt: string }} ParticipationMessage */
+
 /** Gate failures that say something about the model, not about this conversation. */
 const BREAKER_FAILURES = Object.freeze(['timeout', 'error', 'unparseable', 'model_unavailable']);
 
@@ -65,8 +67,8 @@ const BREAKER_FAILURES = Object.freeze(['timeout', 'error', 'unparseable', 'mode
  * @param {any}   deps.store          stores/projectAiParticipationStore surface
  * @param {any}   deps.policy         policy.makePolicy() surface
  * @param {Function} deps.gate           relevanceGate.makeRelevanceGate() result
- * @param {Function} [deps.checkLimits]  (limitOrgId, userId) => error text | null
- * @param {Function} [deps.isLockHeld]   (containerId) => boolean
+ * @param {(limitOrgId: string|null, userId: string) => Promise<string|null>|string|null} [deps.checkLimits]  (limitOrgId, userId) => error text | null
+ * @param {(containerId: string) => Promise<boolean>|boolean} [deps.isLockHeld]   (containerId) => boolean
  * @param {any}   [deps.writer]       answerWriter.makeAnswerWriter() surface
  * @param {() => number} [deps.now]
  * @param {() => string} [deps.newId]
@@ -102,6 +104,7 @@ function makeParticipationEngine(deps) {
     }
 
     const breakerOpen = () => now() < openUntil;
+    /** @param {{ available: boolean, skipReason?: string|null }} result */
     function noteGate(result) {
         if (!result.available && BREAKER_FAILURES.includes(result.skipReason)) {
             failures += 1;
@@ -115,7 +118,11 @@ function makeParticipationEngine(deps) {
         }
     }
 
-    /** The organisation whose policy applies: the project's, else the poster's. */
+    /**
+     * The organisation whose policy applies: the project's, else the poster's.
+     * @param {{ orgId?: string|null } | null} ctx
+     * @param {string | null} fallback
+     */
     const policyOrg = (ctx, fallback) => (ctx && ctx.orgId) || fallback || null;
 
     /**
@@ -133,7 +140,7 @@ function makeParticipationEngine(deps) {
 
             const ctx = await adapter.loadContext(containerId, { light: true });
             if (!ctx) return { watched: false, reason: 'container_gone' };
-            const message = (ctx.messages || []).find((m) => m.id === messageId);
+            const message = /** @type {ParticipationMessage[]} */ (ctx.messages || []).find((m) => m.id === messageId);
 
             // Somebody else writing (or replying to the question) answers it.
             const open = await store.getPendingWatch(surface, containerId, 'unanswered');
@@ -180,17 +187,21 @@ function makeParticipationEngine(deps) {
             return { watched: true };
         } catch (err) {
             // Codes only: an error from deeper down may quote what it was handling.
-            log.warn(`[AiParticipation] ${surface} ${containerId}: message ${messageId} not considered: ${err?.code || err?.name || 'error'}`);
+            log.warn(`[AiParticipation] ${surface} ${containerId}: message ${messageId} not considered: ${err?.code || /** @type {Error} */ (err)?.name || 'error'}`);
             return { watched: false, reason: 'error' };
         }
     }
 
     /** The mode changed away from `auto`, or the container is gone: nothing stays queued. */
+    /**
+     * @param {string} surface
+     * @param {string} containerId
+     */
     async function cancelContainer(surface, containerId) {
         try {
             return await store.cancelPending(surface, containerId);
         } catch (err) {
-            log.warn(`[AiParticipation] ${surface} ${containerId}: pending watches not cancelled: ${err && err.message}`);
+            log.warn(`[AiParticipation] ${surface} ${containerId}: pending watches not cancelled: ${err && /** @type {Error} */ (err).message}`);
             return 0;
         }
     }
@@ -210,6 +221,7 @@ function makeParticipationEngine(deps) {
             triggerMessageId: watch.messageId,
             triggerKind: watch.kind,
         };
+        /** @type {ReturnType<typeof import('../../stores/projectAiParticipationStore').rowToDecision>} */
         let reservation = null;
         /** @param {string} skipReason */
         const skip = async (skipReason, extra = {}) => {
@@ -226,7 +238,7 @@ function makeParticipationEngine(deps) {
 
             const orgPolicy = await policy.resolveOrgPolicy(base.orgId);
             const pref = await policy.resolveUserPreference(watch.authorUserId);
-            const messages = ctx.messages || [];
+            const messages = /** @type {ParticipationMessage[]} */ (ctx.messages || []);
             const trigger = messages.find((m) => m.id === watch.messageId) || null;
             const caps = await store.capsFor({ surface: watch.surface, containerId: watch.containerId, projectId: ctx.projectId, orgId: base.orgId });
             const verdict = preGate({
@@ -250,7 +262,7 @@ function makeParticipationEngine(deps) {
             try {
                 if (await checkLimits(watch.limitOrgId, watch.authorUserId)) return await skip('limit');
             } catch (err) {
-                log.warn(`[AiParticipation] limit check failed for ${watch.surface} ${watch.containerId}: ${err && err.message}`);
+                log.warn(`[AiParticipation] limit check failed for ${watch.surface} ${watch.containerId}: ${err && /** @type {Error} */ (err).message}`);
                 return await skip('limit_unavailable');
             }
 
@@ -318,7 +330,7 @@ function makeParticipationEngine(deps) {
             const why = answered?.reason === 'skip_sentinel' ? 'skip_sentinel' : (answered?.status || 'failed');
             return await skip(why, judged);
         } catch (err) {
-            log.warn(`[AiParticipation] watch ${watch.id} (${watch.surface} ${watch.containerId}) failed: ${err?.code || err?.name || 'error'}`);
+            log.warn(`[AiParticipation] watch ${watch.id} (${watch.surface} ${watch.containerId}) failed: ${err?.code || /** @type {Error} */ (err)?.name || 'error'}`);
             try { return await skip('error'); } catch (_) { return { decision: 'skipped', skipReason: 'error' }; }
         }
     }
@@ -326,7 +338,7 @@ function makeParticipationEngine(deps) {
     return {
         registerSurface,
         surfaceNames: () => [...surfaces.keys()],
-        getSurface: (name) => surfaces.get(name) || null,
+        getSurface: (/** @type {string} */ name) => surfaces.get(name) || null,
         onHumanMessage,
         cancelContainer,
         processWatch,

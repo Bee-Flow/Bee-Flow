@@ -187,3 +187,5 @@ function register(router) {
 }
 
 module.exports = { register };
+
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */

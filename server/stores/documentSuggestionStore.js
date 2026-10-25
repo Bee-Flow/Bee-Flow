@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Suggestions on a document: changes the AI (or a person) PROPOSES and a human
  * accepts or rejects one by one. One row per suggestion (one hunk of a batch).
@@ -75,6 +75,10 @@ const DDL = `
 `;
 
 class DocumentSuggestionError extends Error {
+    /**
+     * @param {string} code
+     * @param {string} [message]
+     */
     constructor(code, message) {
         super(message || code);
         this.name = 'DocumentSuggestionError';
@@ -82,19 +86,35 @@ class DocumentSuggestionError extends Error {
     }
 }
 
+/**
+ * @param {string} targetType
+ * @param {string} targetId
+ */
 const typeOf = (targetType, targetId) => `document_suggestion:${targetId}`;
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *           tx: <T>(fn: (c: { query: Function }) => Promise<T>) => Promise<T> }} db
- * @param {{ ready?: () => Promise<void>, crypto?: any }} [opts]
+ * @typedef {import('pg').QueryResultRow} SuggestionRow
+ * @typedef {(sql: string, params?: unknown[]) => Promise<{ rows: SuggestionRow[], rowCount?: number }>} SuggestionQuery
+ * @typedef {{ type: string, id: string, userId?: string, organizationId?: string|null, projectId?: string|null,
+ *   visibility?: string, sharingAudience?: string }} SuggestionResource
+ */
+
+/**
+ * @param {{ query: SuggestionQuery,
+ *           tx: <T>(fn: (c: { query: SuggestionQuery }) => Promise<T>) => Promise<T> }} db
+ * @param {{ ready?: () => Promise<void>, crypto?: typeof import('./lib/documentCrypto') }} [opts]
  */
 function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: cryptoDep } = {}) {
     const dc = () => cryptoDep || require('./lib/documentCrypto');
 
+    /**
+     * @param {Record<string, unknown>} row
+     * @param {SuggestionResource} resource
+     */
     async function sealFields(row, resource) {
         const crypt = dc();
         const context = await crypt.writeContext(resource);
+        /** @type {Record<string, unknown>} */
         const out = {};
         for (const field of SEALED_FIELDS) {
             const sealed = await crypt.seal(JSON.stringify(row[field] ?? null), resource, field, { json: false, context });
@@ -103,10 +123,16 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
         return out;
     }
 
+    /**
+     * @param {unknown} raw
+     * @param {SuggestionRow} row
+     * @param {string} field
+     */
     async function openField(raw, row, field) {
         return JSON.parse(await dc().open(raw, typeOf(row.target_type, row.target_id), row.id, field, false));
     }
 
+    /** @param {SuggestionRow | undefined} row */
     async function toView(row) {
         if (!row) return null;
         const [anchor, before, after, summary] = await Promise.all(SEALED_FIELDS.map((f) => openField(row[f], row, f)));
@@ -125,6 +151,7 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
      * `resource` is the document's crypto resource (userId of the owner,
      * organizationId, projectId, visibility, sharingAudience) so the sealing
      * scope matches the document's own.
+     * @param {{ targetType?: string, targetId: string, projectId?: string|null, organizationId?: string|null, conversationId?: string|null, authorKind: string, authorUserId?: string|null, agentId?: string|null, kind?: string, baseToken?: string|null, hunks: Array<{ anchor?: unknown, before?: unknown, after?: unknown, summary?: unknown }>, resource?: { userId?: string, organizationId?: string|null, projectId?: string|null, visibility?: string, sharingAudience?: string } }} batch
      */
     async function createBatch({ targetType = 'document', targetId, projectId = null, organizationId = null, conversationId = null,
         authorKind, authorUserId = null, agentId = null, kind = 'text', baseToken = null, hunks, resource = {} }) {
@@ -135,6 +162,7 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
         if (!Array.isArray(hunks) || hunks.length === 0) throw new DocumentSuggestionError('empty_batch', 'A batch needs at least one hunk');
         if (hunks.length > MAX_PER_BATCH) throw new DocumentSuggestionError('batch_too_large', `At most ${MAX_PER_BATCH} suggestions per batch`);
         const batchId = crypto.randomUUID();
+        /** @type {Array<{ id: string, position: number, sealed: Record<string, unknown> }>} */
         const prepared = [];
         for (let i = 0; i < hunks.length; i += 1) {
             const h = hunks[i] || {};
@@ -178,7 +206,12 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
         return toView(rows[0]);
     }
 
-    /** Open suggestions of a batch of one target, in document order. */
+    /**
+     * Open suggestions of a batch of one target, in document order.
+     * @param {string} targetType
+     * @param {string} targetId
+     * @param {string} batchId
+     */
     async function listBatch(targetType, targetId, batchId) {
         await ready();
         const { rows } = await db.query(
@@ -187,6 +220,10 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
         return Promise.all(rows.map(toView));
     }
 
+    /**
+     * @param {string} targetType
+     * @param {string} targetId
+     */
     async function countOpen(targetType, targetId) {
         await ready();
         const { rows } = await db.query(
@@ -198,6 +235,9 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
      * Resolve suggestions. Compare-and-set on the current status (`from`,
      * default only 'open'): a suggestion somebody else resolved meanwhile is
      * left alone. Returns the ids that changed.
+     * @param {string|string[]} ids
+     * @param {string} status
+     * @param {{ resolvedBy?: string|null, appliedVersionId?: string|null, from?: string[] }} [opts]
      */
     async function setStatus(ids, status, { resolvedBy = null, appliedVersionId = null, from = ['open'] } = {}) {
         await ready();
@@ -211,7 +251,11 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
         return rows.map((r) => r.id);
     }
 
-    /** Mark every open AI suggestion of a target superseded (unused in golf 2, see the header). */
+    /**
+     * Mark every open AI suggestion of a target superseded (unused in golf 2, see the header).
+     * @param {string} targetType
+     * @param {string} targetId
+     */
     async function supersedeOpen(targetType, targetId) {
         await ready();
         const { rows } = await db.query(
@@ -220,14 +264,21 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
         return rows.map((r) => r.id);
     }
 
-    /** The document is gone: its suggestions go with it. */
+    /**
+     * The document is gone: its suggestions go with it.
+     * @param {string} targetType
+     * @param {string} targetId
+     */
     async function deleteForTarget(targetType, targetId) {
         await ready();
         const r = await db.query('DELETE FROM document_suggestions WHERE target_type = $1 AND target_id = $2', [targetType, targetId]);
         return r.rowCount || 0;
     }
 
-    /** Retention: resolved suggestions older than the window. Open ones stay. */
+    /**
+     * Retention: resolved suggestions older than the window. Open ones stay.
+     * @param {number} olderThanDays
+     */
     async function purgeResolved(olderThanDays) {
         await ready();
         const days = Number(olderThanDays);

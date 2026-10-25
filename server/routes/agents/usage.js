@@ -202,3 +202,5 @@ router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
 module.exports = router;
 module.exports.gatherUsage = gatherUsage;
 module.exports.audienceOf = audienceOf;
+
+/** @typedef {import('express').Router & { gatherUsage: typeof gatherUsage, audienceOf: typeof audienceOf }} UsageRouter */

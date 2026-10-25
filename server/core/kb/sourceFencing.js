@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Fencing retrieved passages so a model reads them as DATA.
  *
@@ -65,6 +65,7 @@ const INJECTION_MARKERS = new RegExp([
     String.raw`^[ \t]*(?:SYSTEM|ASSISTANT|USER|HUMAN)[ \t]*:`,
 ].join('|'), 'gim');
 
+/** @param {unknown} text */
 function neutraliseInjectionMarkers(text) {
     return String(text == null ? '' : text)
         .replace(INJECTION_MARKERS, (m) => m.replace(/[[\]<>:/]/g, '·'));
@@ -78,6 +79,8 @@ const MAX_CHUNK_CHARS = 4000;
  *
  * Angle brackets and quotes are removed rather than escaped: this is a label
  * a person reads, and there is no name worth keeping that needs them.
+ * @param {unknown} raw
+ * @param {number} [index]
  */
 function safeSourceName(raw, index = 0) {
     const cleaned = neutraliseInjectionMarkers(String(raw ?? ''))
@@ -91,7 +94,7 @@ function safeSourceName(raw, index = 0) {
 /**
  * The `<source>` blocks for a set of retrieved passages.
  *
- * @param {Array} chunks           rows with `content` and a name to show
+ * @param {Array<Record<string, any>>} chunks          rows with `content` and a name to show
  * @param {object} [opts]
  * @param {number} [opts.maxChars] per-passage cut
  * @returns {string}

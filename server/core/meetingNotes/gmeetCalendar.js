@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Meet calendar helper — mirror of `talkCalendar.js` for Google.
  *
@@ -20,6 +20,7 @@ const { integrationClient } = require('../integrations/integrationClients');
 const MEET_LINK_RE = /meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})(?![a-z-])/i;
 const MEET_CODE_RE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/i;
 
+/** @param {string | null | undefined} url */
 function extractMeetCode(url) {
     if (!url) return null;
     const s = String(url).trim();
@@ -28,6 +29,13 @@ function extractMeetCode(url) {
     return m ? m[1].toLowerCase() : null;
 }
 
+/**
+ * @param {{ id?: string, iCalUID?: string, summary?: string, hangoutLink?: string,
+ *   conferenceData?: { entryPoints?: Array<{ uri?: string }> },
+ *   start?: { dateTime?: string, date?: string }, end?: { dateTime?: string, date?: string },
+ *   organizer?: { email?: string, self?: boolean },
+ *   attendees?: Array<{ email?: string, displayName?: string, self?: boolean }> }} event  a Calendar API event
+ */
 function formatMeetEvent(event) {
     const meetLink = event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null;
     const meetingCode = extractMeetCode(meetLink);
@@ -50,6 +58,10 @@ function formatMeetEvent(event) {
     };
 }
 
+/**
+ * @param {object | undefined} session
+ * @param {{ timeMin: Date, timeMax: Date }} range
+ */
 async function listMeetEvents(session, { timeMin, timeMax }) {
     const calendar = await integrationClient('google').createGoogleApiClient(session, {
         api: 'calendar',
@@ -97,7 +109,7 @@ async function listRecentlyEndedMeetMeetings({ session, lookbackHours = 24, grac
         timeMax: new Date(now),
     });
     const cutoff = now - graceMinutes * 60_000;
-    return meetings.filter((m) => {
+    return meetings.filter((/** @type {{ end: string | number | Date; }} */ m) => {
         const end = m.end ? new Date(m.end).getTime() : NaN;
         return Number.isFinite(end) && end <= cutoff && end >= floor;
     });

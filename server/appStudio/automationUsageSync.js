@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The writer of `automation_usage` for one STUDIO APP (P4 part C).
  *
@@ -95,6 +96,8 @@ const REASONS = Object.freeze({
  *                    entries?:Array, unset?:number, error?:string, which?:string}>}
  *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
  *   lijst". Het onderscheid staat in `reason`.
+ * @param {string} appId
+ * @param {UsageDeps} [deps]
  */
 async function collectAppAutomationUsage(appId, deps = {}) {
     if (!appId) return { ok: false, reason: 'no-id' };
@@ -169,6 +172,8 @@ async function collectAppAutomationUsage(appId, deps = {}) {
  *
  * Never throws. The answer says whether ANYTHING was written and why not:
  * `ok:false` means that the existing rows were left in place.
+ * @param {string} appId
+ * @param {UsageDeps} [deps]
  */
 async function reconcileAppAutomationUsage(appId, deps = {}) {
     const log = deps.log || console;
@@ -196,7 +201,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
 
         if (!collected.ok) {
             // Regel 1: zeggen, niet wissen.
-            log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS[collected.reason] || collected.reason}`);
+            log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${/** @type {Record<string, string>} */ (REASONS)[collected.reason] || collected.reason}`);
             return { ok: false, reason: collected.reason, written: 0 };
         }
 
@@ -301,6 +306,8 @@ function reconcileAppAutomationUsageDetached(appId, deps = {}) {
  *
  * First cancel the pending pass: otherwise it could write the rows back again right
  * after they were cleaned up. Never throws; a deletion must not fail over an index.
+ * @param {string} appId
+ * @param {UsageDeps} [deps]
  */
 async function purgeAppAutomationUsage(appId, deps = {}) {
     if (!appId) return 0;
@@ -344,6 +351,7 @@ async function purgeAppAutomationUsage(appId, deps = {}) {
 const BACKFILL_BATCH = 25;
 let _backfillRunning = false;
 
+/** @param {UsageDeps} [deps] */
 async function backfillAutomationUsage(deps = {}) {
     if (_backfillRunning) return { ok: true, reason: 'already-running', indexed: 0 };
     _backfillRunning = true;
@@ -391,3 +399,10 @@ module.exports = {
     RECONCILE_DEBOUNCE_MS,
     REASONS,
 };
+
+/**
+ * De injecteerbare randen (tests): winkels, logger, en de tijd/hoeveelheid van een pass.
+ * @typedef {{ studioAppStore?: typeof import('../stores/studioAppStore'), automationRefs?: typeof import('./automationRefs'),
+ *   automationUsageStore?: typeof import('../stores/automationUsageStore'), log?: Pick<Console, 'warn'>,
+ *   limit?: number, delayMs?: number }} UsageDeps
+ */

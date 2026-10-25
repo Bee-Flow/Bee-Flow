@@ -13,13 +13,24 @@ const { runLayerAgent, runLayersInParallel } = require('../../../automation/flow
  * thinking-model flowlet sub-agent(s) and mutates draftWrap.def in place; the
  * caller persists + emits the draft snapshot afterwards. Returns a result the
  * orchestrator uses to wire call_layer steps.
+ * @param {string} name
+ * @param {{ title?: string, instruction?: string, params?: import('../../../automation/flowletAgent').ContractParams, outputFields?: string[], layers?: Array<{ title?: string, instruction?: string, params?: object[], outputFields?: string[] }> }|null|undefined} args
+ * @param {{
+ *   draftWrap: import('../../../automation/builderTools/refCheck').BuilderWrap & { def: NonNullable<import('../../../automation/builderTools/pendingDatatables').DraftWrap['def']> },
+ *   thinkingModelId: string,
+ *   userId: string,
+ *   userOrgId?: string|null,
+ *   session?: Parameters<typeof runLayerAgent>[0]['session'],
+ *   catalog?: Parameters<typeof runLayerAgent>[0]['catalog'],
+ *   send: import('../../../automation/flowletAgent').SendEvent,
+ * }} ctx
  */
 async function runDelegationTool(name, args, ctx) {
     const { draftWrap, thinkingModelId, userId, userOrgId, session, catalog, send } = ctx;
 
     if (name === 'builder_generate_layer') {
         const title = String(args?.title || 'New layer');
-        const created = await applyToolCall('builder_create_layer', { title, params: args?.params }, draftWrap);
+        const created = /** @type {{ error?: string, layerKey?: string }} */ (await applyToolCall('builder_create_layer', { title, params: args?.params }, draftWrap));
         if (created?.error) return created;
         const layerKey = created.layerKey;
         send('layer_agent_start', { layerKey, title });

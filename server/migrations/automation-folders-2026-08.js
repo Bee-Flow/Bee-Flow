@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: folders for automations (2026-08).
  *

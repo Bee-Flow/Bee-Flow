@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The relation indexes a refresh builds (../mirror/relations explains the
  * 'match' and 'nc' kinds, the owner-grade read and first-wins ambiguity).
@@ -11,7 +11,13 @@
 
 const mirror = require('../mirror/relations');
 
-/** The mirror field on the target that holds Nextcloud column `ncColumnId`. */
+/** @typedef {{ columnMap?: Record<string, { ncColumnId?: number|string, derived?: boolean }> }} NcSourceColumns */
+
+/**
+ * The mirror field on the target that holds Nextcloud column `ncColumnId`.
+ * @param {NcSourceColumns | null | undefined} targetSource
+ * @param {number|string} ncColumnId
+ */
 function targetFieldForNcColumn(targetSource, ncColumnId) {
     for (const [fieldId, entry] of Object.entries((targetSource && targetSource.columnMap) || {})) {
         if (entry && !entry.derived && Number(entry.ncColumnId) === Number(ncColumnId)) return fieldId;
@@ -19,7 +25,11 @@ function targetFieldForNcColumn(targetSource, ncColumnId) {
     return null;
 }
 
-/** The label hook the shared index builder calls for an 'nc' relation. */
+/**
+ * The label hook the shared index builder calls for an 'nc' relation.
+ * @param {{ labelNcColumnId?: number|string }} rel
+ * @param {{ source?: NcSourceColumns | null } | null} target
+ */
 function labelFieldFor(rel, target) {
     return targetFieldForNcColumn(target && target.source, rel.labelNcColumnId);
 }
@@ -27,7 +37,7 @@ function labelFieldFor(rel, target) {
 /**
  * @param {{kind:string,id:string}} scope
  * @param {object} source    the mirror's `source` (relations + columnMap)
- * @returns {Promise<{ relationIndexes:Map, labelIndexes:Map, warnings:string[] }>}
+ * @returns {Promise<{ relationIndexes:Map<string, Map<string, string>>, labelIndexes:Map<string, Map<string, string|null>>, warnings:string[] }>}
  */
 function buildRelationIndexes(scope, source) {
     return mirror.buildRelationIndexes(scope, source, { labelFieldFor });

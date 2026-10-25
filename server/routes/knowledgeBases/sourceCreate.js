@@ -333,3 +333,9 @@ async function createSource(req, res, next) {
 }
 
 module.exports = { createSource };
+
+/**
+ * What every create helper receives from createSource (the body is already
+ * parsed by CreateSourceBody, so `cfg` has the shape of its kind's schema).
+ * @typedef {{ kb: Record<string, any>, name?: string, userId: string | null, refreshPatch: ReturnType<typeof refreshPatchFor> }} SourceArgsBase
+ */

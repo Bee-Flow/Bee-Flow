@@ -73,6 +73,7 @@ const LoginBody = z.object({
  * makes every failure path take the same time. `admin` is a fixed, documented
  * account name whose existence was never the secret.
  */
+/** @type {Promise<string> | null} */
 let _dummyHashPromise = null;
 function dummyPasswordHash() {
     if (!_dummyHashPromise) {
@@ -80,6 +81,7 @@ function dummyPasswordHash() {
     }
     return _dummyHashPromise;
 }
+/** @param {string} password */
 async function burnPasswordCompare(password) {
     try {
         await passwords.verify(String(password ?? ''), await dummyPasswordHash());
@@ -87,7 +89,7 @@ async function burnPasswordCompare(password) {
 }
 
 // Admin/User login with username/password
-router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async (req, res) => {
+router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     // Taken before any work, so every failure exit can be padded to the same
     // floor regardless of which branch produced it — see padFailureResponse.
     const startedAt = Date.now();
@@ -252,6 +254,7 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
         // security keys (auth/securityKeys/), or both. Recovery codes always
         // work and are not listed. Whether a key works on THIS host is settled
         // when the client asks /mfa/security-key/options.
+        /** @type {string[]} */
         const mfaMethods = [];
         if (mfaRow.mfa_secret) mfaMethods.push('totp');
         if ((await userStore.listSecurityKeys(user.id)).length > 0) mfaMethods.push('security_key');

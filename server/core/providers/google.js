@@ -1028,3 +1028,56 @@ class GoogleProvider extends BaseProvider {
 }
 
 module.exports = GoogleProvider;
+
+/**
+ * @typedef {{
+ *   text?: string,
+ *   thought?: boolean,
+ *   functionCall?: { name?: string, args?: Record<string, unknown> },
+ *   functionResponse?: { name?: string, response?: unknown },
+ *   inlineData?: { data?: string, mimeType?: string },
+ *   fileData?: { fileUri?: string, mimeType?: string },
+ *   thoughtSignature?: string,
+ *   thought_signature?: string,
+ *   _toolCallId?: string,
+ * }} GooglePart
+ * @typedef {{ role: string, parts: GooglePart[] }} GoogleContent
+ * @typedef {{
+ *   id?: string,
+ *   name?: string,
+ *   type?: string,
+ *   function?: { name?: string, arguments?: string },
+ *   _thought_signature?: string,
+ *   _raw_content_parts?: GooglePart[],
+ * }} GoogleToolCall
+ * @typedef {{
+ *   role?: string,
+ *   content?: string | Array<{ type?: string, text?: string, image_url?: string | { url?: string, mimeType?: string } }> | null,
+ *   name?: string,
+ *   tool_call_id?: string,
+ *   tool_calls?: GoogleToolCall[],
+ * }} GoogleMessage
+ * @typedef {{ type?: string, function?: { name: string, description?: string, parameters?: object } }} GoogleToolDef
+ * @typedef {{
+ *   model?: string,
+ *   maxTokens?: number,
+ *   temperature?: number,
+ *   tools?: GoogleToolDef[],
+ *   toolChoice?: unknown,
+ *   thinkingLevel?: string,
+ *   reasoningEffort?: string,
+ *   reasoningSummary?: boolean,
+ *   budgetTokens?: number,
+ * }} GoogleOptions
+ * @typedef {{
+ *   maxOutputTokens?: number,
+ *   temperature?: number,
+ *   tools?: object[],
+ *   toolConfig?: { functionCallingConfig: { mode: string } },
+ *   thinkingConfig?: { includeThoughts: boolean, thinkingLevel?: string, thinkingBudget?: number },
+ *   systemInstruction?: string,
+ *   cachedContent?: string,
+ * }} GoogleConfig
+ * @typedef {{ candidates?: Array<{ content?: { parts?: GooglePart[] } }> }} GoogleResponse
+ * @typedef {(type: string, data: Record<string, unknown>) => void} GoogleOnEvent
+ */

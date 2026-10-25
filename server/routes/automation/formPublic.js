@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * The form surface behind `kind: 'form'`.
  *
@@ -100,10 +101,17 @@ submit.registerResume(router);  // POST /form/:token/s/:sid
 const { MIN_FORM_AGE_MS, HONEYPOT_FIELD } = submit;
 const { UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES, UPLOAD_QUOTA_WINDOW_MS } = page;
 
-module.exports = router;
+/**
+ * @typedef {import('express').Router & {
+ *   _queues: typeof formQueue._queues,
+ *   _constants: { MIN_FORM_AGE_MS: number, HONEYPOT_FIELD: string, MAX_SUBMISSION_BYTES: number, QUEUE_DEPTH: number,
+ *     UPLOAD_QUOTA_FILES: number, UPLOAD_QUOTA_BYTES: number, UPLOAD_QUOTA_WINDOW_MS: number, RETRY_DELAYS_MS: number[] },
+ * }} FormPublicExports
+ */
+module.exports = /** @type {FormPublicExports} */ (router);
 // Exported for tests.
-module.exports._queues = formQueue._queues;
-module.exports._constants = {
+/** @type {FormPublicExports} */ (module.exports)._queues = formQueue._queues;
+/** @type {FormPublicExports} */ (module.exports)._constants = {
     MIN_FORM_AGE_MS, HONEYPOT_FIELD, MAX_SUBMISSION_BYTES, QUEUE_DEPTH: formQueue.QUEUE_DEPTH,
     UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES, UPLOAD_QUOTA_WINDOW_MS, RETRY_DELAYS_MS: formQueue.RETRY_DELAYS_MS,
 };

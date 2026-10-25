@@ -177,3 +177,5 @@ module.exports = {
     runPathFault,
     itemPathFault,
 };
+
+/** @typedef {import('./aiStepReliabilityProblems').Problem} Problem */

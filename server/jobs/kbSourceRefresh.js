@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge-base source refresh — the scheduled half of "sources keep
  * themselves up to date".
@@ -53,6 +53,7 @@ const VERSION_KEEP_PER_DOC = 3;
 const VERSION_MAX_AGE_DAYS = 30;
 
 let _inFlight = false;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 /**
@@ -61,6 +62,7 @@ let _timer = null;
  * Always calls `finish`: a claim that is never released is a source that
  * never refreshes again until the reaper notices, which is fifteen minutes
  * of silence for something that failed in one.
+ * @param {Awaited<ReturnType<typeof kbSourcesStore.claimDue>>[number]} source
  */
 async function refreshOne(source, { sources = require('../core/kb/sources'), store = kbSourcesStore } = {}) {
     try {
@@ -164,6 +166,7 @@ function start() {
  * Called from `datatableStore`'s write path, debounced there so an automation
  * looping over 400 rows produces one pass rather than 400. Arms only; the tick
  * does the work under the lock and the time budget it already has.
+ * @param {string} datatableId
  */
 async function onDatatableChanged(datatableId, { store = kbSourcesStore } = {}) {
     if (!datatableId) return 0;
@@ -195,6 +198,7 @@ async function onDatatableChanged(datatableId, { store = kbSourcesStore } = {}) 
  *
  * Best-effort throughout: a backstop that fails must not fail the tick that
  * carries every other source.
+ * @param {{ store?: typeof kbSourcesStore, datatables?: DataVersionSource | null }} [opts]
  */
 async function armStaleLiveSources({ store = kbSourcesStore, datatables = null } = {}) {
     let sources = [];
@@ -210,7 +214,7 @@ async function armStaleLiveSources({ store = kbSourcesStore, datatables = null }
     const dtStore = datatables || require('../stores/datatableStore');
     let armed = 0;
     const versions = new Map();
-    const versionOf = async (tableId) => {
+    const versionOf = async (/** @type {string} */ tableId) => {
         if (!versions.has(tableId)) versions.set(tableId, await currentDataVersion(dtStore, tableId));
         return versions.get(tableId);
     };
@@ -242,7 +246,15 @@ async function armStaleLiveSources({ store = kbSourcesStore, datatables = null }
     return armed;
 }
 
-/** A table's current `data_version`, or null when it cannot be read. */
+/**
+ * @typedef {{ getDataVersion?: (datatableId: string) => Promise<unknown> }} DataVersionSource
+ */
+
+/**
+ * A table's current `data_version`, or null when it cannot be read.
+ * @param {DataVersionSource} dtStore
+ * @param {string} datatableId
+ */
 async function currentDataVersion(dtStore, datatableId) {
     try {
         if (typeof dtStore.getDataVersion === 'function') {

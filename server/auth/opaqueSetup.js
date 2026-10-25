@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Can the OPAQUE library this server runs actually read OPAQUE_SERVER_SETUP?
@@ -42,6 +42,9 @@ let _status = null;
 /** @type {string|null} */
 let _checkedDigest = null;
 
+/**
+ * @param {string} value
+ */
 function _digest(value) {
     return crypto.createHash('sha256').update(String(value || '')).digest('hex');
 }

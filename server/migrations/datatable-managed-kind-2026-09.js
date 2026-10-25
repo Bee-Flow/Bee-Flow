@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: `datatables.managed_kind` (2026-09).
  *

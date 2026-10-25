@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').Router} Router */
+// @typecheck noImplicitAny
 /**
  * Tag taxonomy CRUD for staff — the named tags threads can be labelled with,
  * scoped to the acting org (system-wide for super-admins).
@@ -26,11 +27,15 @@ const TagBody = z.object({
     description: worded('A tag description must be text.').trim().max(500, 'A tag description is at most 500 characters.').nullish(),
 }).strict();
 
+/**
+ * @param {import('express').IRouter} router
+ * @param {Router} router
+ */
 function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
     // Tag taxonomy CRUD (staff)
     // ──────────────────────────────────────────────────────────────────────────
-    router.get('/tags', async (req, res) => {
+    router.get('/tags', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         if (!(await _hasAdminSupport(req))) {
             return res.status(403).json({ error: 'admin_support permission required' });
         }
@@ -39,7 +44,7 @@ function register(router) {
         res.json({ tags });
     });
 
-    router.post('/tags', requireStaffSupport, validate({ body: TagBody }), async (req, res) => {
+    router.post('/tags', requireStaffSupport, validate({ body: TagBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const { name, color, description } = req.body;
             const orgId = await _actingOrgId(req);
@@ -51,17 +56,17 @@ function register(router) {
             });
             res.json({ ok: true, tag });
         } catch (err) {
-            if (/duplicate key/i.test(err.message)) return res.status(409).json({ error: 'tag already exists' });
+            if (/duplicate key/i.test(/** @type {Error} */ (err).message)) return res.status(409).json({ error: 'tag already exists' });
             throw err;
         }
     });
 
-    router.delete('/tags/:id', async (req, res) => {
+    router.delete('/tags/:id', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         if (!(await _hasAdminSupport(req))) {
             return res.status(403).json({ error: 'admin_support permission required' });
         }
         const orgId = await _actingOrgId(req);
-        const ok = await supportStore.deleteTag(req.params.id, orgId);
+        const ok = await supportStore.deleteTag(/** @type {string} */ (req.params.id), orgId);
         if (!ok) return res.status(404).json({ error: 'not found' });
         res.json({ ok: true });
     });

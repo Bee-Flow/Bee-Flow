@@ -163,3 +163,9 @@ function perUserRateLimit({ windowMs, max, keyFn, name, costFn, _redis } = {}) {
 }
 
 module.exports = { perUserRateLimit };
+
+/** @typedef {{ session?: Partial<import('express').Request['session']>, ip?: string }} Req  the fields the limiter reads (also called outside Express with a bare carrier) */
+
+/** @typedef {{ set(name: string, value: string): unknown, status(code: number): { json(body: unknown): unknown } }} Res */
+
+/** @typedef {import('express').NextFunction} Next */

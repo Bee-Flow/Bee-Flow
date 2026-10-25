@@ -278,3 +278,22 @@ module.exports = {
     applyAddSlide,
     applyAddPresentation,
 };
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../refCheck').BuilderWrap} BuilderWrap */
+
+/** @typedef {import('./inputBindings').Placement} Placement */
+
+/** @typedef {import('./inputBindings').Binding} Binding */
+
+/** @typedef {{ type?: unknown, data?: unknown, series?: unknown, labels?: unknown, values?: unknown, stacked?: boolean, unit?: unknown }} SlideChartArgs */
+
+/** @typedef {{ chart?: SlideChartArgs | string, stats?: unknown, style?: string }} SlideVisualArgs */
+
+/** @typedef {{ preset?: string, accent?: unknown, background?: unknown, font?: unknown, titleFont?: unknown, coverStyle?: string, tableStyle?: string,
+ *   logoPlacement?: string, logo?: unknown, footerText?: unknown, slideNumbers?: unknown, template?: unknown }} DeckLookArgs */
+
+/** @typedef {{ format?: string, expiresInDays?: unknown, fileName?: unknown, title?: unknown }} DocFileArgs */

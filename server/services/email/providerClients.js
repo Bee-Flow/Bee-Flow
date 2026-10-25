@@ -227,3 +227,8 @@ module.exports = {
     gmailClientFromTokens,
     graphFetchFromTokens,
 };
+
+/**
+ * @typedef {{ accessToken?: string | null, refreshToken?: string | null, scope?: string | null, expiryDate?: number | null }} EmailTokens
+ * @typedef {((tokens: EmailTokens) => unknown) | null | undefined} OnTokenRefresh
+ */

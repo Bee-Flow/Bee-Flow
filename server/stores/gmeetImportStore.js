@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Gmeet Import Store — PostgreSQL-backed Google Meet ingest job queue.
  *
@@ -70,6 +70,18 @@ async function _initDB() {
     log.info('[GmeetImportStore] PostgreSQL initialized');
 }
 
+/**
+ * @typedef {{ id: string, userId: string, orgId: string|null, calendarEventId: string|null, icalUid: string|null,
+ *   meetingCode: string, spaceName: string|null, conferenceRecord: string|null, title: string|null,
+ *   meetingStart: string|null, meetingEnd: string|null, preferred: boolean, status: string, errorCode: string|null,
+ *   lastError: string|null, attempts: number, nextAttemptAt: string|null, transcriptionId: string|null,
+ *   createdAt: string|null, updatedAt: string|null }} GmeetJob
+ */
+
+/**
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ * @returns {GmeetJob | null}
+ */
 function mapJob(r) {
     if (!r) return null;
     return {
@@ -101,6 +113,7 @@ function mapJob(r) {
  * re-discovery of an already-seeded event returns null instead of a new row.
  * A unique violation on the conference-record indexes (seeding a recently
  * ended conference another job already covers) also returns null.
+ * @param {{ userId: string, orgId?: string|null, calendarEventId?: string|null, icalUid?: string|null, meetingCode: string, spaceName?: string|null, conferenceRecord?: string|null, title?: string|null, meetingStart?: string|Date|null, meetingEnd?: string|Date|null, preferred?: boolean, status?: string, nextAttemptAt?: string|Date|null }} job
  */
 async function seedJob({ userId, orgId = null, calendarEventId = null, icalUid = null, meetingCode, spaceName = null, conferenceRecord = null, title = null, meetingStart = null, meetingEnd = null, preferred = false, status = 'pending', nextAttemptAt = null }) {
     await initDB();
@@ -131,7 +144,7 @@ async function seedJob({ userId, orgId = null, calendarEventId = null, icalUid =
 const leased = makeLeasedJobQueue({
     table: 'gmeet_import_jobs',
     orderBy: 'preferred DESC, next_attempt_at ASC',
-    mapRow: (r) => mapJob(r),
+    mapRow: (/** @type {import('pg').QueryResultRow} */ r) => mapJob(r),
     initDB,
 });
 const claimDueJobs = leased.claimDueJobs;
@@ -160,6 +173,9 @@ const heartbeatJob = leased.heartbeatJob;
  * or `{ duplicate: true }` when the (org_id, conference_record) org-claim
  * index rejects it — i.e. another attendee's job already owns this
  * conference and this one should be marked `duplicate` by the caller.
+ * @param {string} id
+ * @param {{ spaceName?: string|null, conferenceRecord: string }} conference
+ * @returns {Promise<(GmeetJob & { duplicate?: false }) | { duplicate: true } | null>}
  */
 async function attachConferenceRecord(id, { spaceName = null, conferenceRecord }) {
     await initDB();
@@ -196,6 +212,7 @@ async function attachConferenceRecord(id, { spaceName = null, conferenceRecord }
  * re-resolve the conference and claim it. Only siblings still parked with no
  * note of their own are woken.
  *
+ * @param {string} id
  * @returns {Promise<number>} how many siblings were returned to `pending`
  */
 async function releaseConferenceClaim(id) {
@@ -243,6 +260,10 @@ const UPDATABLE_FIELDS = {
     icalUid: 'ical_uid',
 };
 
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} fields
+ */
 async function updateJob(id, fields) {
     await initDB();
     const built = buildUpdate({
@@ -257,6 +278,10 @@ async function updateJob(id, fields) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {string} transcriptionId
+ */
 async function completeJob(id, transcriptionId) {
     await initDB();
     const { rowCount } = await run(
@@ -285,6 +310,8 @@ const failJob = leased.failJob;
  * Park a job until the user re-authorizes Google. Parked jobs are excluded
  * from claims (status filter); `nextAttemptAt` records when the poller may
  * flip it back to pending after re-auth.
+ * @param {string} id
+ * @param {string|Date|null} nextAttemptAt
  */
 async function parkNeedsReauth(id, nextAttemptAt) {
     await initDB();
@@ -302,6 +329,8 @@ async function parkNeedsReauth(id, nextAttemptAt) {
 
 /**
  * Recent jobs for the failure-UX feed / import panel.
+ * @param {string} userId
+ * @param {number} [days]
  */
 async function listRecentJobsForUser(userId, days = 7) {
     await initDB();
@@ -314,6 +343,7 @@ async function listRecentJobsForUser(userId, days = 7) {
     return rows.map(mapJob);
 }
 
+/** @param {string} id */
 async function getJob(id) {
     await initDB();
     const r = await getOne('SELECT * FROM gmeet_import_jobs WHERE id = $1', [id]);

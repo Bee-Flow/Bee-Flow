@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A DATATABLE THAT MIRRORS ONE WORKSHEET OF A SPREADSHEET FILE — the engine
  * behind `managed_kind = 'spreadsheet_file'`.
@@ -40,7 +40,10 @@ const FORMATS = Object.freeze(['xlsx', 'xlsm', 'xls', 'csv', 'ods', 'gsheet']);
 /** How a change from Bee Flow reaches the file. `none` carries a `reason`. */
 const WRITE_MODES = Object.freeze(['sheets_api', 'graph_workbook', 'exceljs_put', 'csv_put', 'none']);
 
-/** Is this datatable row a spreadsheet mirror? */
+/**
+ * Is this datatable row a spreadsheet mirror?
+ * @param {{ managedKind?: string|null } | null | undefined} table
+ */
 function isMirror(table) {
     return !!table && table.managedKind === KIND;
 }

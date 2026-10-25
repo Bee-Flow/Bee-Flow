@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Put a turn's attachments onto its user message. Each kind is handled in
  * ./attachmentKinds; extracted text passes the Privacy Shield gate in
@@ -16,6 +16,9 @@ const { appendPdf, appendImage, appendInlineText, appendParsedDocument } = requi
 // it omitted claude-sonnet-5, claude-opus-5 and claude-fable, silently turning
 // the PDF-vision fallback OFF for models we already ship. Claude now answers
 // from the same catalog the adapter reads, so the two cannot diverge again.
+/**
+ * @param {string} modelId
+ */
 function modelSupportsVisionById(modelId) {
     if (!modelId) return false;
     if (/claude|anthropic/i.test(modelId)) {
@@ -31,6 +34,12 @@ function modelSupportsVisionById(modelId) {
     return /gpt-4o|gpt-4\.1|gpt-5|o4|gemini/i.test(modelId);
 }
 
+/**
+ * @param {import('./attachmentKinds').Attachment[] | undefined} attachments
+ * @param {{ content: string | import('./attachmentKinds').MessagePart[] }} lastMsg
+ * @param {string | null} [userId]
+ * @param {{ orgShield?: unknown, conversationId?: string | null, provider?: Parameters<typeof createAttachmentScanGate>[0]['provider'], emit?: Parameters<typeof createAttachmentScanGate>[0]['emit'], registerDecision?: Parameters<typeof createAttachmentScanGate>[0]['registerDecision'], modelId?: string, persistedByLive?: import('./attachmentKinds').PersistedByLive }} [opts]
+ */
 async function processAttachments(attachments = [], lastMsg, userId = null, opts = {}) {
     if (!attachments || attachments.length === 0) return { attachmentScanSummaries: [] };
 
@@ -59,13 +68,13 @@ async function processAttachments(attachments = [], lastMsg, userId = null, opts
 
     for (const att of attachments) {
         if (att.type.includes('pdf')) {
-            await appendPdf(att, lastMsg, ctx);
+            await appendPdf(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);
         } else if (att.type.startsWith('image/')) {
-            await appendImage(att, lastMsg, ctx);
+            await appendImage(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);
         } else if ((att.source === 'gmail' || (att.type && att.type.startsWith('text/'))) && typeof att.content === 'string' && !att.content.startsWith('data:')) {
-            await appendInlineText(att, lastMsg, ctx);
+            await appendInlineText(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);
         } else {
-            await appendParsedDocument(att, lastMsg, ctx);
+            await appendParsedDocument(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);
         }
     }
 
@@ -73,11 +82,14 @@ async function processAttachments(attachments = [], lastMsg, userId = null, opts
     return { attachmentScanSummaries };
 }
 
-/** Warn on an oversized base64 payload (only relevant when RustFS is unavailable). */
+/**
+ * Warn on an oversized base64 payload (only relevant when RustFS is unavailable).
+ * @param {{ content: string | { type: string, image_url?: { url?: string } }[] }} lastMsg
+ */
 function warnOnLargeBase64(lastMsg) {
     if (!Array.isArray(lastMsg.content)) return;
     const totalBase64Size = lastMsg.content
-        .filter(p => p.type === 'image_url')
+        .filter((/** @type {{ type: string; }} */ p) => p.type === 'image_url')
         .reduce((sum, p) => {
             const url = p.image_url?.url || '';
             // Only count base64 data URLs, not short https:// URLs

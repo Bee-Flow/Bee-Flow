@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 37 — Data Protection Officer appointed.
  * Reads compliance_settings.dpo_name and dpo_email; records only THAT they are
@@ -18,10 +18,12 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art37.desc',
     remediationKey: 'compliance.checks.gdpr_art37.fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const s = await complianceStore.getSettings(orgId);
         const hasEmail = !!(s.dpo_email && /@/.test(s.dpo_email));
         const hasName = !!s.dpo_name;
+        /** @type {string} */
         let status;
         if (hasEmail && hasName) status = 'pass';
         else if (hasEmail || hasName) status = 'warn';

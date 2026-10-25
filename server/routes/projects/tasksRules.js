@@ -168,3 +168,15 @@ const alreadyATask = () => conflict('already_a_task', 'This meeting item is alre
 module.exports = {
     checkedAssignees, checkedLinks, checkedHierarchy, prepareTask, announceAssigned, announceCreated, meetingTexts, alreadyATask,
 };
+
+/** @typedef {ReturnType<typeof import('./tasksContext').makeTasksContext>} TasksCtx */
+
+/** @typedef {Awaited<ReturnType<TasksCtx['boxFor']>>} TaskBox */
+
+/** @typedef {Awaited<ReturnType<TasksCtx['loadProject']>>} TaskProject */
+
+/** @typedef {{ kind: string, id: string, chatId?: string, relation?: 'depends_on' }} TaskLink */
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/projectTaskStore').rowToTask>>} TaskRow */
+
+/** @typedef {{ id: string, text: string }} ActionItem */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: deployment-sourced approvals (2026-10).
  *

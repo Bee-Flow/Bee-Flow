@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Answers coming in: the first submission (POST /form/:token) and a later
  * page's answers on a multi-page form (POST /form/:token/s/:sid). Both claim
@@ -30,6 +30,10 @@ const HONEYPOT_FIELD = 'website_url';
 
 // ── POST /form/:token — a submission ──────────────────
 
+/**
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
+ */
 async function submitForm(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -130,7 +134,11 @@ async function submitForm(req, res) {
     return undefined;
 }
 
-/** POST /form/:token/s/:sid — page N's answers resume the paused run. */
+/**
+ * POST /form/:token/s/:sid — page N's answers resume the paused run.
+ * @param {import('express').Request<{ token: string, sid: string }>} req
+ * @param {import('express').Response} res
+ */
 async function answerPage(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -201,7 +209,7 @@ async function answerPage(req, res) {
     // This page's answers land on the SAME row page one made (its id rode
     // in on the session's trigger headers). Best-effort, like page one.
     const answersRef = session.triggerHeaders?.answers_row_id
-        ? { datatableId: session.triggerHeaders.answers_datatable_id || null, rowId: session.triggerHeaders.answers_row_id }
+        ? { datatableId: /** @type {string} */ (session.triggerHeaders.answers_datatable_id) || null, rowId: /** @type {string} */ (session.triggerHeaders.answers_row_id) }
         : null;
     if (answersRef) {
         await formAnswers().recordPageAnswers({ automation: found.automation, ...answersRef, pageStepId: stepId, values });
@@ -227,12 +235,18 @@ async function answerPage(req, res) {
     return undefined;
 }
 
-/** POST /form/:token — registered before the session routes. */
+/**
+ * POST /form/:token — registered before the session routes.
+ * @param {import('express').Router} router
+ */
 function registerSubmit(router) {
     router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, friendly(submitForm, 'submit_failed', 'Could not accept this submission'));
 }
 
-/** POST /form/:token/s/:sid — registered LAST, after every session sub-route. */
+/**
+ * POST /form/:token/s/:sid — registered LAST, after every session sub-route.
+ * @param {import('express').Router} router
+ */
 function registerResume(router) {
     router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard, friendly(answerPage, 'submit_failed', 'Could not accept this submission'));
 }

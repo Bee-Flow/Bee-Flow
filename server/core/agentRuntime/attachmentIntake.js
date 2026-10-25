@@ -281,3 +281,11 @@ async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelT
 }
 
 module.exports = { appendUserTurn, processTurnAttachments };
+
+/**
+ * @typedef {import('./attachmentKinds').Attachment} Attachment
+ * @typedef {import('./attachmentKinds').MessagePart} MessagePart
+ * @typedef {import('./attachmentKinds').PersistedAttachment} PersistedAttachment
+ * @typedef {{ id?: string, role: string, content: string | MessagePart[], parentId: string | null, attachments?: PersistedAttachment[] }} UserTurnMessage
+ * @typedef {{ source: string, action: string, count: number, categories: string[], automatic?: boolean, provider?: string, attachments?: import('./attachmentScanGate').ScanSummaryRow[], tokenizedPrompt?: string, tokenMap?: Record<string, string> }} AttachmentTokenisationInfo
+ */

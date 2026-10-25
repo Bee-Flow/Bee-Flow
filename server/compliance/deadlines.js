@@ -329,3 +329,5 @@ async function build(orgId, opts = {}) {
 }
 
 module.exports = { build, clockState, URGENT_BELOW_MS, KINDS, ARTICLE, CRA_SEVERE_INCIDENT_ARTICLE, REGIME_ARTICLE, makeDeps };
+
+/** @typedef {{ dsrStore: typeof import('../stores/dsrStore'), incidentStore: typeof import('../stores/incidentStore'), obligationStore: typeof import('../stores/isoObligationStore'), aiActAssessmentStore: typeof import('../stores/aiActAssessmentStore'), now: () => number }} Deps */

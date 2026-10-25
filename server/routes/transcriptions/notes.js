@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Transcriptions — listing & retrieval.
  *
@@ -30,8 +30,8 @@ const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).s
 
 router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
     const userId = req.session.user.id;
-    const limit = Math.min(req.query.limit ?? 50, 100);
-    const offset = Math.max(req.query.offset ?? 0, 0);
+    const limit = Math.min(/** @type {{limit?: number}} */ (/** @type {unknown} */ (req.query)).limit ?? 50, 100);
+    const offset = Math.max(/** @type {{offset?: number}} */ (/** @type {unknown} */ (req.query)).offset ?? 0, 0);
     // Reap async jobs stuck in 'processing' (e.g. server restarted mid-run) so
     // the list stops spinning on them. Best-effort; never block the listing.
     transcriptionStore.timeoutStuckTranscriptions().catch((e) => bestEffort('routes/transcriptions/notes:anon', e));
@@ -54,12 +54,12 @@ const RESERVED_GET_PATHS = new Set(['nextcloud-audio-files', 'nextcloud-talk-rec
 // reads it perfectly well. `next('route')` leaves the route entirely, so the
 // literal name reaches the sub-router that owns it, schema and all.
 router.get('/:id', requireAuth,
-    (req, res, next) => (RESERVED_GET_PATHS.has(req.params.id) ? next('route') : next()),
+    (req, res, next) => (RESERVED_GET_PATHS.has(/** @type {string} */ (req.params.id)) ? next('route') : next()),
     validate({ query: NO_QUERY }),
     async (req, res) => {
     const userId = req.session.user.id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
-    const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
+    const transcription = await transcriptionStore.getTranscription(/** @type {string} */ (req.params.id), userId, { orgIds, userGroupIds, isSuperAdmin });
     if (!transcription) return res.status(404).json({ error: 'Transcription not found' });
     res.json(await withInsightsPolicy(transcription));
 });
@@ -72,7 +72,7 @@ router.get('/:id', requireAuth,
 router.get('/:id/series-previous', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
     const userId = req.session.user.id;
     const ctx = await resolveAccessContext(req);
-    const transcription = await transcriptionStore.getTranscription(req.params.id, userId, ctx);
+    const transcription = await transcriptionStore.getTranscription(/** @type {string} */ (req.params.id), userId, ctx);
     if (!transcription) return res.status(404).json({ error: 'Not found' });
     if (!transcription.meetMeetingCode && !transcription.talkRoomToken) {
         return res.json({ previous: null });

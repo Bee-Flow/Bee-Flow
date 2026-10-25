@@ -318,3 +318,9 @@ module.exports = {
     listGeneratingAutomations,
     titlesFor,
 };
+
+/**
+ * @typedef {{ title?: unknown, description?: unknown, liveFormPages?: unknown, markingEnabled?: unknown }} SignalMeta
+ * @typedef {{ id: string | null, label: string, signal: string, aiStepIds: string[], path?: string }} GeneratingStep
+ * @typedef {{ id: string, title: string | null, is_active: boolean, is_draft: boolean, generating: GeneratingStep[], aiStepIds: string[] }} GeneratingAutomation
+ */

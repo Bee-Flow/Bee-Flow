@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const { resolveShieldFor, mergeWithOrgShield } = require('../privacy/orgShield');
 const { checkRegexPatterns } = require('../privacy/guardrails');
 const guardrailEventStore = require('../../stores/guardrailEventStore');
@@ -17,15 +17,24 @@ const PII_GATE_DEPS = {
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 
+/**
+ * @typedef {{ enabled?: boolean, scope?: Record<string, boolean>, action?: string, rulesWithNames?: Array<{ name: string, pattern: string }> }} RegexGuardConfig
+ * @typedef {{ rules?: Array<{ id: string, name: string, pattern: string }>, collections?: Array<{ id: string, ruleIds?: string[] }> }} GlobalRegexGuardrails  the stored global rule set
+ */
+
 // `isDryRun` marks every guardrail row of this turn as a dry run — the test
 // chat (A4) sets it, so a builder's experiment does not land among the
 // production turns in the org's Privacy Shield activity. The same column the
 // automation runner sets for a dry run.
+/**
+ * @param {{ agent: import('./chatStream/turnState').AgentRow, messages: import('./chatStream/turnState').ChatMessage[], userMessage: string, globalConfig: import('../llm/providerConfig').AIConfig, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId: string | null, source?: string, model?: string | null, isDryRun?: boolean }} opts
+ */
 async function runInputGuardrails({ agent, messages, userMessage, globalConfig, onEvent, userId, conversationId, source, model, isDryRun = false }) {
     let guardrailViolation = null;
     // What the PII gate decided on this turn (validate.js `options.report`),
     // handed back as `piiReport` for chat signals (core/privacy/chatSignals.js).
     // Status, decision and category ids only.
+    /** @type {import('../privacy/piiDetection/validate').PiiGateReport} */
     const piiReport = {};
 
     // Context for guardrail event logging
@@ -68,6 +77,7 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
     const dlpWillHandle = !!(orgShield?.enabled && orgShield?.dlpEnabled);
     if (dlpWillHandle) piiReport.status = 'deferred_to_dlp';
     else if (!(globalConfig?.piiDetectionEnabled || orgPiiEnabled)) piiReport.status = 'disabled';
+    /** @type {import('./inputPiiGate').PiiGateOut} */
     let pii = { moderationViolation: null, processedUserMessage, userPrivacyMeta: null, assistantTokenisationInfo: null };
     if (!dlpWillHandle && (globalConfig?.piiDetectionEnabled || orgPiiEnabled)) {
         pii = await runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }, PII_GATE_DEPS);
@@ -107,6 +117,8 @@ async function runInputGuardrails({ agent, messages, userMessage, globalConfig, 
  * Strip hidden Unicode from `messages` (in place). Resolves to the processed
  * user message: the sanitized last message when it is a plain user string,
  * otherwise `userMessage` unchanged.
+ * @param {{ messages: import('./chatStream/turnState').ChatMessage[], userMessage: string, onEvent: import('./chatStream/turnState').OnEvent, eventCtx: import('./inputPiiGate').GuardrailEventCtx }} opts
+ * @returns {string}
  */
 function stripUnicodeSmuggling({ messages, userMessage, onEvent, eventCtx }) {
     const unicodeResult = sanitizeMessagesUnicode(messages);
@@ -137,11 +149,14 @@ function stripUnicodeSmuggling({ messages, userMessage, onEvent, eventCtx }) {
 /**
  * The agent's own regex guardrails (its collections resolved against the
  * global rule set), or null when it has none enabled or none resolve.
+ * @param {import('./chatStream/turnState').AgentRow} agent
+ * @param {import('../llm/providerConfig').AIConfig} globalConfig
+ * @returns {RegexGuardConfig | null}
  */
 function agentLocalRegexConfig(agent, globalConfig) {
     const agentRegexConfig = agent.config?.regexGuardrails;
     if (!agentRegexConfig?.enabled) return null;
-    const globalRegexConfig = globalConfig?.regexGuardrails || {};
+    const globalRegexConfig = /** @type {GlobalRegexGuardrails} */ (globalConfig?.regexGuardrails || {});
     const globalRules = globalRegexConfig.rules || [];
     const globalCollections = globalRegexConfig.collections || [];
 
@@ -176,9 +191,9 @@ function agentLocalRegexConfig(agent, globalConfig) {
  * @param {string}   [p.redactBase] Text to redact into when it differs from the
  *   scan text (the agent path scans the raw message but redacts the already
  *   PII-tokenised copy). Defaults to `text`.
- * @param {Object}   p.regexConfig  Merged shield/local config ({enabled, scope, action, rulesWithNames}).
+ * @param {RegexGuardConfig | null} p.regexConfig  Merged shield/local config ({enabled, scope, action, rulesWithNames}).
  * @param {string}   p.scope        Which scope flag to honour ('userInput' | 'agentOutput' | ...).
- * @param {Function} [p.emit]       (type, data) => void — onEvent (agent) / send (route).
+ * @param {import('./chatStream/turnState').OnEvent} [p.emit]       (type, data) => void — onEvent (agent) / send (route).
  * @param {Object}   [p.audit]      Base fields for logGuardrailEvent. Omit to skip the audit row
  *   (the direct-chat path deliberately does not log regex events).
  * @param {string}   [p.direction]  Audit direction ('input' | 'output'). Default 'input'.

@@ -448,3 +448,13 @@ module.exports = {
     // Awaitbare init-ingang voor migrateDb.
     initDB,
 };
+
+/**
+ * @typedef {{ timestamp?: string|Date, organization_id?: string|null, user_id?: string|null, agent_id?: string|null,
+ *   agent_name?: string|null, conversation_id?: string|null, violation_type?: string, violation_categories?: string|null,
+ *   direction?: string, action_taken?: string, source?: string, model?: string|null, attachment_filename?: string|null,
+ *   attachment_page?: number|null, automation_id?: string|null, run_id?: string|null, step_id?: string|null,
+ *   is_dry_run?: boolean }} GuardrailEvent
+ * @typedef {{ startDate?: string|Date, endDate?: string|Date, organizationId?: string, userId?: string,
+ *   violationType?: string, excludeDryRun?: boolean, beforeId?: number }} GuardrailFilters
+ */

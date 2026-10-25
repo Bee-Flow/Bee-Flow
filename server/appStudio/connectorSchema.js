@@ -758,3 +758,15 @@ module.exports = {
     WATERMARK_CANDIDATES,
     SINCE_PARAM_CANDIDATES,
 };
+
+/**
+ * @typedef {{ key: string, name: string, type: string, sourcePath: string, subtype?: string }} InferredField  One column proposed from sample rows.
+ * @typedef {Record<string, unknown>} SourceRow  One row as an upstream source returned it.
+ * @typedef {{ properties?: unknown, required?: unknown }} InputSchema  The JSON-Schema of an action's input.
+ * @typedef {{ param: string, format: string }} SinceParam
+ * @typedef {{ mode: string, field: string | null, param: string | null, format: string | null }} Incremental  The incremental-load tier of a source.
+ * @typedef {{ name?: string, label?: string, sideEffect?: boolean, inputSchema?: InputSchema | null, outputSample?: unknown }} CatalogAction  A catalog action of an integration app.
+ * @typedef {{ id: string, key: string, name: string, type: string, subtype?: string, unique?: boolean, sourcePath?: string, relation?: { table: string } }} TableField
+ * @typedef {{ id: string, key: string, name: string, fields: TableField[] }} ProposedTableDef
+ * @typedef {{ table: ProposedTableDef, keyField: string | null, identity: string | null, defaultMode: string, level: number, parentLevel: number | null, relationField: string | null, expandFrom: string | null, tool: string | null, rowCount: number }} ProposedTable  One table of a proposed set.
+ */

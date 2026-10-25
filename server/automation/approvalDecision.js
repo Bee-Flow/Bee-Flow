@@ -173,3 +173,19 @@ async function finalizeDecision({ approval, run, deciderId, decision, trimmedRea
 }
 
 module.exports = { outcome, recordDeploymentOutcome, userDisplayName, deciderName, finalizeDecision };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+
+/** @typedef {import('./approvalRulebook').ApprovalVote} ApprovalVote */
+
+/**
+ * @typedef {object} DecisionCall  what decide hands to the vote and decision writers
+ * @property {Approval} approval
+ * @property {Record<string, any>|null} run  the run row the approval pauses (null for a run-less approval)
+ * @property {string} deciderId
+ * @property {string} decision  'approve' | 'reject'
+ * @property {string} [trimmedReason]
+ * @property {Record<string, unknown>|null} [coercedAnswers]
+ * @property {string} source
+ * @property {ApprovalVote[]|null} [votes]
+ */

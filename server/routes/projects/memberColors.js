@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The colour of a person in a project.
  *
@@ -36,11 +36,11 @@ const Body = bodyOf({ color: worded(COLOR_TEXT).trim().max(16, COLOR_TEXT).nulla
 function makeMemberColorsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
-    const getProject = deps.getProject || ((id) => require('../../stores/projectStore').getProject(id));
-    const getShares = deps.getShares || ((id) => require('../../stores/projectStore').getProjectShares(id));
+    const getProject = deps.getProject || ((/** @type {string} */ id) => require('../../stores/projectStore').getProject(id));
+    const getShares = deps.getShares || ((/** @type {string} */ id) => require('../../stores/projectStore').getProjectShares(id));
     const store = () => deps.store || require('../../stores/projectMemberColorStore');
     const emit = deps.emit
-        || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectMemberColors' }));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectMemberColors' }));
 
     router.put('/:id/members/:userId/color', requireRole('viewer'), validate({ body: Body }), async (req, res) => {
         const me = req.session.user.id;
@@ -51,7 +51,7 @@ function makeMemberColorsRouter(deps = {}) {
         const project = await getProject(req.params.id);
         if (!project) throw notFound('not_found', 'Not found');
         const shares = await getShares(project.id);
-        const onProject = project.ownerId === target || shares.some((s) => s.sharedWithType === 'user' && s.sharedWithId === target);
+        const onProject = project.ownerId === target || shares.some((/** @type {{ sharedWithType: string, sharedWithId: string }} */ s) => s.sharedWithType === 'user' && s.sharedWithId === target);
         if (!onProject) throw notFound('member_not_found', 'That person is not on this project.');
         const { color } = req.body;
         if (color !== null && !isMemberColor(color)) throw badRequest('invalid_color', `color is one of ${MEMBER_COLORS.join(', ')}, or null.`);

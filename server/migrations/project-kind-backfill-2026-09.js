@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: classify the projects that existed before the workspace /
  * Solution split.
@@ -63,6 +64,11 @@ const WORKSPACE_MEMBERS = [...CONVERSATIONS, 'notebooks', 'user_memories'];
 // The Studio's "New Solution" form gave every Solution this icon.
 const SOLUTION_ICON = '📦';
 
+/**
+ * @param {Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>} db
+ * @param {string} table
+ * @param {string} column
+ */
 async function hasColumn(db, table, column) {
     const row = await db.getOne(
         `SELECT EXISTS (
@@ -75,8 +81,14 @@ async function hasColumn(db, table, column) {
     return !!row?.ok;
 }
 
-/** `EXISTS (…)` for every table that has the column; the table names are constants above. */
+/**
+ * `EXISTS (…)` for every table that has the column; the table names are constants above.
+ * @param {Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>} db
+ * @param {string[]} tables
+ * @param {string} [column]
+ */
 async function filedIn(db, tables, column = 'project_id') {
+    /** @type {string[]} */
     const out = [];
     for (const table of tables) {
         if (await hasColumn(db, table, column)) {
@@ -86,15 +98,20 @@ async function filedIn(db, tables, column = 'project_id') {
     return out;
 }
 
+/**
+ * @param {string[]} clauses
+ */
 const anyOf = (clauses) => (clauses.length ? `(${clauses.join(' OR ')})` : 'FALSE');
 
 /**
  * The two predicates over `projects p`, built from the tables this database
  * has. Each side needs its own evidence AND the absence of the other's, so
  * conflicting evidence classifies nothing.
+ * @param {Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>} db
  * @returns {Promise<{ solution: string, workspace: string, params: string[] }>}
  */
 async function buildPredicates(db) {
+    /** @type {string[]} */
     const strong = [];
     if (await hasColumn(db, 'projects', 'installed_from_blueprint_id')) {
         strong.push('p.installed_from_blueprint_id IS NOT NULL');
@@ -116,7 +133,7 @@ async function buildPredicates(db) {
 }
 
 /**
- * @param {{ dryRun?: boolean, db?: object, initSchema?: () => Promise<unknown> }} [opts]
+ * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>, initSchema?: () => Promise<unknown> }} [opts]
  *        `db` (getOne + withTransaction, db.js's shape) and `initSchema` are
  *        seams for the integration test; boot calls up() without arguments.
  * @returns {Promise<{ solution: number, workspace: number, unclassified: number, dryRun: boolean }>}
@@ -185,7 +202,7 @@ async function up({ dryRun = false, db = null, initSchema = null } = {}) {
             + `${result.unclassified} left for their owners to classify`);
         return result;
     } catch (e) {
-        console.error(`[Migration] ${NAME} failed (rolled back, retries next boot):`, e.message);
+        console.error(`[Migration] ${NAME} failed (rolled back, retries next boot):`, /** @type {Error} */ (e).message);
         throw e;
     }
 }

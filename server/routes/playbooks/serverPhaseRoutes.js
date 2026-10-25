@@ -286,3 +286,12 @@ function register(router, ctx) {
 }
 
 module.exports = { register };
+
+/**
+ * @typedef {import('express').Request<{ id: string, key: string }>} Req
+ * @typedef {import('express').Response} Res
+ * @typedef {Extract<Awaited<ReturnType<import('./index').PlaybookRouteCtx['d']['runDesignPhase']>>, { ok: false }>} DesignFailure
+ * @typedef {import('./phaseList').PlaybookRow} PlaybookRow
+ * @typedef {import('../../playbooks/lifecycle').Phase} Phase
+ * @typedef {import('../../playbooks/lifecycle').PhaseArtifacts & { datatableScope?: { kind: string, id: string }, fields?: import('../../playbooks/phases/designPhase').DesignField[], rowCount?: number }} TableArtifacts
+ */

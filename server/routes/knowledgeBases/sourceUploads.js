@@ -184,3 +184,5 @@ async function addFiles(req, res, next) {
 }
 
 module.exports = { acceptUploads, settleUploads, addFiles };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

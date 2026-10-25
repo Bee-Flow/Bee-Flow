@@ -543,3 +543,13 @@ module.exports = {
     renderShape,
     isIndexKey,
 };
+
+/**
+ * @typedef {{ nameKey: string, valueKey: string, names: string[], byIndex: string[] | null }} ShapePairs
+ * @typedef {{ t: string, keys?: Map<string, ShapeNode>, open?: boolean, sure?: boolean, item?: ShapeNode | null, int?: boolean,
+ *   json?: boolean, envelope?: boolean, payload?: string, pairs?: ShapePairs | null }} ShapeNode
+ * @typedef {{ type: string, key?: string | number, value?: string | number | boolean | null }} PathToken
+ * @typedef {{ status: string, node?: ShapeNode, at?: number, reason?: string, sure?: boolean,
+ *   indexHits?: Array<{ at: number, list: ShapeNode, index: number }> }} WalkResult
+ * @typedef {string | number | null | undefined | { [k: string]: Descriptor }} Descriptor
+ */

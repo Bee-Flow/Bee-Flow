@@ -240,3 +240,5 @@ function defaultAnswerWriter() {
 }
 
 module.exports = { makeAnswerWriter, defaultAnswerWriter };
+
+/** @typedef {{ authorKind?: string, authorUserId?: string, text?: string, seq?: number }} ThreadMessage */

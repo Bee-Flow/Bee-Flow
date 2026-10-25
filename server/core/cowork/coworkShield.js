@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CW-10 — the privacy-shield passage for the NON-agent run path.
  *
@@ -48,7 +48,7 @@ const log = require('../../telemetry/log');
  *   mirroring the agent path's `userAuth.userId`.
  * @param {Array<{role:string, content:any}>} opts.messages The outbound
  *   message array; the last entry is the user input to scan.
- * @returns {Promise<{tokenizedText:string, tokenMap:Object, entities:Array}|null>}
+ * @returns {Promise<{tokenizedText:string, tokenMap:Object, entities:Array<unknown>}|null>}
  *   The masking result when PII was tokenized (the message is already
  *   rewritten); null when nothing was masked or the shield did not apply.
  * @throws The agent path's deliberate gates, unchanged: 'PII Detected: …'
@@ -99,7 +99,7 @@ async function applyCoworkShieldToInput({ orgId, userId = null, messages }) {
     } catch (piiError) {
         // Propagate both a PII block and a fail-closed "protection
         // unavailable" block to the caller (BFSF-269).
-        if (piiError?.message?.includes('PII Detected') || piiError?.privacyUnavailable) {
+        if (/** @type {Error} */ (piiError)?.message?.includes('PII Detected') || piiError?.privacyUnavailable) {
             throw piiError;
         }
         // Service unavailable → fail-open, exactly like the agent path.
@@ -110,6 +110,7 @@ async function applyCoworkShieldToInput({ orgId, userId = null, messages }) {
 /**
  * Does the shield apply to this path for `orgId`? No org means no flag and no
  * shield claim (the flag contract).
+ * @param {string | null} orgId
  */
 async function shieldApplies(orgId) {
     if (!orgId) return false;

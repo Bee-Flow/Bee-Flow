@@ -222,3 +222,5 @@ module.exports = {
     GAP_MARKER,
     DEFAULT_MAX_CHARS,
 };
+
+/** @typedef {{ speaker?: string, speakerId?: string, text?: string }} ExcerptSegment */

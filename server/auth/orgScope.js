@@ -1,4 +1,3 @@
-// @typecheck
 'use strict';
 /**
  * Which organisation is this request acting for, and which may it see.
@@ -144,3 +143,8 @@ async function requireOrgScope(req, opts) {
 }
 
 module.exports = { orgScope, requireOrgScope };
+
+/**
+ * @typedef {{ userId: string|null, isSuperAdmin: boolean, orgIds: Set<string>|null,
+ *   orgId: string|null, homeOrgId: string|null, identityError: string|null }} OrgScope
+ */

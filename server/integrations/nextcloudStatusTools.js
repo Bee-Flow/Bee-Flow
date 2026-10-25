@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud User Status Tools — get / set / clear the current user's status.
  *
@@ -65,10 +65,14 @@ const NEXTCLOUD_STATUS_TOOLS = [
     }
 ];
 
+/**
+ * @param {string} baseUrl
+ */
 function statusApi(baseUrl) {
     return `${baseUrl}/ocs/v2.php/apps/user_status/api/v1/user_status`;
 }
 
+/** @param {Response} res */
 async function readJsonSafe(res) {
     const text = await res.text().catch(() => '');
     try { return JSON.parse(text); } catch { return text; }
@@ -78,6 +82,9 @@ function commonHeaders() {
     return { 'Accept': 'application/json', 'OCS-APIRequest': 'true' };
 }
 
+/**
+ * @param {{ userId?: string, status?: string, message?: string | null, messageId?: string | null, icon?: string | null, clearAt?: number | null, statusIsUserDefined?: boolean, messageIsPredefined?: boolean }} s
+ */
 function mapStatus(s) {
     return {
         userId: s.userId,
@@ -95,6 +102,8 @@ function mapStatus(s) {
  * `clearAt` as epoch seconds. Unparsable and past values are refused here:
  * Nextcloud answers a past time with a 400 that used to be reported as an
  * unknown status, and an unparsable one used to be dropped silently.
+ * @param {string | number | null | undefined} raw
+ * @param {number} [now]
  */
 function parseClearAt(raw, now = Date.now()) {
     if (raw === undefined || raw === '') return { given: false, seconds: null };
@@ -106,6 +115,12 @@ function parseClearAt(raw, now = Date.now()) {
     return { given: true, seconds: Math.floor(ms / 1000) };
 }
 
+/**
+ * @param {string} toolName
+ * @param {{ availability?: string, clearAt?: string | number | null, emoji?: string, message?: string, messageId?: string }} args
+ * @param {string} userId
+ * @param {Partial<Express.Session>} session
+ */
 async function executeNextcloudStatusTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -150,6 +165,7 @@ async function executeNextcloudStatusTool(toolName, args, userId, session) {
                     clearAt: clear.given ? clear.seconds : (cur.clearAt ?? null),
                 }]);
             }
+            /** @type {string[]} */
             const applied = [];
             for (const [path, method, body] of calls) {
                 const res = await ncFetch(`${api}${path}?format=json`, {
@@ -201,6 +217,7 @@ async function executeNextcloudStatusTool(toolName, args, userId, session) {
     }
 }
 
+/** @param {unknown} toolName */
 function isNextcloudStatusTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_status_');
 }

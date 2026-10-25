@@ -15,32 +15,54 @@ const {
 } = require('./chatsPresent');
 const { postMessage } = require('./chatsPost');
 
-/** A message of this chat, or a 404. */
+/**
+ * @typedef {ReturnType<typeof import('./chatsContext').makeChatsContext>} Ctx
+ * @typedef {import('express').Request<{ id: string, chatId: string }>} ChatReq
+ * @typedef {import('express').Request<{ id: string, chatId: string, messageId: string }>} MessageReq
+ * @typedef {import('express').Response} Res
+ */
+
+/**
+ * A message of this chat, or a 404.
+ * @param {Ctx} ctx
+ * @param {{ id: string }} chat
+ * @param {string} messageId
+ */
 async function loadMessage(ctx, chat, messageId) {
     const message = await ctx.store().getMessage(chat.id, messageId);
     if (!message) throw notFound('message_not_found', 'This message does not exist in this chat.');
     return message;
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {import('express').Request<{ id: string, chatId: string }, unknown, unknown, { after?: number, before?: number, limit?: number }>} req  the query as validate() parsed it (S.MessagesQuery)
+ * @param {Res} res
+ */
 async function listMessages(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const chat = await ctx.loadChat(project, req.params.chatId);
     const box = await ctx.chatCrypto().forProject(project);
     const { after, before, limit } = req.query;
     const page = await ctx.store().listMessages(chat.id, { after: after ?? null, before: before ?? null, limit });
-    const automatic = page.messages.filter((m) => m.authorKind === 'assistant' && AUTO_TRIGGERS.includes(m.aiTrigger)).map((m) => m.id);
+    const automatic = page.messages.filter((/** @type {{ authorKind: string; aiTrigger: string; }} */ m) => m.authorKind === 'assistant' && AUTO_TRIGGERS.includes(m.aiTrigger)).map((/** @type {{ id: string }} */ m) => m.id);
     let feedback = new Map();
     if (automatic.length > 0) {
         try {
             feedback = await ctx.participationStore().feedbackFor(ctx.userIdOf(req), automatic);
         } catch (err) {
             // The "Not helpful" button then simply shows again.
-            log.warn(`[ProjectChat] feedback of chat ${chat.id} unavailable: ${err && err.message}`);
+            log.warn(`[ProjectChat] feedback of chat ${chat.id} unavailable: ${err && /** @type {Error} */ (err).message}`);
         }
     }
     res.json({ messages: page.messages.map((m) => presentMessage(box, m, undefined, feedback)), hasMore: page.hasMore });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {ChatReq} req
+ * @param {Res} res
+ */
 async function postChatMessage(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const chat = await ctx.loadChat(project, req.params.chatId);
@@ -53,6 +75,11 @@ async function postChatMessage(ctx, req, res) {
     res.status(out.created ? 201 : 200).json({ message: out.message, ai: out.ai });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {MessageReq} req
+ * @param {Res} res
+ */
 async function editMessage(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -75,6 +102,11 @@ async function editMessage(ctx, req, res) {
     res.json({ message: presentMessage(box, updated, content) });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {MessageReq} req
+ * @param {Res} res
+ */
 async function deleteMessage(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -93,6 +125,11 @@ async function deleteMessage(ctx, req, res) {
     res.json({ success: true });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {MessageReq} req
+ * @param {Res} res
+ */
 async function messageTrace(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const chat = await ctx.loadChat(project, req.params.chatId);
@@ -104,6 +141,11 @@ async function messageTrace(ctx, req, res) {
     res.json({ trace: opened.text });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {MessageReq} req
+ * @param {Res} res
+ */
 async function messageFeedback(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -128,6 +170,11 @@ async function messageFeedback(ctx, req, res) {
     res.json({ ok: true, helpful, autoPausedUntil: pausedUntil });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {ChatReq} req
+ * @param {Res} res
+ */
 async function markRead(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const chat = await ctx.loadChat(project, req.params.chatId);

@@ -28,3 +28,5 @@ function loopVarsReadBy(value, out = [], depth = 0) {
 }
 
 module.exports = { loopVarsReadBy };
+
+/** @typedef {string | number | boolean | null | undefined | LoopVal[] | { kind?: string, path?: string, value?: LoopVal, [k: string]: LoopVal }} LoopVal */

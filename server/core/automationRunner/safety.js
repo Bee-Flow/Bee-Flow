@@ -270,3 +270,43 @@ module.exports = {
     maskTokens,
     logEgress,
 };
+
+/** @typedef {ReturnType<typeof import('./tokenVault').createTokenVault>} TokenVault */
+
+/** @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveOrgShield>>} OrgShield */
+
+/** @typedef {{ name: string, pattern: string }} RegexRule */
+
+/**
+ * The run's resolved safety policy (resolveAutomationPolicy).
+ * @typedef {{ shield: OrgShield | null, orgId: string | null, piiEnabled: boolean, action: string,
+ *   regexRules: RegexRule[], monitorIntegrations: boolean,
+ *   scope: { toolInput?: boolean, toolOutput?: boolean, userInput?: boolean, agentOutput?: boolean },
+ *   privacyScope: string, confidence: number, categories: string[] | null, failureMode: string,
+ *   largeInputPolicy: string, disabledForAutomations?: boolean }} SafetyPolicy
+ */
+
+/** What the scanners read of a policy (callers may hand in a partial one).
+ * @typedef {{ categories?: string[] | null, confidence?: number, shield?: OrgShield | null }} ScanPolicy
+ */
+
+/**
+ * The run context, as far as the safety layer reads and memoizes on it.
+ * @typedef {{ orgId?: string, userId?: string, automationTitle?: string, automationId?: string, runId?: string,
+ *   nextcloudUrl?: string, definition?: object,
+ *   tokenVault?: TokenVault, _ephemeralTokenVault?: TokenVault, _safetyPolicy?: SafetyPolicy,
+ *   _guardrailSeen?: Set<string> }} SafetyCtx
+ */
+
+/** One detected span, in detectPii / tokenizeText shape.
+ * @typedef {import('../privacy/piiDetection/scanCache').PiiEntity} PiiEntity
+ */
+
+/** @typedef {{ entities: PiiEntity[], degraded: boolean, degradedReason: string | null, degradedCategories: string[] | null, overflow: boolean }} RawDetection */
+
+/**
+ * @template [T=unknown]
+ * @typedef {{ value: T, tokenMap: Record<string, string> | null, blocked: boolean, categories: string[], markers: string[], wouldBlock?: boolean }} GuardResult
+ */
+
+/** @typedef {ReturnType<typeof buildAuditBase>} AuditBase */

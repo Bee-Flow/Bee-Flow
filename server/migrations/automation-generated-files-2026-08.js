@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: automation_generated_files (2026-08).
  *

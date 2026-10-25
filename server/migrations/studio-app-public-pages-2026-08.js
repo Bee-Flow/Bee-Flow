@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Studio App public pages — the anonymous entry point to ONE app.
  *

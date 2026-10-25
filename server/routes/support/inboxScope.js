@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Tenant Support Inbox: who the caller is and what they may reach. The
  * support_inbox permission check, the org scope, the per-inbox access gate
@@ -16,12 +17,19 @@ const access = require('../../support/access');
 const { supportEvents } = require('../support');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/** @param {import('express').Request} req */
 function getUserId(req) { return req.session?.user?.id || null; }
 
+/**
+ * @param {string} event
+ * @param {string} inboxId
+ * @param {Record<string, unknown>} [data]
+ */
 function emitInboxEvent(event, inboxId, data = {}) {
     try { supportEvents.emit('event', { event, data: { ...data, inboxId } }); } catch (err) { bestEffort('routes/support/inboxScope:emitInboxEvent', err); /* an event listener threw, the emit continues */ }
 }
 
+/** @param {import('express').Request} req */
 async function _hasSupportInbox(req) {
     const uid = getUserId(req);
     if (!uid) return false;
@@ -34,7 +42,10 @@ async function _hasSupportInbox(req) {
     }
 }
 
-/** Org ids the caller may act within (super-admins fall back to their own org). */
+/**
+ * Org ids the caller may act within (super-admins fall back to their own org).
+ * @param {import('express').Request} req
+ */
 async function resolveOrgScope(req) {
     const ids = await resolveUserOrgIds(req);
     if (ids === null) {
@@ -44,6 +55,7 @@ async function resolveOrgScope(req) {
     return Array.from(ids);
 }
 
+/** @param {NonNullable<Awaited<ReturnType<typeof supportInboxStore.getInbox>>>} inbox */
 function inboxToReplyConfig(inbox) {
     return {
         agentId: inbox.default_agent_id || null,
@@ -71,6 +83,8 @@ function inboxToReplyConfig(inbox) {
  * every inbox/thread-reaching route funnels through, so a group-restricted inbox
  * can never be opened by a non-member — not via the inbox list, nor by reaching
  * one of its tickets directly.
+ * @param {import('express').Request} req
+ * @param {Awaited<ReturnType<typeof supportInboxStore.getInbox>>} inbox
  */
 async function userCanAccessInbox(req, inbox) {
     if (!inbox) return false;
@@ -86,6 +100,12 @@ async function userCanAccessInbox(req, inbox) {
 }
 
 // Resolve + scope/ACL-check an inbox; returns the public row or sends 403/404.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} id
+ * @param {{ withTokens?: boolean }} [opts]
+ */
 async function loadInboxInScope(req, res, id, { withTokens = false } = {}) {
     const inbox = withTokens
         ? await supportInboxStore.getInboxWithTokens(id)
@@ -99,6 +119,11 @@ async function loadInboxInScope(req, res, id, { withTokens = false } = {}) {
 
 // Resolve + scope/ACL-check a thread. Loads the thread's inbox and runs the same
 // per-inbox group ACL — closes the cross-inbox-via-thread access gap.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} id
+ */
 async function loadThreadInScope(req, res, id) {
     const thread = await supportStore.getThread(id);
     if (!thread || !thread.inbox_id) { res.status(404).json({ error: 'Ticket not found' }); return null; }

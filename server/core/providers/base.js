@@ -642,3 +642,10 @@ class BaseProvider {
 }
 
 module.exports = BaseProvider;
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {{ id?: string, index?: number | null, type?: string, function?: { name?: string, arguments?: string } }} ToolCall
+ * @typedef {{ maxTokens?: number, max_tokens?: number, temperature?: number, stream?: boolean, tools?: unknown[], toolChoice?: unknown, extraBody?: Record<string, unknown> }} BodyOptions
+ * @typedef {(type: string, data: Record<string, unknown>) => void} OnEvent
+ */

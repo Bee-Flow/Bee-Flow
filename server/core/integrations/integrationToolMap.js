@@ -607,3 +607,9 @@ module.exports = {
     resolveIntegration,
     scanOutputForPii,
 };
+
+/**
+ * @typedef {Record<string, unknown>} ToolArgs  the arguments of one tool call
+ * @typedef {{ n8nUrl?: string, youtrackUrl?: string, nextcloudUrl?: string, mcpEndpoint?: string, customIntegration?: { baseUrl?: string, name?: string } | null }} IntegrationCtx
+ * @typedef {{ integration: string, label: string, server?: string | null, serverFn?: (args: ToolArgs, ctx: IntegrationCtx) => string | null, isLocal?: boolean | ((args: ToolArgs, ctx?: IntegrationCtx) => boolean), direction?: string | ((args: ToolArgs, ctx?: IntegrationCtx) => string), dataCategories?: string }} IntegrationEntry
+ */

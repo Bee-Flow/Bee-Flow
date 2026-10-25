@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * signupCaptcha.js — bot protection for the anonymous signup surface.
  *
@@ -38,6 +38,7 @@
  * it reads belongs to the signup routes that mount it, whose schemas name it.
  */
 
+/** @type {Record<string, string>} */
 const VERIFY_URLS = {
     turnstile: 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
     hcaptcha: 'https://api.hcaptcha.com/siteverify',
@@ -79,7 +80,7 @@ function failOpen() {
  * Verify a widget token.
  *
  * @param {string} token  the `captchaToken` from the request body
- * @param {object} [req]  used only to forward the remote IP, which the providers
+ * @param {import('express').Request} [req]  used only to forward the remote IP, which the providers
  *                        accept as an optional extra signal
  * @returns {Promise<{ok: boolean, error?: string, code?: string}>}
  */
@@ -118,7 +119,7 @@ async function verifyCaptcha(token, req) {
         log.warn(`[SignupCaptcha] ${name} rejected a token:`, Array.isArray(data?.['error-codes']) ? data['error-codes'].join(',') : 'unknown');
         return { ok: false, code: 'captcha_failed', error: 'Verification failed. Please try again.' };
     } catch (err) {
-        log.error(`[SignupCaptcha] ${name} verification unavailable:`, err.message);
+        log.error(`[SignupCaptcha] ${name} verification unavailable:`, /** @type {Error} */ (err).message);
         if (failOpen()) {
             log.error('[SignupCaptcha] SECURITY: SIGNUP_CAPTCHA_FAIL_OPEN=true — allowing an unverified signup through.');
             return { ok: true };
@@ -132,8 +133,14 @@ async function verifyCaptcha(token, req) {
 /**
  * Express middleware form, for routes whose only captcha need is "reject before
  * doing any work".
+ * @param {string} [field]
  */
 function requireCaptcha(field = 'captchaToken') {
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     return async function captchaMiddleware(req, res, next) {
         if (!isEnabled()) return next();
         const result = await verifyCaptcha(req.body?.[field], req);

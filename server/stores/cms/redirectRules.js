@@ -292,3 +292,5 @@ module.exports = {
     normalizeFrom, normalizeTarget, sanitizeHosts, pathOnly,
     addRedirect, sanitizeRedirects, renameRedirect, findRedirect, resolveTarget,
 };
+
+/** @typedef {import('url').URL} URL */

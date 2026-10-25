@@ -55,3 +55,5 @@ function makeRes() {
 }
 
 module.exports = { findRoute, runRoute, makeRes };
+
+/** @typedef {{ statusCode: number, body: unknown, status: (c: number) => MockRes, json: (b: unknown) => MockRes, set: () => MockRes, setHeader: () => MockRes }} MockRes */

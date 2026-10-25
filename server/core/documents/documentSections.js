@@ -99,3 +99,5 @@ function insertSection(doc, source, sectionId, { replace = false } = {}) {
         settings: { ...doc.settings, sectionOverrides, contract: normalizeContract(contract) } };
 }
 module.exports = { extractSection, insertSection, ruleKeys };
+
+/** @typedef {import('domhandler').AnyNode} AnyNode */

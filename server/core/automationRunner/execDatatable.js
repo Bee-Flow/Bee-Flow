@@ -315,3 +315,19 @@ async function execDatatable(step, ctx, runState, mode) {
 }
 
 module.exports = { execDatatable, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP, _test: { readCursor } };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/** @typedef {import('./datatableStepShared').DatatableStepContext} DatatableStepContext */
+
+/** @typedef {{ field?: string, op?: string, value?: unknown }} DatatableCondition */
+
+/**
+ * The config fields the datatable step reads.
+ * @typedef {{ id?: string, op?: string, datatableId?: string, values?: Record<string, unknown>, where?: DatatableCondition[],
+ *   sort?: unknown[], limit?: number, cursor?: unknown, match?: string, matchColumn?: string, [key: string]: unknown }} DatatableStep
+ */
+
+/** @typedef {Parameters<typeof resolveDatatableForStep>[1] & DatatableStepContext['ctx']} DatatableCtx */
+
+/** @typedef {{ datatableDbStore: typeof import('../../stores/datatableDbStore'), queryCompiler: typeof import('../dataEngine/queryCompiler') }} ReadStores */

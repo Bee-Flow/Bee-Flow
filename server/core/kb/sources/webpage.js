@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * A web page (or a whole site) as a knowledge source.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What an agent, and a skill, bring to ONE AI step: the data behind the step
  * editor's "Who does the thinking" block (Studio → Automations, handoff 5,
@@ -20,7 +20,23 @@
 
 const { outputFieldsOf, skillOutputSchema } = require('../../core/automationRunner/aiStepSkills');
 
-/** The integration a tool belongs to, for grouping chips. */
+/**
+ * @typedef {{ function?: { name?: string }, __automation?: { id?: string }, __step?: { id?: string },
+ *   _mcp?: { serverId?: string, serverName?: string },
+ *   _custom?: { integrationId?: string, id?: string, name?: string } }} ToolDef
+ * @typedef {(name: string) => ({ integration?: string, label?: string } | null)} ResolveIntegration
+ * @typedef {{ userId: string, orgId?: string | null, userGroupIds?: string[] }} StepCtx
+ * @typedef {{ kbStore: typeof import('../../stores/knowledgeBases'), kbVisibility: typeof import('../../core/kb/kbVisibility'),
+ *   skillStore: typeof import('../../stores/skillStore'), resolveIntegration?: ResolveIntegration,
+ *   log?: { warn: (...args: unknown[]) => void } }} CatalogDeps
+ */
+
+/**
+ * The integration a tool belongs to, for grouping chips.
+ * @param {string} name
+ * @param {ToolDef | undefined} def
+ * @param {ResolveIntegration | null} resolveIntegration
+ */
 function integrationOfTool(name, def, resolveIntegration) {
     if (def && def.__automation && def.__automation.id) return { integration: 'automations', label: 'Automations' };
     if (def && def.__step && def.__step.id) return { integration: 'building_blocks', label: 'Building blocks' };
@@ -49,18 +65,20 @@ function integrationOfTool(name, def, resolveIntegration) {
  * @param {object} args
  * @param {string[]} args.allowed   names the step gets
  * @param {Array<{name:string,reason:string}>} args.withheld
- * @param {Array}    [args.toolDefs] definitions seen by the gate, for grouping
- * @param {Function} [args.resolveIntegration]
+ * @param {ToolDef[]} [args.toolDefs] definitions seen by the gate, for grouping
+ * @param {ResolveIntegration | null} [args.resolveIntegration]
  * @returns {Array<{integration:string,label:string,tools:string[],withheld:boolean,reason:string|null,withheldTools:Array<{name:string,reason:string}>}>}
  */
 function groupToolsByIntegration({ allowed = [], withheld = [], toolDefs = [], resolveIntegration = null }) {
+    /** @type {Map<string, ToolDef>} */
     const defs = new Map();
     for (const d of Array.isArray(toolDefs) ? toolDefs : []) {
         const n = d && d.function && d.function.name;
         if (typeof n === 'string' && n && !defs.has(n)) defs.set(n, d);
     }
+    /** @type {Map<string, { integration: string, label: string, tools: string[], withheldTools: Array<{ name: string, reason: string }> }>} */
     const groups = new Map();
-    const add = (name, reason) => {
+    const add = (/** @type {string} */ name, /** @type {string | null} */ reason) => {
         const { integration, label } = integrationOfTool(name, defs.get(name), resolveIntegration);
         let g = groups.get(integration);
         if (!g) {
@@ -86,17 +104,27 @@ function groupToolsByIntegration({ allowed = [], withheld = [], toolDefs = [], r
     });
 }
 
-/** 'org' when the agent is published to its organisation, else 'personal'. */
+/**
+ * 'org' when the agent is published to its organisation, else 'personal'.
+ * @param {{ is_published?: boolean, organization_id?: string | null } | null | undefined} agent
+ */
 function agentScope(agent) {
     return agent && agent.is_published === true && agent.organization_id ? 'org' : 'personal';
 }
 
-/** The published version that runs, or null while only the live concept exists. */
+/**
+ * The published version that runs, or null while only the live concept exists.
+ * @param {{ published_version?: unknown } | null | undefined} agent
+ */
 function agentVersion(agent) {
     const v = Number(agent && agent.published_version);
     return Number.isInteger(v) && v > 0 ? v : null;
 }
 
+/**
+ * @param {unknown} list
+ * @returns {string[]}
+ */
 function _ids(list) {
     return Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && id))] : [];
 }
@@ -105,17 +133,21 @@ function _ids(list) {
  * The agent's knowledge bases that the person editing may read, with names.
  * The same visibility rule the run applies (core/kb/kbVisibility), so the
  * editor never names a base the step would not search.
+ * @param {unknown} kbIds
+ * @param {StepCtx} ctx
+ * @param {CatalogDeps} deps
  */
 async function visibleKnowledgeBases(kbIds, ctx, deps) {
     const ids = _ids(kbIds);
     if (!ids.length) return [];
+    /** @type {Map<string, Awaited<ReturnType<CatalogDeps['kbStore']['getKB']>>>} */
     const rows = new Map();
     const store = {
-        getKB: async (id) => {
+        getKB: async (/** @type {string} */ id) => {
             if (!rows.has(id)) rows.set(id, await deps.kbStore.getKB(id));
             return rows.get(id);
         },
-        canUserAccessKB: (...args) => deps.kbStore.canUserAccessKB(...args),
+        canUserAccessKB: (/** @type {Parameters<CatalogDeps['kbStore']['canUserAccessKB']>} */ ...args) => deps.kbStore.canUserAccessKB(...args),
     };
     const allowed = await deps.kbVisibility.filterKbIdsForUser(ids, {
         userId: ctx.userId,
@@ -130,7 +162,12 @@ async function visibleKnowledgeBases(kbIds, ctx, deps) {
     });
 }
 
-/** The agent's own skills as the person editing may see them, in the agent's order. */
+/**
+ * The agent's own skills as the person editing may see them, in the agent's order.
+ * @param {unknown} skillIds
+ * @param {StepCtx} ctx
+ * @param {CatalogDeps} deps
+ */
 async function agentSkills(skillIds, ctx, deps) {
     const ids = _ids(skillIds);
     if (!ids.length) return [];
@@ -144,8 +181,12 @@ async function agentSkills(skillIds, ctx, deps) {
  * Everything the preview adds beside the gate's `allowed`/`withheld`.
  *
  * @returns {Promise<{ version: number|null, scope: 'org'|'personal',
- *   knowledgeBases: Array<{id,name}>|null, skills: Array<{id,name,fromAgent}>|null,
- *   tools: Array|null }>}
+ *   knowledgeBases: Array<{ id: string, name: string }>|null, skills: Array<{ id: string, name: string, fromAgent: boolean }>|null,
+ *   tools: ReturnType<typeof groupToolsByIntegration>|null }>}
+ * @param {{ binding: { agent?: { is_published?: boolean, organization_id?: string | null, published_version?: unknown },
+ *     config?: { tools?: unknown, knowledge_base_ids?: unknown, attachedSkillIds?: unknown } } | null,
+ *   gate: { tools?: ToolDef[], toolDefs?: ToolDef[] } | null, withheld: Array<{ name: string, reason: string }>,
+ *   ctx: StepCtx, deps: CatalogDeps }} args
  */
 async function describeAgentForStep({ binding, gate, withheld, ctx, deps }) {
     const agent = (binding && binding.agent) || {};
@@ -178,7 +219,9 @@ async function describeAgentForStep({ binding, gate, withheld, ctx, deps }) {
  * One skill's output contract for the step editor, or null when the person
  * editing cannot use it (one answer for missing and not shared).
  *
- * @returns {Promise<null | { id, name, description, version, outputSchema, outputFields }>}
+ * @returns {Promise<null | { id: string, name: string, description: string | null, version: number | null,
+ *   outputSchema: ReturnType<typeof skillOutputSchema>, outputFields: ReturnType<typeof outputFieldsOf> }>}
+ * @param {{ skillId: string, orgId: string | null, userId: string, deps: CatalogDeps }} args
  */
 async function describeSkillForStep({ skillId, orgId, userId, deps }) {
     if (typeof skillId !== 'string' || !skillId.trim()) return null;

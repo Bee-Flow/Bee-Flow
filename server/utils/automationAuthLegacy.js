@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The operator switch for the legacy user_sessions OAuth fallback of unattended
  * runs: AUTOMATION_AUTH_LEGACY ('0' turns the fallback off, '1' forces the

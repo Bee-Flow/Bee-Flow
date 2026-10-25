@@ -136,6 +136,7 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
     // the one that lands in "<inviter> has invited you to join" in an HTML
     // email. A live check after sanitising only the org side found this still
     // storing `<img src=x onerror=...>` verbatim.
+    /** @type {{ id: string, username: string, displayName: string, firstName: unknown, lastName: unknown, email: string | null, phone: string | null, avatar: string | null, avatarType: string | null, passwordHash: string, role: string, groups: string[], organizationId: string | null, orgRole: string, status: string }} */
     const newUser = {
         id: username, username,
         displayName: sanitizePlainText(displayName, { maxLen: 200 }) || username,
@@ -184,6 +185,7 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
     // If user is pending approval or waitlisted, notify but don't fully log in
     if (resolvedStatus === 'pending' || resolvedStatus === 'waitlist') {
         // H11: rotate the session id on establishment (session fixation).
+        /** @type {{ id: string, displayName: string, role: string, isAdmin: boolean, avatar: string | null, avatarType: string | null, organizationId: string, orgRole: string }} */
         const sessionUser = {
             id: newUser.id, displayName: newUser.displayName,
             role: 'user', isAdmin: false, avatar: null, avatarType: null,
@@ -206,6 +208,7 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
 
     // Auto-login after signup
     // H11: rotate the session id on establishment (session fixation).
+    /** @type {{ id: string, displayName: string, role: string, isAdmin: boolean, avatar: string | null, avatarType: string | null, organizationId: string, orgRole: string }} */
     const sessionUser = {
         id: newUser.id, displayName: newUser.displayName,
         role: 'user', isAdmin: false, avatar: null, avatarType: null,
@@ -219,6 +222,7 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
         extra: { encryptionKey: result?.encryptionKey || null },
         audit: { method: 'signup', organizationId: orgId || null },
     });
+    /** @type {{ success: boolean, user: typeof sessionUser, recoveryKey?: string }} */
     const response = { success: true, user: sessionUser };
     if (result?.recoveryKey) {
         response.recoveryKey = result.recoveryKey;

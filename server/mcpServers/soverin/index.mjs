@@ -466,3 +466,8 @@ process.on('SIGTERM', shutdown);
 
 await server.connect(new StdioServerTransport());
 process.stderr.write(`[soverin-mcp] ready (${config.readOnly ? 'read-only' : 'read-write'})\n`);
+
+/**
+ * @typedef {{ mailbox?: string, limit?: unknown, uid?: unknown, markSeen?: boolean, from?: unknown, to?: unknown, cc?: unknown, bcc?: unknown, subject?: string, body?: unknown, text?: string, html?: string, unread?: unknown, flagged?: boolean, since?: unknown, before?: unknown, replyToUid?: unknown, seen?: boolean, target?: string }} SoverinArgs
+ * @type {Record<string, (args?: SoverinArgs) => Promise<unknown>>}
+ */

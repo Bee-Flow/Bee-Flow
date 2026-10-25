@@ -402,3 +402,17 @@ function renderAgentDraftState(def, opts = {}) {
 }
 
 module.exports = { summariseDefinition, renderAgentDraftState };
+
+/** @typedef {{ kind?: string, path?: string, value?: unknown } | string | number | boolean | null | undefined} SummaryBinding */
+
+/** @typedef {{ name?: string, required?: boolean, default?: unknown }} CodeParam */
+
+/**
+ * @typedef {{ kind?: string, id?: string, label?: string, toolName?: string, schedule?: { cron?: string, tz?: string },
+ *   appEvent?: { provider?: string, event?: string, filter?: unknown }, params?: Array<string|{ name?: string }> }} SummaryTrigger
+ */
+
+/**
+ * @typedef {{ trigger?: SummaryTrigger, triggers?: SummaryTrigger[], steps?: SummaryStep[],
+ *   edges?: Array<{ from?: string, to?: string, label?: string }>, title?: string }} SummaryGraph
+ */

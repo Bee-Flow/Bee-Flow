@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Findings for one `table` step: shape and field checks (validateOps.js) plus,
@@ -18,7 +18,15 @@ const { planColumns } = require('./planColumns');
  * @returns {{ code: string, severity: 'error'|'warning', path: string, message: string, hint?: string }[]}
  */
 function validateTableStep(step, opts = {}) {
+    /** @type {import('./readTableSpec').Finding[]} */
     const findings = [];
+    /**
+     * @param {'error'|'warning'} severity
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} [hint]
+     */
     const push = (severity, code, path, message, hint) => findings.push({ code: `table.${code}`, severity, path, message, ...(hint ? { hint } : {}) });
     const s = isRecord(step) ? step : {};
     const normalized = normalizeTableStep(s);
@@ -36,7 +44,14 @@ function validateTableStep(step, opts = {}) {
     let groupsAt = -1;
     normalized.ops.forEach((n, i) => {
         const raw = isRecord(rawOps[i]) ? rawOps[i] : {};
-        const label = `Step ${i + 1} (${OP_LABELS[n.op] || 'Unknown'})`;
+        const label = `Step ${i + 1} (${/** @type {Record<string, string>} */ (OP_LABELS)[n.op] || 'Unknown'})`;
+        /**
+         * @param {'error'|'warning'} severity
+         * @param {string} code
+         * @param {string} sub
+         * @param {string} message
+         * @param {string} [hint]
+         */
         const add = (severity, code, sub, message, hint) => push(severity, code, `ops[${i}]${sub}`, `${label}: ${message}`, hint);
         if (!TABLE_OPS.includes(n.op)) {
             return push('error', 'op_unknown', `ops[${i}].op`, `Step ${i + 1}: "${raw.op ?? ''}" is not an operation this step knows.`, `Use one of: ${TABLE_OPS.join(', ')}.`);
@@ -47,7 +62,7 @@ function validateTableStep(step, opts = {}) {
         if (typeof raw.note === 'string' && raw.note.length > NOTE_MAX_CHARS) add('warning', 'note_too_long', '.note', `the note is cut to ${NOTE_MAX_CHARS} characters.`);
         if (groupsAt >= 0 && n.enabled) add('warning', 'ops_after_groups', '', 'it works on the list of segments, not on your rows.', 'Move it before the Segments step to work on the rows.');
         if (n.op === 'groups' && n.enabled && groupsAt < 0) groupsAt = i;
-        CHECKS[n.op](raw, n, add);
+        CHECKS[/** @type {keyof typeof CHECKS} */ (n.op)](raw, n, add);
     });
 
     if (Array.isArray(opts.columns)) {

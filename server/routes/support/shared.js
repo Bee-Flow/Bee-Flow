@@ -153,3 +153,5 @@ module.exports = {
     notifyStaff,
     _actingOrgId,
 };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

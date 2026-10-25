@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Building blocks for the golden event streams: a seeded PRNG, a clock, event
@@ -17,7 +17,10 @@ const MIN = 60_000;
 const NOW = Date.UTC(2026, 9, 3, 18, 0);
 const TODAY = Date.UTC(2026, 9, 3);
 
-/** Deterministic PRNG (mulberry32). */
+/**
+ * Deterministic PRNG (mulberry32).
+ * @param {number} seed
+ */
 function rng(seed) {
     let a = seed >>> 0;
     return () => {
@@ -29,38 +32,87 @@ function rng(seed) {
     };
 }
 
-/** Timestamp `daysAgo` days before today at hh:mm UTC. */
+/**
+ * Timestamp `daysAgo` days before today at hh:mm UTC.
+ * @param {number} daysAgo
+ * @param {number} [h]
+ * @param {number} [m]
+ */
 const at = (daysAgo, h = 9, m = 0) => TODAY - daysAgo * DAY + h * HOUR + m * MIN;
+/** @param {number} daysAgo */
 const weekdayOf = (daysAgo) => new Date(at(daysAgo)).getUTCDay();
 
-/** Day offsets within `span` days that fall on one of the weekdays. */
+/**
+ * Day offsets within `span` days that fall on one of the weekdays.
+ * @param {number[]} weekdays
+ * @param {number} [span]
+ * @param {number} [from]
+ */
 function daysOn(weekdays, span = 90, from = 0) {
+    /** @type {number[]} */
     const out = [];
     for (let d = from; d < span; d++) if (weekdays.includes(weekdayOf(d))) out.push(d);
     return out;
 }
 
+/**
+ * @param {number} ts
+ * @param {string} verb
+ * @param {string} app
+ * @param {string} conv
+ */
 const tool = (ts, verb, app, conv) => makeEvent({ ts, source: 'ledger', objectType: 'tool', app, verb, sessionKey: conv });
+/**
+ * @param {number} ts
+ * @param {string} app
+ * @param {string} subject
+ * @param {{ attachment?: boolean, bulk?: boolean, domain?: string }} [o]
+ */
 const mailIn = (ts, app, subject, o = {}) => makeEvent({
     ts, source: 'mail', objectType: 'mail', app, verb: 'mail.received', direction: 'in',
     template: subjectTemplate(subject), hasAttachment: !!o.attachment, bulk: !!o.bulk, domainPseudo: o.domain || 'dx',
 });
+/**
+ * @param {number} ts
+ * @param {string} app
+ * @param {string} subject
+ * @param {{ attachment?: boolean, domain?: string }} [o]
+ */
 const mailOut = (ts, app, subject, o = {}) => makeEvent({
     ts, source: 'mail', objectType: 'mail', app, verb: 'mail.sent', direction: 'out',
     template: subjectTemplate(subject), hasAttachment: !!o.attachment, domainPseudo: o.domain || 'dy',
 });
+/**
+ * @param {number} ts
+ * @param {string} app
+ * @param {string} name
+ * @param {string} folder
+ * @param {string} [source]
+ */
 const fileNew = (ts, app, name, folder, source = 'files') => makeEvent({
     ts, source, objectType: source === 'documents' ? 'document' : 'file', app,
     verb: source === 'documents' ? 'doc.uploaded' : 'file.created', template: filenameStem(name), sessionKey: folder,
 });
+/**
+ * @param {number} ts
+ * @param {string} app
+ * @param {string} series
+ */
 const meeting = (ts, app, series) => makeEvent({ ts, source: 'meetings', objectType: 'meeting', app, verb: 'meeting.held', sessionKey: series });
 
-/** A chat session: the tools in order, a few minutes apart. */
+/**
+ * A chat session: the tools in order, a few minutes apart.
+ * @param {number} ts
+ * @param {string} conv
+ * @param {Array<string[]>} steps   [verb, app] pairs
+ * @param {number} [gapMin]
+ */
 function session(ts, conv, steps, gapMin = 3) {
     return steps.map(([verb, app], i) => tool(ts + i * gapMin * MIN, verb, app, conv));
 }
 
 // A broad vocabulary for one-off work: the miner must not find patterns in it.
+/** @type {string[][]} */
 const NOISE_TOOLS = [
     ['gmail_read_message', 'gmail'], ['gmail_list_labels', 'gmail'], ['calendar_list_events', 'google-calendar'],
     ['calendar_create_event', 'google-calendar'], ['drive_search_files', 'google-drive'], ['drive_get_file', 'google-drive'],
@@ -82,11 +134,19 @@ const NOISE_WORDS = ('alpha bravo cedar delta ember fjord grove harbor island ja
 /**
  * One-off work: single tool calls (now and then two unrelated ones), unique
  * mail subjects and unique file names.
+ * @param {number} seed
+ * @param {{ days?: number, toolsPerDay?: number, mailsPerDay?: number, filesPerWeek?: number, pairs?: number }} [opts]
  */
 function noise(seed, { days = 90, toolsPerDay = 1.5, mailsPerDay = 2, filesPerWeek = 2, pairs = 0.25 } = {}) {
     const r = rng(seed);
+    /**
+     * @template T
+     * @param {T[]} list
+     * @returns {T}
+     */
     const pick = (list) => list[Math.floor(r() * list.length)];
     const word = () => pick(NOISE_WORDS);
+    /** @type {Array<import('../events').WorkEvent | null>} */
     const out = [];
     let conv = 0;
     let uniq = 1000;
@@ -114,10 +174,13 @@ function noise(seed, { days = 90, toolsPerDay = 1.5, mailsPerDay = 2, filesPerWe
  * A heavy chat user: many long sessions a day, each a random walk through the
  * noise vocabulary. Every ordered pair shows up often, so only a miner that
  * asks "more than chance?" stays quiet on it.
+ * @param {number} seed
+ * @param {{ days?: number, perDay?: number, len?: number }} [opts]
  */
 function heavyUse(seed, { days = 90, perDay = 20, len = 8 } = {}) {
     const r = rng(seed);
     const pick = () => NOISE_TOOLS[Math.floor(r() * NOISE_TOOLS.length)];
+    /** @type {Array<import('../events').WorkEvent | null>} */
     const out = [];
     for (let d = 0; d < days; d++) {
         for (let k = 0; k < perDay; k++) {

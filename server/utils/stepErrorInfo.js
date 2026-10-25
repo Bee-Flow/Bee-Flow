@@ -561,3 +561,13 @@ module.exports = {
     STEP_ERROR_CODES,
     _test: { statusOf, targetInputOf, fieldNamedIn, folderOf, serviceOf, nextcloudAppOf },
 };
+
+/**
+ * @typedef {{ message?: string, ncRawMessage?: string, status?: number, statusCode?: number,
+ *   response?: { status?: number }, code?: string, errno?: string | number, errorClass?: string,
+ *   guardrailBlocked?: boolean, stepErrorCode?: string, ncError?: { code?: string },
+ *   userReason?: unknown }} StepErrLike
+ * @typedef {string | StepErrLike | null | undefined} StepErr
+ * @typedef {{ type?: string | null, tool?: string, inputs?: Record<string, unknown> }} StepDef
+ * @typedef {{ key: string, value: string | null }} StepTarget
+ */

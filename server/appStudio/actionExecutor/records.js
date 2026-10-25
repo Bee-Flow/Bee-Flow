@@ -558,3 +558,10 @@ module.exports = {
     updateRecord,
     deleteRecord,
 };
+
+/**
+ * @typedef {{ id: string, userId: string, organizationId?: string | null }} AppRef
+ * @typedef {{ kind?: string, tableId?: string, values?: Record<string, import('./shared').Binding>, recordId?: import('./shared').Binding,
+ *   expectedUpdatedAt?: import('./shared').Binding }} RecordStep
+ * @typedef {Awaited<ReturnType<typeof datatableSource.resolveDatatableWrite>>} Bound  a resolved datatable write
+ */

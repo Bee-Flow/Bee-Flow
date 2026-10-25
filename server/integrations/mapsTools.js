@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Google Maps Tools — Built-in tools for AI to get directions and search places
  * 
@@ -78,16 +79,24 @@ async function getMapsApiKey() {
 
 // ─── Helper: Geocode a location string to lat/lng ──────────────
 
+/**
+ * @param {string | number | boolean} address
+ * @param {string} apiKey
+ */
 async function geocode(address, apiKey) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
     const res = await fetch(url);
-    const data = await res.json();
+    const data = /** @type {{ status?: string, results?: Array<{ geometry: { location: { lat: number, lng: number } } }> }} */ (await res.json());
     if (data.status !== 'OK' || !data.results?.length) return null;
     return data.results[0].geometry.location; // { lat, lng }
 }
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ origin?: string, destination?: string, mode?: string, avoid?: string, query?: string, radius?: string | number, location?: string }} args
+ */
 async function executeMapsTool(toolName, args) {
     const apiKey = await getMapsApiKey();
 
@@ -110,7 +119,7 @@ async function executeMapsTool(toolName, args) {
         }
 
         const res = await fetch(url);
-        const data = await res.json();
+        const data = /** @type {{ status?: string, error_message?: string, routes?: Array<{ summary?: string, warnings?: string[], legs: Array<{ start_address: string, end_address: string, distance: { text: string }, duration: { text: string }, duration_in_traffic?: { text: string }, steps: Array<{ html_instructions: string, distance: { text: string }, duration: { text: string }, travel_mode: string }> }> }> }} */ (await res.json());
 
         if (data.status !== 'OK') {
             return {
@@ -178,7 +187,7 @@ async function executeMapsTool(toolName, args) {
         // Text Search (New) API
         const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}${locationParam}&key=${apiKey}`;
         const res = await fetch(url);
-        const data = await res.json();
+        const data = /** @type {{ status?: string, error_message?: string, results?: Array<{ name?: string, formatted_address?: string, rating?: number, user_ratings_total?: number, price_level?: number, opening_hours?: { open_now?: boolean }, types?: string[], place_id?: string, geometry?: { location?: object } }> }} */ (await res.json());
 
         if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
             return {
@@ -204,7 +213,7 @@ async function executeMapsTool(toolName, args) {
 
         return {
             _action: 'map_embed',
-            _mapEmbed: { embedUrl, title: 'Search: ' + query, mapsLink: null },
+            _mapEmbed: { embedUrl, title: 'Search: ' + query, mapsLink: /** @type {string | null} */ (null) },
             query,
             results: places,
             count: places.length,
@@ -221,6 +230,9 @@ async function executeMapsTool(toolName, args) {
 
 // ─── Tool Check ────────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ */
 function isMapsTool(toolName) {
     return ['maps_directions', 'maps_search_places'].includes(toolName);
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -50,20 +50,29 @@ const SUBJECT_KINDS = Object.freeze(['studio_document', 'notebook_document', 'pr
 
 function _defaults() {
     return {
-        resolveShieldFor: (args) => require('../privacy/orgShield').resolveShieldFor(args),
-        detectWithLedger: (text, opts) => require('./scanLedger').detectWithLedger(text, opts),
+        resolveShieldFor: (/** @type {Parameters<typeof import('../privacy/orgShield').resolveShieldFor>[0]} */ args) => require('../privacy/orgShield').resolveShieldFor(args),
+        detectWithLedger: (/** @type {string} */ text, /** @type {Parameters<typeof import('./scanLedger').detectWithLedger>[1]} */ opts) => require('./scanLedger').detectWithLedger(text, opts),
         store: () => require('../../stores/contentPiiSignalStore'),
-        normalizeCategory: (c) => require('../privacy/piiCategories').normalizeCategory(c),
-        kindOfCategory: (c) => require('../privacy/personalColumns').kindOfCategory(c),
+        normalizeCategory: (/** @type {string} */ c) => require('../privacy/piiCategories').normalizeCategory(c),
+        kindOfCategory: (/** @type {string} */ c) => require('../privacy/personalColumns').kindOfCategory(c),
         coalesceMs: COALESCE_MS,
     };
 }
 
+/** @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>} Shield */
+
+/**
+ * @typedef {{ orgId: string|null, projectId?: string|null, subjectKind: string, subjectId: string,
+ *            versionId?: string|null, loadText: () => Promise<string>|string }} ContentScanJob
+ */
+
+/** @param {Shield} shield */
 function _shieldScans(shield) {
     if (!shield) return false;
     return shield.enabled !== false && shield.privacyScanEnabled !== false;
 }
 
+/** @param {Shield} shield */
 function _categoriesOf(shield) {
     const cats = shield?.piiDetectionCategories;
     return Array.isArray(cats) && cats.length ? cats : null;
@@ -82,10 +91,11 @@ function makeContentSignals(overrides = {}) {
     const running = new Set();
     const again = new Map(); // key -> the job that arrived while running
 
-    const keyOf = (job) => `${job.subjectKind}␟${job.subjectId}`;
+    const keyOf = (/** @type {ContentScanJob} */ job) => `${job.subjectKind}␟${job.subjectId}`;
 
     /**
      * Scan one subject now. Never throws.
+     * @param {ContentScanJob} job
      * @returns {Promise<{ok: boolean, skipped?: string, degraded?: boolean, mentions?: number}>}
      */
     async function scanNow(job) {
@@ -101,7 +111,7 @@ function makeContentSignals(overrides = {}) {
         try {
             shield = await d.resolveShieldFor({ orgId: org || null, userId: null });
         } catch (e) {
-            log.warn(`[ContentSignals] shield unreadable for ${job.subjectKind} ${job.subjectId}; not scanned: ${e?.message || e}`);
+            log.warn(`[ContentSignals] shield unreadable for ${job.subjectKind} ${job.subjectId}; not scanned: ${/** @type {Error} */ (e)?.message || e}`);
             return { ok: false, skipped: 'shield_unreadable' };
         }
         if (!_shieldScans(shield)) return { ok: true, skipped: 'shield_off' };
@@ -115,6 +125,7 @@ function makeContentSignals(overrides = {}) {
                 threshold: Number.isFinite(shield?.piiDetectionConfidenceThreshold) ? shield.piiDetectionConfidenceThreshold : undefined,
                 scope: 'g',
             });
+            /** @type {Record<string, number>} */
             const categories = {};
             const kinds = new Set();
             let mentions = 0;
@@ -131,16 +142,19 @@ function makeContentSignals(overrides = {}) {
             log.info(`[ContentSignals] ${job.subjectKind} ${job.subjectId}: ${mentions} mention(s) in ${Object.keys(categories).length} categor(ies)${degraded ? ', degraded' : ''}`);
             return { ok: true, degraded, mentions };
         } catch (e) {
-            log.warn(`[ContentSignals] scan of ${job.subjectKind} ${job.subjectId} failed, recorded as unknown: ${e?.message || e}`);
+            log.warn(`[ContentSignals] scan of ${job.subjectKind} ${job.subjectId} failed, recorded as unknown: ${/** @type {Error} */ (e)?.message || e}`);
             try {
                 await store().upsertSignal({ ...base, categories: {}, kinds: [], mentionCount: 0, degraded: true });
             } catch (e2) {
-                log.warn(`[ContentSignals] could not record the failed scan of ${job.subjectKind} ${job.subjectId}: ${e2?.message || e2}`);
+                log.warn(`[ContentSignals] could not record the failed scan of ${job.subjectKind} ${job.subjectId}: ${/** @type {Error} */ (e2)?.message || e2}`);
             }
             return { ok: false, degraded: true };
         }
     }
 
+    /**
+     * @param {string} key
+     */
     async function _fire(key) {
         const entry = armed.get(key);
         armed.delete(key);
@@ -175,7 +189,7 @@ function makeContentSignals(overrides = {}) {
             armed.set(key, { timer, job });
             return true;
         } catch (e) {
-            log.warn(`[ContentSignals] could not queue a scan: ${e?.message || e}`);
+            log.warn(`[ContentSignals] could not queue a scan: ${/** @type {Error} */ (e)?.message || e}`);
             return false;
         }
     }

@@ -351,3 +351,9 @@ module.exports = {
     getAllLiteLLMCosts: getAllModelPricing,
     initPricing,
 };
+
+/**
+ * One entry of the community pricing file (third-party data: only the fields read here are named).
+ * @typedef {{ input_cost_per_token?: number, output_cost_per_token?: number, cache_read_input_token_cost?: number, litellm_provider?: string, [field: string]: unknown }} PricingEntry
+ * @typedef {{ input: number, output: number, cacheRead?: number }} Rate
+ */

@@ -163,3 +163,8 @@ function deepFreeze(v) {
 }
 
 module.exports = { projectCoreToolSchemas, CORE_PRUNE, nodeAt };
+
+/**
+ * @typedef {{ keep?: string[], drop?: string[], description?: string }} PruneNode
+ * @typedef {PruneNode & { batchOnly?: { key: string }, at?: Record<string, PruneNode> }} PruneRule
+ */

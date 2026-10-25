@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Which Studio documents the chat model may touch in a turn.
  *
@@ -30,27 +31,34 @@ const CREATED_RE = /"documentId"\s*:\s*"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 
 const NOT_SHARED = 'This document has not been shared with this chat. Ask the user to open it with the Documents button above the chat, or to paste its link.';
 
+/**
+ * @param {string} id
+ */
 const norm = (id) => String(id).toLowerCase();
 
 /**
  * The request's `sidePanelDocument`, or null when it is not a usable
  * `{ id: string <= 100 chars, name?: string }`. The name is a display hint:
  * single line, capped.
+ * @param {unknown} raw
+ * @returns {{ id: string, name?: string } | null}
  */
 function normaliseSidePanelDocument(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-    const id = raw.id;
+    const id = /** @type {{ id?: unknown }} */ (raw).id;
     if (typeof id !== 'string') return null;
     const trimmed = id.trim();
     if (!trimmed || trimmed.length > MAX_ID) return null;
+    /** @type {{ id: string, name?: string }} */
     const out = { id: trimmed };
-    if (typeof raw.name === 'string') {
-        const name = raw.name.replace(/[\r\n\t]+/g, ' ').trim().slice(0, MAX_NAME);
+    if (typeof /** @type {{ name?: unknown }} */ (raw).name === 'string') {
+        const name = /** @type {{ name: string }} */ (raw).name.replace(/[\r\n\t]+/g, ' ').trim().slice(0, MAX_NAME);
         if (name) out.name = name;
     }
     return out;
 }
 
+/** @param {unknown} content */
 function textOf(content) {
     if (typeof content === 'string') return content;
     if (Array.isArray(content)) {
@@ -59,7 +67,12 @@ function textOf(content) {
     return '';
 }
 
+/**
+ * @param {RegExp} re
+ * @param {string} text
+ */
 function matches(re, text) {
+    /** @type {string[]} */
     const out = [];
     for (const m of text.matchAll(re)) out.push(m[1] || m[0]);
     return out;
@@ -68,7 +81,7 @@ function matches(re, text) {
 /**
  * @param {object} [input]
  * @param {unknown} [input.sidePanelDocument]  the untrusted request field
- * @param {unknown[]} [input.history]          the conversation's messages so far
+ * @param {Array<{ role?: string, content?: unknown, toolHistory?: Array<{ name?: string, resultPreview?: unknown }> }>} [input.history]          the conversation's messages so far
  * @param {string} [input.message]             the user's message of this turn
  * @returns {{ has(id: unknown): boolean, add(id: unknown): void, markCreated(id: unknown): void, createdInChat(id: unknown): boolean, ids(): string[] }}
  */
@@ -77,10 +90,10 @@ function createDocumentScope({ sidePanelDocument, history, message } = {}) {
     // The subset the chat itself made: a document the AI may write to directly
     // (core/documents/suggestions/policy.js), unlike one merely opened.
     const created = new Set();
-    const add = (id) => {
+    const add = (/** @type {string} */ id) => {
         if (typeof id === 'string' && id.trim() && id.length <= MAX_ID) allowed.add(norm(id.trim()));
     };
-    const markCreated = (id) => {
+    const markCreated = (/** @type {string} */ id) => {
         add(id);
         if (typeof id === 'string' && id.trim() && id.length <= MAX_ID) created.add(norm(id.trim()));
     };
@@ -88,6 +101,7 @@ function createDocumentScope({ sidePanelDocument, history, message } = {}) {
     const panel = normaliseSidePanelDocument(sidePanelDocument);
     if (panel) add(panel.id);
 
+    /** @type {string[]} */
     const userTexts = [];
     if (typeof message === 'string') userTexts.push(message);
     for (const msg of Array.isArray(history) ? history : []) {

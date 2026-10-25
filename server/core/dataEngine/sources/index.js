@@ -113,3 +113,5 @@ module.exports = {
     sourceLabel,
     builderKindOf,
 };
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../../stores/datatableStore/rowMappers').rowToDatatable>>} Datatable */

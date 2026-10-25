@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: approval STAGES — an ordered chain of up to five (2026-08).
  *

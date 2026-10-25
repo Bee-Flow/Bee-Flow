@@ -10,6 +10,7 @@
 const log = require('../../../telemetry/log');
 const { usageLogFields } = require('../../../core/providers/usageNormalizer');
 
+/** @param {ReturnType<typeof import('./turnState').createTurnState>} turn */
 async function logTurnUsage(turn) {
     const { streamUsage } = turn;
     try {
@@ -29,7 +30,7 @@ async function logTurnUsage(turn) {
             conversation_id: turn.convId || null,
         });
     } catch (e) {
-        log.warn('[DirectChat] Failed to log usage:', e.message);
+        log.warn('[DirectChat] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 }
 

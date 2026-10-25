@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The file fingerprint run compare uses: synthetic decks and sheets only.
@@ -14,11 +14,16 @@ const { Readable } = require('node:stream');
 const JSZip = require('jszip');
 const { summarizeFile, readCapped, formatOf } = require('./fileSummary');
 
+/**
+ * @param {string} title
+ * @param {string[]} lines
+ */
 const slideXml = (title, ...lines) => `<?xml version="1.0"?><p:sld xmlns:a="a" xmlns:p="p"><p:cSld><p:spTree>`
     + `<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody><a:p><a:r><a:t>${title}</a:t></a:r></a:p></p:txBody></p:sp>`
-    + `<p:sp><p:txBody>${lines.map(l => `<a:p><a:r><a:t>${l}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp>`
+    + `<p:sp><p:txBody>${lines.map((l) => `<a:p><a:r><a:t>${l}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp>`
     + `</p:spTree></p:cSld></p:sld>`;
 
+/** @param {string[][]} slides */
 async function deck(slides) {
     const zip = new JSZip();
     zip.file('ppt/presentation.xml', '<p:presentation/>');
@@ -26,6 +31,11 @@ async function deck(slides) {
     return zip.generateAsync({ type: 'nodebuffer' });
 }
 
+/**
+ * @param {string} name
+ * @param {string} mime
+ * @param {number} [size]
+ */
 const fileOf = (name, mime, size = 0) => ({ filename: name, mimeType: mime, size });
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
@@ -79,6 +89,7 @@ test('anything else is metadata plus a hash', async () => {
     const out = await summarizeFile({ file: fileOf('notes.txt', 'text/plain'), readBytes: async () => buffer }, { fileMaxBytes: 0 });
     assert.deepStrictEqual(out, { name: 'notes.txt', mime: 'text/plain', size: 11, sha256: sha(buffer) });
 });
+/** @param {Buffer} b */
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
 
 test('over the cap: metadata only and tooLarge, without reading when the size is known', async () => {

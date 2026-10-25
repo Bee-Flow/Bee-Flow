@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Service Authentication Helper
  * 
@@ -15,10 +15,11 @@ const SERVICES_API_KEY = process.env.SERVICES_API_KEY || '';
  * Build headers for service-to-service calls.
  * Automatically includes X-API-Key when configured.
  * 
- * @param {Object} [extraHeaders={}] - Additional headers to merge
- * @returns {Object} Headers object with Content-Type and optional API key
+ * @param {Record<string, string>} [extraHeaders={}] - Additional headers to merge
+ * @returns {Record<string, string>} Headers object with Content-Type and optional API key
  */
 function getServiceHeaders(extraHeaders = {}) {
+    /** @type {Record<string, string>} */
     const headers = { 'Content-Type': 'application/json', ...extraHeaders };
     if (SERVICES_API_KEY) {
         headers['X-API-Key'] = SERVICES_API_KEY;

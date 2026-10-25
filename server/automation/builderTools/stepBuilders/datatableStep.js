@@ -538,3 +538,12 @@ module.exports = {
     checkExtractionFieldRefs,
     applyAddDatatable,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Inputs} Inputs
+ * @typedef {import('./inputBindings').ForEachSpec} ForEachSpec
+ */
+
+/** @typedef {{ field?: string, op?: string, value?: unknown, dir?: string }} DatatableCondition */

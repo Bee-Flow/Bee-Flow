@@ -504,3 +504,13 @@ function makeSettingsRouter(d, h) {
 }
 
 module.exports = { makeSettingsHandlers, makeSettingsRouter, declarationsFor, steeringOf, settingsView };
+
+/** @typedef {import('./deploymentRoutes').StageReq} StageReq */
+
+/** @typedef {import('./deploymentRoutes').StageCtx} StageCtx */
+
+/** @typedef {import('./stageRoutes').StageDeps} StageDeps */
+
+/** @typedef {import('../../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {{ name: string, type?: string, choices?: string[], [key: string]: unknown }} VariableDecl */

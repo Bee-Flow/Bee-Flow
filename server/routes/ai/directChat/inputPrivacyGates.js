@@ -8,6 +8,22 @@
  * privacy state it produced for the turn.
  */
 
+/** @typedef {import('../../../core/agentRuntime/inputPiiGate').PiiTokenisationInfo} PiiTokenisationInfo */
+/** @typedef {import('../../../core/agentRuntime/inputPiiGate').PiiResult} PiiResult */
+/**
+ * What both gates read from the turn (built in inputGates.js).
+ * @typedef {{ req: import('express').Request, res: import('express').Response, send: (event: string, data: unknown) => void,
+ *   userId: string, convId?: string | null, messages: import('../../../core/agentRuntime/chatStream/turnState').ChatMessage[],
+ *   modelId?: string | null, config: { providerType?: string, url?: string, providerName?: string },
+ *   hasAttachments?: boolean, chatSignal?: Parameters<typeof import('./chatSignalsTurn').countDirectTurn>[0]['chatSignal'] | null,
+ *   appendVolatile: (text: string) => void, userOrgId?: string | null,
+ *   orgShield: import('../../../core/agentRuntime/inputPiiGate').Shield, shieldSource: string }} GateCtx
+ */
+/**
+ * @typedef {{ blocked?: boolean, piiTokenMap?: Record<string, string>, tokenizedMessage?: string,
+ *   userPrivacyMeta?: { piiTokenizedCount: number, piiCategories: string[] } | { dlpRedactedCount: number, dlpCategories: string[] },
+ *   assistantInfo?: PiiTokenisationInfo }} GateOut  userPrivacyMeta: the PII gate's counts, or the DLP preflight's
+ */
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const { buildTokenPreservationAddendum } = require('../../../core/dlp/tokenPreservationPrompt');
 const { startPrivacyScanPhase, messageText } = require('../../../core/agentRuntime/phaseEvents');
@@ -15,6 +31,12 @@ const orgHealth = require('../../../services/orgHealth');
 const log = require('../../../telemetry/log');
 const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {GateCtx} g
+ * @param {string} violation_type
+ * @param {string} violation_categories
+ * @param {string} action_taken
+ */
 const auditInput = (g, violation_type, violation_categories, action_taken) => guardrailEventStore.logGuardrailEvent({
     organization_id: g.userOrgId || null,
     user_id: g.userId,
@@ -33,6 +55,7 @@ const auditInput = (g, violation_type, violation_categories, action_taken) => gu
  * preservation addendum and the inbound-history retokeniser all consult the
  * in-process map, which is {} until hydrated; without this a `[medication_1]`
  * minted on turn 1 survives as literal text in every later reply. Idempotent.
+ * @param {string} convId
  */
 async function hydrateTokenMap(convId) {
     if (!convId) return;
@@ -40,14 +63,19 @@ async function hydrateTokenMap(convId) {
     catch (err) { bestEffort('routes/ai/directChat/inputPrivacyGates:hydrateTokenMap', err); /* hydration is best-effort */ }
 }
 
-/** Tokenize mode found PII: swap in the tokenised text and record what happened. */
+/**
+ * Tokenize mode found PII: swap in the tokenised text and record what happened.
+ * @param {GateCtx} g
+ * @param {PiiResult} piiResult
+ * @returns {GateOut}
+ */
 function applyPiiTokens(g, piiResult) {
     const { messages, convId, modelId, orgShield, send, appendVolatile } = g;
     const lastMsg = messages[messages.length - 1];
     if (typeof lastMsg.content === 'string') {
         lastMsg.content = piiResult.tokenizedText;
     } else if (Array.isArray(lastMsg.content)) {
-        const textPart = lastMsg.content.find(p => p.type === 'text');
+        const textPart = lastMsg.content.find((/** @type {{ type: string; }} */ p) => p.type === 'text');
         if (textPart) textPart.text = piiResult.tokenizedText;
     }
     // Register on the shared DLP conversation-token store so the streaming
@@ -68,15 +96,16 @@ function applyPiiTokens(g, piiResult) {
     }
 
     send('pii_tokenized', {
-        entities: piiResult.entities.map(e => ({ label: e.label, category: e.category })),
+        entities: piiResult.entities.map(/** @param {{ label?: string, category?: string }} e */ e => ({ label: e.label, category: e.category })),
         tokenCount: Object.keys(piiResult.tokenMap).length,
     });
 
     // Persistence: the user message gets a redacted badge and the assistant
     // message the privacy panel after a refresh.
-    const piiCats = [...new Set(piiResult.entities.map(e => e.label || e.category).filter(Boolean))];
+    const piiCats = [...new Set(piiResult.entities.map(/** @param {{ label?: string, category?: string }} e */ e => e.label || e.category).filter(Boolean))];
     const piiCount = Object.keys(piiResult.tokenMap).length;
     const userPrivacyMeta = { piiTokenizedCount: piiCount, piiCategories: piiCats };
+    /** @type {PiiTokenisationInfo} */
     const assistantInfo = {
         source: 'pii',
         action: 'redact',
@@ -103,11 +132,14 @@ function applyPiiTokens(g, piiResult) {
     }
 
     // Log PII tokenize event (fire-and-forget)
-    auditInput(g, 'pii', piiResult.entities.map(e => e.label || e.category).join(', '), 'tokenized');
+    auditInput(g, 'pii', piiResult.entities.map(/** @param {{ label?: string, category?: string }} e */ e => e.label || e.category).join(', '), 'tokenized');
     return { piiTokenMap: piiResult.tokenMap, tokenizedMessage: piiResult.tokenizedText, userPrivacyMeta, assistantInfo };
 }
 
-/** Run validateInputForPii under a "Protecting your data…" phase. */
+/**
+ * Run validateInputForPii under a "Protecting your data…" phase.
+ * @param {GateCtx} g
+ */
 async function detectPii(g) {
     const { messages, orgShield, userId, send, chatSignal } = g;
     const { validateInputForPii } = require('../../../core/privacy/piiDetection');
@@ -125,14 +157,19 @@ async function detectPii(g) {
         log.info(`[DirectChat] PII validateInputForPii returned: ${piiResult ? `entities=${piiResult.entities?.length ?? 'n/a'} tokenized=${!!piiResult.tokenizedText}` : 'null'}`);
         return piiResult;
     } catch (innerErr) {
-        log.error(`[DirectChat] PII INNER ERROR: ${innerErr.message}\n${innerErr.stack}`);
+        log.error(`[DirectChat] PII INNER ERROR: ${/** @type {Error} */ (innerErr).message}\n${/** @type {Error} */ (innerErr).stack}`);
         throw innerErr;
     } finally {
         ps.end();
     }
 }
 
-/** A PII gate error: block (fail-closed or block mode, stream ended) or fail-open. */
+/**
+ * A PII gate error: block (fail-closed or block mode, stream ended) or fail-open.
+ * @param {GateCtx} g
+ * @param {Error & { piiEntities?: Array<{ label?: string, category?: string }>, privacyUnavailable?: boolean, degradedReason?: string, privacyUnavailableKind?: string }} piiError
+ * @returns {GateOut}
+ */
 function handlePiiError(g, piiError) {
     const { send, res } = g;
     if (piiError.privacyUnavailable) {
@@ -178,6 +215,8 @@ function handlePiiError(g, piiError) {
  * to the AI and restores tokens in the response. When the org has the
  * interactive DLP gate enabled, this auto-tokenising path is skipped: the
  * DLP pre-flight handles scan + user decision + audit.
+ * @param {GateCtx} g
+ * @returns {Promise<GateOut>}
  */
 async function runPiiGate(g) {
     const { convId, orgShield, shieldSource } = g;
@@ -198,7 +237,11 @@ async function runPiiGate(g) {
     }
 }
 
-/** The interactive outbound DLP scanner. `orgShield` is already the resolved shape. */
+/**
+ * The interactive outbound DLP scanner. `orgShield` is already the resolved shape.
+ * @param {GateCtx} g
+ * @returns {Promise<GateOut>}
+ */
 async function runDlpGate(g) {
     const { req, send, res, messages, orgShield, userOrgId, convId, userId, modelId, hasAttachments, config, chatSignal, appendVolatile } = g;
     const { runDlpPreflight } = require('../../../core/dlp/dlpPreflight');
@@ -240,6 +283,7 @@ async function runDlpGate(g) {
         send('done', {}); res.end();
         return { blocked: true };
     }
+    /** @type {GateOut} */
     const out = {};
     if (dlp.outcome === 'redacted') {
         out.piiTokenMap = dlp.tokenMap; // reuse the existing un-tokenise path on the response

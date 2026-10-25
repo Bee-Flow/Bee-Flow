@@ -77,3 +77,5 @@ module.exports = {
     requireCloud,
     getOrigin,
 };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

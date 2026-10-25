@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Risk Store — ISO 27001 clause 6.1.2/6.1.3 information-security risk register.
  *
@@ -72,13 +72,26 @@ const VALID_OPTIONS = new Set(['mitigate', 'transfer', 'avoid', 'accept']);
 const VALID_SOURCES = new Set(['manual', 'seed', 'playbook']);
 const HIGH_SCORE = 10;
 
-/** Clamp a likelihood/impact value to the 1–5 scale; null when not a number. */
+/**
+ * @typedef {{ title?: string, description?: string | null, category?: string | null, likelihood?: number | string,
+ *   impact?: number | string, status?: string, owner_user_id?: string | null, source?: string,
+ *   seed_key?: string | null, review_due_at?: string | null }} RiskFields
+ */
+/** @typedef {{ option?: string, description?: string | null, due_at?: string | null, done_at?: string | null, owner_user_id?: string | null }} TreatmentFields */
+
+/**
+ * Clamp a likelihood/impact value to the 1–5 scale; null when not a number.
+ * @param {unknown} v
+ */
 function clampScale(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return null;
     return Math.min(5, Math.max(1, Math.round(n)));
 }
 
+/**
+ * @param {string} orgId
+ */
 async function listRisks(orgId) {
     await initDB();
     return getAll(`
@@ -88,7 +101,10 @@ async function listRisks(orgId) {
     `, [orgId]);
 }
 
-/** All treatments for the org — the route zips them onto listRisks by risk_id. */
+/**
+ * All treatments for the org — the route zips them onto listRisks by risk_id.
+ * @param {string} orgId
+ */
 async function listTreatments(orgId) {
     await initDB();
     return getAll(`
@@ -98,6 +114,10 @@ async function listTreatments(orgId) {
     `, [orgId]);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} id
+ */
 async function getRisk(orgId, id) {
     await initDB();
     return getOne(`SELECT * FROM iso_risks WHERE organization_id = $1 AND id = $2`, [orgId, id]);
@@ -106,6 +126,9 @@ async function getRisk(orgId, id) {
 /**
  * Create one risk. Only whitelisted fields are read from `fields`; the score
  * is always recomputed here (likelihood × impact), never taken from input.
+ * @param {string} orgId
+ * @param {RiskFields} [fields]
+ * @param {string | null} [actorId]
  */
 async function createRisk(orgId, fields = {}, actorId = null) {
     await initDB();
@@ -142,6 +165,10 @@ async function createRisk(orgId, fields = {}, actorId = null) {
  * dropped. Score is recomputed whenever likelihood/impact change. A status
  * transition to 'accepted' stamps accepted_by/accepted_at from the ACTOR
  * (human decision on record); existing stamps are never overwritten.
+ * @param {string} orgId
+ * @param {string} id
+ * @param {RiskFields} [patch]
+ * @param {string | null} [actorId]
  */
 async function updateRisk(orgId, id, patch = {}, actorId = null) {
     await initDB();
@@ -185,7 +212,13 @@ async function updateRisk(orgId, id, patch = {}, actorId = null) {
     return getRisk(orgId, id);
 }
 
-/** Add one treatment to a risk. Unknown options fall back to 'mitigate'. */
+/**
+ * Add one treatment to a risk. Unknown options fall back to 'mitigate'.
+ * @param {string} orgId
+ * @param {string} riskId
+ * @param {TreatmentFields} [fields]
+ * @param {string | null} [actorId]
+ */
 async function addTreatment(orgId, riskId, fields = {}, actorId = null) {
     await initDB();
     if (!orgId) throw new Error('orgId is required');
@@ -206,7 +239,12 @@ async function addTreatment(orgId, riskId, fields = {}, actorId = null) {
     return rows?.[0] || null;
 }
 
-/** Partial treatment update — whitelist only (option/description/due/done/owner). */
+/**
+ * Partial treatment update — whitelist only (option/description/due/done/owner).
+ * @param {string} orgId
+ * @param {string} id
+ * @param {TreatmentFields} [patch]
+ */
 async function updateTreatment(orgId, id, patch = {}) {
     await initDB();
     const existing = await getOne(`
@@ -238,6 +276,8 @@ async function updateTreatment(orgId, id, patch = {}) {
  * including ones the admin edited, are never touched. `seeds` is
  * [{ seed_key, title, description, category, likelihood, impact }];
  * returns how many rows were actually inserted.
+ * @param {string} orgId
+ * @param {RiskFields[]} seeds
  */
 async function seedMissing(orgId, seeds) {
     await initDB();
@@ -271,6 +311,7 @@ async function seedMissing(orgId, seeds) {
  * Counters for the readiness dashboard. `high` = active risks in the orange/
  * red band (score >= 10); `overdue_reviews` = active risks past review_due_at.
  * Closed risks drop out of both operational counters.
+ * @param {string} orgId
  */
 async function getStats(orgId) {
     await initDB();

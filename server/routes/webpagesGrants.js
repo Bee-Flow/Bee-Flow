@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage bridge-grant routes — owner-only REST surface for the SAME grants
  * the studio AI manages through webpageBridgeTools (both delegate to
@@ -74,7 +74,12 @@ const AutomationGrantBody = z.object({
     label: worded(LABEL_TEXT).optional(),
 }).strict();
 
-/** Flatten a grantError (or unexpected throw) into the HTTP contract. */
+/**
+ * Flatten a grantError (or unexpected throw) into the HTTP contract.
+ * @param {import('express').Response} res
+ * @param {Error & { status?: number, code?: string, provider?: string }} err
+ * @param {string} fallback
+ */
 function sendError(res, err, fallback) {
     const status = err.status || 500;
     if (status === 500) log.error(`[Webpages/grants] ${fallback}:`, err);
@@ -90,6 +95,8 @@ function sendError(res, err, fallback) {
  * owner-only: the bridge runs acts-as-author, so letting an org-viewer read
  * or mutate them would leak (or widen) the owner's delegated access. Resolves
  * to the webpage, or null after sending the 404.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
  */
 async function ownedWebpage(req, res) {
     const wp = await webpageStore.getWebpage(req.params.id, req.session.user.id);
@@ -100,7 +107,7 @@ async function ownedWebpage(req, res) {
     return wp;
 }
 
-router.get('/:id/grants', requireAuth, async (req, res) => {
+router.get('/:id/grants', requireAuth, /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
@@ -112,7 +119,7 @@ router.get('/:id/grants', requireAuth, async (req, res) => {
     }
 });
 
-router.post('/:id/grants/integrations', requireAuth, validate({ body: IntegrationGrantBody }), async (req, res) => {
+router.post('/:id/grants/integrations', requireAuth, validate({ body: IntegrationGrantBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
@@ -126,7 +133,7 @@ router.post('/:id/grants/integrations', requireAuth, validate({ body: Integratio
     }
 });
 
-router.delete('/:id/grants/integrations/:tool', requireAuth, async (req, res) => {
+router.delete('/:id/grants/integrations/:tool', requireAuth, /** @param {import('express').Request<{ id: string, tool: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
@@ -139,7 +146,7 @@ router.delete('/:id/grants/integrations/:tool', requireAuth, async (req, res) =>
     }
 });
 
-router.post('/:id/grants/automations', requireAuth, validate({ body: AutomationGrantBody }), async (req, res) => {
+router.post('/:id/grants/automations', requireAuth, validate({ body: AutomationGrantBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
@@ -153,7 +160,7 @@ router.post('/:id/grants/automations', requireAuth, validate({ body: AutomationG
     }
 });
 
-router.delete('/:id/grants/automations/:automationId', requireAuth, async (req, res) => {
+router.delete('/:id/grants/automations/:automationId', requireAuth, /** @param {import('express').Request<{ id: string, automationId: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
@@ -172,7 +179,7 @@ router.delete('/:id/grants/automations/:automationId', requireAuth, async (req, 
  * Owner-only, like everything above and for the same reason: this says what hangs
  * on the page, including the column names of other people's tables.
  */
-router.get('/:id/data-cards', requireAuth, async (req, res) => {
+router.get('/:id/data-cards', requireAuth, /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
@@ -190,7 +197,7 @@ router.get('/:id/data-cards', requireAuth, async (req, res) => {
  * derived from the CONTENT of `script.js` and `index.html`, down to the URLs written in
  * them. That is author code, not a reading surface.
  */
-router.get('/:id/bindings', requireAuth, async (req, res) => {
+router.get('/:id/bindings', requireAuth, /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;

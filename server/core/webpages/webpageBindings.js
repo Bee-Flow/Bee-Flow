@@ -359,3 +359,19 @@ module.exports = {
     classifyUrl,
     inlineScripts,
 };
+
+/**
+ * @typedef {{ kind: string, method: string | null, url: string, urlPrefix: string, dynamic: boolean,
+ *   host?: string, source: string, line: number }} OutboundCall
+ */
+
+/**
+ * @typedef {{ source: string, slot: string | null, line: number, tag: string, known: boolean,
+ *   family: string | null, targetId: string | null, dynamic: boolean, fallback: string | null,
+ *   missing: string[] | null, reason: string | null }} BfMark
+ */
+
+/**
+ * @typedef {{ id: string, fromPage: boolean, elements: Array<{ tag: string, source: string, line: number }>,
+ *   count: number }} UseTarget
+ */

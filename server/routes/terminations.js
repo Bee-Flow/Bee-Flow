@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Routes for the termination monitor.
  *
@@ -53,13 +53,16 @@ const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 const TERMINATION_TYPES = ['max_tokens', 'max_iterations', 'error', 'aborted'];
 
 const DAYS_TEXT = 'days is a whole number of days (1 or more), or "all".';
+/** @param {string} name */
 const DATE_TEXT = (name) => `${name} is a date (2026-09-22) or a date and time with its zone (2026-09-22T09:00:00.000Z).`;
 // Each branch carries the sentence too: a union answers with the first branch
 // that got as far as a CHECK, so the errorMap alone would leak "Invalid datetime".
+/** @param {string} name */
 const when = (name) => z.union(
     [z.string().regex(datetimeWithOffset, DATE_TEXT(name)), z.string().date(DATE_TEXT(name))],
     { error: () => DATE_TEXT(name) },
 ).optional();
+/** @param {string} name */
 const who = (name) => z.string({ error: typeError({ invalid: `${name} is one id.` }) }).trim().optional();
 
 const TerminationsQuery = z.object({
@@ -76,7 +79,14 @@ const TerminationsQuery = z.object({
 }).strict();
 
 const readQuery = validate({ query: TerminationsQuery });
+/** @typedef {{ termOrgId?: string | null }} TermOrgScope set by attachOrgFilter / requireOwnOrgAdminScope */
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof TerminationsQuery>> & TermOrgScope} TerminationsReq */
 
+/**
+ * @typedef {{ startDate?: string, endDate?: string, agentId?: string, userId?: string, type?: string, organizationId?: string }} TerminationFilters
+ */
+
+/** @param {string | undefined} daysParam */
 function getDateFilters(daysParam) {
     if (daysParam === undefined || daysParam === 'all') return {};
     const days = Number(daysParam);
@@ -85,8 +95,11 @@ function getDateFilters(daysParam) {
     return { startDate: start.toISOString(), endDate: now.toISOString() };
 }
 
-/** The validated query as store filters. No range at all is all time. */
+/** The validated query as store filters. No range at all is all time.
+ * @param {TerminationsReq['query']} query
+ */
 function buildRequestFilters(query) {
+    /** @type {TerminationFilters} */
     const filters = {};
     if (query.startDate) filters.startDate = query.startDate;
     if (query.endDate) filters.endDate = query.endDate;
@@ -99,13 +112,20 @@ function buildRequestFilters(query) {
     return filters;
 }
 
-/** The store filters for this request, narrowed to the org its gate decided on. */
+/** The store filters for this request, narrowed to the org its gate decided on.
+ * @param {TerminationsReq} req
+ */
 function termFilters(req) {
     const filters = buildRequestFilters(req.query);
     if (req.termOrgId) filters.organizationId = req.termOrgId;
     return filters;
 }
 
+/**
+ * @param {import('express').Request & TermOrgScope} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function attachOrgFilter(req, res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     const orgIds = await resolveUserOrgIds(req);
@@ -125,6 +145,11 @@ async function attachOrgFilter(req, res, next) {
 // the caller's own organisation and to org_admin role. Super admin also passes.
 // The gate runs before the query is judged, so a caller without a session or
 // the role still hears 401/403 first.
+/**
+ * @param {import('express').Request & TermOrgScope} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function requireOwnOrgAdminScope(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
@@ -143,24 +168,24 @@ async function requireOwnOrgAdminScope(req, res, next) {
     next();
 }
 
-router.get('/org', requireOwnOrgAdminScope, readQuery, async (req, res) => {
+router.get('/org', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const limit = Math.min(req.query.limit || 100, 500);
     const rows = await terminationStore.getList(termFilters(req), limit);
     res.json({ rows });
 });
 
-router.get('/org/summary', requireOwnOrgAdminScope, readQuery, async (req, res) => {
+router.get('/org/summary', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const summary = await terminationStore.getSummary(termFilters(req));
     res.json(summary);
 });
 
-router.get('/org/timeline', requireOwnOrgAdminScope, readQuery, async (req, res) => {
+router.get('/org/timeline', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const interval = req.query.interval || 'day';
     const rows = await terminationStore.getTimeline(termFilters(req), interval);
     res.json({ rows, interval });
 });
 
-router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery, async (req, res) => {
+router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const rows = await terminationStore.getByAgent(termFilters(req));
     res.json({ rows });
 });
@@ -170,24 +195,24 @@ router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery, async (req, res)
 // permission, before the org is resolved or the query is judged.
 router.use(requirePermission('admin_monitoring'), attachOrgFilter);
 
-router.get('/', readQuery, async (req, res) => {
+router.get('/', readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const limit = Math.min(req.query.limit || 100, 500);
     const rows = await terminationStore.getList(termFilters(req), limit);
     res.json({ rows });
 });
 
-router.get('/summary', readQuery, async (req, res) => {
+router.get('/summary', readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const summary = await terminationStore.getSummary(termFilters(req));
     res.json(summary);
 });
 
-router.get('/timeline', readQuery, async (req, res) => {
+router.get('/timeline', readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const interval = req.query.interval || 'day';
     const rows = await terminationStore.getTimeline(termFilters(req), interval);
     res.json({ rows, interval });
 });
 
-router.get('/by-agent', readQuery, async (req, res) => {
+router.get('/by-agent', readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const rows = await terminationStore.getByAgent(termFilters(req));
     res.json({ rows });
 });

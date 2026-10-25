@@ -628,3 +628,74 @@ module.exports = {
         telemetryHosts, carriesBody, shared, MAX_PEERS,
     },
 };
+
+/** @typedef {Record<string, string | null>} EdgeHeaders */
+
+/**
+ * @typedef {object} Peer
+ * @property {string} host
+ * @property {string | null} ip
+ * @property {number | null} port
+ * @property {number | null} family
+ * @property {boolean} reused
+ * @property {boolean} sentBody
+ * @property {string | null} method
+ * @property {number | null} status
+ * @property {EdgeHeaders | null} edge
+ * @property {string} basis
+ * @property {number} at
+ */
+
+/**
+ * What addPeer accepts: every field optional, normalised on the way in.
+ * @typedef {object} PeerInput
+ * @property {string | null} [host]
+ * @property {string | null} [ip]
+ * @property {number | null} [port]
+ * @property {boolean} [reused]
+ * @property {boolean} [sentBody]
+ * @property {string | null} [method]
+ * @property {number | null} [status]
+ * @property {EdgeHeaders | null} [edge]
+ * @property {string} [basis]
+ * @property {number} [at]
+ */
+
+/**
+ * @typedef {object} Probe
+ * @property {boolean} sealed
+ * @property {boolean} is_local
+ * @property {string | null} local_label
+ * @property {Peer[]} peers
+ * @property {Set<import('node:http').ClientRequest>} pendingHttp
+ */
+
+/**
+ * @typedef {object} RequestRecord
+ * @property {Probe} probe
+ * @property {string | null} host
+ * @property {number | null} port
+ * @property {string} method
+ * @property {boolean} sentBody
+ * @property {Peer | null} peer
+ */
+
+/** @typedef {import('node:net').Socket & { _host?: string, _parent?: { _host?: string }, servername?: string }} TrackedSocket */
+
+/** @typedef {{ origin?: unknown, method?: string, body?: unknown }} UndiciRequest */
+
+/** @typedef {(name: string, msg: unknown) => void} FaultHook */
+
+/**
+ * @typedef {object} State
+ * @property {AsyncLocalStorage<Probe>} store
+ * @property {boolean} installed
+ * @property {WeakMap<object, RequestRecord>} requests
+ * @property {WeakSet<object>} seenSockets
+ * @property {WeakSet<object>} untrackedHttp
+ * @property {Map<string, { ip: string, port: number, at: number }>} recentMail
+ * @property {FaultHook | null} faultHook
+ * @property {number} lastWarnAt
+ */
+
+/** @typedef {ReturnType<typeof buildSnapshot>} Snapshot */

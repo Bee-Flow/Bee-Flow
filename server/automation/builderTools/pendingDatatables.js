@@ -252,3 +252,31 @@ module.exports = {
     collectPendingRefs, boundDatatableIds, rebindPendingDatatables, usedDatatables, withoutStagedTableIssues,
     stagePendingDatatable,
 };
+
+/**
+ * @typedef {{ key?: string, name?: string, type?: string, unique?: boolean, required?: boolean, system?: boolean, options?: string[] }} DatatableColumn
+ * @typedef {{ id?: string, key?: string, name?: string, description?: string, rowCount?: number,
+ *   canWrite?: boolean, managedKind?: string|null, scope?: string, pending?: boolean,
+ *   columns?: DatatableColumn[] }} DatatableCatalogEntry
+ * @typedef {{ ref: string, name: string, key: string, description: string,
+ *   fields: DatatableColumn[], scope: string }} PendingDatatable
+ * @typedef {{ ok?: boolean, code?: string, message?: string, scope?: { kind?: string } }} DatatableCreateCheck
+ * @typedef {{ name?: string, title?: string, key?: string, description?: string,
+ *   fields?: object[], columns?: object[] }} CreateDatatableArgs
+ * @typedef {{ datatableId?: string, datatableKey?: string, id?: string, type?: string }} RefNode
+ * @typedef {{ id: string, key: string | null, name: string, pending: boolean, newlyBound: boolean,
+ *   stepIds: string[] }} UsedDatatable
+ */
+
+/**
+ * The draft wrapper a builder turn carries. Underscore members are turn state
+ * the route sets before the tools run.
+ * @typedef {{ userId?: string, orgId?: string|null, title?: string, def?: import('./draftGraph').DraftGraph,
+ *   _runtimeShapes?: Record<string, import('./shapeTree').Descriptor>,
+ *   _datatables?: DatatableCatalogEntry[]|null, _pendingDatatables?: PendingDatatable[],
+ *   _datatableCreate?: DatatableCreateCheck|null, _approvedDatatableIds?: Set<string>,
+ *   _stageDatatables?: boolean, _planDatatables?: CreateDatatableArgs[],
+ *   _createdDatatableIds?: string[], _req?: { session?: object }|null,
+ *   _inputSchemasByTool?: Record<string, { properties?: Record<string, unknown>, required?: string[] }>,
+ *   _availableToolNames?: Set<string>, _offeredTools?: Set<string> }} DraftWrap
+ */

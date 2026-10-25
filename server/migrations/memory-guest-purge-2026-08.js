@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: remove memories written for anonymous visitors.
  *

@@ -178,3 +178,11 @@ function applyAddAction(draft, rawArgs, draftWrap) {
 }
 
 module.exports = { applyAddAction };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {{ tool?: string, inputs?: import('./inputBindings').Inputs, forEach?: import('./inputBindings').ForEachSpec, label?: string, afterStepId?: string,
+ *   branch?: string, caseName?: string, splice?: boolean, datatableId?: string, datatableKey?: string,
+ *   type?: unknown }} ActionArgs
+ */

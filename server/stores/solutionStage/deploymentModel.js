@@ -93,3 +93,7 @@ const byRequestKey = async (q, stageProjectId, requestKey) => (await q.query(
 module.exports = {
     ACTIVE_STATUSES, IN_FLIGHT_STATUSES, TERMINAL_STATUSES, ADMIT_STATUSES, DEFAULT_LEASE_MS, APPROVAL_REQUEST_GRACE_S, DECISION_STATUS, newDeploymentId, json, leaseMsOf, leaseUntil, mapDeployment, mapStep, busyError, busyRow, byRequestKey,
 };
+
+/** @typedef {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number }> }} Queryable a pool, or the client of a transaction */
+
+/** @typedef {Queryable & { tx: <T>(fn: (client: Queryable) => Promise<T>) => Promise<T> }} StageDb the `{ query, tx }` database of solutionStageStore */

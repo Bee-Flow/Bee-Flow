@@ -379,3 +379,8 @@ function _setDepsForTests(over = null) {
 }
 
 module.exports = { getAgentTools, getAvailableComponents, componentVisibleTo, _setDepsForTests };
+
+/**
+ * The keys of a parsed component.json that the agent readers look at.
+ * @typedef {{ agentEnabled?: unknown, name?: string, description?: string, category?: string, inputs?: Record<string, { type: string, default?: unknown, description?: string, required?: boolean }>, owner?: unknown }} ComponentJson
+ */

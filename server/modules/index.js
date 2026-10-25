@@ -280,3 +280,12 @@ module.exports = {
     GRACE_OPTS,
     requireModule,
 };
+
+/**
+ * @typedef {Awaited<ReturnType<typeof import('../stores/platformModuleStore').getState>>} ModuleRow
+ * @typedef {{ at: number, rows: Map<string, ModuleRow> }} ModuleStates
+ * @typedef {{ id: string, name: string, description: string, category: string, capabilityIds: string[],
+ *   defaultImported: boolean, available: boolean, icon?: string, version?: string | null, remote?: boolean,
+ *   requirements?: { docker?: boolean, images?: string[], env?: string[], notes?: string },
+ *   storeModules?: { file: string }[] }} ModuleEntry
+ */

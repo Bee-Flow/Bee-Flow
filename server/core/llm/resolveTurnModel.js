@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -39,7 +39,10 @@ const { groupTierGateFor, tierRefusal } = require('../entitlements/tierAccess');
 const DEFAULT_TIER = 'fast';
 const AUTO = 'auto';
 
-/** A tier this file measures: a name, and not the default nor `auto`. */
+/**
+ * A tier this file measures: a name, and not the default nor `auto`.
+ * @param {unknown} tier
+ */
 function isNamedTier(tier) {
     return typeof tier === 'string' && tier !== DEFAULT_TIER && tier !== AUTO;
 }
@@ -59,7 +62,7 @@ async function turnTierRefusal({ tier, userId, deps = {} }) {
  * The tier a turn runs on, or the refusal to answer instead.
  *
  * @param {object} args
- * @param {unknown} args.modelTier         what the request named (req.body.modelTier)
+ * @param {string|null} [args.modelTier]   what the request named (req.body.modelTier)
  * @param {unknown} args.message           the turn's message, for the `auto` classifier
  * @param {Record<string, any>} args.tiers the surface's tier map
  * @param {string} args.userId
@@ -94,7 +97,7 @@ async function resolveTurnTier({
             resolvedTier = result.tier;
             log.info(`[${surface}] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason})`);
         } catch (err) {
-            log.info(`[${surface}] Auto classification failed: ${err.message}, using fast`);
+            log.info(`[${surface}] Auto classification failed: ${/** @type {Error} */ (err).message}, using fast`);
             resolvedTier = DEFAULT_TIER;
         }
     }

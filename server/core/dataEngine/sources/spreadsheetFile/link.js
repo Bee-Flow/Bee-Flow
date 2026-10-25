@@ -261,3 +261,18 @@ module.exports = {
     // it on browse/describe; link and relink spend it through spendStorageBudget.
     storageLimiter, spendStorageBudget,
 };
+
+/** @typedef {import('./credentials').SessionLike & { isAdmin?: boolean }} CallerSession */
+
+/** @typedef {{ userId?: string, orgId?: string|null }} Principal */
+
+/** @typedef {import('../mirror/linking').MirrorScope} Scope */
+
+/** @typedef {Awaited<ReturnType<typeof reading.listSheetsOf>>[number]} Tab */
+
+/** @typedef {Awaited<ReturnType<typeof callerApi>>} CallerCtx */
+
+/**
+ * A spreadsheet mirror's `source` block, as sourceBlock writes it.
+ * @typedef {{ provider?: string, format?: string, file?: { id?: string, driveId?: string, path?: string, name?: string, webUrl?: string }, sheet?: { id?: string|null, name?: string|null, index?: number }, headerRow?: number, identity?: { mode?: string, keyFieldId?: unknown }, owned?: boolean, write?: { mode?: string, sharedOptIn?: boolean }, ncInstanceId?: string|null, linkedByUserId?: string, rowCap?: number, refreshOnView?: boolean, columnMap?: Record<string, import('./columns').ColumnMapEntry>, [k: string]: unknown }} SheetSource
+ */

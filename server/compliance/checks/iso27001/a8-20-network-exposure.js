@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.20 — network security: no Scaleway security group may open
  * an admin port (22 SSH, 5432 PostgreSQL, 6379 Redis, 3306 MySQL) to the
@@ -23,6 +23,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_network_exposure.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'scaleway', 'Scaleway connector not enabled — link a read-only API key under ISO 27001 → Connectors to collect firewall evidence.');
         if (read.result) return read.result;
@@ -50,7 +53,7 @@ module.exports = {
             fetched_at: summary.fetched_at,
         };
         if (open > 0) {
-            const ports = [...new Set(samples.map(s => s?.port).filter(Boolean))].join(', ');
+            const ports = [...new Set(samples.map((/** @type {Record<string, any>} */ s) => s?.port).filter(Boolean))].join(', ');
             return {
                 status: 'fail',
                 evidence,

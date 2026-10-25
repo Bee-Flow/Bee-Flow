@@ -189,3 +189,20 @@ module.exports = {
     eligibleForStage, needsApproval,
     stableStringify, sha256, hashOf, planHash,
 };
+
+/**
+ * A `solution_stages` row as the engine reads it.
+ * @typedef {{
+ *   id?: string, projectId: string, solutionId?: string, stage: string,
+ *   organizationId?: string|null, runAsUserId?: string|null,
+ *   approvalPolicy?: object|null, currentReleaseId?: string|null,
+ *   currentReleaseSeq?: number|null, settingsVersion?: number|null,
+ * }} StageRow
+ */
+
+/**
+ * One datatable the deployment brings: the release's columns and entity, and
+ * the fingerprint of the stage's entry when the plan was made.
+ * @typedef {{ id: string, ref?: string, fingerprint?: string, action?: string, release?: { columns?: object[] },
+ *   entity?: { name?: string, description?: string, rowScope?: string, source?: unknown } }} StageTablePart
+ */

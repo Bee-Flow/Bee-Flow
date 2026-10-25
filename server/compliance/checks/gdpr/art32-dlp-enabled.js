@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 32 — DLP (Data Loss Prevention) active and working.
  *
@@ -19,6 +19,9 @@ const configStore = require('../../../stores/configStore');
 /** The layers a fully configured DLP has: regex guardrails and PII detection. */
 const DLP_LAYERS = 2;
 
+/**
+ * @param {string} orgId
+ */
 async function _guardrailStats(orgId) {
     try {
         const row = await getOne(`
@@ -36,6 +39,9 @@ async function _guardrailStats(orgId) {
     }
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _aiCallCount(orgId) {
     try {
         const row = await getOne(`
@@ -62,6 +68,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art32_dlp.desc',
     remediationKey: 'compliance.checks.gdpr_art32_dlp.fix',
     remediationLink: 'admin/security/guardrails',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const orgKey = `org_privacy_shield_${orgId || 'default'}`;
         const shield = (await configStore.getConfig(orgKey)) || {};
@@ -82,6 +89,7 @@ module.exports = {
         // backend was dropped; only regex + PII signals remain.
         const configCoverage = [regexEnabled, piiEnabled].filter(Boolean).length;
 
+        /** @type {string} */
         let status;
         if (configCoverage === DLP_LAYERS) status = 'pass';
         else if (configCoverage === 1) status = 'warn';
@@ -89,7 +97,9 @@ module.exports = {
 
         // ── Activity signals (only meaningful if DLP is configured) ──
         const stats = await _guardrailStats(orgId);
+        /** @type {string | null} */
         let overBlockWarning = null;
+        /** @type {string | null} */
         let silentWarning = null;
         if (status === 'pass') {
             if ((stats.total_events || 0) === 0 && !stats.missing) {

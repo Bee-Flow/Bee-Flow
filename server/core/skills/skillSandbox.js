@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The skill-test SANDBOX — which tools a Test-tab run may call.
  * (Bee Flow Builder redesign, Sep 2026, Track S3.)
@@ -66,6 +66,9 @@ const MAX_CHUNK_CHARS = 2000;
  * then answered from the skill text, the grader saw no evidence for the step
  * that says "look it up", and the run was stored as a verdict on the skill.
  * Same rule as the failed search two lines down: say what happened.
+ *
+ * @param {{ query?: unknown } | null | undefined} args  the model's arguments — untrusted
+ * @param {{ userId?: string, kbIds?: string[], kbDeclared?: number, session?: object } | undefined} ctx
  */
 async function runKbSearch(args, ctx) {
     const query = typeof args?.query === 'string' ? args.query.trim().slice(0, MAX_QUERY_CHARS) : '';
@@ -83,6 +86,7 @@ async function runKbSearch(args, ctx) {
     const note = dropped > 0
         ? `\n\n(${dropped} of the ${declared} knowledge bases this skill links are not available to the person running this test and were not searched.)`
         : '';
+    /** @type {{ title: string; content: string; score: number; document_id?: string; kb_id?: string; source_uri?: string; }[]} */
     let chunks = [];
     try {
         const { quickKBSearch } = require('../agentRuntime/knowledgeSearch');
@@ -94,7 +98,7 @@ async function runKbSearch(args, ctx) {
     } catch (err) {
         // A failed search is a failed search — never "nothing was found",
         // which the model would report as "the sources do not cover this".
-        return `The knowledge search failed and returned nothing: ${err.message}`;
+        return `The knowledge search failed and returned nothing: ${/** @type {Error} */ (err).message}`;
     }
     if (chunks.length === 0) return `No passages matched that query.${note}`;
     const { fenceChunks, DATA_NOT_INSTRUCTIONS } = require('../kb/sourceFencing');
@@ -130,12 +134,18 @@ const SANDBOX_TOOLS = new Map([
 /** Every name the sandbox knows about, in declaration order. */
 const SANDBOX_TOOL_NAMES = Object.freeze([...SANDBOX_TOOLS.keys()]);
 
-/** Gate 2, on its own so the test can assert the whole list passes it. */
+/**
+ * Gate 2, on its own so the test can assert the whole list passes it.
+ * @param {string} name
+ */
 function isReadOnlyTool(name) {
     return effectOf(name) === 'reads';
 }
 
-/** Is `name` in the closed list AND still classified read-only? */
+/**
+ * Is `name` in the closed list AND still classified read-only?
+ * @param {string} name
+ */
 function isSandboxTool(name) {
     return typeof name === 'string' && SANDBOX_TOOLS.has(name) && isReadOnlyTool(name);
 }
@@ -146,7 +156,7 @@ function isSandboxTool(name) {
  * rather than offered: reclassification is exactly the change that must not
  * need somebody to remember this file.
  *
- * @returns {Array} OpenAI-format tool defs (possibly empty)
+ * @returns {Array<{ type: string, function: { name: string, description: string, parameters: Record<string, unknown> } }>} OpenAI-format tool defs (possibly empty)
  */
 function buildSandboxTools() {
     const out = [];

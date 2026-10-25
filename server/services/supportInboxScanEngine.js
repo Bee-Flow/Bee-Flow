@@ -228,3 +228,11 @@ function stopSupportInboxScan() {
 }
 
 module.exports = { startSupportInboxScan, stopSupportInboxScan, scanOneDue, runScanForInbox, DEFAULT_WINDOW_DAYS };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof supportInboxStore.getInboxWithTokens>>>} InboxWithTokens */
+
+/** @typedef {import('./email/providerClients').OnTokenRefresh} OnTokenRefresh */
+
+/** @typedef {((p: { processedThreads: number, pairsFound: number }) => void) | null | undefined} OnScanProgress */
+
+/** @typedef {{ ts: number, from: string, outbound: boolean, genuineInbound: boolean }} ScanMsg */

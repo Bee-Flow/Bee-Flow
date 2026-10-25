@@ -17,8 +17,19 @@ const {
     ERROR_STRINGS, quoteTab, refOf, translate, readCell, gridCell, extendedValue, rawValue, rowNumberOfRange,
 } = require('./googleDriveFormat');
 
+/** @typedef {import('./googleDriveFormat').DriveCtx} DriveCtx */
+/** @typedef {import('./googleDriveFormat').DriveMarker} DriveMarker */
+/** @typedef {import('./googleDriveFormat').SheetArg} SheetArg */
+/** @typedef {import('./index').FileRef} FileRef */
+/** One cell to write. @typedef {{ col: number, value: unknown, type: string }} CellWrite */
+
+/** @param {SheetArg} sheet */
 const sheetName = (sheet) => (typeof sheet === 'string' ? sheet : (sheet && sheet.name) || '');
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ */
 async function listSheets(d, file) {
     const { sheets } = await d.clients();
     let res;
@@ -43,7 +54,12 @@ async function listSheets(d, file) {
     });
 }
 
-/** The gid a write needs; a sheet given by name alone costs one lookup. */
+/**
+ * The gid a write needs; a sheet given by name alone costs one lookup.
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ */
 async function gidOf(d, file, sheet) {
     if (sheet && typeof sheet === 'object' && sheet.id != null) return sheet.id;
     if (sheet && typeof sheet === 'object' && sheet.gid != null) return sheet.gid;
@@ -55,13 +71,21 @@ async function gidOf(d, file, sheet) {
     return found.id;
 }
 
-/** includeGridData rows → the value matrix, the dominant date format per column, and the formula columns. */
+/**
+ * includeGridData rows → the value matrix, the dominant date format per column, and the formula columns.
+ * @param {Array<{ values?: import('./googleDriveFormat').SheetCellData[] }>} grid
+ * @param {number} headerRow
+ */
 function tallyGrid(grid, headerRow) {
+    /** @type {Array<Array<string|number|boolean|null>>} */
     const matrix = [];
+    /** @type {Map<number, Record<string, number>>} */
     const formatTally = new Map();   // col → { DATE:n, DATE_TIME:n, TIME:n }
+    /** @type {Set<number>} */
     const formulaCols = new Set();
     grid.forEach((r, ri) => {
         const cells = (r && r.values) || [];
+        /** @type {Array<string|number|boolean|null>} */
         const row = [];
         cells.forEach((c, ci) => {
             const g = gridCell(c);
@@ -76,6 +100,7 @@ function tallyGrid(grid, headerRow) {
         });
         matrix.push(row);
     });
+    /** @type {Map<number, string|null>} */
     const numberFormat = new Map();
     for (const [col, t] of formatTally) {
         const best = Object.entries(t).sort((a, b) => b[1] - a[1])[0];
@@ -84,6 +109,12 @@ function tallyGrid(grid, headerRow) {
     return { rows: matrix, numberFormat, formulaCols };
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {{ headerRow?: number, rows?: number }} [opts]
+ */
 async function sample(d, file, sheet, { headerRow = 1, rows = 500 } = {}) {
     const { sheets } = await d.clients();
     const tab = sheetName(sheet);
@@ -102,7 +133,13 @@ async function sample(d, file, sheet, { headerRow = 1, rows = 500 } = {}) {
     return tallyGrid((rowData && rowData.rowData) || [], headerRow);
 }
 
-/** values.get of one A1 range of a tab, typed (UNFORMATTED_VALUE + SERIAL_NUMBER). */
+/**
+ * values.get of one A1 range of a tab, typed (UNFORMATTED_VALUE + SERIAL_NUMBER).
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {string} tab
+ * @param {string} range
+ */
 async function getValues(d, file, tab, range) {
     const { sheets } = await d.clients();
     try {
@@ -120,6 +157,10 @@ async function getValues(d, file, tab, range) {
 /**
  * Rows 1..(headerRow + maxRows) — `maxRows` DATA rows after the header;
  * the engine asks for one more than its cap to learn it was truncated.
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {{ headerRow?: number, maxRows?: number, maxCols?: number }} [opts]
  */
 async function readSheet(d, file, sheet, { headerRow = 1, maxRows = 10000, maxCols = 100 } = {}) {
     const res = await getValues(d, file, sheetName(sheet), `1:${headerRow + maxRows}`);
@@ -132,19 +173,38 @@ async function readSheet(d, file, sheet, { headerRow = 1, maxRows = 10000, maxCo
     return { rows, errorCells };
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {number|string} rowNumber
+ */
 async function readRow(d, file, sheet, rowNumber) {
     const n = Number(rowNumber);
     const res = await getValues(d, file, sheetName(sheet), `${n}:${n}`);
     return ((res.data.values || [])[0] || []).map(readCell);
 }
 
-/** One row of the tab as values.get hands it back (typed): is it empty? */
+/**
+ * One row of the tab as values.get hands it back (typed): is it empty?
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {string} tab
+ * @param {number} rowNumber
+ */
 async function rowIsBlank(d, file, tab, rowNumber) {
     const res = await getValues(d, file, tab, `${rowNumber}:${rowNumber}`);
     const row = ((res.data && res.data.values) || [])[0] || [];
     return row.every((v) => v === null || v === undefined || v === '');
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {object[]} requests
+ * @param {string} what
+ * @param {SheetArg} sheet
+ */
 async function batchUpdate(d, file, requests, what, sheet) {
     const { sheets } = await d.clients();
     try {
@@ -154,7 +214,12 @@ async function batchUpdate(d, file, requests, what, sheet) {
     }
 }
 
-/** One typed updateCells request; `fields: 'userEnteredValue'` keeps the cell's format. */
+/**
+ * One typed updateCells request; `fields: 'userEnteredValue'` keeps the cell's format.
+ * @param {number} gid
+ * @param {number|string} rowNumber
+ * @param {CellWrite} c
+ */
 function updateCellRequest(gid, rowNumber, c) {
     return {
         updateCells: {
@@ -168,7 +233,12 @@ function updateCellRequest(gid, rowNumber, c) {
 /**
  * Write the given cells of one row — one updateCells request per cell,
  * typed, `fields: 'userEnteredValue'` so the cell keeps its format.
- * @param {Array<{col:number, value:any, type:string}>} cells
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {number|string} rowNumber
+ * @param {CellWrite[]} cells
+ * @param {{ ifMatch?: DriveMarker|null }} [opts]
  */
 async function updateCells(d, file, sheet, rowNumber, cells, { ifMatch = null } = {}) {
     await d.guard(file, ifMatch);
@@ -178,12 +248,20 @@ async function updateCells(d, file, sheet, rowNumber, cells, { ifMatch = null } 
     return { marker: (await d.probe(file)).marker };
 }
 
-/** The row written in place at `afterRow + 1` (see appendRow). */
+/**
+ * The row written in place at `afterRow + 1` (see appendRow).
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {CellWrite[]} cells
+ * @param {number|string} afterRow
+ */
 async function writeRowAfter(d, file, sheet, cells, afterRow) {
     const tab = sheetName(sheet);
     const gid = await gidOf(d, file, sheet);
     const meta = (await listSheets(d, file)).find((s) => s.id === gid) || null;
     const rowNumber = Number(afterRow) + 1;
+    /** @type {object[]} */
     const requests = [];
     const beyondGrid = meta && meta.rowCount != null && rowNumber > meta.rowCount;
     if (beyondGrid) {
@@ -196,7 +274,13 @@ async function writeRowAfter(d, file, sheet, cells, afterRow) {
     return rowNumber;
 }
 
-/** values.append under RAW, wherever Sheets puts it; the row number it reports. */
+/**
+ * values.append under RAW, wherever Sheets puts it; the row number it reports.
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {CellWrite[]} cells
+ */
 async function appendRowAnywhere(d, file, sheet, cells) {
     const tab = sheetName(sheet);
     const { sheets } = await d.clients();
@@ -261,6 +345,13 @@ async function appendRow(d, file, sheet, cells, { ifMatch = null, afterRow = nul
     return { rowNumber, marker: (await d.probe(file)).marker };
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {SheetArg} sheet
+ * @param {number|string} rowNumber
+ * @param {{ ifMatch?: DriveMarker|null }} [opts]
+ */
 async function deleteRow(d, file, sheet, rowNumber, { ifMatch = null } = {}) {
     await d.guard(file, ifMatch);
     const gid = await gidOf(d, file, sheet);
@@ -271,17 +362,28 @@ async function deleteRow(d, file, sheet, rowNumber, { ifMatch = null } = {}) {
     return { marker: (await d.probe(file)).marker };
 }
 
-/** The FileApi's `cells` member, bound to one drive context. */
+/**
+ * The FileApi's `cells` member, bound to one drive context.
+ * @param {DriveCtx} d
+ */
 function makeSheetCells(d) {
     return {
-        /** Cell-precise access exists for native Sheets only. */
+        /**
+         * Cell-precise access exists for native Sheets only.
+         * @param {FileRef} file
+         */
         available: async (file) => (file && (file.format || formatOf(file))) === 'gsheet',
+        /** @param {[FileRef]} a */
         listSheets: (...a) => listSheets(d, ...a),
+        /** @param {[FileRef, SheetArg, { headerRow?: number, rows?: number }?]} a */
         sample: (...a) => sample(d, ...a),
+        /** @param {[FileRef, SheetArg, { headerRow?: number, maxRows?: number, maxCols?: number }?]} a */
         readSheet: (...a) => readSheet(d, ...a),
+        /** @param {[FileRef, SheetArg, number|string]} a */
         readRow: (...a) => readRow(d, ...a),
         updateCells: (...a) => /** @type {Function} */ (updateCells)(d, ...a),
         appendRow: (...a) => appendRow(d, ...a),
+        /** @param {[FileRef, SheetArg, number|string, { ifMatch?: DriveMarker|null }?]} a */
         deleteRow: (...a) => deleteRow(d, ...a),
     };
 }

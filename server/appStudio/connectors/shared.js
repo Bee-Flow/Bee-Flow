@@ -237,3 +237,12 @@ module.exports = {
     getByPath,
     integrationIdsFor,
 };
+
+/**
+ * @typedef {{ key: string, type?: string, required?: boolean }} ConnectorParam
+ * @typedef {{ tool?: string, argsFrom?: Record<string, string>, fixedArgs?: Record<string, unknown>, merge?: string, alias?: string, expand?: string, ownTable?: boolean }} ChainStep  One follow-up tool call, run once per row.
+ * @typedef {{ credentialProvider?: string, type?: string, header?: string }} ConnectorAuth
+ * @typedef {{ id: string, kind: string, name?: string, params?: ConnectorParam[], integrationId?: string, runAs?: string, tool?: string, fixedArgs?: Record<string, unknown>, rowsPath?: string, chain?: ChainStep[], automationId?: string, url?: string, headers?: Record<string, unknown>, auth?: ConnectorAuth, maxRows?: number, nextPagePath?: string, sync?: import('../connectorSync').SyncBlock }} Connector  A connector as stored on model.connectors[].
+ * @typedef {{ id: string, userId: string, organizationId?: string, name?: string }} ConnectorApp  The studio app a connector runs for.
+ * @typedef {Record<string, unknown>} ConnectorRow
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 32 — Encryption in transit (TLS).
  * Best-effort: if NODE_ENV=production and TRUST_PROXY is set (reverse-proxy
@@ -11,7 +11,10 @@
 
 const OFF = /^(0|false|no|off|none)$/i;
 
-/** An env value as "on" (non-empty and not an off-word), trimmed, or null. */
+/**
+ * An env value as "on" (non-empty and not an off-word), trimmed, or null.
+ * @param {string} name
+ */
 function _onValue(name) {
     const v = String(process.env[name] || '').trim();
     return v && !OFF.test(v) ? v : null;

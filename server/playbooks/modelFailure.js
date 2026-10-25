@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * WHEN A PLAYBOOK'S MODEL CALL FAILS: what the person sees, and what the
  * operator's log keeps.
@@ -24,6 +24,12 @@ const log = require('../telemetry/log');
 const UNREACHABLE_TEXT = 'The model could not be reached. Try again in a moment.';
 const LOOKUP_TEXT = 'The model for this tier could not be looked up. Try again in a moment.';
 
+/**
+ * @param {string} line
+ * @param {unknown} err
+ * @param {{ code: string, status?: number, error: string }} refusal
+ * @returns {{ ok: false, code: string, status?: number, error: string, correlationId: string }}
+ */
 function refuseLogged(line, err, refusal) {
     const correlationId = log.currentRequestId() || randomUUID();
     log.error(`${line} correlationId=${correlationId}`, err);
@@ -33,6 +39,7 @@ function refuseLogged(line, err, refusal) {
 /**
  * The model call itself failed. `what` names the call in the log line
  * ('compose', 'design', 'access plan'); `code` and `status` are the refusal's.
+ * @param {{ what: string, code: string, modelId: string, err: unknown, status?: number | null }} opts
  */
 function modelUnreachable({ what, code, modelId, err, status = null }) {
     return refuseLogged(`[Playbooks] ${what}: the model could not be reached (model=${modelId})`, err, {
@@ -44,6 +51,7 @@ function modelUnreachable({ what, code, modelId, err, status = null }) {
  * Reading which model serves the tier failed: the config could not be read.
  * That is not "no model is configured" (resolveModelForTierName RETURNS null
  * for that), so it is refused as unavailable rather than named as missing.
+ * @param {{ what: string, err: unknown }} opts
  */
 function modelLookupFailed({ what, err }) {
     return refuseLogged(`[Playbooks] ${what}: the model for this tier could not be looked up`, err, {

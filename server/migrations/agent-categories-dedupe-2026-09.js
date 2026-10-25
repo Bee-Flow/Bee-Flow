@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: merge case-insensitive duplicate agent categories, then build the
  * unique index that could not be built over them.
@@ -63,8 +64,13 @@ const GROUPS_SQL = `
       JOIN dup d ON d.org_key = COALESCE(c.organization_id,'') AND d.lname = LOWER(c.name)
      ORDER BY d.org_key, d.lname, c.created_at ASC NULLS LAST, c.id ASC`;
 
+/** @typedef {{ orgKey: string, orgId: string | null, lname: string, keepId: string, dropIds: string[], agentCount: number }} DedupeGroup */
+
+/** @param {Record<string, any>[]} rows */
 function groupRows(rows) {
+    /** @type {DedupeGroup[]} */
     const groups = [];
+    /** @type {DedupeGroup | null} */
     let current = null;
     for (const r of rows) {
         if (!current || current.orgKey !== r.org_key || current.lname !== r.lname) {
@@ -85,11 +91,15 @@ function groupRows(rows) {
     return groups;
 }
 
+/** @param {DedupeGroup} g */
 function describe(g) {
     return `org=${g.orgKey || '(global)'} name="${g.lname}" keep=${g.keepId} `
         + `drop=[${g.dropIds.join(', ')}] agents=${g.agentCount}`;
 }
 
+/**
+ * @param {Pick<typeof import("../db"), "getOne" | "getAll" | "run" | "withTransaction">} db
+ */
 async function hasSchema(db) {
     const row = await db.getOne(`
         SELECT to_regclass('agent_categories') IS NOT NULL AS has_categories,
@@ -110,7 +120,7 @@ async function hasSchema(db) {
 }
 
 /**
- * @param {{ dryRun?: boolean, db?: object, initSchema?: () => Promise<unknown> }} [opts]
+ * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>, initSchema?: () => Promise<unknown> }} [opts]
  *        `db` and `initSchema` are injection seams for the integration test;
  *        the boot ladder calls up() without arguments and gets the real ones.
  * @returns {Promise<{ groups: number, removed: number, agentsMoved: number, dryRun: boolean, skipped?: string }>}
@@ -186,7 +196,7 @@ async function up({ dryRun = false, db = null, initSchema = null } = {}) {
             + 'idx_agent_categories_org_lname in place');
         return result;
     } catch (e) {
-        console.error(`[Migration] ${NAME} failed (rolled back, retries next boot):`, e.message);
+        console.error(`[Migration] ${NAME} failed (rolled back, retries next boot):`, /** @type {Error} */ (e).message);
         throw e;
     }
 }

@@ -1,3 +1,5 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck
 /**
  * App Studio data routes (routes/studioAppData.js): what every handler
  * shares. The rate limits and the batch and body budgets, the app
@@ -20,11 +22,19 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { fallback } = require('../../utils/bestEffort');
 
+/**
+ * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
+ * @typedef {import('../../appStudio/builderTools/dataTools').DataModel} DataModel
+ * @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} StudioApp
+ * @typedef {{ app: StudioApp, ownerScope: string, viewerId: string, model: DataModel, role: Awaited<ReturnType<typeof rlsGateway.resolveViewerRole>>, viewer: ReturnType<typeof buildViewer>, table?: DataTable }} DataContext
+ */
+
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 // Reads are cheaper than writes; both keyed userId:appId so one noisy viewer
 // can't drain another's budget for the same app (mirrors studioAppRateLimits).
 const DATA_READ_RPM = parseInt(process.env.STUDIO_APP_DATA_READ_RPM, 10) || 60;
 const DATA_WRITE_RPM = parseInt(process.env.STUDIO_APP_DATA_WRITE_RPM, 10) || 20;
+/** @param {import('express').Request<{ id: string }>} req */
 function dataKey(req) {
     return `${req.session?.user?.id || 'anon'}:${req.params?.id || 'unknown'}`;
 }
@@ -49,13 +59,18 @@ const readDescriptorLimiter = perUserRateLimit({
     name: 'studio-data-read-descriptors',
     // Runs AFTER the body parser, so `reads` is already an array here. An
     // unparseable body costs 1 and is refused by the handler a moment later.
-    costFn: (req) => (Array.isArray(req.body && req.body.reads) ? req.body.reads.length : 1),
+    costFn: (/** @type {import('express').Request} */ req) => (Array.isArray(req.body && req.body.reads) ? req.body.reads.length : 1),
 });
 
 // ── Body budget ─────────────────────────────────────────────────────
 const MAX_BODY_BYTES = 64 * 1024;
 const jsonBody = express.json({ limit: MAX_BODY_BYTES });
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {NextFunction} next
+ */
 function requireJson(req, res, next) {
     const ct = req.headers['content-type'];
     if (ct && !/application\/json/i.test(ct)) {
@@ -64,6 +79,11 @@ function requireJson(req, res, next) {
     next();
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {NextFunction} next
+ */
 function bodySizeGuard(req, res, next) {
     if (req.body && typeof req.body === 'object') {
         let bytes = 0;
@@ -76,6 +96,7 @@ function bodySizeGuard(req, res, next) {
 }
 
 // ── Audience helper (collapse Sets/null to a plain array) ───────────
+/** @param {import('express').Request} req */
 async function audienceFor(req) {
     const { orgIds, userGroups } = await resolveAudienceContext(req);
     const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
@@ -87,6 +108,10 @@ async function audienceFor(req) {
 // shared group, or a Studio Project the app is filed into
 // (canReadStudioAppAsync). Failure answers 404 and returns null so the caller
 // just `if (!app) return`.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function loadVisibleApp(req, res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
@@ -102,6 +127,10 @@ async function loadVisibleApp(req, res) {
 }
 
 // Owner-only: readable non-owner → 403; invisible → 404.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function loadOwnedApp(req, res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
@@ -121,6 +150,11 @@ async function loadOwnedApp(req, res) {
 // ── Error handling ──────────────────────────────────────────────────
 // Compile/AccessError carry safe, client-facing validation text with a status;
 // everything else is an internal error → generic 500 (no err.message leak).
+/**
+ * @param {import('express').Response} res
+ * @param {Error & { status?: number, safe?: boolean, code?: string, limit?: number, used?: number }} err
+ * @param {string} _where
+ */
 function handleErr(res, err, _where) {
     const status = err && typeof err.status === 'number' ? err.status : null;
     // dataReadRunner marks its own refusals `safe` — the same 'Table not found'
@@ -151,13 +185,18 @@ function handleErr(res, err, _where) {
 // ── Shared data context ─────────────────────────────────────────────
 // Resolves app → data model → viewer role → (optional) table. Responds + null
 // on any failure. The per-app DB is owned by app.userId (ownerScope).
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ * @param {{ tableId?: string }} [opts]
+ */
 async function resolveDataContext(req, res, { tableId } = {}) {
     const app = await loadVisibleApp(req, res);
     if (!app) return null;
     const viewerId = req.session.user.id;
 
     const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
-    const model = meta && meta.model && typeof meta.model === 'object' ? meta.model : null;
+    const model = /** @type {DataModel | null} */ (meta && meta.model && typeof meta.model === 'object' ? meta.model : null);
     if (!model || !Array.isArray(model.tables)) {
         res.status(404).json({ error: 'App has no data model' });
         return null;
@@ -167,6 +206,7 @@ async function resolveDataContext(req, res, { tableId } = {}) {
     const role = await rlsGateway.resolveViewerRole(app, viewerId, model, { userGroups });
     const viewer = buildViewer(req.session.user, role);
 
+    /** @type {DataContext} */
     const ctx = { app, ownerScope: app.userId, viewerId, model, role, viewer };
     if (tableId) {
         const table = model.tables.find((t) => t && (t.id === tableId || t.key === tableId));
@@ -178,6 +218,10 @@ async function resolveDataContext(req, res, { tableId } = {}) {
 
 // The viewer object exposed to row filters (viewer.<attr>). Deliberately small
 // and server-derived — never client-supplied.
+/**
+ * @param {{ id: string, organizationId?: string }} user
+ * @param {string | null} role
+ */
 function buildViewer(user, role) {
     return {
         id: user.id,
@@ -193,6 +237,7 @@ function buildViewer(user, role) {
 // organisation it lives in, not to this app. What the client does need to know
 // is in `linkedTableFlags` below — THAT a table is linked and whether it is
 // read-only, without saying to what.
+/** @param {DataTable} t */
 function publicTable(t) {
     return {
         id: t.id,
@@ -215,6 +260,7 @@ function publicTable(t) {
 
 // Parse list filters/sort from the query string (JSON-encoded). Bad JSON is
 // ignored rather than 400 — the compiler validates the resulting shapes.
+/** @param {import('express').Request} req */
 function parseListQuery(req) {
     const q = req.query || {};
     let filters;
@@ -242,6 +288,7 @@ function parseListQuery(req) {
  * Fire-and-forget and fully guarded — syncConnector claims the sync row, so
  * concurrent viewers produce exactly one refresh, and a failure here can never
  * affect the response that already went out.
+ * @param {DataContext} ctx
  */
 function kickStaleSync(ctx) {
     const model = ctx.model;
@@ -261,7 +308,7 @@ function kickStaleSync(ctx) {
         } catch (err) {
             // The response is long gone; a failed background refresh is recorded
             // on the sync row (status/last_error) for the owner to see.
-            log.warn(`[StudioAppData] on-view refresh failed for app ${ctx.app.id}: ${err.message}`);
+            log.warn(`[StudioAppData] on-view refresh failed for app ${ctx.app.id}: ${/** @type {Error} */ (err).message}`);
         }
     });
 }
@@ -286,6 +333,11 @@ function kickStaleSync(ctx) {
  * status and the reason attached (appStudio/readError.js).
  */
 const LINK_REFUSED = Symbol('link_refused');
+/**
+ * @param {DataContext} ctx
+ * @param {DataTable} table
+ * @returns {Promise<{ linked: boolean, readOnly: boolean } | typeof LINK_REFUSED | null>}
+ */
 async function linkedTableFlags(ctx, table) {
     if (!datatableSource.isDatatableBacked(table)) return null;
     try {
@@ -315,6 +367,8 @@ async function linkedTableFlags(ctx, table) {
  * is passed on verbatim by handleErr. Only the callers that read the row as a
  * by-product (`.catch(() => null)` after a write) swallow it: there the write
  * already succeeded and the re-read is an extra.
+ * @param {DataContext} ctx
+ * @param {string} recordId
  */
 async function readOne(ctx, recordId) {
     const plan = await dataReadRunner.readPlan(ctx, ctx.table);

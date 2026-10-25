@@ -541,3 +541,9 @@ module.exports = {
     MAX_ATTACHMENT_BYTES,
     MAX_ATTACHMENT_TOTAL_BYTES,
 };
+
+/**
+ * A `file` column's descriptor, pending (`mailbox_attachment`) or redeemed (`studio_attachment`).
+ * @typedef {{ kind?: string, fileId?: string, connectorId?: string, messageId?: string, attachmentId?: string, name?: string, mime?: string, size?: number, isInline?: boolean, [k: string]: unknown }} AttachmentDescriptor
+ * @typedef {{ tables?: import('./actionExecutor/shared').DataTable[], connectors?: Array<{ id?: string, provider?: 'gmail'|'outlook', runAs?: string, mode?: string, address?: string, displayName?: string }> }} MailboxModel
+ */

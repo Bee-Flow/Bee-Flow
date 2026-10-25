@@ -319,3 +319,17 @@ module.exports = {
     availabilityFor,
     availableForContext,
 };
+
+/**
+ * One app that owns tool names.
+ * @typedef {Object} ToolAppEntry
+ * @property {string} app
+ * @property {string} label
+ * @property {string} module  require path of the module that exports the TOOLS array
+ * @property {string} arrayName
+ * @property {string | null} [enabledKey]
+ * @property {string[]} [availableTo]
+ * @property {string | string[]} [availability]
+ * @property {boolean} [grantsRequireEntry]
+ * @property {string} [grantsVia]
+ */

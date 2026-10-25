@@ -1,6 +1,7 @@
-// @typecheck
+// @typecheck noImplicitAny
 const MAX_TOKENS_SHOWN = 30;
 
+/** @param {Map<string, string> | Record<string, string> | null | undefined} tokenMap */
 function buildTokenPreservationAddendum(tokenMap) {
     if (!tokenMap) return '';
     const keys = tokenMap instanceof Map

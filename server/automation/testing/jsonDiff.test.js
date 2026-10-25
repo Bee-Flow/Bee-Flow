@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The structural diff the run compare is built on.
@@ -11,10 +11,15 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { diffJson } = require('./jsonDiff');
 
+/**
+ * @param {unknown} a
+ * @param {unknown} b
+ * @param {Parameters<typeof diffJson>[2]} [opts]
+ */
 const diff = async (a, b, opts) => (await diffJson(a, b, opts)).changes;
 
 test('equal values give no changes', async () => {
-    const v = { a: 1, b: [1, { c: 'x' }], d: null };
+    const v = { a: 1, b: [1, { c: 'x' }], d: /** @type {null} */ (null) };
     const out = await diffJson(v, JSON.parse(JSON.stringify(v)));
     assert.deepStrictEqual(out, { changes: [], truncated: false });
 });
@@ -92,6 +97,11 @@ test('the cap stops the walk and sets truncated', async () => {
 });
 
 test('a self-similar structure stops at the depth guard', async () => {
+    /**
+     * @param {number} n
+     * @param {number} leaf
+     * @returns {unknown}
+     */
     const deep = (n, leaf) => (n === 0 ? leaf : { next: deep(n - 1, leaf) });
     const out = await diffJson(deep(100, 1), deep(100, 2));
     assert.strictEqual(out.changes.length, 1);
@@ -99,16 +109,17 @@ test('a self-similar structure stops at the depth guard', async () => {
 });
 
 test('an object with a kind goes to the registered differ, its changes prefixed with the path', async () => {
+    /** @type {Array<Record<string, unknown>>} */
     const seen = [];
     const sample = {
         kind: 'sample_handle',
-        matches: (v) => v.kind === 'sample_handle',
-        diff: async (a, b, ctx) => {
+        matches: (/** @type {{ kind?: string }} */ v) => v.kind === 'sample_handle',
+        diff: async (/** @type {{ id?: string }} */ a, /** @type {{ id?: string }} */ b, /** @type {{ path?: string, extra?: number }} */ ctx) => {
             seen.push({ a: a.id, b: b.id, path: ctx.path, extra: ctx.extra });
             return { changes: [{ path: 'rows', change: 'changed', before: '1', after: '2' }, { path: '[0].x', change: 'added', after: '1' }] };
         },
     };
-    const differs = { differFor: (v) => (v && v.kind === 'sample_handle' ? sample : null) };
+    const differs = { differFor: (/** @type {{ kind?: string } | null} */ v) => (v && v.kind === 'sample_handle' ? sample : null) };
     const changes = await diff(
         { out: { data: { kind: 'sample_handle', id: 'a1' } } },
         { out: { data: { kind: 'sample_handle', id: 'b1' } } },
@@ -124,7 +135,7 @@ test('differ changes honour ignorePaths and the cap; a failing differ falls back
         matches: () => true,
         diff: async () => ({ changes: Array.from({ length: 10 }, (_, i) => ({ path: `c${i}`, change: 'changed', before: '1', after: '2' })) }),
     };
-    const differs = { differFor: (v) => (v && v.kind === 'k' ? many : null) };
+    const differs = { differFor: (/** @type {{ kind?: string } | null} */ v) => (v && v.kind === 'k' ? many : null) };
     const out = await diffJson({ h: { kind: 'k' } }, { h: { kind: 'k' } }, { differs, maxChanges: 3, ignorePaths: ['h.c0'] });
     assert.deepStrictEqual(out.changes.map(c => c.path), ['h.c1', 'h.c2', 'h.c3']);
     assert.strictEqual(out.truncated, true);

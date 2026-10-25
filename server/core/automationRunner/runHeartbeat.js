@@ -198,3 +198,9 @@ function startHeartbeat(deps, { effectiveMode, emitLifecycle, run, touchRunMarke
 }
 
 module.exports = { acquireRunMarker, makeLifecycleEmitter, claimRunMarker, makeRunMarkerToucher, startHeartbeat };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — the two session-mutating endpoints on one's own account:
  * profile update (avatar, display name) and logout. Split out of
@@ -22,6 +22,7 @@ const { worded } = require('../../core/http/schemaParts');
  * enough: zod reports a string that is not a member as `invalid_enum_value`,
  * whose default message quotes the whole option list back at the caller.
  */
+/** @param {string[]} values @param {string} message */
 const wordedEnum = (values, message) => z.enum(values, { error: () => message });
 
 const NAME_TEXT = 'A display name must be text.';
@@ -88,7 +89,7 @@ router.post('/logout', async (req, res) => {
     const presented = req.headers['x-session-token'];
     if (presented) {
         try {
-            await require('../../utils/sessionToken').deleteSessionToken(presented);
+            await require('../../utils/sessionToken').deleteSessionToken(/** @type {string} */ (presented));
         } catch (err) {
             log.error('[Auth] Failed to revoke bridge token on logout:', err.message);
         }

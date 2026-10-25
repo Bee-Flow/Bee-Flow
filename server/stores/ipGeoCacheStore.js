@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Retired: the persistent IP → geo cache, and the removal of its table.
  *

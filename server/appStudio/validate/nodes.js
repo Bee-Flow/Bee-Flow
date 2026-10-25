@@ -677,3 +677,10 @@ module.exports = {
     validateNode,
     collectReferencedActions,
 };
+
+/**
+ * @typedef {import('./shared').ValidationCtx} ValidationCtx
+ * @typedef {import('../componentSpecs/styleKnobs').StyleKnob} StyleKnob
+ * @typedef {{ type: string, required?: boolean, default?: unknown, values?: unknown[], allowIsoDate?: boolean, min?: number, max?: number, maxLen?: number, maxItems?: number, itemMaxLen?: number, itemShape?: Record<string, any> }} PropSpec  One prop of a COMPONENT_SPECS entry.
+ * @typedef {{ props: Record<string, PropSpec>, isInput?: boolean, container?: boolean, events?: string[], styleKnobs?: string[] }} ComponentSpec
+ */

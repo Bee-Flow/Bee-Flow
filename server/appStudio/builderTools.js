@@ -206,3 +206,52 @@ module.exports = {
         MAX_SCREENSHOTS_PER_TURN,
     },
 };
+
+/**
+ * @typedef {{ id: string, type?: string, name?: string, props?: Record<string, unknown>, style?: Record<string, unknown>, visible?: boolean, children?: AppNode[], [k: string]: unknown }} AppNode
+ * @typedef {{ id: string, name?: string, style?: Record<string, unknown>, children?: AppNode[], [k: string]: unknown }} AppSection
+ * @typedef {{ id: string, name?: string, icon?: string, showInNav?: boolean, maxWidth?: string, sections?: AppSection[], [k: string]: unknown }} AppScreen
+ * @typedef {{ schemaVersion?: number, meta?: { name?: string, description?: string, icon?: string }, theme?: Record<string, string>, homeScreenId?: string|null, roles?: Array<{ id: string, name: string }>, screens?: AppScreen[], actions?: Record<string, ToolArgs>, nav?: { style?: string, groups?: Array<{ id: string, label?: string, icon?: string, screens?: string[] }> }, variables?: Array<{ name: string, type?: string, default?: unknown }>, [k: string]: unknown }} AppDef
+ */
+
+/**
+ * The draft wrapper the route hangs on a turn (see the header). Every builder
+ * tool takes it as `draftWrap`.
+ * @typedef {object} BuilderDraft
+ * @property {string} userId
+ * @property {string|null} [orgId]
+ * @property {string|null} [appId]
+ * @property {number|null} [version]
+ * @property {string|null} [builderSessionId]
+ * @property {AppDef} def
+ * @property {boolean} [finalized]
+ * @property {import('./builderTools/dataTools').DataModel|null} [dataModel]
+ * @property {number} [dataModelVersion]
+ * @property {Record<string, number|string>} [rowCounts]   keyed by TABLE ID
+ * @property {Array<{ id: string, name?: string }>} [datasetIds]
+ * @property {Awaited<ReturnType<typeof import('./linkedTables').describeLinkedTables>>} [linkedTables]
+ * @property {boolean} [modelSupportsVision]
+ * @property {number} [_screenshotsThisTurn]
+ * @property {string} [_turnMessage]
+ * @property {ReturnType<typeof import('../core/llm/screenConstraints').deriveScreenConstraints>} [_screenConstraint]  the person's screen-count rule for this turn
+ * @property {Map<string, { isActive: boolean }>} [_ownedAutomations]
+ * @property {Array<{ id: string, name?: string }>|null} [_documents]
+ * @property {Awaited<ReturnType<typeof import('./datatableSource').listOwnerDatatableIds>>} [_ownerDatatables]
+ * @property {string} [_lastAddedScreenId]
+ * @property {string} [_lastTouchedScreenId]
+ * @property {string} [_syncedMetaKey]
+ * @property {Map<string, import('./builderTools/definitionTools/addComponents').BatchRecord>} [_addedBatches]
+ * @property {{ sig?: string, patch?: { ops?: Parameters<typeof import('../automation/builderTools/suggestedPatch').applyPatchOps>[1] } }|null} [_lastRejected]
+ */
+
+/**
+ * What a builder tool answers: `{ error, _fixHint }` for a rejected call,
+ * otherwise tool-specific fields (plus `_hints`).
+ * @typedef {Record<string, unknown> & { error?: string, _fixHint?: string, _hints?: string[] }} ToolResult
+ */
+
+/**
+ * The arguments of one tool call: JSON the model wrote, shaped by that tool's
+ * schema in builderTools/schemas.js and read defensively by each tool.
+ * @typedef {Record<string, any>} ToolArgs
+ */

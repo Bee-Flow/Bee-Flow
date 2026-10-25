@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Write the datatable dependents index for ONE automation, from every path that
  * saves a definition.

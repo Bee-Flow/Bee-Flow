@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The vocabulary and row shapes of the project comment store
@@ -33,10 +33,15 @@ class ProjectCommentStoreError extends Error {
     }
 }
 
+/** @param {string | number | Date | null | undefined} v */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
+/** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
 
-/** @returns {string[]} */
+/**
+ * @returns {string[]}
+ * @param {unknown} v
+ */
 function idsOf(v) {
     let list = v;
     if (typeof v === 'string') {
@@ -45,7 +50,10 @@ function idsOf(v) {
     return Array.isArray(list) ? list.filter((x) => typeof x === 'string') : [];
 }
 
-/** A thread row as stored. `anchor` is still sealed (or null). */
+/**
+ * A thread row as stored. `anchor` is still sealed (or null).
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ */
 function rowToThread(r) {
     if (!r) return null;
     return {
@@ -69,7 +77,10 @@ function rowToThread(r) {
     };
 }
 
-/** A comment row as stored. `content` is still sealed ('' once deleted). */
+/**
+ * A comment row as stored. `content` is still sealed ('' once deleted).
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ */
 function rowToComment(r) {
     if (!r) return null;
     return {
@@ -92,6 +103,12 @@ function rowToComment(r) {
     };
 }
 
+/**
+ * @param {unknown} value
+ * @param {readonly unknown[]} allowed
+ * @param {string} code
+ * @param {string} label
+ */
 function assertChoice(value, allowed, code, label) {
     if (!allowed.includes(value)) throw new ProjectCommentStoreError(code, `${label} must be one of ${allowed.join(', ')}`);
 }

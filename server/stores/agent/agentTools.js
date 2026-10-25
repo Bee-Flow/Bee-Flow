@@ -112,3 +112,5 @@ module.exports = {
     getAgentToolsWithParams, updateAgentToolParams, setAgentTools,
     getAgentToolsBatch, getAgentToolsWithParamsBatch,
 };
+
+/** @typedef {{ componentId: string, params?: object | null }} ToolWithParams */

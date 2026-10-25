@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Re-export: the implementation lives in core/automationModel/runLogRedaction.js, below the
  * features, so core can use it (core may not require a feature,

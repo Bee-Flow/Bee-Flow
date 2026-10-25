@@ -358,3 +358,5 @@ module.exports = {
     // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
     initDB,
 };
+
+/** @typedef {{ id?: string, name?: string, description?: string, folderId?: string | null, nodes?: unknown[], edges?: unknown[], viewport?: unknown, isPublic?: boolean }} WorkflowInput */

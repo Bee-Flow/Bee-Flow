@@ -135,3 +135,8 @@ function makeAccess(overrides = {}) {
 }
 
 module.exports = { makeAccess, rawPolicyKey, text, RAW_READ_AUDIT_ACTION };
+
+/**
+ * @typedef {Record<string, any>} RunRow   a run row (database row)
+ * @typedef {Record<string, any>} StepRow   a run-step row (database row)
+ */

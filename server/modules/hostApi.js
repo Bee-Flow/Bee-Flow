@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Host API — the FROZEN capability surface a remote module receives at
  * activation (`createModule(hostApi)` in packageLoader.js).
@@ -58,14 +59,22 @@ const PERMISSION_IDS = Object.freeze({
 
 const HTTP_PERMISSION_RE = /^http:(\*|(\*\.)?[a-z0-9]([a-z0-9.-]*[a-z0-9])?)$/i;
 
-/** True when `id` is a known permission id (fixed taxonomy or an http:<pattern> grant). */
+/**
+ * True when `id` is a known permission id (fixed taxonomy or an http:<pattern> grant).
+ * @param {string} id
+ */
 function isValidPermissionId(id) {
     if (typeof id !== 'string' || !id) return false;
     return Object.prototype.hasOwnProperty.call(PERMISSION_IDS, id) || HTTP_PERMISSION_RE.test(id);
 }
 
-/** Does `url`'s host match any granted http:<pattern>? (exact, *.suffix, or *) */
+/**
+ * Does `url`'s host match any granted http:<pattern>? (exact, *.suffix, or *)
+ * @param {unknown} url
+ * @param {string[]} patterns
+ */
 function hostAllowed(url, patterns) {
+    /** @type {string} */
     let host;
     try { host = new URL(String(url)).hostname.toLowerCase(); } catch (_) { return false; }
     return (patterns || []).some((p) => {
@@ -79,8 +88,19 @@ function hostAllowed(url, patterns) {
 // Lazy requires — cycle-safety + test require.cache overrides + keeping heavy
 // modules (LLM SDKs, AWS S3, the webpage store) out of boot: each is required
 // only on first CALL of the method that needs it, never at build() time.
-let _configStore, _email, _license, _entitlements, _permissions, _modules;
-let _modelResolver, _aiAgent, _providers, _usageStore, _limits, _storageStore, _webpageStore;
+let /** @type {typeof import('../stores/configStore') | undefined} */ _configStore,
+    /** @type {typeof import('../utils/emailService') | undefined} */ _email,
+    /** @type {typeof import('../license') | undefined} */ _license,
+    /** @type {typeof import('../core/entitlements/entitlements') | undefined} */ _entitlements,
+    /** @type {typeof import('../auth/permissions') | undefined} */ _permissions,
+    /** @type {typeof import('./index') | undefined} */ _modules;
+let /** @type {typeof import('../core/llm/modelResolver') | undefined} */ _modelResolver,
+    /** @type {typeof import('../core/aiAgent') | undefined} */ _aiAgent,
+    /** @type {typeof import('../core/providers') | undefined} */ _providers,
+    /** @type {typeof import('../stores/usageStore') | undefined} */ _usageStore,
+    /** @type {typeof import('../core/entitlements/limits') | undefined} */ _limits,
+    /** @type {typeof import('../stores/storageStore') | undefined} */ _storageStore,
+    /** @type {typeof import('../stores/webpageStore') | undefined} */ _webpageStore;
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 function emailService() { return _email || (_email = require('../utils/emailService')); }
 function license() { return _license || (_license = require('../license')); }
@@ -100,8 +120,14 @@ function webpageStore() { return _webpageStore || (_webpageStore = require('../s
  * module referencing something the host never registered) or an inactive-module
  * capability ⇒ 404 conceal. Otherwise delegate to the host's real
  * requireCapability so entitlement math stays identical to every other gate.
+ * @param {string} capId
  */
 function requireCapability(capId) {
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     return async function moduleCapabilityGate(req, res, next) {
         let ent;
         try {
@@ -120,8 +146,16 @@ function requireCapability(capId) {
     };
 }
 
-/** Per-request permission gate (thin lazy wrapper over auth/permissions). */
+/**
+ * Per-request permission gate (thin lazy wrapper over auth/permissions).
+ * @param {string} permission
+ */
 function requirePermission(permission) {
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     return function modulePermissionGate(req, res, next) {
         let gate;
         try {
@@ -133,19 +167,27 @@ function requirePermission(permission) {
     };
 }
 
+/** @type {typeof import('./moduleLogBuffer') | undefined} */
 let _logBuffer;
 function logBuffer() { return _logBuffer || (_logBuffer = require('./moduleLogBuffer')); }
 
+/**
+ * @param {string} moduleId
+ */
 function makeLogger(moduleId) {
     const tag = `[module:${moduleId}]`;
+    /**
+     * @param {'info'|'warn'|'error'|'debug'|'system'} level
+     * @param {unknown[]} a
+     */
     const buffer = (level, a) => { try { logBuffer().append(moduleId, level, a); } catch (err) { telemetryLog.debug('never throw into module code', err); } };
     return {
-        info: (...a) => { buffer('info', a); log.info(tag, ...a); },
-        warn: (...a) => { buffer('warn', a); log.warn(tag, ...a); },
-        error: (...a) => { buffer('error', a); log.error(tag, ...a); },
+        info: (/** @type {unknown[]} */ ...a) => { buffer('info', a); log.info(tag, ...a); },
+        warn: (/** @type {unknown[]} */ ...a) => { buffer('warn', a); log.warn(tag, ...a); },
+        error: (/** @type {unknown[]} */ ...a) => { buffer('error', a); log.error(tag, ...a); },
         // Debug is BUFFERED always (the logs dialog wants it) but only hits the
         // console when MODULE_DEBUG is on.
-        debug: (...a) => { buffer('debug', a); if (process.env.MODULE_DEBUG === 'true') log.info(tag, ...a); },
+        debug: (/** @type {unknown[]} */ ...a) => { buffer('debug', a); if (process.env.MODULE_DEBUG === 'true') log.info(tag, ...a); },
     };
 }
 
@@ -188,6 +230,8 @@ async function dbTx(fn) {
  * webpageStore sequence a module needs to publish a report page
  * (createWebpage → writeSlot(html)+writeSlot(css) → updateWebpageMetadata with
  * the returned sha/size) so a module never touches webpageStore internals.
+ * @param {{ userId?: string, name?: string, description?: string, html?: string, css?: string,
+ *          icon?: string, accentColor?: string, tagline?: string }} [fields]
  * @returns {Promise<string>} the new webpage id.
  */
 async function persistWebpage({ userId, name, description, html, css, icon, accentColor, tagline } = {}) {
@@ -196,6 +240,7 @@ async function persistWebpage({ userId, name, description, html, css, icon, acce
     const webpageId = webpage.id;
     const { sha: htmlSha, size: htmlSize } = await wps.writeSlot(userId, webpageId, 'html', html || '');
     const { sha: cssSha, size: cssSize } = await wps.writeSlot(userId, webpageId, 'css', css || '');
+    /** @type {{ htmlSha: string, htmlSize: number, cssSha: string, cssSize: number, icon?: string, accentColor?: string, tagline?: string }} */
     const meta = { htmlSha, htmlSize, cssSha, cssSize };
     // Only stamp presentation fields the caller actually supplied so we don't
     // clobber a store default with null.
@@ -214,18 +259,41 @@ async function persistWebpage({ userId, name, description, html, css, icon, acce
  * Namespaced configStore view — every key is forced through a
  * `module_<id>_` prefix, closing v1's instance-wide getSecret over-grant
  * (a module could read ANY install secret through stores.configStore).
+ * @param {string} moduleId
  */
 function namespacedConfig(moduleId) {
     const prefix = `module_${moduleId}_`;
+    /** @param {string} key */
     const k = (key) => `${prefix}${String(key)}`;
     return Object.freeze({
-        getConfig: (key) => configStore().getConfig(k(key)),
-        setConfig: (key, value) => configStore().setConfig(k(key), value),
-        getSecret: (key) => configStore().getSecret(k(key)),
-        setSecret: (key, value) => configStore().setSecret(k(key), value),
+        getConfig: /** @param {string} key */ (key) => configStore().getConfig(k(key)),
+        setConfig: /** @param {string} key @param {Parameters<typeof import('../stores/configStore').setConfig>[1]} value */ (key, value) => configStore().setConfig(k(key), value),
+        getSecret: /** @param {string} key */ (key) => configStore().getSecret(k(key)),
+        setSecret: /** @param {string} key @param {Parameters<typeof import('../stores/configStore').setSecret>[1]} value */ (key, value) => configStore().setSecret(k(key), value),
     });
 }
 
+/**
+ * @typedef {{
+ *   hostApiVersion: number, moduleId: string, express: typeof express,
+ *   middleware: Readonly<{ requireCapability: typeof requireCapability, requirePermission: typeof requirePermission }>,
+ *   net: Readonly<{ isPrivateTarget: typeof isPrivateTarget }>,
+ *   isModuleActive: (id?: string) => ReturnType<typeof import('./index').isModuleActive>,
+ *   log: ReturnType<typeof makeLogger>, dataDir: string | null, permissions: readonly string[] | null,
+ *   db?: Readonly<{ exec: typeof exec, run: typeof run, getOne: typeof getOne, getAll: typeof getAll, getClient: typeof getClient, tx: typeof dbTx }>,
+ *   ai?: Readonly<{ resolveModelForTier: typeof import('../core/llm/modelResolver').resolveModelForTier,
+ *     getProviderForModel: typeof import('../core/aiAgent').getProviderForModel, getAdapter: typeof import('../core/providers').getAdapter }>,
+ *   usage?: Readonly<{ logUsage: typeof import('../stores/usageStore').logUsage }>,
+ *   limits?: Readonly<{ checkSubscription: typeof import('../core/entitlements/limits').checkSubscriptionLimits }>,
+ *   storage?: Readonly<{ getPresignedUrl: typeof import('../stores/storageStore').getPresignedUrl }>,
+ *   webpages?: Readonly<{ persist: typeof persistWebpage }>,
+ *   services?: Readonly<{ readonly email: typeof import('../utils/emailService') }>,
+ *   license?: typeof licenseView,
+ *   stores?: Readonly<{ readonly configStore: typeof import('../stores/configStore') }>,
+ *   config?: ReturnType<typeof namespacedConfig>,
+ *   fetch?: typeof ssrfGuard.safeFetch, ssrfGuard?: typeof ssrfGuard,
+ * }} HostApi
+ */
 /**
  * Build the frozen host API object for one module.
  *
@@ -244,11 +312,15 @@ function namespacedConfig(moduleId) {
 function build(moduleId, { dataDir = null, permissions = null } = {}) {
     const legacy = permissions == null;
     const granted = legacy ? null : new Set(permissions);
+    /**
+     * @param {string} id
+     */
     const has = (id) => legacy || granted.has(id);
     const httpPatterns = legacy ? null : [...granted]
         .filter(p => typeof p === 'string' && p.startsWith('http:'))
         .map(p => p.slice(5));
 
+    /** @type {HostApi} */
     const api = {
         hostApiVersion: HOST_API_VERSION,
         moduleId,

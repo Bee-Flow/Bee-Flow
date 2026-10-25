@@ -301,3 +301,21 @@ async function storeScheduleCoverage(task, agent, text) {
 }
 
 module.exports = { executeAgentRun };
+
+/**
+ * The schedule fields a run as agent reads (coworkStore's rowToSchedule shape).
+ * @typedef {import('../aiTaskRunner').CoworkTask & { conversationId?: string | null }} ScheduleTask
+ */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/agentStore').getForRuntime>>>} RuntimeAgent */
+
+/**
+ * What aiTaskRunner hands in (see the module docblock).
+ * @typedef {{
+ *   scheduleText: string,
+ *   resolveUserSession: (userId: string) => Promise<Record<string, any> | null>,
+ *   isRepeating: (task: ScheduleTask) => boolean,
+ *   failRun: (task: ScheduleTask, err: Error, opts: { manual: boolean, store: typeof import('../../stores/coworkStore') }) => Promise<void>,
+ *   NOTIFICATION: { category: string, link: string | null, prefix: string },
+ * }} AgentRunDeps
+ */

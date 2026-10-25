@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -22,31 +22,40 @@ const sup = require('../../stores/lib/chatSignalSuppression');
 const { KIND_LABEL } = require('./projectActivities');
 
 const OBSERVED_DAYS = 90;
+/** @type {Readonly<Record<string, string>>} */
 const SURFACE_LABEL = Object.freeze({ direct: 'Direct chat', agent: 'Agent chat' });
+/** @type {Readonly<Record<string, string>>} */
 const LABELS = Object.freeze({
     ...KIND_LABEL,
     credential: 'Secrets and passwords',
     other: 'Other personal data (your own data types)',
 });
+/** @type {Readonly<Record<string, string>>} */
 const LEGAL_BASIS = Object.freeze({
     art6_1_f: 'Art. 6(1)(f) GDPR, legitimate interest: keeping personal data safe when people use AI in chat (network and information security, recital 49), balanced in the DPIA',
     art6_1_e: 'Art. 6(1)(e) GDPR, public task',
     art6_1_c: 'Art. 6(1)(c) GDPR, legal obligation (Art. 32)',
 });
+/** @type {Readonly<Record<string, string>>} */
 const DPIA_WORD = Object.freeze({ internal: 'internal record', external: 'external reference', none: 'none' });
 
 function defaultDeps() {
     return {
-        getSettings: (orgKey) => require('../../stores/complianceStore').getSettings(orgKey),
-        getDpia: (orgKey) => require('../../stores/dpiaStore').getLatestForAgent(orgKey, V.CHAT_MONITORING_DPIA_KEY),
-        hasRows: (orgKey) => require('../../stores/chatSignalStore').hasRows(orgKey),
-        kindTotals: (orgKey, w) => require('../../stores/chatSignalStore').kindTotals(orgKey, w),
-        contributorCount: (orgKey, surface, w) => require('../../stores/chatSignalStore').contributorCount(orgKey, surface, w),
+        getSettings: (/** @type {string} */ orgKey) => require('../../stores/complianceStore').getSettings(orgKey),
+        getDpia: (/** @type {string} */ orgKey) => require('../../stores/dpiaStore').getLatestForAgent(orgKey, V.CHAT_MONITORING_DPIA_KEY),
+        hasRows: (/** @type {string} */ orgKey) => require('../../stores/chatSignalStore').hasRows(orgKey),
+        kindTotals: (/** @type {string} */ orgKey, /** @type {{ from: string; to: string; surfaces: string[]; granularity?: string; }} */ w) => require('../../stores/chatSignalStore').kindTotals(orgKey, w),
+        contributorCount: (/** @type {string} */ orgKey, /** @type {string} */ surface, /** @type {{ from: string; toExclusive: string; }} */ w) => require('../../stores/chatSignalStore').contributorCount(orgKey, surface, w),
         now: () => new Date(),
     };
 }
 
-/** Kind labels seen in the last 90 days, k-suppressed per employee chat type; no counts. */
+/**
+ * Kind labels seen in the last 90 days, k-suppressed per employee chat type; no counts.
+ * @param {string} orgKey
+ * @param {ReturnType<typeof defaultDeps>} deps
+ * @param {Date} now
+ */
 async function observedKinds(orgKey, deps, now) {
     const to = sup.utcDay(now);
     const from = sup.addDays(to, -OBSERVED_DAYS);
@@ -73,13 +82,14 @@ async function chatMonitoringActivity(orgId, deps = defaultDeps()) {
     if (!enabled && !(await deps.hasRows(orgKey))) return [];
 
     const now = deps.now();
-    const surfaces = (Array.isArray(s.chat_monitoring_surfaces) ? s.chat_monitoring_surfaces : []).filter(x => V.SURFACES.includes(x));
-    const signals = (Array.isArray(s.chat_monitoring_signals) ? s.chat_monitoring_signals : []).filter(x => V.SIGNALS.includes(x));
+    const surfaces = (Array.isArray(s.chat_monitoring_surfaces) ? s.chat_monitoring_surfaces : []).filter((/** @type {string} */ x) => V.SURFACES.includes(x));
+    const signals = (Array.isArray(s.chat_monitoring_signals) ? s.chat_monitoring_signals : []).filter((/** @type {string} */ x) => V.SIGNALS.includes(x));
     const days = rules.clampedRetention(s);
-    const employee = surfaces.filter(x => V.isEmployeeSurface(x));
+    const employee = surfaces.filter((/** @type {string} */ x) => V.isEmployeeSurface(x));
 
+    /** @type {string[]} */
     const dataSubjects = [];
-    if (employee.length) dataSubjects.push(`Employees and members using: ${employee.map(x => SURFACE_LABEL[x] || x).join(', ')}`);
+    if (employee.length) dataSubjects.push(`Employees and members using: ${employee.map((/** @type {string | number} */ x) => SURFACE_LABEL[x] || x).join(', ')}`);
     if (surfaces.includes('agent_public')) dataSubjects.push('Website visitors who chat with an embedded agent');
     if (!surfaces.length) dataSubjects.push('Employees, members and website visitors whose chat messages were counted before chat signals were switched off');
     dataSubjects.push('People named in those messages (third parties)');
@@ -90,6 +100,7 @@ async function chatMonitoringActivity(orgId, deps = defaultDeps()) {
 
     let dpia = 'none';
     try { dpia = rules.dpiaStatus(s, await deps.getDpia(orgKey), now).kind; } catch { dpia = 'none'; }
+    /** @type {string[]} */
     let observed = [];
     try { observed = await observedKinds(orgKey, deps, now); } catch { observed = []; }
 
@@ -116,7 +127,7 @@ async function chatMonitoringActivity(orgId, deps = defaultDeps()) {
         dpia: DPIA_WORD[dpia] || 'none',
         dpia_link: 'admin/compliance/dpia',
         observed_kinds: observed,
-        ai_act: null,
+        ai_act: /** @type {Record<string, unknown> | null} */ (null),
         source: { kind: 'chat_signals', id: 'chat_monitoring' },
     }];
 }

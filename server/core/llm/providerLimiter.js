@@ -290,3 +290,9 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
 const singleton = createProviderLimiter();
 
 module.exports = { ...singleton, createProviderLimiter };
+
+/**
+ * @typedef {{ get?: (name: string) => string | null | undefined, 'retry-after'?: string | null }} HeadersLike
+ * @typedef {{ status?: number, statusCode?: number, message?: string, retryAfterMs?: number, error?: { type?: string }, headers?: HeadersLike, response?: { headers?: HeadersLike } }} RateErr
+ * @typedef {{ req: number, tok: number, at: number, pausedUntil: number, tail: Promise<void>, pending: number, lastUsed: number }} LimiterEntry
+ */

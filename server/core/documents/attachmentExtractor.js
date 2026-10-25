@@ -485,3 +485,13 @@ module.exports = {
     isCad,
     isPlainText,
 };
+
+/**
+ * @typedef {{ name: string, type: string, content: string }} Attachment
+ * @typedef {{ modelSupportsVision?: boolean, documentMode?: string }} ExtractOptions
+ * @typedef {{ name?: string, type?: string }} AttachmentRef
+ * @typedef {{ kind: string, text?: string, source?: string | null, reason?: string,
+ *   images?: { mimeType: string, base64: string }[],
+ *   pages?: Awaited<ReturnType<typeof extractTextFromPDFWithStats>>['pages'],
+ *   meta?: { numPages?: number, extractedChars?: number, totalChars?: number, truncated?: boolean, renderedPages?: number } }} ExtractResult
+ */

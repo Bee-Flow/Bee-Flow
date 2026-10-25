@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One table's own facts: the label, the Art. 30 purpose, the lawful basis,
  * which column names the data subject, and how long its rows are kept.
@@ -23,6 +23,8 @@ const { z, typeError } = require('../../utils/zod');
 const { worded, choice, rowScopeWord, NAME_TEXT, PURPOSE_TEXT } = require('./schemas');
 const log = require('../../telemetry/log');
 
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+
 /**
  * The keys a PATCH may NOT carry, told apart from a typo on purpose.
  *
@@ -36,10 +38,10 @@ const log = require('../../telemetry/log');
 const IMMUTABLE = Object.freeze(['key', 'scope', 'id', 'organizationId', 'scopeKind', 'managedKind']);
 
 /** GDPR Art. 6(1) — the same closed list the Compliance settings screen offers. */
-const LAWFUL_BASES = Object.freeze([
+const LAWFUL_BASES = /** @type {readonly [string, ...string[]]} */ (Object.freeze([
     'consent', 'contract', 'legal_obligation',
     'vital_interests', 'public_task', 'legitimate_interests',
-]);
+]));
 
 const RETENTION_TEXT = `A retention window is a whole number of days between 1 and ${MAX_RETENTION_DAYS}, or none`;
 const BASIS_TEXT = 'Choose one of the six GDPR Art. 6 grounds, or none';
@@ -98,6 +100,7 @@ const PatchBody = z.preprocess(
  * the store so the client never derives it. Best effort: a GET that cannot
  * tell says null rather than failing, because every write is guarded in the
  * store regardless of what the client was told.
+ * @param {DatatableRequest['datatable']} table
  */
 async function managedOf(table) {
     if (!table || typeof table.projectId !== 'string' || !table.projectId) return null;
@@ -111,8 +114,9 @@ async function managedOf(table) {
     }
 }
 
+/** @param {import('express').Router} router */
 function register(router) {
-    router.get('/:id', requireDatatableGrade('viewer'), async (req, res) => {
+    router.get('/:id', requireDatatableGrade('viewer'), async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
         const managed = await managedOf(req.datatable);
         res.json({ datatable: { ...publicTable(req.datatable, req.datatableGrade), managed } });
     });
@@ -144,9 +148,10 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         validate({ body: PatchBody }),
-        async (req, res) => {
+        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
             try {
                 const body = req.body;
+                /** @type {Parameters<typeof datatableStore.updateDatatableMeta>[2]} */
                 const patch = {};
 
                 // Trimmed and type-checked by the schema; the Art. 30 purpose
@@ -217,7 +222,7 @@ function register(router) {
 
                 if (body.subjectColumn !== undefined) {
                     if (body.subjectColumn !== null) {
-                        const declared = new Set((meta.fields || []).map(f => f && f.key));
+                        const declared = new Set((meta.fields || []).map((/** @type {{ key?: string }} */ f) => f && f.key));
                         if (!declared.has(body.subjectColumn)) {
                             bad(`"${body.subjectColumn}" is not a column of this table`, 'bad_subject_column');
                         }

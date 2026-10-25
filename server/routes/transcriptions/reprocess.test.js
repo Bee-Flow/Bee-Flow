@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Reprocess route: POST /api/transcriptions/:id/reprocess (async-202).
  *

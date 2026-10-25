@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Multi-File Tools
  *
@@ -112,11 +112,17 @@ const WEBPAGE_MULTI_FILE_TOOLS = [
 ];
 
 const TOOL_NAMES = new Set(WEBPAGE_MULTI_FILE_TOOLS.map(t => t.function.name));
+/**
+ * @param {string} name
+ */
 function isMultiFileTool(name) {
     return TOOL_NAMES.has(name);
 }
 
 const RESERVED = new Set(['index.html', 'style.css', 'script.js']);
+/**
+ * @param {string} path
+ */
 function rejectReserved(path) {
     if (RESERVED.has(path)) {
         const slot = path === 'index.html' ? 'html' : path === 'style.css' ? 'css' : 'js';
@@ -129,6 +135,9 @@ function rejectReserved(path) {
  * Execute a multi-file tool. Returns an envelope similar to the doc-tool
  * executor — `{ ...result, _action?: 'webpage_extra_update' | 'webpage_extra_deleted' }`
  * so the chat handler can emit the matching SSE event for live UI sync.
+ * @param {string} toolName
+ * @param {{ path?: string, content?: string, find_text?: string, replace_text?: string, replace_all?: boolean }} args
+ * @param {{ webpageId: string, userId: string }} ctx
  */
 async function executeMultiFileTool(toolName, args, { webpageId, userId }) {
     if (toolName === 'webpage_list_files') {

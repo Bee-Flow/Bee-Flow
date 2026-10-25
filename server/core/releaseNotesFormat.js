@@ -221,3 +221,10 @@ module.exports = {
     buildUserPayload,
     renderMarkdown,
 };
+
+/**
+ * One release range's raw git material.
+ * @typedef {{ commitSubjects?: string[] | string, prTitles?: string[] | string, diffstat?: string,
+ *   services?: string, version?: string, modelTier?: string }} ReleaseMaterial
+ * @typedef {{ title: string, lead: string, items: Array<{ kind: string, title: string, body: string }> }} ReleaseDraft
+ */

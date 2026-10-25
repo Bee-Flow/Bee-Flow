@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — retrieval.
  *
@@ -39,7 +40,10 @@ const {
     resolveIsOrgAdmin,
 } = require('./shared');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {import('zod').ZodRawShape} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const DEFAULT_TOP_K = 8;
@@ -91,8 +95,8 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
     if (effectiveKbIds.length === 0) {
         const all = await kbStore.listKBs(userId, orgIds, { isOrgAdmin });
         effectiveKbIds = (all || [])
-            .filter(kb => kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { isOrgAdmin }))
-            .map(kb => kb.id);
+            .filter(/** @param {Record<string, any>} kb */ kb => kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { isOrgAdmin }))
+            .map(/** @param {Record<string, any>} kb */ kb => kb.id);
         if (effectiveKbIds.length === 0) {
             return res.json({ chunks: [], results: [], kb_ids: [] });
         }
@@ -102,7 +106,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
             [effectiveKbIds]
         );
         const foundIds = new Set(kbRows.map(r => String(r.id)));
-        const missing = effectiveKbIds.find(id => !foundIds.has(String(id)));
+        const missing = effectiveKbIds.find(/** @param {string} id */ id => !foundIds.has(String(id)));
         if (missing) {
             return res.status(403).json({ error: `Access denied for KB ${missing}` });
         }
@@ -118,6 +122,8 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
     const kbProvider = await resolveKbProvider();
     const useLocalKB = useAzure || kbProvider === 'local';
 
+    /** @typedef {Array<Record<string, unknown>> & { _orphanFiltered?: boolean }} ChunkList */
+    /** @type {{ chunks?: ChunkList, results?: ChunkList }} */
     let results;
     if (useLocalKB) {
         const { searchLocally } = require('../../core/kb/localKBIngest');
@@ -149,7 +155,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
             throw new HttpError(502, 'search_failed', 'The search service could not answer this search.');
         }
 
-        results = await searchRes.json();
+        results = /** @type {{ chunks?: ChunkList, results?: ChunkList }} */ (await searchRes.json());
         
         // Format chunks correctly regardless of what key the search-service uses
         if (!results.chunks && results.results) {
@@ -164,10 +170,11 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
     const alreadyFiltered = (results.chunks || results.results || [])?._orphanFiltered;
     if (!alreadyFiltered && allChunks.length > 0 && allChunks.some(c => c.document_id)) {
         try {
+            /** @type {{ getAll: typeof import('../../db').getAll }} */
             const { getAll } = require('../../db');
             const dbDocs = await getAll('SELECT id FROM documents WHERE knowledge_base_id = ANY($1::uuid[])', [effectiveKbIds]);
             const validDocIds = new Set(dbDocs.map(d => String(d.id).toLowerCase()));
-            const filterFn = c => !c.document_id || validDocIds.has(String(c.document_id).toLowerCase());
+            const filterFn = /** @param {Record<string, unknown>} c */ c => !c.document_id || validDocIds.has(String(c.document_id).toLowerCase());
             
             if (results.chunks && Array.isArray(results.chunks)) {
                 results.chunks = results.chunks.filter(filterFn);

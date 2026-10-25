@@ -582,3 +582,8 @@ router.post('/:id/grants', requireAuth, shareLimit, validate({ body: GrantBody }
 });
 
 module.exports = router;
+
+/**
+ * @typedef {{ headerName?: string, username?: string, tokenUrl?: string, scope?: string,
+ *   tokenAuthMethod?: string, clientIdHint?: string }} HttpSecretMeta
+ */

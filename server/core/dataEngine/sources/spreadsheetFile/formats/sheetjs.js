@@ -37,12 +37,16 @@ const ZIP_FORMATS = new Set(['xlsx', 'xlsm', 'ods']);
 // hide the data under it, so the probe is a short run, not one row.
 const PROBE_ROWS = 50;
 
+/** @typedef {{ sheet: string, header: unknown[], rows: unknown[][], rowNumbers: number[], formulaCols: Set<number>, dateCols: Set<number>, numFmts: Map<number, string>, lastDataRow: number, truncated: boolean, warnings: string[] }} SheetRead */
+
 // Both .xlsx and .ods are ZIP packages: local-file-header signature.
+/** @param {unknown} buf */
 function isZipPackage(buf) {
     return Buffer.isBuffer(buf) && buf.length >= 4 && buf[0] === 0x50 && buf[1] === 0x4b && buf[2] === 0x03 && buf[3] === 0x04;
 }
 
 // A .xls is a CFB (OLE2) container.
+/** @param {unknown} buf */
 function isCfbPackage(buf) {
     const sig = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
     return Buffer.isBuffer(buf) && buf.length >= 8 && sig.every((b, i) => buf[i] === b);
@@ -53,6 +57,10 @@ const EMPTY_ODS_STYLES =
     '<?xml version="1.0" encoding="UTF-8"?>' +
     '<office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" office:version="1.2"/>';
 
+/**
+ * @param {Buffer} buffer
+ * @param {string} format
+ */
 function assertPackage(buffer, format) {
     if (ZIP_FORMATS.has(format) && !isZipPackage(buffer)) {
         throw new SpreadsheetSourceError(415, 'format_unsupported',
@@ -64,7 +72,12 @@ function assertPackage(buffer, format) {
     }
 }
 
-/** XLSX.read with the ODS styles.xml retry. */
+/**
+ * XLSX.read with the ODS styles.xml retry.
+ * @param {Buffer} buffer
+ * @param {string} format
+ * @param {import('@e965/xlsx').ParsingOptions} options
+ */
 async function readWorkbook(buffer, format, options) {
     assertPackage(buffer, format);
     try {
@@ -75,7 +88,7 @@ async function readWorkbook(buffer, format, options) {
         // styles.xml as well, so a file this product created would have been
         // unreadable. Patch an empty stylesheet in and retry — only for that
         // specific failure.
-        if (format !== 'ods' || !/styles\.xml/.test(String(e && e.message))) throw parseFailure(format, e);
+        if (format !== 'ods' || !/styles\.xml/.test(String(e && /** @type {Error} */ (e).message))) throw parseFailure(format, e);
         const JSZip = require('jszip');
         const zip = await JSZip.loadAsync(buffer);
         zip.file('styles.xml', EMPTY_ODS_STYLES);
@@ -87,11 +100,19 @@ async function readWorkbook(buffer, format, options) {
     }
 }
 
+/**
+ * @param {string} format
+ * @param {Error} e
+ */
 function parseFailure(format, e) {
     return new SpreadsheetSourceError(422, 'spreadsheet_rejected',
         `The .${format} file could not be read: ${String(e && e.message || e).slice(0, 120)}`);
 }
 
+/**
+ * @param {XLSX.WorkSheet} ws
+ * @param {{ full?: boolean }} [opts]
+ */
 function rangeOf(ws, { full = false } = {}) {
     const ref = ws && ((full && ws['!fullref']) || ws['!ref']);
     if (!ref) return null;
@@ -119,7 +140,11 @@ async function listSheets(buffer, format, { probeRows = 10_001 } = {}) {
     });
 }
 
-/** Resolve the sheet the source names (name, else index, else the first). */
+/**
+ * Resolve the sheet the source names (name, else index, else the first).
+ * @param {XLSX.WorkBook} wb
+ * @param {string|number|null} [sheet]
+ */
 function pickSheet(wb, sheet) {
     const names = wb.SheetNames || [];
     if (!names.length) {
@@ -136,7 +161,10 @@ function pickSheet(wb, sheet) {
         `The workbook has no worksheet called "${wanted}" any more (it has: ${names.slice(0, 10).join(', ')}).`, { ref: { sheet: wanted } });
 }
 
-/** One SheetJS cell → the reader's value (string | number | boolean | Date | null). */
+/**
+ * One SheetJS cell → the reader's value (string | number | boolean | Date | null).
+ * @param {(Omit<XLSX.CellObject, 't'> & { t: XLSX.ExcelDataType | 'str' }) | undefined} cell
+ */
 function cellValue(cell) {
     if (!cell) return null;
     switch (cell.t) {
@@ -158,6 +186,7 @@ function cellValue(cell) {
     }
 }
 
+/** @param {XLSX.CellObject | undefined} cell */
 function isDateCell(cell) {
     return !!cell && cell.t === 'n' && !!cell.z && XLSX.SSF.is_date(cell.z);
 }
@@ -172,7 +201,9 @@ function isDateCell(cell) {
  * rows than `maxRows`; `lastDataRow` is the highest sheet row with a value
  * inside the header's span among the rows read.
  *
- * @returns {Promise<{ sheet, header, rows, rowNumbers, formulaCols:Set, dateCols:Set, numFmts:Map, lastDataRow, truncated, warnings }>}
+ * @param {Buffer} buffer
+ * @param {{ format: string, sheet?: string|number|null, headerRow?: number, maxRows: number, maxCols: number }} opts
+ * @returns {Promise<SheetRead>}
  */
 async function readSheet(buffer, { format, sheet, headerRow = 1, maxRows, maxCols }) {
     const h = Math.max(1, Number(headerRow) || 1);
@@ -182,6 +213,7 @@ async function readSheet(buffer, { format, sheet, headerRow = 1, maxRows, maxCol
     });
     const name = pickSheet(wb, sheet);
     const ws = wb.Sheets[name];
+    /** @type {string[]} */
     const warnings = [];
     const range = ws ? rangeOf(ws) : null;
     if (!ws || !range || h - 1 > range.e.r) headerMissing(name);
@@ -208,6 +240,7 @@ async function readSheet(buffer, { format, sheet, headerRow = 1, maxRows, maxCol
     // the sheet; the file's own dimension (xlsx) covers a sheet that goes on
     // beyond the probe.
     const rows = [];
+    /** @type {number[]} */
     const rowNumbers = [];
     const formulaCols = new Set();
     const dateCols = new Set();
@@ -260,6 +293,9 @@ async function readSheet(buffer, { format, sheet, headerRow = 1, maxRows, maxCol
     return { sheet: name, header, rows, rowNumbers, formulaCols, dateCols, numFmts, lastDataRow, truncated, warnings };
 }
 
+/**
+ * @param {string} name
+ */
 function headerMissing(name) {
     throw new SpreadsheetSourceError(422, 'header_missing',
         `Worksheet "${name}" has no header row there — pick the row that holds the column names.`, { ref: { sheet: name } });

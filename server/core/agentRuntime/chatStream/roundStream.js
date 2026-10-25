@@ -19,6 +19,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
 /**
  * Stream one round. Writes the token counters and reasoning into `st` (see
  * ./turnState) and returns what the loop needs to decide the next step.
+ * @param {{ st: import('./turnLoop').LoopState, req: Awaited<ReturnType<import('./turnLoop').RoundSteps['buildRoundRequest']>>, terminationBaseRow: import('./turnLoop').TerminationBaseRow, steps: import('./turnLoop').RoundSteps, signal: AbortSignal | null, guardrailViolation: import('./turnLoop').LoopTurn['guardrailViolation'], _forceFinalAnswer: boolean } & Pick<import('./turnLoop').LoopTurn, 'agent' | 'agentId' | 'userId' | 'messageMetadata' | 'config' | 'modelToUse' | 'conversation' | 'tools' | 'onEvent' | 'regexConfig'>} opts
  */
 async function streamRound({ st, req, terminationBaseRow, steps, ...turn }) {
     const { streamNativeAdapterRound, streamRawSseRound } = steps;
@@ -32,6 +33,7 @@ async function streamRound({ st, req, terminationBaseRow, steps, ...turn }) {
     } = req;
     const thinking = st.thinking;
     let _roundStopReason = null;
+    /** @type {Awaited<ReturnType<import('./turnLoop').RoundSteps['streamNativeAdapterRound']>>['_invalidToolCalls']} */
     let _invalidToolCalls = [];
     let _round;
 
@@ -85,6 +87,9 @@ async function streamRound({ st, req, terminationBaseRow, steps, ...turn }) {
  * One whole model round: build the request (./roundRequest), mark the first
  * hand-over to the model, then stream it. `t` is the prepared turn (see
  * ./turnPrepare), `st` the loop state (./turnState).
+ * @param {import('./turnLoop').LoopTurn} t
+ * @param {import('./turnLoop').LoopState} st
+ * @param {{ guardrailViolation: import('./turnLoop').LoopTurn['guardrailViolation'], _assistantTokenisationInfo: import('./turnLoop').LoopTurn['_assistantTokenisationInfo'], _forceFinalAnswer: boolean, signal: AbortSignal | null, terminationBaseRow: import('./turnLoop').TerminationBaseRow, steps: import('./turnLoop').RoundSteps }} round
  */
 async function runModelRound(t, st, { guardrailViolation, _assistantTokenisationInfo, _forceFinalAnswer, signal, terminationBaseRow, steps }) {
     const { buildRoundRequest, emitPhase } = steps;

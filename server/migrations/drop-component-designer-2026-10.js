@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Migration: the Component Designer is gone (2026-10).
  *
@@ -79,6 +79,7 @@ async function dropGrant(db) {
 /** @param {{ db?: Db }} [opts] */
 async function up({ db } = {}) {
     const conn = db || { query: (sql, params) => require('../db').run(sql, params) };
+    /** @type {{ orgsUpdated: number | null, agentDeleted: boolean | null }} */
     const result = { orgsUpdated: null, agentDeleted: null };
     if (await tableExists(conn, 'organizations') && await columnExists(conn, 'organizations', 'org_granted_capabilities')) {
         result.orgsUpdated = await dropGrant(conn);

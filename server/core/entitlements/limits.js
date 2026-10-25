@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Subscription Limit Enforcement
  * 

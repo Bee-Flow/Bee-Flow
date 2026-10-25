@@ -3,8 +3,11 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { checkPageMedia, MAX_MEDIA } = require('./validateMedia');
 
+/** @param {number} [width] */
 const img = (width) => ({ kind: 'image', src: '/a.png', alt: 'a', width, height: 100 });
+/** @param {unknown[]} blocks */
 const codes = (blocks) => {
+    /** @type {import('./validateMedia').Finding[]} */
     const w = [];
     checkPageMedia('p1', 'Home', blocks, w);
     return w.map((x) => x.code);

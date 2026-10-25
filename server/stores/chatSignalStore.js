@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * chat_signal_counts — chat signals: how the Privacy Shield handled chat
  * messages, as counters only.
@@ -59,13 +59,19 @@ const DDL = `
 
 const ORG_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** @typedef {{ organization_id: string, period_start: string, granularity: string, surface: string, signal: string, value: string, destination: string, provider_type: string, protection: string, turns: number }} SignalRow */
+/** @type {Array<keyof SignalRow>} */
 const PK = ['organization_id', 'period_start', 'granularity', 'surface', 'signal', 'value', 'destination', 'provider_type', 'protection'];
+/** @type {Array<keyof SignalRow>} */
 const COLS = [...PK, 'turns'];
 /** One statement holds at most this many rows (10 binds each, under Postgres' 65 535). */
 const MAX_ROWS_PER_STATEMENT = 5000;
 const MAX_TURNS = 1_000_000_000;
 
-/** The first invalid field of a row, by name; never its value. */
+/**
+ * The first invalid field of a row, by name; never its value.
+ * @param {SignalRow} r
+ */
 function _invalidField(r) {
     if (!r || typeof r !== 'object') return 'row';
     if (typeof r.organization_id !== 'string' || !ORG_RE.test(r.organization_id)) return 'organization_id';
@@ -95,6 +101,10 @@ function _invalidField(r) {
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeChatSignalStore(db, { ready = async () => {} } = {}) {
+    /**
+     * @param {string} sql
+     * @param {unknown[]} [params]
+     */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
 
     /**
@@ -122,6 +132,7 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         const all = [...merged.values()];
         for (let i = 0; i < all.length; i += MAX_ROWS_PER_STATEMENT) {
             const chunk = all.slice(i, i + MAX_ROWS_PER_STATEMENT);
+            /** @type {unknown[]} */
             const params = [];
             const tuples = chunk.map((r) => {
                 const at = params.length;
@@ -138,7 +149,10 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         return all.length;
     }
 
-    /** @param {{ from: string, to: string, surfaces: string[], granularity?: string }} w */
+    /**
+     * @param {{ from: string, to: string, surfaces: string[], granularity?: string }} w
+     * @param {string} orgId
+     */
     function _window(orgId, w) {
         const surfaces = (w?.surfaces || []).filter(s => V.SURFACES.includes(s));
         return { org: String(orgId), from: w?.from, to: w?.to, surfaces, granularity: w?.granularity || null };
@@ -248,13 +262,19 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         return null;
     }
 
-    /** Does the org have any counts left? (The RoPA lists the activity while it does.) */
+    /**
+     * Does the org have any counts left? (The RoPA lists the activity while it does.)
+     * @param {string} orgId
+     */
     async function hasRows(orgId) {
         const { rows } = await q(`SELECT 1 AS one FROM chat_signal_counts WHERE organization_id = $1 LIMIT 1`, [String(orgId)]);
         return rows.length > 0;
     }
 
-    /** "Delete collected counts": every row of the org. @returns {Promise<number>} */
+    /**
+     * "Delete collected counts": every row of the org. @returns {Promise<number>}
+     * @param {string} orgId
+     */
     async function deleteAll(orgId) {
         const r = await q(`DELETE FROM chat_signal_counts WHERE organization_id = $1`, [String(orgId)]);
         return r.rowCount || 0;

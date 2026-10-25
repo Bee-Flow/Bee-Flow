@@ -1,7 +1,12 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 // Titles are resolved under the reader's existing project access. No plaintext index.
 const TYPES = Object.freeze(['chat', 'task', 'document', 'notebook', 'meeting', 'file']);
+/**
+ * @template T
+ * @param {(opts: { limit: number, offset: number }) => Promise<T[]>} list
+ * @returns {Promise<T[]>}
+ */
 async function allPages(list) {
     const items = [];
     for (let offset = 0; ; offset += 200) {
@@ -10,19 +15,27 @@ async function allPages(list) {
         if (page.length < 200) return items;
     }
 }
+/**
+ * @param {{ id: string }} project
+ * @param {string} userId
+ */
 async function catalogue(project, userId) {
     const box = await require('./chatCrypto').forProject(project);
     const result = [];
+    /**
+     * @param {() => string} fn
+     */
     const open = (fn) => { try { return fn(); } catch { return null; } };
+    /** @type {Record<string, (opts: { limit?: number, offset?: number }) => Promise<Array<{ id: string, name?: string, title?: string, updatedAt?: unknown, createdAt?: unknown }>>>} */
     const lists = {
-        document: (options) => require('../stores/documentStore').listProjectDocuments(project.id, options),
-        notebook: (options) => require('../stores/notebookStore').listProjectNotebooks(project.id, options),
-        meeting: (options) => require('../stores/transcriptionStore').listProjectMeetings(project.id, options),
+        document: (/** @type {{ limit?: number | undefined; offset?: number | undefined; } | undefined} */ options) => require('../stores/documentStore').listProjectDocuments(project.id, options),
+        notebook: (/** @type {{ limit?: number | undefined; offset?: number | undefined; type?: string | undefined; } | undefined} */ options) => require('../stores/notebookStore').listProjectNotebooks(project.id, options),
+        meeting: (/** @type {{ limit?: number | undefined; offset?: number | undefined; } | undefined} */ options) => require('../stores/transcriptionStore').listProjectMeetings(project.id, options),
     };
     for (const [type, list] of Object.entries(lists)) {
         for (const item of await allPages(list)) result.push({ type, id: item.id, title: item.name || item.title || '', updatedAt: item.updatedAt || item.createdAt });
     }
-    for (const thread of await allPages(options => require('../stores/agent/sharedConversations').listProjectThreads(project.id, options))) {
+    for (const thread of await allPages((/** @type {{ limit?: number | undefined; offset?: number | undefined; } | undefined} */ options) => require('../stores/agent/sharedConversations').listProjectThreads(project.id, options))) {
         result.push({ type: 'chat', id: thread.id, title: thread.title || '', threadType: thread.type, agentId: thread.agentId || null });
     }
     for (const archived of [false, true]) {
@@ -40,6 +53,10 @@ async function catalogue(project, userId) {
     for (const file of files) result.push({ type: 'file', id: file.id, title: file.name });
     return result;
 }
+/**
+ * @param {Array<{ type: string, id: string, title: string, description?: string }>} items
+ * @param {{ q?: string, type?: string, cursor?: number, limit?: number }} opts
+ */
 function searchCatalogue(items, { q = '', type, cursor = 0, limit = 40 }) {
     const needle = q.trim().toLocaleLowerCase();
     const matches = items.filter(item => (!type || item.type === type) && `${item.title} ${item.description || ''}`.toLocaleLowerCase().includes(needle))

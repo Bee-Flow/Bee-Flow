@@ -339,3 +339,8 @@ module.exports = {
     _redactStep: redactStep,
     _redactAction: redactAction,
 };
+
+/**
+ * @typedef {{ type: string, values?: readonly unknown[], maxLen?: number }} LookSpec
+ * @typedef {(code: string, path: string, message: string) => void} Push
+ */

@@ -292,3 +292,9 @@ function chartSvg(chart, th, { width = 900, height = 480 } = {}) {
 }
 
 module.exports = { chartSvg, _test: { niceScale, fmt } };
+
+/**
+ * @typedef {import('./deckModel').SlideChart} Chart
+ * @typedef {{ chartColors: string[], text: string, muted: string, tableLine: string, background: string, grid: string,
+ *   onAccent: string, fontStack: string }} ChartTheme
+ */

@@ -209,3 +209,8 @@ function checkFormPage(ctx, step, at) {
 module.exports = {
     checkNotification, checkWait, checkStopError, checkReturnToApp, checkNote, checkFormPage,
 };
+
+/**
+ * @typedef {import('./stepContext').StepCtx} StepCtx
+ * @typedef {import('./stepContext').StepDef} StepDef
+ */

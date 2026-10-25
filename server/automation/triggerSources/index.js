@@ -188,3 +188,50 @@ module.exports = {
     canProduce,
     _resetForTests,
 };
+
+/**
+ * How one event is produced (the runtime half of a declaration).
+ * @typedef {Object} TriggerSourceSpec
+ * @property {string} kind  'poller' | 'push' | 'poll_diff'
+ * @property {boolean} [auto]
+ * @property {string} [tool]
+ * @property {Record<string, unknown>} [args]
+ * @property {string} [requiresIntegration]
+ * @property {string} [itemsPath]
+ * @property {string} [idPath]
+ * @property {string[]} [changePaths]
+ * @property {boolean} [emitOnAppear]
+ * @property {boolean} [emitOnDisappear]
+ * @property {string} [firstRun]
+ * @property {number} [minIntervalMs]
+ * @property {number} [cacheTtlMs]
+ * @property {number} [maxItemsPerTick]
+ * @property {number} [maxTrackedItems]
+ * @property {boolean} [trackValues]
+ * @property {{ mode?: string, map?: Record<string, string>, includeChanges?: boolean }} [emit]
+ */
+
+/**
+ * @typedef {Object} TriggerEventDecl
+ * @property {string} id
+ * @property {string} [label]
+ * @property {boolean} [hidden]
+ * @property {string[]} [fields]
+ * @property {Record<string, unknown>} [sample]
+ * @property {string} [scope]  'user' | 'org'
+ * @property {string} [deliverability]
+ * @property {string} [deliverabilityNote]
+ * @property {TriggerSourceSpec} [source]
+ */
+
+/**
+ * @typedef {Object} TriggerSourceDecl
+ * @property {string} id
+ * @property {string} label
+ * @property {number} [order]
+ * @property {boolean} [hidden]
+ * @property {string | null} [defaultEvent]
+ * @property {boolean} [derived]  synthesised from a user's tool set (autoDerive)
+ * @property {{ kind: string, apps?: string[] }} [availability]
+ * @property {TriggerEventDecl[]} [events]
+ */

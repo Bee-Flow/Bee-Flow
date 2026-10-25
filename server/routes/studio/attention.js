@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * GET /api/studio/attention — the "Needs attention" list on Studio Home.
  *
@@ -107,6 +108,13 @@ const { deepLinkFor } = require('../../projects/completeness');
 const { bySeverity } = require('../../core/findings/finding');
 const log = require('../../telemetry/log');
 
+/**
+ * @typedef {import('./attentionChecks').AttentionSource} AttentionSource
+ * @typedef {import('./attentionChecks').AttentionDeps} AttentionDeps
+ * @typedef {import('./attentionChecks').AttentionCtx} AttentionCtx
+ * @typedef {import('./attentionChecks').Finding} Finding
+ */
+
 /** Same window counts.js uses, and for the same reason: this is a poll. */
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 5000;
@@ -135,8 +143,8 @@ const DEFAULT_LOADERS = {
      * makes per card, so Studio Home and the Solutions overview cannot disagree
      * about whether a Solution is blocked.
      */
-    solutionCompleteness: () => async (projectId) => {
-        const { buildGraphForProject } = require('../projects');
+    solutionCompleteness: () => /** @param {string} projectId */ async (projectId) => {
+        const { buildGraphForProject } = /** @type {{ buildGraphForProject: typeof import('../../projects/graphForProject').buildGraphForProject }} */ (/** @type {unknown} */ (require('../projects')));
         const { collectCompleteness } = require('../../projects/completeness');
         const { graph, members, unavailable } = await buildGraphForProject(projectId);
         return collectCompleteness({ graph, ...members, unavailable });
@@ -156,7 +164,12 @@ const NoQuery = z.preprocess(
     }).strict(),
 );
 
-/** The session check, ahead of the schema: a caller without one hears 401, not 400. */
+/**
+ * The session check, ahead of the schema: a caller without one hears 401, not 400.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireSession = (req, res, next) => (req.session?.isAuthenticated && userIdOf(req)
     ? next()
     : res.status(401).json({ error: 'Not authenticated' }));
@@ -169,8 +182,11 @@ const requireSession = (req, res, next) => (req.session?.isAuthenticated && user
  * can be labelled and grouped) and `remediation` (the producer's own hint,
  * which the validation pill renders as its "→" line). `targetId` is
  * targetRef.id flattened — null when the producer only ever saw a definition.
+ * @param {AttentionSource} source
+ * @param {Finding} finding
  */
 function toRow(source, finding) {
+    /** @type {{ source: string, code: string, severity: string, kind: string, targetId: string | null, message: string, deepLink: string | null, remediation?: string }} */
     const row = {
         source: source.key,
         code: finding.code,
@@ -192,6 +208,7 @@ function toRow(source, finding) {
  * The loaders name their budget gaps `<source>:budget` (attentionChecks.js),
  * and that suffix is the whole vocabulary — a gap label is written in one
  * place and read here.
+ * @param {unknown} label
  */
 const isBudgetGap = (label) => typeof label === 'string' && label.endsWith(':budget');
 
@@ -208,6 +225,10 @@ const isBudgetGap = (label) => typeof label === 'string' && label.endsWith(':bud
  * A source that hit a gap INSIDE itself still returns the rows it did find —
  * dropping them would lose real problems — and cannot vouch for the rest: a
  * budget gap makes it `capped`, any other gap makes it `unavailable`.
+ * @param {AttentionSource} source
+ * @param {import('express').Request} req
+ * @param {AttentionDeps} d
+ * @param {AttentionCtx} ctx
  */
 async function runSource(source, req, d, ctx) {
     try {
@@ -215,7 +236,7 @@ async function runSource(source, req, d, ctx) {
             return { key: source.key, status: 'gated', findings: [], gaps: [] };
         }
     } catch (err) {
-        log.warn(`[StudioAttention] gate ${source.key} failed:`, err?.message || err);
+        log.warn(`[StudioAttention] gate ${source.key} failed:`, /** @type {Error} */ (err)?.message || err);
         return { key: source.key, status: 'unavailable', findings: [], gaps: ['gate'] };
     }
     try {
@@ -229,7 +250,7 @@ async function runSource(source, req, d, ctx) {
         else if (holes.length > 0) status = 'capped';
         return { key: source.key, status, findings: list, gaps: holes };
     } catch (err) {
-        log.warn(`[StudioAttention] ${source.key} failed:`, err?.message || err);
+        log.warn(`[StudioAttention] ${source.key} failed:`, /** @type {Error} */ (err)?.message || err);
         return { key: source.key, status: 'unavailable', findings: [], gaps: ['load'] };
     }
 }
@@ -241,9 +262,14 @@ async function runSource(source, req, d, ctx) {
  * it can name, and allSettled is the net under the one it cannot — a source
  * that rejects in some way nobody predicted becomes `unavailable` instead of
  * vanishing from `sources` and quietly shrinking the question.
+ * @param {import('express').Request} req
+ * @param {AttentionDeps} d
+ * @param {AttentionSource[]} [sources]
  */
 async function collectAttention(req, d, sources = SOURCES) {
+    /** @type {Map<string, ReturnType<Parameters<AttentionCtx['once']>[1]>>} */
     const memo = new Map();
+    /** @type {AttentionCtx} */
     const ctx = {
         // Shared reads (the visible knowledge bases) happen once per request.
         // Sharing a READ does not share a VERDICT: every source still runs in
@@ -257,10 +283,15 @@ async function collectAttention(req, d, sources = SOURCES) {
 
     const settled = await Promise.allSettled(sources.map(s => runSource(s, req, d, ctx)));
 
+    /** @type {ReturnType<typeof toRow>[]} */
     const rows = [];
+    /** @type {Record<string, { status: string, found: number | null, truncated: boolean }>} */
     const summary = {};
+    /** @type {string[]} */
     const unavailable = [];
+    /** @type {string[]} */
     const capped = [];
+    /** @type {string[]} */
     const gated = [];
     let total = 0;
 
@@ -322,18 +353,26 @@ async function collectAttention(req, d, sources = SOURCES) {
     };
 }
 
+/** @param {AttentionDeps | null} [deps] */
 function createAttentionRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router();
     const cache = new Map();
 
     const now = () => (typeof d.now === 'function' ? d.now() : Date.now());
+    /**
+     * @param {string} key
+     */
     const cacheGet = (key) => {
         const hit = cache.get(key);
         if (!hit) return null;
         if (now() - hit.at > CACHE_TTL_MS) { cache.delete(key); return null; }
         return hit.body;
     };
+    /**
+     * @param {string} key
+     * @param {Awaited<ReturnType<typeof collectAttention>>} body
+     */
     const cacheSet = (key, body) => {
         if (cache.size >= CACHE_MAX_ENTRIES) {
             const oldest = cache.keys().next().value;
@@ -342,7 +381,7 @@ function createAttentionRouter(deps = null) {
         cache.set(key, { at: now(), body });
     };
 
-    router.get('/attention', requireSession, validate({ query: NoQuery }), async (req, res) => {
+    router.get('/attention', requireSession, validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const key = `${orgIdOf(req) || ''}:${userIdOf(req)}`;
         // The server cache is the only cache; a per-user answer must not also
         // sit in a browser cache.
@@ -360,15 +399,16 @@ function createAttentionRouter(deps = null) {
         return res.json(body);
     });
 
-    router.__clearCacheForTests = () => cache.clear();
+    /** @type {import('express').Router & { __clearCacheForTests?: () => void }} */ (router).__clearCacheForTests = () => cache.clear();
     return router;
 }
 
+/** @typedef {ReturnType<typeof createAttentionRouter> & { createAttentionRouter: typeof createAttentionRouter, collectAttention: typeof collectAttention, toRow: typeof toRow, SOURCE_KEYS: typeof SOURCE_KEYS, CACHE_TTL_MS: typeof CACHE_TTL_MS }} AttentionRouter */
 const router = createAttentionRouter();
 
-module.exports = router;
-module.exports.createAttentionRouter = createAttentionRouter;
-module.exports.collectAttention = collectAttention;
-module.exports.toRow = toRow;
-module.exports.SOURCE_KEYS = SOURCE_KEYS;
-module.exports.CACHE_TTL_MS = CACHE_TTL_MS;
+module.exports = /** @type {AttentionRouter} */ (router);
+/** @type {AttentionRouter} */ (module.exports).createAttentionRouter = createAttentionRouter;
+/** @type {AttentionRouter} */ (module.exports).collectAttention = collectAttention;
+/** @type {AttentionRouter} */ (module.exports).toRow = toRow;
+/** @type {AttentionRouter} */ (module.exports).SOURCE_KEYS = SOURCE_KEYS;
+/** @type {AttentionRouter} */ (module.exports).CACHE_TTL_MS = CACHE_TTL_MS;

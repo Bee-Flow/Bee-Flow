@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/notebook/versions.js — notebook version history: record (deduped,
  * numbered under the notebook lock, pruned), list, read, name, delete, and the
@@ -19,9 +19,12 @@ const {
     VERSION_META_COLUMNS, mapVersionMeta, mapVersionRow,
 } = require('./versionModel');
 
-/** Insert MAX(seq)+1 while holding the notebook lock, also used by sharing. */
+/**
+ * Insert MAX(seq)+1 while holding the notebook lock, also used by sharing.
+ * @param {Record<string, any>} v
+ */
 async function insertVersionRow(v) {
-    return withTransaction(async (client) => {
+    return withTransaction(async (/** @type {import('pg').PoolClient} */ client) => {
         const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [v.notebookId]);
         if (!rows[0]) throw Object.assign(new Error('Notebook not found'), { status: 404 });
         const resource = { ...contentCrypto.resourceOf(rows[0], 'notebook-version'), id: v.id };
@@ -42,7 +45,10 @@ async function insertVersionRow(v) {
     });
 }
 
-/** The newest version of a notebook (metadata only), or null. */
+/**
+ * The newest version of a notebook (metadata only), or null.
+ * @param {string} notebookId
+ */
 async function latestVersion(notebookId) {
     await initDB();
     const r = await getOne(
@@ -58,6 +64,7 @@ async function latestVersion(notebookId) {
  * The versions project members last saw of this notebook: "Show changes"
  * compares from them when the reader comes back. None outside a project, or
  * on an install without project reads.
+ * @param {string} notebookId
  */
 async function seenVersionIds(notebookId) {
     try {
@@ -67,7 +74,7 @@ async function seenVersionIds(notebookId) {
               WHERE n.id = $1 AND r.item_type = 'notebook' AND r.item_id = $1 AND r.seen_version_id IS NOT NULL`,
             [notebookId]
         );
-        return rows.map(r => r.id);
+        return rows.map((/** @type {{ id: string }} */ r) => r.id);
     } catch (err) {
         if (err && err.code === CODES.UNDEFINED_TABLE) return [];
         throw err;
@@ -77,6 +84,7 @@ async function seenVersionIds(notebookId) {
 /**
  * Drop the oldest unprotected versions beyond the cap. Named, pinned, created
  * and restore rows, and a version a project member last saw, are never touched.
+ * @param {string} notebookId
  */
 async function pruneVersions(notebookId) {
     await run(
@@ -163,6 +171,10 @@ async function recordVersion(notebookId, v = {}) {
  * The old entry point: a snapshot with a free-text label. Kept so a caller
  * written before the uniform model still records a well-formed version; the
  * label is read as a source.
+ * @param {string} notebookId
+ * @param {string} content
+ * @param {string} [summary]
+ * @param {{ createdBy?: string | null }} [options]
  */
 async function createVersion(notebookId, content, summary = 'Auto-save', { createdBy = null } = {}) {
     const source = LEGACY_SUMMARY_SOURCES[summary] || 'checkpoint';
@@ -184,6 +196,8 @@ async function createVersion(notebookId, content, summary = 'Auto-save', { creat
  * it kept.
  *
  * @returns {Promise<{ versions: any[], nextCursor: string|null }>}
+ * @param {string} notebookId
+ * @param {{ cursor?: string | number | null, limit?: number }} [options]
  */
 async function listVersions(notebookId, { cursor = null, limit = 50 } = {}) {
     await initDB();
@@ -205,6 +219,7 @@ async function listVersions(notebookId, { cursor = null, limit = 50 } = {}) {
 /**
  * Version list (metadata only), newest first — the shape callers written
  * before listVersions() use.
+ * @param {string} notebookId
  */
 async function getVersions(notebookId, { limit = 50, offset = 0 } = {}) {
     await initDB();
@@ -218,14 +233,21 @@ async function getVersions(notebookId, { limit = 50, offset = 0 } = {}) {
     return rows.map(mapVersionMeta);
 }
 
-/** A single version with its content (HTML and, when known, Markdown). */
+/**
+ * A single version with its content (HTML and, when known, Markdown).
+ * @param {string} versionId
+ */
 async function getVersion(versionId) {
     await initDB();
     const r = await getOne('SELECT * FROM notebook_versions WHERE id = $1', [versionId]);
     return r ? mapVersionRow(r) : null;
 }
 
-/** A version of THIS notebook, or null: a foreign id never resolves. */
+/**
+ * A version of THIS notebook, or null: a foreign id never resolves.
+ * @param {string} notebookId
+ * @param {string} versionId
+ */
 async function getNotebookVersion(notebookId, versionId) {
     await initDB();
     if (!notebookId || !versionId) return null;
@@ -236,6 +258,9 @@ async function getNotebookVersion(notebookId, versionId) {
 /**
  * Name a version, or clear its name (null). A named version is never pruned.
  * @returns {Promise<any|null>} the updated metadata, null when not this notebook's
+ * @param {string | null} name
+ * @param {string} notebookId
+ * @param {string} versionId
  */
 async function nameVersion(notebookId, versionId, name) {
     await initDB();
@@ -254,6 +279,8 @@ async function nameVersion(notebookId, versionId, name) {
  * by guessing its id (defense in depth behind the route's ownership check).
  * The sibling read path (getVersion) is guarded at the route; this closes the
  * write path the same way.
+ * @param {string} versionId
+ * @param {string} notebookId
  */
 async function deleteVersion(versionId, notebookId = null) {
     await initDB();
@@ -271,6 +298,7 @@ async function deleteVersion(versionId, notebookId = null) {
 /**
  * Check whether an automatic checkpoint is due.
  * Returns true if no version exists or the last one is > 5 minutes old.
+ * @param {string} notebookId
  */
 async function shouldAutoVersion(notebookId) {
     await initDB();

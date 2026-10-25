@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: correct two stale lines in the seeded memory-extractor prompt.
  *
@@ -81,6 +82,7 @@ async function up() {
     }
 
     let prompt = row.system_prompt;
+    /** @type {string[]} */
     const applied = [];
 
     for (const [stale, corrected] of REPLACEMENTS) {
@@ -109,6 +111,7 @@ async function up() {
  * (stores/agent/prompts/memory-extractor.md) is kept equal to the output of
  * this function so a fresh install and a migrated install end up with the
  * same prompt — see stores/agent/prompts/memory-extractor.md.
+ * @param {string | null | undefined} prompt
  */
 function correctPrompt(prompt) {
     let out = String(prompt || '');

@@ -363,3 +363,11 @@ module.exports = {
     // exported for tests
     mapSubmission,
 };
+
+/** @typedef {import('./nextcloudClient.types').NcAuth} NcAuth */
+
+/**
+ * @typedef {{ id: number, hash?: string, title?: string, description?: string, ownerId?: string, created?: number, expires?: number, isAnonymous?: boolean, submitMultiple?: boolean, state?: number, submissionCount?: number, questions?: NcFormQuestion[] }} NcForm
+ * @typedef {{ id: number, text?: string, type?: string, isRequired?: boolean, description?: string, options?: Array<{ id: number, text?: string }> }} NcFormQuestion
+ * @typedef {{ id: number, formId?: number, userId?: string, timestamp?: number, answers?: Array<{ questionId: number, text: string }> }} NcFormSubmission
+ */

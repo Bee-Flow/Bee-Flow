@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The stored shape of a table: a gzip stream of lines. Line 1 is
  * `{"v":1,"columns":[...]}`, every following line one JSON ARRAY of cell values
@@ -9,7 +9,7 @@
 
 const FORMAT_VERSION = 1;
 
-/** One cell as a JSON scalar: string, finite number, boolean or null. */
+/** One cell as a JSON scalar: string, finite number, boolean or null. @param {unknown} v @returns {string|number|boolean|null} */
 function serializeCell(v) {
     if (v == null) return null;
     switch (typeof v) {
@@ -48,6 +48,7 @@ function rowLine(row, keys) {
 function parseRowLine(line, keys) {
     const arr = JSON.parse(line);
     if (!Array.isArray(arr)) throw Object.assign(new Error('The stored table is damaged.'), { errorClass: 'table_damaged' });
+    /** @type {Record<string, unknown>} */
     const o = {};
     for (let i = 0; i < keys.length; i++) o[keys[i]] = i < arr.length ? arr[i] : null;
     return o;

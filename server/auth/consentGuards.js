@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Consent Guards
  *
@@ -28,6 +28,8 @@ const userStore = require('../stores/userStore');
  * cluster ingress + the agent-hub nginx, `req.ip` lands on an internal pod
  * address (e.g. 172.16.x.x). The leftmost X-Forwarded-For entry is the client as
  * first seen at the edge, so we prefer it here and fall back to req.ip.
+ * @param {import("express").Request} req
+ * @returns {string}
  */
 function auditClientIp(req) {
     const fwd = req?.headers?.['x-forwarded-for'];

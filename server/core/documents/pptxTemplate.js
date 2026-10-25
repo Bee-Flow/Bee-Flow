@@ -314,3 +314,9 @@ async function extractDeckTemplate(buffer, { name = '' } = {}) {
 }
 
 module.exports = { extractDeckTemplate, MAX_TEMPLATE_BYTES, _test: { collectLayers, parseRels, normalisePath } };
+
+/** @typedef {{ cx: number, cy: number }} SlideSize */
+
+/** @typedef {{ target?: string, solid?: string, x: number, y: number, w: number, h: number, full: boolean }} PictureLayer */
+
+/** @typedef {typeof import('sharp')} Sharp */

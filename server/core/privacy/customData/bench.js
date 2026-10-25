@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The test bench's matching: the SAME matchers production runs, applied to a
@@ -25,10 +25,20 @@ const PROBE_BATCH = 8;
 const MAX_GROUP_LABELS = 6;
 const TOKEN_KEY_RX = /^[a-z](?:[a-z0-9_]{0,30}[a-z])?$/;
 const IDENTITY_FIELDS = ['id', 'name', 'description', 'method', 'tokenKey', 'origin', 'legacy', 'createdAt', 'createdBy', 'updatedAt'];
+/**
+ * @typedef {typeof import('../customTypes')} BenchEngine
+ * @typedef {import('../customTypes/spec').CustomDataType} CustomDataType
+ * @typedef {{ id: string, text: string, gold?: Array<{ start: number, end: number }> }} BenchSentence
+ */
+
+/** @type {Readonly<Record<string, string>>} */
 const BENCH_IDENTITY = Object.freeze({ name: 'Test bench', tokenKey: 'bench_test', description: '' });
 
-const listOf = (v) => (Array.isArray(v) ? v : []);
+const listOf = (/** @type {unknown} */ v) => (Array.isArray(v) ? v : []);
 
+/**
+ * @param {unknown} errors
+ */
 function draftErrorFor(errors) {
     const list = listOf(errors);
     const patternError = list.find((e) => String(e?.field || '').startsWith('pattern'));
@@ -48,8 +58,12 @@ function draftErrorFor(errors) {
  * Validated by the engine. When only identity fields are wrong (an unfinished
  * name, a placeholder that collides), the bench borrows a neutral identity:
  * it tests the method block, not the name.
+ * @param {BenchEngine} engine
+ * @param {{ method?: string, [key: string]: unknown } | null} draft
+ * @param {{ orgId: string, orgTypes?: unknown }} opts
  */
 async function normaliseDraft(engine, draft, { orgId, orgTypes }) {
+    /** @type {Record<string, unknown>} */
     const base = {};
     for (const k of IDENTITY_FIELDS) if (draft?.[k] !== undefined) base[k] = draft[k];
     if (draft?.method && draft[draft.method] !== undefined) base[draft.method] = draft[draft.method];
@@ -67,12 +81,19 @@ async function normaliseDraft(engine, draft, { orgId, orgTypes }) {
     throw draftErrorFor(listOf(verdict?.errors).length ? verdict.errors : errors);
 }
 
+/**
+ * @param {{ invalid?: unknown } | null} compiled
+ * @param {string} id
+ */
 function compiledIsInvalid(compiled, id) {
     return listOf(compiled?.invalid).some((x) => x === id || x?.id === id);
 }
 
 /**
  * Words / pattern: spans per text for this spec, via the production matcher.
+ * @param {BenchEngine} engine
+ * @param {{ id: string, method: string, [key: string]: unknown }} spec  the whole type goes to the engine; this reads only id and method
+ * @param {string[]} texts
  * @returns {Promise<{ spans: Array<Array<{start:number,end:number}>>, degraded: boolean }>}
  */
 async function predictLocal(engine, spec, texts) {
@@ -91,7 +112,12 @@ async function predictLocal(engine, spec, texts) {
     return { spans, degraded };
 }
 
-/** The org's OTHER enforced ai types, as production groups them (the draft takes one slot). */
+/**
+ * The org's OTHER enforced ai types, as production groups them (the draft takes one slot).
+ * @param {unknown} orgTypes
+ * @param {string} draftId
+ * @param {string} draftPrompt
+ */
 function otherAiTypes(orgTypes, draftId, draftPrompt) {
     const taken = String(draftPrompt || '').trim().toLowerCase();
     return listOf(orgTypes)
@@ -106,6 +132,9 @@ function otherAiTypes(orgTypes, draftId, draftPrompt) {
  * All raw candidates for `texts` under one label set, in batches the guard
  * accepts. Any failure that is not already a client-facing error is the
  * guard being unavailable.
+ * @param {BenchEngine} engine
+ * @param {string[]} texts
+ * @param {Record<string, string>} labelSet
  */
 async function probeAll(engine, texts, labelSet) {
     const out = [];
@@ -131,15 +160,20 @@ async function probeAll(engine, texts, labelSet) {
  * Apply per-label floors, then the flat decode: highest score first, a span
  * that overlaps an accepted one is dropped. Returns the target label's spans
  * per text.
+ * @param {Awaited<ReturnType<typeof probeAll>>} candidates
+ * @param {Record<string, number>} floors
+ * @param {string} targetId
+ * @param {number} textCount
  */
 function decodeAi(candidates, floors, targetId, textCount) {
-    const byText = Array.from({ length: textCount }, () => []);
+    const byText = Array.from({ length: textCount }, () => /** @type {typeof candidates} */ ([]));
     for (const c of candidates) {
         const floor = floors[c.label];
         if (floor === undefined || c.score < floor) continue;
         byText[c.textIdx].push(c);
     }
     return byText.map((list) => {
+        /** @type {typeof candidates} */
         const accepted = [];
         for (const c of [...list].sort((a, b) => b.score - a.score || a.start - b.start)) {
             if (accepted.some((a) => c.start < a.end && a.start < c.end)) continue;
@@ -151,7 +185,13 @@ function decodeAi(candidates, floors, targetId, textCount) {
     });
 }
 
-/** The ai group for a draft prompt: its label set and floors. */
+/**
+ * The ai group for a draft prompt: its label set and floors.
+ * @param {CustomDataType} spec
+ * @param {string} prompt
+ * @param {number} floor
+ * @param {unknown} orgTypes
+ */
 function aiGroup(spec, prompt, floor, orgTypes) {
     const others = otherAiTypes(orgTypes, spec.id, prompt);
     const labelSet = { [spec.id]: prompt };
@@ -160,13 +200,22 @@ function aiGroup(spec, prompt, floor, orgTypes) {
     return { labelSet, floors };
 }
 
-/** Score predicted spans against every sentence. */
+/**
+ * Score predicted spans against every sentence.
+ * @param {BenchSentence[]} sentences
+ * @param {Array<Array<{ start: number, end: number }>>} spansPerText
+ */
 function scoreAll(sentences, spansPerText) {
     const scored = sentences.map((s, i) => scoreSentence(s, spansPerText[i] || []));
     return { scored, summary: summarize(scored) };
 }
 
-/** "[project_code_1] was moved to [project_code_2]": one number per distinct value. */
+/**
+ * "[project_code_1] was moved to [project_code_2]": one number per distinct value.
+ * @param {string} text
+ * @param {Array<{ start: number, end: number }>} spans
+ * @param {string} tokenKey
+ */
 function placeholderText(text, spans, tokenKey) {
     const key = TOKEN_KEY_RX.test(String(tokenKey || '')) ? tokenKey : 'data';
     const sorted = [...spans].sort((a, b) => a.start - b.start);
@@ -185,11 +234,16 @@ function placeholderText(text, spans, tokenKey) {
 
 /**
  * POST /test: score the draft on the sentences.
- * @returns {Promise<{ results, summary, preview?, engine: 'local'|'guard', degraded?: true }>}
+ * @typedef {{ results: Array<{ id: string, marks: ReturnType<typeof scoreSentence>['marks'], verdict: string }>,
+ *   summary: ReturnType<typeof summarize>, preview?: string, engine: 'local'|'guard', degraded?: true }} BenchTestResult
+ * @param {{ engine: BenchEngine, spec: CustomDataType, sentences: BenchSentence[], orgTypes?: unknown, tokenKey?: string }} input
+ * @returns {Promise<BenchTestResult>}
  */
 async function runTest({ engine, spec, sentences, orgTypes, tokenKey }) {
     const texts = sentences.map((s) => s.text);
+    /** @type {Array<Array<{ start: number, end: number }>>} */
     let spans;
+    /** @type {'local'|'guard'} */
     let engineName;
     let degraded = false;
     if (spec.method === 'ai') {
@@ -201,6 +255,7 @@ async function runTest({ engine, spec, sentences, orgTypes, tokenKey }) {
         engineName = 'local';
     }
     const { scored, summary } = scoreAll(sentences, spans);
+    /** @type {BenchTestResult} */
     const out = {
         results: sentences.map((s, i) => ({ id: s.id, marks: scored[i].marks, verdict: scored[i].verdict })),
         summary,

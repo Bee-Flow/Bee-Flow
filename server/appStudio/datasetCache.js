@@ -215,3 +215,16 @@ module.exports = {
     _stableStringify: stableStringify,
     _resolveTable: resolveTable,
 };
+
+/** @typedef {import('./actionExecutor/shared').DataModel} DataModel */
+
+/** @typedef {import('./actionExecutor/shared').DataTable} DataTable */
+
+/** @typedef {{ where?: string, params?: unknown[] }} AccessFilterLike */
+
+/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, limit?: unknown }} Descriptor */
+
+/**
+ * @typedef {Descriptor & { id?: string, descriptor?: Descriptor, aggregate?: Descriptor, cacheTtlSeconds?: number }} DatasetOrDescriptor
+ * @typedef {{ id?: string, role?: string | null, userGroups?: string[], organizationId?: string }} DatasetViewer
+ */

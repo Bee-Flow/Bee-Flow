@@ -490,3 +490,19 @@ module.exports = {
     findRecentIssueBySummary,
     __setVerifyDelayMs,
 };
+
+/** @typedef {import('./youtrackClient').YoutrackCreds} YoutrackCreds */
+
+/**
+ * Model-supplied tool arguments (parsed JSON from the LLM).
+ * @typedef {{
+ *   query?: string, limit?: string, skip?: string, issueId?: string, projectId?: string,
+ *   summary?: string, description?: string, allowDuplicate?: boolean, text?: string,
+ *   command?: string, comment?: string, targetIssueId?: string, linkType?: string,
+ *   login?: string, minutes?: string, date?: string, action?: string, tag?: string
+ * }} YoutrackToolArgs
+ */
+
+/** @typedef {{ name: string, value?: { name?: string } }} YtCustomField */
+
+/** @typedef {{ id?: string, text?: string, created?: number, author?: { login?: string, fullName?: string } }} YtComment */

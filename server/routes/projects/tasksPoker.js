@@ -113,3 +113,5 @@ async function next(ctx, req, res) {
 }
 
 module.exports = { getSession, startSession, vote, reveal, finish, cancel, next };
+
+/** @typedef {Awaited<ReturnType<typeof import('../../stores/projectTaskStore').getPokerSession>>} PokerSession */

@@ -246,3 +246,14 @@ function reliabilityProblems(step) {
 }
 
 module.exports = { reliabilityProblems, enumEntryProblems, checkEntryProblems };
+
+/**
+ * One authored enumFrom / checks entry, before validation: the fields the
+ * rules read. Author JSON, so anything may be missing or of the wrong type.
+ * @typedef {{ kind?: string, field?: string, ref?: unknown, value?: unknown, sameCountAs?: unknown, script?: string, minItems?: unknown, maxItems?: unknown, tolerance?: unknown, ignoreUpTo?: unknown, minRatio?: unknown, [key: string]: unknown }} ReliabilityEntry
+ */
+
+/**
+ * An authored fallback, before validation.
+ * @typedef {{ kind?: string, fields?: Record<string, unknown>, [key: string]: unknown }} ReliabilityFallback
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Support auto-assignment — round-robin assignment of escalated threads to
  * staff who hold the `admin_support` permission.
@@ -23,6 +23,9 @@ const CACHE_TTL_MS = 60_000;
 const { hasSupportPerms: _hasSupport } = require('../support/staffAccess');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
+/**
+ * @param {string} orgId
+ */
 async function _eligibleStaffForOrg(orgId) {
     const key = orgId || '__global__';
     const cached = _cache.get(key);
@@ -47,6 +50,10 @@ async function _eligibleStaffForOrg(orgId) {
     return ids;
 }
 
+/**
+ * @param {string} userId
+ * @returns {Promise<string[]>}
+ */
 async function _userGroups(userId) {
     try {
         const u = await userStore.getUser(userId);
@@ -66,6 +73,9 @@ async function _userGroups(userId) {
  * someone who would then be denied access to it. Falls back to all eligible
  * staff if no group member is support-capable (a stranded ticket is worse than a
  * slightly out-of-policy assignment).
+ *
+ * @param {string | null} orgId
+ * @param {{ sharedGroups?: string[] }} [opts]
  */
 async function pickNextAssignee(orgId, { sharedGroups = [] } = {}) {
     let candidates = await _eligibleStaffForOrg(orgId || null);

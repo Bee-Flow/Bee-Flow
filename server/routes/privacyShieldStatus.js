@@ -299,3 +299,14 @@ module.exports.FAIL_MODES = FAIL_MODES;
 module.exports.GUARD_PROBE_TTL_MS = GUARD_PROBE_TTL_MS;
 // Only for tests: the probe memo is module state and would leak between cases.
 module.exports._resetGuardMemo = () => { _guardMemo = null; _guardInflight = null; };
+
+/**
+ * The settings the fold reads: the global AI config, an org shield or a user shield.
+ * @typedef {object} ShieldSettings
+ * @property {boolean} [enabled]
+ * @property {boolean} [piiDetectionEnabled]
+ * @property {string} [piiDetectionAction]
+ * @property {string} [piiFailureMode]
+ * @property {boolean} [dlpEnabled]
+ * @property {string} [dlpMode]
+ */

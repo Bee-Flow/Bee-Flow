@@ -780,3 +780,23 @@ router.get('/prompt-cache', async (req, res) => {
         by_model_and_source: breakdown || [],
     });
 });
+
+/**
+ * @typedef {object} UsageFilters
+ * @property {string} [startDate]
+ * @property {string} [endDate]
+ * @property {string} [userId]
+ * @property {string} [agentId]
+ * @property {string} [model]
+ * @property {string} [source]
+ * @property {string} [integrationType]
+ * @property {string} [piiCategory]
+ * @property {string} [organizationId]
+ * @property {number} [beforeId]
+ * @property {string} [violationType]
+ */
+
+/**
+ * Request after attachOrgFilter. The query passed the closed UsageQuery schema, so every value is a string.
+ * @typedef {import('express').Request<{}, any, any, Record<string, string>> & { usageFilters: UsageFilters }} UsageReq
+ */

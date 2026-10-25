@@ -183,3 +183,8 @@ module.exports = {
     attachNodeLogic,
     canonNode,
 };
+
+/**
+ * @typedef {{ id: string, type: string, props?: unknown, style?: unknown, visible?: unknown, children?: CanonNodeOut[], [k: string]: unknown }} CanonNodeOut
+ *   A canonicalised component node.
+ */

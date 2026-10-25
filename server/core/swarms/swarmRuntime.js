@@ -453,3 +453,16 @@ module.exports = {
     appendHiveMindEntry,
     mapWithConcurrency,
 };
+
+/**
+ * @typedef {import('./swarmWorkerRound').SwarmWorker} SwarmWorker
+ * @typedef {import('./swarmWorkerRound').SwarmSend} SwarmSend
+ * @typedef {import('./swarmWorkerRound').RunSnapshot} RunSnapshot
+ * @typedef {import('./swarmWorkerRound').WorkerCard} WorkerCard
+ * @typedef {import('./swarmWorkerRound').WorkerMessage} WorkerMessage
+ * @typedef {import('./swarmWorkerRound').WorkerRun} WorkerRun
+ * @typedef {{ at: number, byWorker: string, kind: string, title: string, body: string }} HiveEntry
+ * @typedef {{ entries: HiveEntry[], updatedAt: number | null }} HiveMind
+ * @typedef {Awaited<ReturnType<typeof buildDirectChatToolStack>>['tools']} SwarmTools
+ * @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>} SwarmShield
+ */

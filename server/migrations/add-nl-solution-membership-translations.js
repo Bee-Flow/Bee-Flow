@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * One-time migration: Dutch translations for Solution membership — the two
  * sections that complete a project's contents, webpages and approvals.

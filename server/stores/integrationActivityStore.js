@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Integration Activity Store — the ledger of outbound tool/integration calls,
  * for data-sovereignty monitoring (Privacy Shield, Art-30/44 evidence).
@@ -763,3 +762,30 @@ module.exports = {
     // Awaitable init entry point for migrateDb.
     initDB,
 };
+
+/**
+ * @typedef {{ startDate?: string | Date, endDate?: string | Date, organizationId?: string | null, userId?: string | null,
+ *   integrationType?: string, agentId?: string, piiCategory?: string, euOnly?: boolean, localOnly?: boolean,
+ *   locationState?: string, excludeDryRun?: boolean, manualOnly?: boolean, beforeId?: number }} ActivityFilters
+ */
+
+/** @typedef {import('../core/http/egressCapture').PeerInput} ProbePeer */
+
+/**
+ * The egress capture's snapshot of one call: `peers` in the current shape, or the
+ * old single-peer fields from a replica not yet on the new capture.
+ * @typedef {{ peers?: readonly ProbePeer[], peer_ip?: string, peer_ip_source?: string, tls_servername?: string | null,
+ *   hostname?: string, connect_ms?: number, is_local?: boolean }} EgressProbe
+ */
+
+/**
+ * One outbound call to log.
+ * @typedef {{ timestamp?: string, organization_id?: string | null, user_id?: string | null, agent_id?: string | null,
+ *   agent_name?: string | null, conversation_id?: string | null, tool_name?: string, integration_type?: string | null,
+ *   server_endpoint?: string | null, data_direction?: string, data_categories?: string | null,
+ *   pii_categories_detected?: string | null, pii_scan_enabled?: boolean, pii_scan_level?: string,
+ *   data_summary?: string | null, source?: string, model?: string | null, automation_id?: string | null,
+ *   run_id?: string | null, step_id?: string | null, is_dry_run?: boolean, acting_user_id?: string | null,
+ *   connection_id?: string | null, grant_id?: string | null, status?: string, error_message?: string | null,
+ *   duration_ms?: number, served_from_cache?: boolean, is_local_hint?: boolean, probe?: EgressProbe | null }} ActivityEvent
+ */

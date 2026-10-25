@@ -154,3 +154,8 @@ async function executeChatToolCall(toolCall, ctx) {
 }
 
 module.exports = { executeChatToolCall };
+
+/**
+ * @typedef {{ mayLendOwnerConnection: typeof import('./toolPolicy').mayLendOwnerConnection, connectionResolution: () => typeof import('../integrations/connectionResolution'), toolDispatcher: () => typeof import('../tools/toolDispatcher'), toolPiiGate: () => typeof import('../privacy/toolPiiGate') }} ToolDeps
+ * @typedef {{ agent: import('./chatStream/turnState').AgentRow, agentId: string, userId: string, userAuth: import('./chatStream/turnState').UserAuth, conversation: import('./chatStream/turnState').ConversationRow, modelToUse: string, toolParamsMap: Record<string, unknown>, orgShield: Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>, logShieldEvent: (fields: Record<string, unknown>) => void, d: ToolDeps }} ChatToolCtx
+ */

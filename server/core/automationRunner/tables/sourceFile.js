@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Turn a source binding into the bytes of a file, for the `read_table` step.
  *
@@ -19,18 +19,32 @@
 
 const { tableLimits, exceeds } = require('./limits');
 
+/**
+ * @param {string} message
+ * @param {string} errorClass
+ */
 function sourceError(message, errorClass) {
     return Object.assign(new Error(message), { errorClass });
 }
 
-/** The descriptor itself: an object with `.sourceHandle` is unwrapped (once). */
+/** @typedef {{ sourceHandle?: unknown, kind?: unknown, fileId?: unknown }} SourceDescriptor */
+
+/**
+ * The descriptor itself: an object with `.sourceHandle` is unwrapped (once).
+ * @param {SourceDescriptor | null | undefined} value
+ * @returns {SourceDescriptor | null | undefined}
+ */
 function unwrap(value) {
     if (value && typeof value === 'object' && !Array.isArray(value) && value.sourceHandle && typeof value.sourceHandle === 'object') {
-        return value.sourceHandle;
+        return /** @type {SourceDescriptor} */ (value.sourceHandle);
     }
     return value;
 }
 
+/**
+ * @param {AsyncIterable<Buffer> & { destroy?: () => void }} stream
+ * @param {number} maxBytes
+ */
 async function readCapped(stream, maxBytes) {
     const chunks = [];
     let total = 0;
@@ -56,7 +70,7 @@ async function readSourceFile(value, ctx, deps = {}) {
     const storage = () => deps.storage || require('../../../stores/storageStore');
     const limits = deps.limits ? deps.limits() : tableLimits();
 
-    const descriptor = unwrap(value);
+    const descriptor = unwrap(/** @type {SourceDescriptor | null | undefined} */ (value));
     if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor)) {
         throw sourceError('No file is connected to this step. Choose the file to read.', 'table_source_missing');
     }

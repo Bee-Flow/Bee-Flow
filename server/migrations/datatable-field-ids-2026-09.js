@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: give every datatable column a stable id, then build the columns
  * that were never built (2026-09).
@@ -48,6 +49,9 @@ const PG = { dialect: 'pg' };
 // applyMigration refuses more than 500 statements in one call.
 const MAX_STATEMENTS = 400;
 
+/**
+ * @param {string} raw
+ */
 function parseModel(raw) {
     if (raw && typeof raw === 'object') return raw;
     try { return JSON.parse(raw); } catch { return null; }
@@ -62,13 +66,14 @@ function parseModel(raw) {
  * already exists, and an ADD COLUMN IF NOT EXISTS fills in a table that exists
  * but is missing columns. Running both covers every state a broken model can
  * be in.
+ * @param {{ tables?: Record<string, unknown>[] } | null} model
  */
 function reconcileDdl(model) {
     const tables = Array.isArray(model?.tables) ? model.tables : [];
     if (!tables.length) return [];
     const createAll = migrationPlan({ tables: [] }, model, PG);
     const columnsOnly = migrationPlan(
-        { tables: tables.map(t => ({ ...t, fields: [] })) },
+        { tables: tables.map(t => ({ ...t, fields: /** @type {unknown[]} */ ([]) })) },
         model,
         PG,
     );
@@ -78,7 +83,7 @@ function reconcileDdl(model) {
 async function up() {
     // Nothing to repair before the datatable tables exist — a fresh install
     // reaches this migration with no models at all.
-    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(() => null);
+    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(/** @returns {null} */ () => null);
     if (!probe?.t) return;
 
     // Scoped, not org-keyed: datatable-scope-2026-09 runs first, so every model
@@ -122,7 +127,7 @@ async function up() {
             });
             if (next) repaired.push({ scope, label, model: next });
         } catch (e) {
-            console.error(`[Migration] datatable-field-ids: backfill failed for scope ${label}: ${e.message}`);
+            console.error(`[Migration] datatable-field-ids: backfill failed for scope ${label}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -146,7 +151,7 @@ async function up() {
         } catch (e) {
             // The model is repaired either way, so the next schema save from
             // the UI will emit the same statements and finish the job.
-            console.error(`[Migration] datatable-field-ids: physical repair failed for scope ${label}: ${e.message}`);
+            console.error(`[Migration] datatable-field-ids: physical repair failed for scope ${label}: ${/** @type {Error} */ (e).message}`);
         }
     }
 

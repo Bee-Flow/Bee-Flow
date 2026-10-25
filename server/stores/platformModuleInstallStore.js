@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Platform Module Install Store — durable, cross-replica install progress.
  *
@@ -42,6 +42,9 @@ async function _initDB() {
 }
 
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -64,6 +67,8 @@ function mapRow(r) {
  * wins outright, the conditional UPDATE takes over only a FINISHED or
  * heartbeat-STALE row. Returns the lease row when acquired, null when another
  * live install holds it.
+ * @param {string} moduleId
+ * @param {{ version?: string | null, actor?: string | null, replica?: string | null }} [opts]
  */
 async function acquire(moduleId, { version = null, actor = null, replica = null } = {}) {
     await initDB();
@@ -85,7 +90,13 @@ async function acquire(moduleId, { version = null, actor = null, replica = null 
     return row ? mapRow(row) : null;
 }
 
-/** Progress write + heartbeat. Terminal phases ('done'/'error') stamp finished_at. */
+/**
+ * Progress write + heartbeat. Terminal phases ('done'/'error') stamp finished_at.
+ * @param {string} moduleId
+ * @param {string} phase
+ * @param {number | null} pct
+ * @param {{ error?: unknown, detail?: Record<string, any> | null }} [opts]
+ */
 async function setPhase(moduleId, phase, pct = null, { error = null, detail = null } = {}) {
     await initDB();
     const terminal = phase === 'done' || phase === 'error';
@@ -104,6 +115,7 @@ async function setPhase(moduleId, phase, pct = null, { error = null, detail = nu
 /**
  * Read a module's install progress. Terminal rows older than the TTL read as
  * absent (null) so the poller stops seeing week-old outcomes.
+ * @param {string} moduleId
  */
 async function get(moduleId) {
     await initDB();

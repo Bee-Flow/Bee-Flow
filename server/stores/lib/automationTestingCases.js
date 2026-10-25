@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Fixtures and test cases (stores/automationTestingStore.js is their union with
  * the golden and form-scenario factories).
@@ -16,12 +16,22 @@
 
 const crypto = require('crypto');
 
+/**
+ * @param {string} prefix
+ */
 const newId = (prefix) => `${prefix}${crypto.randomUUID().replace(/-/g, '')}`;
+/** @param {Date | string | null | undefined} v */
 const toIso = (v) => (v instanceof Date ? v.toISOString() : v ?? null);
-/** A json column arrives parsed from pg and PGlite; text is parsed defensively. */
+/**
+ * A json column arrives parsed from pg and PGlite; text is parsed defensively.
+ * @template T
+ * @param {unknown} v
+ * @param {T} fallback
+ * @returns {T}
+ */
 const fromJson = (v, fallback) => {
     if (v == null) return fallback;
-    if (typeof v !== 'string') return v;
+    if (typeof v !== 'string') return /** @type {T} */ (v);
     try { return JSON.parse(v); } catch { return fallback; }
 };
 
@@ -33,7 +43,18 @@ const CASE_SELECT = `
       FROM automation_test_cases c
       LEFT JOIN automation_test_fixtures f ON f.id = c.fixture_id`;
 
-/** The public shape of a case row. Fixture values are never in it. */
+/**
+ * @typedef {{ id: string, automation_id: string, step_id: string, name: string, input_kind: string,
+ *   typed_input_json?: unknown, fixture_id?: string | null, expect: string, assertions_json?: unknown,
+ *   last_status?: string | null, last_run_at?: Date | string | null, created_by?: string | null,
+ *   created_at?: Date | string | null, updated_at?: Date | string | null,
+ *   fx_id?: string | null, fx_run_id?: string | null }} TestCaseRow
+ */
+
+/**
+ * The public shape of a case row. Fixture values are never in it.
+ * @param {TestCaseRow} r
+ */
 function rowToTestCase(r) {
     const input = r.input_kind === 'typed'
         ? { kind: 'typed', values: fromJson(r.typed_input_json, {}) }
@@ -59,15 +80,21 @@ function rowToTestCase(r) {
  * @param {() => Promise<void>} ready
  */
 function makeTestCases(db, ready) {
+    /**
+     * @param {string} sql
+     * @param {unknown[]} [params]
+     */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
 
     /** Remove a fixture no case points at any more. */
+    /** @param {string | null | undefined} fixtureId */
     async function dropFixture(fixtureId) {
         if (!fixtureId) return;
         await q(`DELETE FROM automation_test_fixtures f
                   WHERE f.id = $1 AND NOT EXISTS (SELECT 1 FROM automation_test_cases c WHERE c.fixture_id = f.id)`, [fixtureId]);
     }
 
+    /** @param {{ automationId: string, runId: string, stepId: string, input?: unknown }} opts */
     async function createFixture({ automationId, runId, stepId, input }) {
         const id = newId('tfx_');
         await q(
@@ -78,11 +105,13 @@ function makeTestCases(db, ready) {
         return { id };
     }
 
+    /** @param {string} automationId @param {string} caseId */
     async function getTestCase(automationId, caseId) {
         const { rows } = await q(`${CASE_SELECT} WHERE c.automation_id = $1 AND c.id = $2`, [automationId, caseId]);
         return rows[0] ? rowToTestCase(rows[0]) : null;
     }
 
+    /** @param {{ automationId: string, stepId: string, name: string, inputKind?: string, typedInput?: unknown, fixtureId?: string | null, expect?: string, assertions?: unknown, createdBy?: string | null }} opts */
     async function createTestCase({ automationId, stepId, name, inputKind, typedInput, fixtureId, expect, assertions, createdBy }) {
         const id = newId('tc_');
         const kind = inputKind === 'run' ? 'run' : 'typed';
@@ -99,12 +128,18 @@ function makeTestCases(db, ready) {
         return getTestCase(automationId, id);
     }
 
+    /** @param {string} automationId @param {string} caseId @param {{ name?: string, expect?: string, assertions?: unknown, inputKind?: string, typedInput?: unknown, fixtureId?: string | null }} [patch] */
     async function updateTestCase(automationId, caseId, patch = {}) {
         const { rows } = await q('SELECT fixture_id FROM automation_test_cases WHERE automation_id = $1 AND id = $2', [automationId, caseId]);
         if (!rows[0]) return null;
         const oldFixtureId = rows[0].fixture_id;
+        /** @type {string[]} */
         const sets = [];
         const params = [automationId, caseId];
+        /**
+         * @param {string} sql
+         * @param {string} value
+         */
         const add = (sql, value) => { params.push(value); sets.push(sql.replace('?', `$${params.length}`)); };
         if (patch.name !== undefined) add('name = ?', patch.name);
         if (patch.expect !== undefined) add('expect = ?', patch.expect === 'error' ? 'error' : 'success');
@@ -128,6 +163,7 @@ function makeTestCases(db, ready) {
         return getTestCase(automationId, caseId);
     }
 
+    /** @param {string} automationId @param {string} caseId */
     async function deleteTestCase(automationId, caseId) {
         const { rows } = await q(
             'DELETE FROM automation_test_cases WHERE automation_id = $1 AND id = $2 RETURNING fixture_id',
@@ -138,6 +174,7 @@ function makeTestCases(db, ready) {
         return true;
     }
 
+    /** @param {string} automationId @param {string} [stepId] */
     async function listTestCases(automationId, stepId) {
         const { rows } = stepId
             ? await q(`${CASE_SELECT} WHERE c.automation_id = $1 AND c.step_id = $2 ORDER BY c.created_at, c.id`, [automationId, stepId])
@@ -148,6 +185,8 @@ function makeTestCases(db, ready) {
     /**
      * What the runner feeds the code. The ONLY reader of a fixture's values.
      *
+     * @param {string} automationId
+     * @param {string} caseId
      * @returns {Promise<null | {kind:'typed', values:any} | {kind:'run', available:true, values:any, runId:string, fixtureId:string} | {kind:'run', available:false}>}
      */
     async function getTestCaseInput(automationId, caseId) {
@@ -165,11 +204,13 @@ function makeTestCases(db, ready) {
         return { kind: 'run', available: true, values: fromJson(r.fx_input, {}), runId: r.fx_run_id, fixtureId: r.fx_id };
     }
 
+    /** @param {string} automationId @param {string} caseId @param {{ status: string }} result */
     async function recordTestCaseResult(automationId, caseId, { status }) {
         await q('UPDATE automation_test_cases SET last_status = $3, last_run_at = NOW() WHERE automation_id = $1 AND id = $2',
             [automationId, caseId, status]);
     }
 
+    /** @param {string} automationId @param {string} stepId */
     async function countTestCases(automationId, stepId) {
         const { rows } = await q('SELECT COUNT(*)::int AS n FROM automation_test_cases WHERE automation_id = $1 AND step_id = $2',
             [automationId, stepId]);

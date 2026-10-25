@@ -193,3 +193,5 @@ function pairFiles(files, step) {
 }
 
 module.exports = { PAIR_ROLES, pairFiles };
+
+/** @typedef {{ key: string, cads: import('./attachmentRows').IntakeFile[], drawings: import('./attachmentRows').IntakeFile[], folder: string }} PairGroup */

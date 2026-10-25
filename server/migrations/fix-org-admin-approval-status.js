@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: repair org founders/owners stuck in the approval limbo.
  *

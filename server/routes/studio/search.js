@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GET /api/studio/search?q= — the Studio rail's name search.
  *
@@ -108,6 +109,16 @@ const DEFAULT_LOADERS = {
 
 const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
 
+/**
+ * @typedef {ReturnType<typeof makeDefaultDeps>} SearchDeps
+ * @typedef {Record<string, unknown>} SearchRow  a store row or a raw database row
+ * @typedef {{
+ *   key: string,
+ *   gate: (req: import('express').Request, d: SearchDeps) => Promise<boolean>,
+ *   search: (req: import('express').Request, d: SearchDeps, q: string) => Promise<SearchRow[]>,
+ * }} SearchKind
+ */
+
 const Q_TEXT = 'q is the text to search for, sent once.';
 const SearchQuery = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
@@ -120,12 +131,20 @@ const SearchQuery = z.preprocess(
     }).strict(),
 );
 
-/** The session check, ahead of the schema: a caller without one hears 401, not 400. */
+/**
+ * The session check, ahead of the schema: a caller without one hears 401, not 400.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireSession = (req, res, next) => (req.session?.isAuthenticated && userIdOf(req)
     ? next()
     : res.status(401).json({ error: 'Not authenticated' }));
 
-/** The display name of a row, whatever the store called it; '' when unknown. */
+/**
+ * The display name of a row, whatever the store called it; '' when unknown.
+ * @param {SearchRow | null | undefined} row
+ */
 function nameOf(row) {
     if (!row || typeof row !== 'object') return '';
     const v = row.name ?? row.title ?? row.fileName ?? row.file_name ?? null;
@@ -137,26 +156,39 @@ function nameOf(row) {
  * of "100%" searches for "100%" instead of "100 followed by anything", and a
  * query of "_" does not match every single-character name. Postgres's default
  * LIKE escape IS the backslash; the ESCAPE clause below says so out loud.
+ * @param {unknown} value
  */
 function escapeLike(value) {
     return String(value).replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-/** The SQL pattern for a contains-search. */
+/**
+ * The SQL pattern for a contains-search.
+ * @param {string} q
+ */
 const likePattern = (q) => `%${escapeLike(q)}%`;
 
-/** In-memory equivalent of the ILIKE above, for the store-backed kinds. */
+/**
+ * In-memory equivalent of the ILIKE above, for the store-backed kinds.
+ * @param {SearchRow} row
+ * @param {string} needle
+ */
 function matchesName(row, needle) {
     return nameOf(row).toLowerCase().includes(needle);
 }
 
-/** `{ id, name }` — the two fields a result row needs, and nothing else. */
+/**
+ * `{ id, name }` — the two fields a result row needs, and nothing else.
+ * @param {SearchRow} row
+ */
 const toHit = (row) => ({ id: String(row.id), name: nameOf(row) });
 
 /**
  * Rank the store-filtered rows: a name that STARTS with what was typed beats
  * one that merely contains it, and ties keep the store's own order (which is
  * already "most recent first" for every list this reads).
+ * @param {SearchRow[]} rows
+ * @param {string} needle
  */
 function rankAndCap(rows, needle) {
     const scored = rows.map((row, i) => ({
@@ -174,6 +206,7 @@ function rankAndCap(rows, needle) {
 //                  maps a kind to its URL segment once, for both).
 // gate(req, d)   — boolean: may this caller see the kind at all
 // search(req, d, q) → rows (already scoped); named/capped by the caller
+/** @type {SearchKind[]} */
 const KINDS = [
     {
         // routes/automation/crud.js GET / → automationStore.getAutomationsForUser
@@ -278,7 +311,7 @@ const KINDS = [
         // Zelfde keten als counts.js en attentionChecks.js — één plek: shared.js.
         search: async (req, d, q) => {
             const visible = await visibleKnowledgeBasesFor(req, d);
-            return visible.filter((kb) => matchesName(kb, q));
+            return visible.filter((/** @type {SearchRow} */ kb) => matchesName(kb, q));
         },
     },
     {
@@ -295,6 +328,7 @@ const KINDS = [
             const userId = userIdOf(req);
             const { orgIds, userGroupIds, isSuperAdmin } = await d.transcriptionsShared.resolveAccessContext(req);
             const params = [];
+            /** @type {string} */
             let visibility;
             if (isSuperAdmin) {
                 visibility = 'TRUE';
@@ -343,10 +377,15 @@ const KIND_KEYS = Object.freeze(KINDS.map((k) => k.key));
  * that is not in `errors` means "not yours"; an absent kind that IS in
  * `errors` means "we could not look", and rendering the two the same way is
  * the fail-open this endpoint refuses.
+ * @param {import('express').Request} req
+ * @param {SearchDeps} d
+ * @param {string} q
  */
 async function runSearch(req, d, q) {
     const needle = q.toLowerCase();
+    /** @type {Record<string, ReturnType<typeof rankAndCap>>} */
     const results = {};
+    /** @type {string[]} */
     const errors = [];
     await Promise.all(KINDS.map(async (kind) => {
         try {
@@ -356,7 +395,7 @@ async function runSearch(req, d, q) {
             // dropped, and it is dropped LOUDLY so the caller can say the
             // list is incomplete.
             errors.push(kind.key);
-            log.warn(`[StudioSearch] gate ${kind.key} failed:`, err?.message || err);
+            log.warn(`[StudioSearch] gate ${kind.key} failed:`, /** @type {Error} */ (err)?.message || err);
             return;
         }
         try {
@@ -364,20 +403,21 @@ async function runSearch(req, d, q) {
             results[kind.key] = rankAndCap(Array.isArray(rows) ? rows : [], needle);
         } catch (err) {
             errors.push(kind.key);
-            log.warn(`[StudioSearch] ${kind.key} failed:`, err?.message || err);
+            log.warn(`[StudioSearch] ${kind.key} failed:`, /** @type {Error} */ (err)?.message || err);
         }
     }));
     errors.sort();
     return { results, errors };
 }
 
+/** @param {SearchDeps | null} [deps] */
 function createSearchRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router();
 
-    router.get('/search', requireSession, validate({ query: SearchQuery }), async (req, res) => {
+    router.get('/search', requireSession, validate({ query: SearchQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         res.set('Cache-Control', 'private, no-store');
-        const q = (req.query.q ?? '').trim().slice(0, MAX_QUERY_LENGTH);
+        const q = /** @type {string} */ (req.query.q ?? '').trim().slice(0, MAX_QUERY_LENGTH);
         if (q.length < MIN_QUERY_LENGTH) {
             // No store is touched. `tooShort` says which of the two empty
             // answers this is, so the overlay can prompt instead of claiming
@@ -395,13 +435,14 @@ function createSearchRouter(deps = null) {
     return router;
 }
 
+/** @typedef {ReturnType<typeof createSearchRouter> & { createSearchRouter: typeof createSearchRouter, KIND_KEYS: typeof KIND_KEYS, MAX_PER_KIND: typeof MAX_PER_KIND, MIN_QUERY_LENGTH: typeof MIN_QUERY_LENGTH, MAX_QUERY_LENGTH: typeof MAX_QUERY_LENGTH, escapeLike: typeof escapeLike, nameOf: typeof nameOf }} SearchRouter */
 const router = createSearchRouter();
 
 module.exports = router;
-module.exports.createSearchRouter = createSearchRouter;
-module.exports.KIND_KEYS = KIND_KEYS;
-module.exports.MAX_PER_KIND = MAX_PER_KIND;
-module.exports.MIN_QUERY_LENGTH = MIN_QUERY_LENGTH;
-module.exports.MAX_QUERY_LENGTH = MAX_QUERY_LENGTH;
-module.exports.escapeLike = escapeLike;
-module.exports.nameOf = nameOf;
+/** @type {SearchRouter} */ (module.exports).createSearchRouter = createSearchRouter;
+/** @type {SearchRouter} */ (module.exports).KIND_KEYS = KIND_KEYS;
+/** @type {SearchRouter} */ (module.exports).MAX_PER_KIND = MAX_PER_KIND;
+/** @type {SearchRouter} */ (module.exports).MIN_QUERY_LENGTH = MIN_QUERY_LENGTH;
+/** @type {SearchRouter} */ (module.exports).MAX_QUERY_LENGTH = MAX_QUERY_LENGTH;
+/** @type {SearchRouter} */ (module.exports).escapeLike = escapeLike;
+/** @type {SearchRouter} */ (module.exports).nameOf = nameOf;

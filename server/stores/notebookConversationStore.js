@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Notebook Conversation Store — persistent, encrypted chat history for the
  * in-notebook AI chat.
@@ -48,12 +48,15 @@ const log = require('../telemetry/log');
  * writes and any keyless writer.
  *
  * @returns {Promise<{ read: string[], write: string|null, ctx: object }>}
+ * @param {string | Buffer<ArrayBufferLike> | null} sessionKey
+ * @param {string} userId
  */
 async function _keys(userId, sessionKey) {
     const ctx = await resolveCrypto({ userId, encryptionKey: sessionKey });
     const session = sessionKey ? String(sessionKey) : null;
     const escrow = ctx.key ? ctx.key.toString('base64') : null;
 
+    /** @type {string[]} */
     const read = [];
     for (const k of [session, escrow]) if (k && !read.includes(k)) read.push(k);
 
@@ -62,7 +65,12 @@ async function _keys(userId, sessionKey) {
     return { read, write, ctx };
 }
 
-/** Decode a blob by trying each candidate key. Returns { messages, ok }. */
+/**
+ * Decode a blob by trying each candidate key. Returns { messages, ok }.
+ * @param {string[]} readKeys
+ * @param {string} userId
+ * @param {Record<string, any>} row
+ */
 function _decodeWithKeys(row, readKeys, userId) {
     if (!row) return { messages: [], ok: true };
     const raw = row.messages_json || '[]';
@@ -110,6 +118,10 @@ async function _initDB() {
     ]);
 }
 
+/**
+ * @param {string} notebookId
+ * @param {string} userId
+ */
 async function _getRow(notebookId, userId) {
     await initDB();
     return getOne('SELECT * FROM notebook_conversations WHERE notebook_id = $1 AND user_id = $2', [notebookId, userId]);
@@ -119,6 +131,8 @@ async function _getRow(notebookId, userId) {
  * Return the conversation row for (notebook, user), creating it on first use.
  * The INSERT is ON CONFLICT DO NOTHING so two concurrent tabs racing the first
  * message can't create duplicate rows.
+ * @param {string} userId
+ * @param {string} notebookId
  */
 async function getOrCreate(notebookId, userId) {
     await initDB();
@@ -138,6 +152,9 @@ async function getOrCreate(notebookId, userId) {
 
 /**
  * Decrypted message history for (notebook, user). [] when none yet.
+ * @param {string | Buffer<ArrayBufferLike> | null} [encryptionKey]
+ * @param {string} notebookId
+ * @param {string} userId
  */
 async function getMessages(notebookId, userId, encryptionKey = null) {
     const row = await _getRow(notebookId, userId);
@@ -149,6 +166,9 @@ async function getMessages(notebookId, userId, encryptionKey = null) {
 // The AES-GCM envelope messageEncryption produces: JSON with a truthy
 // `_encrypted` marker (true for v1, 'v2' for HKDF+AAD). Plaintext blobs are
 // bare JSON arrays, so this cleanly tells the two apart.
+/**
+ * @param {string} raw
+ */
 function _isEnvelope(raw) {
     try {
         const parsed = JSON.parse(raw);
@@ -164,6 +184,9 @@ function _isEnvelope(raw) {
  * can say "history unavailable" instead of silently showing an empty chat.
  * An encrypted-but-genuinely-empty history also reads as locked — harmless,
  * there is nothing to show either way.
+ * @param {string} notebookId
+ * @param {string} userId
+ * @param {string | Buffer<ArrayBufferLike> | null} [encryptionKey]
  */
 async function getMessagesWithMeta(notebookId, userId, encryptionKey = null) {
     const row = await _getRow(notebookId, userId);
@@ -178,6 +201,10 @@ async function getMessagesWithMeta(notebookId, userId, encryptionKey = null) {
 /**
  * Append a completed turn (one or more messages) to the conversation and
  * persist the re-encrypted blob. Returns the full merged array.
+ * @param {string} userId
+ * @param {string | Buffer<ArrayBufferLike> | null} encryptionKey
+ * @param {string} notebookId
+ * @param {Array<Record<string, any>>} newMessages
  */
 async function appendMessages(notebookId, userId, encryptionKey, newMessages) {
     if (!Array.isArray(newMessages) || newMessages.length === 0) return null;
@@ -217,6 +244,10 @@ async function appendMessages(notebookId, userId, encryptionKey, newMessages) {
  * conversation). Returns the stored array.
  * INTENTIONALLY DESTRUCTIVE: replaces whatever is stored, even a locked
  * envelope — callers explicitly mean "discard the old history".
+ * @param {string | Buffer<ArrayBufferLike> | null} encryptionKey
+ * @param {string} notebookId
+ * @param {string} userId
+ * @param {Array<Record<string, any>>} messages
  */
 async function replaceMessages(notebookId, userId, encryptionKey, messages) {
     const safe = Array.isArray(messages) ? messages : [];
@@ -234,6 +265,8 @@ async function replaceMessages(notebookId, userId, encryptionKey, messages) {
 /**
  * Clear/delete the conversation for a notebook. Called when a notebook (or a
  * legal matter) is deleted, and from the "clear chat" affordance.
+ * @param {string} notebookId
+ * @param {string | null} [userId]
  */
 async function deleteForNotebook(notebookId, userId = null) {
     await initDB();

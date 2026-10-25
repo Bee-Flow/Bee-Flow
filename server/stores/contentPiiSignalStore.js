@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * content_pii_signals — does a piece of project content hold personal data,
  * as far as the last background scan could tell? One row per subject.
@@ -50,6 +50,9 @@ const DDL = `
         ON content_pii_signals(organization_id, project_id);
 `;
 
+/**
+ * @param {Record<string, any> | null | undefined} r
+ */
 function _toRow(r) {
     if (!r) return null;
     let categories = r.categories;
@@ -73,6 +76,10 @@ function _toRow(r) {
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeContentPiiSignalStore(db, { ready = async () => {} } = {}) {
+    /**
+     * @param {string} sql
+     * @param {any[]} [params]
+     */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
 
     /**
@@ -83,6 +90,7 @@ function makeContentPiiSignalStore(db, { ready = async () => {} } = {}) {
      */
     async function upsertSignal(s) {
         if (!SUBJECT_KINDS.includes(s.subjectKind)) throw new Error(`Unknown subject kind: ${s.subjectKind}`);
+        /** @type {Record<string, number>} */
         const categories = {};
         for (const [k, v] of Object.entries(s.categories || {})) {
             const n = Math.trunc(Number(v));
@@ -110,6 +118,10 @@ function makeContentPiiSignalStore(db, { ready = async () => {} } = {}) {
         return _toRow(rows[0]);
     }
 
+    /**
+     * @param {string} subjectKind
+     * @param {string} subjectId
+     */
     async function getSignal(subjectKind, subjectId) {
         const { rows } = await q(
             `SELECT * FROM content_pii_signals WHERE subject_kind = $1 AND subject_id = $2`,
@@ -118,7 +130,11 @@ function makeContentPiiSignalStore(db, { ready = async () => {} } = {}) {
         return _toRow(rows[0]);
     }
 
-    /** Every signal of an org's projects (bounded). */
+    /**
+     * Every signal of an org's projects (bounded).
+     * @param {string} organizationId
+     * @param {{ limit?: number }} [opts]
+     */
     async function listForOrg(organizationId, { limit = 5000 } = {}) {
         const { rows } = await q(`
             SELECT * FROM content_pii_signals
@@ -129,7 +145,11 @@ function makeContentPiiSignalStore(db, { ready = async () => {} } = {}) {
         return rows.map(_toRow);
     }
 
-    /** Forget a subject (its content was deleted). */
+    /**
+     * Forget a subject (its content was deleted).
+     * @param {string} subjectKind
+     * @param {string} subjectId
+     */
     async function deleteSignal(subjectKind, subjectId) {
         const r = await q(`DELETE FROM content_pii_signals WHERE subject_kind = $1 AND subject_id = $2`, [subjectKind, String(subjectId)]);
         return (r.rowCount || 0) > 0;

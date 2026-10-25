@@ -188,3 +188,9 @@ module.exports = {
     makeResolver,
     computeState,
 };
+
+/**
+ * @typedef {Readonly<{ state: 'off'|'on'|'scheduled', version: string|null, from: string|null,
+ *   surfaces: readonly string[], paused: readonly object[], signals: readonly string[],
+ *   noticeUrl: string|null, visitorNoticeUrl: string|null, retentionDays: number }>} ChatMonitoringState
+ */

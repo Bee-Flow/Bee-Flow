@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -10,10 +10,19 @@
  * @param {Object<string, Object<string, 'viewer'|'editor'|'owner'>>} roles
  *        project id → (user id → role)
  */
+/** @type {Record<string, number>} */
 const ORDER = { viewer: 0, editor: 1, owner: 2 };
 
+/**
+ * @param {Record<string, Record<string, 'viewer'|'editor'|'owner'>>} roles
+ */
 function fakeRequireProjectRole(roles) {
-    return function requireProjectRole(minRole) {
+    return function requireProjectRole(/** @type {string | number} */ minRole) {
+        /**
+         * @param {import('express').Request<{ id: string }>} req
+         * @param {import('express').Response} res
+         * @param {import('express').NextFunction} next
+         */
         return function requireProjectRoleMw(req, res, next) {
             const userId = req.session?.user?.id;
             if (!userId) return res.status(401).json({ error: 'Not authenticated' });
@@ -26,7 +35,10 @@ function fakeRequireProjectRole(roles) {
     };
 }
 
-/** A session user of org1, the organisation these tests' projects belong to. */
+/**
+ * A session user of org1, the organisation these tests' projects belong to.
+ * @param {string} id
+ */
 function projectUser(id) {
     return { id, organizationId: 'org1', role: 'user', email: `${id}@example.test` };
 }

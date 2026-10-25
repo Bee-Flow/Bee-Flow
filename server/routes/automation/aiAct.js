@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The AI Act check and the "Ready to activate?" checklist of one automation
  * (Studio → Automations handoff 5, settings page).
@@ -45,17 +46,17 @@ const RUNS_FOR_LAST_TEST = 100;
 
 /**
  * @param {object} [overrides]
- * @param {object}   [overrides.store]          automationStore surface (getAutomation, getRunsForAutomation, listSharesForAutomation)
- * @param {Function} [overrides.getUser]        (id) => user row
- * @param {Function} [overrides.hasPermission]  (userId, perm, session) => bool
- * @param {object}   [overrides.assessments]    aiActAssessmentStore surface (getLatest)
- * @param {Function} [overrides.isRequired]     async (automation, orgId) => bool (the licence)
- * @param {Function} [overrides.liveSignals]    async (orgId, automationId) => signals|null
- * @param {Function} [overrides.attest]         compliance/aiAct/attest.attest
- * @param {Function} [overrides.validateDefinition]
- * @param {Function} [overrides.classify]       aiActClassify.makeClassifier result (the fast-model verdict)
- * @param {Function} [overrides.loadBlocks]     async (definition) => { blockId: definition|null }
- * @param {Function} [overrides.now]            () => ms
+ * @param {typeof import('../../stores/automationStore')} [overrides.store]          automationStore surface (getAutomation, getRunsForAutomation, listSharesForAutomation)
+ * @param {(id: string) => Promise<any>} [overrides.getUser]        (id) => user row
+ * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission]  (userId, perm, session) => bool
+ * @param {typeof import('../../stores/aiActAssessmentStore')} [overrides.assessments]    aiActAssessmentStore surface (getLatest)
+ * @param {(automation: { userId?: string|null }, orgId: string|null) => Promise<boolean>} [overrides.isRequired]     async (automation, orgId) => bool (the licence)
+ * @param {typeof import('../../compliance/aiAct/signals').signalsForAutomation} [overrides.liveSignals]    async (orgId, automationId) => signals|null
+ * @param {typeof import('../../compliance/aiAct/attest').attest} [overrides.attest]         compliance/aiAct/attest.attest
+ * @param {typeof import('../../automation/validate').validateDefinition} [overrides.validateDefinition]
+ * @param {Parameters<typeof makeAiActAuto>[0]['classify']} [overrides.classify]       aiActClassify.makeClassifier result (the fast-model verdict)
+ * @param {Parameters<typeof makeAiActAuto>[0]['loadBlocks']} [overrides.loadBlocks]     async (definition) => { blockId: definition|null }
+ * @param {() => number} [overrides.now]            () => ms
  */
 function makeAiActRouter(overrides = {}) {
     const router = express.Router();
@@ -83,9 +84,12 @@ function makeAiActRouter(overrides = {}) {
         })
         : aiActCheck.defaultAiActState();
 
-    const load = makeGuardedLoad(store, access);
+    const load = /** @type {import('./crudContext').GuardedLoad} */ (makeGuardedLoad(store, access));
 
-    /** The signals as the register stores them; the definition alone when the org read finds nothing. */
+    /** The signals as the register stores them; the definition alone when the org read finds nothing.
+     * @param {{ id?: string|number, definition?: object, title?: string, description?: string }} a
+     * @param {string|null} orgId
+     */
     async function signalsFor(a, orgId) {
         let s = null;
         if (orgId) {
@@ -97,7 +101,10 @@ function makeAiActRouter(overrides = {}) {
         });
     }
 
-    /** The mail domains that count as inside: the owner's. Best effort. */
+    /**
+     * The mail domains that count as inside: the owner's. Best effort.
+     * @param {import('../../automation/aiActAuto').AutomationLike} a
+     */
     async function internalDomainsOf(a) {
         const owner = await Promise.resolve(getUser(a.userId)).catch((e) => fallback('routes/automation/aiAct:internalDomainsOf', e, null));
         const email = typeof owner?.email === 'string' ? owner.email : '';
@@ -109,6 +116,11 @@ function makeAiActRouter(overrides = {}) {
         aiActState: (a, def) => aiActState(a, def),
         attest: (input) => attest(input),
         classify: overrides.classify || require('../../automation/aiActClassify').defaultClassifier(),
+        /**
+         * @param {import('../../automation/aiActAuto').AutomationLike} a
+         * @param {string|null} orgId
+         * @param {import('../../automation/aiActAuto').AutomationDefinition} def
+         */
         signalsFor: async (a, orgId, def) => {
             const live = await signalsFor(a, orgId);
             const fromDef = require('../../compliance/aiAct/signals').signalsFromDefinition(def || {}, { title: a.title, description: a.description });
@@ -120,8 +132,12 @@ function makeAiActRouter(overrides = {}) {
         now,
     });
 
-    const canEditOf = (acc) => acc.role === 'owner' || acc.role === 'edit';
+    const canEditOf = (/** @type {{ role: string | null }} */ acc) => acc.role === 'owner' || acc.role === 'edit';
 
+    /**
+     * @param {Awaited<ReturnType<typeof aiActState>>} state
+     * @param {{ role: string | null }} acc
+     */
     function describe(state, acc) {
         const assess = require('../../compliance/aiAct/assess');
         const row = state.row;
@@ -133,7 +149,11 @@ function makeAiActRouter(overrides = {}) {
         };
     }
 
-    /** A check's answer: the state, what Bee found per question, and the questions left. */
+    /**
+     * A check's answer: the state, what Bee found per question, and the questions left.
+     * @param {Awaited<ReturnType<typeof auto.check>>} r
+     * @param {{ role: string | null }} acc
+     */
     function describeCheck(r, acc) {
         return {
             ...describe(r.state, acc),

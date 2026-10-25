@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — the second factor of a password login: TOTP / recovery-code
  * verification for a session held in mfaPending. Enrolment lives in
@@ -63,7 +63,8 @@ router.post('/mfa/verify-login', mfaLoginLimiter, validate({ body: VerifyLoginBo
         return res.status(400).json({ error: 'MFA is not enabled for this account' });
     }
     const { code } = req.body;
-    const secret = mfa.decryptSecret(userRow.mfa_secret);
+    // A sealed TOTP secret decrypts to the base32 string it was sealed from.
+    const secret = /** @type {string | null} */ (mfa.decryptSecret(userRow.mfa_secret));
     // An account with only security keys has no secret at all: its codes
     // are recovery codes. Only a secret that is there and does not decrypt
     // is "unreadable".

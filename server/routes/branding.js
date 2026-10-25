@@ -73,6 +73,10 @@ const { HttpError } = require('../core/http/errors');
 // reaches the terminal error handler instead. It used to answer here, with
 // 'Auth check failed: ' + the error's own message — the raw text of whatever
 // the permission lookup threw, database errors included, in the 500 body.
+/**
+ * @param {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => unknown} middleware
+ * @returns {import('express').RequestHandler}
+ */
 function safe(middleware) {
     return (req, res, next) => {
         Promise.resolve()
@@ -88,6 +92,11 @@ const requireAdmin = safe(_requireAdmin);
 // The same words brandingStore.sanitize accepts. An enum whose refusal is one
 // sentence, for a wrong value as much as a wrong type (see validate.js).
 
+/**
+ * @param {string} name
+ * @param {number} lo
+ * @param {number} hi
+ */
 const within = (name, lo, hi) => {
     const text = `${name} is a number from ${lo} to ${hi}.`;
     return z.number({ error: typeError({ invalid: text }) }).min(lo, text).max(hi, text);
@@ -100,7 +109,10 @@ const accent = () => z.string({ error: typeError({ invalid: ACCENT_TEXT }) }).re
 const WALLPAPER_TEXT = 'wallpaperPreset is one of: mono, slate, sand, frost, sage, ash.';
 const wallpaperPreset = () => choice(['mono', 'slate', 'sand', 'frost', 'sage', 'ash'], WALLPAPER_TEXT);
 
-/** A per-tier glass override, or null to go back to the intensity-derived one. */
+/**
+ * A per-tier glass override, or null to go back to the intensity-derived one.
+ * @param {string} name
+ */
 const glassTier = (name) => z.object({
     blur: within(`${name}.blur`, 0, 60).optional(),
     saturate: within(`${name}.saturate`, 100, 300).optional(),
@@ -154,11 +166,12 @@ const WALLPAPER_TYPES = new Map([
     ['image/avif', '.avif'],
 ]);
 const WALLPAPER_TYPES_TEXT = 'A wallpaper is a PNG, JPEG, WebP, GIF or AVIF image.';
+/** @param {{ mimetype?: string }} file */
 const typeOf = (file) => String(file.mimetype || '').toLowerCase();
 
 const storage = multer.diskStorage({
     destination: uploadDir,
-    filename: (req, file, cb) => {
+    filename: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string }} */ file, /** @type {(err: Error | null, filename?: string) => void} */ cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         cb(null, 'wallpaper-' + uniqueSuffix + WALLPAPER_TYPES.get(typeOf(file)));
     },
@@ -167,15 +180,20 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024, files: 1 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string }} */ file, /** @type {(err: Error | null, accept?: boolean) => void} */ cb) => {
         if (WALLPAPER_TYPES.has(typeOf(file))) cb(null, true);
         else cb(new HttpError(400, 'bad_wallpaper', WALLPAPER_TYPES_TEXT));
     },
 });
 
-/** Multer's refusals as the client errors they are — they used to reach the terminal handler as 500s. */
+/**
+ * Multer's refusals as the client errors they are — they used to reach the terminal handler as 500s.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function receiveWallpaper(req, res, next) {
-    upload.single('wallpaper')(req, res, (err) => {
+    upload.single('wallpaper')(req, res, (/** @type {Error & { code?: string }} */ err) => {
         if (!err) return next();
         if (err instanceof HttpError) return next(err);
         if (err.code === 'LIMIT_FILE_SIZE') return next(new HttpError(413, 'wallpaper_too_large', 'A wallpaper is at most 5 MB.'));
@@ -309,7 +327,7 @@ router.post('/wallpaper', requireAdmin, receiveWallpaper, async (req, res) => {
         fs.promises.unlink(prevPath).catch(() => { /* missing is fine */ });
     }
 
-    await brandingStore.setWallpaperFilename(req.file.filename);
+    await brandingStore.setWallpaperFilename(/** @type {string} */ (req.file.filename));
     res.json({
         filename: req.file.filename,
         url: `/api/branding/wallpaper/${req.file.filename}`,

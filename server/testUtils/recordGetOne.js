@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -12,11 +12,14 @@
  *   const check = require('./a8-15-logging');
  *   rec.answer = async (sql) => ({ c: 0 });   // per test
  *   rec.calls                                  // [{ sql, params }, …]
+ *
+ * @param {{ getOne: (sql: string, params?: unknown) => Promise<unknown> }} db
  */
 function recordGetOne(db) {
+    /** @type {{ calls: Array<{ sql: string, params: unknown }>, answer: (sql: string, params?: unknown) => Promise<unknown> }} */
     /** @type {{ calls: Array<{ sql: string, params: any }>, answer: (sql?: string, params?: any) => Promise<any> }} */
     const rec = { calls: [], answer: async () => null };
-    db.getOne = async (sql, params) => { rec.calls.push({ sql, params }); return rec.answer(sql, params); };
+    db.getOne = async (/** @type {string} */ sql, /** @type {unknown} */ params) => { rec.calls.push({ sql, params }); return rec.answer(sql, params); };
     return rec;
 }
 

@@ -268,3 +268,20 @@ module.exports = {
     stripInlineMarkdown,
     _test: { deckFromMarkdown, deckFromJson, parseSlideLines, fieldsFromContent, clampDeck, inferLayout },
 };
+
+/**
+ * @typedef {{ text: string, level: number }} BulletItem
+ * @typedef {{ dataUrl?: string, storageKey?: string, rejected?: string, alt: string }} ImageRef
+ * @typedef {{ columns: string[], rows: unknown[][] }} SlideTable
+ * @typedef {{ title: string, bullets: BulletItem[], body: string[], icon?: string | null, image?: ImageRef | null }} ParsedColumn
+ * @typedef {NonNullable<ReturnType<typeof chartFromAny>>} SlideChart
+ * @typedef {ReturnType<typeof statsFromAny>[number]} SlideStat
+ * @typedef {ReturnType<typeof stepsFromAny>[number]} SlideStep
+ * @typedef {ReturnType<typeof cardFrom>} SlideCard
+ * @typedef {{ layout: string | null, title: string, bullets: BulletItem[], columns: { title: string | null, bullets: BulletItem[] }[] | null,
+ *   body: string | null, table: SlideTable | null, image: ImageRef | null, quote: { text: string, attribution: string | null } | null,
+ *   chart: SlideChart | null, stats: SlideStat[] | null, steps: SlideStep[] | null, cards: SlideCard[] | null,
+ *   style: string | null, notes: string | null }} Slide
+ * @typedef {{ title: string, subtitle: string | null, author: string | null, date: string | null, slides: Slide[],
+ *   coverNotes?: string | null, warnings?: string[], normalized?: boolean }} Deck
+ */

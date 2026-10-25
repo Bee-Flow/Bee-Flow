@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The smallest group a result may show. Two floors apply: the environment's
@@ -9,11 +9,17 @@
 
 const log = require('../../../telemetry/log');
 
+/**
+ * @param {string} orgId
+ */
 const policyKey = (orgId) => `org_${orgId}_automation_table_policy`;
 
+/**
+ * @param {number} v
+ */
 const whole = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
 
-/** max(what the step asks for, the floor). */
+/** max(what the step asks for, the floor). @param {unknown} stepMinN @param {unknown} floor */
 function effectiveMinN(stepMinN, floor) {
     return Math.max(whole(Number(stepMinN)), whole(Number(floor)));
 }
@@ -33,7 +39,7 @@ async function minGroupFloorFor(orgId, deps = {}) {
         const doc = typeof raw === 'string' ? JSON.parse(raw) : raw;
         return Math.max(envFloor, whole(doc && doc.minGroupSize));
     } catch (e) {
-        log.warn('[tables] group policy unreadable, using the environment floor', { message: e && e.message });
+        log.warn('[tables] group policy unreadable, using the environment floor', { message: e && /** @type {Error} */ (e).message });
         return envFloor;
     }
 }

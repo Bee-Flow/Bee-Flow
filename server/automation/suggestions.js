@@ -630,3 +630,15 @@ module.exports = {
     // internal, exported for tests
     _test: { tierRank, titleTokens, clampString, normaliseIntegrationIds, daysSince },
 };
+
+/** @typedef {Map<string, { count: number, lastUsedDays: number|null }>} ActivityIndex */
+
+/** @typedef {{ kind: string, signals: Array<{ tool: string, integration: string, count: number, lastUsedDays: number|null }>, summary: string }} SuggestionEvidence */
+
+/** @typedef {{ score: number, minutesSavedPerMonth: number, frequencyLabel: string, confidence: string }} SuggestionValue */
+
+/**
+ * @typedef {{ id: string, title: string, description: string, requiredIntegrations: string[], unavailableIntegrations: string[],
+ *   triggerKind: string, buildPrompt: string, groundedIn: string, complexity?: string,
+ *   evidence?: SuggestionEvidence, value?: SuggestionValue }} Suggestion
+ */

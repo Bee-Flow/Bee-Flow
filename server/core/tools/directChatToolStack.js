@@ -30,13 +30,14 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
     const allComponents = componentManager.getComponents();
     const tierToolsConfig = await configStore.getConfig('direct_chat_tier_tools');
     const enabledToolIds = tierToolsConfig && resolvedTier ? tierToolsConfig[resolvedTier] : null;
+    /** @type {import('../agentRuntime/chatStream/turnState').ToolDef[]} */
     const tools = allComponents
         .filter(c => {
             if (enabledToolIds) return enabledToolIds.includes(c.id);
-            return c.definition?.directChatEnabled === true;
+            return /** @type {ComponentDefinition} */ (c.definition)?.directChatEnabled === true;
         })
         .map(c => {
-            const inputDefs = c.definition?.inputs || {};
+            const inputDefs = /** @type {ComponentDefinition} */ (c.definition)?.inputs || {};
             const visibleInputs = Object.entries(inputDefs)
                 .filter(([, conf]) => {
                     if (typeof conf !== 'object') return true;
@@ -46,7 +47,7 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
                 type: 'function',
                 function: {
                     name: c.id,
-                    description: c.definition.description || c.definition.name || c.id,
+                    description: /** @type {ComponentDefinition} */ (c.definition).description || /** @type {ComponentDefinition} */ (c.definition).name || c.id,
                     parameters: {
                         type: 'object',
                         properties: visibleInputs.reduce((acc, [key, conf]) => {
@@ -55,7 +56,7 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
                                 description: (typeof conf === 'object' ? conf.description : '') || '',
                             };
                             return acc;
-                        }, {}),
+                        }, /** @type {Record<string, { type: string, description: string }>} */ ({})),
                         required: visibleInputs
                             .filter(([, conf]) => typeof conf === 'object' && conf.required)
                             .map(([key]) => key),
@@ -65,6 +66,7 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
         });
 
     // ── Integration tools (agent_search, gmail, calendar, drive, …) ──
+    /** @type {string | null} */
     let n8nOrgId = null;
     try {
         // extraEnabledApps: skill-scoped app enablement (bypasses only the
@@ -81,7 +83,7 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
         // whole turn (direct chat's historical behavior). Default: degrade to
         // component tools only (swarm workers).
         if (strict) throw e;
-        log.warn('[DirectChatToolStack] integration tools failed:', e.message);
+        log.warn('[DirectChatToolStack] integration tools failed:', /** @type {Error} */ (e).message);
     }
     // MCP-server tools are injected inside getIntegrationTools (they are
     // integrations now, gated by the same effective.integration set).
@@ -90,3 +92,9 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
 }
 
 module.exports = { buildDirectChatToolStack };
+
+/**
+ * A component.json as loaded by componentManager (parsed JSON).
+ * @typedef {{ directChatEnabled?: boolean, description?: string, name?: string,
+ *   inputs?: Record<string, string | { type?: string, description?: string, secure?: boolean, default?: unknown, required?: boolean }> }} ComponentDefinition
+ */

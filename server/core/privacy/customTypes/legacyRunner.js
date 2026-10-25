@@ -146,3 +146,5 @@ function _resetLegacyRunner() {
 }
 
 module.exports = { runLegacySync, prewarm, _resetLegacyRunner, DEFAULT_BUDGET_MS, COOLDOWN_MS };
+
+/** @typedef {import('worker_threads').MessagePort} MessagePort */

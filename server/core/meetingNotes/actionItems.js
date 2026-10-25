@@ -643,3 +643,17 @@ module.exports = {
     mergeRegeneratedActionItems,
     mergeRegeneratedNotes,
 };
+
+/** @typedef {{ kind: string; ref: string; label: string; at: string; itemRef?: string }} Destination */
+
+/**
+ * @typedef {{ id: string, text: string, source: string, done: boolean, aiText?: string, orphaned?: boolean,
+ *   assignee?: string, timestamp?: string, due?: string, segmentIndex?: number, destination?: Destination }} ActionItem
+ */
+
+/** @typedef {{ id: string, text: string, source: string, timestamp?: string, segmentIndex?: number, open?: boolean }} Note */
+
+/**
+ * @template T
+ * @typedef {{ ok: boolean, value?: T | null, error?: string }} Shaped
+ */

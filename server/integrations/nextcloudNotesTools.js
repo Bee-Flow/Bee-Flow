@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Notes Tools — JSON CRUD on /index.php/apps/notes/api/v1/notes.
  *
@@ -133,22 +133,29 @@ const NEXTCLOUD_NOTES_TOOLS = [
     }
 ];
 
+/** @param {string} baseUrl */
 function notesApi(baseUrl) {
     return `${baseUrl}/index.php/apps/notes/api/v1/notes`;
 }
 
+/** @param {Response} res */
 async function readJsonSafe(res) {
     const text = await res.text().catch(() => '');
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/** @param {string | null | undefined} content */
 function trimContent(content) {
     if (!content) return content;
     if (content.length <= MAX_CONTENT_BYTES) return content;
     return content.slice(0, MAX_CONTENT_BYTES) + '\n\n... [truncated — note too large]';
 }
 
+/**
+ * @param {{ id: number, title?: string, category?: string, modified?: number, favorite?: boolean, content?: string }} note
+ */
 function summarise(note) {
+    /** @type {{ id: number, title?: string, category?: string, modified?: number, favorite?: boolean, excerpt?: string }} */
     const out = {
         id: note.id,
         title: note.title,
@@ -162,6 +169,12 @@ function summarise(note) {
     return out;
 }
 
+/**
+ * @param {string} toolName
+ * @param {{ id?: number | string, title?: string, content?: string, category?: string, favorite?: boolean, query?: string, limit?: number }} args
+ * @param {string} userId
+ * @param {Partial<Express.Session>} session
+ */
 async function executeNextcloudNotesTool(toolName, args, userId, session) {
     // The Notes API's controller methods are #[CORS]-annotated, which forces
     // Nextcloud to demand HTTP Basic auth even when an OAuth session is
@@ -355,6 +368,7 @@ async function executeNextcloudNotesTool(toolName, args, userId, session) {
     }
 }
 
+/** @param {unknown} toolName */
 function isNextcloudNotesTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_notes_');
 }

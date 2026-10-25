@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What the App Studio management routes accept (routes/studioApps/).
  *
@@ -16,7 +16,15 @@ const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('
 // served the published copy to an owner who asked for the draft. The two
 // import routes stay open: their body may be the exported file itself, which
 // sanitizeImport/sanitizeAppImport read field by field.
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const appText = (message, max) => worded(message).max(max, message);
+/**
+ * @param {string} name
+ * @param {number} max
+ */
 const nullableText = (name, max) => appText(`${name} is text of at most ${max} characters.`, max).nullish();
 const CreateAppBody = bodyOf({
     name: nullableText('name', 500),

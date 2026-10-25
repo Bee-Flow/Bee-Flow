@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The model call of an ai_step (split out of execAi.execAiStep): a single
  * chat call when the step has no tools, otherwise a short tool-calling loop
@@ -232,3 +231,18 @@ async function runAiStepChat(call) {
 }
 
 module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS, dispatchAiToolCall };
+
+/**
+ * @typedef {{ id: string, function: { name: string, arguments: unknown }, _thought_signature?: unknown, _raw_content_parts?: unknown }} AiToolCallRequest
+ * @typedef {{ content?: string|null, toolCalls?: AiToolCallRequest[], stop_reason?: string|null, stopReason?: string|null, usage?: unknown }} AiChatResponse
+ * @typedef {{ role: string, content?: unknown, tool_call_id?: string, tool_calls?: unknown[] }} AiChatMessage
+ * @typedef {import('./safety').SafetyCtx & import('./toolIdentity').IdentityCtx & { userOrgIds?: string[], rootRunId?: string|null,
+ *   cancelSignal?: AbortSignal|null }} AiStepRunCtx
+ * @typedef {{ adapter: unknown, cfg: { apiKey?: string, url?: string }, modelId: string, messages: AiChatMessage[],
+ *   maxOutputTokens: number|null, stepReasoningEffort?: string|null, temperature?: number,
+ *   tools: import('./aiStepAgent').AgentTool[]|null, accrueUsage: (response: AiChatResponse) => void,
+ *   step: { id?: string }, ctx: AiStepRunCtx, mode: string, policy: import('./safety').SafetyPolicy,
+ *   auditBase: import('./safety').AuditBase, agentBinding?: { agentId?: string }|null }} AiStepChatCall
+ * @typedef {AiStepChatCall & { executeTool: typeof import('../tools/toolDispatcher').executeTool,
+ *   shieldGate: ReturnType<typeof stepShieldGate>, allowedToolNames: Set<string> }} AiToolLoopEnv
+ */

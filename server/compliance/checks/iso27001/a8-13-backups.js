@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.13 — information backup: every Scaleway server must have a
  * recent snapshot. Reads the scaleway connector's summary snapshot;
@@ -27,6 +27,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_backups.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'scaleway', 'Scaleway connector not enabled — link a read-only API key under ISO 27001 → Connectors to collect backup evidence.');
         if (read.result) return read.result;

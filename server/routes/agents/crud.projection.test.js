@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * GET /agents/:id under the concept/live split (A1): the default answer is the
  * runtime projection (what mobile chats with), `?draft=1` hands an EDITOR the

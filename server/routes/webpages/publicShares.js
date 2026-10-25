@@ -76,6 +76,10 @@ const ExpiryBody = bodyOf({
 // (retention, DSR, an automation) must also disappear publicly, and that hook hangs on
 // datatableStore. One implementation, two triggers — two copies would sooner or later
 // come to disagree about withdrawn shares.
+/**
+ * @param {string} webpageId
+ * @param {string} ownerId
+ */
 function reSnapshotWebpageShares(webpageId, ownerId) {
     shareReconciler.reSnapshotWebpageSharesDetached(webpageId, ownerId);
 }
@@ -88,6 +92,10 @@ function reSnapshotWebpageShares(webpageId, ownerId) {
 // Flow users; the public viewer route at /share/:token handles them.
 
 const PUBLIC_SHARE_BASE_URL = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_APP_URL || '';
+/**
+ * @param {import('express').Request} req
+ * @param {string} rawToken
+ */
 function buildShareUrl(req, rawToken) {
     // Prefer an explicit env override (e.g. https://beeflow.nl) so that
     // links emailed from server-side environments don't end up pointing at
@@ -97,6 +105,7 @@ function buildShareUrl(req, rawToken) {
     return `${base.replace(/\/+$/, '')}/share/${rawToken}`;
 }
 
+/** @param {string | number | Date | null | undefined} input */
 function parseExpiresAt(input) {
     if (input === null || input === '' || input === undefined) return null;
     const d = new Date(input);
@@ -105,12 +114,13 @@ function parseExpiresAt(input) {
     return d;
 }
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
     // List external shares for a webpage. The owner sees their own shares in full;
     // a non-owner who can READ the page (org/group-published) sees that the page has
     // links and their status, but not the owner's chosen recipient emails (BFSF-188).
     // Creating/refreshing/revoking links stays owner-only (handlers below).
-    router.get('/:id/public-shares', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/:id/public-shares', requireAuth, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         // Owner-scoped first (preserves owner-only semantics); fall back to the
         // same read-visibility check used by GET /:id for published pages.
@@ -142,7 +152,7 @@ function register(router) {
     // Create a new external share. Body: { accessMode, password?, allowedEmails?, expiresAt?, title? }
     // Returns the raw URL exactly once — the client must show it to the user;
     // the server only stores its sha256.
-    router.post('/:id/public-shares', requireAuth, validate({ body: ShareBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/public-shares', requireAuth, validate({ body: ShareBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
@@ -197,7 +207,7 @@ function register(router) {
 
     // Re-snapshot an existing share so it reflects the current webpage. Keeps
     // the same token (recipients' links stay valid) but refreshes the bytes.
-    router.post('/:id/public-shares/:shareId/refresh', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/public-shares/:shareId/refresh', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), /** @param {import('express').Request<{ id: string, shareId: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -215,7 +225,7 @@ function register(router) {
     });
 
     // Update expiry. PATCH body: { expiresAt: ISO|null }
-    router.patch('/:id/public-shares/:shareId', requireAuth, validate({ body: ExpiryBody, query: NO_QUERY }), async (req, res) => {
+    router.patch('/:id/public-shares/:shareId', requireAuth, validate({ body: ExpiryBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string, shareId: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -232,7 +242,7 @@ function register(router) {
     });
 
     // Revoke (soft-delete: marks revoked_at, snapshot is also purged).
-    router.delete('/:id/public-shares/:shareId', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.delete('/:id/public-shares/:shareId', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), /** @param {import('express').Request<{ id: string, shareId: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });

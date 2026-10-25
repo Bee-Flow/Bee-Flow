@@ -11,6 +11,8 @@
  * resolveProjectContext, assembleTurnHistory, runTurnPreflight,
  * createSkillActivationHandler }), handed in by ./turnLoop: they sit in the
  * server's large import cycle, which this module stays out of.
+ * @param {Parameters<typeof import('./turnSetup').setupTurn>[0] & { historyOverride: import('./turnState').ChatMessage[] | null }} turn
+ * @param {{ setupTurn: typeof import('./turnSetup').setupTurn, resolveProjectContext: typeof import('../contextEnrichment').resolveProjectContext, assembleTurnHistory: typeof import('./turnHistory').assembleTurnHistory, runTurnPreflight: typeof import('./turnPreflight').runTurnPreflight, createSkillActivationHandler: typeof import('./skillActivation').createSkillActivationHandler }} phases
  */
 async function prepareTurn({ agentId, userId, userMessage, userAuth, onEvent, historyOverride, messageMetadata, _pendingTurnReleases, _turnCallId }, phases) {
     const { setupTurn, resolveProjectContext, assembleTurnHistory, runTurnPreflight, createSkillActivationHandler } = phases;

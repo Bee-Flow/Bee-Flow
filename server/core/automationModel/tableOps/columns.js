@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Column lookup shared by the planner (design time) and the engine (run time),
@@ -7,6 +7,9 @@
 
 const { str } = require('./constants');
 
+/**
+ * @param {string | undefined} v
+ */
 const fold = (v) => String(v ?? '').normalize('NFKC').trim().toLowerCase();
 
 /**
@@ -35,8 +38,13 @@ function resolveColumn(columns, name, alternatives = []) {
     return null;
 }
 
-/** `base`, or `base (2)`, `base (3)` ... the first that is not in `taken` (a Set of keys). */
+/**
+ * `base`, or `base (2)`, `base (3)` ... the first that is not in `taken` (a Set of keys).
+ * @param {unknown} base
+ * @param {Set<string>} taken
+ */
 function uniqueKey(base, taken) {
+
     const root = String(base || 'Column');
     if (!taken.has(root)) return root;
     for (let i = 2; ; i++) {
@@ -45,7 +53,12 @@ function uniqueKey(base, taken) {
     }
 }
 
-/** A new column; `type` defaults to 'mixed'. */
+/**
+ * A new column; `type` defaults to 'mixed'.
+ * @param {string} key
+ * @param {string} [type]
+ * @param {string} [label]
+ */
 const makeColumn = (key, type = 'mixed', label = key) => ({ key, label, type });
 
 module.exports = { resolveColumn, uniqueKey, makeColumn, fold };

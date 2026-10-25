@@ -1,7 +1,8 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Teams WebVTT transcript parsing. Pure, no I/O: split out of teamsArtifacts.js
  * so it can be tested and reused without loading the Graph client.
+ * @param {string} stamp
  */
 
 function vttSeconds(stamp) {
@@ -11,6 +12,9 @@ function vttSeconds(stamp) {
     return Number.isFinite(total) ? total : 0;
 }
 
+/**
+ * @param {string} s
+ */
 function decodeEntities(s) {
     return s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
         .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
@@ -23,6 +27,7 @@ function decodeEntities(s) {
  * @param {string} vtt
  */
 function parseTeamsVtt(vtt) {
+    /** @type {{ start: number; end: number; text: string; speakerId: string; }[]} */
     const segments = [];
     const blocks = String(vtt || '').replace(/\r\n?/g, '\n').split(/\n{2,}/);
     for (const block of blocks) {

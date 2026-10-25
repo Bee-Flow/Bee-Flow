@@ -208,3 +208,10 @@ async function guardTriggerPayload(deps, { triggerPayload, triggerKind, ctx, run
 }
 
 module.exports = { buildRunContext, recordResumeBoundary, guardTriggerPayload };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ * @typedef {Awaited<ReturnType<typeof import('./runSetup').buildRunState>>} RunState
+ */

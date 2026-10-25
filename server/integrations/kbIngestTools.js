@@ -424,3 +424,12 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
 }
 
 module.exports = { KB_INGEST_TOOLS, isKbIngestTool, executeKbIngestTool, ORIGINS };
+
+/**
+ * Who runs this action: the automation runner / tool dispatcher context.
+ * @typedef {{ orgId?: string | null, userId?: string | null, automationId?: string | null, automationTitle?: string,
+ *   inboxId?: string | null, origin?: string }} KbIngestContext
+ * @typedef {typeof ORIGINS.support} KbOrigin
+ * A `documents` row (stores/kb/documentQueries.js has no row typedef).
+ * @typedef {Record<string, any>} KbDocumentRow
+ */

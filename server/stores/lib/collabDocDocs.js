@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The document rows of the co-editing store (../collabDocStore.js): opening

@@ -141,3 +141,7 @@ function stop() {
 }
 
 module.exports = { start, stop, _runAllOrgs, LOCK_KEY };
+
+/** @typedef {import('pg').PoolClient} PoolClient */
+
+/** @typedef {import('pg').Pool} Pool */

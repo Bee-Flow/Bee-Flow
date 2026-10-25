@@ -250,3 +250,7 @@ module.exports = {
     // Tests replace the backoff wait so a retry costs no wall-clock time.
     _setSleepForTests: (fn) => { sleep = fn; },
 };
+
+/**
+ * @typedef {{ data: { index: number, embedding: number[] }[] }} EmbedResponse
+ */

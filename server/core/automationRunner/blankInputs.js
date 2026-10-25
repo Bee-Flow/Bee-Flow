@@ -73,3 +73,9 @@ function preflightBlankInputs(step, runState, mode) {
 }
 
 module.exports = { failOnBlankInputs, preflightBlankInputs };
+
+/**
+ * The step fields this pass reads.
+ * @typedef {{ id?: string, type?: string, title?: string, body?: string, url?: string, headers?: Record<string, string>,
+ *             method?: string, content?: string, subtitle?: string, saveCopy?: boolean, copyName?: string }} BlankInputStep
+ */

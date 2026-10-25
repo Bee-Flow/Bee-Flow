@@ -251,3 +251,11 @@ async function provisionConnectorUser(req, orgId, payload) {
 }
 
 module.exports = { provisionConnectorUser };
+
+/** @typedef {import('./connectorJwtPhases').OrgRec} OrgRec */
+
+/** @typedef {import('./connectorJwtPhases').UserRec} UserRec */
+
+/** @typedef {import('./connectorJwtPhases').ConnectorPayload} ConnectorPayload */
+
+/** @typedef {import('./connectorJwtPhases').ConnectorReq} ConnectorReq */

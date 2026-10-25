@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('stream').Readable} Readable */
+// @typecheck noImplicitAny
 /**
  * `PUT /mcp/cms/upload/<ticketId>` (secret in the `X-Upload-Ticket` header) — receive a file for a CMS asset.
  *
@@ -37,7 +38,10 @@ const log = require('../../telemetry/log');
 const { bodyDeadlineMs, storeDeadlineMs } = require('./uploadTickets');
 const { CLIP_MIME_WHITELIST, VTT_CONTENT_TYPE } = require('../../core/cms/uploadPolicy');
 
-/** The file extension an asset of this type gets; the client's own extension is not trusted. */
+/**
+ * The file extension an asset of this type gets; the client's own extension is not trusted.
+ * @type {Readonly<Record<string, string>>}
+ */
 const EXT_BY_TYPE = Object.freeze({
     'image/jpeg': '.jpg',
     'image/png': '.png',
@@ -52,7 +56,11 @@ const EXT_BY_TYPE = Object.freeze({
 
 const INVALID_TICKET = 'This upload URL is not valid. It may have expired or been used already; call cms_request_upload for a new one.';
 
-/** Storage key for a new asset: same shape as the CMS uploader's, `cms/<ts>-<rand>-<name>.<ext>`. */
+/**
+ * Storage key for a new asset: same shape as the CMS uploader's, `cms/<ts>-<rand>-<name>.<ext>`.
+ * @param {string} filename
+ * @param {string} contentType
+ */
 function assetKeyFor(filename, contentType) {
     const ext = EXT_BY_TYPE[String(contentType).toLowerCase()] || '';
     const safeBase = String(filename || 'upload')
@@ -62,6 +70,7 @@ function assetKeyFor(filename, contentType) {
     return `cms/${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeBase}${ext}`;
 }
 
+/** @param {string} key */
 const assetUrlFor = (key) => `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
 
 class TooLargeError extends Error {}
@@ -72,9 +81,15 @@ class StoreTimeoutError extends Error {}
 // A body that sends nothing for this long is dead. The total body and storage deadlines scale with the ticket's size (uploadTickets.js).
 const IDLE_MS = 30 * 1000;
 
-/** Reject when `promise` has not settled after `ms`. */
+/**
+ * Reject when `promise` has not settled after `ms`.
+ * @param {(signal: AbortSignal) => Promise<unknown>} run
+ * @param {number} ms
+ * @param {() => StoreTimeoutError} makeError
+ */
 function withDeadline(run, ms, makeError) {
     const controller = new AbortController();
+    /** @type {NodeJS.Timeout} */
     let timer;
     const deadline = new Promise((_, reject) => {
         timer = setTimeout(() => { controller.abort(); reject(makeError()); }, ms);
@@ -91,6 +106,11 @@ function withDeadline(run, ms, makeError) {
  * to it (the awaits ahead of this call) rejects at once, and a stream that
  * goes quiet for `idleMs`, or runs past `totalMs` in all, rejects with StalledError.
  * @returns {Promise<number>} bytes written
+ * @param {Readable} readable
+ * @param {string} filePath
+ * @param {number} maxBytes
+ * @param {number} [idleMs]
+ * @param {number} [totalMs]
  */
 function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs = 30 * 60 * 1000) {
     return new Promise((resolve, reject) => {
@@ -102,12 +122,16 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
         let bytes = 0;
         let settled = false;
         let ended = false;
+        /** @type {NodeJS.Timeout | null} */
         let idle = null;
         const total = setTimeout(() => fail(new StalledError('upload took too long')), totalMs);
         const arm = () => {
             clearTimeout(idle);
             idle = setTimeout(() => fail(new StalledError('no data received')), idleMs);
         };
+        /**
+         * @param {Error | StalledError | TooLargeError | AbortedError} err
+         */
         const fail = (err) => {
             if (settled) return;
             settled = true;
@@ -142,7 +166,7 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
 /**
  * @param {object} deps
  * @param {ReturnType<typeof import('./uploadTickets').createUploadTickets>} deps.tickets
- * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: any|null): Promise<void> }} deps.storage
+ * @param {{ isAvailable(): boolean, uploadFile(key: string, body: Buffer, type: string, meta?: any|null): Promise<{ key: string }|void> }} deps.storage  the result is not read
  * @param {(filePath: string, size: number, key: string, type: string, signal?: AbortSignal) => Promise<void>} deps.streamIntoStorage
  * @param {(job: { key: string, source: Buffer, contentType: string, storage: any }) => Promise<number>} [deps.scheduleVariants]  renders resized copies of a stored image in the background
  * @param {(buf: Buffer) => Buffer|null} deps.sanitizeSvg
@@ -210,25 +234,30 @@ function createUploadReceiver(deps) {
         const type = String(bound.contentType).toLowerCase();
 
         // 4. Receive, validate, store.
+        /** @type {string | null} */
         let dir = null;
         let stored = false;
         let givenBack = false;
         const storeMs = deps.storeMs || storeDeadlineMs(bound.maxSize);
         const bodyMs = deps.bodyMs || bodyDeadlineMs(bound.maxSize);
-        /** Hand the ticket back once, only when nothing is stored; false when it stays spent. */
+        /**
+         * Hand the ticket back once, only when nothing is stored; false when it stays spent.
+         * @param {string} message
+         */
         const giveBack = async (message) => {
             if (stored || givenBack) return false;
             givenBack = true;
             try {
                 return await deps.tickets.release(id, message);
             } catch (e) {
-                log.warn(`[CmsMcp] ticket release failed ${id}: ${e.message}`);
+                log.warn(`[CmsMcp] ticket release failed ${id}: ${/** @type {Error} */ (e).message}`);
                 return false;
             }
         };
         try {
             dir = await fs.promises.mkdtemp(path.join(tmpRoot(), 'beeflow-cms-mcp-'));
             const filePath = path.join(dir, 'upload.bin');
+            /** @type {number} */
             let size;
             try {
                 size = await receiveToFile(stream, filePath, bound.maxSize, idleMs, bodyMs);
@@ -272,6 +301,7 @@ function createUploadReceiver(deps) {
                 // fine here; the cap was enforced while receiving.
                 /** @type {Buffer} */
                 let body = await fs.promises.readFile(filePath);
+                /** @type {{ sanitized: string; } | null} */
                 let metadata = null;
                 if (type === 'image/svg+xml') {
                     const clean = deps.sanitizeSvg(body);
@@ -301,12 +331,12 @@ function createUploadReceiver(deps) {
                 await deps.tickets.finish(id, { state: 'done', asset });
             } catch (e) {
                 // The file is stored; only the status record is behind. The caller still gets the asset.
-                log.warn(`[CmsMcp] could not record the finished upload ${id}: ${e.message}`);
+                log.warn(`[CmsMcp] could not record the finished upload ${id}: ${/** @type {Error} */ (e).message}`);
             }
             log.info(`[CmsMcp] upload stored ticket=${id} key=${key} bytes=${storedSize}`);
             return { status: 200, body: asset };
         } catch (err) {
-            log.error(`[CmsMcp] upload failed ticket=${id}: ${err.message}`);
+            log.error(`[CmsMcp] upload failed ticket=${id}: ${/** @type {Error} */ (err).message}`);
             // A storage call that timed out may still be running and cannot be cancelled for a buffered
             // write, so that ticket stays spent. Any other failure with nothing stored goes back.
             const timedOut = err instanceof StoreTimeoutError;

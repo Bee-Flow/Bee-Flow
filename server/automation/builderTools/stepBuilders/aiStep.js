@@ -296,3 +296,18 @@ module.exports = {
     agentPermissionsBlock,
     applyAddAi,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Placement} Placement
+ * @typedef {import('./inputBindings').Inputs} Inputs
+ * @typedef {import('./inputBindings').ForEachSpec} ForEachSpec
+ * @typedef {{ temperature?: number, enumFrom?: Array<Record<string, string>>, checks?: Array<Record<string, string>>,
+ *   fallback?: { kind?: string, fields?: Inputs } }} ReliabilityArgs
+ * @typedef {Placement & ReliabilityArgs & { modelTier?: string, inputs?: Inputs, forEach?: ForEachSpec, prompt?: string,
+ *   systemPrompt?: string, outputSchema?: Record<string, unknown>, tools?: unknown[], allowTools?: boolean,
+ *   knowledgeBaseIds?: unknown[], useMemory?: boolean, agentId?: unknown, skillIds?: unknown,
+ *   agentPermissions?: unknown, disabledAgentSkillIds?: string[] | null, askOnce?: unknown }} AiArgs
+ * @typedef {{ label: string, list: boolean, holder: Record<string, string>, key: string }} ReliabilityRef
+ */

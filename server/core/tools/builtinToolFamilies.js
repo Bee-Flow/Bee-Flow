@@ -212,3 +212,5 @@ function registerBuiltinToolFamilies() {
 }
 
 module.exports = { BUILTIN_TOOL_FAMILIES, registerBuiltinToolFamilies };
+
+/** @typedef {import('./toolFamilyRegistry').ToolContext} ToolContext */

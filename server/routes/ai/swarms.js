@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Swarms — discovery + (later) custom-swarm CRUD.
  *

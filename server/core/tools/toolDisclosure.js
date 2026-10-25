@@ -318,3 +318,10 @@ module.exports = {
     expandGroups,
     buildLoadResult,
 };
+
+/**
+ * A tool definition in either shape (OpenAI `function.name` or a bare `name`).
+ * @typedef {{ name?: string, function?: { name?: string }, _mcp?: { serverId?: string }, [key: string]: unknown }} DisclosableTool
+ */
+
+/** @typedef {{ label: string, desc: string, tools: DisclosableTool[] }} LazyGroupEntry */

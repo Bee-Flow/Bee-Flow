@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: approvals v2 — the approval row becomes SOURCE-AGNOSTIC (2026-09).
  *

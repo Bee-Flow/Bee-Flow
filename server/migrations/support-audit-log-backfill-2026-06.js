@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: backfill support_audit_log from the legacy support_thread_events.
  *

@@ -96,6 +96,7 @@ const PatchBody = z.object({
  * Resolve the caller's org IDs (array), group IDs (array) and a primary org.
  * Mirrors resolveAccessContext / resolveUserOrgFromReq in routes/transcriptions.js.
  * Super admins get their own org folded in so they still see/manage it.
+ * @param {import('express').Request} req
  */
 async function resolveCtx(req) {
     const userId = req.session?.user?.id || null;
@@ -171,7 +172,11 @@ router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) =
     return res.status(201).json(created);
 });
 
-/** Owner (user-scope) or org admin (org/group-scope) may write. */
+/**
+ * Owner (user-scope) or org admin (org/group-scope) may write.
+ * @param {import('express').Request} req
+ * @param {NonNullable<Awaited<ReturnType<typeof store.getById>>>} tpl
+ */
 async function authorizeWrite(req, tpl) {
     const ctx = await resolveCtx(req);
     if (tpl.scope === 'user') return tpl.userId === ctx.userId;
@@ -179,12 +184,13 @@ async function authorizeWrite(req, tpl) {
 }
 
 // ── Update ─────────────────────────────────────────────────────────
-router.patch('/:id', requireAuth, validate({ body: PatchBody }), async (req, res) => {
+router.patch('/:id', requireAuth, validate({ body: PatchBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const tpl = await store.getById(req.params.id);
     if (!tpl) return res.status(404).json({ error: 'Not found' });
     if (!(await authorizeWrite(req, tpl))) return res.status(403).json({ error: 'Not allowed' });
 
     // The schema trimmed, bounded and refused empties; only what was sent moves.
+    /** @type {Record<string, unknown>} */
     const updates = {};
     for (const f of ['name', 'prompt', 'isDefault']) if (req.body[f] !== undefined) updates[f] = req.body[f];
 
@@ -193,7 +199,7 @@ router.patch('/:id', requireAuth, validate({ body: PatchBody }), async (req, res
 });
 
 // ── Delete ─────────────────────────────────────────────────────────
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const tpl = await store.getById(req.params.id);
     if (!tpl) return res.status(404).json({ error: 'Not found' });
     if (!(await authorizeWrite(req, tpl))) return res.status(403).json({ error: 'Not allowed' });

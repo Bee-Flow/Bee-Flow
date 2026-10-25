@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The sessions a connector runs under (the owner's, or a viewer's, built
  * headless) and the default dependency graph runConnector overrides in tests.
@@ -126,3 +125,9 @@ function defaultDeps() {
 }
 
 module.exports = { defaultBuildUserSession, defaultBuildOwnerSession, defaultDeps };
+
+/**
+ * @typedef {{ include?: string[], providerHint?: string | null }} SessionOpts
+ */
+
+/** @typedef {ReturnType<typeof defaultDeps>} ConnectorDeps */

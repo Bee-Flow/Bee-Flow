@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * versionFacts — what happened in ONE edit of a web page, mechanically
  * derived, plus who made it.
@@ -42,6 +42,7 @@
  * keys of stores/webpage/shared.js — needed here because the summary must name a
  * FILE NAME and not a slot letter.
  */
+/** @type {Readonly<Record<string, string>>} */
 const SLOT_FILES = Object.freeze({
     html: 'index.html',
     css: 'style.css',
@@ -59,6 +60,7 @@ const MANUAL_EDIT_SUMMARY = 'Edited in code';
  * only adds the closing newline would yield +1.
  *
  * An empty text has 0 lines — an empty file is not one empty line.
+ * @param {unknown} text
  */
 function countLines(text) {
     if (typeof text !== 'string' || text === '') return 0;
@@ -72,6 +74,8 @@ function countLines(text) {
  *
  * Gives `null` as soon as one of the two sides has no text — then nothing has been
  * measured and no number may arise.
+ * @param {unknown} before
+ * @param {unknown} after
  */
 function lineDelta(before, after) {
     if (typeof before !== 'string' || typeof after !== 'string') return null;
@@ -84,6 +88,9 @@ function lineDelta(before, after) {
  * `before` and `after` are objects with slot keys ({ html, css, js }).
  * Slots of which one of the two sides is missing do not count — but if
  * because of that NOTHING measurable remains, the outcome is `null` and not 0.
+ * @param {Record<string, unknown> | null | undefined} before
+ * @param {Record<string, unknown> | null | undefined} after
+ * @param {Iterable<string> | null | undefined} slots
  */
 function slotsLineDelta(before, after, slots) {
     const list = Array.from(slots || []);
@@ -98,7 +105,10 @@ function slotsLineDelta(before, after, slots) {
     return measured === 0 ? null : total;
 }
 
-/** `index.html`, `index.html and style.css`, `a, b and c`. */
+/**
+ * `index.html`, `index.html and style.css`, `a, b and c`.
+ * @param {string[]} names
+ */
 function joinFileNames(names) {
     const list = names.filter(Boolean);
     if (list.length === 0) return '';
@@ -116,6 +126,7 @@ function joinFileNames(names) {
  * A turn without a recognizable slot falls back to 'AI edit' — the text that these
  * rows all carried before W4. That is not a nice summary, but it is the honest one:
  * we only know THAT the AI did something.
+ * @param {Iterable<string> | null | undefined} slots
  */
 function aiTurnSummary(slots) {
     const known = Object.keys(SLOT_FILES).filter(slot => Array.from(slots || []).includes(slot));
@@ -128,6 +139,7 @@ function aiTurnSummary(slots) {
  *
  * The row contains the state from BEFORE the restore — restoring it makes the restore undone. The text says that
  * literally, instead of "Restored v12", which on a row with the old content reads exactly the other way round.
+ * @param {number} seq
  */
 function restoreSummary(seq) {
     return Number.isFinite(seq) && seq > 0
@@ -154,7 +166,7 @@ function actorOf(actorUserId, { viewerId = null, names = null } = {}) {
     if (!id) return null;
     let name = null;
     if (names && typeof names.get === 'function') name = names.get(id);
-    else if (names && typeof names === 'object') name = names[id];
+    else if (names && typeof names === 'object') name = /** @type {Record<string, string>} */ (names)[id];
     return {
         id,
         name: (typeof name === 'string' && name.trim()) ? name.trim() : null,

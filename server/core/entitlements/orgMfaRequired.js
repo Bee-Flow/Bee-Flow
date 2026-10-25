@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Org-scoped MFA duty (A3) — the READ side only.
  *
@@ -40,6 +40,7 @@ const CACHE_TTL_MS = 30_000;
 
 const _cache = new Map(); // orgId → { at, required }
 
+/** @param {string} orgId */
 function orgMfaConfigKey(orgId) {
     return `${CONFIG_KEY_PREFIX}${orgId}`;
 }
@@ -47,6 +48,7 @@ function orgMfaConfigKey(orgId) {
 /**
  * Normalise a stored blob (or nothing) into a boolean duty.
  * Missing, malformed, or anything but an explicit true reads as FALSE.
+ * @param {boolean | { required?: boolean } | null | undefined} stored
  */
 function normalizeOrgMfaRequired(stored) {
     if (stored === true) return true;
@@ -61,6 +63,7 @@ function normalizeOrgMfaRequired(stored) {
  * Never throws; memoised for CACHE_TTL_MS because this sits on the /auth/user
  * hot path.
  *
+ * @param {string|null} orgId
  * @returns {Promise<boolean>}
  */
 async function resolveOrgMfaRequired(orgId) {
@@ -79,7 +82,10 @@ async function resolveOrgMfaRequired(orgId) {
     return required;
 }
 
-/** Drop the memoised value for an org (for the future settings route's save). */
+/**
+ * Drop the memoised value for an org (for the future settings route's save).
+ * @param {string} orgId
+ */
 function invalidateOrgMfaRequired(orgId) {
     _cache.delete(orgId);
 }

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Client Errors API — receives error reports from the browser ErrorBoundary.
  *
@@ -33,7 +34,7 @@
  */
 
 const express = require('express');
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
 const { currentClient } = require('../telemetry/requestClient');
 const log = require('../telemetry/log');
@@ -51,12 +52,16 @@ const reportLimiter = rateLimit({
     message: { error: 'Too many error reports.' },
 });
 
+/**
+ * @param {string} s
+ * @param {number} max
+ */
 function truncate(s, max) {
     if (typeof s !== 'string') return '';
     return s.length > max ? s.slice(0, max) + '…[truncated]' : s;
 }
 
-router.post('/', reportLimiter, (req, res) => {
+router.post('/', reportLimiter, (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const body = req.body || {};
         const entry = {

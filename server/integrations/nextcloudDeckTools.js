@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Deck Tools — kanban boards / stacks / cards / labels / comments.
  *
@@ -299,6 +299,12 @@ const NEXTCLOUD_DECK_TOOLS = [
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {import('./nextcloudDeckHandlers').DeckArgs} args
+ * @param {string} userId
+ * @param {Partial<Express.Session>} session
+ */
 async function executeNextcloudDeckTool(toolName, args, userId, session) {
     // Deck's REST controllers (BoardApiController, StackApiController, etc.)
     // are #[CORS]-annotated, so Nextcloud's CORS middleware rejects OAuth
@@ -331,6 +337,7 @@ async function executeNextcloudDeckTool(toolName, args, userId, session) {
     return handler(args, { api, ncFetch, authError, baseUrl, toolName });
 }
 
+/** @param {unknown} toolName */
 function isNextcloudDeckTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_deck_');
 }

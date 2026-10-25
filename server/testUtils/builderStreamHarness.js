@@ -393,3 +393,46 @@ function parseSse(raw) {
 }
 
 module.exports = { createBuilderStream, call, parseSse };
+
+/**
+ * @typedef {(type: string, data: unknown) => void} StreamEventSink
+ * @typedef {{ name: string, args?: Record<string, unknown>, id?: string, thoughtSignature?: string, repaired?: boolean }} ToolCallSpec
+ * @typedef {{
+ *   thinking?: Array<{ partId?: string, redacted?: boolean, text?: string, signature?: string }>,
+ *   text?: string,
+ *   events?: Array<[string, unknown]>,
+ *   toolCalls?: ToolCallSpec[],
+ *   finishReason?: string,
+ *   usage?: Record<string, unknown>,
+ *   throws?: unknown,
+ * }} RoundObject
+ * @typedef {RoundObject | ((onEvent: StreamEventSink, ctx: { messages: unknown[], options: Record<string, unknown> }) => Promise<void> | void)} RoundSpec
+ * @typedef {(name: string, args: unknown, draftWrap: unknown, delegation?: unknown) => Promise<unknown>} ToolDispatch
+ * @typedef {{
+ *   automations: Record<string, { id: string }>,
+ *   builderSession: unknown,
+ *   storedSessions: Array<{ automationId: string, userId: string, payload: unknown, opts: unknown }>,
+ *   persists: Array<{ automationId: string, title: string, def: unknown }>,
+ *   config: Record<string, unknown>,
+ *   betaFeatures: string[],
+ *   modelId: string,
+ *   providerConfig: unknown,
+ *   tiers: unknown,
+ *   catalog: unknown,
+ *   datatables: unknown,
+ *   datatableAccess: unknown,
+ *   documents: unknown,
+ *   pickers: unknown,
+ *   thinkingModelId: string,
+ *   mintedAutomationId: string,
+ *   userOrgIds: string[],
+ *   dispatch: ToolDispatch,
+ *   adapter?: unknown,
+ * }} HarnessScript
+ * @typedef {{
+ *   written: string[], writableEnded: boolean, headersSent: boolean, statusCode: number, headers?: unknown,
+ *   writeHead: (code: number, headers: unknown) => FakeRes, flushHeaders: () => void,
+ *   write: (chunk: unknown) => boolean, end: (chunk?: unknown) => FakeRes, setHeader: () => FakeRes,
+ *   getHeader: () => undefined, on: () => FakeRes, once: () => FakeRes, emit: () => boolean,
+ * }} FakeRes
+ */

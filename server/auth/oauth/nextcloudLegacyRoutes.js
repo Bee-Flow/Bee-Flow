@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Legacy Nextcloud OAuth — /login and /callback, the pre-multi-provider URIs
  * that Nextcloud OAuth clients configured before /callback/:provider existed
@@ -102,7 +102,7 @@ router.get('/login', async (req, res) => {
 
 // Legacy Nextcloud callback
 router.get('/callback', async (req, res) => {
-    const { code, error, state } = req.query;
+    const { code, error, state } = /** @type {Record<string, string>} */ (req.query);
     const config = await loadConfig();
     const { nextcloudUrl, clientId, clientSecret } = config.oauth || {};
 
@@ -167,7 +167,7 @@ router.get('/callback', async (req, res) => {
 
         let user = null;
         if (userResponse.ok) {
-            const userData = /** @type {{ ocs?: { data?: Record<string, any> } }} */ (await userResponse.json());
+            const userData = /** @type {{ ocs?: { data?: { id: string, [key: string]: any } } }} */ (await userResponse.json());
             user = userData.ocs?.data || null;
             // Persist the raw Nextcloud uid for WebDAV path construction.
             if (user?.id) req.session.nextcloudUid = user.id;

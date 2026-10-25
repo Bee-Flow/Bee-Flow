@@ -187,3 +187,9 @@ function invalidate(orgId) {
 }
 
 module.exports = { list, countByFramework, affectsCounts, invalidate, relevanceOf, makeDeps, MEMO_MS };
+
+/** @typedef {{ frameworkPolicy: typeof import('./frameworkPolicy'), signals: typeof import('./aiAct/signals') | null, db: typeof import('../db'), now: () => number }} Deps */
+
+/** @typedef {{ automations: number | null, agents: number | null, webpages: number | null, forms: number | null }} Affects */
+
+/** @typedef {{ id: string, date: string | null, framework_id: string, kind: string, label_key: string, detail_key: string, relevant: boolean, affects: Affects | null, expected: string | null, affects_kind: string | null }} Milestone */

@@ -496,3 +496,9 @@ module.exports = {
     readWithingsBody,
     withingsClientConfig,
 };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof automationCredentialStore.getCredential>>>} Credential
+ * @typedef {{ accessToken: string, refreshToken: string | null, expiresAt: number | null, scope: string | null }} RefreshResult
+ * @typedef {{ id: string, agentId?: string, isActive?: boolean, enabledApps?: string[] }} PausableItem  A cowork schedule or automation row, as far as pausing needs it.
+ */

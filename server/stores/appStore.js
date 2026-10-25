@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Store - PostgreSQL management for Published Apps
  * Stores app metadata and HTML code for the App Marketplace.
@@ -60,6 +60,17 @@ async function _initDB() {
     ]);
 }
 
+/**
+ * @param {string} name
+ * @param {string} description
+ * @param {string} code
+ * @param {string} createdBy
+ * @param {string | null} [createdByUsername]
+ * @param {string | null} [thumbnail]
+ * @param {boolean} [isPublished]
+ * @param {string | null} [organizationId]
+ * @param {string[]} [sharedGroups]
+ */
 async function createApp(name, description, code, createdBy, createdByUsername = null, thumbnail = null, isPublished = true, organizationId = null, sharedGroups = []) {
     await initDB();
     const id = randomUUID();
@@ -86,7 +97,7 @@ async function getPublishedApps() {
  * List published apps visible to a specific user, applying the same
  * org + shared_groups rules used by agents and KBs.
  *
- * @param {Set|null} userOrgIds - From resolveUserOrgIds(req). null = super admin.
+ * @param {Set<string>|null} userOrgIds - From resolveUserOrgIds(req). null = super admin.
  * @param {string[]} userGroups - User's group IDs.
  * @param {string} userId - For owner-pass-through on personal drafts.
  */
@@ -114,11 +125,21 @@ async function getAllApps() {
     return getAll('SELECT * FROM apps ORDER BY created_at DESC');
 }
 
+/** @param {string} id */
 async function getApp(id) {
     await initDB();
     return getOne('SELECT * FROM apps WHERE id = $1', [id]);
 }
 
+/**
+ * @param {string} id
+ * @param {string} name
+ * @param {string} description
+ * @param {string} code
+ * @param {string | null} [thumbnail]
+ * @param {boolean} [isPublished]
+ * @param {string[]} [sharedGroups]
+ */
 async function updateApp(id, name, description, code, thumbnail = null, isPublished = true, sharedGroups) {
     await initDB();
     // Preserve existing shared_groups when caller didn't pass them — same
@@ -139,12 +160,14 @@ async function updateApp(id, name, description, code, thumbnail = null, isPublis
     return rowCount > 0;
 }
 
+/** @param {string} id */
 async function deleteApp(id) {
     await initDB();
     const { rowCount } = await run('DELETE FROM apps WHERE id = $1', [id]);
     return rowCount > 0;
 }
 
+/** @param {string} userId */
 async function getAppsByUser(userId) {
     await initDB();
     return getAll('SELECT * FROM apps WHERE created_by = $1 ORDER BY created_at DESC', [userId]);

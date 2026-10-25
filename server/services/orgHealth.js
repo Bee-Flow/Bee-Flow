@@ -526,3 +526,17 @@ module.exports = {
     _resetThrottles,
     _maskEmail,
 };
+
+/** @typedef {typeof import('../stores/orgHealthStore')} OrgHealthStore */
+
+/**
+ * @typedef {{ category: string, severity: string, defaultMessage: string, remediation: string | null,
+ *   i18nKey: string, alwaysAppend: boolean }} CatalogEntry
+ */
+
+/**
+ * Options of problem() / event(); resolve-subject ids plus what the entry carries.
+ * @typedef {{ orgId?: string | number | null, ncInstanceId?: string | null, subjectKey?: string | null,
+ *   meta?: unknown, message?: string, severity?: string, source?: string, req?: import('express').Request | null,
+ *   actorUserId?: string | number | null, actorKind?: string }} HealthOpts
+ */

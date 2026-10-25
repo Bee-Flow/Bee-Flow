@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * SLA policies per priority — the first-response and resolution clocks the
  * enforcer measures threads against. Staff read; the acting org decides
@@ -23,7 +23,9 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
+/** @param {string} name */
 const MINUTES_TEXT = (name) => `${name} is a whole number of minutes, at least 1.`;
+/** @param {string} name */
 const minutes = (name) => z.coerce.number({ error: MINUTES_TEXT(name) }).int(MINUTES_TEXT(name)).min(1, MINUTES_TEXT(name)).max(525600, `${name} is at most a year.`);
 
 const SlaBody = z.object({
@@ -34,6 +36,7 @@ const SlaBody = z.object({
     enabled: z.boolean({ error: typeError({ invalid: 'enabled is true or false.' }) }).optional(),
 }).strict();
 
+/** @param {import('express').Router} router */
 function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
     // SLA policies (staff read, super-admin write for system-wide)

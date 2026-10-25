@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Unit — canonical isSuperAdmin predicate + requireSession light gate (H3).
  * DB-free. Run: node --test auth/isSuperAdmin.test.js

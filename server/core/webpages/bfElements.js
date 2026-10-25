@@ -909,3 +909,42 @@ module.exports = {
     CLIENT_MIRROR_BEGIN,
     CLIENT_MIRROR_END,
 };
+
+/**
+ * @typedef {object} BfAttribute
+ * @property {string} name
+ * @property {boolean} required
+ * @property {string[]} [aliases]
+ * @property {string} means
+ * @property {string[]} [values]
+ * @property {string} [default]
+ * @property {number} [max]
+ * @property {{ attr: string, notOneOf?: string[] }} [requiredWhen]
+ */
+
+/**
+ * @typedef {object} BfSurface
+ * @property {string} state
+ * @property {string} why
+ * @property {string} [message]
+ * @property {string} [notice]
+ */
+
+/**
+ * @typedef {object} BfBinding
+ * @property {string} kind
+ * @property {string} from
+ * @property {string} gate
+ * @property {string} [fallback]
+ */
+
+/**
+ * @typedef {object} BfElement
+ * @property {string} tag
+ * @property {string} summary
+ * @property {boolean} needsJs
+ * @property {BfAttribute[]} attributes
+ * @property {{ rowsMax: number }} [reads]
+ * @property {BfBinding} [binding]
+ * @property {Record<string, BfSurface>} surfaces
+ */

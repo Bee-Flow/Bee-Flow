@@ -407,3 +407,5 @@ module.exports = {
     effectiveGradeForRun,
     synthesizeAccess,
 };
+
+/** @typedef {{ userId: string | null, orgId: string | null, organizationId: string | null, orgRole: string | null, groupIds: string[], orgIds: Set<string> | null, identityError?: string | null }} DatatablePrincipal */

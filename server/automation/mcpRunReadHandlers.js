@@ -215,3 +215,5 @@ async function listRunFiles(acc, userId, args) {
 }
 
 module.exports = { listRuns, getRunSteps, getStepOutput, listRunFiles };
+
+/** @typedef {ReturnType<typeof import('./mcpRunReadAccess').makeAccess>} Access */

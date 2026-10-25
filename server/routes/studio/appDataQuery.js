@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio data routes: reading in bulk. The owner's streamed export,
  * a read descriptor (POST /data/query) and a batch of them. The route
@@ -36,6 +36,8 @@ const EXPORT_PAGE_ROWS = 500;
  * short-circuits to full — so the bundle is complete rather than a viewer's
  * slice. Written as a stream: table by table, page by page, so the response
  * starts immediately and memory stays flat.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
  */
 async function exportData(req, res) {
     let started = false;
@@ -68,6 +70,7 @@ async function exportData(req, res) {
             role: 'owner', viewer: ownerViewer,
         };
         const plans = new Map();
+        /** @type {Record<string, { datatableId: string | null, mode: string | null }>} */
         const linkedTables = {};
         for (const table of model.tables) {
             if (!table || !table.key) continue;
@@ -103,6 +106,7 @@ async function exportData(req, res) {
             const plan = plans.get(table.key);
             const accessFilter = rlsGateway.compileAccessFilter(
                 plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
+            /** @type {string | null} */
             let cursor;
             let firstRow = true;
             // Keyset pages, not OFFSET: the compiler's own pagination, so a
@@ -129,13 +133,17 @@ async function exportData(req, res) {
         // stream rather than appending an error object that would look like
         // valid, complete JSON to a naive reader.
         if (started) {
-            log.error(`[StudioAppData/export] ${err && err.message}`);
+            log.error(`[StudioAppData/export] ${err && /** @type {Error} */ (err).message}`);
             return res.destroy(err);
         }
         handleErr(res, err, 'export');
     }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function queryData(req, res) {
     try {
         const ctx = await resolveDataContext(req, res);
@@ -210,6 +218,10 @@ async function queryData(req, res) {
 //     the one failure mode this endpoint could otherwise introduce.
 //   • Access control is not re-implemented here. Every read goes through
 //     dataReadRunner, which is the same code path the single-read endpoints use.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function batchRead(req, res) {
     try {
         const body = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
@@ -227,7 +239,7 @@ async function batchRead(req, res) {
         // same table three times must not start three syncs.
         const touched = new Map();
         const results = await dataReadRunner.runBatch(ctx, reads, {
-            onTable: (t) => { if (!touched.has(t.id)) touched.set(t.id, t); },
+            onTable: /** @param {{ id?: unknown }} t */ (t) => { if (!touched.has(t.id)) touched.set(t.id, t); },
         });
 
         res.json({ results, appVersion: ctx.app.publishedVersion ?? null });

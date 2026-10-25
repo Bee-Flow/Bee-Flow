@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Team chats inside a project — people talking to each other, with the AI
  * answering when asked, or joining on its own in `auto` mode. Mounted under
@@ -78,41 +78,43 @@ const { makeChatsContext } = require('./chatsContext');
 const C = require('./chatsHandlers');
 const M = require('./chatMessageHandlers');
 
+/** @typedef {import('./chatsContext').ChatsDeps} ChatsDeps */
+
 /**
  * The route table. Handler bodies live in chatsHandlers.js (chats) and
  * chatMessageHandlers.js (messages), posting in chatsPost.js, the shared
  * context in chatsContext.js and the presentation in chatsPresent.js.
  *
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => Express middleware (auth/projectAccess)
- * @param {Function} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
- * @param {Function} [deps.getProject]          (id) => project row
- * @param {any}   [deps.store]               stores/projectChatStore surface
- * @param {any}   [deps.chatCrypto]          { forProject(project) }
- * @param {any}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
- * @param {Function} [deps.isChatAgentAllowed]  (project, {agentId, userId}) => boolean: an agent every member may use
- * @param {Function} [deps.listChatAgents]      (project, {userId}) => the agents a chat here may answer as
- * @param {any}   [deps.taskStore]          stores/projectTaskStore surface (drops task links to a deleted chat or thread)
- * @param {Function} [deps.filedIds]            (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
- * @param {Function} [deps.resolveAgent]        ({agentId, userId}) => { agentId, name } | null
- * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
- * @param {Function} [deps.emit]                (projectId, event) => durable event
- * @param {Function} [deps.logActivity]         (projectId, actorId, action, details) => activity row
- * @param {Function} [deps.postLimiter]         Express middleware on posting
- * @param {any}   [deps.participation]       { onHumanMessage, cancelContainer } (projects/participation)
- * @param {any}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
- * @param {any}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
- * @param {any}   [deps.collabNotifier]      { chatMentioned } (projects/collabNotify): the bell for a mention
- * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
- * @param {Function} [deps.now]
- * @param {Function} [deps.newId]
+ * @param {ChatsDeps['requireProjectRole']} [deps.requireProjectRole]  (minRole) => Express middleware (auth/projectAccess)
+ * @param {ChatsDeps['getProjectRole']} [deps.getProjectRole]      (userId, projectId) => role|null, for mentions
+ * @param {ChatsDeps['getProject']} [deps.getProject]          (id) => project row
+ * @param {ChatsDeps['store']}   [deps.store]               stores/projectChatStore surface
+ * @param {ChatsDeps['chatCrypto']}   [deps.chatCrypto]          { forProject(project) }
+ * @param {ChatsDeps['assistant']}   [deps.assistant]           { requestReply(...) } (projects/chatAssistant)
+ * @param {ChatsDeps['isChatAgentAllowed']} [deps.isChatAgentAllowed]  (project, {agentId, userId}) => boolean: an agent every member may use
+ * @param {ChatsDeps['listChatAgents']} [deps.listChatAgents]      (project, {userId}) => the agents a chat here may answer as
+ * @param {ChatsDeps['taskStore']}   [deps.taskStore]          stores/projectTaskStore surface (drops task links to a deleted chat or thread)
+ * @param {ChatsDeps['filedIds']} [deps.filedIds]            (projectId, kind) => Set of ids of documents, notebooks or meeting notes filed in the project
+ * @param {ChatsDeps['resolveAgent']} [deps.resolveAgent]        ({agentId, userId}) => { agentId, name } | null
+ * @param {ChatsDeps['resolveOrgs']} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
+ * @param {ChatsDeps['emit']} [deps.emit]                (projectId, event) => durable event
+ * @param {ChatsDeps['logActivity']} [deps.logActivity]         (projectId, actorId, action, details) => activity row
+ * @param {ChatsDeps['postLimiter']} [deps.postLimiter]         Express middleware on posting
+ * @param {ChatsDeps['participation']}   [deps.participation]       { onHumanMessage, cancelContainer } (projects/participation)
+ * @param {ChatsDeps['policy']}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
+ * @param {ChatsDeps['participationStore']}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
+ * @param {ChatsDeps['collabNotifier']}   [deps.collabNotifier]      { chatMentioned } (projects/collabNotify): the bell for a mention
+ * @param {ChatsDeps['signalProjectChanged']} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
+ * @param {ChatsDeps['now']} [deps.now]
+ * @param {ChatsDeps['newId']} [deps.newId]
  */
 function makeProjectChatsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const ctx = makeChatsContext(deps);
     const { requireRole, postLimiter } = ctx;
     /** @param {(ctx: any, req: any, res: any) => any} handler */
-    const h = (handler) => (req, res) => handler(ctx, req, res);
+    const h = (handler) => (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => handler(ctx, req, res);
 
     // ── Chats ─────────────────────────────────────────────────────────────
 

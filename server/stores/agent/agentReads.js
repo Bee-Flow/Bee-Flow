@@ -66,3 +66,5 @@ async function getAgent(id) {
 }
 
 module.exports = { getAgents, _loadAgentRow, _withPersona, getAgent };
+
+/** @typedef {import('../../routes/agents/crud').AgentRow} AgentRow */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: two fixes to the integration-connections schema.
  *

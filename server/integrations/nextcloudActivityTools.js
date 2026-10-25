@@ -135,3 +135,8 @@ module.exports = {
     executeNextcloudActivityTool,
     isNextcloudActivityTool,
 };
+
+/**
+ * One entry of the Activity OCS v2 answer.
+ * @typedef {{ activity_id?: number, id?: number, type?: string, subject?: string, subject_prepared?: string, message?: string, message_prepared?: string, user?: string, object_type?: string, object_id?: number, object_name?: string, link?: string, icon?: string, datetime?: string, affecteduser?: string }} NcActivity
+ */

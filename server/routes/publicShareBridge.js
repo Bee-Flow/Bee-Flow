@@ -78,6 +78,10 @@ const PUBLIC_MAX_MESSAGES = 20;
 const PUBLIC_MAX_SCHEMA_CHARS = PUBLIC_MAX_PROMPT_CHARS * 2;
 
 // ── Auth middleware ──────────────────────────────────────────────────
+/**
+ * Request after requireShareBridgeToken, which stashes the verified claims on it.
+ * @typedef {import('express').Request & { shareBridgeClaims: { shareId: string, webpageId: string } }} ShareBridgeReq
+ */
 function requireShareBridgeToken(req, res, next) {
     const auth = req.headers['authorization'] || req.headers['Authorization'];
     const m = (typeof auth === 'string' ? auth : '').match(/^Bearer\s+(.+)$/i);
@@ -160,7 +164,7 @@ function logPublicUsage(ctx, webpageId, modelId, usage, t0) {
 }
 
 // ── POST /ai/chat ────────────────────────────────────────────────────
-router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, async (req, res) => {
+router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, /** @param {ShareBridgeReq} req */ async (req, res) => {
     const { shareId, webpageId } = req.shareBridgeClaims;
     const r = await resolveContext({ shareId, webpageId });
     if (r.error) return res.status(r.status).json({ error: r.error });
@@ -225,7 +229,7 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
 });
 
 // ── POST /ai/stream ──────────────────────────────────────────────────
-router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, async (req, res) => {
+router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, /** @param {ShareBridgeReq} req */ async (req, res) => {
     const { shareId, webpageId } = req.shareBridgeClaims;
     let ctx, grants, tierName;
     const r = await resolveContext({ shareId, webpageId });

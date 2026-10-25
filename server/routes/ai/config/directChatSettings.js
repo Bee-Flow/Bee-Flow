@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * AI Config — direct-chat behaviour: the system prompt, per-tier tool
  * enablement and per-tier tool parameter overrides.

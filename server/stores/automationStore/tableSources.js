@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * tableSources.js - the upload lookup a `read_table` step needs.
  *
@@ -12,6 +12,9 @@ const core = require('./core');
 
 /**
  * @returns {Promise<{id: string, storageKey: string, filename: string, mimeType: string, size: number}|null>}
+ * @param {string} uploadId
+ * @param {string} automationId
+ * @param {{ initDB: () => Promise<unknown>, getOne: typeof core.getOne } | null} [deps]
  */
 async function getClaimedFormUploadForAutomation(uploadId, automationId, deps) {
     if (!uploadId || !automationId) return null;

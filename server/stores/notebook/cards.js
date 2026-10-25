@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/notebook/cards.js — the notebook card listing's query and card shape
  * (overview grid and project listing); no database access. Split out of stores/notebookStore.js.
@@ -16,12 +16,14 @@
 const MAX_CARD_LIMIT = 200;
 
 // Whitelist maps — sort/filter input is looked up here, NEVER interpolated.
+/** @type {Record<string, string>} */
 const CARD_SORTS = {
     activity: `COALESCE(n.last_activity_at, n.updated_at) DESC`,
     name: `LOWER(n.name) ASC`,
     created: `n.created_at DESC`,
     words: `(n.doc_word_count + (SELECT COALESCE(SUM(ns.word_count),0) FROM notebook_sources ns WHERE ns.notebook_id = n.id AND ns.status = 'ready')) DESC`,
 };
+/** @type {Record<string, string | null>} */
 const CARD_FILTERS = {
     all: null,
     pinned: `n.pinned_at IS NOT NULL`,
@@ -34,8 +36,10 @@ const CARD_FILTERS = {
 /**
  * Pure query builder for the card listing (exported for unit tests).
  * @returns {{sql: string, params: any[]}}
+ * @param {string} userId
  */
 function buildListCardsQuery(userId, { limit = 50, offset = 0, type = 'notebook', search = '', sort = 'activity', filter = 'all' } = {}) {
+    /** @type {unknown[]} */
     const params = [userId, type];
     let sql = `SELECT n.id, n.name, n.description, n.type, n.version, n.preview, n.doc_word_count,
             n.pinned_at, n.last_activity_at, n.last_activity_kind, n.last_edited_by, n.last_edited_at,
@@ -64,6 +68,9 @@ function buildListCardsQuery(userId, { limit = 50, offset = 0, type = 'notebook'
     return { sql, params };
 }
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapNotebookCardRow(r) {
     return {
         id: r.id,

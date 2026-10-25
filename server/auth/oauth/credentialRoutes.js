@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Self-service OAuth credential management — list and revoke the long-lived
  * provider credentials the automation vault holds for the signed-in user.
@@ -26,6 +26,10 @@ const automationCredentialStore = require('../../stores/automationCredentialStor
 // side are logged but the local delete proceeds regardless (we'd rather
 // orphan a token in the provider than keep an unrevocable secret around).
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 function _requireAuthedUser(req, res) {
     if (!req.session?.user?.id) {
         res.status(401).json({ error: 'Not authenticated' });
@@ -34,7 +38,7 @@ function _requireAuthedUser(req, res) {
     return req.session.user.id;
 }
 
-router.get('/integrations/credentials', async (req, res) => {
+router.get('/integrations/credentials', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = _requireAuthedUser(req, res);
     if (!userId) return;
     const list = await automationCredentialStore.listProvidersForUser(userId);
@@ -50,6 +54,8 @@ router.get('/integrations/credentials', async (req, res) => {
  * usually expired by the time somebody disconnects — and Google answers an
  * expired access token with `invalid_token` and revokes nothing, leaving the
  * grant (and the refresh token) live on the account after "disconnect".
+ * @param {string} provider
+ * @param {{ refreshToken?: string | null, accessToken?: string | null }} cred
  */
 function _revocableToken(provider, cred) {
     if (provider === 'google') return cred.refreshToken || cred.accessToken || null;
@@ -59,6 +65,10 @@ function _revocableToken(provider, cred) {
 // Best-effort provider-side revocation. Each provider expects a slightly
 // different shape; failures are non-fatal so the local delete always
 // proceeds. Tokens are decrypted from the vault only inside this call.
+/**
+ * @param {string} provider
+ * @param {string | null | undefined} token
+ */
 async function _revokeAtProvider(provider, token) {
     if (!token) return { ok: false, reason: 'no_token' };
     try {
@@ -85,7 +95,7 @@ async function _revokeAtProvider(provider, token) {
         }
         return { ok: false, reason: 'unknown_provider' };
     } catch (e) {
-        return { ok: false, reason: e.message };
+        return { ok: false, reason: /** @type {Error} */ (e).message };
     }
 }
 
@@ -95,6 +105,8 @@ async function _revokeAtProvider(provider, token) {
  * DELETE route below and the Google Workspace connector's disconnect
  * (routes/integrations/googleWorkspace.js — BFSF-255).
  * Returns { found, deleted, providerRevokeAttempted, providerRevokeOk }.
+ * @param {string} provider
+ * @param {string} userId
  */
 async function revokeProviderCredential(userId, provider) {
     const cred = await automationCredentialStore.getCredential(userId, provider);
@@ -130,7 +142,7 @@ async function revokeProviderCredential(userId, provider) {
     return { found: true, deleted, providerRevokeAttempted: !!revokeToken, providerRevokeOk: providerResult.ok };
 }
 
-router.delete('/integrations/credentials/:provider', async (req, res) => {
+router.delete('/integrations/credentials/:provider', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = _requireAuthedUser(req, res);
     if (!userId) return;
     const provider = String(req.params.provider || '').toLowerCase();

@@ -690,3 +690,25 @@ module.exports = {
     // so one test can assert the real wiring resolves.
     _defaultDeps: defaultDeps,
 };
+
+/** @typedef {{ id: string, userId: string, organizationId?: string }} SyncApp */
+
+/** @typedef {{ tableId?: string, level?: number, parentLevel?: number, mode?: string, keyField?: string, relationField?: string, retentionField?: string, retentionCascade?: boolean }} SyncChild */
+
+/** @typedef {{ tableId?: string, retentionField?: string, retentionCascade?: boolean, parentTableId?: string, relationField?: string }} SyncDependent */
+
+/** @typedef {{ cron?: string | null, tz?: string, everyMinutes?: number }} SyncSchedule */
+
+/** @typedef {{ tableId?: string, mode?: string, keyField?: string, incremental?: { param?: string | null, format?: string, field?: string } | null, schedule?: SyncSchedule | null, refreshOnView?: boolean, retentionField?: string, retentionDays?: number | null, children?: SyncChild[], dependents?: SyncDependent[] }} SyncBlock */
+
+/** @typedef {{ id?: string, kind?: string, sync?: SyncBlock }} SyncConnector */
+
+/** @typedef {{ id?: string, key: string, fields?: Array<{ key?: string, sourcePath?: string, type?: string }> }} SyncTable */
+
+/** @typedef {Awaited<ReturnType<SyncDeps['listAttachments']>>} LedgerRows */
+
+/** @typedef {Record<string, unknown> & { _parentIndex?: number }} SyncRow  one upstream row, as the connector returned it */
+
+/** @typedef {ReturnType<typeof defaultDeps>} SyncDeps */
+
+/** @typedef {{ level: number, mode: string, table: SyncTable, column?: string, relationField?: string, parentTable?: SyncTable, sweepNull?: boolean }} RetentionStep */

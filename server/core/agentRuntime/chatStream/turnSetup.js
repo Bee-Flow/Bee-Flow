@@ -18,6 +18,9 @@ const { setupSharedThreadTurnLock } = require('../sharedThread');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {{ agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, onEvent: import('./turnState').OnEvent, messageMetadata: import('./turnState').MessageMetadata, _pendingTurnReleases: Map<string, () => Promise<void>>, _turnCallId: string | null }} opts
+ */
 async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, messageMetadata, _pendingTurnReleases, _turnCallId }) {
     // The runtime projection: published config/system_prompt once the agent
     // has a published version, the live concept otherwise (A1 concept/live).

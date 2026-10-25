@@ -152,3 +152,5 @@ module.exports = {
     topIndexOf,
     containerPathOf,
 };
+
+/** @typedef {import('./addComponentsPhases').AddComponentsEntry} AddComponentsEntry */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * scrollStory steps only show images (the sticky panel is inert and hidden from
  * assistive technology, so a clip with controls would be unreachable).
@@ -11,10 +11,10 @@ const assert = require('node:assert');
 const { validateSiteDraft } = require('./validate');
 
 /** @param {unknown[]} steps */
-const warningsFor = (steps) => validateSiteDraft({
+const warningsFor = (steps) => validateSiteDraft(/** @type {Parameters<typeof validateSiteDraft>[0]} */ ({
     site: { pages: [{ id: 'p1', slug: 'story', title: 'Story' }] },
-    pages: new Map([['p1', { blocks: [{ id: 'b1', type: 'scrollStory', content: { title: 'T', steps } }] }]]),
-}).warnings.filter((w) => w.code === 'scroll_story_media');
+    pages: new Map([['p1', { blocks: [{ id: 'b1', type: 'scrollStory', content: /** @type {Record<string, unknown>} */ ({ title: 'T', steps }) }] }]]),
+})).warnings.filter((w) => w.code === 'scroll_story_media');
 
 test('image media and steps without media pass', () => {
     assert.deepStrictEqual(warningsFor([

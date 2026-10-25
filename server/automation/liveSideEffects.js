@@ -192,3 +192,5 @@ function makeLiveSideEffects(deps = {}) {
 }
 
 module.exports = { makeLiveSideEffects, ...makeLiveSideEffects() };
+
+/** @typedef {{ id?: string, userId?: string | null, organizationId?: string | null }} WakeTarget  the parts of an automation the compliance wake reads */

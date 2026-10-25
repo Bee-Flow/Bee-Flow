@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio v2 — ATTACHMENT upload/stream router.
  *
@@ -77,6 +78,7 @@ const { bestEffort } = require('../utils/bestEffort');
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 const FILE_UPLOAD_RPM = parseInt(process.env.STUDIO_APP_FILE_UPLOAD_RPM, 10) || 20;
 const FILE_READ_RPM = parseInt(process.env.STUDIO_APP_FILE_READ_RPM, 10) || 120;
+/** @param {import('express').Request<{ id: string }>} req */
 function fileKey(req) {
     return `${req.session?.user?.id || 'anon'}:${req.params?.id || 'unknown'}`;
 }
@@ -88,7 +90,10 @@ const readLimiter = perUserRateLimit({ windowMs: 60_000, max: FILE_READ_RPM, key
 const guard = uploadGuard({ maxBytes: DATA_LIMITS.MAX_ATTACHMENT_BYTES });
 
 // ── What a caller may send ──────────────────────────────────────────
-/** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. */
+/**
+ * An object that also accepts nothing at all: no body, or a test's bare req, reads as {}.
+ * @param {Parameters<typeof z.object>[0]} shape
+ */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const APP_ID_TEXT = 'The app id is the id in the app\'s address.';
@@ -121,6 +126,11 @@ const MaterializeBody = partOf({
 });
 
 // ── Audience helper (collapse Sets/null to a plain array) ───────────
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} StudioApp
+ * @typedef {NonNullable<Awaited<ReturnType<typeof studioAppDataStore.getAttachment>>>} Attachment
+ */
+/** @param {import('express').Request} req */
 async function audienceFor(req) {
     const { orgIds, userGroups } = await resolveAudienceContext(req);
     const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
@@ -129,6 +139,10 @@ async function audienceFor(req) {
 
 // Owner always; else published + org/group/project audience
 // (canReadStudioAppAsync). Failure answers 404.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function loadVisibleApp(req, res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
@@ -145,6 +159,10 @@ async function loadVisibleApp(req, res) {
 
 // The app's data model + the viewer's RLS role in it (null when the app has no
 // model — attachments are then owner-only, on both the write and the read side).
+/**
+ * @param {import('express').Request} req
+ * @param {StudioApp} app
+ */
 async function viewerRoleFor(req, app) {
     const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
     const model = meta && meta.model && typeof meta.model === 'object' ? meta.model : null;
@@ -159,6 +177,10 @@ async function viewerRoleFor(req, app) {
 // somewhere in the app, so a read-only audience can never fill it up. The rule
 // itself lives in attachmentAccess.roleMayWriteSomewhere — shared with the
 // dataset uploader so the two paths cannot drift.
+/**
+ * @param {import('express').Request} req
+ * @param {StudioApp} app
+ */
 async function viewerMayUpload(req, app) {
     if (app.userId === req.session.user.id) return true;
     const { model, role } = await viewerRoleFor(req, app);
@@ -174,13 +196,18 @@ const { assertAttachmentTotalBytes } = mailboxAttachments;
 // Storage key for an attachment blob — content-addressed under the OWNER's
 // prefix, reconstructable from the ledger row (owner + app + sha256). Shared
 // builder in storageStore so the app-trigger bridge mints the same keys.
+/**
+ * @param {string} ownerId
+ * @param {string} appId
+ * @param {string} sha256
+ */
 function attachmentKey(ownerId, appId, sha256) {
     return storageStore.buildStudioAppAttachmentKey(ownerId, appId, sha256);
 }
 
 // ── POST /:id/data/attachments ──────────────────────────────────────
 router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ params: AppParams, query: NoQuery }), guard,
-    validate({ body: UploadFields }), async (req, res) => {
+    validate({ body: UploadFields }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const app = await loadVisibleApp(req, res);
     if (!app) return;
     if (!(await viewerMayUpload(req, app))) {
@@ -249,6 +276,11 @@ router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ para
 // Can this viewer read a record the attachment hangs off? The rule itself lives
 // in appStudio/attachmentAccess.js because the AI path needs the SAME answer and
 // used not to ask the question at all — see that file's header.
+/**
+ * @param {import('express').Request} req
+ * @param {StudioApp} app
+ * @param {Attachment} attachment
+ */
 async function viewerMayReadAttachment(req, app, attachment) {
     const viewerId = req.session.user.id;
     if (app.userId === viewerId) return true;
@@ -262,7 +294,7 @@ async function viewerMayReadAttachment(req, app, attachment) {
 }
 
 // ── GET /:id/data/attachments/:fileId ───────────────────────────────
-router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res, next) => {
+router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (/** @type {import('express').Request<{ id: string, fileId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const app = await loadVisibleApp(req, res);
     if (!app) return;
 
@@ -318,7 +350,7 @@ const CAD_VIEW_VERSION = 'v2';
 // invalidate the other's cached sheets.
 const DXF_VIEW_VERSION = 'v1';
 
-router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res, next) => {
+router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, validate({ params: FileParams, query: NoQuery }), async (/** @type {import('express').Request<{ id: string, fileId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const app = await loadVisibleApp(req, res);
     if (!app) return;
 
@@ -357,7 +389,7 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
         ? `${attachmentKey(app.userId, app.id, attachment.sha256)}.dxfview-${DXF_VIEW_VERSION}.png`
         : `${attachmentKey(app.userId, app.id, attachment.sha256)}.cadview-${CAD_VIEW_VERSION}.png`;
 
-    const sendPng = (obj) => {
+    const sendPng = (/** @type {Awaited<ReturnType<typeof storageStore.streamFile>>} */ obj) => {
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('Content-Disposition', 'inline');
@@ -432,7 +464,7 @@ router.get('/:id/data/attachments/:fileId/preview', requireAuth, readLimiter, va
 //     whose role can create/update) — the same gate the POST uses.
 //   • The blob only goes when it was the last ledger row for those bytes:
 //     storage is content-addressed, so identical files share one object.
-router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, validate({ params: FileParams, query: NoQuery }), async (req, res) => {
+router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, validate({ params: FileParams, query: NoQuery }), async (/** @type {import('express').Request<{ id: string, fileId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const app = await loadVisibleApp(req, res);
     if (!app) return;
     if (!(await viewerMayUpload(req, app))) {
@@ -468,7 +500,7 @@ router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, valid
 // the same quota + scan gates, and mailboxAttachments does the authorisation
 // (the row must be readable by this viewer) before any provider call.
 router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
-    validate({ params: AppParams, query: NoQuery, body: MaterializeBody }), async (req, res) => {
+    validate({ params: AppParams, query: NoQuery, body: MaterializeBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const app = await loadVisibleApp(req, res);
         if (!app) return;

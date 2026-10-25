@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * DSR Store — Data Subject Request persistence (GDPR Art. 15–22).
  *
@@ -95,6 +95,7 @@ const SLA_MONTHS = 1;
 const EXTENDED_SLA_MONTHS = 3;
 
 class AlreadyExtendedError extends Error {
+    /** @param {number|string} id */
     constructor(id) {
         // Art. 12(3): the period "may be extended by two further months where
         // necessary"; dsrStore.extend applies that once, as one step.
@@ -110,10 +111,17 @@ const LIST_COLUMNS = `id, request_type, subject_email, subject_user_id, status, 
                started_at, started_by, extended_until, extension_reason, extended_by, extended_at,
                due_at, timeline`;
 
+/**
+ * @param {Date} receivedAt
+ * @param {number} months
+ */
 function _dueFrom(receivedAt, months) {
     return addCalendarMonths(new Date(receivedAt), months);
 }
 
+/**
+ * @param {string} v
+ */
 function _channel(v) {
     const c = String(v || 'public_form').toLowerCase();
     if (!VALID_CHANNELS.has(c)) throw new Error(`invalid channel "${c}"`);
@@ -121,8 +129,8 @@ function _channel(v) {
 }
 
 /**
- * @param kind
- * @param {{ at?: string|Date, by?: string|null, [key: string]: any }} [opts]
+ * @param {string} kind
+ * @param {{ at?: string|Date, by?: string|null, text?: string|null, [key: string]: unknown }} [opts]
  */
 function _event(kind, { at, by, ...rest } = {}) {
     return { at: at ? new Date(at).toISOString() : new Date().toISOString(), by: by ?? null, kind, ...rest };
@@ -131,6 +139,7 @@ function _event(kind, { at, by, ...rest } = {}) {
 /**
  * Rows written before the timeline column have `[]`; synthesise the trail
  * from the columns on the way out (read path only — never an UPDATE).
+ * @param {import('pg').QueryResultRow | null | undefined} row
  */
 function _withTimeline(row) {
     if (!row) return row;
@@ -150,6 +159,7 @@ function _withTimeline(row) {
 /**
  * Public-form intake (unauthenticated). The clock starts now: due_at =
  * created_at + one calendar month, timeline opens with `received`.
+ * @param {{ subject_email?: string, request_type?: string, channel?: string, received_at?: string|Date, created_by?: string|null, organization_id?: string|null, subject_user_id?: string|null, notes?: string|null, source_ip?: string|null }} input
  */
 async function createRequest(input) {
     await initDB();
@@ -185,7 +195,7 @@ async function createRequest(input) {
  * Admin intake of a request that arrived outside the form (mail to the DPO,
  * phone, letter). The admin has seen the person or their letter, so identity
  * is `verified_manual`; the clock starts at `received_at`, not at data entry.
- * @param orgId
+ * @param {string} orgId
  * @param {{ subject_email?: string, request_type?: string, channel?: string, notes?: string, received_at?: string|Date, created_by?: string }} [opts]
  */
 async function createManual(orgId, { subject_email, request_type, channel, notes, received_at, created_by } = {}) {
@@ -228,11 +238,12 @@ async function createManual(orgId, { subject_email, request_type, channel, notes
 // ───────────────────────── Reads ─────────────────────────
 
 /**
- * @param orgId
+ * @param {string} orgId
  * @param {{ status?: string, limit?: number }} [opts]
  */
 async function listRequests(orgId, { status, limit = 200 } = {}) {
     await initDB();
+    /** @type {unknown[]} */
     const params = [orgId];
     let where = `organization_id = $1`;
     if (status) {
@@ -250,6 +261,10 @@ async function listRequests(orgId, { status, limit = 200 } = {}) {
     return rows.map(_withTimeline);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string | number} id
+ */
 async function getRequest(orgId, id) {
     await initDB();
     const row = await db.getOne(`
@@ -259,7 +274,10 @@ async function getRequest(orgId, id) {
     return _withTimeline(row);
 }
 
-/** Open requests ordered by deadline — the deadline feed. No e-mail address. */
+/**
+ * Open requests ordered by deadline — the deadline feed. No e-mail address.
+ * @param {string} orgId
+ */
 async function listOpenWithDeadlines(orgId) {
     await initDB();
     return db.getAll(`
@@ -275,16 +293,21 @@ async function listOpenWithDeadlines(orgId) {
 
 // Atomic jsonb append: no read-modify-write on the timeline.
 const APPEND_TIMELINE = `timeline = COALESCE(timeline, '[]'::jsonb) || $%N::jsonb`;
+/**
+ * @param {number} n
+ */
 const appendSql = (n) => APPEND_TIMELINE.replace('%N', String(n));
 
 /** Which timeline kind a status transition writes (null = none). */
+/** @type {Record<string, string | null>} */
+/** @type {Record<string, string | null>} */
 const STATUS_EVENT = { fulfilled: 'fulfilled', rejected: 'rejected', in_progress: 'started', pending: null };
 
 /**
- * @param orgId
- * @param id
- * @param status
- * @param {{ fulfilledBy?: string, resultSummary?: string, resultPayload?: any }} [opts]
+ * @param {string} orgId
+ * @param {number} id
+ * @param {string} status
+ * @param {{ fulfilledBy?: string, resultSummary?: string, resultPayload?: unknown }} [opts]
  */
 async function updateStatus(orgId, id, status, { fulfilledBy, resultSummary, resultPayload } = {}) {
     await initDB();
@@ -309,6 +332,9 @@ async function updateStatus(orgId, id, status, { fulfilledBy, resultSummary, res
 /**
  * pending → in_progress with the actor stamped. Idempotent: an already
  * started request is returned unchanged (no second `started` event).
+ * @param {number} id
+ * @param {string | null} userId
+ * @param {string} orgId
  */
 async function start(orgId, id, userId) {
     await initDB();
@@ -330,8 +356,8 @@ async function start(orgId, id, userId) {
  * extended_until = received + three calendar months and the deadline follows it.
  * @throws {AlreadyExtendedError} on a second attempt (also under a race:
  *   the UPDATE is guarded by `extended_at IS NULL`).
- * @param orgId
- * @param id
+ * @param {string} orgId
+ * @param {number} id
  * @param {{ reason?: string, by?: string }} [opts]
  */
 async function extend(orgId, id, { reason, by } = {}) {
@@ -360,7 +386,7 @@ async function extend(orgId, id, { reason, by } = {}) {
 
 /**
  * @param {string} orgId
- * @param {string} id
+ * @param {string|number} id
  * @param {{method?:'email_link'|'manual', by?:string|null}} [opts] - `email_link`
  *   is the subject clicking the acknowledgement link (by = null), `manual` is
  *   an admin who checked the person's identity another way.
@@ -381,7 +407,12 @@ async function verifyIdentity(orgId, id, { method, by } = {}) {
     return getRequest(orgId, id);
 }
 
-/** Append one free event ({kind, text?, by?, …}); `at` defaults to now. */
+/**
+ * Append one free event ({kind, text?, by?, …}); `at` defaults to now.
+ * @param {string} orgId
+ * @param {number} id
+ * @param {{ kind: string, text?: string|null, at?: string|Date, by?: string|null, [key: string]: unknown }} event
+ */
 async function appendTimeline(orgId, id, event) {
     await initDB();
     if (!event || typeof event.kind !== 'string' || !event.kind.trim()) throw new Error('event.kind is required');
@@ -398,6 +429,11 @@ async function appendTimeline(orgId, id, event) {
 
 // ───────────────────────── Verify token (single use) ─────────────────────────
 
+/**
+ * @param {string} orgId
+ * @param {number} id
+ * @param {string} hash
+ */
 async function setVerifyTokenHash(orgId, id, hash) {
     await initDB();
     if (!hash) throw new Error('hash is required');
@@ -412,6 +448,9 @@ async function setVerifyTokenHash(orgId, id, hash) {
  * Burn the token: matches only when the stored hash equals `hash`, and clears
  * it in the same statement — a second click with the same link finds nothing.
  * @returns {Promise<boolean>} true when this call consumed the token
+ * @param {string} orgId
+ * @param {number} id
+ * @param {string} hash
  */
 async function consumeVerifyToken(orgId, id, hash) {
     await initDB();
@@ -432,6 +471,9 @@ async function consumeVerifyToken(orgId, id, hash) {
  * "Nearing" is an open request whose `due_at` falls within the next 5 days —
  * the age of the open requests themselves, which the average fulfilment time
  * (over FULFILLED requests) cannot tell.
+ * @param {string} orgId
+ * @param {string} requestType
+ * @param {number} [windowDays]
  */
 async function getSlaStats(orgId, requestType, windowDays = 365) {
     await initDB();

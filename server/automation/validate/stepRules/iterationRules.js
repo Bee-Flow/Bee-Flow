@@ -302,3 +302,5 @@ function checkCollectionOps(ctx, step, at) {
 }
 
 module.exports = { checkLoop, checkParallel, checkForEach, checkCollectionOps, forEachBoundVars, usableParents };
+
+/** @typedef {NonNullable<ReturnType<typeof parsePath>>[number]} PathToken */

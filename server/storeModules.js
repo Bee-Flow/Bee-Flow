@@ -236,6 +236,9 @@ const STORE_MODULES = [
 // available:false (future light builds exclude their code, so their store
 // files may not exist) stop migrating; their existing tables/data are simply
 // left untouched. Deduped by name against the core list.
+/**
+ * @param {Console} [log]
+ */
 function collectStoreModules(log = console) {
     const list = [...STORE_MODULES];
     try {
@@ -249,7 +252,7 @@ function collectStoreModules(log = console) {
             list.push(s);
         }
     } catch (err) {
-        log.error('[migrate] ❌ module catalog load failed:', err.message);
+        log.error('[migrate] ❌ module catalog load failed:', /** @type {Error} */ (err).message);
     }
     return list;
 }

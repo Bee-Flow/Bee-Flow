@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * routes/compliance/customFrameworks — the capability gate, org scoping of
  * every mutation, the attestation flow (expiry from the framework, evidence

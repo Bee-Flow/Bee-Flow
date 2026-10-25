@@ -21,7 +21,16 @@ const { checkWebSignupAllowed } = require('../signupGuards');
 const accountProvisioning = require('../accountProvisioning');
 const microsoftLogin = require('./microsoftLogin');
 
-/** A matched account: refresh its profile fields, never its role or org. */
+/** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} UserRow */
+/** @typedef {{ organizationId: string, orgRole: string, status: string, groups: string[] }} Placement */
+/** @typedef {ReturnType<typeof accountProvisioning.normalizeSignupIntent>} SignupIntent */
+/** @typedef {{ name?: string } | null | undefined} PreResolvedOrg */
+
+/**
+ * A matched account: refresh its profile fields, never its role or org.
+ * @param {{ provider: string, user: OAuthUser, existingUser: UserRow, branch: string }} opts
+ */
 async function updateMatchedUser({ provider, user, existingUser, branch }) {
     // Canonical id comes from the stored record. Do NOT overwrite
     // role, orgRole, organizationId, groups, or status here — those
@@ -41,6 +50,7 @@ async function updateMatchedUser({ provider, user, existingUser, branch }) {
 /**
  * A new user: the signup gate, a collision-safe local id, and where the
  * account goes (the wizard's choice, or the org its e-mail/tenant names).
+ * @param {{ req: import('express').Request, provider: string, user: OAuthUser, msTenant?: string }} opts
  */
 async function planNewSsoUser({ req, provider, user, msTenant }) {
     let signupIntent = null;
@@ -115,7 +125,10 @@ async function planNewSsoUser({ req, provider, user, msTenant }) {
     return { signupIntent, placement, preResolvedOrg, localId };
 }
 
-/** Create the row under the seat cap; a lost race or an id collision is told apart here. */
+/**
+ * Create the row under the seat cap; a lost race or an id collision is told apart here.
+ * @param {{ provider: string, user: OAuthUser, localId: string, placement: Placement }} opts
+ */
 async function createSsoUser({ provider, user, localId, placement }) {
     let createOk = false;
     try {
@@ -176,7 +189,10 @@ async function createSsoUser({ provider, user, localId, placement }) {
     return {};
 }
 
-/** After the row exists: the wizard's finalisation, or locale + welcome mail. */
+/**
+ * After the row exists: the wizard's finalisation, or locale + welcome mail.
+ * @param {{ req: import('express').Request, user: OAuthUser, localId: string, placement: Placement, signupIntent?: SignupIntent | null, preResolvedOrg?: PreResolvedOrg }} opts
+ */
 async function finishNewSsoUser({ req, user, localId, placement, signupIntent, preResolvedOrg }) {
     if (signupIntent) {
         // Privacy shield, consent ledger, locale, onboarding seed, trial
@@ -219,6 +235,8 @@ async function finishNewSsoUser({ req, user, localId, placement, signupIntent, p
  * Resolve (or create) the local account behind a provider identity. Mutates
  * `user.id` to the canonical local id. Returns { signupIntent, msTenant }
  * or { error }.
+ * @returns {Promise<{ error?: string, signupIntent?: SignupIntent | null, msTenant?: string }>}
+ * @param {{ req: import('express').Request, provider: string, user: OAuthUser, config: { providers?: { microsoft?: { tenantId?: string } } } }} opts
  */
 async function resolveSsoUser({ req, provider, user, config }) {
     // Non-Microsoft providers (Nextcloud, legacy) historically used the

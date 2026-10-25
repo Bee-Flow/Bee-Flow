@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NIS2 Art. 21(2)(g) + Art. 20(2) — basic cyber-hygiene practices and
  * cybersecurity training.
@@ -29,6 +29,7 @@ const ATTEST_MAX_DAYS = 365;
 const PASS_PCT = 90;
 const WARN_PCT = 60;
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
@@ -53,6 +54,7 @@ module.exports = {
     remediationKey: 'compliance.check_nis2_training_fix',
     remediationLink: 'admin/compliance/training',
     REQUIRED_SLUGS,
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {

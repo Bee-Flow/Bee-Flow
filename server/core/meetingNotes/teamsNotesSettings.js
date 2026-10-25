@@ -44,23 +44,33 @@ const SCOPE_CALENDAR = 'Calendars.ReadWrite';
 // Microsoft returns scopes either bare (`Calendars.ReadWrite`) or as full
 // resource URIs (`https://graph.microsoft.com/Calendars.ReadWrite`); compare
 // on the last path segment, case-insensitively.
+/** @param {string | null | undefined} scopeString */
 function scopeSet(scopeString) {
     return new Set(String(scopeString || '').split(/\s+/).filter(Boolean)
         .map(s => s.slice(s.lastIndexOf('/') + 1).toLowerCase()));
 }
 
-/** True when the granted scopes allow reading calendar + recordings. */
+/**
+ * True when the granted scopes allow reading calendar + recordings.
+ * @param {string | null | undefined} scopeString
+ */
 function hasTeamsScopes(scopeString) {
     const set = scopeSet(scopeString);
     return set.has(SCOPE_RECORDINGS.toLowerCase()) && set.has(SCOPE_CALENDAR.toLowerCase());
 }
 
-/** True when the granted scopes allow PATCHing recordAutomatically. */
+/**
+ * True when the granted scopes allow PATCHing recordAutomatically.
+ * @param {string | null | undefined} scopeString
+ */
 function hasMeetingWriteScope(scopeString) {
     return scopeSet(scopeString).has(SCOPE_MEETINGS_WRITE.toLowerCase());
 }
 
-/** True when the granted scopes allow the transcript fallback. */
+/**
+ * True when the granted scopes allow the transcript fallback.
+ * @param {string | null | undefined} scopeString
+ */
 function hasTranscriptScope(scopeString) {
     return scopeSet(scopeString).has(SCOPE_TRANSCRIPTS.toLowerCase());
 }
@@ -70,6 +80,7 @@ function hasTranscriptScope(scopeString) {
  * Connected = live Microsoft session OR an 'active' vault credential. The
  * scope flags come from the stored credential; a live SSO session without a
  * vault row reports its own `oauthScope` when the session carries one.
+ * @param {{ session?: Express.Session | null, credential?: { status?: string, scope?: string | null } | null }} [param0]
  */
 function deriveConnectionStatus({ session = null, credential = null } = {}) {
     const liveMicrosoft = !!(session && session.oauthProvider === 'microsoft' && session.accessToken);
@@ -84,17 +95,24 @@ function deriveConnectionStatus({ session = null, credential = null } = {}) {
     };
 }
 
+/** @param {string} orgId */
 function orgKey(orgId) { return `org_teams_notes_${orgId}`; }
+/** @param {string} userId */
 function userKey(userId) { return `user_teams_notes_${userId}`; }
 
+/** @param {unknown} v */
 function asLanguage(v) { return (typeof v === 'string' && v.trim()) ? v.trim() : DEFAULTS.language; }
+/** @param {unknown} v */
 function asLookback(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return DEFAULTS.lookbackHours;
     return Math.min(Math.max(Math.round(n), 1), 168);
 }
 
-/** Effective settings: org value per field, else user, else default. */
+/**
+ * Effective settings: org value per field, else user, else default.
+ * @param {{ orgId?: string | null, userId?: string | null }} [param0]
+ */
 async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
     const org = orgId ? await deps.configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings', e, null)) : null;
     const user = userId ? await deps.configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings#2', e, null)) : null;
@@ -108,19 +126,32 @@ async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
     };
 }
 
+/** @param {string} orgId */
 async function getOrgSettings(orgId) {
     const stored = orgId ? await deps.configStore.getConfig(orgKey(orgId)) : null;
     return { ...DEFAULTS, ...(stored || {}) };
 }
 
+/** @param {string} userId */
 async function getUserSettings(userId) {
     const stored = userId ? await deps.configStore.getConfig(userKey(userId)) : null;
     return { ...DEFAULTS, ...(stored || {}) };
 }
 
 // An explicit null stores null (inherit); an absent field takes the coercion.
+/**
+ * @template T, R
+ * @param {T | null} value
+ * @param {(v: T) => R} coerce
+ * @returns {R | null}
+ */
 function orNull(value, coerce) { return value === null ? null : coerce(value); }
 
+/**
+ * A settings patch from the API body; a field may be absent or an explicit null ("inherit").
+ * @typedef {{ autoImport?: boolean | null, autoRecordConfig?: boolean | null, language?: string | null, lookbackHours?: number | string | null }} TeamsNotesPatch
+ */
+/** @param {TeamsNotesPatch} patch */
 function sanitizePatch(patch) {
     return {
         autoImport: orNull(patch.autoImport, v => !!v),
@@ -130,12 +161,21 @@ function sanitizePatch(patch) {
     };
 }
 
+/**
+ * @param {string} orgId
+ * @param {TeamsNotesPatch} patch
+ * @param {string | null} [updatedBy]
+ */
 async function saveOrgSettings(orgId, patch, updatedBy) {
     const config = { ...sanitizePatch(patch), updatedAt: new Date().toISOString(), updatedBy: updatedBy || null };
     await deps.configStore.setConfig(orgKey(orgId), config);
     return config;
 }
 
+/**
+ * @param {string} userId
+ * @param {TeamsNotesPatch} patch
+ */
 async function saveUserSettings(userId, patch) {
     const config = { ...sanitizePatch(patch), updatedAt: new Date().toISOString(), updatedBy: userId };
     await deps.configStore.setConfig(userKey(userId), config);

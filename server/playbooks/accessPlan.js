@@ -41,6 +41,19 @@ const ROLE_KEY_RE = /^[a-z][a-z0-9_]{0,31}$/;
 /** Roles the platform always understands, whatever the app's model says. */
 const BUILTIN_ROLES = Object.freeze(['app', 'member', 'public']);
 
+/**
+ * @typedef {{ tableName?: string, columns?: Array<{ key: string, name?: string, truncated?: boolean,
+ *   values?: Array<{ value: unknown, count?: number }> }> }} DataDigest
+ * @typedef {{ key: string, label?: string }} AppRole
+ * @typedef {{ id: string, name: string }} DirectoryGroup
+ * @typedef {{ id: string, name?: string, email?: string }} DirectoryPerson
+ * @typedef {(rule: string) => ({ ok?: boolean } | null | undefined)} RuleValidator
+ * @typedef {{ audience?: { kind?: string, groups?: unknown[] }, roles?: Array<{ key?: unknown, label?: unknown, scope?: { column?: unknown, value?: unknown } } | null>,
+ *   defaultRole?: unknown, groupRoles?: Array<{ group?: unknown, role?: unknown } | null>,
+ *   people?: Array<{ person?: unknown, role?: unknown } | null>, note?: unknown }} ProposedAccess
+ *   The `propose_access` tool's arguments, as the model sent them (parsed JSON, so every leaf is unchecked).
+ */
+
 const ACCESS_TOOL = {
     type: 'function',
     function: {
@@ -100,7 +113,7 @@ const ACCESS_TOOL = {
                 },
                 note: { type: 'string', description: 'One sentence back to the person about what you propose.' },
             },
-            required: [],
+            required: /** @type {string[]} */ ([]),
         },
     },
 };
@@ -116,13 +129,17 @@ const MODEL_BUDGET_MS = Number(process.env.PLAYBOOK_ACCESS_BUDGET_MS || 45000);
  * truncated into an unparseable tool call, which the stage then reported as
  * "the AI had no suggestion". Scale with the values on offer, the way
  * dataExtractionModel scales with the field count.
+ * @param {DataDigest | null} digest
  */
 function answerBudget(digest) {
-    const values = (((digest && digest.columns) || []).reduce((n, c) => n + ((c.values || []).length), 0));
+    const values = (((digest && digest.columns) || []).reduce(/** @param {number} n */ (n, c) => n + ((c.values || []).length), 0));
     return Math.min(4000, 1200 + Math.min(values, MAX_ROLES) * 60);
 }
 
-/** The table's own values, as the model may read them. */
+/**
+ * The table's own values, as the model may read them.
+ * @param {DataDigest | null} digest
+ */
 function digestLines(digest) {
     const cols = Array.isArray(digest && digest.columns) ? digest.columns : [];
     if (!cols.length) return [];
@@ -134,6 +151,9 @@ function digestLines(digest) {
     return out;
 }
 
+/**
+ * @param {{ locale: string, roles: AppRole[], groups: DirectoryGroup[], people: DirectoryPerson[], appName: string, digest?: DataDigest | null }} input
+ */
 function systemPrompt({ locale, roles, groups, people, appName, digest = null }) {
     const lang = languageName(locale);
     const roleList = roles.length ? roles.map((r) => `${r.key} (${r.label})`).join(', ') : '—';
@@ -164,10 +184,14 @@ function systemPrompt({ locale, roles, groups, people, appName, digest = null })
     ].join('\n');
 }
 
-const str = (v, n = 80) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
-const fold = (v) => str(v, 120).toLowerCase().replace(/\s+/g, ' ');
+const str = /** @param {unknown} v @param {number} [n] */ (v, n = 80) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+const fold = /** @param {unknown} v */ (v) => str(v, 120).toLowerCase().replace(/\s+/g, ' ');
 
-/** A group by name, then by a forgiving match; null when the directory has no such group. */
+/**
+ * A group by name, then by a forgiving match; null when the directory has no such group.
+ * @param {DirectoryGroup[]} groups
+ * @param {unknown} name
+ */
 function findGroup(groups, name) {
     const want = fold(name);
     if (!want) return null;
@@ -176,7 +200,11 @@ function findGroup(groups, name) {
         || null;
 }
 
-/** A person by e-mail first (exact), then by name. */
+/**
+ * A person by e-mail first (exact), then by name.
+ * @param {DirectoryPerson[]} people
+ * @param {unknown} name
+ */
 function findPerson(people, name) {
     const want = fold(name);
     if (!want) return null;
@@ -194,6 +222,8 @@ function findPerson(people, name) {
  * write it means there is no syntax to get wrong and nothing to inject — the
  * value goes in as a JSON string literal and is BOUND as a parameter when the
  * filter is compiled.
+ * @param {unknown} column
+ * @param {unknown} value
  */
 function renderRule(column, value) {
     const col = str(column, 63);
@@ -206,14 +236,20 @@ function renderRule(column, value) {
  * The model's answer, resolved against the directory and the app's own roles.
  * Returns what the client may apply, what it could not resolve, and the list a
  * person reads before pressing Approve.
+ * @param {ProposedAccess | null} raw
+ * @param {{ roles?: AppRole[], groups?: DirectoryGroup[], people?: DirectoryPerson[], digest?: DataDigest | null, tableId?: string | null, validateRule?: RuleValidator | null }} [ctx]
  */
 function resolveNames(raw, { roles = [], groups = [], people = [], digest = null, tableId = null, validateRule = null } = {}) {
     const digestColumns = new Map(((digest && digest.columns) || []).map((c) => [c.key, new Set((c.values || []).map((v) => String(v.value)))]));
+    /** @type {ProposedAccess} */
     const d = raw && typeof raw === 'object' ? raw : {};
     const existing = new Map(roles.filter((r) => r && r.key).map((r) => [r.key, r]));
+    /** @type {Array<{ kind: string, name: string, what?: string }>} */
     const unresolved = [];
 
+    /** @type {Array<{ key: string, label: string, scope?: { column: string, value: string } }>} */
     const newRoles = [];
+    /** @type {Array<{ tableId: string, roleKey: string, expr: string }>} */
     const tableRules = [];
     for (const r of (Array.isArray(d.roles) ? d.roles : []).slice(0, MAX_ROLES)) {
         const key = str(r && r.key, 32).toLowerCase().replace(/[^a-z0-9_]/g, '_');
@@ -246,13 +282,14 @@ function resolveNames(raw, { roles = [], groups = [], people = [], digest = null
         if (rule && tableId) tableRules.push({ tableId, roleKey: key, expr: rule });
     }
     const known = new Set([...existing.keys(), ...newRoles.map((r) => r.key), ...BUILTIN_ROLES]);
-    const roleOf = (v, what) => {
+    const roleOf = /** @param {unknown} v @param {string} what */ (v, what) => {
         const key = str(v, 32).toLowerCase();
         if (known.has(key)) return key;
         unresolved.push({ kind: 'role', name: str(v, 60), what });
         return null;
     };
 
+    /** @type {Record<string, string>} */
     const byGroup = {};
     for (const entry of (Array.isArray(d.groupRoles) ? d.groupRoles : []).slice(0, MAX_ENTRIES)) {
         const g = findGroup(groups, entry && entry.group);
@@ -261,6 +298,7 @@ function resolveNames(raw, { roles = [], groups = [], people = [], digest = null
         if (role) byGroup[g.id] = role;
     }
 
+    /** @type {Array<{ userId: string, roleKey: string, name: string }>} */
     const members = [];
     for (const entry of (Array.isArray(d.people) ? d.people : []).slice(0, MAX_ENTRIES)) {
         const u = findPerson(people, entry && entry.person);
@@ -273,7 +311,9 @@ function resolveNames(raw, { roles = [], groups = [], people = [], digest = null
     let audience = null;
     if (['private', 'organisation', 'groups'].includes(rawAudience.kind)) {
         if (rawAudience.kind === 'groups') {
+            /** @type {string[]} */
             const ids = [];
+            /** @type {string[]} */
             const names = [];
             for (const name of (Array.isArray(rawAudience.groups) ? rawAudience.groups : []).slice(0, MAX_ENTRIES)) {
                 const g = findGroup(groups, name);
@@ -310,7 +350,10 @@ function defaultDeps() {
 }
 
 /**
- * @returns {Promise<{ ok:true, plan } | { ok:false, code, error, correlationId? }>}
+ * @param {{ message: unknown, appName?: string, roles?: AppRole[], groups?: DirectoryGroup[], people?: DirectoryPerson[], digest?: DataDigest | null,
+ *   tableId?: string | null, validateRule?: RuleValidator | null, locale?: string, userId?: string | null, userOrgId?: string | null, tier?: string }} input
+ * @param {ReturnType<typeof defaultDeps>} [deps]
+ * @returns {Promise<{ ok:true, plan: ReturnType<typeof resolveNames> } | { ok:false, code: string, error: string, correlationId?: string }>}
  */
 async function planAccess({ message, appName = 'App', roles = [], groups = [], people = [], digest = null, tableId = null, validateRule = null, locale = 'en', userId = null, userOrgId = null, tier = 'fast' }, deps = defaultDeps()) {
     const said = typeof message === 'string' ? message.trim() : '';

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The ONE error shape a spreadsheet mirror answers with — the same contract as
  * ../nextcloudTable/errors.js, read by the same three callers:
@@ -19,6 +19,9 @@
 
 const { SourceError, MAX_DETAIL } = require('../mirror/errors');
 
+/** @typedef {{ provider?: string, fileId?: string, sheet?: string|null, [k: string]: unknown }} ErrorRef */
+
+/** @type {Readonly<Record<string, string>>} */
 const ERROR_CLASS = Object.freeze({
     provider_not_connected: 'datatable_forbidden',
     provider_integration_off: 'datatable_forbidden',
@@ -48,6 +51,12 @@ const ERROR_CLASS = Object.freeze({
 });
 
 class SpreadsheetSourceError extends SourceError {
+    /**
+     * @param {number} status
+     * @param {string} code
+     * @param {string} message
+     * @param {{ errorClass?: string|null, ref?: ErrorRef|null, detail?: string|string[]|null, datatableId?: string|null, reason?: string|null, header?: string|null, key?: string|null }} [opts]
+     */
     constructor(status, code, message, { errorClass = null, ref = null, detail = null, datatableId = null, reason = null, header = null, key = null } = {}) {
         super(status, code, message, { errorClass: errorClass || ERROR_CLASS[code] || null, ref, detail, datatableId });
         this.name = 'SpreadsheetSourceError';
@@ -57,8 +66,10 @@ class SpreadsheetSourceError extends SourceError {
     }
 }
 
+/** @type {Readonly<Record<string, string>>} */
 const PROVIDER_NAMES = Object.freeze({ google_drive: 'Google Drive', onedrive: 'OneDrive', nextcloud_files: 'Nextcloud' });
 
+/** @param {string} provider */
 function providerName(provider) {
     return PROVIDER_NAMES[provider] || 'the storage';
 }
@@ -67,6 +78,11 @@ function providerName(provider) {
  * Translate what a storage answered over HTTP into the refusal a Bee Flow
  * caller gets. `what` names the thing asked for ("file", "row", "sheet
  * 'Facturen'") so the sentence reads as one.
+ * @param {string} provider
+ * @param {number} status
+ * @param {unknown} text
+ * @param {string} [what]
+ * @param {{ ref?: ErrorRef|null }} [opts]
  */
 function fromHttp(provider, status, text, what = 'file', { ref = null } = {}) {
     const name = providerName(provider);
@@ -108,6 +124,7 @@ function fromHttp(provider, status, text, what = 'file', { ref = null } = {}) {
         `${name} answered ${status} for this ${what}${tail}`, { ref });
 }
 
+/** @param {{ name?: string } | null | undefined} e */
 function isSpreadsheetSourceError(e) {
     return !!e && e.name === 'SpreadsheetSourceError';
 }

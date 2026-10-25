@@ -1,3 +1,5 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck noImplicitAny
 /**
  * Compliance — org settings, the onboarding stamp, per-operator SCC
  * attestations and the auto-detect pre-fill the onboarding wizard reads.
@@ -63,7 +65,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 // ───────────────── Settings / onboarding ─────────────────
 
-/** Settings row + the derived read-only fields the UI shows next to them. */
+/**
+ * Settings row + the derived read-only fields the UI shows next to them.
+ * @param {Record<string, any> | null} settings
+ */
 function decorate(settings) {
     const s = settings || {};
     return { ...s, public_dsr_url: `${publicBaseUrl(s.public_base_url || null)}${publicDsrPath()}` };
@@ -77,6 +82,9 @@ const AI_LITERACY_KEYS = ['ai_literacy_confirmed_at', 'ai_literacy_material_url'
 /**
  * Typed store errors (SettingsValidationError) carry their own status + body;
  * the body names the offending FIELDS only, never the submitted values.
+ * @param {import('express').Response} res
+ * @param {NextFunction} next
+ * @param {{ status?: number, body?: unknown } | null} e
  */
 function fail(res, next, e) {
     if (e && Number.isInteger(e.status) && e.body) return res.status(e.status).json(e.body);
@@ -88,6 +96,10 @@ function fail(res, next, e) {
  * changed — the caller then writes no evidence and emits nothing.
  * Turning marking OFF clears the stamp; a footer edit while marking is on
  * re-stamps (the published wording is what was attested to).
+ * @param {Record<string, any>} body
+ * @param {Record<string, any> | null} existing
+ * @param {string | null} actorId
+ * @param {string} at
  */
 function markingPatch(body, existing, actorId, at) {
     const touched = MARKING_KEYS.filter(k => Object.prototype.hasOwnProperty.call(body, k));
@@ -103,13 +115,13 @@ function markingPatch(body, existing, actorId, at) {
     return { enabled: true, footerChanged, patch: { ai_content_marking_enabled_at: at, ai_content_marking_enabled_by: actorId } };
 }
 
-router.get('/settings', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/settings', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const s = await complianceStore.getSettings(orgId);
     res.json(decorate(s));
 });
 
-router.put('/settings', requireAuth, requirePermission('admin_compliance'), async (req, res, next) => {
+router.put('/settings', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const orgId = await resolveOrgId(req);
         const body = req.body || {};
@@ -156,7 +168,7 @@ router.put('/settings', requireAuth, requirePermission('admin_compliance'), asyn
     }
 });
 
-router.post('/settings/onboarded', requireAuth, requirePermission('admin_compliance'), async (req, res, next) => {
+router.post('/settings/onboarded', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const orgId = await resolveOrgId(req);
         // The wizard PUTs the same settings shape, so it goes through the same
@@ -181,7 +193,7 @@ const SCC_READING_CHECKS = Object.freeze([
     'ISO27001-A.5.20-suppliers',
 ]);
 
-router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const { operator, confirmed } = req.body || {};
     if (!operator) return res.status(400).json({ error: 'operator is required' });
@@ -200,7 +212,7 @@ router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'),
 // happens here — the wizard PUTs the result back to /settings after the user
 // confirms.
 
-router.post('/auto-detect-settings', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.post('/auto-detect-settings', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const ai = (await configStore.getConfig('ai')) || {};
     const hasProviders = Array.isArray(ai.providers) && ai.providers.length > 0;
@@ -247,6 +259,7 @@ router.post('/auto-detect-settings', requireAuth, requirePermission('admin_compl
     });
 });
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = router;
-module.exports.decorate = decorate;
-module.exports.markingPatch = markingPatch;
+/** @type {RouterExports} */ (module.exports).decorate = decorate;
+/** @type {RouterExports} */ (module.exports).markingPatch = markingPatch;

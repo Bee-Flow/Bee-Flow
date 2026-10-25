@@ -113,3 +113,9 @@ function agentPickerRows(rows, viewer = {}) {
 }
 
 module.exports = { AGENT_PICKER_REASONS, agentPickerRows, explainRefusal };
+
+/**
+ * @typedef {import('./agentCatalog').AgentRuntimeRow & { id?: string, name?: unknown, description?: unknown }} PickerAgent
+ * @typedef {{ userId?: string|null, orgId?: string|null, groups?: string[] }} PickerViewer
+ * @typedef {{ id: string, name: string, description: string|null, scope: 'org'|'personal', canUse: boolean, reason: 'not_published'|'other_org'|'not_shared'|'unavailable'|null }} PickerRow
+ */

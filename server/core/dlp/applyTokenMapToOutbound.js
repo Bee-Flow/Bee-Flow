@@ -165,3 +165,5 @@ function untokeniseToolArgs(args, convMap) {
 }
 
 module.exports = { applyTokenMapToOutbound, applyTokenMapToMessages, buildReverseReplacer, untokeniseToolArgs };
+
+/** @typedef {{ role?: string, content?: unknown, thinking?: unknown, [key: string]: unknown }} OutboundMessage */

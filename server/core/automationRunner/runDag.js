@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The DAG walker (extracted verbatim from engine.js): fan-in gating,
  * replay/partial-run routing, brancher label resolution and per-step
@@ -355,3 +354,23 @@ async function runDag(def, ctx, runStateInit, mode, dispatchStep, { recordSteps 
 }
 
 module.exports = { runDag };
+
+/** @typedef {import('./runDagGraph').DagEdge} DagEdge */
+
+/** @typedef {import('./runDagGraph').EdgeMap} EdgeMap */
+
+/** @typedef {import('./runDagRecord').DagStep} DagStep */
+
+/** @typedef {import('./runDagRecord').DagCtx} DagCtx */
+
+/** @typedef {import('./runDagRecord').DagRunState} DagRunState */
+
+/** @typedef {import('./runDagRecord').DagStepEntry} DagStepEntry */
+
+/** @typedef {import('./runDagRecord').StepOutput} StepOutput */
+
+/** @typedef {import('./runDagRecord').DispatchStep} DispatchStep */
+
+/** @typedef {ReturnType<typeof buildPartialPlan>} PartialPlan */
+
+/** @typedef {(msg: string) => void} PushRunWarning */

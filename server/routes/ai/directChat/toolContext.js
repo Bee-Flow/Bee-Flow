@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — the context ./toolExec runs a tool call with.
  *
@@ -13,8 +13,10 @@ const configStore = require('../../../stores/configStore');
 const { makeTierToolParamsGetter } = require('./toolExec');
 const { handleSessionSkillCompleteResult } = require('./stepMachine');
 
+/** @param {ReturnType<typeof import('./turnState').createTurnState>} turn */
 function createToolContextFactory(turn) {
     const getTierToolParams = makeTierToolParamsGetter(configStore);
+    /** @param {{ userAuth: Awaited<ReturnType<typeof import('../../../utils/routeHelpers').getUserAuth>>, streamed: boolean }} opts */
     return ({ userAuth, streamed }) => ({
         streamed, userAuth,
         convId: turn.convId, resolvedTier: turn.resolvedTier, userOrgId: turn.userOrgId, userId: turn.userId,
@@ -32,16 +34,16 @@ function createToolContextFactory(turn) {
         notebookWriteGate: turn.notebookWriteGate,
         getModelId: () => turn.modelId,
         getActivatedSessionSkillIds: () => turn.activatedSessionSkillIds,
-        setActivatedSessionSkillIds: (ids) => { turn.activatedSessionSkillIds = ids; },
+        setActivatedSessionSkillIds: /** @param {string[]} ids */ (ids) => { turn.activatedSessionSkillIds = ids; },
         getCompletedSessionSkillIds: () => turn.completedSessionSkillIds,
         getRoundsInCurrentStep: () => turn.roundsInCurrentStep,
-        setRoundsInCurrentStep: (n) => { turn.roundsInCurrentStep = n; },
+        setRoundsInCurrentStep: /** @param {number} n */ (n) => { turn.roundsInCurrentStep = n; },
         markWebpagePlanProposed: () => { turn.webpagePlanProposedThisTurn = true; },
-        onImageGenerated: (data) => turn.generatedImages.push(data),
+        onImageGenerated: /** @param {{ data: string, mimeType: string | null, url?: string }} data */ (data) => turn.generatedImages.push(data),
         send: turn.send,
         applyLoadTools: turn.applyLoadTools,
         swapModelForActiveStage: turn.swapModelForActiveStage,
-        handleSessionSkillCompleteResult: (toolArgs, toolResult) => handleSessionSkillCompleteResult(turn, toolArgs, toolResult),
+        handleSessionSkillCompleteResult: /** @param {Parameters<typeof handleSessionSkillCompleteResult>[1]} toolArgs @param {Parameters<typeof handleSessionSkillCompleteResult>[2]} toolResult */ (toolArgs, toolResult) => handleSessionSkillCompleteResult(turn, toolArgs, toolResult),
         getTierToolParams,
         onSkillsActivated: turn.onSkillsActivated,
     });

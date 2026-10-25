@@ -211,3 +211,7 @@ function createUntokeniser(tokenMapInput) {
 }
 
 module.exports = { createUntokeniser };
+
+/**
+ * @typedef {Record<string, string> | Map<string, string>} TokenMapLike
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * filter: keep the rows that pass the rules, the rules fed in at run time and
@@ -11,9 +11,21 @@ const { normalizeRules, compileRule } = require('../../../automationModel/tableO
 const { isBinding } = require('../../../automationModel/tableOps/constants');
 const { tableError, requireColumn } = require('./values');
 
+/** @typedef {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.filter>} FilterOp */
+/** @typedef {(row: import('./index').TableRow) => boolean} RowTest */
+
+/** @param {{ message?: unknown }|null|undefined} e */
 const short = (e) => String(e?.message || e).slice(0, 160);
 
-/** Resolve value bindings once, check the list, bind each rule to a column. Throws table_rule_invalid. */
+/**
+ * Resolve value bindings once, check the list, bind each rule to a column. Throws table_rule_invalid.
+ * @param {unknown} rawRules
+ * @param {import('./index').TableColumn[]} columns
+ * @param {{ runState: import('../../../automationModel/bind').BindRunState }} ctx
+ * @param {{ opId?: string, field?: string }} where
+ * @param {string} label
+ * @returns {RowTest[]}
+ */
 function prepareRules(rawRules, columns, ctx, where, label) {
     const resolved = (Array.isArray(rawRules) ? rawRules : []).map((r) => (r && typeof r === 'object' && isBinding(r.value)
         ? { ...r, value: resolveValue(r.value, ctx.runState) }
@@ -33,15 +45,26 @@ function prepareRules(rawRules, columns, ctx, where, label) {
     });
 }
 
+/**
+ * @param {RowTest[]} tests
+ * @param {string} mode
+ * @returns {RowTest|null}
+ */
 const combine = (tests, mode) => {
     if (!tests.length) return null;
     return mode === 'any' ? (row) => tests.some((t) => t(row)) : (row) => tests.every((t) => t(row));
 };
 
+/**
+ * @param {FilterOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 function apply(op, input, ctx) {
     const where = { opId: op.id, field: 'rules' };
     const own = combine(prepareRules(op.rules, input.columns, ctx, where, 'Rule'), op.match);
 
+    /** @type {RowTest|null} */
     let fed = null;
     if (op.rulesFrom) {
         if (ctx.mode === 'preview') {
@@ -55,6 +78,7 @@ function apply(op, input, ctx) {
         }
     }
 
+    /** @type {ReturnType<typeof parseExpr>|null} */
     let ast = null;
     if (op.expr) {
         try { ast = parseExpr(op.expr); } catch (e) {
@@ -63,6 +87,7 @@ function apply(op, input, ctx) {
     }
 
     async function* rows() {
+        /** @type {import('../../../automationModel/bind').BindRunState & { row: import('./index').TableRow|null }} */
         const scope = { ...ctx.runState, row: null };
         let failed = 0;
         let firstError = null;

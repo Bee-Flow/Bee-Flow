@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Splice a rendered head and body into the SPA shell.
  *

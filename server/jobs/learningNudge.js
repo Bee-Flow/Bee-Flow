@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Learning Center weekly review nudge (daily tick).
  *
@@ -45,6 +45,11 @@ const LOCK_KEY = 0xBEEF10D; // unique among jobs/* advisory locks
 // The freshest timestamp anywhere in a progress blob — completions, mastery,
 // or graded step activity. Null when the blob carries no usable timestamps
 // (e.g. only legacy `true` entries) — those users are skipped, not guessed at.
+/**
+ * @typedef {Record<string, LearningProgressEntry | true | null | undefined>} LearningProgress
+ * @typedef {{ completedAt?: string, masteredAt?: string, steps?: Record<string, { answeredAt?: string, reviewedAt?: string } | null> }} LearningProgressEntry
+ */
+/** @param {LearningProgress | null | undefined} progress */
 function _lastActivityAt(progress) {
     let last = null;
     for (const entry of Object.values(progress || {})) {
@@ -63,6 +68,10 @@ function _lastActivityAt(progress) {
 
 // Pure eligibility: started, not finished with every course, and lapsed —
 // idle between NUDGE_IDLE_DAYS and NUDGE_GIVE_UP_DAYS.
+/**
+ * @param {LearningProgress | null | undefined} progress
+ * @param {number} now
+ */
 function _isEligible(progress, now) {
     if (!progress || typeof progress !== 'object' || !Object.keys(progress).length) return false;
     const { courseComplete } = require('../learning/completion');
@@ -200,6 +209,7 @@ async function _tick() {
     }
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _interval = null;
 
 function start() {

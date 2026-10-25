@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Route probe — "would a request for METHOD path reach a handler?"
  *
@@ -25,7 +25,11 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_DEPTH = 16;
 
-/** The layer stack behind an app, a Router, or nothing. */
+/**
+ * The layer stack behind an app, a Router, or nothing. Express's router
+ * internals (stack, layers) are not part of its public types.
+ * @param {Record<string, any> | null | undefined} target
+ */
 function stackOf(target) {
     if (!target || (typeof target !== 'function' && typeof target !== 'object')) return null;
     try {
@@ -36,7 +40,10 @@ function stackOf(target) {
     return null;
 }
 
-/** Turn a route pattern into one concrete path: `:id` → `probe-id`, `*` → `probe-wild`. */
+/**
+ * Turn a route pattern into one concrete path: `:id` → `probe-id`, `*` → `probe-wild`.
+ * @param {string} pattern
+ */
 function samplePath(pattern) {
     let p = String(pattern || '/').split('?')[0];
     p = p.replace(/:([A-Za-z0-9_]+)(\([^)]*\))?[?*+]?/g, (_m, name) => `probe-${name}`);
@@ -46,7 +53,11 @@ function samplePath(pattern) {
     return p;
 }
 
-/** Non-mutating layer match → `{ path }` (the matched prefix) or null. */
+/**
+ * Non-mutating layer match → `{ path }` (the matched prefix) or null.
+ * @param {Record<string, any> | null | undefined} layer
+ * @param {string} path
+ */
 function matchLayer(layer, path) {
     if (!layer) return null;
     if (layer.slash) return { path: '' };                                     // `use('/')` fast path
@@ -66,6 +77,10 @@ function matchLayer(layer, path) {
     return null;
 }
 
+/**
+ * @param {Record<string, any> | null | undefined} route
+ * @param {string} method
+ */
 function routeHandles(route, method) {
     const methods = route?.methods || {};
     if (methods._all) return true;
@@ -74,6 +89,12 @@ function routeHandles(route, method) {
     return m === 'head' && !!methods.get;
 }
 
+/**
+ * @param {unknown} stack
+ * @param {string} path
+ * @param {string} method
+ * @param {number} depth
+ */
 function walk(stack, path, method, depth) {
     if (!Array.isArray(stack) || depth > MAX_DEPTH) return false;
     for (const layer of stack) {
@@ -93,7 +114,7 @@ function walk(stack, path, method, depth) {
 }
 
 /**
- * @param {object|Function} target an express() app or an express.Router()
+ * @param {Record<string, any> | null | undefined} target an express() app or an express.Router()
  * @param {string} method HTTP method ('GET', 'post', …)
  * @param {string} pathPattern route path as served, params allowed ('/api/x/:id/export')
  * @returns {boolean}

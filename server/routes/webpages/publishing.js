@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Publishing and what the public gets to see: the thumbnail and the
  * org/group visibility, with the version that is pinned to it.
@@ -50,10 +50,11 @@ const ThumbnailQuery = z.object({
     v: z.string().optional(),
 }, { error: onUnknownKeys('Dit accepteert alleen ?v als queryparameter.') }).strict();
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
     // ── Thumbnail (rendered preview) ────────────────────────────────────
 
-    router.get('/:id/thumbnail', requireAuth, validate({ query: ThumbnailQuery }), async (req, res) => {
+    router.get('/:id/thumbnail', requireAuth, validate({ query: ThumbnailQuery }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         // Same visibility logic as GET /:id — owner OR org/group-published.
         let webpage = await webpageStore.getWebpage(req.params.id, userId);
@@ -95,7 +96,7 @@ function register(router) {
 
     // ── Publish (org/group visibility) ──────────────────────────────────
 
-    router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: NO_QUERY }), async (req, res) => {
+    router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpageRaw(req.params.id);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });

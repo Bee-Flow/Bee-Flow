@@ -197,3 +197,5 @@ router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, require
 });
 
 module.exports = router;
+
+/** @typedef {import('express').Request<{ orgId: string }> & { org: Awaited<ReturnType<typeof import('../../stores/userStore').getOrganization>> }} OrgReq */

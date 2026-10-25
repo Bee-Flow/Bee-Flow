@@ -714,3 +714,15 @@ module.exports = {
     COMPACT_STEP_KINDS,
     COMPACT_KEY_PROP_NAMES,
 };
+
+/**
+ * One field spec of the spec tables (props, action and step fields): only what the renderers read.
+ * @typedef {{ type: string, values?: unknown[], allowIsoDate?: boolean, min?: number|null, max?: number|null,
+ *   itemShape?: Record<string, FieldSpec>, maxItems?: number, required?: boolean, nullable?: boolean,
+ *   maxLen?: number, default?: unknown, description?: string }} FieldSpec
+ * @typedef {{ optional?: boolean, description?: string, presets?: string[] }} ColorSpec  a theme color entry
+ * @typedef {Record<string, { mutatesData?: boolean, fields: Record<string, FieldSpec> }>} KindSpecs
+ * @typedef {{ theme: string, design: string, knobs: string, advancedSizing: string, screen: string, components: string,
+ *   nodeLogic: string, actions: string, steps: string, bindings: string, formulas: string, variables: string,
+ *   dataModel: string, limits: string, _nodeLogicLines: string[], _bindingLines: string[], _stepsLead: string[] }} CatalogSections
+ */

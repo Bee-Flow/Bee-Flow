@@ -18,6 +18,11 @@ const assert = require('node:assert');
 
 const { tokenizeText } = require('./piiDetection');
 
+/**
+ * @param {string} text
+ * @param {number} offset
+ * @param {string} [category]
+ */
 function entity(text, offset, category = 'Person') {
     return { text, offset, length: text.length, category };
 }
@@ -53,7 +58,7 @@ test('floors are per category', () => {
 test('a malformed floor is ignored rather than corrupting the counter', () => {
     for (const bad of ['not-a-number', null, -3, undefined, {}]) {
         const { tokenMap } = tokenizeText('Call Marieke', [entity('Marieke', 5)], null, {
-            counterFloors: { person: bad },
+            counterFloors: { person: /** @type {number} */ (bad) },
         });
         assert.deepStrictEqual(Object.keys(tokenMap), ['[person_1]'], `floor ${JSON.stringify(bad)}`);
     }

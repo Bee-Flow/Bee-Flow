@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * isPrivateTarget — a sync, DNS-less literal-host SSRF pre-filter.
  *
@@ -23,6 +23,9 @@
 // it keeps this platform module from reaching into core/ (layering.test.js).
 const { isPrivateHostname } = require('./ssrfGuard');
 
+/**
+ * @param {string} rawUrl
+ */
 function isPrivateTarget(rawUrl) {
     let parsed;
     try { parsed = new URL(rawUrl); } catch { return true; }

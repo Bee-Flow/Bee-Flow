@@ -317,3 +317,10 @@ async function addStepTools(tools, { userId, userOrgId, D }) {
 module.exports = {
     addN8nTools, addFirstPartyTools, addNextcloudTools, addAgentCallableAutomations, addStepTools,
 };
+
+/**
+ * @typedef {import('./integrationToolGroups').GroupCtx} GroupCtx
+ * @typedef {import('./integrationToolGroups').GroupDeps} GroupDeps
+ * @typedef {import('./integrationToolGroups').ToolDef} ToolDef
+ * @typedef {Parameters<typeof import('../agentRuntime/toolPolicy').toolsConfigOf>[0] & { knowledge_base_ids?: string[] }} AgentConfig
+ */

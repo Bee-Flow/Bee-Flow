@@ -278,3 +278,5 @@ module.exports = {
     exportFilename,
     readSource,
 };
+
+/** @typedef {import('./templateRegistry').ResolvedTemplate} ResolvedTemplate */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -32,6 +32,7 @@ const V = require('../../../stores/lib/chatMonitoringVocab');
 const sup = require('../../../stores/lib/chatSignalSuppression');
 
 const WINDOW_DAYS = 30;
+/** @type {Record<string, string>} */
 const LABEL = Object.freeze({ direct: 'Direct chat', agent: 'Agent chat', agent_public: 'Embedded agents' });
 const NOT_COUNTED = 'Not counted: voice, template chat, the webpage builder, the public webpage AI bridge, App Studio AI chat, '
     + 'the Nextcloud Assistant, the learning coach and the builders; agent chat without streaming '
@@ -39,17 +40,23 @@ const NOT_COUNTED = 'Not counted: voice, template chat, the webpage builder, the
 
 function defaultDeps() {
     return {
+        /** @type {typeof import('../../../core/entitlements/chatMonitoringFlag').resolveChatMonitoring} */
         resolve: (orgKey) => require('../../../core/entitlements/chatMonitoringFlag').resolveChatMonitoring(orgKey),
+        /** @type {typeof import('../../../stores/chatSignalStore').outcomeTotals} */
         outcomeTotals: (orgKey, w) => require('../../../stores/chatSignalStore').outcomeTotals(orgKey, w),
+        /** @type {typeof import('../../../stores/chatSignalStore').contributorCount} */
         contributorCount: (orgKey, surface, w) => require('../../../stores/chatSignalStore').contributorCount(orgKey, surface, w),
         now: () => new Date(),
     };
 }
 
-const words = (v) => sup.cellWords(v);
-const pctWords = (v) => (v === '<5' ? 'fewer than 5' : v === 'hidden' ? 'a hidden share' : v === null ? 'n/a' : `${v}%`);
+const words = (/** @type {Parameters<typeof sup.cellWords>[0]} */ v) => sup.cellWords(v);
+const pctWords = (/** @type {string | number | null} */ v) => (v === '<5' ? 'fewer than 5' : v === 'hidden' ? 'a hidden share' : v === null ? 'n/a' : `${v}%`);
 
-/** Raw per-outcome totals of one surface, kept inside this module. */
+/**
+ * Raw per-outcome totals of one surface, kept inside this module.
+ * @param {Record<string, any>[]} rows
+ */
 function rawOf(rows) {
     const raw = Object.fromEntries(V.OUTCOMES.map(o => [o, 0]));
     let gap = 0;
@@ -65,7 +72,10 @@ function rawOf(rows) {
     return { raw, turns, found, gap };
 }
 
-/** The warning rules of one judged surface, on raw numbers; a rule fires only from 5 turns. */
+/**
+ * The warning rules of one judged surface, on raw numbers; a rule fires only from 5 turns.
+ * @param {{ raw: Record<string, number>, turns: number, found: number, gap: number }} totals
+ */
 function rulesFired({ raw, turns, found, gap }) {
     const fired = [];
     if (gap >= V.K.cell && gap / turns >= 0.05) fired.push('unscanned_external');
@@ -74,6 +84,7 @@ function rulesFired({ raw, turns, found, gap }) {
     return fired;
 }
 
+/** @type {Record<string, (s: string, f: ReturnType<typeof sup.surfaceFigures>) => string>} */
 const RULE_TEXT = {
     unscanned_external: (s, f) => `${LABEL[s]}: ${pctWords(f.pct.unscanned_external)} of turns reached an external or unknown model without a completed Privacy Shield scan.`,
     failed_closed: (s, f) => `${LABEL[s]}: ${pctWords(f.pct.failed_closed)} of turns were stopped because the Privacy Shield scan failed.`,
@@ -95,6 +106,10 @@ module.exports = {
     remediationKey: 'chat_monitoring.checks.gdpr_art32_chat_cov.fix',
     remediationLink: 'admin/security/guardrails',
 
+    /**
+     * @param {string} orgId
+     * @param {unknown} _subject
+     */
     async evaluate(orgId, _subject, deps = defaultDeps()) {
         const orgKey = orgId || 'default';
         const mon = await deps.resolve(orgKey);
@@ -102,12 +117,15 @@ module.exports = {
             return { status: 'not_applicable', evidence: { chat_signals: 'off' }, details: 'Chat signals are off.' };
         }
         const today = deps.now();
+        /** @type {Record<string, { applicable: boolean, reason: string | null, from: string | null, to: string | null, contributors: ReturnType<typeof sup.contributorBand> | null, turns: number | null, pct: Record<string, unknown> }>} */
         const surfaces = {};
+        /** @type {{ surface: string, fig: ReturnType<typeof sup.surfaceFigures>, totals: ReturnType<typeof rawOf>, fired: string[] }[]} */
         const judged = [];
         for (const surface of mon.surfaces || []) {
             if (!V.SURFACES.includes(surface)) continue;
             const employee = V.isEmployeeSurface(surface);
             const w = sup.windowFor(surface, { days: WINDOW_DAYS, effectiveFrom: mon.version, today });
+            /** @type {(typeof surfaces)[string]} */
             const entry = { applicable: false, reason: null, from: w ? w.from : null, to: w ? w.to : null, contributors: null, turns: null, pct: { ...EMPTY_PCT } };
             surfaces[surface] = entry;
             if (!w) { entry.reason = 'no_full_period'; continue; }
@@ -151,7 +169,7 @@ module.exports = {
         // The summed shares obey the per-surface suppression: a share that is
         // hidden on one surface (a small cell could be worked out from it)
         // stays hidden in the total too.
-        const hiddenOn = (key) => judged.some(j => j.fig.pct && j.fig.pct[key] === 'hidden');
+        const hiddenOn = (/** @type {string} */ key) => judged.some(j => j.fig.pct && j.fig.pct[key] === 'hidden');
         const scannedPct = hiddenOn('scanned') ? 'hidden' : sup.pct(sum.scanned, sum.turns);
         const protectedPct = hiddenOn('protected_of_found') ? 'hidden' : sup.pct(sum.protectedFound, sum.found);
         const protectedText = protectedPct === null ? 'no personal data was found' : `${pctWords(protectedPct)} of findings were protected before the model`;

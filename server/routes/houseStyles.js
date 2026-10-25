@@ -49,7 +49,11 @@ const upload = multer({
 // itself is `req.file`, checked in the handler. FormData carries only text,
 // and `isDefault` was `=== 'true'`: an HTML checkbox's "on" meant NO.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the changes as a JSON object.' }) }).strict(),
@@ -77,6 +81,10 @@ const UploadBody = bodyOf({
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
 
+/**
+ * @param {import('express').Request<{ orgId: string }>} req
+ * @param {string} orgId
+ */
 async function isOrgMember(req, orgId) {
     if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
     const ids = await resolveUserOrgIds(req);
@@ -87,7 +95,7 @@ async function isOrgMember(req, orgId) {
 const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 
 // ── List ───────────────────────────────────────────────────────────
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!(await isOrgMember(req, orgId))) return res.status(403).json({ error: 'Forbidden' });
     const styles = await houseStyleStore.listForOrg(orgId);
@@ -95,7 +103,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
 });
 
 // ── Default ────────────────────────────────────────────────────────
-router.get('/:orgId/default', requireAuth, async (req, res) => {
+router.get('/:orgId/default', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!(await isOrgMember(req, orgId))) return res.status(403).json({ error: 'Forbidden' });
     const style = await houseStyleStore.getDefaultForOrg(orgId);
@@ -103,7 +111,7 @@ router.get('/:orgId/default', requireAuth, async (req, res) => {
 });
 
 // ── Single ─────────────────────────────────────────────────────────
-router.get('/:orgId/:id', requireAuth, async (req, res) => {
+router.get('/:orgId/:id', requireAuth, async (/** @type {import('express').Request<{ orgId: string, id: string }>} */ req, res) => {
     const { orgId, id } = req.params;
     if (!(await isOrgMember(req, orgId))) return res.status(403).json({ error: 'Forbidden' });
     const style = await houseStyleStore.getById(id, orgId);
@@ -112,7 +120,7 @@ router.get('/:orgId/:id', requireAuth, async (req, res) => {
 });
 
 // ── Source DOCX download ──────────────────────────────────────────
-router.get('/:orgId/:id/source.docx', requireAuth, async (req, res) => {
+router.get('/:orgId/:id/source.docx', requireAuth, async (/** @type {import('express').Request<{ orgId: string, id: string }>} */ req, res) => {
     const { orgId, id } = req.params;
     if (!(await isOrgMember(req, orgId))) return res.status(403).json({ error: 'Forbidden' });
     const style = await houseStyleStore.getById(id, orgId, { includeBlob: true });
@@ -124,7 +132,7 @@ router.get('/:orgId/:id/source.docx', requireAuth, async (req, res) => {
 });
 
 // ── Upload ─────────────────────────────────────────────────────────
-router.post('/:orgId', requireAuth, upload.single('file'), validate({ body: UploadBody }), async (req, res) => {
+router.post('/:orgId', requireAuth, upload.single('file'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
     if (!req.file) return res.status(400).json({ error: 'No file uploaded (field "file" required)' });
@@ -150,7 +158,7 @@ router.post('/:orgId', requireAuth, upload.single('file'), validate({ body: Uplo
 });
 
 // ── Update (rename, set-default, re-extract) ──────────────────────
-router.patch('/:orgId/:id', requireAuth, validate({ body: PatchBody }), async (req, res) => {
+router.patch('/:orgId/:id', requireAuth, validate({ body: PatchBody }), async (/** @type {import('express').Request<{ orgId: string, id: string }>} */ req, res) => {
     const { orgId, id } = req.params;
     if (!(await isOrgAdmin(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
     const updates = {};
@@ -173,7 +181,7 @@ router.patch('/:orgId/:id', requireAuth, validate({ body: PatchBody }), async (r
 });
 
 // ── Delete ─────────────────────────────────────────────────────────
-router.delete('/:orgId/:id', requireAuth, async (req, res) => {
+router.delete('/:orgId/:id', requireAuth, async (/** @type {import('express').Request<{ orgId: string, id: string }>} */ req, res) => {
     const { orgId, id } = req.params;
     if (!(await isOrgAdmin(req, orgId))) return res.status(403).json({ error: 'Org admin required' });
     await houseStyleStore.remove(id, orgId);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NIS2 Art. 21(2)(a)–(j) — every risk-management measure is backed by a
  * published, current security policy.
@@ -33,6 +33,7 @@ const LETTER_SLUGS = Object.freeze({
 });
 const ALL_SLUGS = Array.from(new Set(Object.values(LETTER_SLUGS).flat()));
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
@@ -55,6 +56,7 @@ module.exports = {
     remediationKey: 'compliance.check_nis2_policy_coverage_fix',
     remediationLink: 'admin/compliance/policies',
     LETTER_SLUGS,
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -85,12 +87,18 @@ module.exports = {
 
         const now = Date.now();
         const bySlug = new Map(docs.map(d => [d.slug, d]));
+        /** @type {Record<string, { slugs: string[]; published: string[]; missing: string[]; overdue: string[]; covered: boolean; current: boolean; }>} */
         const matrix = {};
+        /** @type {string[]} */
         const lettersMissing = [];
+        /** @type {string[]} */
         const lettersOverdue = [];
         for (const [letter, slugs] of Object.entries(LETTER_SLUGS)) {
+            /** @type {string[]} */
             const published = [];
+            /** @type {string[]} */
             const missing = [];
+            /** @type {string[]} */
             const overdue = [];
             for (const slug of slugs) {
                 const d = bySlug.get(slug);

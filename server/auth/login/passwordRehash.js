@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Upgrade a stored login hash after a successful password sign-in.
  *

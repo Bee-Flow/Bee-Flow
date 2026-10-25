@@ -825,3 +825,116 @@ class OpenAIProvider extends BaseProvider {
 }
 
 module.exports = OpenAIProvider;
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {import('./openaiContent').ContentPart} ContentPart
+ * @typedef {string | ContentPart[] | null | undefined} OpenAIWireContent
+ * @typedef {Parameters<typeof qualifiesForStrict>[0]} OpenAISchema
+ * @typedef {Parameters<typeof normalizeUsage>[1]} OpenAIRawUsage
+ * @typedef {Parameters<typeof normalizeUsage>[2]} OpenAIUsageMeta
+ * @typedef {{ id?: string, name?: string, input?: unknown, function?: { name?: string, arguments?: string } }} OpenAIToolCall
+ * @typedef {{ role?: string, content?: unknown, tool_call_id?: string, tool_calls?: OpenAIToolCall[], reasoningItems?: Array<{ encrypted_content?: string }> }} OpenAIMessage
+ * @typedef {{
+ *   type?: string, name?: string, description?: unknown, parameters?: OpenAISchema, strict?: boolean,
+ *   function?: { name?: string, description?: unknown, parameters?: OpenAISchema, strict?: boolean },
+ * }} OpenAIToolDef
+ * @typedef {{
+ *   type?: string, name?: string, strict?: boolean, schema?: OpenAISchema, properties?: Record<string, OpenAISchema>,
+ *   json_schema?: { name?: string, schema?: OpenAISchema, strict?: boolean },
+ * }} OpenAIResponseFormat
+ * @typedef {{
+ *   baseUrl?: string,
+ *   euResidency?: boolean,
+ *   useChatCompletions?: boolean,
+ *   promptCacheKey?: unknown,
+ *   promptCacheRetention?: string,
+ *   userId?: unknown,
+ *   tools?: OpenAIToolDef[],
+ *   toolChoice?: string | { type?: string, function?: { name?: string }, name?: string },
+ *   responseFormat?: OpenAIResponseFormat,
+ *   responseSchema?: OpenAIResponseFormat,
+ *   cacheBreakpoint?: boolean,
+ *   previousResponseId?: string,
+ *   maxTokens?: number,
+ *   temperature?: number,
+ *   verbosity?: string,
+ *   reasoningEffort?: string,
+ *   reasoningSummary?: string,
+ *   extraBody?: Record<string, unknown>,
+ * }} OpenAIOptions
+ * @typedef {{
+ *   model: string,
+ *   store: boolean,
+ *   previous_response_id?: string,
+ *   input?: object[],
+ *   max_output_tokens?: number,
+ *   temperature?: number,
+ *   reasoning?: ReturnType<typeof buildReasoningParams>,
+ *   text?: { verbosity?: string, format?: object },
+ *   tools?: object[],
+ *   tool_choice?: unknown,
+ *   parallel_tool_calls?: boolean,
+ *   prompt_cache_key?: string,
+ *   user?: string,
+ *   stream?: boolean,
+ *   include?: string[],
+ * }} OpenAIResponsesParams
+ * @typedef {{
+ *   model: string,
+ *   messages: WireMessage[],
+ *   max_completion_tokens?: number,
+ *   temperature?: number,
+ *   tools?: OpenAIToolDef[],
+ *   tool_choice?: unknown,
+ *   reasoning_effort?: string,
+ *   verbosity?: string,
+ *   response_format?: object,
+ *   prompt_cache_key?: string,
+ *   user?: string,
+ *   stream?: boolean,
+ *   stream_options?: { include_usage: boolean },
+ * }} OpenAICompletionsParams
+ * @typedef {{
+ *   choices?: Array<{
+ *     message?: { content?: string | null, refusal?: string | null, tool_calls?: object[] },
+ *     finish_reason?: string,
+ *   }>,
+ *   usage?: OpenAIRawUsage,
+ *   service_tier?: string,
+ * }} OpenAICompletion
+ * @typedef {{
+ *   choices?: Array<{
+ *     delta?: { content?: string | null, tool_calls?: Array<{ index: number, id?: string, function?: { name?: string, arguments?: string } }> },
+ *     finish_reason?: string | null,
+ *   }>,
+ *   usage?: OpenAIRawUsage,
+ *   service_tier?: string,
+ * }} OpenAIChunk
+ * @typedef {{ type?: string, id?: string, call_id?: string, name?: string, arguments?: string, encrypted_content?: string }} OpenAIOutputItem
+ * @typedef {{
+ *   id?: string,
+ *   status?: string,
+ *   error?: { message?: string },
+ *   output?: OpenAIOutputItem[],
+ *   output_text?: string,
+ *   incomplete_details?: { reason?: string },
+ *   usage?: OpenAIRawUsage,
+ *   service_tier?: string,
+ * }} OpenAIResponse
+ * @typedef {{
+ *   type?: string,
+ *   delta?: string,
+ *   summary_index?: number,
+ *   output_index?: number,
+ *   item_id?: string,
+ *   item?: OpenAIOutputItem,
+ *   arguments?: string,
+ *   response?: OpenAIResponse,
+ *   error?: { message?: string },
+ *   message?: string,
+ * }} OpenAIStreamEvent
+ * @typedef {{ id?: string, name?: string, arguments?: string }} OpenAIStreamedCall
+ * @typedef {(type: string, data: Record<string, unknown>) => void} OpenAIOnEvent
+ * @typedef {ReturnType<OpenAIProvider['createClient']>} OpenAIClient
+ */

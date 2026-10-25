@@ -198,3 +198,12 @@ function makeDocumentFns(ctx) {
 }
 
 module.exports = { makeDocumentFns };
+
+/**
+ * The K1 provenance/status columns a caller may pass with a document.
+ * @typedef {{ sourceId?: string | null, externalId?: string | number | null, sourceModifiedAt?: string | Date | null,
+ *   sizeBytes?: number | string | null, pageCount?: number | string | null, sheetCount?: number | string | null,
+ *   mime?: string | null, createdBy?: string | null, status?: string, statusReason?: string | null,
+ *   extractSummary?: string | null, piiStatus?: string, piiCategories?: string[] | null,
+ *   overlapsDocumentId?: string | null, managedWrite?: { deploymentId?: string } | null }} DocumentExtra
+ */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * A software security key, for tests. It does what a YubiKey does on the wire:
  * an ES256 key pair per credential, authenticatorData with the RP ID hash, the
@@ -16,23 +17,32 @@ const { isoCBOR } = require('@simplewebauthn/server/helpers');
 const FLAG_UP = 0x01; // user present (the touch)
 const FLAG_AT = 0x40; // attested credential data follows
 
+/** @param {import('crypto').BinaryLike} buf */
 const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest();
+/** @param {Uint8Array} buf */
 const b64u = (buf) => Buffer.from(buf).toString('base64url');
+/** @param {Uint8Array} buf */
 const bytes = (buf) => new Uint8Array(buf);
 
 function createSoftAuthenticator() {
     const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
     const jwk = publicKey.export({ format: 'jwk' });
     const credentialId = crypto.randomBytes(32);
-    const cosePublicKey = Buffer.from(isoCBOR.encode(new Map([
+    const cosePublicKey = Buffer.from(isoCBOR.encode(new Map(/** @type {Array<[number, number | Uint8Array]>} */ ([
         [1, 2],   // kty: EC2
         [3, -7],  // alg: ES256
         [-1, 1],  // crv: P-256
         [-2, bytes(Buffer.from(String(jwk.x), 'base64url'))],
         [-3, bytes(Buffer.from(String(jwk.y), 'base64url'))],
-    ])));
+    ]))));
     let counter = 0;
 
+    /**
+     * @param {string} rpID
+     * @param {number} flags
+     * @param {number} count
+     * @param {boolean} [attested]
+     */
     function authenticatorData(rpID, flags, count, attested) {
         const countBuf = Buffer.alloc(4);
         countBuf.writeUInt32BE(count);
@@ -45,6 +55,11 @@ function createSoftAuthenticator() {
         return Buffer.concat(parts);
     }
 
+    /**
+     * @param {string} type
+     * @param {string} challenge
+     * @param {string} origin
+     */
     function clientData(type, challenge, origin) {
         return Buffer.from(JSON.stringify({ type, challenge, origin, crossOrigin: false }));
     }
@@ -52,14 +67,19 @@ function createSoftAuthenticator() {
     return {
         credentialId: b64u(credentialId),
 
-        /** Answer navigator.credentials.create() for these options. */
+        /**
+         * Answer navigator.credentials.create() for these options.
+         *
+         * @param {{ rp: { id: string }, challenge: string }} options
+         * @param {{ origin?: string, rpID?: string, challenge?: string }} [opts]
+         */
         register(options, { origin, rpID = options.rp.id, challenge = options.challenge } = {}) {
             const authData = authenticatorData(rpID, FLAG_UP | FLAG_AT, counter, true);
-            const attestationObject = isoCBOR.encode(new Map([
+            const attestationObject = isoCBOR.encode(new Map(/** @type {Array<[string, string | Map<string | number, never> | Uint8Array]>} */ ([
                 ['fmt', 'none'],
                 ['attStmt', new Map()],
                 ['authData', bytes(authData)],
-            ]));
+            ])));
             return {
                 id: b64u(credentialId),
                 rawId: b64u(credentialId),
@@ -78,6 +98,9 @@ function createSoftAuthenticator() {
          * Answer navigator.credentials.get() for these options. Each answer
          * moves the counter forward unless `counterValue` pins it, which is how
          * a test plays a cloned key.
+         *
+         * @param {{ rpId: string, challenge: string }} options
+         * @param {{ origin?: string, rpID?: string, challenge?: string, counterValue?: number }} [opts]
          */
         authenticate(options, { origin, rpID = options.rpId, challenge = options.challenge, counterValue } = {}) {
             counter = counterValue ?? counter + 1;

@@ -186,3 +186,12 @@ module.exports = {
     start, stop, runOnce, listPinnedVersionIds, listSeenVersionIds, listCandidates, _setDeps,
     LOCK_NAME, MIN_VERSIONS, BATCH, PIN_SOURCES,
 };
+
+/**
+ * @typedef {{
+ *   pool: typeof import('../db').pool,
+ *   pruneVersions: typeof import('../stores/documentStore').pruneVersions,
+ *   selectPrunable: typeof import('../core/versioning/retention').selectPrunable,
+ *   log: typeof import('../telemetry/log'),
+ * }} RetentionDeps
+ */

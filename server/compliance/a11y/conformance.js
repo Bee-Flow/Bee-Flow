@@ -32,7 +32,11 @@ const IMPACTS = ['critical', 'serious', 'moderate', 'minor'];
 const DEFAULT_PATH = path.join(__dirname, 'conformance.json');
 const MAX_BYTES = 2 * 1024 * 1024;
 
+/**
+ * @param {string | undefined} explicit
+ */
 function candidatePaths(explicit) {
+    /** @type {string[]} */
     const out = [];
     if (explicit) out.push(String(explicit));
     else if (process.env.A11Y_CONFORMANCE_PATH) out.push(String(process.env.A11Y_CONFORMANCE_PATH));
@@ -40,13 +44,16 @@ function candidatePaths(explicit) {
     return out;
 }
 
-function _isInt(v) { return Number.isInteger(v) && v >= 0; }
+/** @param {unknown} v */
+function _isInt(v) { return Number.isInteger(v) && /** @type {number} */ (v) >= 0; }
 
 /**
  * Shape check the parts the check relies on. Returns a list of problems;
  * empty means usable.
+ * @param {{ schema_version?: unknown, build_sha?: unknown, generated_at?: unknown, surfaces?: unknown } | null | undefined} doc
  */
 function validate(doc) {
+    /** @type {string[]} */
     const problems = [];
     if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return ['not an object'];
     if (doc.schema_version !== SCHEMA_VERSION) problems.push(`schema_version must be ${SCHEMA_VERSION}`);
@@ -56,7 +63,7 @@ function validate(doc) {
         problems.push('surfaces must be a non-empty array');
         return problems;
     }
-    doc.surfaces.forEach((s, i) => {
+    doc.surfaces.forEach((/** @type {{ id?: string, status?: string, violations?: Record<string, unknown>, rules?: unknown }} */ s, /** @type {number} */ i) => {
         const at = `surfaces[${i}]`;
         if (!s || typeof s !== 'object') { problems.push(`${at} not an object`); return; }
         if (!SURFACE_IDS.includes(s.id)) problems.push(`${at}.id unknown (${s.id})`);
@@ -66,7 +73,7 @@ function validate(doc) {
             if (!v || typeof v !== 'object') problems.push(`${at}.violations missing`);
             else for (const k of IMPACTS) if (!_isInt(v[k])) problems.push(`${at}.violations.${k} must be a non-negative integer`);
             if (!Array.isArray(s.rules)) problems.push(`${at}.rules must be an array`);
-            else s.rules.forEach((r, j) => {
+            else s.rules.forEach((/** @type {{ id?: unknown, impact?: string }} */ r, /** @type {number} */ j) => {
                 if (!r || typeof r.id !== 'string') problems.push(`${at}.rules[${j}].id missing`);
                 if (!IMPACTS.includes(r?.impact)) problems.push(`${at}.rules[${j}].impact invalid`);
             });
@@ -84,6 +91,7 @@ function loadConformance(opts = {}) {
     let lastPath = candidates[candidates.length - 1];
     for (const p of candidates) {
         lastPath = p;
+        /** @type {string} */
         let raw;
         try {
             const stat = fs.statSync(p);
@@ -99,7 +107,7 @@ function loadConformance(opts = {}) {
         try {
             doc = JSON.parse(raw);
         } catch (e) {
-            return { found: true, path: p, artefact: null, problems: [`invalid JSON: ${String(e.message).slice(0, 120)}`], age_days: null };
+            return { found: true, path: p, artefact: null, problems: [`invalid JSON: ${String(/** @type {Error} */ (e).message).slice(0, 120)}`], age_days: null };
         }
         const problems = validate(doc);
         const generated = problems.length ? NaN : Date.parse(doc.generated_at);
@@ -109,8 +117,12 @@ function loadConformance(opts = {}) {
     return { found: false, path: lastPath, artefact: null, problems: [], age_days: null };
 }
 
-/** Sum of violations per impact over the tested surfaces. */
+/**
+ * Sum of violations per impact over the tested surfaces.
+ * @param {{ surfaces?: Array<{ status?: string, violations?: Record<string, unknown> }> } | null | undefined} artefact
+ */
 function totals(artefact) {
+    /** @type {Record<string, number>} */
     const sum = { critical: 0, serious: 0, moderate: 0, minor: 0 };
     for (const s of artefact?.surfaces || []) {
         if (s.status !== 'tested' || !s.violations) continue;

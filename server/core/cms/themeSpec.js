@@ -110,3 +110,5 @@ function validateTheme(theme, pathPrefix = 'theme') {
 }
 
 module.exports = { HEX_RE, THEME_SPEC, THEME_PRIMARY_PRESETS, canonicalizeTheme, validateTheme };
+
+/** @typedef {{ type: 'color' | 'enum', optional?: boolean, default: string | null, presets?: string[], values?: readonly unknown[], description?: string }} ThemeFieldSpec */

@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Live dispatch of one step for the DAG walker (runDag.js): the 'running'
  * row, the call into dispatchStep, native error-edge routing of a failure,
@@ -264,3 +263,44 @@ async function dispatchLiveStep(step, w) {
 }
 
 module.exports = { dispatchLiveStep };
+
+/** @typedef {import('./runDagGraph').EdgeMap} EdgeMap */
+
+/**
+ * A step of the definition as the walker sees it.
+ * @typedef {{ id?: string, type?: string, tool?: string, defaultBranch?: string, [key: string]: unknown }} DagStep
+ */
+
+/**
+ * One step's entry in runState.steps.
+ * @typedef {{ output: unknown, status: string, synthesised?: boolean,
+ *   error?: { message: string, errorClass: string | null, stepId: string } }} DagStepEntry
+ */
+
+/**
+ * @typedef {import('../automationModel/bind').BindRunState & { steps?: Record<string, DagStepEntry>,
+ *   secrets?: Record<string, unknown>,
+ *   _handledErrors?: Array<{ stepId: string, message: string, errorClass?: string | null }> }} DagRunState
+ */
+
+/**
+ * A step output, as far as routing reads it (the brancher fields).
+ * @typedef {{ branch?: string, branches?: string[], viaDefault?: boolean, matched?: unknown, [key: string]: unknown }} StepOutput
+ */
+
+/**
+ * What dispatchStep returns for a step that ran.
+ * @typedef {{ output?: StepOutput | null, skippedReason?: string, dryRunSynthesised?: boolean, dryRunFallback?: unknown,
+ *   attempt?: number, attemptStartedAt?: string, startedAt?: string, inputSnapshot?: unknown, piiSummary?: unknown,
+ *   bindingWarnings?: unknown[], toolsWithheld?: string[], toolsWithheldReasons?: Record<string, string> }} Dispatched
+ */
+
+/** @typedef {(step: DagStep, ctx: DagCtx, runState: DagRunState, mode: string) => Promise<Dispatched>} DispatchStep */
+
+/**
+ * The walk state dispatchLiveStep needs.
+ * @typedef {{ ctx: DagCtx, runState: DagRunState, mode: string, dispatchStep: DispatchStep, adj: EdgeMap,
+ *   recordSteps: boolean, branchIndex: number | null }} LiveWalk
+ */
+
+/** @typedef {Error & { errorClass?: string, finalAttempt?: number }} StepError */

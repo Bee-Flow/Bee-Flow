@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Platform Module Store — instance-level module import state.
  *
@@ -42,6 +42,9 @@ async function _initDB() {
 }
 
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -63,11 +66,18 @@ async function getAllStates() {
     return rows.map(mapRow);
 }
 
+/**
+ * @param {string} moduleId
+ */
 async function getState(moduleId) {
     await initDB();
     return mapRow(await getOne(`SELECT * FROM platform_modules WHERE module_id = $1`, [moduleId]));
 }
 
+/**
+ * @param {string} moduleId
+ * @param {{ actorId?: string | null, version?: string | null, settings?: Record<string, any> }} [opts]
+ */
 async function setImported(moduleId, { actorId = null, version = null, settings = undefined } = {}) {
     await initDB();
     // `settings` is optional: built-in imports omit it (leaving the column
@@ -95,6 +105,8 @@ async function setImported(moduleId, { actorId = null, version = null, settings 
  * Shallow-merge a patch into a row's settings JSONB (read-modify-write). Used by
  * entitlementRefresh to refresh settings.entitlement without disturbing the
  * stored manifest/package. No-op (returns current row) when the row is absent.
+ * @param {string} moduleId
+ * @param {Record<string, any>} [patch]
  */
 async function mergeSettings(moduleId, patch = {}) {
     await initDB();
@@ -108,6 +120,10 @@ async function mergeSettings(moduleId, patch = {}) {
     return getState(moduleId);
 }
 
+/**
+ * @param {string} moduleId
+ * @param {{ actorId?: string | null }} [opts]
+ */
 async function setRemoved(moduleId, { actorId = null } = {}) {
     await initDB();
     await run(

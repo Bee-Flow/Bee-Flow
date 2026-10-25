@@ -12,6 +12,7 @@
  */
 const S = require('./editorSerialization.cjs');
 
+/** @type {Parameters<typeof S.htmlToAst>[1] | null} */
 let _DOMParser = null;
 function domParser() {
   if (_DOMParser) return _DOMParser;
@@ -20,12 +21,18 @@ function domParser() {
   return _DOMParser;
 }
 
-/** BFM Markdown → HTML (engine/export-shaped: mermaid base64 div, <img data-*>, etc.). */
+/**
+ * BFM Markdown → HTML (engine/export-shaped: mermaid base64 div, <img data-*>, etc.).
+ * @param {string} md
+ */
 function markdownToHtml(md) {
   try { return S.astToHtml(S.markdownToAst(md || '')); } catch (e) { return md || ''; }
 }
 
-/** HTML → BFM Markdown (token-efficient; understands legacy TipTap node shapes). */
+/**
+ * HTML → BFM Markdown (token-efficient; understands legacy TipTap node shapes).
+ * @param {string} html
+ */
 function htmlToMarkdown(html) {
   try { return S.astToMarkdown(S.htmlToAst(html || '', domParser())); } catch (e) { return ''; }
 }
@@ -37,6 +44,8 @@ function htmlToMarkdown(html) {
  * beats an exception). It is wrong for WRITE paths: persisting its '' would
  * blank a document's Markdown mirror because the parse tripped, which reads as
  * "the user emptied the document" to everything downstream.
+ * @param {string} html
+ * @returns {{ ok: boolean, md: string | null, error?: unknown }}
  */
 function tryHtmlToMarkdown(html) {
   try { return { ok: true, md: S.astToMarkdown(S.htmlToAst(html || '', domParser())) }; }
@@ -49,6 +58,9 @@ function tryHtmlToMarkdown(html) {
  * document body the same way.
  */
 const HTML_LIKE = /<\/?[a-z][\s\S]*>/i;
+/**
+ * @param {string} s
+ */
 function looksLikeHtml(s) { return HTML_LIKE.test(s || ''); }
 
 module.exports = {
@@ -56,9 +68,9 @@ module.exports = {
   htmlToMarkdown,
   tryHtmlToMarkdown,
   looksLikeHtml,
-  markdownToAst: (md) => S.markdownToAst(md || ''),
+  markdownToAst: (/** @type {string} */ md) => S.markdownToAst(md || ''),
   /** HTML → the editor's AST, losslessly for the editor's own HTML (throws on a parse failure). */
-  htmlToAst: (html) => S.htmlToAst(html || '', domParser()),
-  astToMarkdown: (ast) => S.astToMarkdown(ast),
-  astToHtml: (ast) => S.astToHtml(ast),
+  htmlToAst: (/** @type {string} */ html) => S.htmlToAst(html || '', domParser()),
+  astToMarkdown: (/** @type {Parameters<typeof S.astToMarkdown>[0]} */ ast) => S.astToMarkdown(ast),
+  astToHtml: (/** @type {Parameters<typeof S.astToHtml>[0]} */ ast) => S.astToHtml(ast),
 };

@@ -81,3 +81,7 @@ function isMemberOfOrg(userRow, allGroups, orgId) {
 }
 
 module.exports = { parseGroupIds, membershipFor, orgIdsForUser, isMemberOfOrg };
+
+/** @typedef {{ organizationId?: string | null, groups?: string | string[] | null } | null | undefined} MemberRow */
+
+/** @typedef {{ id: string, organizationId?: string | null }} GroupRow */

@@ -189,3 +189,21 @@ module.exports = {
     countedSteps,
     STEP_BARS_MAX,
 };
+
+/**
+ * @typedef {object} RunRow  a run row as listRunsScoped hands it over, plus what decorate adds
+ * @property {string} [id]
+ * @property {string} [automationId]
+ * @property {number|null} [version]
+ * @property {string} [status]
+ * @property {string} [journeyRunId]
+ * @property {string} [startedByUserId]
+ * @property {string} [submittedByUserId]
+ * @property {boolean} [isTest]
+ * @property {{ code?: string|null }|null} [outcome]  the structured outcome (outcome_json)
+ * @property {string|null} [approvalId]
+ * @property {string} [callerAgentId]
+ * @property {string} [triggerKind]
+ * @property {Record<string, unknown>} [triggerPayload]
+ * @property {string} [rootStepId]
+ */

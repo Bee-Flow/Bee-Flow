@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio template — Asset inventory — data_grid + record_detail (via navigate params)
  * + a badge_list coloured by status.

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Feedback API Routes — Submit and query user feedback on AI responses
  *
@@ -57,6 +57,11 @@ const router = express.Router();
  * itself is unavailable, with a 503 — tells them the wrong thing and hides a
  * refusal behind an outage.
  */
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireAdvancedMonitoring = (req, res, next) =>
     require('../core/entitlements/entitlements')
         .requireCapability('advanced_usage_monitoring')(req, res, next);
@@ -66,11 +71,14 @@ const requireAdvancedMonitoring = (req, res, next) =>
 const MAX_FEEDBACK_LIMIT = 500;
 const DEFAULT_FEEDBACK_LIMIT = 200;
 
-/** An id as the chat holds it: text, or a number the store keeps as text. */
+/**
+ * An id as the chat holds it: text, or a number the store keeps as text.
+ * @param {unknown} v
+ */
 const asIdText = (v) => (typeof v === 'number' && Number.isFinite(v) ? String(v) : v);
-const idText = (message) => z.preprocess(asIdText, worded(message).trim().max(200, message));
+const idText = (/** @type {string} */ message) => z.preprocess(asIdText, worded(message).trim().max(200, message));
 /** The same, where leaving it out — or sending it empty — is not an option. */
-const requiredIdText = (message) => z.preprocess(asIdText, worded(message).trim().min(1, message).max(200, message));
+const requiredIdText = (/** @type {string} */ message) => z.preprocess(asIdText, worded(message).trim().min(1, message).max(200, message));
 
 const RATING_TEXT = 'rating must be "up" or "down"';
 const SOURCE_TEXT = 'source is "agent" or "direct".';
@@ -78,7 +86,7 @@ const rating = () => z.enum(['up', 'down'], { error: () => RATING_TEXT });
 const source = () => z.enum(['agent', 'direct'], { error: () => SOURCE_TEXT });
 
 /** A moment, handed to the database as ISO text rather than as a string it has to guess at. */
-const moment = (name) => {
+const moment = (/** @type {string} */ name) => {
     const text = `${name} is a date, like 2026-09-01T00:00:00Z.`;
     return worded(text).refine((v) => !Number.isNaN(Date.parse(v)), text)
         .transform((v) => new Date(v).toISOString()).optional();
@@ -115,9 +123,23 @@ const ListQuery = RangeQuery.extend({
         .transform((n) => Math.min(n, MAX_FEEDBACK_LIMIT)).optional(),
 }).strict();
 
+/**
+ * Request after validate({ query: ListQuery }): `limit` is already a clamped number.
+ * `scopedOrgId` is set by requireOwnOrgAdmin.
+ * @typedef {import('express').Request<{}, any, any, { startDate?: string, endDate?: string, rating?: string, agentId?: string, source?: string, limit?: number }> & { scopedOrgId?: string }} FeedbackListReq
+ */
+/**
+ * @typedef {import('express').Request<{}, any, any, { startDate?: string, endDate?: string }> & { scopedOrgId?: string }} FeedbackRangeReq
+ */
+
 // Resolves the caller's own org id and rejects when the caller is not an
 // org admin for it. Super admins are also allowed (they can use the global
 // /api/feedback endpoints, but this lets them sanity-check the org view).
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function requireOwnOrgAdmin(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
@@ -143,6 +165,7 @@ async function requireOwnOrgAdmin(req, res, next) {
 // recent assistant call in this conversation. Lets us surface the actual
 // resolved model in the feedback UI when the agent is configured with a
 // tier (e.g. tier:auto). Returns { model, agent_name } or {}.
+/** @param {string | null | undefined} conversationId */
 async function lookupConversationContext(conversationId) {
     if (!conversationId) return {};
     try {
@@ -168,7 +191,7 @@ router.post('/', requireAuth, validate({ body: FeedbackBody }), async (req, res)
         rating, comment, source, conversationSnapshot,
     } = req.body;
 
-    const userId = req.session?.user?.id || req.session?.user?.username || null;
+    const userId = req.session?.user?.id || /** @type {string | undefined} */ (req.session?.user?.username) || null;
     // Resolve org from user's groups
     const orgIds = await resolveUserOrgIds(req);
     const organizationId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
@@ -211,7 +234,7 @@ router.post('/', requireAuth, validate({ body: FeedbackBody }), async (req, res)
 // chose to attach. Until this gate existed the route was reachable
 // unauthenticated, so the org-scoped siblings below (which DO filter) were the
 // only protected path. Org admins belong on /org, not here.
-router.get('/', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: ListQuery }), /** @param {FeedbackListReq} req */ async (req, res) => {
     const { startDate, endDate, rating, agentId, source, limit } = req.query;
     const data = await feedbackStore.getFeedback(
         { startDate, endDate, rating, agentId, source },
@@ -221,7 +244,7 @@ router.get('/', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: 
 });
 
 // GET /summary — aggregated stats across ALL tenants (platform operator only).
-router.get('/summary', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery }), async (req, res) => {
+router.get('/summary', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery }), /** @param {FeedbackRangeReq} req */ async (req, res) => {
     const { startDate, endDate } = req.query;
     const data = await feedbackStore.getFeedbackSummary({ startDate, endDate });
     res.json(data);
@@ -237,6 +260,7 @@ router.get('/summary', requireSuperAdmin, requireAdvancedMonitoring, validate({ 
 // assistant message in the snapshot. This is fragile if rows are missing on
 // either side, so we only annotate when counts align — otherwise we leave
 // snapshot messages untouched.
+/** @param {Record<string, any>[]} rows */
 async function enrichSnapshotsWithUsage(rows) {
     const conversationIds = Array.from(new Set(
         rows.map(r => r.conversation_id).filter(Boolean)
@@ -293,7 +317,7 @@ async function enrichSnapshotsWithUsage(rows) {
 }
 
 // GET /org — list feedback for the caller's organisation
-router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: ListQuery }), async (req, res) => {
+router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: ListQuery }), /** @param {FeedbackListReq} req */ async (req, res) => {
     const { startDate, endDate, rating, agentId, source, limit } = req.query;
     const data = await feedbackStore.getFeedback(
         { startDate, endDate, rating, agentId, source, organizationId: req.scopedOrgId },
@@ -304,7 +328,7 @@ router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ que
 });
 
 // GET /org/summary — aggregated stats for the caller's organisation
-router.get('/org/summary', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery }), async (req, res) => {
+router.get('/org/summary', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery }), /** @param {FeedbackRangeReq} req */ async (req, res) => {
     const { startDate, endDate } = req.query;
     const data = await feedbackStore.getFeedbackSummary({
         startDate, endDate, organizationId: req.scopedOrgId,

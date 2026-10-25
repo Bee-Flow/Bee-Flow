@@ -448,3 +448,8 @@ module.exports = {
     executeKbSearchTool,
     isKbSearchTool,
 };
+
+/**
+ * @typedef {{ query?: string, top_k?: number | string, chunk_ids?: string[] }} KbSearchArgs
+ * @typedef {{ conversationId?: string, userId?: string, agentId?: string, testAs?: unknown }} KbSearchContext  testAs: the raw "Test as" metadata (core/agentRuntime/testAs.js coerces it)
+ */

@@ -31,8 +31,11 @@ const { isMissingTable } = require('../../../utils/isMissingTable');
  * Evidence only — the status logic below is unchanged this release. Tolerant
  * of the table not existing yet (fresh install: the store's DDL runs on first
  * use) and of the store being unavailable.
+ * @param {string} orgId
+ * @param {Record<string, any>[]} agents
  */
 async function _aiActAssessments(orgId, agents) {
+    /** @type {{ attested: number | null, expired: number | null, missing_targets: { target_kind: string, target_id: string }[] }} */
     const out = { attested: null, expired: null, missing_targets: [] };
     let store;
     try { store = require('../../../stores/aiActAssessmentStore'); } catch { return out; }
@@ -74,6 +77,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.aia_art53.desc',
     remediationKey: 'compliance.checks.aia_art53.fix',
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const ai = (await configStore.getConfig('ai')) || {};
         const providers = Array.isArray(ai.providers) ? ai.providers : [];
@@ -87,7 +91,7 @@ module.exports = {
                 .map(e => canonical(e?.operator)).filter(Boolean)
         );
 
-        const providerRows = providers.map(p => ({
+        const providerRows = providers.map(/** @param {Record<string, any>} p */ p => ({
             id: p.id || null,
             type: String(p.type || '').toLowerCase(),
             external: !INTERNAL_TYPES.has(String(p.type || '').toLowerCase()),

@@ -280,3 +280,47 @@ async function writeAnswer(ctx, { project, chat, trigger, triggerText, userId, o
 }
 
 module.exports = { writeAnswer };
+
+/** @typedef {ReturnType<typeof import('./chatShield').makeChatShield>} ChatShield */
+
+/** @typedef {Exclude<Awaited<ReturnType<typeof import('../stores/projectChatStore').appendMessage>>, { stale: true }>} AppendedMessage  an append that was not dropped as stale */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/projectStore').getProject>>>} ProjectRef  the project row */
+
+/** @typedef {{ id: string, agentId?: string|null }} ChatRef */
+
+/** @typedef {{ id: string, threadId?: string|null, refs?: unknown[] }} TriggerRef */
+
+/** @typedef {{ agentId: string, name: string, systemPrompt: string }} Persona */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('./chatModel').resolveChatModel>>>} ChatModel */
+
+/** @typedef {Awaited<ReturnType<typeof import('./chatCrypto').forProject>>} ChatBox */
+
+/** @typedef {Awaited<ReturnType<ChatShield['protect']>>} Outbound */
+
+/** @typedef {Awaited<ReturnType<ChatShield['resolve']>>} ShieldConfig */
+
+/**
+ * The collaborators makeChatAssistant resolved (chatAssistant.js `answerCtx`).
+ * @typedef {object} AnswerCtx
+ * @property {() => typeof import('../stores/projectChatStore')} store
+ * @property {() => { forProject: typeof import('./chatCrypto').forProject }} chatCrypto
+ * @property {() => typeof import('../stores/conversationLockStore')} locks
+ * @property {ChatShield} shield
+ * @property {typeof import('../core/llm/llmClient').runToolLoop} runToolLoop
+ * @property {() => ReturnType<typeof import('./chatTools').makeProjectChatTools>} projectTools
+ * @property {typeof import('../core/llm/llmClient').chat} llmChat
+ * @property {(p: { agentId: string, userId: string }) => Promise<Persona|null>} resolvePersona
+ * @property {(p: { project: ProjectRef, userId: string, query: string, session?: any|null, shield?: ShieldConfig|null, audienceIds?: string[]|null }) => Promise<string>} searchKnowledge
+ * @property {(refs: unknown[], opts: { userId: string, project: ProjectRef }) => Promise<Array<{ kind: string, id?: string, name: string, text: string }>>} loadTagged
+ * @property {(project: ProjectRef) => Promise<string[]|null>} listAudience
+ * @property {(projectId: string, event: { kind: string, actorId?: string|null, targetType?: string, targetId?: string, payload?: object }) => Promise<unknown>} emit
+ * @property {(entry: Record<string, unknown>) => Promise<unknown>} logUsage
+ * @property {(reasonCode: string|null) => string} reasonText
+ * @property {number} timeoutMs
+ * @property {() => string} newId
+ * @property {(projectId: string, kind: string, actorId: string, chatId: string, status: string) => Promise<void>} announce
+ * @property {(userIds: string[]) => Promise<Map<string, string>>} namesFor
+ * @property {(p: { project: ProjectRef, chat: ChatRef, trigger: TriggerRef, aiTrigger: string, messageId: string, orgId: string|null }) => Promise<void>} noteExplicitReply
+ */

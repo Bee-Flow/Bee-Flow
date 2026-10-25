@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: org_n8n_connections (§21 scaffolding).
  *

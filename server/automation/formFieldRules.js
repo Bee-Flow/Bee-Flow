@@ -348,3 +348,10 @@ module.exports = {
     validateShowIf,
     isVisible,
 };
+
+/**
+ * @typedef {import('./formTriggerContract').FormField} FormField
+ * @typedef {import('./formTriggerContract').IssuePush} IssuePush
+ * @typedef {InstanceType<typeof import('re2')>} Re2  a compiled RE2 pattern
+ * @typedef {Record<string, any>} Ast  a node of a parsed expression
+ */

@@ -1,5 +1,10 @@
-// @typecheck
+// @typecheck noImplicitAny
 const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string | null,
+ *           automatic: boolean, tokenizedPrompt?: string, tokenMap?: Record<string, string> }} DlpTokenisationInfo
+ */
 
 /**
  * DLP preflight — the interactive outbound scanner shared by the agent
@@ -26,20 +31,20 @@ const { bestEffort } = require('../../utils/bestEffort');
  *     (for directChat's `piiTokenMap`).
  *
  * @param {Object}   p
- * @param {Array}    p.messages         Chat messages; last user message redacted in place on 'redact'.
- * @param {Object}   p.resolvedShield   Already-resolved org shield (resolveOrgShield result). Required.
+ * @param {Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> }>} p.messages         Chat messages; last user message redacted in place on 'redact'.
+ * @param {{ showRawPayload?: boolean, dlpMode?: string, piiDetectionConfidenceThreshold?: number, [key: string]: unknown }} p.resolvedShield   Already-resolved org shield (resolveOrgShield result). Required.
  * @param {string}   [p.orgId]
  * @param {string}   [p.conversationId]
  * @param {string}   [p.userId]
  * @param {*}        [p.model]          Model id used for the `privacy_payload` provider field.
  * @param {Object}   p.providerConfig   { providerType, url, displayName }
- * @param {Function} p.emit             (type, data) => void — onEvent (agent) / send (route).
+ * @param {import('../agentRuntime/phaseEvents').PhaseSend} p.emit             (type, data) => void — onEvent (agent) / send (route).
  * @param {Object}   p.audit            Base fields for logDlpDecision (org/user/agent/model/source).
  * @param {Function} [p.registerDecision] decisionQueue.register (injected for tests).
  * @param {boolean}  [p.hasAttachments]  the turn carries attachments (scanned separately).
  * @returns {Promise<{outcome:'allow'|'redacted'|'blocked'|'scan_failed', blocked:boolean,
- *   reason?:string, tokenMap?:Object, redactedText?:(string|null),
- *   userPrivacyMeta?:Object, assistantTokenisationInfo?:Object,
+ *   reason?:string, tokenMap?:Record<string, string>, redactedText?:(string|null),
+ *   userPrivacyMeta?:{ dlpRedactedCount: number, dlpCategories: string[] }, assistantTokenisationInfo?:DlpTokenisationInfo,
  *   scanStatus:string, categories:string[], tooShort:boolean, override?:boolean}>}
  *
  * Every return also says what the scan itself saw, so a caller can tell the
@@ -103,7 +108,7 @@ async function runDlpPreflight({
     // Mutate the last user message with the tokenised text. Returns the applied
     // text (so chatStream can update `processedUserMessage`) or null if nothing
     // was applied — matching the original inline `applyRedactionToMessages`.
-    const applyRedactionToMessages = (tokenizedText) => {
+    const applyRedactionToMessages = (/** @type {string} */ tokenizedText) => {
         const lastMsg = messages[messages.length - 1];
         if (!lastMsg || lastMsg.role !== 'user') return null;
         if (typeof lastMsg.content === 'string') { lastMsg.content = tokenizedText; return tokenizedText; }
@@ -116,6 +121,10 @@ async function runDlpPreflight({
 
     // Shared redact finalisation (auto + ask-redact differ only in the token
     // source, the `automatic` flag, and `decisionMs`).
+    /**
+     * @param {{ tokenizedText: string, tokenMap: Record<string, string>, automatic: boolean, decisionMs: number,
+     *           manualCount?: number }} r
+     */
     const finalizeRedaction = ({ tokenizedText, tokenMap, automatic, decisionMs, manualCount = 0 }) => {
         const appliedText = applyRedactionToMessages(tokenizedText);
         const dlpCount = Object.keys(tokenMap || {}).length;
@@ -135,6 +144,7 @@ async function runDlpPreflight({
             decisionMs,
         });
         const userPrivacyMeta = { dlpRedactedCount: dlpCount, dlpCategories: dlpCats };
+        /** @type {DlpTokenisationInfo} */
         const assistantTokenisationInfo = {
             source: 'dlp',
             action: 'redact',
@@ -219,6 +229,7 @@ async function runDlpPreflight({
             defaultChoice: resolvedShield.dlpMode === 'block' ? 'block' : 'redact',
         });
 
+        /** @type {import('./decisionQueue').Decision} */
         let decision;
         try {
             decision = await promise;

@@ -20,9 +20,19 @@ const { normalizeFields } = require('./formTriggerContract');
 const { normalizeRules } = require('./formFieldRules');
 const { CHOICE_FIELD_TYPES } = require('./formFieldTypes');
 
+/**
+ * @typedef {import('./formTriggerContract').FormField} FormField
+ * @typedef {import('./formTriggerContract').FormDeclaration} FormDeclaration
+ */
+
+/** @param {FormField | null | undefined} f */
 const isInfo = (f) => f && f.type === 'info';
 
-/** The text blocks of the form as it is now, as plain declarations. */
+/**
+ * The text blocks of the form as it is now, as plain declarations.
+ * @param {FormDeclaration | null | undefined} current
+ * @returns {FormField[]}
+ */
 function currentInfoBlocks(current) {
     const raw = Array.isArray(current?.fields) ? current.fields : [];
     return raw.filter((f) => f && typeof f === 'object' && f.type === 'info' && typeof f.name === 'string');
@@ -32,6 +42,9 @@ function currentInfoBlocks(current) {
  * Choices the model returned as plain text, mapped back onto the stored
  * option when it matches one by label or value: the stored VALUE (and hint)
  * stays, because switches and conditions match on it.
+ * @param {string[]} options
+ * @param {Array<{ label?: string, value?: string, hint?: string }> | undefined} oldOptions
+ * @returns {Array<string | Record<string, any>>}
  */
 function keepOptionValues(options, oldOptions) {
     if (!Array.isArray(oldOptions) || !oldOptions.length) return options;
@@ -43,10 +56,11 @@ function keepOptionValues(options, oldOptions) {
 }
 
 /**
- * @param {Record<string, any>[]} fields  the questions parsed from the model's reply
- * @param {object} current   the form as it is now
+ * @param {FormField[]} fields  the questions parsed from the model's reply
+ * @param {FormDeclaration | null} current   the form as it is now
  * @param {{ carry?: boolean }} [opts] carry = also keep showIf, rules and file limits
- * @returns {Record<string, any>[]} the merged list, text blocks included
+ * @returns {FormField[]} the merged list, text blocks included
+
  */
 function mergeRevision(fields, current, { carry = true } = {}) {
     const old = normalizeFields(current);

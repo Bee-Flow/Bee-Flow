@@ -36,9 +36,13 @@ const INTERVAL_MS = 6 * 60 * 60 * 1000; // matches the compliance scheduler cade
 const BOOT_DELAY_MS = 90 * 1000;
 
 let _inFlight = false;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
-/** Sweep one org × connector config. Exported for the manual sweep route. */
+/**
+ * Sweep one org × connector config. Exported for the manual sweep route.
+ * @param {Record<string, any>} config  an iso_connector_configs row
+ */
 async function sweepOne(config) {
     const isoEvidenceStore = _deps.isoEvidenceStore();
     const connector = _deps.connectors().get(config.connector_id);

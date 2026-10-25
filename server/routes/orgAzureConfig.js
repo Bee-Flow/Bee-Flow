@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Organization Azure Configuration API
  *
@@ -39,11 +40,15 @@ const { requireAuth } = require('../auth/permissions');
 const { isOrgAdminForOrg } = require('../auth/permissions');
 // orgAzureConfig historically required the exact ORG_ADMIN orgRole (it does
 // not accept the legacy 'admin' orgRole variant) — preserve that strictness.
+/** @param {import('express').Request} req @param {string} orgId */
 const isOrgAdmin = (req, orgId) => isOrgAdminForOrg(req, orgId, { strictOrgRole: true });
 
 /**
  * The platform configuration is an org admin's on a self-hosted install only
  * (see the header); on any other deployment only a platform admin passes.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} _res
+ * @param {import('express').NextFunction} next
  */
 function platformConfigGate(req, _res, next) {
     const { deploymentMode } = require('../license');
@@ -77,16 +82,24 @@ function platformConfigGate(req, _res, next) {
 // reasoning knobs): it is the model-tier config the admin dashboard owns too.
 // An empty or absent secret keeps the stored one, as the screens rely on.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @param {import('zod').ZodRawShape} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
+/** @param {string} name */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
+/** @param {string} name */
 const text = (name) => worded(`${name} is text.`).trim().optional();
 
-/** An address the SDK can call, or '' to clear it. */
+/**
+ * An address the SDK can call, or '' to clear it.
+ * @param {string} name
+ */
 const endpoint = (name) => {
     const message = `${name} is an https:// address, or empty to clear it.`;
     return worded(message).trim().refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), message).optional();
@@ -107,6 +120,7 @@ const TierMap = z.object(Object.fromEntries(TIER_NAMES.map((n) => [n, Tier.optio
 /** The four this panel shows, as a save always wrote them when absent. */
 const PANEL_TIERS = { fast: 'Fast', thinking: 'Thinking', writer: 'Writer', pro: 'Deep Thinking' };
 
+/** @type {[string, ...string[]]} */
 const PII_ACTIONS = ['block', 'tokenize', 'warn'];
 const TENANT_ALIASES = ['common', 'organizations', 'consumers'];
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -114,6 +128,7 @@ const TENANT_TEXT = 'ssoTenantId is your directory (tenant) GUID, or one of comm
 const THRESHOLD_TEXT = 'piiDetectionConfidenceThreshold is a number from 0 to 1.';
 const CATEGORY_TEXT = 'piiDetectionCategories is a list of categories, or null for all of them.';
 
+/** @template {string} N @param {N} name @param {import('zod').ZodRawShape} shape */
 const section = (name, shape) => z.object({ section: z.literal(name), ...shape }).strict();
 
 const SECTION_TEXT = 'section is one of openai, chatModels, piiDetection, docProcessing or sso.';
@@ -159,7 +174,7 @@ const ConfigBody = z.preprocess(
             autoApproveSSO: flag('autoApproveSSO'),
         }),
     ], {
-        error: (iss) => {
+        error: /** @param {import('zod/v4/core').$ZodRawIssue} iss */ (iss) => {
             if (iss.code === 'invalid_union' && iss.note === 'No matching discriminator') return SECTION_TEXT;
             return iss.code === 'invalid_type' ? 'Send the settings as a JSON object.' : undefined;
         },
@@ -180,6 +195,7 @@ const NoBody = bodyOf({});
 
 /**
  * Helper: Mask a secret for display (show last 4 chars)
+ * @param {string | null | undefined} value
  */
 function maskSecret(value) {
     if (!value) return '';
@@ -195,7 +211,7 @@ async function getAIConfig() {
 }
 
 // GET /:orgId — get Azure config (reads global platform config)
-router.get('/:orgId', requireAuth, platformConfigGate, async (req, res) => {
+router.get('/:orgId', requireAuth, platformConfigGate, /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
 
     // Must be member of org or super admin
@@ -278,7 +294,7 @@ router.get('/:orgId', requireAuth, platformConfigGate, async (req, res) => {
 });
 
 // PUT /:orgId — save Azure config (writes to global platform config — same keys as admin dashboard)
-router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {
@@ -365,7 +381,7 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
 // ═══════════════════════════════════════════════════════════
 
 // POST /:orgId/sync-groups — trigger a sync
-router.post('/:orgId/sync-groups', requireAuth, async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: NoBody }), async (req, res) => {
+router.post('/:orgId/sync-groups', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} _res @param {import('express').NextFunction} next */ async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: NoBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {
@@ -378,7 +394,7 @@ router.post('/:orgId/sync-groups', requireAuth, async (req, _res, next) => { awa
 });
 
 // GET /:orgId/sync-groups/status — get last sync status
-router.get('/:orgId/sync-groups/status', requireAuth, async (req, res) => {
+router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {
@@ -391,7 +407,7 @@ router.get('/:orgId/sync-groups/status', requireAuth, async (req, res) => {
 });
 
 // PUT /:orgId/sync-groups/settings — update sync settings
-router.put('/:orgId/sync-groups/settings', requireAuth, async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: SyncSettingsBody }), async (req, res) => {
+router.put('/:orgId/sync-groups/settings', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} _res @param {import('express').NextFunction} next */ async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: SyncSettingsBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
     if (!admin) {

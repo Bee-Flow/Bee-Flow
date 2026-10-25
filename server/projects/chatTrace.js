@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "How I got this answer" for a team chat, as a normal chat shows it: what the
  * Privacy Shield replaced before the message went to the model, and what came
@@ -15,7 +15,11 @@
 
 'use strict';
 
-/** Put the placeholders in for the values they stand for, longest value first so one never eats part of another. */
+/**
+ * Put the placeholders in for the values they stand for, longest value first so one never eats part of another.
+ * @param {string} text
+ * @param {Record<string, string>} tokenMap
+ */
 function applyTokenMap(text, tokenMap) {
     let out = String(text || '');
     const pairs = Object.entries(tokenMap || {}).filter(([, value]) => typeof value === 'string' && value)
@@ -51,14 +55,20 @@ function answerRecord({ model, outbound, triggerText, rawAnswer, box, chatId, me
     return { aiMeta, aiTrace: box.sealContent(chatId, `${messageId}:trace`, JSON.stringify(trace)) };
 }
 
-/** Open a stored trace; the fields a client may show, nothing else. */
+/**
+ * Open a stored trace; the fields a client may show, nothing else.
+ * @param {Awaited<ReturnType<typeof import('./chatCrypto').forProject>>} box
+ * @param {string} chatId
+ * @param {string} messageId
+ * @param {string} stored
+ */
 function openTrace(box, chatId, messageId, stored) {
     const t = JSON.parse(box.openContent(chatId, `${messageId}:trace`, stored));
-    const str = (x) => (typeof x === 'string' ? x : '');
+    const str = (/** @type {unknown} */ x) => (typeof x === 'string' ? x : '');
     return {
         model: str(t.model) || null,
         tier: str(t.tier) || null,
-        categories: Array.isArray(t.categories) ? t.categories.filter((c) => typeof c === 'string') : [],
+        categories: Array.isArray(t.categories) ? t.categories.filter((/** @type {unknown} */ c) => typeof c === 'string') : [],
         original: str(t.original),
         sent: str(t.sent),
         tokenMap: Object.fromEntries(Object.entries(t.tokenMap || {}).filter(([k, v]) => typeof k === 'string' && typeof v === 'string')),

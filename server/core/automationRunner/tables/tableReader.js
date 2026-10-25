@@ -26,6 +26,10 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
 const CSV_BOM = '\uFEFF';
 const CSV_FLUSH_CHARS = 64 * 1024;
 
+/**
+ * @param {string} message
+ * @param {string} errorClass
+ */
 function tableError(message, errorClass) {
     return Object.assign(new Error(message), { errorClass });
 }
@@ -34,6 +38,8 @@ function tableError(message, errorClass) {
  * The decompressed lines of a stored table, as strings. Aborts past `maxBytes`
  * of decompressed text (a gzip bomb cannot outgrow the cap) and releases the
  * storage stream when the consumer stops early.
+ * @param {{ stream: import('stream').Readable }} streamed
+ * @param {number} maxBytes
  */
 async function* storedLines(streamed, maxBytes) {
     const source = streamed.stream;
@@ -66,7 +72,11 @@ async function* storedLines(streamed, maxBytes) {
     }
 }
 
-/** Write one chunk, waiting for the drain; false when the other side is gone. */
+/**
+ * Write one chunk, waiting for the drain; false when the other side is gone.
+ * @param {import('stream').Writable} writable
+ * @param {string} chunk
+ */
 async function writeChunk(writable, chunk) {
     if (writable.destroyed || writable.writableEnded) return false;
     if (writable.write(chunk)) return true;
@@ -78,7 +88,10 @@ async function writeChunk(writable, chunk) {
     return Promise.race([drained, closed]);
 }
 
-/** One CSV cell: text, with a formula-shaped string made harmless. */
+/**
+ * One CSV cell: text, with a formula-shaped string made harmless.
+ * @param {unknown} value
+ */
 function csvCell(value) {
     if (value == null) return '';
     if (typeof value === 'string') {
@@ -94,10 +107,15 @@ function csvCell(value) {
 function makeTableReader(deps = {}) {
     const store = () => deps.store || require('../../../stores/automationStore');
     const storage = () => deps.storage || require('../../../stores/storageStore');
+    /**
+     * @param {{ runId: string; rootRunId: string | undefined; }} scope
+     */
     const journeyIds = (scope) => (deps.journeyRunIds || require('../generatedFileHandle').journeyRunIds)(scope);
     const limitsNow = () => (deps.limits ? deps.limits() : tableLimits());
 
-    /** The rows of a ledger row, as a re-iterable factory: each call opens a fresh stream. */
+    /** @typedef {{ id: string, runId: string, storageKey: string, columns: Array<{ key: string, label?: string }> }} RunTableRow */
+
+    /** The rows of a ledger row, as a re-iterable factory: each call opens a fresh stream. @param {RunTableRow} row */
     function rowsOf(row) {
         const keys = row.columns.map(c => c.key);
         return async function* rows() {
@@ -110,7 +128,11 @@ function makeTableReader(deps = {}) {
         };
     }
 
-    /** May this caller read a table written by `producingRunId`? */
+    /**
+     * May this caller read a table written by `producingRunId`?
+     * @param {RunTableRow} row
+     * @param {{ runId: string; rootRunId?: string; automationId: string; userId?: string; }} scope
+     */
     async function mayRead(row, scope) {
         const ids = await journeyIds({ runId: scope.runId, rootRunId: scope.rootRunId });
         if (ids.includes(row.runId)) return true;
@@ -142,8 +164,11 @@ function makeTableReader(deps = {}) {
     /**
      * One page of an already authorised table. Streams and stops at
      * offset + limit + 1, so a page near the top of a big table reads little.
+     * @param {RunTableRow} row
+     * @param {{ offset?: number, limit?: number }} [page]
      */
     async function readTablePage(row, { offset = 0, limit = 50 } = {}) {
+        /** @type {Record<string, unknown>[]} */
         const out = [];
         let seen = 0;
         let hasMore = false;
@@ -160,7 +185,11 @@ function makeTableReader(deps = {}) {
         return { columns: row.columns, rows: out, offset, limit, hasMore };
     }
 
-    /** Stream an already authorised table as CSV: BOM, header of labels, rows. */
+    /**
+     * Stream an already authorised table as CSV: BOM, header of labels, rows.
+     * @param {RunTableRow} row
+     * @param {import('stream').Writable} writable
+     */
     async function streamTableCsv(row, writable) {
         const iterator = rowsOf(row)();
         let wrote = false;
@@ -179,7 +208,7 @@ function makeTableReader(deps = {}) {
             if (!writable.destroyed) writable.end();
             return true;
         } catch (e) {
-            log.warn(`[tables] csv export of ${row.id} failed: ${e.message}`);
+            log.warn(`[tables] csv export of ${row.id} failed: ${/** @type {Error} */ (e).message}`);
             // Nothing written yet: the caller can still answer with a clean error.
             // Otherwise the download is already torn, so end it as a failure.
             if (wrote && !writable.destroyed) writable.destroy(e);

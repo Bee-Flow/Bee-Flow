@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Fake Nextcloud for tool tests that keep state across several calls.
@@ -11,19 +11,21 @@ const ncClient = require('./nextcloudClient');
 const originalResolveAuth = ncClient.resolveAuth;
 const originalIsConnectorSession = ncClient.isConnectorSession;
 
+/** @param {number} status @param {unknown} body */
 const json = (status, body) => ({
     ok: status < 400,
     status,
-    headers: { get: () => null },
+    headers: { get: /** @returns {string|null} */ () => null },
     text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
 });
 
 /**
- * @param {(req: { url: string, method: string, body: any }) => any} handler
+ * @param {(req: { url: string, method: string, body: any }) => unknown} handler
  * @param {object} [auth] extra fields on the auth context (mode, publicBaseUrl, ...)
  * @returns {{ url: string, method: string, body: any }[]} the recorded calls
  */
 function installFakeNc(handler, auth = {}) {
+    /** @type {{ url: string, method: string, body: any }[]} */
     const calls = [];
     ncClient.resolveAuth = async () => ({
         baseUrl: 'https://nc.example.test',

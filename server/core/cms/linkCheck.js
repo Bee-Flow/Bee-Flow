@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Link check of a CMS site draft: pure, no network and no store.
  *
@@ -40,7 +40,10 @@ const STATIC_PATHS = new Set(['sitemap.xml', 'robots.txt', 'llms.txt', 'favicon.
 /** @param {unknown} v @returns {v is Record<string, any>} */
 const isObject = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** The URL without query string and fragment: safe to show, log and audit. */
+/**
+ * The URL without query string and fragment: safe to show, log and audit.
+ * @param {string} raw
+ */
 function bareUrl(raw) {
     return String(raw).split('#')[0].split('?')[0].slice(0, 300);
 }
@@ -95,7 +98,7 @@ function collectLinks(payload) {
     /** @type {Link[]} */
     const out = [];
     const site = payload.site || {};
-    const slugOf = new Map((site.pages || []).map((p) => [p.id, p.slug || p.id]));
+    const slugOf = new Map((site.pages || []).map(/** @param {import('../../stores/cms/shared').PageIndexEntry} p */ (p) => [p.id, p.slug || p.id]));
     const chrome = Object.fromEntries(Object.entries(site).filter(([key]) => key !== 'pages'));
     walk(chrome, 'site', out);
     for (const page of payload.pages || []) {

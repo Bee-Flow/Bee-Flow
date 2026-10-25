@@ -306,3 +306,5 @@ module.exports = {
     scanWindow,
     _contiguousCoverage,
 };
+
+/** @typedef {{ start: number, result: import('./scanCache').PiiScanResult }} WindowPart */

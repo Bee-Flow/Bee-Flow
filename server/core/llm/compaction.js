@@ -553,3 +553,19 @@ module.exports = {
     compactMessages, needsSummarization, COMPACTION_THRESHOLD, RECENT_WINDOW,
     collectUniqueAttachments, COMPACTION_MARKERS,
 };
+
+/** @typedef {{ name?: string, type?: string, url?: string, storageKey?: string, extractedText?: string, [key: string]: unknown }} Attachment */
+
+/**
+ * @typedef {object} CompactionOptions
+ * @property {boolean} [enabled]
+ * @property {number} [threshold]
+ * @property {number} [recentWindow]
+ * @property {number} [overflowTokens]
+ * @property {string} [existingSummary] - Previous compaction summary (from meta_json)
+ * @property {number} [summaryUpTo] - Watermark: how many non-system messages are already folded into existingSummary
+ * @property {string} [summaryModelId] - Model to use for summary generation (tier:fast)
+ * @property {string | null} [userOrgId] - Org ID for EU-mode tier overrides
+ */
+
+/** @typedef {ReturnType<typeof _resolveSettings>} CompactionSettings */

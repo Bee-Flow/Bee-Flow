@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — small helpers shared by the route modules in this folder.
  *
@@ -11,10 +11,12 @@
  * with any tool calls/results stripped. The title model has no tools and must
  * not be primed with tool noise (it otherwise hallucinates code blocks in
  * tool-heavy chats). Each line is capped so the whole thing stays tiny.
+ * @param {import('../../../core/conversation/historyMerge').HistoryMessage[]} savedMessages
  */
 
 function buildTitleTranscript(savedMessages) {
     if (!Array.isArray(savedMessages)) return '';
+    /** @type {string[]} */
     const lines = [];
     let users = 0, assistants = 0;
     for (const m of savedMessages) {
@@ -43,6 +45,8 @@ function buildTitleTranscript(savedMessages) {
  * fragment that is still streaming in. Used to live-stream a tool argument
  * (e.g. notebook_write's `content`) before the full tool call is complete.
  * Returns the decoded string value, or null if the field hasn't started yet.
+ * @param {string} partial
+ * @param {string} field
  */
 function extractPartialJsonString(partial, field) {
     if (typeof partial !== 'string') return null;
@@ -90,6 +94,7 @@ function extractPartialJsonString(partial, field) {
  *
  * On `managed` the escrow covers a null here, so this is additive rather than
  * load-bearing for that tier.
+ * @param {import('express').Request} req
  */
 function encryptionOpts(req) {
     return { encryptionKey: req?.session?.encryptionKey || null };
@@ -114,11 +119,14 @@ const _chatResolveMarks = new Map();
  *
  * Best-effort throughout: a live-feed update must never be able to fail the
  * chat turn that produced it.
+ * @param {string} projectId
+ * @param {Parameters<typeof import('../../../core/projectContent/projectFeed').emitProjectEvent>[1]} event
  */
 function emitThreadEvent(projectId, event) {
     return require('../../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'DirectChat' });
 }
 const CHAT_RESOLVE_WINDOW_MS = 10 * 60 * 1000;
+/** @param {string} orgId */
 function _resolveChatProblemsThrottled(orgId) {
     try {
         if (!orgId) return;

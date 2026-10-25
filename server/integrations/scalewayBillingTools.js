@@ -371,3 +371,14 @@ module.exports = {
     clampLimit,
     MAX_LIMIT,
 };
+
+/** @typedef {import('url').URLSearchParams} URLSearchParams */
+
+/**
+ * A raw Scaleway invoice (billing API JSON).
+ * @typedef {{ id?: string, number?: number | string, billing_period?: string, billingPeriod?: string,
+ *   start_date?: string, issued_date?: string, due_date?: string, type?: string, state?: string,
+ *   total_taxed?: ScalewayMoney, total_untaxed?: ScalewayMoney, total_tax?: ScalewayMoney }} ScalewayInvoice
+ */
+
+/** @typedef {{ currency_code?: string, units?: number | string, nanos?: number }} ScalewayMoney */

@@ -157,3 +157,7 @@ module.exports = {
     validateStages,
     panelRecipientIds,
 };
+
+/** @typedef {import('../automationModel/approvalStages').ApprovalSeat} ApprovalSeat */
+
+/** @typedef {import('../automationModel/approvalStages').ApprovalStage} ApprovalStage */

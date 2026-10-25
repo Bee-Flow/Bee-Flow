@@ -795,3 +795,23 @@ router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 
 module.exports = router;
+
+/** @typedef {import('express').Request<{ id: string }>} IdReq */
+
+/** @typedef {import('express').Request<{ id: string, sectionId: string }>} SectionReq */
+
+/** @typedef {import('express').Request<{ folderId: string }>} FolderReq */
+
+/** @typedef {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof VersionQuery>>} VersionReq */
+
+/** @typedef {import('../stores/documentStore').DocumentView} DocumentView */
+
+/** @typedef {import('../stores/documentStore').DocumentInput} DocumentInput */
+
+/** @typedef {{ documentId: string, versionId: string }} SourceRef  a section's or document's stored source revision */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof TemplatesQuery>>} TemplatesReq */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} DocumentListReq */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof StartersQuery>>} StartersReq */

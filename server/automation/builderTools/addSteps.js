@@ -409,3 +409,17 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
 module.exports = {
     applyAddSteps,
 };
+
+/** @typedef {import('./draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('./addStepsSupport').BatchEntry} BatchEntry */
+
+/** @typedef {import('./addStepsSupport').BatchSpec} BatchSpec */
+
+/** @typedef {import('./addStepsSupport').TurnState} TurnState */
+
+/** @typedef {import('./addStepsSupport').EntryResult} EntryResult */
+
+/** @typedef {import('./refCheck').BuilderWrap & Partial<TurnState> & { _lastRejected?: unknown }} StepsWrap  the per-turn draft wrapper */
+
+/** @typedef {EntryResult & { error?: string, added?: { id?: string, type?: string, tool?: string }, _warnings?: string[] }} StepResult  what one per-type builder answers */

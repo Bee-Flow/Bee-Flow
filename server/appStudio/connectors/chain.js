@@ -230,3 +230,7 @@ async function applyChainStep(step, rows, budget, exec, deps, app, connector, {
 }
 
 module.exports = { mapWithConcurrency, applyChainStep };
+
+/**
+ * @typedef {{ rows: import('./shared').ConnectorRow[], parentRows: import('./shared').ConnectorRow[] | null, childRows: import('./shared').ConnectorRow[] | null, grainIndexOf: number[] | null }} ChainTrace  What a traced step returns: the flat rows plus the rows at each grain.
+ */

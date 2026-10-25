@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * schedules.js — automationStore aggregate: ADDITIONAL schedule triggers.
  *
@@ -21,6 +21,7 @@ const crypto = require('crypto');
 const { initDB, run, getAll, withTransaction } = require('./core');
 const { rowToAutomation } = require('./rowMappers');
 
+/** @param {import('pg').QueryResultRow | null} r */
 function rowToSchedule(r) {
     if (!r) return null;
     return {
@@ -46,6 +47,8 @@ function rowToSchedule(r) {
  * to "now + one period" on every save). Pass `rearm: true` — activation does —
  * to recompute it unconditionally, so an automation re-activated after a month
  * does not fire a month's worth of catch-up on the first tick.
+ * @param {{ automationId: string, triggerStepId: string, cron: string, tz: string,
+ * nextRunAt?: Date | string | null, rearm?: boolean }} opts
  */
 async function upsertSchedule({ automationId, triggerStepId, cron, tz, nextRunAt = null, rearm = false }) {
     await initDB();
@@ -72,7 +75,11 @@ async function upsertSchedule({ automationId, triggerStepId, cron, tz, nextRunAt
     return rowToSchedule(rows[0]);
 }
 
-/** Drop every schedule row of the automation whose trigger is no longer declared. */
+/**
+ * Drop every schedule row of the automation whose trigger is no longer declared.
+ * @param {string} automationId
+ * @param {string[]} [keepTriggerStepIds]
+ */
 async function deleteSchedulesExcept(automationId, keepTriggerStepIds = []) {
     await initDB();
     const keep = Array.isArray(keepTriggerStepIds) ? keepTriggerStepIds.filter(Boolean) : [];
@@ -84,6 +91,7 @@ async function deleteSchedulesExcept(automationId, keepTriggerStepIds = []) {
     );
 }
 
+/** @param {string} automationId */
 async function listSchedulesForAutomation(automationId) {
     await initDB();
     const rows = await getAll(
@@ -102,7 +110,9 @@ async function listSchedulesForAutomation(automationId) {
  * the same batch yield ONE run (the earliest); the other stays due and fires
  * on a later tick, exactly like a primary schedule waits for a busy automation.
  *
- * @returns {Promise<Array<{ automation: object, schedule: object }>>}
+ * @returns {Promise<Array<{ automation: ReturnType<typeof rowToAutomation>, schedule: ReturnType<typeof rowToSchedule> }>>}
+ * @param {string} instanceId
+ * @param {number} [limit]
  */
 async function claimDueSchedules(instanceId, limit = 20) {
     await initDB();
@@ -163,6 +173,8 @@ async function claimDueSchedules(instanceId, limit = 20) {
  * Move a schedule row to its next slot after a run (or a skipped claim).
  * `nextRunAt: null` parks the row: it will not be claimed again until a save
  * or activation re-arms it.
+ * @param {string} id
+ * @param {{ nextRunAt?: Date | string | null, lastRunAt?: Date | string | null, lastStatus?: string | null }} [opts]
  */
 async function advanceSchedule(id, { nextRunAt = null, lastRunAt = null, lastStatus = null } = {}) {
     await initDB();

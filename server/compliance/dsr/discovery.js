@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * DSR discovery — a READ-ONLY scan of where a data subject's e-mail address
  * shows up inside Bee Flow, so an admin fulfilling an Art. 15 / Art. 17
@@ -82,9 +83,29 @@ const RETENTION_LEGAL_HOLD_DAYS = 7 * 365; // 2555
 
 const TEXT_TYPES = new Set(['text', 'richtext']);
 
+/** @typedef {{ kind: string, id: string }} DatatableScope */
+/** @typedef {{ query: (sql: string, params?: unknown[]) => Promise<{ rows?: Record<string, any>[] }> }} TxClient */
+/**
+ * The stores a scan reads, injected for tests. Each is duck-typed: every
+ * method is existence-checked before it is called.
+ * @typedef {object} DiscoveryDeps
+ * @property {{ getOne?: (sql: string, params?: unknown[]) => Promise<Record<string, any> | null | undefined>, withTransaction?: (fn: (client: TxClient) => Promise<Record<string, any>[]>) => Promise<Record<string, any>[]> } | null} [db]
+ * @property {{ findOrgMemberIdByEmail?: (orgId: string, email: string) => Promise<string | null | undefined>, logAccessAudit?: (...args: unknown[]) => Promise<unknown> } | null} [userStore]
+ * @property {{ countActiveMemoriesForUser?: (userId: string) => Promise<number> } | null} [memoryStore]
+ * @property {{ countMessagesByAuthor?: (userId: string, opts: { organizationId: string }) => Promise<number> } | null} [projectChatStore]
+ * @property {{ listDatatablesForScope?: (scope: DatatableScope) => Promise<Record<string, any>[]>, getModel?: (scope: DatatableScope) => Promise<{ model?: { tables?: Record<string, any>[] } } | null | undefined>, getTableMeta?: (scope: DatatableScope, id: string) => Promise<Record<string, any> | null | undefined> } | null} [datatableStore]
+ * @property {{ query?: (scopeKey: string, schemaKey: string, sql: string, params: string[]) => Promise<{ rows?: Record<string, any>[] } | null | undefined>, scopeKey?: (scope: DatatableScope) => string } | null} [datatableDbStore]
+ */
+/** @typedef {{ partial: boolean, errors: string[], retentionNotes: Record<string, any>[], notScanned: Set<string>, perTableTimeoutMs: number, budgetMs: number | null, deadlineAt: number | null, budgetSpent?: boolean }} ScanState */
+
 const _memo = new Map(); // `${orgId}:${requestId}` → { ts, result }
 
-/** Oldest out first, and a re-set counts as fresh (insertion order = recency). */
+/**
+ * Oldest out first, and a re-set counts as fresh (insertion order = recency).
+ * @param {string} key
+ * @param {number} ts
+ * @param {Record<string, any>} result
+ */
 function _memoSet(key, ts, result) {
     _memo.delete(key);
     if (_memo.size >= MEMO_MAX_ENTRIES) {
@@ -94,7 +115,11 @@ function _memoSet(key, ts, result) {
     _memo.set(key, { ts, result });
 }
 
-/** A hit inside the TTL, or null — an expired entry is dropped on the way out. */
+/**
+ * A hit inside the TTL, or null — an expired entry is dropped on the way out.
+ * @param {string} key
+ * @param {number} now
+ */
 function _memoGet(key, now) {
     const hit = _memo.get(key);
     if (!hit) return null;
@@ -102,32 +127,56 @@ function _memoGet(key, now) {
     return hit.result;
 }
 
+/**
+ * @param {ScanState} state
+ * @param {string} message
+ */
 function _pushError(state, message) {
     if (state.errors.length < MAX_ERRORS) state.errors.push(message);
     else if (state.errors.length === MAX_ERRORS) state.errors.push(`… more errors suppressed (cap ${MAX_ERRORS})`);
 }
 
-/** Milliseconds left of the overall budget (Infinity when there is none). */
+/**
+ * Milliseconds left of the overall budget (Infinity when there is none).
+ * @param {ScanState} state
+ * @param {number} [now]
+ */
 function _budgetLeft(state, now = Date.now()) {
     if (state.budgetSpent) return 0;
     return state.deadlineAt == null ? Infinity : state.deadlineAt - now;
 }
 
+/**
+ * @param {string} path
+ */
 function _lazy(path) {
     try { return require(path); } catch { return null; }
 }
 
-/** ILIKE needle with the pattern characters neutralised. */
+/**
+ * ILIKE needle with the pattern characters neutralised.
+ * @param {string} s
+ */
 function likeNeedle(s) {
     return `%${String(s).replace(/[\\%_]/g, ch => `\\${ch}`)}%`;
 }
 
+/** @param {string} name */
 function quoteIdent(name) {
     return `"${String(name).replace(/"/g, '""')}"`;
 }
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} label
+ * @returns {Promise<T>}
+ */
 function withTimeout(promise, ms, label) {
+    /** @type {NodeJS.Timeout} */
     let timer;
+    /** @type {Promise<never>} */
     const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => {
             const e = new Error(`${label} timed out after ${ms} ms`);
@@ -140,7 +189,10 @@ function withTimeout(promise, ms, label) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-/** The retention rule, exported for the test. */
+/**
+ * The retention rule, exported for the test.
+ * @param {Record<string, any> | null | undefined} table
+ */
 function retentionNoteFor(table) {
     if (!table) return null;
     const basis = table.lawfulBasis || table.lawful_basis || null;
@@ -150,7 +202,9 @@ function retentionNoteFor(table) {
     return null;
 }
 
+/** @param {Record<string, any> | null | undefined} meta */
 function _textFieldKeys(meta) {
+    /** @type {Record<string, any>[]} */
     const fields = Array.isArray(meta?.fields) ? meta.fields : [];
     return fields
         .filter(f => f && typeof f.key === 'string' && TEXT_TYPES.has(f.type))
@@ -171,6 +225,9 @@ function _textFieldKeys(meta) {
  *
  * An address outside the org therefore answers exactly as an address with no
  * account does: no id, no sources, nothing to distinguish the two.
+ * @param {string} orgId
+ * @param {string} email
+ * @param {DiscoveryDeps} deps
  */
 async function _scanUser(orgId, email, deps) {
     const userStore = deps.userStore;
@@ -180,6 +237,11 @@ async function _scanUser(orgId, email, deps) {
     } catch { return null; }
 }
 
+/**
+ * @param {string | null | undefined} userId
+ * @param {DiscoveryDeps} deps
+ * @returns {Promise<{ count: number | null, unavailable?: boolean }>}
+ */
 async function _scanMemories(userId, deps) {
     if (!userId) return { count: 0 };
     const memoryStore = deps.memoryStore;
@@ -193,6 +255,10 @@ async function _scanMemories(userId, deps) {
  * Team chat messages the subject wrote, in THIS organisation's projects only.
  * Counted by author id, like the memories above: the bodies are sealed with
  * the project key and are never opened for a scan.
+ * @param {string} orgId
+ * @param {string | null | undefined} userId
+ * @param {DiscoveryDeps} deps
+ * @returns {Promise<{ count: number | null, unavailable?: boolean }>}
  */
 async function _scanTeamChatMessages(orgId, userId, deps) {
     if (!userId) return { count: 0 };
@@ -207,6 +273,7 @@ async function _scanTeamChatMessages(orgId, userId, deps) {
 // count each, pinned to the org the way every project check scopes (an
 // org-less project belongs to the 'default' bucket).
 const PROJECT_ORG = `COALESCE(NULLIF(p.organization_id, ''), 'default') = $1`;
+/** @type {Readonly<Record<string, string>>} */
 const PROJECT_PARTICIPATION_SQL = Object.freeze({
     memberships: `SELECT COUNT(*)::int AS n FROM project_shares s JOIN projects p ON p.id = s.project_id
                   WHERE ${PROJECT_ORG} AND s.shared_with_type = 'user' AND s.shared_with_id = $2`,
@@ -233,11 +300,16 @@ const PROJECT_PARTICIPATION_SQL = Object.freeze({
  * The subject's place in the org's collaborative projects, as counts by user
  * id. A table this install does not have is a true zero (nobody can be in
  * it); a count that FAILS is unknown (null), and so is the total.
+ * @param {string} orgId
+ * @param {string | null | undefined} userId
+ * @param {DiscoveryDeps} deps
+ * @returns {Promise<{ count: number | null, items: { kind: string, count: number | null }[] }>}
  */
 async function _scanProjectParticipation(orgId, userId, deps) {
+    /** @type {{ kind: string, count: number | null }[]} */
     const items = Object.keys(PROJECT_PARTICIPATION_SQL).map(kind => ({ kind, count: 0 }));
     if (!userId) return { count: 0, items };
-    if (!deps.db?.getOne) return { count: null, items: items.map(i => ({ ...i, count: null })) };
+    if (!deps.db?.getOne) return { count: null, items: items.map(i => ({ ...i, count: /** @type {number | null} */ (null) })) };
     let unknown = false;
     for (const item of items) {
         try {
@@ -256,6 +328,11 @@ async function _scanProjectParticipation(orgId, userId, deps) {
  * Count rows in one datatable whose text/richtext columns contain the needle.
  * Runs against the tenant's physical schema through datatableDbStore.query
  * (`?` placeholders, like the query compiler emits).
+ * @param {Record<string, any>} meta
+ * @param {string} needle
+ * @param {string} scopeKey
+ * @param {DiscoveryDeps} deps
+ * @param {{ timeoutMs?: number }} [opts]
  */
 async function countRowsContaining(meta, needle, scopeKey, deps, { timeoutMs = PER_TABLE_TIMEOUT_MS } = {}) {
     const keys = _textFieldKeys(meta);
@@ -268,9 +345,16 @@ async function countRowsContaining(meta, needle, scopeKey, deps, { timeoutMs = P
     return Number(row?.n ?? row?.count ?? 0) || 0;
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} needle
+ * @param {DiscoveryDeps} deps
+ * @param {ScanState} state
+ */
 async function _scanDatatables(orgId, needle, deps, state) {
     const datatableStore = deps.datatableStore;
     const datatableDbStore = deps.datatableDbStore;
+    /** @type {Record<string, any>[]} */
     const sources = [];
     if (!datatableStore?.listDatatablesForScope || !datatableDbStore?.query) return sources;
 
@@ -282,7 +366,7 @@ async function _scanDatatables(orgId, needle, deps, state) {
         model = datatableStore.getModel ? (await datatableStore.getModel(scope))?.model : null;
     } catch (e) {
         state.partial = true;
-        _pushError(state, `datatables: ${e.message}`);
+        _pushError(state, `datatables: ${/** @type {Error} */ (e).message}`);
         return sources;
     }
     const metaById = new Map((Array.isArray(model?.tables) ? model.tables : []).map(t => [t.id, t]));
@@ -329,7 +413,7 @@ async function _scanDatatables(orgId, needle, deps, state) {
                 // otherwise the knowledge bases start on 1 ms of "budget".
                 if (cappedByBudget && e.code === 'discovery_timeout') state.budgetSpent = true;
                 state.partial = true;
-                _pushError(state, `datatable ${t.id}: ${e.code || e.message}`);
+                _pushError(state, `datatable ${t.id}: ${e.code || /** @type {Error} */ (e).message}`);
             }
         }
     };
@@ -385,8 +469,15 @@ async function _scanDatatables(orgId, needle, deps, state) {
     return sources;
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} needle
+ * @param {DiscoveryDeps} deps
+ * @param {ScanState} state
+ */
 async function _scanKnowledgeBases(orgId, needle, deps, state) {
     const db = deps.db;
+    /** @type {{ kind: string, count: number | null, label_key: string, href: string, items: Record<string, any>[] }} */
     const source = {
         kind: 'kb_chunks',
         count: 0,
@@ -426,7 +517,7 @@ async function _scanKnowledgeBases(orgId, needle, deps, state) {
                 document_id: String(r.document_id),
                 title: names.get(String(r.knowledge_base_id)) || String(r.knowledge_base_id),
                 count: Number(r.n) || 0,
-                retention_note: null,
+                retention_note: /** @type {string | null} */ (null),
             }));
         });
         source.items = rows;
@@ -437,12 +528,18 @@ async function _scanKnowledgeBases(orgId, needle, deps, state) {
         // fresh install (42P01) is simply "nothing there".
         if (e?.code !== '42P01') {
             state.partial = true;
-            _pushError(state, `kb: ${e.code || e.message}`);
+            _pushError(state, `kb: ${e.code || /** @type {Error} */ (e).message}`);
         }
     }
     return source;
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} email
+ * @param {number} requestId
+ * @param {DiscoveryDeps} deps
+ */
 async function _scanPriorDsrs(orgId, email, requestId, deps) {
     const db = deps.db;
     if (!db?.getOne) return { count: null };
@@ -466,11 +563,16 @@ const DEP_PATHS = Object.freeze({
     datatableDbStore: '../../stores/datatableDbStore',
 });
 
-/** Injected deps win; only the missing ones are required (tests never touch a real store). */
+/**
+ * Injected deps win; only the missing ones are required (tests never touch a real store).
+ * @param {DiscoveryDeps | null | undefined} deps
+ * @returns {DiscoveryDeps}
+ */
 function _resolveDeps(deps) {
+    /** @type {Record<string, unknown>} */
     const d = {};
     for (const [k, p] of Object.entries(DEP_PATHS)) {
-        d[k] = deps && k in deps ? deps[k] : _lazy(p);
+        d[k] = deps && k in deps ? /** @type {Record<string, unknown>} */ (deps)[k] : _lazy(p);
     }
     return d;
 }
@@ -478,7 +580,7 @@ function _resolveDeps(deps) {
 /**
  * @param {string} orgId
  * @param {{id:number|string, subject_email:string}} request  the dsr_requests row
- * @param {{actorId?:string|null, deps?:object, force?:boolean, now?:number,
+ * @param {{actorId?:string|null, deps?:DiscoveryDeps|null, force?:boolean, now?:number,
  *          perTableTimeoutMs?:number, overallBudgetMs?:number}} [opts]
  */
 async function run(orgId, request, {
@@ -499,6 +601,7 @@ async function run(orgId, request, {
     // The budget runs on the wall clock, not on the injectable `now` (which
     // drives the memo and `scanned_at`, and is a fixed instant in tests).
     const budgetMs = Number.isFinite(overallBudgetMs) && overallBudgetMs > 0 ? overallBudgetMs : null;
+    /** @type {ScanState} */
     const state = {
         partial: false, errors: [], retentionNotes: [], notScanned: new Set(),
         perTableTimeoutMs, budgetMs, deadlineAt: budgetMs == null ? null : Date.now() + budgetMs,
@@ -578,14 +681,21 @@ async function run(orgId, request, {
  * append-only evidence chain, and an hours-old scan written as the state of
  * the tenant AT FULFILMENT is a false record that nothing downstream can tell
  * from a true one. Past the TTL the caller gets null and records nothing.
+ * @param {string} orgId
+ * @param {number} requestId
+ * @param {{ now?: number }} [opts]
  */
 function peek(orgId, requestId, { now = Date.now() } = {}) {
     return _memoGet(`${orgId}:${requestId}`, now);
 }
 
-/** Counts per kind for evidence rows / the dossier — no items, no address. */
+/**
+ * Counts per kind for evidence rows / the dossier — no items, no address.
+ * @param {Record<string, any> | null | undefined} result
+ */
 function summarize(result) {
     if (!result) return null;
+    /** @type {Record<string, number | null>} */
     const counts = {};
     for (const s of result.sources || []) counts[s.kind] = s.count;
     return { counts, partial: !!result.partial, not_scanned: result.not_scanned || [], scanned_at: result.scanned_at };

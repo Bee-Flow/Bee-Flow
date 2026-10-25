@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Data migration: the stored word "routine" becomes "automation".
  *
@@ -46,6 +47,10 @@ const { getOne, run } = require('../db');
 
 const BATCH = 10_000;
 
+/**
+ * @param {string} table
+ * @param {string} column
+ */
 async function hasColumn(table, column) {
     const r = await getOne(
         `SELECT 1 AS x FROM information_schema.columns
@@ -55,12 +60,19 @@ async function hasColumn(table, column) {
     return !!r;
 }
 
+/**
+ * @param {string} name
+ */
 async function hasTable(name) {
     const r = await getOne('SELECT to_regclass($1) AS oid', [`public.${name}`]);
     return !!r?.oid;
 }
 
-/** Run `sql` (an UPDATE limited to BATCH rows) until it touches nothing; returns the total. */
+/**
+ * Run `sql` (an UPDATE limited to BATCH rows) until it touches nothing; returns the total.
+ * @param {string} sql
+ * @param {unknown[]} [params]
+ */
 async function drain(sql, params = []) {
     let total = 0;
     for (;;) {
@@ -75,6 +87,7 @@ async function drain(sql, params = []) {
  * `source` 'routine' → 'cowork' for rows that belong to a Cowork schedule
  * (by `automation_id` when the table has it, else by conversation id), and
  * → 'automation' for the rest. Also `agent_type` where the table has it.
+ * @param {string} table
  */
 async function relabelLog(table) {
     if (!await hasColumn(table, 'source')) return 0;
@@ -100,6 +113,7 @@ async function relabelLog(table) {
 }
 
 async function up() {
+    /** @type {Record<string, number>} */
     const summary = {};
 
     for (const table of ['ai_usage_log', 'ai_task_termination_log', 'guardrail_events', 'integration_activity_log']) {
@@ -139,6 +153,9 @@ async function up() {
     if (await hasTable('playbooks')) {
         // The JSONB text form is canonical ("kind": "routine"), so a textual
         // replace of the exact pair is exact; nothing else spells it so.
+        /**
+         * @param {string} col
+         */
         const swap = (col) => `REPLACE(REPLACE(${col}::text, '"kind": "routine"', '"kind": "automation"'), '"key": "routine"', '"key": "automation"')::jsonb`;
         const r = await run(
             `UPDATE playbooks

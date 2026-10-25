@@ -238,3 +238,5 @@ function register(router) {
 }
 
 module.exports = { register };
+
+/** @typedef {import('express-serve-static-core').Router} Router */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The gate a round's tool calls pass through before anything runs.
  *
@@ -19,6 +19,9 @@ const { buildToolPolicy, fallbackToolPolicy, automationConfirmsFor } = require('
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
+/**
+ * @param {{ currentToolCalls: import('./turnState').ToolCall[], contentBuffer: string, onEvent: import('./turnState').OnEvent, _snapshotThinkingParts: ReturnType<typeof import('./turnState').createThinkingState>['snapshot'] }} round
+ */
 function buildRoundAssistantMessage({ currentToolCalls, contentBuffer, onEvent, _snapshotThinkingParts }) {
     // Clear intermediate planning text from the UI — only the final response
     // (from the last iteration without tool calls) should be visible to the user
@@ -60,6 +63,9 @@ function buildRoundAssistantMessage({ currentToolCalls, contentBuffer, onEvent, 
     return { currentToolCalls, assistantMessage };
 }
 
+/**
+ * @param {Omit<Parameters<typeof executeToolRound>[0], 'toolPolicy'> & { tools: import('./turnState').ToolDef[] } & Pick<Awaited<ReturnType<typeof import('./turnSetup').setupTurn>>, 'unattended'>} round
+ */
 async function dispatchToolRound({
     currentToolCalls, toolCalls, signal, onEvent, messages, durableMessages,
     persistDurable, dlpShield, regexConfig, webSearchGuardEnabled,

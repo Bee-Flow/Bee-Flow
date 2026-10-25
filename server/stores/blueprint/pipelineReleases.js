@@ -247,3 +247,5 @@ function makePipelineReleasesStore({ ready, handle, inTransaction }) {
 }
 
 module.exports = { makePipelineReleasesStore, _prunePipelineReleases };
+
+/** @typedef {import('./mappers').QueryHandle} QueryHandle */

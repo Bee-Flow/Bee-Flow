@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The Nextcloud tool family: the per-app executors behind every nextcloud_*
  * tool, and the scope-guarded entry the dispatcher runs them through.
@@ -29,9 +29,15 @@ const { isNextcloudTeamsTool, executeNextcloudTeamsTool } = require('./nextcloud
 const { isNextcloudStatusTool, executeNextcloudStatusTool } = require('./nextcloudStatusTools');
 
 /**
+ * @typedef {Partial<Express.Session> | null | undefined} NcSession
+ * @typedef {{ userId?: string, orgId?: string|null, session?: NcSession, runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }} NcToolContext
+ */
+
+/**
  * Sub-apps first: the generic executor (last) matches the whole broad
  * "nextcloud_*" prefix, so it must only see what no sub-app owns.
  */
+/** @type {Array<[(toolName: string) => boolean, (toolName: string, args: Record<string, unknown>, userId: string, session: NcSession) => Promise<unknown>]>} */
 const SUB_APPS = [
     [isNextcloudCalendarTool, executeNextcloudCalendarTool],
     [isNextcloudContactsTool, executeNextcloudContactsTool],
@@ -52,6 +58,11 @@ const SUB_APPS = [
  * The Nextcloud family chain WITHOUT the scope guard (callers that are not a
  * tool call, such as the scope picker, and the guarded entry below). Returns
  * undefined when no family matched.
+ * @param {string} toolName
+ * @param {Record<string, unknown>} toolArgs
+ * @param {string} userId
+ * @param {NcSession} session
+ * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }} [extra]
  */
 async function executeNextcloudFamilyTool(toolName, toolArgs, userId, session, extra = {}) {
     for (const [isTool, execute] of SUB_APPS) {
@@ -63,7 +74,12 @@ async function executeNextcloudFamilyTool(toolName, toolArgs, userId, session, e
     return undefined;
 }
 
-/** check → run → filter, for a dispatched nextcloud_* call. */
+/**
+ * check → run → filter, for a dispatched nextcloud_* call.
+ * @param {string} toolName
+ * @param {Record<string, unknown>} toolArgs
+ * @param {NcToolContext} context
+ */
 async function executeGuardedNextcloudTool(toolName, toolArgs, context) {
     const { userId, orgId, session, runScope } = context;
     const ncScopeGuard = require('../core/integrations/ncScopeGuard');
@@ -80,6 +96,9 @@ async function executeGuardedNextcloudTool(toolName, toolArgs, context) {
  * A Nextcloud tool run on behalf of another tool (create_presentation's "save
  * it in Nextcloud"): the scope guard's denial, or the family's result. Not
  * filtered — a create answers with what it made, not a list.
+ * @param {string} toolName
+ * @param {Record<string, unknown>} toolArgs
+ * @param {NcToolContext} context
  */
 async function executeCheckedNextcloudTool(toolName, toolArgs, { userId, orgId, session, runScope }) {
     const ncScopeGuard = require('../core/integrations/ncScopeGuard');
@@ -87,6 +106,7 @@ async function executeCheckedNextcloudTool(toolName, toolArgs, { userId, orgId, 
         || await executeNextcloudFamilyTool(toolName, toolArgs, userId, session, { runScope: runScope || null });
 }
 
+/** @param {string} toolName */
 function isNextcloudFamilyToolName(toolName) {
     return toolName.startsWith('nextcloud_');
 }

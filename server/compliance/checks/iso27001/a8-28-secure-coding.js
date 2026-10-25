@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.28 — secure coding: secret scanning and push protection from
  * the github connector snapshots. This check never fails outright — GitHub
@@ -23,6 +23,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_secure_coding.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.');
         if (read.result) return read.result;

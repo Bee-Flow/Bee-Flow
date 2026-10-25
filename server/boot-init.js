@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Boot Initializer — First-boot setup from INIT_* environment variables
  * 
@@ -56,11 +56,16 @@ async function runBootInit() {
     await new Promise(r => setTimeout(r, 3000));
 
     // Retry wrapper (DB might still be initializing)
+    /**
+     * @param {() => Promise<void>} fn
+     * @param {string} label
+     * @param {number} [attempts]
+     */
     const retry = async (fn, label, attempts = 3) => {
         for (let i = 0; i < attempts; i++) {
             try { return await fn(); }
             catch (err) {
-                log.warn(`[boot-init] ${label} attempt ${i + 1} failed:`, err.message);
+                log.warn(`[boot-init] ${label} attempt ${i + 1} failed:`, /** @type {Error} */ (err).message);
                 if (i < attempts - 1) await new Promise(r => setTimeout(r, 2000));
                 else throw err;
             }
@@ -163,6 +168,7 @@ async function runBootInit() {
         // Maps aiProvider ('openai', 'google', 'mistral', 'claude', 'scaleway', 'eugpt')
         // to the configStore secret key used by the server.
         if (aiProvider && genericApiKey) {
+            /** @type {Record<string, string>} */
             const secretKeyMap = {
                 openai:   'openai_api_key',
                 google:   'google_api_key',
@@ -191,6 +197,7 @@ async function runBootInit() {
             await retry(async () => {
                 const incoming = JSON.parse(chatModelTiersRaw);
                 const existing = await configStore.getConfig('chat_model_tiers') || {};
+                /** @type {Record<string, { modelId?: string, label: string }>} */
                 const merged = {
                     fast:     { modelId: '', label: 'Fast',          ...(existing.fast     || {}), ...(incoming.fast     || {}) },
                     standard: { modelId: '', label: 'Standard (Direct)', ...(existing.standard || {}), ...(incoming.standard || {}) },

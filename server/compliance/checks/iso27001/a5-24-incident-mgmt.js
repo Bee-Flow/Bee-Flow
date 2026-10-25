@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.5.24 / A.5.25 / A.5.26 — Incident management: preparation,
  * assessment and response.
@@ -33,10 +33,11 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_incident_mgmt.desc',
     remediationKey: 'compliance.checks.iso_incident_mgmt.fix',
     remediationLink: 'admin/compliance/incidents',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const recipients = Array.isArray(settings.breach_recipients) ? settings.breach_recipients : [];
-        const validRecipients = recipients.filter(r => typeof r === 'string' && /@/.test(r));
+        const validRecipients = recipients.filter((/** @type {string} */ r) => typeof r === 'string' && /@/.test(r));
 
         let deadlines = { open: 0, overdue_unnotified: 0, nearing_deadline: 0 };
         let registryReachable = true;
@@ -83,6 +84,7 @@ module.exports = {
             };
         }
 
+        /** @type {string[]} */
         const warnings = [];
         if (validRecipients.length === 0) {
             warnings.push('No incident-notification recipients are configured, so nobody is alerted when an incident is registered or a deadline approaches.');

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — the session-skill step machine that walks a Flow pipeline.
  *
@@ -9,6 +9,9 @@
  * onto the cached system prefix. Moved verbatim out of streamTurn.js.
  */
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+/** @typedef {import('../../../core/tools/sessionSkillRuntime').SessionSkill} SessionSkill */
+/** @typedef {string | { name: string } | { type: string, function: { name: string } }} ToolChoice */
 const {
     ACTIVATE_SESSION_SKILL_TOOL_NAME,
     COMPLETE_SESSION_SKILL_TOOL_NAME,
@@ -23,6 +26,11 @@ const SOFT_COMPLETE_CAP = 3;
 // Provider-specific tool_choice shape. OpenAI/Mistral expect the
 // nested form; our Claude adapter consumes a flat {name}; Google's
 // adapter doesn't support specific-function — fall back to 'required'.
+/**
+ * @param {Turn} turn
+ * @param {string} toolName
+ * @returns {ToolChoice}
+ */
 function specificToolChoice(turn, toolName) {
     const pt = (turn.config?.providerType || '').toLowerCase();
     if (pt === 'claude') return { name: toolName };
@@ -36,6 +44,7 @@ function specificToolChoice(turn, toolName) {
  *   - nothing active, ready step exists      →  force activate(next-ready)
  *   - step active, not completed             →  'auto' (integration tools)
  *   - step active, >=N rounds w/o complete   →  force complete(current)
+ * @param {Turn} turn
  */
 function computeStepMachineGuard(turn) {
     const { sessionSkills, activatedSessionSkillIds, completedSessionSkillIds, roundsInCurrentStep } = turn;
@@ -44,7 +53,7 @@ function computeStepMachineGuard(turn) {
     if (!state.hasPipeline || state.allTerminalsCompleted) {
         return { toolChoice: 'auto', systemAppend: null, mode: 'final', mute: false };
     }
-    const byId = new Map(sessionSkills.map(s => [s.id, s]));
+    const byId = new Map(/** @type {SessionSkill[]} */ (sessionSkills).map(s => [s.id, s]));
 
     // A step is mid-work — the LLM should be using integration tools
     // and then calling complete_session_skill. If it keeps firing
@@ -86,6 +95,7 @@ function computeStepMachineGuard(turn) {
 // streamed-tool while loop to force another round when the LLM
 // stopped emitting tool calls mid-pipeline (text was muted, so
 // without this the user would see an empty reply).
+/** @param {Turn} turn */
 function pipelineNeedsWrapUp(turn) {
     const { sessionSkills, activatedSessionSkillIds, completedSessionSkillIds } = turn;
     if (!turn.isStandardTier) return false;
@@ -97,6 +107,11 @@ function pipelineNeedsWrapUp(turn) {
 // Shared side-effect handler for when the LLM calls complete_session_skill.
 // Both the pre-check path and the streamed-tool path invoke this so the
 // completion set + UI event stay in sync no matter which adapter fired.
+/**
+ * @param {Turn} turn
+ * @param {{ skill_id?: string, summary?: string }} toolArgs
+ * @param {{ success?: boolean, completedSessionSkillIds?: string[], skill_id?: string, summary?: string }} toolResult
+ */
 function handleSessionSkillCompleteResult(turn, toolArgs, toolResult) {
     const { send, sessionSkills } = turn;
     if (!toolResult?.success) return;
@@ -106,7 +121,7 @@ function handleSessionSkillCompleteResult(turn, toolArgs, toolResult) {
         turn.completedSessionSkillIds = Array.from(new Set([...turn.completedSessionSkillIds, toolResult.skill_id]));
     }
     const skillId = toolResult.skill_id || toolArgs?.skill_id;
-    const skill = sessionSkills.find(s => s.id === skillId);
+    const skill = /** @type {SessionSkill[]} */ (sessionSkills).find(s => s.id === skillId);
     const entry = {
         skillId,
         skillName: skill?.name || skillId,
@@ -128,11 +143,17 @@ function handleSessionSkillCompleteResult(turn, toolArgs, toolResult) {
 // Try the adapter call; if the provider rejects due to
 // invalid_request_message_order or similar bad-shape 400s, retry once
 // with toolChoice: 'auto' to unblock the user.
+/**
+ * @template T
+ * @param {(toolChoice: ToolChoice) => Promise<T>} fn
+ * @param {ToolChoice} currentToolChoice
+ * @returns {Promise<T>}
+ */
 async function callAdapterWithFallback(fn, currentToolChoice) {
     try {
         return await fn(currentToolChoice);
     } catch (err) {
-        const msg = String(err?.message || '');
+        const msg = String(/** @type {Error} */ (err)?.message || '');
         const isBadShape = /invalid_request_message_order|Unexpected role|invalid.*tool_choice/i.test(msg);
         if (!isBadShape) throw err;
         log.warn(`[DirectChat pipeline] Adapter rejected toolChoice — retrying with 'auto'. Original: ${msg}`);

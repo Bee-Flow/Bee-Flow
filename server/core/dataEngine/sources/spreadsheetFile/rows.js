@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * One sheet row → one mirror row: `{ id, values }`, or null for a row that
  * gets no id (blank, key missing, duplicate key — identity.js decided that
@@ -22,9 +23,9 @@ const { deriveRow, fieldsByIdOf } = require('../mirror/rows');
 const { readCell, isBlank } = require('./cells');
 
 /**
- * @param {object} raw                  { id, rowNumber, cells:any[] } — id already derived (null = skip)
- * @param {object} ctx                  see mirror/rows.deriveRow (readCell is supplied here)
- * @param {object} [ctx.coercion]       { [key]: count } — incremented for cells that did not fit
+ * @param {{ id: string, rowNumber?: number, cells: unknown[] }} raw   id already derived (null = skip)
+ * @param {{ columnMap?: Record<string, { col?: number, type?: string, derived?: string, localFieldId?: string, forFieldId?: string }>, fieldsById?: Map<string, { key: string, type?: string }>, relationIndexes?: Map<string, Map<string, string>>, labelIndexes?: Map<string, Map<string, string>>, coercion?: Record<string, number> }} [ctx]
+ *   see mirror/rows.deriveRow (readCell is supplied here); `coercion` is { [key]: count }, incremented for cells that did not fit
  * @returns {{ id:string, values:object } | null}
  */
 function rowFromSheet(raw, { columnMap, fieldsById, relationIndexes = new Map(), labelIndexes = new Map(), coercion = null } = {}) {
@@ -32,6 +33,7 @@ function rowFromSheet(raw, { columnMap, fieldsById, relationIndexes = new Map(),
     const cells = Array.isArray(raw.cells) ? raw.cells : [];
     return deriveRow(raw.id, {
         columnMap, fieldsById, relationIndexes, labelIndexes,
+        /** @param {{ col?: number, type?: string }} entry @param {{ key: string, type?: string }} field */
         readCell: (entry, field) => {
             const cell = Number.isInteger(entry.col) && entry.col < cells.length ? cells[entry.col] : null;
             const value = readCell(cell, { ...entry, type: entry.type || field.type });

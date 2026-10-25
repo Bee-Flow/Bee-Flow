@@ -127,3 +127,7 @@ module.exports = {
     SEVERITY_WEIGHT, REGULATIONS, SNAPSHOT_COLUMN,
     computeScore, forRegulation, scoresByFramework, scoreNumbers, customFrameworkScore,
 };
+
+/**
+ * @typedef {{ check_id?: string, severity?: string, status: string, regulation?: string }} ScoreRow
+ */

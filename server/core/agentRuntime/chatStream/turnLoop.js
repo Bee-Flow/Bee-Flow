@@ -333,3 +333,10 @@ function finalizeRound(t, st, { fullResponse, useNativeAdapter, guardrailViolati
 }
 
 module.exports = { chatWithAgentStreamImpl, _pendingTurnReleases };
+
+/**
+ * @typedef {Awaited<ReturnType<typeof prepareTurn>> & { agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, maxIterations: number }} LoopTurn  the prepared turn the loop runs on
+ * @typedef {ReturnType<typeof createTurnLoopState>} LoopState
+ * @typedef {() => ReturnType<typeof terminationBase>} TerminationBaseRow
+ * @typedef {typeof ROUND_STEPS} RoundSteps
+ */

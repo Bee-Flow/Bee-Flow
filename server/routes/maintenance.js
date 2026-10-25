@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Maintenance / deployment window routes.
  *
@@ -40,7 +40,11 @@ const { unavailable } = require('../core/http/errors');
 // schema's, in a sentence. And a failure while storing the window is a
 // generic 500 through the terminal handler, instead of echoing its message.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the announcement as a JSON object.' }) }).strict(),
@@ -67,6 +71,7 @@ const NoBody = bodyOf({});
  *
  * timingSafeEqual THROWS on a length mismatch, so the lengths are compared
  * first — same shape as the storageProxy token gate.
+ * @param {import('express').Request} req
  */
 function _authorized(req) {
     const expected = process.env.MAINTENANCE_ANNOUNCE_TOKEN || '';
@@ -81,6 +86,11 @@ function _authorized(req) {
     return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function _requireDeployToken(req, res, next) {
     if (!process.env.MAINTENANCE_ANNOUNCE_TOKEN) {
         return next(unavailable('maintenance_announce_disabled', 'maintenance_announce_disabled'));

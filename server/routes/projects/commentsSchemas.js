@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * What the comment routes accept (routes/projects/comments.js).
@@ -26,7 +26,9 @@ const CLIENT_ID_MAX = 64;
 const MAX_MENTIONS = 50;
 const MAX_BLOCK_INDEX = 1_000_000;
 
+/** @type {[string, ...string[]]} */
 const TARGET_TYPES = ['notebook', 'document', 'task'];
+/** @type {[string, ...string[]]} */
 const AI_MODES = ['off', 'mention', 'auto'];
 
 const targetType = choice(TARGET_TYPES, 'targetType is notebook, document or task.');
@@ -35,6 +37,9 @@ const targetId = worded(TARGET_ID_TEXT).trim().min(1, TARGET_ID_TEXT).max(ID_MAX
 const aiMode = choice(AI_MODES, 'aiMode is off, mention or auto.');
 
 const QUOTE_TEXT = `anchor.quote is the passage the comment is about, 1 to ${QUOTE_MAX} characters.`;
+/**
+ * @param {string} side
+ */
 const contextText = (side) => `anchor.${side} is the text just ${side === 'prefix' ? 'before' : 'after'} the passage, at most ${CONTEXT_MAX} characters.`;
 const REL_TEXT = `anchor.relStart and anchor.relEnd are encoded positions of at most ${REL_MAX} characters.`;
 const SECTION_TEXT = `anchor.sectionId is the id of a document section, 1 to ${ID_MAX} characters.`;
@@ -59,6 +64,9 @@ const MENTIONS_TEXT = `mentions is a list of at most ${MAX_MENTIONS} member ids.
 const mentions = z.array(worded(MENTIONS_TEXT).trim().min(1, MENTIONS_TEXT).max(ID_MAX, MENTIONS_TEXT), { error: typeError({ invalid: MENTIONS_TEXT }) }).max(MAX_MENTIONS, MENTIONS_TEXT);
 
 const askAi = flag('askAi is true to ask the AI assistant to answer in the thread, or false.');
+/**
+ * @param {string} name
+ */
 const clientId = (name) => {
     const text = `${name} is your own id for this ${name === 'clientThreadId' ? 'thread' : 'comment'}, 1 to ${CLIENT_ID_MAX} characters.`;
     return worded(text).trim().min(1, text).max(CLIENT_ID_MAX, text);

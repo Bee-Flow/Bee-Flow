@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /** Helpers for the table operation tests: synthetic tables and a one-call runner. Not used at run time. */
 
@@ -11,15 +11,21 @@ const LIMITS = Object.freeze({
     minGroupFloor: 10, previewInputRows: 1000,
 });
 
+/** @param {...string} keys */
 const cols = (...keys) => keys.map((key) => ({ key, label: key, type: 'text' }));
 
-/** A source table from plain row objects (columns from the first row's keys unless given). */
+/** A source table from plain row objects (columns from the first row's keys unless given).
+ * @param {Record<string, unknown>[]} rows
+ * @param {string[]} [columnKeys]
+ */
 function table(rows, columnKeys) {
     const keys = columnKeys || [...new Set(rows.flatMap((r) => Object.keys(r)))];
     return { columns: cols(...keys), rows: () => (async function* gen() { for (const r of rows) yield { ...r }; })() };
 }
 
+/** @param {() => AsyncIterable<Record<string, unknown>>} rowsFn */
 async function collect(rowsFn) {
+    /** @type {Record<string, unknown>[]} */
     const out = [];
     for await (const r of rowsFn()) out.push(r);
     return out;
@@ -28,6 +34,9 @@ async function collect(rowsFn) {
 /**
  * Run raw op configs over `rows`. Returns { result, rows, columns, keys }.
  * `extra` overrides runTableOps arguments (runState, limits, mode, resolveTable ...).
+ * @param {unknown[]} rawOps
+ * @param {Record<string, unknown>[]} rows
+ * @param {Partial<Parameters<typeof runTableOps>[0]> & { columnKeys?: string[], provenance?: Record<string,string>|null }} [extra]
  */
 async function run(rawOps, rows, extra = {}) {
     const src = table(rows, extra.columnKeys);

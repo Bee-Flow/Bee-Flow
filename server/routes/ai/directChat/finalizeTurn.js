@@ -150,3 +150,5 @@ async function finalizeDirectChatTurn(turn) {
 }
 
 module.exports = { finalizeDirectChatTurn };
+
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */

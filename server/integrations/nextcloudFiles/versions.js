@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * File version history — list the previous versions of a file id and restore
  * one of them.
@@ -8,6 +8,11 @@ const { parseMultistatus } = require('./webdav');
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
+/**
+ * @param {string} toolName
+ * @param {{ fileId?: string | number, versionId?: string | number }} args
+ * @param {import('./webdav').FilesToolCtx} ctx
+ */
 async function executeVersionTool(toolName, args, ctx) {
     const { baseUrl, ncFetch, authError, uid } = ctx;
 

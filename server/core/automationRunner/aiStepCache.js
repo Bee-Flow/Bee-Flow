@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "Reuse the answer" for the ai_step: the run memo (step.askOnce) and the
  * durable cross-run tier (step.askOnce.acrossRuns), which key, when a model
@@ -48,14 +48,22 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_STEP_TTL_SECONDS = 900;
 
-/** The answer as it is kept: an allow-list of the two fields, nothing else. */
+/** @typedef {{ askOnce?: boolean | { acrossRuns?: boolean, ttlSeconds?: number|string } }} AskOnceStep */
+
+/** The answer as it is kept: an allow-list of the two fields, nothing else.
+ * @param {{ content?: unknown, structured?: unknown } | null | undefined} answer
+ * @returns {{ content: string|null, structured: object|null }}
+ */
 function pickAnswer(answer) {
     const content = answer && typeof answer.content === 'string' ? answer.content : null;
     const structured = answer && answer.structured && typeof answer.structured === 'object' ? answer.structured : null;
     return { content, structured };
 }
 
-/** A stored value is only trusted when it has the shape pickAnswer writes. */
+/** A stored value is only trusted when it has the shape pickAnswer writes.
+ * @param {{ content?: unknown, structured?: unknown } | null | undefined} v
+ * @returns {boolean}
+ */
 function isAnswer(v) {
     if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
     const contentOk = v.content === null || typeof v.content === 'string';
@@ -63,7 +71,10 @@ function isAnswer(v) {
     return contentOk && structuredOk && (v.content !== null || v.structured !== null);
 }
 
-/** The step's own window in ms, clamped to 1..900 s, or undefined for the memo default. */
+/** The step's own window in ms, clamped to 1..900 s, or undefined for the memo default.
+ * @param {AskOnceStep} step
+ * @returns {number|undefined}
+ */
 function stepTtlMs(step) {
     const a = step.askOnce;
     const n = a && typeof a === 'object' ? Number(a.ttlSeconds) : NaN;
@@ -73,6 +84,8 @@ function stepTtlMs(step) {
 /**
  * The durable tier descriptor, or null when it must not be used.
  * Everything that is not an explicit yes is a no.
+ * @param {{ step: AskOnceStep, ctx: { orgId?: string|null }, memo: { hasSlept: () => boolean },
+ *   identity: ReturnType<typeof memoKeyParts>, memoTtlMs: number|undefined }} args
  */
 async function resolveAiDurableTier({ step, ctx, memo, identity, memoTtlMs }) {
     const a = step.askOnce;
@@ -134,6 +147,7 @@ async function planAiReuse({ step, ctx, mode, policy, modelId, providerKey, tool
  * The remembered answer, if there is one: `{ hit, reused }` with `hit`
  * undefined on a miss. `reused` says where it came from: 'run' (this run asked
  * the same thing earlier) or 'stored' (an earlier run did).
+ * @param {Awaited<ReturnType<typeof planAiReuse>>} plan
  * @returns {Promise<{ hit?: { content: string|null, structured: object|null }, reused: 'run'|'stored'|null }>}
  */
 async function readAiReuse(plan) {

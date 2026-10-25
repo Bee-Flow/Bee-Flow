@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: indexes for the n8n-style executions-history list.
  *

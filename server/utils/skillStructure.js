@@ -541,3 +541,12 @@ module.exports = {
     _splitListLines: splitListLines,
     _splitSentences: splitSentences,
 };
+
+/**
+ * @typedef {{ kind: string, id: string }} SkillRef
+ * @typedef {{ id: string, text: string, refs: SkillRef[] }} SkillStep
+ * @typedef {{ id: string, polarity: 'must'|'never', text: string }} SkillRule
+ * @typedef {{ id: string, question: string, good: string, rationale: string, bad?: string, violatedRuleId?: string, sourceConversationId?: string }} SkillExample
+ * @typedef {{ idFactory?: () => string }} IdOpts
+ * @typedef {Record<string, Record<string, unknown>>} OutputProperties
+ */

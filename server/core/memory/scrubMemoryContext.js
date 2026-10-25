@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Scrub an assembled memory-context string of any PII the Azure detector can
  * find. This is the read-time guard against the "memory leak" class of bug:
@@ -19,6 +20,7 @@ const log = require('../../telemetry/log');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
 const { displayNameFor } = require('../privacy/customTypes/registry');
 
+/** @type {Record<string, string>} */
 const CATEGORY_LABELS = {
     Email:                            "User's email address",
     PhoneNumber:                      'phone number',
@@ -42,6 +44,13 @@ const CATEGORY_LABELS = {
     AzureCredentialKey:               'Azure credential',
 };
 
+/**
+ * @typedef {{ category: string, label?: string, text?: string, offset?: number, length?: number, confidenceScore?: number }} PiiSpan
+ * @typedef {{ text: string, category: string, role?: string }} KnownEntity
+ * @typedef {{piiDetectionCategories?: string[], piiDetectionConfidenceThreshold?: number, piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean}} MemoryOrgShield
+ */
+
+/** @param {string} category */
 function humaniseLabel(category) {
     // An org's own data type ("Your own data") reads as the name its admin
     // gave it: the model learns "there was a project code here", not the code.
@@ -51,7 +60,8 @@ function humaniseLabel(category) {
 
 /**
  * @param {string} text
- * @param {object} orgShield
+ * @param {MemoryOrgShield|null} [orgShield]
+ * @param {{ knownEntities?: KnownEntity[] }} [opts]
  * @returns {Promise<{ scrubbed: string, replacedCategories: string[] }>}
  */
 async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] } = {}) {
@@ -95,11 +105,12 @@ async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] }
  * and alias index carry the token to later mentions. A category the org
  * switched off stays off.
  * @param {string} text
- * @param {Array<object>} detected
+ * @param {PiiSpan[]} detected
  * @param {Array<{ text: string, category: string }>} known
  * @param {string[]|null} enabledCategories
  */
 function withKnownEntities(text, detected, known, enabledCategories = null) {
+    /** @type {PiiSpan[]} */
     const spans = [];
     for (const k of known || []) {
         if (!k?.text || (enabledCategories && !enabledCategories.includes(k.category))) continue;
@@ -108,12 +119,16 @@ function withKnownEntities(text, detected, known, enabledCategories = null) {
         spans.push({ category: k.category, label: k.category, text: k.text, offset, length: k.text.length, confidenceScore: 1 });
     }
     if (!spans.length) return detected || [];
-    const overlaps = (e) => spans.some((s) => typeof e.offset === 'number'
+    const overlaps = (/** @type {PiiSpan} */ e) => spans.some((s) => typeof e.offset === 'number'
         && e.offset < s.offset + s.length && s.offset < e.offset + (e.length || 0));
     return [...spans, ...(detected || []).filter((e) => !overlaps(e))];
 }
 
-/** Splice generic labels over detected spans (tail first, so offsets stay valid). */
+/**
+ * Splice generic labels over detected spans (tail first, so offsets stay valid).
+ * @param {string} text
+ * @param {PiiSpan[]} entities
+ */
 function labelEntities(text, entities) {
     const sorted = [...entities].sort((a, b) => b.offset - a.offset);
     let scrubbed = text;
@@ -139,6 +154,7 @@ function labelEntities(text, entities) {
  * part of the remembered data and never reads as an instruction of its own.
  * @param {string} text
  * @param {Record<string, string>} tokenMap
+ * @param {KnownEntity[]} [knownEntities]
  */
 function withTokenNote(text, tokenMap, knownEntities = []) {
     const tokens = Object.keys(tokenMap || {}).filter((t) => text.includes(t));
@@ -165,8 +181,8 @@ function realTokenizeDeps() {
         ALL_PII_CATEGORY_IDS: pii.ALL_PII_CATEGORY_IDS,
         DEFAULT_PII_CONFIDENCE_THRESHOLD: pii.DEFAULT_PII_CONFIDENCE_THRESHOLD,
         dlpRunner: require('../dlp/dlpRunner'),
-        buildSeed: (userId, entities, existing) => require('../../stores/piiVaultStore').buildSeed(userId, entities, existing),
-        filterAllowed: (entities, shield) => {
+        buildSeed: (/** @type {string} */ userId, /** @type {PiiSpan[]} */ entities, /** @type {Record<string, string>} */ existing) => require('../../stores/piiVaultStore').buildSeed(userId, entities, existing),
+        filterAllowed: (/** @type {PiiSpan[]} */ entities, /** @type {MemoryOrgShield | null} */ shield) => {
             const { buildAllowMatcher, filterAllowedEntities } = require('../dlp/allowTerms');
             return filterAllowedEntities(entities, buildAllowMatcher(shield || {})).entities;
         },
@@ -188,6 +204,9 @@ function realTokenizeDeps() {
  * runs. If detection worked but tokenising did not, the label scrub is the
  * fallback; the raw value is never sent on that path.
  *
+ * @param {string} text
+ * @param {MemoryOrgShield|null} [orgShield]
+ * @param {{ conversationId?: string | null, userId?: string | null, deps?: ReturnType<typeof realTokenizeDeps> | null, knownEntities?: KnownEntity[] }} [opts]
  * @returns {Promise<{ text: string, tokenMap: object, replacedCategories: string[], mode: 'tokens'|'labels'|'none' }>}
  */
 async function tokenizeMemoryContext(text, orgShield = null, { conversationId = null, userId = null, deps = null, knownEntities = [] } = {}) {
@@ -197,6 +216,7 @@ async function tokenizeMemoryContext(text, orgShield = null, { conversationId = 
         return { text: scrubbed, tokenMap: {}, replacedCategories, mode: replacedCategories.length ? 'labels' : 'none' };
     }
 
+    /** @type {PiiSpan[]} */
     let entities;
     let d;
     let enabledCategories = null;

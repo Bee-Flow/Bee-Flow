@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Support audit emission — the single front-door for writing to the unified
  * support_audit_log. Wraps supportStore.recordAuditEvent so emission is always
@@ -16,6 +16,7 @@ const { bestEffort } = require('../utils/bestEffort');
 // engine already emits (so backfilled + legacy events categorise correctly) and
 // the new config/admin actions added by the refactor. The frontend's auditMeta
 // mirrors these categories.
+/** @type {Record<string, string>} */
 const ACTION_CATALOG = {
     // ── system (mailbox/runtime, no human or model decision) ──
     email_ingested: 'system',
@@ -75,10 +76,17 @@ const ACTION_CATALOG = {
     csat: 'requester',
 };
 
+/**
+ * @param {string} action
+ * @param {string} [fallback]
+ */
 function actorKindFor(action, fallback = 'system') {
     return ACTION_CATALOG[action] || fallback;
 }
 
+/**
+ * @param {{ headers?: Record<string, string | string[] | undefined>; ip?: string; socket?: { remoteAddress?: string; }; session?: { user?: { id?: string; }; }; } | null} req
+ */
 function clientIp(req) {
     if (!req) return null;
     const xf = req.headers?.['x-forwarded-for'];
@@ -86,6 +94,9 @@ function clientIp(req) {
     return req.ip || req.socket?.remoteAddress || null;
 }
 
+/**
+ * @param {{ headers?: Record<string, string | string[] | undefined>; ip?: string; socket?: { remoteAddress?: string; }; session?: { user?: { id?: string; }; }; } | null} req
+ */
 function clientUa(req) {
     if (!req) return null;
     const ua = req.headers?.['user-agent'];
@@ -96,6 +107,9 @@ function clientUa(req) {
  * Emit an audit event from a route handler. Resolves the staff actor + request
  * metadata automatically. Fire-and-forget: any failure is swallowed so a logging
  * problem can never break the user's action.
+ * @param {{ headers?: Record<string, string | string[] | undefined>, ip?: string, socket?: { remoteAddress?: string }, session?: { user?: { id?: string } } }|null} req
+ * @param {{ organizationId?: string|null, inboxId?: string|null, threadId?: string|null, action: string, actorKind?: string, actorUserId?: string|null, payload?: object }} event
+ *   actorKind defaults from ACTION_CATALOG; actorUserId defaults to the session user for staff actions.
  */
 function emit(req, { organizationId = null, inboxId = null, threadId = null, action, actorKind, actorUserId, payload = {} }) {
     try {
@@ -114,6 +128,7 @@ function emit(req, { organizationId = null, inboxId = null, threadId = null, act
 
 /**
  * Emit an audit event from a service (no req). Same fire-and-forget contract.
+ * @param {{ organizationId?: string|null, inboxId?: string|null, threadId?: string|null, action: string, actorKind?: string, actorUserId?: string|null, payload?: object }} event
  */
 function emitSystem({ organizationId = null, inboxId = null, threadId = null, action, actorKind, actorUserId = null, payload = {} }) {
     try {

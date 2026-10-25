@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Run: node --test automation/patterns/templating.test.js
@@ -63,6 +63,7 @@ test('filenameStem hides a host before the dots become spaces, and keeps dotted 
 });
 
 test('replaceBareDomains leaves an address alone and hands the host to the replacer', () => {
+    /** @type {Array<[string, string]>} */
     const seen = [];
     const out = replaceBareDomains('jan.devries@acme.nl and acme.nl/x', (host, path) => { seen.push([host, path]); return '<h>'; });
     assert.strictEqual(out, 'jan.devries@acme.nl and <h>');
@@ -118,6 +119,7 @@ test('clusterTemplates ignores empty input', () => {
 
 test('maskNames batches ONE detectPii call and maps offsets back per line', async () => {
     const calls = [];
+    /** @param {string} text */
     const detectPii = async (text) => {
         calls.push(text);
         const ents = [];
@@ -135,7 +137,7 @@ test('maskNames batches ONE detectPii call and maps offsets back per line', asyn
 });
 
 test('maskNames falls back deterministically when the guard is absent', async () => {
-    for (const detectPii of [null, undefined, async () => null, async () => { throw new Error('down'); }]) {
+    for (const detectPii of [null, undefined, async () => /** @type {null} */ (null), async () => { throw new Error('down'); }]) {
         const out = await maskNames(['Invoice from Acme for Jan Jansen', 'Weekly report'], { detectPii });
         assert.strictEqual(out.method, 'fallback');
         assert.deepStrictEqual(out.templates, ['Invoice from <name> for <name>', 'Weekly report']);
@@ -143,7 +145,7 @@ test('maskNames falls back deterministically when the guard is absent', async ()
 });
 
 test('maskNames treats a degraded guard scan as no guard at all', async () => {
-    const detectPii = async () => ({ hasPii: false, entities: [], degraded: true, degradedReason: 'guard_circuit_open' });
+    const detectPii = async () => ({ hasPii: false, entities: /** @type {Array<{ category: string, offset: number, length: number }>} */ ([]), degraded: true, degradedReason: 'guard_circuit_open' });
     const out = await maskNames(['Invoice from Acme'], { detectPii });
     assert.strictEqual(out.method, 'fallback');
     assert.deepStrictEqual(out.templates, ['Invoice from <name>']);

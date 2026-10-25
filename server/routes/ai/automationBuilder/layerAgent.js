@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Automation Builder — POST /layer-agent (SSE): build or refine ONE inline
  * flowlet with a focused thinking-model sub-agent, separate from the chat.
@@ -75,6 +76,7 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
         }
         // The flowlet agent operates on the SAVED automation — make sure one
         // exists (the panel calls ensureAutomationCreated first, but guard).
+        /** @type {import('./turnSetup').BuilderDraftWrap} */
         const draftWrap = await loadOrCreateDraft({ userId, builderSessionId: null, automationId });
         if (!draftWrap.automationId) {
             send('error', { error: SAVE_FIRST });
@@ -92,6 +94,7 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
             send('error', { error: 'No AI model is configured for this workspace. Set a model tier first.' });
             return res.end();
         }
+        /** @type {import('./turnSetup').BuilderTurn['catalog']} */
         const catalog = await buildCatalogForUser(userId, req.session);
         // Same datatable catalog the main builder gets (chatStream.js): without
         // it the flowlet sub-agent saw no "Datatables you may use" block and the
@@ -133,7 +136,7 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
                 return res.end();
             }
         } else {
-            const created = await applyToolCall('builder_create_layer', { title: title || 'New layer' }, draftWrap);
+            const created = /** @type {{ error?: string, layerKey?: string }} */ (await applyToolCall('builder_create_layer', { title: title || 'New layer' }, draftWrap));
             if (created?.error) { send('error', { error: created.error }); return res.end(); }
             layerKey = created.layerKey;
         }

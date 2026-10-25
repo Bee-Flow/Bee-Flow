@@ -562,3 +562,25 @@ module.exports = {
     execParallel, execLoop, buildLinearEdges, execForEachStep,
     execCallLayer, execLayerOutput, callerCanUseBlock, loadBlockForRun, execCallBlock,
 };
+
+/**
+ * A step as the definition stores it (parsed JSON), with the fields the flow containers read.
+ * @typedef {{ id: string, type?: string, branches?: FlowStep[][], failOnAnyBranchError?: boolean,
+ *   overRef?: string, itemVar?: string, batchSize?: number|string, maxIterations?: number, body?: FlowStep[],
+ *   forEach?: { overRef?: string, itemVar?: string, maxIterations?: number, parents?: unknown, concurrency?: unknown },
+ *   retry?: { max: number, backoffMs?: number|string }, layerKey?: string, layerId?: string, blockId?: string,
+ *   inputs?: Record<string, unknown>, fields?: Record<string, unknown>, tool?: string, [key: string]: unknown }} FlowStep
+ * @typedef {{ trigger?: { id: string, params?: unknown }, steps?: FlowStep[], edges?: import('./runDagGraph').DagEdge[], title?: string,
+ *   [key: string]: unknown }} LayerDef
+ * @typedef {{ prefix?: string, parentStepId?: string|null, suppress?: boolean }} StepRecord
+ * @typedef {{ userId?: string, orgId?: string, userOrgIds?: string[], userGroupIds?: string[],
+ *   triggerSynthetic?: boolean, layerStack?: string[], layers?: Record<string, LayerDef>, stepRecord?: StepRecord,
+ *   _blockCache?: Map<string, { def: LayerDef, title: string }>, _truncations?: Array<{ stepId: string }>,
+ *   [key: string]: unknown }} FlowCtx
+ * @typedef {import('./runDagRecord').DagRunState & { loop?: Record<string, unknown>,
+ *   parallel?: Record<string, unknown>, _syntheticLoopVars?: Record<string, boolean> }} FlowRunState
+ * @typedef {Parameters<typeof runDag>[4]} DispatchSubStep
+ * @typedef {{ output?: unknown, dryRunSynthesised?: boolean, toolsWithheld?: string[],
+ *   toolsWithheldReasons?: Record<string, string> }} LeafResult
+ * @typedef {(step: FlowStep, ctx: FlowCtx, runState: FlowRunState, mode: string) => Promise<LeafResult>} RunLeaf
+ */

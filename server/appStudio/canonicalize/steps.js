@@ -122,3 +122,8 @@ function cleanStep(raw, path, depth, push) {
 }
 
 module.exports = { cleanRecordValues, cleanSteps, cleanSwitchCases, cleanStep };
+
+/**
+ * @typedef {import('../componentSpecs/styleKnobs').PropSpec & { nullable?: boolean }} StepField
+ * @typedef {Record<string, { mutatesData?: boolean, fields: Record<string, StepField> }>} StepSpecTable
+ */

@@ -205,3 +205,7 @@ module.exports = {
     prepareCandidates,
     estimateRate,
 };
+
+/**
+ * @typedef {ReturnType<typeof prepareCandidates>[number]} Candidate
+ */

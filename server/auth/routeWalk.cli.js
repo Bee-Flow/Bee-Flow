@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Route walker — prints the app's real (method, path, gate-chain) table as JSON.
  *
@@ -64,6 +64,10 @@ process.on('unhandledRejection', () => { /* ignore: no requests are served here 
 // ~45 stores self-execute initDB() on require. db.js
 // are the only two `new Pool(` sites in the tree, so stubbing those two keeps
 // every store's init from opening a socket.
+/**
+ * @param {string} absId
+ * @param {unknown} exports
+ */
 function mock(absId, exports) {
     const resolved = require.resolve(absId);
     const m = new Module(resolved);
@@ -72,7 +76,26 @@ function mock(absId, exports) {
     require.cache[resolved] = m;
 }
 
+/**
+ * @typedef {{ query: () => Promise<{ rows: unknown[] }>, release?: () => void }} FakeClient
+ */
+/** @returns {Promise<void>} */
 const noopAsync = async () => undefined;
+/**
+ * @type {{
+ *   run: () => Promise<void>,
+ *   getOne: () => Promise<void>,
+ *   getAll: () => Promise<unknown[]>,
+ *   exec: () => Promise<void>,
+ *   query: () => Promise<{ rows: unknown[] }>,
+ *   getClient: () => Promise<FakeClient>,
+ *   withTransaction: (fn: (client: FakeClient) => unknown) => Promise<unknown>,
+ *   makeStoreInit: (tag: string, schemaFn: () => void) => () => Promise<void>,
+ *   getRedis: () => null,
+ *   pool: { query: () => Promise<{ rows: unknown[] }>, connect: () => Promise<FakeClient>, on: () => void },
+ *   end: () => Promise<void>,
+ * }}
+ */
 const fakeDb = {
     run: noopAsync,
     getOne: noopAsync,
@@ -86,6 +109,7 @@ const fakeDb = {
     // testUtils/mockDb.js has carried the same shim since it was written; the
     // omission here was simply that no walked store had used it yet.
     makeStoreInit: (_tag, schemaFn) => {
+        /** @type {Promise<void> | null} */
         let promise = null;
         return function ensureInit() {
             if (!promise) promise = Promise.resolve().then(schemaFn);
@@ -107,22 +131,42 @@ const { readGate } = require('./gateMeta');
 const SUBMOUNTS = new Map();
 /** router fn → [gate fns applied at that router's own .use() with no path] */
 const ROUTER_LEVEL = new Map();
+/** @type {express.Application | null} */
 let rootApp = null;
 
+/**
+ * Express keeps its internals untyped: a layer of a router's stack, and a router
+ * (or the app) as far as this walk reads it.
+ * @typedef {import('express').RequestHandler} Handler
+ * @typedef {Handler & Record<symbol, Record<string, unknown> | undefined>} GateHandler
+ * @typedef {{ route?: { path: string, methods?: Record<string, boolean>, stack?: Layer[] }, handle: Handler }} Layer
+ * @typedef {{ stack?: Layer[], handle?: Handler & { stack?: Layer[] } }} RouterLike
+ * @typedef {Handler & RouterLike} RouterFn
+ * @typedef {string | RegExp | Array<string | RegExp>} MountPath
+ * @typedef {MountPath | import('express-serve-static-core').RequestHandlerParams | RouterFn} UseArg
+ * @typedef {{ name: string, gate: ReturnType<typeof readGate> }} ChainSlot
+ * @typedef {{ id: string, method: string, path: string, mount: string, chain: ChainSlot[], handlerProbe: ReturnType<typeof probe> }} WalkedRoute
+ */
+
+/** @param {RouterFn} v */
 const isRouterLike = (v) =>
     typeof v === 'function' && (v.stack || (v.handle && v.handle.stack) || v.name === 'router');
 
+/**
+ * @param {RouterLike | express.Application} parent
+ * @param {UseArg[]} args
+ */
 function record(parent, args) {
-    /** @type {string|RegExp|any[]} */
+    /** @type {MountPath} */
     let mountPath = '/';
     let rest = args;
     if (typeof args[0] === 'string' || args[0] instanceof RegExp || Array.isArray(args[0])) {
-        mountPath = args[0];
+        mountPath = /** @type {MountPath} */ (args[0]);
         rest = args.slice(1);
     }
     for (const fn of rest) {
         if (typeof fn !== 'function') continue;
-        if (isRouterLike(fn) && fn.stack) {
+        if (isRouterLike(/** @type {RouterFn} */ (fn)) && /** @type {RouterFn} */ (fn).stack) {
             if (!SUBMOUNTS.has(parent)) SUBMOUNTS.set(parent, []);
             SUBMOUNTS.get(parent).push({ mountPath, child: fn });
         } else {
@@ -135,11 +179,15 @@ function record(parent, args) {
     }
 }
 
-express.application.listen = function fakeListen() {
-    return { on() { return this; }, close(cb) { if (cb) cb(); return this; }, address: () => ({ port: 0 }), unref() { return this; } };
-};
+express.application.listen = /** @type {typeof express.application.listen} */ (/** @type {unknown} */ (function fakeListen() {
+    return { on() { return this; }, /**
+     * @param {(() => void) | undefined} cb
+     */
+    close(/** @type {(() => void) | undefined} */ cb) { if (cb) cb(); return this; }, address: () => ({ port: 0 }), unref() { return this; } };
+}));
 
 const appUse = express.application.use;
+/** @param {UseArg[]} args */
 express.application.use = function patchedUse(...args) {
     if (!rootApp) rootApp = this;
     record(this, args);
@@ -147,6 +195,7 @@ express.application.use = function patchedUse(...args) {
 };
 
 const routerUse = express.Router.prototype.use;
+/** @param {UseArg[]} args */
 express.Router.prototype.use = function patchedRouterUse(...args) {
     record(this, args);
     return routerUse.apply(this, args);
@@ -156,6 +205,10 @@ express.Router.prototype.use = function patchedRouterUse(...args) {
 require(path.join(SERVER, 'index.js'));
 
 // ── 4. Walk from the recorded pairs ──────────────────────────────────
+/**
+ * @param {string} base
+ * @param {MountPath} seg
+ */
 const joinPath = (base, seg) => {
     const s = typeof seg === 'string' ? seg : String(seg);
     if (!s || s === '/') return base || '/';
@@ -163,13 +216,20 @@ const joinPath = (base, seg) => {
     return joined || '/';
 };
 
+/**
+ * @param {Handler} fn
+ * @returns {ChainSlot}
+ */
 const describeFn = (fn) => ({
     name: fn.name || 'anonymous',
-    gate: readGate(fn),
+    gate: readGate(/** @type {GateHandler} */ (fn)),
 });
 
+/** @type {WalkedRoute[]} */
 const routes = [];
+/** @type {Array<{ path: string, gates: Array<Record<string, unknown>> }>} */
 const mounts = [];
+/** @type {ChainSlot[]} */
 const appMiddleware = [];
 
 /**
@@ -181,6 +241,10 @@ const appMiddleware = [];
  *
  * A sub-router's own `router.use(fn)` is a different matter: that IS how a
  * router applies requireAuth to all its routes, so it stays in the chain.
+ * @param {RouterLike} router
+ * @param {string} basePath
+ * @param {ChainSlot[]} inheritedGates
+ * @param {boolean} isRoot
  */
 function walk(router, basePath, inheritedGates, isRoot) {
     const gatesHere = [...inheritedGates];
@@ -243,8 +307,12 @@ const DIRECT = /\bisSuperAdmin\s*\(|\bhasPermission\s*\(|\bgetUserPermissions\s*
 // isAdminUser(req) — a grep for `isSuperAdmin(` finds none of those.
 const WRAPPER = /\b(?:is|has|can|assert|ensure|check|require|resolve|guard)[A-Z]\w*\s*\(\s*req\b/;
 
+/**
+ * @param {string} source
+ */
 function probe(source) {
     if (!source) return { direct: false, wrapper: false, hits: [], readable: false };
+    /** @type {string[]} */
     const hits = [];
     const direct = DIRECT.test(source);
     const wrapper = WRAPPER.test(source);
@@ -258,7 +326,7 @@ if (!rootApp) {
     process.exit(2);
 }
 
-walk(rootApp, '', [], true);
+walk(/** @type {RouterLike} */ (rootApp), '', [], true);
 
 const out = {
     stats: {

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Notebook Document Tools — Markdown edition.
  *
@@ -27,7 +28,7 @@ const NOTEBOOK_DOC_TOOLS = [
     function: {
       name: 'notebook_doc_read',
       description: 'Read the current notebook document as Markdown. Call this BEFORE any write or replace so you match the exact current text.',
-      parameters: { type: 'object', properties: {}, required: [] },
+      parameters: { type: 'object', properties: {}, required: /** @type {string[]} */ ([]) },
     },
   },
   {
@@ -100,7 +101,7 @@ const NOTEBOOK_ADD_SOURCE_TOOL = {
 /**
  * Execute a notebook document tool.
  * @param {string} toolName
- * @param {object} args
+ * @param {{ content?: string, title?: string, find_text?: string, replace_text?: string, [key: string]: unknown }} args
  * @param {string} documentContent  current document HTML (editor source of truth)
  * @param {string} [documentMd]     canonical Markdown mirror (derived if absent)
  */
@@ -130,6 +131,9 @@ function executeNotebookDocTool(toolName, args, documentContent, documentMd) {
     if (docMd.includes(findText)) {
       newMd = docMd.replace(findText, replaceText);
     } else {
+      /**
+       * @param {string} t
+       */
       const norm = (t) => t.replace(/\s+/g, ' ').trim();
       if (norm(docMd).includes(norm(findText))) {
         // Whitespace-flexible regex (markdown rarely has interleaving tags).
@@ -140,6 +144,9 @@ function executeNotebookDocTool(toolName, args, documentContent, documentMd) {
     }
 
     if (newMd == null) {
+      /**
+       * @param {string} t
+       */
       const norm = (t) => t.replace(/\s+/g, ' ').trim();
       const words = norm(findText).split(' ').filter(Boolean);
       let suggestion = '';

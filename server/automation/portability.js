@@ -613,3 +613,9 @@ module.exports = { stripAppRefs,
     PIN_FIELDS,
     collectPinnedNodes,
 };
+
+/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+
+/** @typedef {import('./automationGraph').AutomationGraph} AutomationGraph */
+
+/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */

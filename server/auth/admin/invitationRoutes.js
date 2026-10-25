@@ -50,7 +50,9 @@ const { sendInvitationEmail } = require('../../utils/emailService');
 // upgrade if abuse patterns warrant it.
 const ORG_INVITE_DAILY_CAP = 200;
 const ORG_INVITE_WINDOW_MS = 24 * 60 * 60_000;
+/** @type {Map<string, number[]>} */
 const _orgInviteBuckets = new Map(); // orgId → [timestamps]
+/** @param {string} orgId */
 function _checkOrgInviteCap(orgId) {
     const now = Date.now();
     const cutoff = now - ORG_INVITE_WINDOW_MS;
@@ -67,6 +69,7 @@ function _checkOrgInviteCap(orgId) {
 // org admins can't take turns.
 const EMAIL_INVITE_COOLDOWN_MS = 60 * 60_000;
 const _lastInviteByEmail = new Map(); // lowercase email → last ts
+/** @param {string | null | undefined} email */
 function _checkEmailInviteCooldown(email) {
     if (!email) return true;
     const k = String(email).toLowerCase().trim();
@@ -261,7 +264,7 @@ router.delete('/invitations/:id', requireAuth, async (req, res) => {
         await userStore.logAccessAudit(
             'invitation.revoke',
             'invitation',
-            req.params.id,
+            /** @type {string} */ (req.params.id),
             userId || null,
             prevInvite ? {
                 email: prevInvite.email,

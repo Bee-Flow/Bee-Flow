@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * YouTrack tool definitions (OpenAI function-calling format), kept apart from
  * the executor in youtrackTools.js: pure data, no requires.
@@ -133,7 +133,7 @@ const YOUTRACK_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {},
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },

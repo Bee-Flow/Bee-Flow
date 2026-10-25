@@ -352,3 +352,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
 
 module.exports = router;
 module.exports.seams = seams;
+
+/**
+ * @typedef {import('express').Router & { seams: typeof seams }} RouterExports
+ */

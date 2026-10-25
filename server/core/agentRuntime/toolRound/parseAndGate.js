@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One tool call, before anything reads its arguments for real: the JSON
  * parse, gate 1 (was this name offered?) and gate 2 (does a person have to
@@ -18,17 +18,20 @@ const log = require('../../../telemetry/log');
 /**
  * Parse the model's arguments. A parse failure is surfaced as the call's
  * result (`refusal`), so the model can self-correct.
- * @returns {{ toolName: string, toolArgs: object, refusal: object|null }}
+ * @param {import('../toolRoundExecutor').RoundToolCall} toolCall
+ * @returns {{ toolName: string, toolArgs: Record<string, unknown>, refusal: import('../toolRoundExecutor').ToolCallOutcome|null }}
  */
 function parseToolCall(toolCall) {
     const toolName = toolCall.function.name;
+    /** @type {Record<string, unknown>} */
     let toolArgs = {};
+    /** @type {string | null} */
     let jsonParseError = null;
     try {
         toolArgs = JSON.parse(toolCall.function.arguments || '{}');
     } catch (e) {
         toolArgs = {};
-        jsonParseError = e.message || 'invalid JSON';
+        jsonParseError = /** @type {Error} */ (e).message || 'invalid JSON';
     }
     // Surface the parse failure as a tool result so the model can self-correct
     // instead of silently retrying with empty args.
@@ -51,7 +54,10 @@ function parseToolCall(toolCall) {
 /**
  * Gate 1. Returns the policy verdict (gate 2 reads it later) and, for a
  * refused name, the sentinel result.
- * @returns {{ verdict: object, refusal: object|null }}
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string, toolArgs: Record<string, unknown> }} call
+ * @returns {{ verdict: ReturnType<typeof import('../toolPolicy/callDecision').decideToolCall>, refusal: import('../toolRoundExecutor').ToolCallOutcome|null }}
  */
 function gateOfferedName(rc, deps, { toolCall, toolName, toolArgs }) {
     const { onEvent, toolPolicy } = rc;
@@ -98,6 +104,10 @@ function gateOfferedName(rc, deps, { toolCall, toolName, toolArgs }) {
  * when the call may be dispatched. Synchronous on purpose: in the original
  * closure nothing between the policy checks and the dispatch awaited when no
  * argument scan ran, and the order of the batch's SSE events depends on it.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, verdict: ReturnType<typeof import('../toolPolicy/callDecision').decideToolCall> }} call
+ * @returns {import('../toolRoundExecutor').ToolCallOutcome | null}
  */
 function holdForConfirmation(rc, deps, { toolCall, toolName, toolArgs, verdict: _verdict }) {
     const {

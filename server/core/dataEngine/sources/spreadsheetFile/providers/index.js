@@ -82,3 +82,34 @@ function providerFor(name) {
 }
 
 module.exports = { providerFor, formatOf, isSpreadsheetName, SPREADSHEET_MIMES, EXT_TO_FORMAT, PROVIDERS };
+
+/** @typedef {{ provider?: string, fileId?: string, id?: string, driveId?: string|null, path?: string|null, name?: string|null, owned?: boolean, writable?: boolean, size?: number, mimeType?: string, format?: string|null, webUrl?: string, [k: string]: unknown }} FileRef */
+
+/** @typedef {{ marker?: { modified?: string, modifiedTime?: string, lastModifiedDateTime?: string }, name?: string, size?: number, mimeType?: string, format?: string|null, path?: string, webUrl?: string, owned?: boolean, writable?: boolean, file: FileRef }} FileProbe */
+
+/**
+ * The cell-precise half of a FileApi (Google Sheets, Excel through Graph).
+ * @typedef {{ available?: (file: FileRef) => Promise<boolean>,
+ *             listSheets: (file: FileRef) => Promise<Array<{ id?: string, name?: string, index?: number, rowCount?: number, colCount?: number, hidden?: boolean }>>,
+ *             readSheet: (file: FileRef, tab: string, opts: object) => Promise<{ rows: Array<Array<unknown>>, errorCells?: number }>,
+ *             sample: (file: FileRef, tab: string, opts: object) => Promise<{ numberFormat?: Map<number, string>, formulaCols?: Set<number> }> }} FileCells
+ */
+
+/**
+ * The verbs a storage answers (see the header).
+ * @typedef {{ probe: (file: FileRef) => Promise<FileProbe>,
+ *             download: (file: FileRef, opts?: { maxBytes?: number }) => Promise<{ buffer: Buffer, marker?: object }>,
+ *             markerEquals: (a: object, b: object) => boolean,
+ *             cells?: FileCells,
+ *             list?: (opts: { view: string, parentId?: unknown, path?: string, q?: string|null, pageToken?: string|null }) => Promise<{ items?: FileRef[], nextPageToken?: string|null }>,
+ *             [verb: string]: unknown }} FileApi
+ */
+
+/**
+ * The surface every provider module exports (see the header).
+ * @typedef {{ provider: string, oauthProvider: string, integrationAppIds: string[],
+ *             isConnected: (opts?: { userId?: string, session?: object|null }) => Promise<{ connected: boolean, reason: string|null }>,
+ *             forCaller: (cred: object, ctx?: object) => FileApi,
+ *             forLinker: (cred: object, ctx?: object) => FileApi,
+ *             markerEquals: (a: object, b: object) => boolean }} ProviderModule
+ */

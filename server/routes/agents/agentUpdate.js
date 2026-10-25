@@ -267,3 +267,14 @@ function makeUpdateAgentHandler(deps) {
 }
 
 module.exports = { makeUpdateAgentHandler };
+
+/**
+ * @typedef {import('./crud').AgentRow} LoadedAgent
+ * @typedef {object} UpdateDeps
+ * @property {import('./crud').CrudRouter['canModifyAgent']} canModifyAgent
+ * @property {(res: import('express').Response) => unknown} sendAgentNotEditable
+ * @property {(config: unknown) => string|null} rejectUnsafeConfigKeys
+ * @property {import('./crud').CrudRouter['validateAgentConfigReferences']} validateAgentConfigReferences
+ * @property {import('./crud').CrudRouter['applyConfigValidation']} applyConfigValidation
+ * @property {typeof import('../../auth').resolveUserOrgIds} resolveUserOrgIds
+ */

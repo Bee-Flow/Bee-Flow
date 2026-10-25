@@ -180,3 +180,5 @@ module.exports = {
     toToolParameters, resolveLists, listValuesOf, allowedValuesMessage, guardedListsOf, injectEnums,
     enumCap, ALLOWED_VALUES_HEADER,
 };
+
+/** @typedef {{ type?: string, properties?: Record<string, EnumSchemaNode>, items?: EnumSchemaNode, enum?: unknown[], [k: string]: unknown }} EnumSchemaNode */

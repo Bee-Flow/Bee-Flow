@@ -156,3 +156,9 @@ if (require.main === module) {
         process.exit(1);
     });
 }
+
+/**
+ * @typedef {Object} RunMigrationsArgs
+ * @property {Console} [log]
+ * @property {boolean} [force]
+ */

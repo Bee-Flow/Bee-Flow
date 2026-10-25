@@ -378,3 +378,36 @@ module.exports = {
     _resolveColumn: resolveColumn,
     _fieldMap: fieldMap,
 };
+
+/**
+ * A model field as the compiler reads it.
+ * @typedef {{ key?: string, type?: string, unique?: boolean, computed?: { stored?: boolean } }} CompilerField
+ */
+
+/**
+ * The table descriptor every compiler takes (a data-model table).
+ * @typedef {{ key?: string, fields?: CompilerField[], rowsLocked?: boolean }} TableMeta
+ */
+
+/**
+ * The RLS gateway's access predicate.
+ * @typedef {{ where: string, params: unknown[] }} AccessFilter
+ */
+
+/** @typedef {{ field?: string, op?: string, value?: unknown, ci?: boolean }} FilterSpec */
+
+/** @typedef {{ field?: string, dir?: string, direction?: string }} SortEntry */
+
+/** @typedef {{ value?: unknown, fields?: string[] }} SearchSpec */
+
+/**
+ * @typedef {{ dialect?: string, filters?: FilterSpec[], match?: string, search?: SearchSpec | null,
+ *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number }} ListOpts
+ */
+
+/**
+ * @typedef {ListOpts & { groupBy?: Array<{ field?: string, bucket?: string, as?: string }>,
+ *   aggregates?: Array<{ fn?: string, field?: string, as?: string }> }} AggregateOpts
+ */
+
+/** @typedef {{ dialect?: string, allowLockedRows?: boolean }} DialectOpts */

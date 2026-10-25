@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * PII scan ledger — a durable memo of the guard's verdict for one segment.
  *
@@ -52,13 +52,13 @@ async function _initDB() {
         await exec(`CREATE INDEX IF NOT EXISTS idx_pii_ledger_lru ON pii_scan_ledger(last_used_at)`);
     } catch (err) {
         _healthy = false;
-        log.warn(`[PiiScanLedger] init failed, ledger disabled: ${err.message}`);
+        log.warn(`[PiiScanLedger] init failed, ledger disabled: ${/** @type {Error} */ (err).message}`);
     }
 }
 
 /**
  * @param {string[]} keys
- * @returns {Promise<Map<string, {entities: Array, charLen: number}>>}
+ * @returns {Promise<Map<string, {entities: unknown[], charLen: number}>>}
  */
 async function getMany(keys) {
     const out = new Map();
@@ -84,13 +84,13 @@ async function getMany(keys) {
                 .catch((e) => bestEffort('stores/piiScanLedgerStore:getMany', e));
         }
     } catch (err) {
-        log.warn(`[PiiScanLedger] read failed, treating as miss: ${err.message}`);
+        log.warn(`[PiiScanLedger] read failed, treating as miss: ${/** @type {Error} */ (err).message}`);
     }
     return out;
 }
 
 /**
- * @param {Array<{key:string, entities:Array, charLen:number, keyVersion:number}>} rows
+ * @param {Array<{key:string, entities:unknown[], charLen:number, keyVersion:number}>} rows
  */
 async function putMany(rows) {
     if (!_healthy || !Array.isArray(rows) || rows.length === 0) return;
@@ -106,7 +106,7 @@ async function putMany(rows) {
             );
         }
     } catch (err) {
-        log.warn(`[PiiScanLedger] write failed, verdict simply not memoised: ${err.message}`);
+        log.warn(`[PiiScanLedger] write failed, verdict simply not memoised: ${/** @type {Error} */ (err).message}`);
     }
 }
 
@@ -131,7 +131,7 @@ async function prune({ keyVersion, maxRows = 500_000 } = {}) {
         );
         deleted += r2?.rowCount || 0;
     } catch (err) {
-        log.warn(`[PiiScanLedger] prune failed: ${err.message}`);
+        log.warn(`[PiiScanLedger] prune failed: ${/** @type {Error} */ (err).message}`);
     }
     return { deleted };
 }

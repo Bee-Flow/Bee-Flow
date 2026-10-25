@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Filing a NEW meeting note into a project, at upload time.
  *
@@ -27,19 +28,28 @@
  * @param {object} [deps]
  * @param {Function} [deps.getProjectRole]    (userId, projectId) => 'owner'|'editor'|'viewer'|null
  * @param {Function} [deps.getProject]        (id) => project | null
- * @param {object}   [deps.membership]        projects/membership surface ({ isAllowedIn })
+ * @param {typeof import('./membership')} [deps.membership]        projects/membership surface ({ isAllowedIn })
  * @param {Function} [deps.logActivity]       projectStore.logActivity
  * @param {Function} [deps.emitProjectEvent]  core/projectFeed.emitProjectEvent
- * @param {object}   [deps.log]
+ * @param {typeof import('../telemetry/log')} [deps.log]
  */
 function makeMeetingFiling(deps = {}) {
-    const getProjectRole = (...a) => (deps.getProjectRole || require('../auth/projectAccess').getProjectRole)(...a);
+    const getProjectRole = (/** @type {Parameters<typeof import('../auth/projectAccess').getProjectRole>} */ ...a) => (deps.getProjectRole || require('../auth/projectAccess').getProjectRole)(...a);
+    /**
+     * @param {string} id
+     */
     const getProject = (id) => (deps.getProject || require('../stores/projectStore').getProject)(id);
     const membership = () => deps.membership || require('./membership');
-    const logActivity = (...a) => (deps.logActivity || require('../stores/projectStore').logActivity)(...a);
-    const emitProjectEvent = (...a) => (deps.emitProjectEvent || require('../core/projectFeed').emitProjectEvent)(...a);
+    const logActivity = (/** @type {Parameters<typeof import('../stores/projectStore').logActivity>} */ ...a) => (deps.logActivity || require('../stores/projectStore').logActivity)(...a);
+    const emitProjectEvent = (/** @type {Parameters<typeof import('../core/projectFeed').emitProjectEvent>} */ ...a) => (deps.emitProjectEvent || require('../core/projectFeed').emitProjectEvent)(...a);
     const log = () => deps.log || require('../telemetry/log');
 
+    /**
+     * @param {number} status
+     * @param {string} code
+     * @param {string} error
+     * @returns {{ok: false, status: number, code: string, error: string}}
+     */
     const refuse = (status, code, error) => ({ ok: false, status, code, error });
 
     /**
@@ -47,6 +57,9 @@ function makeMeetingFiling(deps = {}) {
      * `projectId`?
      *
      * @returns {Promise<{ok: true, projectId: string} | {ok: false, status: number, code: string, error: string}>}
+     * @param {string} userId
+     * @param {string|null} orgId
+     * @param {string} projectId
      */
     async function resolve(userId, orgId, projectId) {
         const role = await getProjectRole(userId, projectId);
@@ -65,25 +78,32 @@ function makeMeetingFiling(deps = {}) {
         return { ok: true, projectId: project.id || projectId };
     }
 
-    /** The activity row and the live event for a meeting note just filed. Never throws. */
+    /**
+     * The activity row and the live event for a meeting note just filed. Never throws.
+     * @param {string} projectId
+     * @param {string} actorId
+     * @param {string} meetingId
+     */
     async function announce(projectId, actorId, meetingId) {
         const details = { targetType: 'meeting', targetId: meetingId };
         try {
             await logActivity(projectId, actorId, 'resource_added', details);
         } catch (err) {
-            log().error('[Transcriptions] could not record the new meeting note in the project activity log:', err.message);
+            log().error('[Transcriptions] could not record the new meeting note in the project activity log:', /** @type {Error} */ (err).message);
         }
         try {
             await emitProjectEvent(projectId, {
                 kind: 'resource_added', actorId, targetType: 'meeting', targetId: meetingId, payload: details,
             });
         } catch (err) {
-            log().warn('[Transcriptions] project event for a new meeting note failed:', err.message);
+            log().warn('[Transcriptions] project event for a new meeting note failed:', /** @type {Error} */ (err).message);
         }
     }
 
     return { resolve, announce };
 }
 
+/** @typedef {ReturnType<typeof makeMeetingFiling> & { makeMeetingFiling: typeof makeMeetingFiling }} MeetingFilingExports */
+
 module.exports = makeMeetingFiling();
-module.exports.makeMeetingFiling = makeMeetingFiling;
+/** @type {MeetingFilingExports} */ (module.exports).makeMeetingFiling = makeMeetingFiling;

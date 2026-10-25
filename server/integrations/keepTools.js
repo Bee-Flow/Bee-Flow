@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Keep Tools — AI tools for managing Google Keep notes
  * 
@@ -14,6 +14,19 @@ require('../auth/permissions');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
+/**
+ * A Keep v1 note, as far as this file reads or writes it.
+ * @typedef {{ name?: string, title?: string, createTime?: string, updateTime?: string, trashed?: boolean,
+ *   body?: { list?: { listItems?: Array<{ text?: { text?: string }, checked?: boolean }> }, text?: { text?: string } } }} KeepNote
+ * The part of a googleapis keep v1 client these tools call (googleapis is untyped for the check: types/shims).
+ * @typedef {{ notes: { list(params: object): Promise<{ data: { notes?: KeepNote[] } }>,
+ *   get(params: object): Promise<{ data: KeepNote }>, create(params: object): Promise<{ data: KeepNote }>,
+ *   delete(params: object): Promise<unknown> } }} KeepClient
+ * The note draft the user approves.
+ * @typedef {{ action?: string, title?: string, type?: string, listItems?: Array<{ text?: string, checked?: boolean }>,
+ *   content?: string, noteId?: string }} KeepDraft
+ */
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: { type: string, properties: Record<string, object>, required: string[] } } }>} */
 const KEEP_TOOLS = [
     {
         type: 'function',
@@ -101,14 +114,20 @@ const KEEP_TOOLS = [
 
 // ─── Keep API Client ───────────────────────────────────────────
 
+/**
+ * @param {Express.Session} session
+ * @returns {Promise<KeepClient>}
+ */
 async function createKeepClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
-    return createGoogleApiClient(session, { api: 'keep', version: 'v1', notConnectedError: 'Not connected to Google — user must log in with Google' });
+    return /** @type {Promise<KeepClient>} */ (createGoogleApiClient(session, { api: 'keep', version: 'v1', notConnectedError: 'Not connected to Google — user must log in with Google' }));
 }
 
 // ─── Format Note ───────────────────────────────────────────────
 
+/** @param {KeepNote} note */
 function formatNote(note) {
+    /** @type {{ noteId: string, title: string, createTime: string, updateTime: string, trashed: boolean, type?: string, items?: Array<{ text: string, checked: boolean }>, content?: string }} */
     const result = {
         noteId: note.name,
         title: note.title || '(untitled)',
@@ -137,12 +156,18 @@ function formatNote(note) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ maxResults?: number, filter?: string, noteId?: string, title?: string, content?: string,
+ *   listItems?: Array<{ text?: string, checked?: boolean }> }} args
+ * @param {Express.Session} session
+ */
 async function executeKeepTool(toolName, args, session) {
     let keep;
     try {
         keep = await createKeepClient(session);
     } catch (e) {
-        return { error: e.message };
+        return { error: /** @type {Error} */ (e).message };
     }
 
     switch (toolName) {
@@ -152,6 +177,7 @@ async function executeKeepTool(toolName, args, session) {
             log.info(`[Keep] Listing notes (max ${limit})`);
 
             try {
+                /** @type {{ pageSize: number, filter?: string }} */
                 const params = { pageSize: limit };
                 if (filter) params.filter = filter;
 
@@ -202,6 +228,7 @@ async function executeKeepTool(toolName, args, session) {
             const { title, content, listItems } = args;
             if (!title) return { error: 'title is required' };
 
+            /** @type {KeepDraft} */
             const draft = {
                 action: 'create',
                 title,
@@ -254,10 +281,15 @@ async function executeKeepTool(toolName, args, session) {
 
 // ─── Execute Action (after user approval) ──────────────────────
 
+/**
+ * @param {KeepDraft} action
+ * @param {Express.Session} session
+ */
 async function executeKeepAction(action, session) {
     const keep = await createKeepClient(session);
 
     if (action.action === 'create') {
+        /** @type {KeepNote} */
         const body = { title: action.title || '' };
 
         if (action.type === 'list' && action.listItems) {
@@ -298,6 +330,7 @@ async function executeKeepAction(action, session) {
     throw new Error(`Unknown Keep action: ${action.action}`);
 }
 
+/** @param {string} toolName */
 function isKeepTool(toolName) {
     return toolName.startsWith('keep_');
 }

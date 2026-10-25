@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "As whom does this mirror talk to Google or Microsoft?"
  *
@@ -42,7 +42,15 @@ const _memo = new Map();   // `${userId}|${provider}` → { at, value, error }
 const ASSUMED_TOKEN_LIFETIME_MS = 55 * 60_000;
 
 const PROVIDERS = new Set(['google', 'microsoft']);
+/** @type {Record<string, string>} */
 const STORAGE_NAME = { google: 'Google Drive', microsoft: 'OneDrive' };
+
+/**
+ * A session-shaped object: the caller's live session or the runner's rebuilt one.
+ * @typedef {{ oauthProvider?: string, accessToken?: string, refreshToken?: string, expiresAt?: number|null, oauthScope?: string,
+ *   automationProviders?: Record<string, { accessToken?: string, refreshToken?: string, expiresAt?: number|null, scope?: string, oauthScope?: string }>,
+ *   user?: { organizationId?: string } }} SessionLike
+ */
 
 function deps() {
     // Lazily required: the pure modules beside this one must stay loadable in
@@ -55,6 +63,10 @@ function deps() {
     };
 }
 
+/**
+ * @param {string} provider
+ * @param {string | null} [detail]
+ */
 function notConnected(provider, detail = null) {
     const name = STORAGE_NAME[provider] || provider;
     const why = detail === 'needs_reauth'
@@ -67,7 +79,9 @@ function notConnected(provider, detail = null) {
 
 /**
  * Tokens from a session-shaped object, for exactly this provider or nothing.
- * @returns {{ accessToken, refreshToken, expiresAt, scope }|null}
+ * @returns {{ accessToken: string, refreshToken: string|null, expiresAt: number|null, scope: string|null }|null}
+ * @param {SessionLike | null | undefined} s
+ * @param {string} provider
  */
 function tokensFromSession(s, provider) {
     if (!s) return null;
@@ -86,6 +100,8 @@ function tokensFromSession(s, provider) {
  * `save()` is what the Google OAuth2 'tokens' event (via onSaved) and the
  * Graph refresh (via session.save) call after rotating tokens; it upserts
  * whatever the shim holds NOW. It never throws into the SDK's event handler.
+ * @param {ReturnType<typeof deps>} d
+ * @param {{ userId: string, provider: string, vaultOrgId: string|null, accessToken: string, refreshToken: string|null, expiresAt: number|null, scope: string|null }} args
  */
 function makeShim(d, { userId, provider, vaultOrgId, accessToken, refreshToken, expiresAt, scope }) {
     let persisted = { accessToken, refreshToken, expiresAt };
@@ -118,19 +134,30 @@ function makeShim(d, { userId, provider, vaultOrgId, accessToken, refreshToken, 
                 });
                 persisted = { accessToken: shim.accessToken, refreshToken: shim.refreshToken, expiresAt: shim.expiresAt };
             } catch (e) {
-                log.warn(`[spreadsheetFile] could not persist rotated ${provider} tokens for user ${userId}: ${e.message}`);
+                log.warn(`[spreadsheetFile] could not persist rotated ${provider} tokens for user ${userId}: ${/** @type {Error} */ (e).message}`);
             }
         },
     };
     return shim;
 }
 
+/**
+ * @param {ReturnType<typeof deps>} d
+ * @param {string} userId
+ * @param {SessionLike | null | undefined} session
+ */
 async function vaultOrgIdOf(d, userId, session) {
     const userRow = await d.userStore.getUser(userId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/credentials:vaultOrgIdOf', e, null));
     const organizationId = (userRow && userRow.organizationId) || (session && session.user && session.user.organizationId) || null;
     return d.automationAuth.vaultOrgIdFor({ id: userId, organizationId });
 }
 
+/**
+ * @param {ReturnType<typeof deps>} d
+ * @param {string} userId
+ * @param {string} provider
+ * @param {{ session: SessionLike | null }} opts
+ */
 async function resolveUncached(d, userId, provider, { session }) {
     // 1. The vault, refreshed when close to expiry (automationAuth persists the
     //    refresh itself and flips a revoked grant to needs_reauth → null).
@@ -155,7 +182,7 @@ async function resolveUncached(d, userId, provider, { session }) {
         try {
             await d.credentialStore.upsertCredential({ userId, orgId: vaultOrgId, provider, ...tokens });
         } catch (e) {
-            log.warn(`[spreadsheetFile] could not copy ${provider} tokens into the vault for user ${userId}: ${e.message}`);
+            log.warn(`[spreadsheetFile] could not copy ${provider} tokens into the vault for user ${userId}: ${/** @type {Error} */ (e).message}`);
         }
         return makeShim(d, { userId, provider, vaultOrgId, ...tokens });
     }
@@ -170,7 +197,7 @@ async function resolveUncached(d, userId, provider, { session }) {
  * @param {string} userId
  * @param {'google'|'microsoft'} provider
  * @param {object} [opts]
- * @param {object|null} [opts.session]  the caller's live session, when on a request path
+ * @param {SessionLike|null} [opts.session]  the caller's live session, when on a request path
  * @param {string|null} [opts.orgId]    accepted for symmetry with resolveLinker; the vault scope comes from the user row
  * @param {boolean} [opts.fresh]        skip the memo (a re-link, a "try again")
  * @returns {Promise<object>} the session-shaped shim with save()
@@ -206,6 +233,9 @@ async function resolveProviderCredential(userId, provider, { session = null, org
  * Reads one vault row and looks at the session — no provider call, no
  * refresh. `reason` is one of the wire contract's words.
  * @returns {Promise<{ connected: boolean, reason: null|'not_connected'|'needs_reauth' }>}
+ * @param {string} userId
+ * @param {string} provider
+ * @param {{ session?: SessionLike|null }} [opts]
  */
 async function cheapStatus(userId, provider, { session = null } = {}) {
     if (!PROVIDERS.has(provider) || !userId) return { connected: false, reason: 'not_connected' };
@@ -217,7 +247,10 @@ async function cheapStatus(userId, provider, { session = null } = {}) {
     return { connected: false, reason: 'not_connected' };
 }
 
-/** Test/relink hook: forget a user's memo (both providers). */
+/**
+ * Test/relink hook: forget a user's memo (both providers).
+ * @param {string} userId
+ */
 function forget(userId) {
     for (const k of _memo.keys()) if (k.startsWith(`${userId}|`)) _memo.delete(k);
 }

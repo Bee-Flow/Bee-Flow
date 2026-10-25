@@ -1,10 +1,13 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 const invoiceTracker = require('./invoiceTracker');
 
 const RECIPES = Object.freeze({ [invoiceTracker.RECIPE_ID]: invoiceTracker });
 
+/**
+ * @param {string | number} id
+ */
 function getRecipe(id) {
     return (typeof id === 'string' && RECIPES[id]) || null;
 }
@@ -21,6 +24,9 @@ function getRecipe(id) {
  */
 const OFFERED = Object.freeze([]);
 
+/**
+ * @param {string} [locale]
+ */
 function listRecipes(locale) {
     return OFFERED
         .map((id) => RECIPES[id])

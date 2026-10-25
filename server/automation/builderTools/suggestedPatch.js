@@ -467,3 +467,17 @@ function describePatch(patch) {
 }
 
 module.exports = { canonicalJson, applyPatchOps, liftEntryPatch, describePatch, parsePath };
+
+/**
+ * A JSON value in a tool call. The tree is walked and edited by path at run time, so its shape is
+ * only known per path.
+ * @typedef {any} JsonValue
+ */
+
+/** @typedef {{ key?: string, index?: number | '?' }} PatchToken  one step of a parsed path */
+
+/** @typedef {{ op?: string, path?: string, from?: string, to?: string, value?: unknown, entrySig?: string | string[], why?: string }} PatchOp */
+
+/** @typedef {{ reason?: string, line?: string }} OpResult */
+
+/** @typedef {{ reason?: string, parent?: JsonValue, slot?: JsonValue, path?: string, note?: string }} Located */

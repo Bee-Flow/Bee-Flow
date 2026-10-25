@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The services side of core/automationRunner/featurePorts.js: the
  * presentation renderer the runner's presentation and fill-document steps
@@ -14,7 +14,7 @@ const presentationRenderer = () => require('./presentationRenderer');
 
 registerRunnerPorts({
     presentations: {
-        renderPresentation: (...args) => presentationRenderer().renderPresentation(...args),
-        makeUserImageResolver: (...args) => presentationRenderer().makeUserImageResolver(...args),
+        renderPresentation: (/** @type {Parameters<typeof import('./presentationRenderer').renderPresentation>} */ ...args) => presentationRenderer().renderPresentation(...args),
+        makeUserImageResolver: (/** @type {Parameters<typeof import('./presentationRenderer').makeUserImageResolver>} */ ...args) => presentationRenderer().makeUserImageResolver(...args),
     },
 });

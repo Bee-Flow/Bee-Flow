@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Pasted text as a knowledge source.
  *
@@ -16,11 +16,16 @@
 const supportsModes = ['manual'];
 const defaultMode = 'manual';
 
+/**
+ * @param {import('./index').KbSource} source
+ * @param {import('./index').SyncCtx} ctx
+ * @param {import('./index').SyncDeps} deps
+ */
 async function enumerate(source, ctx, deps) {
     const page = await deps.kbStore.listDocuments(ctx.kbId, {
         limit: 200, offset: 0, filters: { sourceId: source.id },
     });
-    return (page || []).map(d => ({
+    return (page || []).map((/** @type {Record<string, any>} */ d) => ({
         externalId: String(d.external_id || d.id),
         docId: d.id,
         title: d.title,
@@ -37,6 +42,12 @@ function isUnchanged() {
     return false;
 }
 
+/**
+ * @param {{ externalId: string, docId: string, title: string }} item
+ * @param {Record<string, any> | null} stored
+ * @param {import('./index').SyncCtx} ctx
+ * @param {import('./index').SyncDeps} deps
+ */
 async function fetch(item, stored, ctx, deps) {
     const doc = await deps.kbStore.getDocument(item.docId);
     if (!doc) throw new Error('Document no longer exists');

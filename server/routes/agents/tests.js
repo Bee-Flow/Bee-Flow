@@ -428,3 +428,5 @@ module.exports.requireEditableAgent = requireEditableAgent;
 module.exports.versionInfo = versionInfo;
 module.exports.runOneTest = runOneTest;
 module.exports.buildTestResultRecord = buildTestResultRecord;
+
+/** @typedef {import('express').Router & { requireEditableAgent: typeof requireEditableAgent, versionInfo: typeof versionInfo, runOneTest: typeof runOneTest, buildTestResultRecord: typeof buildTestResultRecord }} TestsRouter */

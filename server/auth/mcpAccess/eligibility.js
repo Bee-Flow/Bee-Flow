@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Which MCP servers may THIS user put on a token?
  *
@@ -65,7 +65,12 @@ async function policyDecision(user, deps) {
     }
 }
 
-/** True / false for "may this user", false on any error. */
+/**
+ * True / false for "may this user", false on any error.
+ * @param {string} label
+ * @param {string | undefined} userId
+ * @param {() => unknown} fn
+ */
 async function attempt(label, userId, fn) {
     try {
         return (await fn()) === true;
@@ -116,6 +121,7 @@ async function eligibleServers(user, deps = {}) {
     return { policy, integrations: { available: true }, automations, studio, cms };
 }
 
+/** @type {Readonly<Record<string, string>>} */
 const SERVER_LABELS = Object.freeze({
     integrations: 'your connected apps (mail, calendar and so on)',
     automations: 'Automations',
@@ -129,7 +135,7 @@ const SERVER_LABELS = Object.freeze({
  * eligibility object limits: studio write, cms publish.
  *
  * @param {Record<string, any>} scopes normalised
- * @param {Awaited<ReturnType<typeof eligibleServers>>} eligibility
+ * @param {Record<string, { available?: boolean, reason?: string, canWrite?: boolean, canPublish?: boolean } | undefined>} eligibility
  */
 function firstRefusedScope(scopes, eligibility) {
     for (const server of Object.keys(scopes)) {

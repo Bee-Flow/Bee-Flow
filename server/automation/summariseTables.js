@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The plain-language lines for the two table steps, read by summarise.js: the
  * sentence in the automation's summary, and the compact detail on the builder
@@ -7,7 +7,16 @@
 
 'use strict';
 
-/** A binding as short text. */
+/**
+ * @typedef {{ kind?: string, path?: string, value?: unknown }} BindingLike
+ * @typedef {{ type?: string, label?: string, source?: BindingLike|string|number|boolean|null, sheets?: string[]|string, headerRow?: number,
+ *   ops?: Array<{ op?: string, enabled?: boolean }> }} TableStep
+ */
+
+/**
+ * A binding as short text.
+ * @param {BindingLike|string|number|boolean|null|undefined} b
+ */
 function describeBinding(b) {
     if (b == null) return '∅';
     if (typeof b !== 'object') return JSON.stringify(b);
@@ -18,10 +27,11 @@ function describeBinding(b) {
     return JSON.stringify(b);
 }
 
+/** @param {TableStep} step */
 const enabledOps = (step) => (Array.isArray(step.ops) ? step.ops : []).filter(o => o && o.op && o.enabled !== false).map(o => o.op);
 
 /**
- * @param {any} step
+ * @param {TableStep} step
  * @param {string} n  the step's number in the summary, e.g. "3."
  * @returns {string | null}
  */
@@ -40,7 +50,7 @@ function describeTableStep(step, n) {
 }
 
 /**
- * @param {any} step
+ * @param {TableStep} step
  * @returns {string}
  */
 function tableDetail(step) {

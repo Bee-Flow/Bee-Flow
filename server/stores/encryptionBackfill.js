@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Retroactive encryption of rows written before a tier / surface was switched on.
  *
@@ -79,6 +79,22 @@ const PII_VAULT = 'piiVault';
 const BATCH = 200;
 const TRANSCRIPT_BATCH = 50; // rows carry whole transcripts
 
+/**
+ * @typedef {import('pg').QueryResultRow} Row
+ * @typedef {{ encrypted: number, skipped: number, noKey: number, failed: number,
+ *   migrated?: number, reasons?: Record<string, number>, blocked?: string }} BackfillStats
+ * @typedef {Awaited<ReturnType<typeof import('./agent/messageCrypto').resolveCrypto>>} CryptoCtx
+ * @typedef {{ ctx?: CryptoCtx | null, error?: Error }} CtxEntry
+ * @typedef {{
+ *   orgId: string, surface: string, stats: BackfillStats, deps: BackfillOverrides,
+ *   policy: ReturnType<typeof policyFromRow>, dryRun: boolean, limit: number, batch: number, seen: number,
+ *   progress: () => void,
+ *   ctxFor: (row: Row, scoped: boolean) => Promise<CtxEntry>
+ * }} BackfillEnv
+ * @typedef {{ orgId: string, tier: string, notFound?: boolean, surfaces: Record<string, BackfillStats> }} BackfillResult
+ */
+
+/** @returns {BackfillStats} */
 function newStats() {
     return { encrypted: 0, skipped: 0, noKey: 0, failed: 0 };
 }
@@ -111,14 +127,21 @@ function lazyDeps(deps = {}) {
     return d;
 }
 
-/** Seal a string; throws instead of silently handing back plaintext. */
+/**
+ * Seal a string; throws instead of silently handing back plaintext.
+ * @param {string} plaintext
+ * @param {{ key?: Buffer|null, aad?: string|Buffer }} opts
+ */
 function seal(plaintext, opts) {
     const out = encryptField(plaintext, { ...opts, encrypt: true });
     if (!isEnvelope(out)) throw new Error('sealing produced a non-envelope value (no usable key)');
     return out;
 }
 
-/** Did the compare-and-set UPDATE match a row? */
+/**
+ * Did the compare-and-set UPDATE match a row?
+ * @param {{ rowCount?: number } | null | undefined} res
+ */
 function matched(res) {
     return !(res && res.rowCount === 0);
 }
@@ -126,11 +149,19 @@ function matched(res) {
 /**
  * Per-call environment handed to a runner: its own stats, key cache and cursor
  * helper. Nothing is module-level.
+ * @param {string} orgId
+ * @param {string} surface
+ * @param {{ dryRun?: boolean, limit?: number, onProgress?: ((surface: string, stats: object) => void) | null }} opts
+ * @param {BackfillOverrides} deps
+ * @param {ReturnType<typeof policyFromRow>} policy
+ * @returns {BackfillEnv}
  */
 function makeEnv(orgId, surface, opts, deps, policy) {
     const stats = newStats();
     if (surface === LEGACY_BLOBS) Object.assign(stats, { migrated: 0, reasons: {} });
+    /** @type {Map<string, CtxEntry>} */
     const ctxCache = new Map();
+    /** @type {BackfillEnv} */
     const env = {
         orgId, surface, stats, deps, policy,
         dryRun: !!opts.dryRun,
@@ -151,6 +182,7 @@ function makeEnv(orgId, surface, opts, deps, policy) {
             const isProject = scoped && row.crypto_scope === 'project' && !!row.project_id;
             const k = isProject ? `p:${row.project_id}` : `u:${row.user_id}`;
             if (!ctxCache.has(k)) {
+                /** @type {CtxEntry} */
                 let entry;
                 try {
                     const ctx = await deps.resolveCrypto(isProject
@@ -172,6 +204,9 @@ function makeEnv(orgId, surface, opts, deps, policy) {
 /**
  * Keyset-paged loop with per-row isolation. `fetch(cursor, batch)` returns rows
  * ordered by id; `handle(row)` does the work. Returns false when --limit hit.
+ * @param {BackfillEnv} env
+ * @param {(cursor: string, batch: number) => Promise<Row[]>} fetch
+ * @param {(row: Row) => Promise<void>} handle
  */
 async function paged(env, fetch, handle) {
     let cursor = '';
@@ -193,7 +228,12 @@ async function paged(env, fetch, handle) {
     }
 }
 
-/** Run the UPDATE (unless dry run) and book the outcome. */
+/**
+ * Run the UPDATE (unless dry run) and book the outcome.
+ * @param {BackfillEnv} env
+ * @param {string} sql
+ * @param {unknown[]} params
+ */
 async function commit(env, sql, params) {
     if (env.dryRun) { env.stats.encrypted++; return; }
     const res = await env.deps.run(sql, params);
@@ -201,7 +241,12 @@ async function commit(env, sql, params) {
     else env.stats.skipped++; // changed under us: leave it for the next run
 }
 
-/** Resolve the ctx or book noKey / failed. Returns ctx or null. */
+/**
+ * Resolve the ctx or book noKey / failed. Returns ctx or null.
+ * @param {BackfillEnv} env
+ * @param {Row} row
+ * @param {boolean} scoped
+ */
 async function usableCtx(env, row, scoped) {
     const r = await env.ctxFor(row, scoped);
     if (r.error) { env.stats.failed++; return null; }
@@ -211,6 +256,7 @@ async function usableCtx(env, row, scoped) {
 
 // ── Surfaces ────────────────────────────────────────────────────────────────
 
+/** @param {BackfillEnv} env */
 async function backfillMessages(env) {
     const { conversationKey, messageAad } = require('./agent/messageCrypto');
     await paged(env, (cursor, batch) => env.deps.getAll(`
@@ -229,9 +275,17 @@ async function backfillMessages(env) {
         if (!ctx) return;
 
         const type = row.conversation_type || 'agent';
+        /** @type {string[]} */
         const sets = [];
+        /** @type {string[]} */
         const where = [];
+        /** @type {unknown[]} */
         const params = [];
+        /**
+         * @param {string} col
+         * @param {unknown} oldVal
+         * @param {unknown} newVal
+         */
         const add = (col, oldVal, newVal) => {
             params.push(newVal); sets.push(`${col} = $${params.length}`);
             params.push(oldVal); where.push(`${col} IS NOT DISTINCT FROM $${params.length}`);
@@ -260,8 +314,10 @@ async function backfillMessages(env) {
     });
 }
 
+/** @type {Array<['agent_conversations' | 'direct_conversations', 'agent' | 'direct']>} */
 const CONV_TABLES = [['agent_conversations', 'agent'], ['direct_conversations', 'direct']];
 
+/** @param {BackfillEnv} env */
 async function backfillTitles(env) {
     const { sealTitle } = require('./agent/conversationTitle');
     for (const [table, type] of CONV_TABLES) {
@@ -284,6 +340,7 @@ async function backfillTitles(env) {
     }
 }
 
+/** @param {BackfillEnv} env */
 async function backfillTokenMaps(env) {
     for (const [table] of CONV_TABLES) {
         const done = await paged(env, (cursor, batch) => env.deps.getAll(`
@@ -310,6 +367,7 @@ async function backfillTokenMaps(env) {
     }
 }
 
+/** @param {BackfillEnv} env */
 async function backfillConversationMeta(env) {
     const { conversationKey } = require('./agent/messageCrypto');
     const aadFor = {
@@ -340,6 +398,7 @@ async function backfillConversationMeta(env) {
     }
 }
 
+/** @param {BackfillEnv} env */
 async function backfillNotebookMessages(env) {
     const { encryptMessages } = require('./agent/messageEncryption');
     await paged(env, (cursor, batch) => env.deps.getAll(`
@@ -369,6 +428,7 @@ async function backfillNotebookMessages(env) {
     });
 }
 
+/** @param {BackfillEnv} env */
 async function backfillTranscripts(env) {
     const tc = require('./transcriptCrypto');
     const tctx = await env.deps.resolveTranscriptCrypto(env.orgId);
@@ -403,6 +463,7 @@ async function backfillTranscripts(env) {
         // Previews: derived columns, encrypted. A preview written while the
         // surface was off is stored as PLAINTEXT in the same column, so it has
         // to be sealed too, even when the main column already is.
+        /** @type {Record<string, string>} */
         const snippets = {};
         const plainFull = values.full_text
             ?? (typeof row.full_text_snippet_enc === 'string' && !isEnvelope(row.full_text_snippet_enc) ? row.full_text_snippet_enc : '');
@@ -423,8 +484,11 @@ async function backfillTranscripts(env) {
             if (writes[c] != null && !isEnvelope(writes[c])) throw new Error(`column ${c} was not sealed`);
         }
 
+        /** @type {string[]} */
         const sets = [];
+        /** @type {string[]} */
         const where = [];
+        /** @type {unknown[]} */
         const params = [];
         for (const c of cols) {
             const isJson = tc.JSON_COLUMNS.includes(c);
@@ -440,6 +504,7 @@ async function backfillTranscripts(env) {
     });
 }
 
+/** @param {BackfillEnv} env */
 async function backfillPiiVault(env) {
     const vault = env.deps.vault || require('./piiVaultStore');
     await paged(env, (cursor, batch) => env.deps.getAll(`
@@ -465,12 +530,15 @@ async function backfillPiiVault(env) {
     });
 }
 
+/** @param {BackfillEnv} env */
 async function backfillLegacyBlobs(env) {
     const cm = env.deps.convMessages || require('./agent/conversationMessages');
+    /** @param {string} reason */
     const cannot = (reason) => {
         env.stats.skipped++;
         env.stats.reasons[reason] = (env.stats.reasons[reason] || 0) + 1;
     };
+    /** @param {string} raw */
     const readBlob = (raw) => {
         let parsed;
         try { parsed = JSON.parse(raw); } catch (_) { return { reason: 'blob_unparseable' }; }
@@ -535,6 +603,7 @@ async function backfillLegacyBlobs(env) {
  * schedule_coverage bookkeeping is not a memory and stays clear. A row's key_hash
  * is re-derived as the keyed HMAC, otherwise the plain digest of a now-sealed
  * subject would stay in the table. Lookups accept both forms meanwhile.
+ * @param {BackfillEnv} env
  */
 async function backfillMemories(env) {
     const mc = require('./memoryCrypto');
@@ -555,16 +624,26 @@ async function backfillMemories(env) {
         if (!ctx.backgroundKey) { env.stats.noKey++; return; }
         const wctx = { encrypt: true, keys: mc.memoryKeys(ctx.backgroundKey) };
 
+        /** @type {string[]} */
         const sets = [];
+        /** @type {string[]} */
         const where = [];
+        /** @type {unknown[]} */
         const params = [];
+        /**
+         * @param {string} col
+         * @param {unknown} oldVal
+         * @param {unknown} newVal
+         * @param {string} [cast]
+         */
         const add = (col, oldVal, newVal, cast = '') => {
             params.push(newVal); sets.push(`${col} = $${params.length}${cast}`);
             params.push(oldVal); where.push(`${col} IS NOT DISTINCT FROM $${params.length}${cast}`);
         };
+        /** @type {Record<string, string>} */
         const fields = {};
         for (const f of todo) fields[f] = row[f];
-        const sealed = mc.sealFields(row.id, fields, wctx);
+        const sealed = /** @type {Record<string, string>} */ (mc.sealFields(row.id, fields, wctx));
         for (const f of todo) {
             if (!isEnvelope(sealed[f])) throw new Error('sealing produced a non-envelope value');
             add(f, row[f], sealed[f]);
@@ -596,6 +675,7 @@ async function backfillMemories(env) {
 }
 
 /** surface name -> runner(env). */
+/** @type {Record<string, (env: BackfillEnv) => Promise<void>>} */
 const RUNNERS = {
     [SURFACES.MESSAGES]: backfillMessages,
     [SURFACES.CONVERSATION_TITLE]: backfillTitles,
@@ -615,6 +695,7 @@ const BACKFILL_SURFACES = Object.freeze(Object.keys(RUNNERS));
  * Policy scope flags that must be on for a runner to do anything. The messages
  * runner covers two policy surfaces (content and meta).
  */
+/** @type {Record<string, string[]>} */
 const POLICY_SURFACES = {
     [SURFACES.MESSAGES]: [SURFACES.MESSAGES, SURFACES.MESSAGE_META],
     [LEGACY_BLOBS]: [SURFACES.MESSAGES],
@@ -623,10 +704,14 @@ const POLICY_SURFACES = {
 /** Not policy surfaces: sealed whenever the org has encryption on (see piiVaultStore). */
 const ALWAYS_ON_SURFACES = [PII_VAULT];
 
+/**
+ * @param {ReturnType<typeof policyFromRow>} policy
+ * @param {string} surface
+ */
 function surfaceEnabled(policy, surface) {
     if (ALWAYS_ON_SURFACES.includes(surface)) return true;
     return (POLICY_SURFACES[surface] || [surface])
-        .some(s => IMPLEMENTED_SURFACES.includes(s) && policy.scope[s] === true);
+        .some(s => /** @type {readonly string[]} */ (IMPLEMENTED_SURFACES).includes(s) && policy.scope[s] === true);
 }
 
 /**
@@ -649,6 +734,7 @@ async function backfillOrg(orgId, { dryRun = false, surfaces = null, limit = Inf
     if (!org) return { orgId, tier: 'none', notFound: true, surfaces: {} };
 
     const policy = policyFromRow(org);
+    /** @type {BackfillResult} */
     const result = { orgId, tier: policy.tier, surfaces: {} };
     if (!policy.enabled) return result;
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Pipeline LLM Helpers
  * Shared LLM call utilities and JSON extraction for the component pipeline.
@@ -10,6 +10,8 @@ const { bestEffort } = require('../utils/bestEffort');
 /**
  * Call the LLM with a system prompt, messages, and optional tools.
  * Resolves the provider and model automatically.
+ * @param {{ systemPrompt?: string, messages: { role: string, content?: string | null }[],
+ *   tools?: Record<string, unknown>[], model?: string | null, temperature?: number, maxTokens?: number }} opts
  */
 async function callLLM({ systemPrompt, messages, tools = [], model = null, temperature = 0.7, maxTokens = 4000 }) {
     const baseConfig = await getAIConfig();
@@ -19,6 +21,7 @@ async function callLLM({ systemPrompt, messages, tools = [], model = null, tempe
     let apiUrl = providerConfig.url.replace(/\/+$/, '');
     if (!apiUrl.endsWith('/v1')) apiUrl = `${apiUrl}/v1`;
 
+    /** @type {Record<string, string>} */
     const headers = { 'Content-Type': 'application/json' };
     if (providerConfig.apiKey) headers['Authorization'] = `Bearer ${providerConfig.apiKey}`;
 
@@ -33,6 +36,7 @@ async function callLLM({ systemPrompt, messages, tools = [], model = null, tempe
         content: msg.content ?? ''
     }));
 
+    /** @type {{ model: string, messages: { role: string, content: string }[], temperature: number, max_tokens: number, tools?: Record<string, unknown>[], tool_choice?: string }} */
     const requestBody = {
         model: useModel,
         messages: sanitizedMessages,
@@ -62,6 +66,7 @@ async function callLLM({ systemPrompt, messages, tools = [], model = null, tempe
 /**
  * Extract JSON from LLM response text.
  * Tries code blocks first, then raw JSON, then object extraction.
+ * @param {string} text
  */
 function extractJSON(text) {
     if (!text) return null;
@@ -80,6 +85,7 @@ function extractJSON(text) {
 /**
  * Extract component JSON from LLM response text.
  * Handles the component code block format (with id, name, and code).
+ * @param {string} text
  */
 function extractComponentFromResponse(text) {
     if (!text) return null;

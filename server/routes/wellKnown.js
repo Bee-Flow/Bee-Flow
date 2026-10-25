@@ -1,3 +1,5 @@
+/** @typedef {import('url').URL} URL */
+// @typecheck noImplicitAny
 /**
  * /.well-known/* — public discovery documents (no auth, no license gate).
  *
@@ -74,7 +76,7 @@ async function resolveAppIds() {
     return [];
 }
 
-router.get('/microsoft-identity-association.json', async (req, res) => {
+router.get('/microsoft-identity-association.json', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     // Cloud-only — self-hosted installs must not advertise our Azure app IDs.
     if (deploymentMode() === 'self-hosted') {
         return res.status(404).json({ error: 'Not found' });
@@ -109,6 +111,7 @@ router.get('/microsoft-identity-association.json', async (req, res) => {
 // e-mail address on. Anything that is not a routable public name — localhost,
 // a bare IP, an empty value — yields null: security@127.0.0.1 is not a mailbox
 // anyone can reach, and publishing it is worse than publishing nothing.
+/** @param {unknown} hostValue */
 function mailDomainFromHost(hostValue) {
     if (!hostValue) return null;
     const host = String(hostValue).trim()
@@ -154,6 +157,9 @@ function securityContact() {
 // that has not redeployed in a year starts serving an expired file. Computing
 // it per request (now + 1 year, the maximum the RFC recommends) means it can
 // never lapse while the service is up.
+/**
+ * @param {Date} [now]
+ */
 function expiresAt(now = new Date()) {
     const expires = new Date(now.getTime());
     expires.setUTCFullYear(expires.getUTCFullYear() + 1);
@@ -204,25 +210,37 @@ function canonicalUrl() {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function policyOrgId(env = process.env) {
     const explicit = (env[SECURITY_TXT_POLICY_ORG_ID] || '').trim();
     return explicit || 'default';
 }
 
+/** @param {unknown} value */
 function httpUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return null;
+    /** @type {URL} */
     let u;
     try { u = new URL(value.trim()); } catch { return null; }
     return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null;
 }
 
+/** @param {unknown} value */
 function mailtoContact(value) {
     if (typeof value !== 'string') return null;
     const addr = value.trim().replace(/^mailto:/i, '');
     return EMAIL_RE.test(addr) ? `mailto:${addr}` : null;
 }
 
-/** Pure: settings row → { policy, contact } (either may be null). */
+/** @typedef {{ policy: string | null, contact: string | null, enabled: boolean }} DisclosureLines */
+
+/**
+ * Pure: settings row → { policy, contact } (either may be null).
+ * @param {{ security_txt_policy_enabled?: unknown, vuln_disclosure_url?: unknown, psirt_contact_email?: unknown } | null | undefined} settings
+ * @returns {DisclosureLines}
+ */
 function disclosureLinesFromSettings(settings) {
     if (!settings || settings.security_txt_policy_enabled !== true) return { policy: null, contact: null, enabled: false };
     return {
@@ -232,11 +250,16 @@ function disclosureLinesFromSettings(settings) {
     };
 }
 
+/** @type {{ at: number, value: DisclosureLines } | null} */
 let _policyMemo = null;   // { at, value }
 let _warnedPolicyRead = false;
 
+/**
+ * @param {number} [now]
+ */
 async function disclosurePolicyLines(now = Date.now()) {
     if (_policyMemo && now - _policyMemo.at < POLICY_MEMO_TTL_MS) return _policyMemo.value;
+    /** @type {DisclosureLines} */
     let value = { policy: null, contact: null, enabled: false };
     try {
         const complianceStore = require('../stores/complianceStore');
@@ -245,7 +268,7 @@ async function disclosurePolicyLines(now = Date.now()) {
     } catch (e) {
         if (!_warnedPolicyRead) {
             _warnedPolicyRead = true;
-            log.warn(`[WellKnown] could not read compliance settings for security.txt (org ${policyOrgId()}): ${e?.message || e}`);
+            log.warn(`[WellKnown] could not read compliance settings for security.txt (org ${policyOrgId()}): ${/** @type {Error} */ (e)?.message || e}`);
         }
     }
     _policyMemo = { at: now, value };
@@ -256,12 +279,13 @@ function resetPolicyMemo() { _policyMemo = null; _warnedPolicyRead = false; }
 
 let _warnedNoContact = false;
 
-router.get('/security.txt', async (req, res) => {
+router.get('/security.txt', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const disclosure = await disclosurePolicyLines();
     // The org's PSIRT address is the preferred contact when published: it is an
     // inbox somebody chose, where security@<host> is only derived. It also
     // makes the file servable on an install whose host yields no mailbox.
     const derived = securityContact();
+    /** @type {string[]} */
     const contacts = [];
     for (const c of [disclosure.contact, derived]) {
         if (c && !contacts.some(x => x.toLowerCase() === c.toLowerCase())) contacts.push(c);
@@ -296,4 +320,4 @@ router.get('/security.txt', async (req, res) => {
 });
 
 module.exports = router;
-module.exports._test = { mailDomainFromHost, securityContact, expiresAt, canonicalUrl, disclosureLinesFromSettings, policyOrgId, resetPolicyMemo };
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports)._test = { mailDomainFromHost, securityContact, expiresAt, canonicalUrl, disclosureLinesFromSettings, policyOrgId, resetPolicyMemo };

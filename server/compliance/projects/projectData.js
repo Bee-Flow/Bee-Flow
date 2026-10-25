@@ -140,3 +140,5 @@ module.exports = {
     countWorkspaceProjects,
     nameOffenders,
 };
+
+/** @typedef {(sql: string, params?: any[]) => Promise<any[]>} ProjectQuery */

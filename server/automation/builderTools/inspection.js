@@ -193,3 +193,11 @@ module.exports = {
     inspectGateError,
     applyInspectTool,
 };
+
+/**
+ * @typedef {import('./pendingDatatables').DraftWrap} DraftWrap
+ * @typedef {{ type?: string, description?: string, enum?: unknown[] }} ParamSpec
+ * @typedef {{ properties?: Record<string, ParamSpec>, required?: string[] }} InputSchema
+ * @typedef {DraftWrap & { _inspectGate?: boolean, _inputSchemasByTool?: Record<string, InputSchema>,
+ *   _inspectedTools?: Set<string>, _availableToolNames?: Set<string> }} InspectWrap
+ */

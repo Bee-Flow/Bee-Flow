@@ -429,3 +429,9 @@ module.exports = {
     isBrowserAlive,
     PWT_NETWORK,
 };
+
+/** @typedef {InstanceType<typeof Docker>} DockerClient */
+
+/** @typedef {(line: string) => void} LineSink */
+
+/** @typedef {{ wsEndpoint: string, containerId?: string, external?: boolean }} BrowserHandle */

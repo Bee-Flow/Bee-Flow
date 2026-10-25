@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 32 — Encryption at rest.
  *
@@ -30,9 +30,13 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art32_ear.desc',
     remediationKey: 'compliance.checks.gdpr_art32_ear.fix',
     remediationLink: null,
+    /**
+     * @param {string | null} [orgId]
+     */
     async evaluate(orgId) {
         const hasMaster = !!process.env.MASTER_ENCRYPTION_KEY;
         const hasSession = !!process.env.SESSION_SECRET;
+        /** @type {{ MASTER_ENCRYPTION_KEY: string; SESSION_SECRET: string; envelope_encryption: string; encryption_tier?: string; messages_encrypted?: boolean; plaintext_surfaces?: ('messages' | 'notebookMessages')[] }} */
         const evidence = {
             MASTER_ENCRYPTION_KEY: hasMaster ? 'set' : 'missing',
             SESSION_SECRET: hasSession ? 'set' : 'missing',

@@ -24,16 +24,29 @@ const log = require('../../telemetry/log');
 // named in the refusal when not even that is left to choose.
 const DEFAULT_TIER = 'fast';
 
+/**
+ * @typedef {import('./phaseList').PlaybookRow} PlaybookRow
+ * @typedef {import('../../playbooks/lifecycle').Phase} Phase
+ * @typedef {import('express').Request} Req
+ * @typedef {import('express').Response} Res
+ */
+
+/** @param {ReturnType<typeof import('./deps').makeDefaultDeps>} d */
 function makeFlow(d) {
-    /** The recipe a playbook runs on: its own document, or the built-in module. */
+    /**
+     * The recipe a playbook runs on: its own document, or the built-in module.
+     * @param {PlaybookRow | null} pb
+     */
     const resolveRecipe = (pb) => (pb && pb.recipe ? d.recipeDoc.fromDocument(pb.recipe) : d.recipes.getRecipe(pb && pb.recipeId));
 
+    /** @param {Req} req */
     const approvalsAllowed = async (req) => {
         try {
             return !!(await d.entitlements.hasCapability('approvals', { userId: userIdOf(req), orgId: req.session?.user?.organizationId || null, session: req.session, req }));
         } catch { return false; }
     };
 
+    /** @param {string} userId */
     const resolveOwnerOrgId = async (userId) => {
         try {
             const owner = await d.userStore.getUser(userId);
@@ -50,13 +63,21 @@ function makeFlow(d) {
         } catch { return null; }
     };
 
+    /** @param {import('express').Request<{ id: string }>} req @param {Res} res */
     const load = async (req, res) => {
         const pb = await d.playbookStore.getPlaybook(req.params.id, userIdOf(req));
         if (!pb) { sendErr(res, 404, 'not_found', 'Not found'); return null; }
         return pb;
     };
 
-    /** Compose the brief of `key` (route-level glue: recipe + playbook). */
+    /**
+     * Compose the brief of `key` (route-level glue: recipe + playbook).
+     * @param {ReturnType<typeof resolveRecipe>} recipe
+     * @param {PlaybookRow} playbook
+     * @param {Phase[]} phases
+     * @param {string} key
+     * @returns {Phase[]}
+     */
     const withBrief = (recipe, playbook, phases, key) => {
         const phase = lifecycle.phaseByKey(phases, key);
         if (!phase || phase.briefEdited) return phases;
@@ -68,6 +89,12 @@ function makeFlow(d) {
      * A phase that was just skipped or locked passes the turn to the one after
      * it: that becomes ready and is prepared in its turn. Bounded by the phase
      * list — every hop makes one more phase terminal.
+     * @param {ReturnType<typeof resolveRecipe>} recipe
+     * @param {PlaybookRow} playbook
+     * @param {Phase[]} phases
+     * @param {string} key
+     * @param {Req} req
+     * @returns {Promise<Phase[]>}
      */
     const prepareAfter = async (recipe, playbook, phases, key, req) => {
         const after = lifecycle.nextPhaseKey(phases, key);
@@ -82,6 +109,12 @@ function makeFlow(d) {
      * After a phase became done/skipped: the next phase is ready with its
      * brief; the app is pre-created before `app`; `approvals` is skipped when
      * the table has no status column. Returns the phases.
+     * @param {ReturnType<typeof resolveRecipe>} recipe
+     * @param {PlaybookRow} playbook
+     * @param {Phase[]} phases
+     * @param {string} nextKey
+     * @param {Req} req
+     * @returns {Promise<Phase[]>}
      */
     const prepareNext = async (recipe, playbook, phases, nextKey, req) => {
         if (!nextKey) return phases;
@@ -91,8 +124,8 @@ function makeFlow(d) {
         const tableArt = (firstOfKind(out, 'table') || {}).artifacts || {};
         // A phase that needs a column the chosen table does not have (the
         // approval turn writes `status`) is skipped with the reason.
-        if (next.requiresRole && tableArt.mapping && !tableArt.mapping[next.requiresRole]) {
-            const role = next.requiresRole;
+        if (next.requiresRole && tableArt.mapping && !/** @type {Record<string, unknown>} */ (tableArt.mapping)[/** @type {string} */ (next.requiresRole)]) {
+            const role = /** @type {string} */ (next.requiresRole);
             const copy = copyFor(localeOf(playbook));
             out = lifecycle.applyTransition(out, nextKey, 'skipped', { error: role === 'status' ? 'no_status_column' : `no_${role}_column`, summary: role === 'status' ? copy.skippedNoStatus : copy.skippedNoColumn(role) });
             // A phase that steps aside hands the turn on — it does not end the
@@ -134,6 +167,12 @@ function makeFlow(d) {
         return out;
     };
 
+    /**
+     * @param {Res} res
+     * @param {PlaybookRow} playbook
+     * @param {Parameters<typeof d.playbookStore.savePhases>[2]} patch
+     * @param {number | null} [expectedVersion]
+     */
     const persist = async (res, playbook, patch, expectedVersion) => {
         const saved = await d.playbookStore.savePhases(playbook.id, playbook.userId, patch, { expectedVersion });
         if (!saved.ok && saved.conflict) { sendErr(res, 409, 'version_conflict', 'This playbook changed elsewhere.', { currentVersion: saved.currentVersion, playbook: saved.playbook }); return null; }
@@ -149,6 +188,10 @@ function makeFlow(d) {
      * page's 2 s poll with it, never ended (owner, 2026-09-17). Heal instead:
      * re-read, fail a phase still marked running so its Retry works, and hand
      * the healed row back with the 409.
+     * @param {PlaybookRow} pb
+     * @param {string} key
+     * @param {Phase[]} phases
+     * @param {number} version
      */
     const savePhaseOutcome = async (pb, key, phases, version) => {
         const saved = await d.playbookStore.savePhases(pb.id, pb.userId, { phases, currentPhase: key }, { expectedVersion: version });
@@ -169,7 +212,7 @@ function makeFlow(d) {
                 if (healed.ok) return { ...saved, playbook: healed.playbook };
             }
         } catch (e) {
-            log.warn('[Playbooks] could not fail the phase after a save conflict:', e.message);
+            log.warn('[Playbooks] could not fail the phase after a save conflict:', /** @type {Error} */ (e).message);
         }
         return saved;
     };
@@ -188,6 +231,10 @@ function makeFlow(d) {
      *
      * Returns the tier, or answers the 403 in this router's envelope and
      * returns null -- the caller returns, the way it does after a sendErr.
+     * @param {Req} req
+     * @param {Res} res
+     * @param {string | null | undefined} asked
+     * @param {string} [userId]
      */
     const tierFor = async (req, res, asked, userId = userIdOf(req)) => {
         const access = await d.tierAccessFor({ userId, session: req.session, taskType: 'automation' });
@@ -206,6 +253,9 @@ function makeFlow(d) {
      * the fast model, and one created before an administrator narrowed the
      * owner's groups kept its tier for ever. Answers the same 403 as tierFor.
      * Only the owner can load a playbook, so the owner is who is asking.
+     * @param {Req} req
+     * @param {Res} res
+     * @param {PlaybookRow} pb
      */
     const phaseTier = (req, res, pb) => tierFor(req, res, tierOf(pb), pb.userId);
 

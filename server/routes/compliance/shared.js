@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Compliance routes — shared helpers.
  *

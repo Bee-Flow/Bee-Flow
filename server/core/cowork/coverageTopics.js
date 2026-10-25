@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * R3: cheap, deterministic topic extraction from a schedule result, for the
  * schedule's coverage memory (core/aiTaskRunner.js writes it, the agent's
@@ -10,6 +10,7 @@
  *
  * Returns `[{ subject, title, summary }]`. `subject` is a stable slug used
  * as the dedupe key across runs.
+ * @param {string} s
  */
 
 function _slugify(s) {
@@ -20,10 +21,16 @@ function _slugify(s) {
         .slice(0, 80);
 }
 
+/** @param {unknown} text */
 function extractCoverageTopics(text) {
     if (!text || typeof text !== 'string') return [];
+    /** @type {({ subject: string; title: string; summary: string | null; })[]} */
     const out = [];
     const seen = new Set();
+    /**
+     * @param {string} title
+     * @param {string} summary
+     */
     const push = (title, summary) => {
         const cleanTitle = String(title).replace(/\*\*|__|\[|\]\(.*?\)/g, '').trim();
         if (cleanTitle.length < 4 || cleanTitle.length > 200) return;

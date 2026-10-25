@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Gmail per-user quota, kept on our side.
  *
@@ -26,6 +26,7 @@ const REFILL_PER_MS = PER_MINUTE / 60_000;
 const BURST = 1500;
 
 /** Units per call (Gmail's table); an unknown method is charged as a get. */
+/** @type {Record<string, number>} */
 const COST = {
     'messages.list': 5,
     'messages.get': 20,
@@ -42,6 +43,7 @@ const DEFAULT_COST = 20;
 /** @type {Map<string, { units: number, at: number }>} */
 const buckets = new Map();
 
+/** @param {import('./googleClient').GoogleSession | null | undefined} session */
 function accountKey(session) {
     const id = session?.refreshToken || session?.accessToken || '';
     return id ? crypto.createHash('sha256').update(String(id)).digest('hex').slice(0, 24) : 'anonymous';
@@ -50,6 +52,9 @@ function accountKey(session) {
 /**
  * Milliseconds to wait before `units` may be spent, spending them. Pure apart
  * from the bucket map; `now` is injectable for tests.
+ * @param {string} key
+ * @param {number} [now]
+ * @param {number} units
  */
 function reserve(key, units, now = Date.now()) {
     const b = buckets.get(key) || { units: BURST, at: now };
@@ -60,7 +65,11 @@ function reserve(key, units, now = Date.now()) {
     return b.units >= 0 ? 0 : Math.ceil(-b.units / REFILL_PER_MS);
 }
 
-/** Wait until `method` may be called for this account. */
+/**
+ * Wait until `method` may be called for this account.
+ * @param {import('./googleClient').GoogleSession | null | undefined} session
+ * @param {string} method
+ */
 async function take(session, method) {
     const wait = reserve(accountKey(session), COST[method] ?? DEFAULT_COST);
     if (wait > 0) await new Promise(r => setTimeout(r, wait));
@@ -79,15 +88,28 @@ async function take(session, method) {
  * non-configurable data property" on every Gmail call. The stand-in owns
  * nothing, so it has nothing to be invariant about; every other property
  * still reads straight from the client.
+ *
+ * @template {object} G
+ * @param {G} gmail
+ * @param {import('./googleClient').GoogleSession | null | undefined} session
+ * @returns {G}
  */
 function withQuota(gmail, session) {
+    /**
+     * @param {object} obj
+     * @param {string} path
+     * @returns {object}
+     */
     const wrap = (obj, path) => new Proxy(obj, {
+        /**
+         * @param {string | symbol} prop
+         */
         get(target, prop, receiver) {
             const v = Reflect.get(target, prop, receiver);
             if (typeof prop !== 'string') return v;
             const here = path ? `${path}.${prop}` : prop;
             if (typeof v === 'function') {
-                return async (...args) => {
+                return async (/** @type {unknown[]} */ ...args) => {
                     await take(session, here);
                     return v.apply(target, args);
                 };
@@ -96,6 +118,9 @@ function withQuota(gmail, session) {
         },
     });
     return new Proxy(Object.create(gmail), {
+        /**
+         * @param {string | symbol} prop
+         */
         get(_standIn, prop) {
             const v = Reflect.get(gmail, prop);
             return prop === 'users' && v && typeof v === 'object' ? wrap(v, '') : v;

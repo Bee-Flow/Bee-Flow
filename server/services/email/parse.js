@@ -161,3 +161,7 @@ module.exports = {
     parseAddress,
     parseDisplayName,
 };
+
+/**
+ * @typedef {{ mimeType?: string | null, body?: { data?: string | null } | null, parts?: GmailPart[] | null }} GmailPart
+ */

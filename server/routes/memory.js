@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Memory API Routes
  * Manage user memories for AI agents
@@ -127,6 +128,7 @@ const memoryImportance = z.preprocess(
     z.number({ error: typeError({ invalid: IMPORTANCE_TEXT }) }).finite(IMPORTANCE_TEXT)
         .transform((n) => Math.min(1, Math.max(0, n))),
 ).nullish();
+/** @param {string} what */
 const optionalId = (what) => worded(`${what} is an id.`).trim().max(200, `${what} is at most 200 characters.`).nullish();
 
 const CreateMemoryBody = orEmpty(z.object({
@@ -144,7 +146,7 @@ const UpdateMemoryBody = orEmpty(z.object({
     summary: memorySummary,
     importance: memoryImportance,
 }).strict().refine(
-    (b) => ['content', 'type', 'summary', 'importance'].some((k) => b[k] !== undefined),
+    (b) => ['content', 'type', 'summary', 'importance'].some((k) => b[/** @type {keyof typeof b} */ (k)] !== undefined),
     { message: 'Send at least one of content, type, summary or importance.' },
 ));
 
@@ -183,12 +185,14 @@ const ImportBody = orEmpty(z.object({
  * (stores/memoryStore R3) and so may be listed, though no one may create one.
  */
 const LIST_TYPES = [...VALID_TYPES, 'schedule_coverage'];
+/** @param {string} name @param {{ min: number, max: number, fallback: number }} bounds */
 function pageNumber(name, { min, max, fallback }) {
     const text = `${name} is a whole number.`;
     return worded(text).trim().regex(/^-?\d+$/, text)
         .transform((v) => Math.min(Math.max(Number(v), min), max))
         .prefault(String(fallback));
 }
+/** @template {readonly string[]} T @param {string} name @param {T} values */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 const ListQuery = orEmpty(z.object({
     scope: oneOf('scope', memoryQueries.SCOPES).optional(),
@@ -212,6 +216,9 @@ const IdsQuery = orEmpty(z.object({
         .pipe(z.array(z.string().max(200, IDS_TEXT)).min(1, IDS_TEXT).max(MAX_IDS, IDS_TEXT)),
 }).strict());
 
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof IdsQuery>>} IdsReq */
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} ListReq */
+
 /** `?undo=1` is the chip's Undo; nothing else is accepted. */
 const DeleteQuery = orEmpty(z.object({
     undo: z.literal('1', { error: () => 'undo is 1 or left out.' }).optional(),
@@ -233,6 +240,7 @@ const ReviewQuery = orEmpty(z.object({
  * The org of the signed-in user. `req.user` is never set in this server (the
  * session carries the user), so reading it silently meant "no org": the org's
  * maxPerUser and model routing did not apply.
+ * @param {import('express').Request} req
  */
 const orgIdOf = (req) => req.session?.user?.organizationId || null;
 
@@ -257,7 +265,7 @@ router.get('/types', validate({ query: NoQuery }), (req, res) => {
  * separate bug where group-shared members were 403'd from their own project.
  *
  * @param {string} userId
- * @param {object} memory  row from user_memories
+ * @param {{ project_id?: string | null, user_id?: string }} memory  row from user_memories
  * @param {'viewer'|'editor'} minRole
  */
 async function canAccessMemory(userId, memory, minRole) {
@@ -270,6 +278,9 @@ async function canAccessMemory(userId, memory, minRole) {
  * always limited to the caller's own rows; this stops the endpoint from being
  * an oracle for agent ids (and honours the contract: an unknown agent is a
  * 404, one the caller cannot see a 403).
+ * @param {import('express').Request} req
+ * @param {string} userId
+ * @param {string} agentId
  */
 async function assertAgentVisible(req, userId, agentId) {
     const agent = await require('../stores/agentStore').getAgent(agentId);
@@ -284,7 +295,7 @@ async function assertAgentVisible(req, userId, agentId) {
 // The caller's own readable ACTIVE rows among `?ids=` (the chat's reload
 // previews). Only taken when `ids` is present; the plain list follows.
 router.get('/', (req, res, next) => (req.query.ids === undefined ? next('route') : next()),
-    validate({ query: IdsQuery }), async (req, res) => {
+    validate({ query: IdsQuery }), /** @param {IdsReq} req */ async (req, res) => {
         const userId = getEffectiveUserId(req);
         const items = await memoryQueries.listActiveByIds(userId, req.query.ids, {
             canReadProject: (projectId) => hasProjectRole(userId, projectId, 'viewer'),
@@ -297,7 +308,7 @@ router.get('/', (req, res, next) => (req.query.ids === undefined ? next('route')
 // paged with `limit` / `offset`. The answer carries the page twice: `items`
 // (the contract) and `memories` (what the mobile client and the project tab
 // read), both enriched with agent / project names and the chat kind.
-router.get('/', validate({ query: ListQuery }), async (req, res) => {
+router.get('/', validate({ query: ListQuery }), /** @param {ListReq} req */ async (req, res) => {
     const userId = getEffectiveUserId(req);
     const { agentId = null, projectId = null, type = null, search = null, origin = null, status, sort, limit, offset } = req.query;
     // Callers from before `scope` existed sent only agentId or projectId.
@@ -320,7 +331,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
         const agent = await assertAgentVisible(req, userId, agentId);
         // A legacy call (agentId alone) also got the general memory, unless the
         // agent opted out; an explicit scope=agent is the agent's own bucket.
-        const cfg = agent.config || {};
+        const cfg = /** @type {{ memoryEnabled?: boolean, useGeneralMemory?: boolean }} */ (agent.config || {});
         includeGeneral = !req.query.scope && !(cfg.memoryEnabled === true && cfg.useGeneralMemory === false);
     }
 
@@ -348,7 +359,7 @@ router.get('/stats', validate({ query: NoQuery }), async (req, res) => {
 });
 
 // The "Remembered" chip: what this conversation just taught the caller.
-router.get('/recent', validate({ query: RecentQuery }), async (req, res) => {
+router.get('/recent', validate({ query: RecentQuery }), /** @param {import('express').Request<{}, any, any, import('zod').infer<typeof RecentQuery>>} req */ async (req, res) => {
     const { conversationId, since } = req.query;
     res.json({ items: await memoryQueries.listRecent(getEffectiveUserId(req), conversationId, since) });
 });
@@ -358,7 +369,10 @@ router.get('/review', validate({ query: ReviewQuery }), async (req, res) => {
     res.json(await memoryQueries.listReview(getEffectiveUserId(req), req.query));
 });
 
-/** A pending row of the caller's own, or the right error. Review is personal. */
+/**
+ * A pending row of the caller's own, or the right error. Review is personal.
+ * @param {import('express').Request<{ id: string }>} req
+ */
 async function ownPendingMemory(req) {
     const memory = await memoryStore.getMemoryById(req.params.id);
     if (!memory) throw new HttpError(404, 'memory_not_found', 'Memory not found');
@@ -367,19 +381,22 @@ async function ownPendingMemory(req) {
     return memory;
 }
 
-router.post('/review/:id/approve', validate({ query: NoQuery }), async (req, res) => {
+router.post('/review/:id/approve', validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const memory = await ownPendingMemory(req);
     await lifecycle().approve(memory.id);
     res.json({ memory: await presentOne(memory.id) });
 });
 
-router.post('/review/:id/reject', validate({ query: NoQuery }), async (req, res) => {
+router.post('/review/:id/reject', validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const memory = await ownPendingMemory(req);
     await memoryStore.deleteMemory(memory.id);
     res.json({ deleted: 1 });
 });
 
-/** One memory as the API shows it (re-read, so a lifecycle change is reflected). */
+/**
+ * One memory as the API shows it (re-read, so a lifecycle change is reflected).
+ * @param {string} id
+ */
 async function presentOne(id) {
     const row = await memoryStore.getMemoryById(id);
     return row ? (await memoryQueries.presentMemories([row]))[0] : null;
@@ -389,7 +406,7 @@ async function presentOne(id) {
 const lifecycle = () => require('../stores/memoryLifecycle');
 
 // Archived → active again.
-router.post('/:id/restore', validate({ query: NoQuery }), async (req, res) => {
+router.post('/:id/restore', validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const memory = await memoryStore.getMemoryById(req.params.id);
     if (!memory) throw new HttpError(404, 'memory_not_found', 'Memory not found');
     if (!await canAccessMemory(getEffectiveUserId(req), memory, 'editor')) {
@@ -401,7 +418,7 @@ router.post('/:id/restore', validate({ query: NoQuery }), async (req, res) => {
 });
 
 // Get a single memory
-router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id', validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = getEffectiveUserId(req);
 
     const memory = await memoryStore.getMemoryById(req.params.id);
@@ -457,7 +474,7 @@ router.post('/', validate({ body: CreateMemoryBody }), async (req, res) => {
 });
 
 // Update a memory — validated like POST.
-router.put('/:id', validate({ body: UpdateMemoryBody }), async (req, res) => {
+router.put('/:id', validate({ body: UpdateMemoryBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = getEffectiveUserId(req);
     const { content, type, summary, importance } = req.body;
 
@@ -524,13 +541,13 @@ router.post('/bulk-delete', validate({ body: BulkDeleteBody }), async (req, res)
 // Delete what a conversation taught the CALLER (their own rows only). The
 // client calls this explicitly when a chat is deleted and the person chose to
 // forget its memories too; deleting a chat never cascades by itself.
-router.delete('/by-conversation/:conversationId', validate({ query: NoQuery }), async (req, res) => {
+router.delete('/by-conversation/:conversationId', validate({ query: NoQuery }), /** @param {import('express').Request<{ conversationId: string }>} req */ async (req, res) => {
     const deleted = await memoryQueries.deleteByConversation(getEffectiveUserId(req), req.params.conversationId);
     res.json({ deleted });
 });
 
 // Delete a memory
-router.delete('/:id', validate({ query: DeleteQuery }), async (req, res) => {
+router.delete('/:id', validate({ query: DeleteQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = getEffectiveUserId(req);
 
     const memory = await memoryStore.getMemoryById(req.params.id);
@@ -590,7 +607,10 @@ router.get('/export/all', validate({ query: NoQuery }), require('../compliance/d
     res.json({ exportDate: new Date().toISOString(), userId, memories });
 });
 
-/** Case- and whitespace-insensitive identity of a memory's content. */
+/**
+ * Case- and whitespace-insensitive identity of a memory's content.
+ * @param {string} content
+ */
 function contentKey(content) {
     return content.toLowerCase().replace(/\s+/g, ' ').trim();
 }

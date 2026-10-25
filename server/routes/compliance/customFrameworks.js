@@ -394,3 +394,5 @@ router.get('/custom/frameworks/:id/export.json', ...guard, async (req, res) => {
 
 module.exports = router;
 module.exports.computeExpiresAt = computeExpiresAt;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

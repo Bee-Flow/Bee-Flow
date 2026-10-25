@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Builder Tools — used by directChat so the regular AI chat can create
  * and edit webpages without the user being in the dedicated Webpages editor.
@@ -131,6 +131,9 @@ const BUILDER_TOOLS = [
 
 const BUILDER_TOOL_NAMES = new Set(BUILDER_TOOLS.map(t => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isBuilderTool(toolName) {
     return BUILDER_TOOL_NAMES.has(toolName);
 }
@@ -149,6 +152,9 @@ function isBuilderTool(toolName) {
 async function executeBuilderTool(toolName, args, ctx) {
     const { userId, readSlots } = ctx;
 
+    /**
+     * @param {string} webpageId
+     */
     function readSetFor(webpageId) {
         if (!readSlots) return null;
         if (!readSlots.has(webpageId)) readSlots.set(webpageId, new Set());

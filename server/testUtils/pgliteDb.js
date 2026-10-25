@@ -79,3 +79,5 @@ function dbFacade(db) {
 }
 
 module.exports = { pgliteDb, dbFacade, createProjectScopedSchema };
+
+/** @typedef {import('@electric-sql/pglite').Transaction} Transaction */

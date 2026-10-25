@@ -201,3 +201,15 @@ function makeCommentsContext(deps = {}) {
 }
 
 module.exports = { makeCommentsContext };
+
+/** @typedef {NonNullable<Parameters<typeof import('./comments').makeProjectCommentsRouter>[0]>} CommentsDeps */
+
+/** @typedef {import('../../projects/comments/commentAssistant').CommentProject} CommentProject */
+
+/** @typedef {import('../../projects/comments/commentAssistant').CommentThread} CommentThread */
+
+/** @typedef {import('../../projects/comments/commentAssistant').CommentBox} CommentBox */
+
+/** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToComment>} CommentRow */
+
+/** @typedef {ReturnType<typeof makeCommentsContext>} CommentsCtx */

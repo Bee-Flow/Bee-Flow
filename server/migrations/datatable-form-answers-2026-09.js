@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: the form-answers index (2026-09).
  *

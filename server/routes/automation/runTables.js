@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The tables a run produced, as the run page shows them:
  *
@@ -36,18 +36,28 @@ const { tableRouterDeps } = require('./tableRouterDeps');
 const WHOLE_NUMBER = /^\d{1,12}$/;
 const notFound = () => new HttpError(404, 'run_table_not_found', 'Not found');
 
-/** A storage miss: the reaper deletes bytes before rows, so a live row without bytes is a normal race. */
+/**
+ * A storage miss: the reaper deletes bytes before rows, so a live row without bytes is a normal race.
+ * @param {{ name?: string, code?: string } | null | undefined} e
+ */
 function isMissingObject(e) {
     return !!e && (e.name === 'NoSuchKey' || e.code === 'ENOENT' || e.code === 'NoSuchKey');
 }
 
-/** A name for the download: no path, quote or control characters. */
+/**
+ * A name for the download: no path, quote or control characters.
+ * @param {string} name
+ */
 function csvFileName(name) {
     const { safeDocumentName } = require('../../core/automationRunner/execDocument');
     return `${safeDocumentName(name, 'table')}.csv`;
 }
 
-/** Page parameters, or an HttpError 400. */
+/**
+ * Page parameters, or an HttpError 400.
+ * @param {import('express').Request['query']} query
+ * @param {ReturnType<typeof import('../../core/automationRunner/tables/limits').tableLimits>} limits
+ */
 function pageParams(query, limits) {
     const rawOffset = query.offset == null ? '0' : String(query.offset);
     const rawLimit = query.limit == null ? '50' : String(query.limit);
@@ -75,7 +85,11 @@ function makeRunTablesRouter(overrides = {}) {
     const router = express.Router();
     const { store, tables, limitsNow, journey } = tableRouterDeps(overrides);
 
-    /** The ledger row for this request, or null after a 403 was written; 404 for every other miss. */
+    /**
+     * The ledger row for this request, or null after a 403 was written; 404 for every other miss.
+     * @param {import('express').Request<{ runId: string, tableId: string }>} req
+     * @param {import('express').Response} res
+     */
     async function openRow(req, res) {
         // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- TABLE_ID_RE is anchored and fixed length: linear
         if (!TABLE_ID_RE.test(String(req.params.tableId))) throw notFound();
@@ -119,7 +133,9 @@ function makeRunTablesRouter(overrides = {}) {
     });
 
     // Read fresh on every request, so changing the variable needs no restart.
+    /** @type {{ rpm: number, run: ReturnType<typeof perUserRateLimit> | null }} */
     let limiter = { rpm: 0, run: null };
+    /** @type {import('express').RequestHandler} */
     const csvLimiter = (req, res, next) => {
         const rpm = limitsNow().csvRpm;
         if (rpm <= 0) return next();
@@ -127,7 +143,7 @@ function makeRunTablesRouter(overrides = {}) {
         return limiter.run(req, res, next);
     };
 
-    router.get('/runs/:runId/tables/:tableId/csv', csvLimiter, async (req, res) => {
+    router.get('/runs/:runId/tables/:tableId/csv', csvLimiter, async (/** @type {import('express').Request<{ runId: string, tableId: string }>} */ req, res) => {
         const row = await openRow(req, res);
         if (!row) return undefined;
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');

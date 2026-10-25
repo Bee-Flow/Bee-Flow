@@ -81,6 +81,10 @@ async function proposeEvolution({ automationId, userId, rationale, expectedEffec
  * validate, save as a new version, capture the baseline, start the canary.
  * Never throws for a plan problem — the row ends in `failed` with the reason,
  * which the calling automation reports to the owner.
+ *
+ * @param {string} evolutionId
+ * @param {{ userId?: string }} [opts]
+ * @param {ReturnType<typeof defaultDeps>} [deps]
  */
 async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()) {
     const row = await deps.store.getEvolution(evolutionId);
@@ -117,7 +121,7 @@ async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()
     }
     const v = deps.validateDefinition(copy, { deliverableEvents: deps.getDeliverableEvents() });
     if (!v.ok) {
-        const msg = (v.errors || []).slice(0, 5).map(e => `${e.code} ${e.path || ''}: ${e.message}`).join(' | ');
+        const msg = (/** @type {{ code: string, path?: string, message: string }[]} */ (v.errors) || []).slice(0, 5).map(e => `${e.code} ${e.path || ''}: ${e.message}`).join(' | ');
         return deps.store.updateEvolution(evolutionId, { status: 'failed', error: `definition invalid after the plan: ${msg}` });
     }
     // Capture the version BEFORE saving: a store that hands back a live row

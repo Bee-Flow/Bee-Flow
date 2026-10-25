@@ -180,3 +180,11 @@ async function advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, 
 }
 
 module.exports = { releaseMarker, notifyRunEnd, advancePrimarySchedule };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ * @typedef {{ id?: string, cron?: string, tz?: string } | null} ScheduleRow  the secondary schedule a run entered through
+ * @typedef {Awaited<ReturnType<typeof import('./approvalLifecycle').createApprovalOnPause>>} ApprovalRow
+ */

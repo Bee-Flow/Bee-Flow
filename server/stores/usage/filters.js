@@ -67,3 +67,5 @@ function buildFilters(filters, startIdx = 1, excludeToolRows = false) {
 }
 
 module.exports = { buildFilters, numericAggregates };
+
+/** @typedef {{ startDate?: string, endDate?: string, organizationId?: string, userId?: string, agentId?: string, model?: string, source?: string, search?: string }} UsageFilters */

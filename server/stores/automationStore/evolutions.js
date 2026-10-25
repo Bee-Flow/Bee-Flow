@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * automationStore — automation evolution proposals (automation_evolutions) and
  * the run-outcome summaries an evolution is proposed from and judged by.
@@ -9,9 +9,34 @@ const crypto = require('crypto');
 const { initDB, run, getOne, getAll } = require('./core');
 const { buildUpdate } = require('../lib/sqlBuilder');
 
+/**
+ * @typedef {object} EvolutionRow
+ * @property {string} id
+ * @property {string} automation_id
+ * @property {string} user_id
+ * @property {string} status
+ * @property {string | null} [rationale]
+ * @property {string | null} [expected_effect]
+ * @property {string | null} [risk]
+ * @property {unknown} plan
+ * @property {number | null} [version_before]
+ * @property {number | null} [version_after]
+ * @property {unknown} baseline
+ * @property {unknown} canary
+ * @property {number | null} [canary_runs]
+ * @property {string | null} [error]
+ * @property {string | Date | null} created_at
+ * @property {string | Date | null} applied_at
+ * @property {string | Date | null} evaluated_at
+ * @property {string | Date | null} updated_at
+ */
+
+/** @param {EvolutionRow | null} r */
 function rowToEvolution(r) {
     if (!r) return null;
+    /** @param {unknown} v */
     const j = (v) => (typeof v === 'string' ? (() => { try { return JSON.parse(v); } catch { return null; } })() : (v ?? null));
+    /** @param {string | Date | null} v */
     const ts = (v) => (v ? new Date(v).toISOString() : null);
     return {
         id: r.id,
@@ -35,6 +60,7 @@ function rowToEvolution(r) {
     };
 }
 
+/** @param {{ automationId: string, userId: string, rationale?: string | null, expectedEffect?: string | null, risk?: string | null, plan?: Array<Record<string, unknown>>, canaryRuns?: number }} evolution */
 async function createEvolution({ automationId, userId, rationale = null, expectedEffect = null, risk = null, plan = [], canaryRuns = 20 }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -46,11 +72,16 @@ async function createEvolution({ automationId, userId, rationale = null, expecte
     return getEvolution(id);
 }
 
+/** @param {string} id */
 async function getEvolution(id) {
     await initDB();
     return rowToEvolution(await getOne('SELECT * FROM automation_evolutions WHERE id = $1', [id]));
 }
 
+/**
+ * @param {string} automationId
+ * @param {{ limit?: number }} [opts]
+ */
 async function listEvolutions(automationId, { limit = 20 } = {}) {
     await initDB();
     const rows = await getAll(
@@ -60,6 +91,7 @@ async function listEvolutions(automationId, { limit = 20 } = {}) {
     return rows.map(rowToEvolution);
 }
 
+/** @type {{ cast: string, transform: (v: unknown) => string }} */
 const asJsonb = { cast: 'jsonb', transform: (v) => JSON.stringify(v) };
 const PATCH_COLUMNS = {
     status: 'status', error: 'error', versionBefore: 'version_before', versionAfter: 'version_after',
@@ -67,6 +99,10 @@ const PATCH_COLUMNS = {
     appliedAt: 'applied_at', evaluatedAt: 'evaluated_at',
 };
 
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} [patch]
+ */
 async function updateEvolution(id, patch = {}) {
     await initDB();
     const built = buildUpdate({
@@ -92,9 +128,12 @@ async function listCanaryEvolutions() {
  * class, handled errors, average duration, and a per-root breakdown. `since`
  * (ISO) bounds the window; `minVersion` restricts to runs of that definition
  * version or later — the canary reads only the runs of the new version.
+ * @param {string} automationId
+ * @param {{ since?: string | null, minVersion?: number | null }} [opts]
  */
 async function runOutcomeSummary(automationId, { since = null, minVersion = null } = {}) {
     await initDB();
+    /** @type {Array<string | number>} */
     const params = [automationId];
     let clause = `r.automation_id = $1 AND r.mode = 'live'`;
     if (since) { params.push(since); clause += ` AND r.started_at >= $${params.length}`; }
@@ -105,8 +144,11 @@ async function runOutcomeSummary(automationId, { since = null, minVersion = null
           WHERE ${clause}`,
         params,
     );
+    /** @type {Record<string, number>} */
     const byStatus = {};
+    /** @type {Record<string, number>} */
     const byErrorClass = {};
+    /** @type {Record<string, { rootStepId: string, total: number, failed: number }>} */
     const byRoot = {};
     let handled = 0, durTotal = 0, durCount = 0;
     for (const r of rows) {

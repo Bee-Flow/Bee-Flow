@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Smoke scenarios — AI Act transparency towards the user:
  * Art. 50 (AI disclosure) and Art. 13 (agent description).

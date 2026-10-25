@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Same-batch dedup for side-effecting tool calls.
  *
@@ -16,28 +16,32 @@
 const { isSideEffect } = require('../automationModel/sideEffectMap');
 const { stableStringify } = require('../../utils/stableJson');
 
+/** @param {unknown} value */
 function _defaultStableStringify(value) {
     return stableStringify(value, { undefined: 'raw' });
 }
 
 /**
- * @param {Array} toolCalls - OpenAI-format tool calls: { id, function: { name, arguments } }
+ * @template {{ id?: string, name?: string, function?: { name?: string, arguments?: string } }} T
+ * @param {T[]} toolCalls - OpenAI-format tool calls: { id, function: { name, arguments } }
  * @param {Object} [opts]
- * @param {Function} [opts.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
- * @param {Function} [opts.stableStringify] - deterministic serializer for the args key
- * @returns {{ kept: Array, dropped: number }}
+ * @param {(toolName: string) => boolean} [opts.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
+ * @param {(value: unknown) => string} [opts.stableStringify] - deterministic serializer for the args key
+ * @returns {{ kept: T[], dropped: number }}
  */
 function dedupeSideEffectToolCalls(toolCalls, opts = {}) {
     const sideEffectFn = opts.isSideEffect || isSideEffect;
     const stringify = opts.stableStringify || _defaultStableStringify;
 
     const seen = new Set();
+    /** @type {T[]} */
     const kept = [];
     let dropped = 0;
 
     for (const tc of toolCalls || []) {
         const name = tc?.function?.name || tc?.name || '';
         const rawArgs = tc?.function?.arguments ?? '';
+        /** @type {string} */
         let key;
         try {
             key = `${name}|${stringify(JSON.parse(rawArgs || '{}'))}`;

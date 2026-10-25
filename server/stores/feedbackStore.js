@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Feedback Store — Tracks user feedback (thumbs up/down) on AI responses
  * PostgreSQL-backed for admin monitoring dashboard.
@@ -49,6 +49,9 @@ log.info('[FeedbackStore] Initialized (PostgreSQL)');
 
 // ============ Write ============
 
+/**
+ * @param {{ conversationId?: string|null, messageId?: string|null, agentId?: string|null, agentName?: string|null, model?: string|null, modelTier?: string|null, userId?: string|null, organizationId?: string|null, rating: string, comment?: string|null, source?: string, conversationSnapshot?: unknown }} fb
+ */
 async function saveFeedback({ conversationId, messageId, agentId, agentName, model, modelTier, userId, organizationId, rating, comment, source, conversationSnapshot }) {
     await initDB();
     try {
@@ -92,8 +95,15 @@ async function saveFeedback({ conversationId, messageId, agentId, agentName, mod
 
 // ============ Queries ============
 
+/**
+ * @typedef {{ startDate?: string|Date, endDate?: string|Date, rating?: string, agentId?: string, source?: string, organizationId?: string }} FeedbackFilters
+ */
+
+/** @param {FeedbackFilters} [filters] */
 function buildFilters(filters) {
+    /** @type {string[]} */
     const conditions = [];
+    /** @type {unknown[]} */
     const params = [];
     let idx = 1;
     if (filters?.startDate) {
@@ -124,6 +134,10 @@ function buildFilters(filters) {
     return { where, params, nextIdx: idx };
 }
 
+/**
+ * @param {FeedbackFilters} [filters]
+ * @param {number} [limit]
+ */
 async function getFeedback(filters = {}, limit = 200) {
     await initDB();
     const { where, params, nextIdx } = buildFilters(filters);
@@ -134,6 +148,7 @@ async function getFeedback(filters = {}, limit = 200) {
     `, [...params, limit]);
 }
 
+/** @param {FeedbackFilters} [filters] */
 async function getFeedbackSummary(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);

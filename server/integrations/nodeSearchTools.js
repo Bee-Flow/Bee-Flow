@@ -373,3 +373,10 @@ module.exports = {
     PAGE_FETCH_TIMEOUT_MS,
     PAGE_BYTE_CAP,
 };
+
+/**
+ * One search hit, enriched along the way (page text, cleaned markdown, rerank score).
+ * @typedef {{ title: string, url: string, snippet: string, content?: string, markdown?: string, score?: number }} SearchResult
+ * @typedef {{ max_results?: string, fetch_top_n?: string, detail_level?: string, max_tokens_markdown?: string }} SearchModeDefaults
+ * @typedef {{ mode?: string, web?: SearchModeDefaults, web_fast?: SearchModeDefaults }} AgentSearchDefaults
+ */

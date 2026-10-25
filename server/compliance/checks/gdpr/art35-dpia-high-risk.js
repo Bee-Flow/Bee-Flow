@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 35 — Data Protection Impact Assessment for high-risk processing.
  *
@@ -23,6 +23,9 @@ const pd = require('../../projects/projectData');
 const DECISION_KEYWORDS = /\b(approve|deny|reject|recommend|score|classif|decid|grade|rank|verdict)\w*\b/i;
 const EXTERNAL_PROVIDER_PREFIXES = /\b(openai|claude|anthropic|google|google-vertex|azure|mistral|cohere|groq|together|fireworks|perplexity)\b/i;
 
+/**
+ * @param {string} value
+ */
 function _parseConfig(value) {
     if (!value) return {};
     if (typeof value === 'object') return value;
@@ -31,6 +34,9 @@ function _parseConfig(value) {
 
 // Each reason is a clause that completes "required because it …" in the
 // finding sentence, so it starts with a verb and names no setting key.
+/**
+ * @param {Record<string, any>} agent
+ */
 function _isHighRisk(agent) {
     const cfg = _parseConfig(agent.config);
     if (cfg.automated_decision_making) return { reason: 'has automated decision-making switched on' };
@@ -61,6 +67,7 @@ function _isHighRisk(agent) {
  * name into tenant B's DPIA list and evidence. The JS filter mirrors the SQL
  * predicate so a store or stub that ignores parameters cannot widen it. Same
  * rule in art44-external-transfers._scanAgents.
+ * @param {string} orgId
  */
 async function _highRiskAgents(orgId) {
     const scope = orgId || pd.NO_ORG_ORG_ID;
@@ -101,6 +108,9 @@ module.exports = {
     retiresVanished: true,
     retiredDetails: 'No longer a published high-risk agent: unpublished, deleted, or no longer flagged by the high-risk heuristic.',
 
+    /**
+     * @param {string} orgId
+     */
     async listSubjects(orgId) {
         return _highRiskAgents(orgId);
     },
@@ -110,6 +120,10 @@ module.exports = {
     // coupling the modules.
     _highRiskAgents,
 
+    /**
+     * @param {string} orgId
+     * @param {{ id?: string, label?: string, risk_reason?: string } | null} subject
+     */
     async evaluate(orgId, subject) {
         if (!subject?.id) {
             return { status: 'not_applicable', evidence: {}, details: 'No high-risk agent to assess.' };

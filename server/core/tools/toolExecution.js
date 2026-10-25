@@ -217,3 +217,19 @@ module.exports = {
     executeSystemTool,
     SYSTEM_TOOLS
 };
+
+/**
+ * One input of a component.json: a bare type string or a field config.
+ * @typedef {string | { type?: string, description?: string, default?: unknown }} ComponentInput
+ */
+
+/**
+ * A component.json as loaded by componentManager (parsed JSON). `inputs` is a
+ * map of name → input, or a JSON-schema object with `properties`/`required`.
+ * @typedef {{ name?: string, description?: string, inputs?: Record<string, ComponentInput> }} ComponentDefinition
+ */
+
+/**
+ * The JSON-schema form of `inputs` (`{ type: 'object', properties, required }`).
+ * @typedef {{ type?: string, properties?: Record<string, ComponentInput>, required?: string[] }} ComponentSchemaInputs
+ */

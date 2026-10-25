@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * versions.js — automationStore aggregate (§WS5, extracted verbatim).
  */
@@ -6,6 +6,7 @@
 const { initDB, getOne, getAll } = require('./core');
 const { safeParse } = require('./rowMappers');
 
+/** @param {string} automationId */
 async function listVersions(automationId) {
     await initDB();
     // LEFT JOIN users so the panel can show who saved each version. The
@@ -36,6 +37,7 @@ async function listVersions(automationId) {
  * Handoff 5 (automation-handoff5-2026-09): a version's milestone name, its
  * plain-language description (text + structured change list), and whether it
  * was a layout-only save (which does not count as a pending change).
+ * @param {import('pg').QueryResultRow} r
  */
 function versionMetaOf(r) {
     return {
@@ -46,7 +48,10 @@ function versionMetaOf(r) {
     };
 }
 
-/** Best display name for a version author, given the joined user columns. */
+/**
+ * Best display name for a version author, given the joined user columns.
+ * @param {import('pg').QueryResultRow} r
+ */
 function resolveVersionAuthorName(r) {
     if (r.u_display_name) return r.u_display_name;
     const full = [r.u_first_name, r.u_last_name].filter(Boolean).join(' ').trim();
@@ -59,6 +64,7 @@ function resolveVersionAuthorName(r) {
  * Used by the restore endpoint to load the historical definition before
  * we apply it through the regular updateAutomation path (which also
  * validates and bumps the version counter).
+ * @param {string} versionId
  */
 async function getVersion(versionId) {
     await initDB();
@@ -82,6 +88,10 @@ async function getVersion(versionId) {
 // this to render each run with the steps as they were AT RUN TIME rather than
 // the current definition. Returns the parsed definition, or null when that
 // version wasn't snapshotted (e.g. legacy rows from before version seeding).
+/**
+ * @param {string} automationId
+ * @param {number | string} versionNumber
+ */
 async function getVersionDefinition(automationId, versionNumber) {
     await initDB();
     const v = Number(versionNumber);
@@ -123,7 +133,10 @@ const COUNTED_RUN_SQL = `
  * @param {{ ready?: () => Promise<void> }} [opts]
  */
 function makeVersionQueries(db, { ready = async () => {} } = {}) {
-    /** version number → { total, failed } over every counted run of the automation. */
+    /**
+     * version number → { total, failed } over every counted run of the automation.
+     * @param {string} automationId
+     */
     async function countRunsByVersion(automationId) {
         await ready();
         const r = await db.query(
@@ -137,7 +150,11 @@ function makeVersionQueries(db, { ready = async () => {} } = {}) {
         return out;
     }
 
-    /** One version by its NUMBER (the id-keyed read is getVersion). */
+    /**
+     * One version by its NUMBER (the id-keyed read is getVersion).
+     * @param {string} automationId
+     * @param {number | string} versionNumber
+     */
     async function getVersionByNumber(automationId, versionNumber) {
         await ready();
         const v = Number(versionNumber);
@@ -162,7 +179,12 @@ function makeVersionQueries(db, { ready = async () => {} } = {}) {
         };
     }
 
-    /** Name a version (a milestone), or clear it with null. Null when there is no such version. */
+    /**
+     * Name a version (a milestone), or clear it with null. Null when there is no such version.
+     * @param {string} automationId
+     * @param {number | string} versionNumber
+     * @param {string | null} name
+     */
     async function renameVersion(automationId, versionNumber, name) {
         await ready();
         const v = Number(versionNumber);
@@ -181,6 +203,8 @@ function makeVersionQueries(db, { ready = async () => {} } = {}) {
      * The Builder header's tab badges, in two cheap reads. `onlyUserId` narrows
      * the run counts to the runs that person started or submitted (a run-only
      * share sees only their own runs).
+     * @param {string} automationId
+     * @param {{ days?: number, onlyUserId?: string | null }} [opts]
      */
     async function countsForAutomation(automationId, { days = 7, onlyUserId = null } = {}) {
         await ready();

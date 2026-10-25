@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Per-replica fan-out of co-editing updates to the open project streams.
  *

@@ -224,3 +224,5 @@ module.exports = { createAzureGroupSync, getClientCredentialsToken,
     initPeriodicSyncs: (...args) => defaultSync().initPeriodicSyncs(...args),
     stopAllPeriodicSyncs: (...args) => defaultSync().stopAllPeriodicSyncs(...args),
 };
+
+/** @typedef {ReturnType<typeof createAzureGroupSync>} AzureGroupSync */

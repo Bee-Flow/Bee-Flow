@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The chat-level half of the project chat store (../projectChatStore.js):
@@ -17,7 +17,11 @@ const { AI_MODES, MAX_CHATS_LISTED, ProjectChatStoreError, toInt, rowToChat } = 
  * @param {() => Promise<void>} ready
  */
 function makeChatReads(db, ready) {
-    /** One chat, only when it belongs to this project. */
+    /**
+     * One chat, only when it belongs to this project.
+     * @param {string} projectId
+     * @param {string} chatId
+     */
     async function getChat(projectId, chatId) {
         await ready();
         const r = await db.query('SELECT * FROM project_chats WHERE id = $1 AND project_id = $2', [chatId, projectId]);
@@ -28,6 +32,7 @@ function makeChatReads(db, ready) {
      * One chat by its id alone. For the background participation job only,
      * which starts from a queued chat id and authorises nothing: routes look
      * a chat up THROUGH its project with getChat.
+     * @param {string} chatId
      */
     async function getChatById(chatId) {
         await ready();
@@ -35,7 +40,12 @@ function makeChatReads(db, ready) {
         return rowToChat(r.rows[0] || null);
     }
 
-    /** How many people other than `exceptUserId` have read up to `seq` or further. */
+    /**
+     * How many people other than `exceptUserId` have read up to `seq` or further.
+     * @param {string} chatId
+     * @param {number} seq
+     * @param {string | null} [exceptUserId]
+     */
     async function countReadersAtLeast(chatId, seq, exceptUserId = null) {
         await ready();
         const r = await db.query(
@@ -156,8 +166,11 @@ function makeChatWrites(db, ready, getChat) {
      */
     async function updateChat(projectId, chatId, patch) {
         await ready();
+        /** @type {string[]} */
         const sets = [];
+        /** @type {unknown[]} */
         const params = [chatId, projectId];
+        /** @param {string} col @param {unknown} value */
         const add = (col, value) => { params.push(value); sets.push(`${col} = $${params.length}`); };
         if (patch.title !== undefined) {
             // A name somebody chose is no longer the first message's words.
@@ -180,7 +193,11 @@ function makeChatWrites(db, ready, getChat) {
         return rowToChat(r.rows[0] || null);
     }
 
-    /** Delete a chat; its messages and read markers cascade. */
+    /**
+     * Delete a chat; its messages and read markers cascade.
+     * @param {string} projectId
+     * @param {string} chatId
+     */
     async function deleteChat(projectId, chatId) {
         await ready();
         const r = await db.query('DELETE FROM project_chats WHERE id = $1 AND project_id = $2 RETURNING id', [chatId, projectId]);

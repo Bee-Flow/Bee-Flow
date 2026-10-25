@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * AI Config — the AI regex generator: an admin-only tool loop that drafts
  * regex guardrail rules through the Regex Generator agent.
@@ -61,6 +62,7 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
     const modelToUse = tier.modelId || (await getAIConfig()).model || 'mistral-small-latest';
     const config = await getProviderForModel(modelToUse);
 
+    /** @type {Array<{ role: string, content?: unknown, thinking?: object[], tool_calls?: Array<{ id: string, type?: string, function: { name: string, arguments?: string } }>, tool_call_id?: string }>} */
     const messages = [
         { role: 'system', content: agent.system_prompt },
         { role: 'user', content: prompt }
@@ -84,6 +86,7 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
             toolChoice: 'auto',
         });
 
+        /** @type {Record<string, string>} */
         const headers = { 'Content-Type': 'application/json' };
         if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
 
@@ -98,7 +101,7 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
             throw new Error(`AI API error: ${response.status} - ${error}`);
         }
 
-        const data = await response.json();
+        const data = /** @type {{ choices?: Array<{ message?: { role: string, content?: unknown, thinking?: object[], tool_calls?: Array<{ id: string, type?: string, function: { name: string, arguments?: string } }>, tool_call_id?: string } }> }} */ (await response.json());
         const choice = data.choices?.[0];
         if (!choice) throw new Error('No response from AI');
 

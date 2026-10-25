@@ -109,3 +109,7 @@ function sanitizeError(err) {
 }
 
 module.exports = { sanitizeError, classifyErrorCode };
+
+/**
+ * @typedef {Error & { status?: number, statusCode?: number, error?: { type?: string } }} SanitizableError
+ */

@@ -576,3 +576,17 @@ module.exports = {
     kindsFor, sectionsFor, isAllowedIn, CONTAINER_KINDS,
     stageGuard, assertNoStageFiling, withStageGuard,
 };
+
+/**
+ * @typedef {{ req?: import('express').Request, projectId?: string, managedWrite?: { deploymentId?: string }|null }} MoveCtx
+ *   what a `setProject` is handed: the request, the project being edited, a deploy's capability
+ * @typedef {{
+ *   kind: string, section: string, containers: readonly string[], detaches: boolean, linkOnProject?: boolean,
+ *   projectOf?: (id: string) => Promise<string|null>,
+ *   ownerOf?: (id: string) => Promise<string|null>,
+ *   list: (projectId: string, viewer?: { userId?: string } & Record<string, unknown>) => Promise<Array<{ id: string }>>,
+ *   countIn?: (projectIds: string[]) => Promise<unknown>,
+ *   setProject?: (id: string, userId: string, projectId: string|null, ctx?: MoveCtx) => Promise<unknown>,
+ *   clearProject?: (projectId: string, ctx?: { managedWrite?: { deploymentId?: string }|null }|null) => Promise<unknown>,
+ * }} MemberKind  one registry entry
+ */

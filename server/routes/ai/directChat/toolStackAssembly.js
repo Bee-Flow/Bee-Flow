@@ -316,3 +316,5 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
 }
 
 module.exports = { assembleToolStack };
+
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ToolDef | import('../../../core/tools/toolDisclosure').DisclosableTool} DirectChatTool */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * @typedef {object} RenderInput  What renderDocument takes.
  * @property {string} [content]

@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Unit tests for the automation-builder route's internal helpers:
  * parseToolArgs, isTransientChatError, chatWithRetry, applyBuilderTierFloor.

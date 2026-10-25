@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Which versions of ONE item may be thinned out.
  *
@@ -67,7 +67,10 @@ const PROTECTED_SOURCES = new Set(['named', 'created', 'restore', 'pre_restore']
  * @property {boolean} [hidden]       not shown in the history list (folded into a later version)
  */
 
-/** Milliseconds since the epoch, or NaN for a value that is not a time. */
+/**
+ * Milliseconds since the epoch, or NaN for a value that is not a time.
+ * @param {string | number | Date} value
+ */
 function timeOf(value) {
     if (value instanceof Date) return value.getTime();
     if (typeof value === 'number') return value;
@@ -79,6 +82,8 @@ function timeOf(value) {
  * The bucket a version of this age falls in, or null when it is kept anyway
  * (young enough to keep every version). Buckets are UTC-aligned, so the same
  * version lands in the same bucket on every run and thinning is stable.
+ * @param {number} createdMs
+ * @param {number} nowMs
  */
 function bucketOf(createdMs, nowMs) {
     const age = nowMs - createdMs;
@@ -122,7 +127,9 @@ function selectPrunable(rows, now = Date.now(), opts = {}) {
 
     const newestId = dated[0].row.id;
     const seenBuckets = new Set();
+    /** @type {string[]} */
     const prunable = [];
+    /** @type {string[]} */
     const keptFree = [];
     for (const { row, at } of dated) {
         if (row.id === newestId || isProtected(row, referenced)) continue;

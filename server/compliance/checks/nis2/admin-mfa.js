@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NIS2 Art. 21(2)(j) — multi-factor authentication on privileged access.
  *
@@ -25,6 +25,7 @@ const { isMissingTable } = require('../../../utils/isMissingTable');
 // ORG_ADMIN_VARIANTS: the current 'org_admin' and the legacy 'admin').
 const ORG_ADMIN_ROLES = ['org_admin', 'admin'];
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
@@ -59,6 +60,7 @@ module.exports = {
     descriptionKey: 'compliance.check_nis2_admin_mfa_desc',
     remediationKey: 'compliance.check_nis2_admin_mfa_fix',
     remediationLink: 'admin/security/users',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {

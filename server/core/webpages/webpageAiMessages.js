@@ -86,3 +86,7 @@ async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = 
 }
 
 module.exports = { buildAiMessages };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('./webpageBridgeAuth').loadAuthorContext>>>} BridgeAuthorContext
+ */

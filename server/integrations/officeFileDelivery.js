@@ -270,3 +270,10 @@ module.exports = {
     destinationPath,
     uploadToOneDrive,
 };
+
+/**
+ * Who asks, and where the file should go (resolveDestinations fills the last three).
+ * @typedef {{ userId?: string, orgId?: string|null, session?: Express.Session, provider?: string,
+ *   nextcloudPath?: string, nextcloudError?: string, oneDrivePath?: string }} OfficeCtx
+ * @typedef {{ buffer?: Buffer, contentType?: string }} BuiltFile
+ */

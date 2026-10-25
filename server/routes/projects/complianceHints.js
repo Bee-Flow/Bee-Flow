@@ -42,24 +42,33 @@ const SnoozeBody = bodyOf({
     days: z.union([z.literal(7), z.literal(30)], { error: () => 'days must be 7 or 30.' }).optional(),
 }, 'Snoozing a hint');
 
+/**
+ * @param {{ requireProjectRole?: typeof lazyProjectRoleGate, getProject?: typeof import('../../stores/projectStore').getProject,
+ *   complianceStore?: typeof import('../../stores/complianceStore'), activeRegulations?: (orgId: string) => Promise<Set<string>>,
+ *   moduleAvailable?: () => boolean, checkDef?: (id: string) => unknown, now?: () => number,
+ *   log?: typeof import('../../telemetry/log') }} [deps]
+ */
 function makeComplianceHintsRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
 
     const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
-    const getProject = (id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
+    const getProject = (/** @type {string} */ id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
     const complianceStore = () => deps.complianceStore || require('../../stores/complianceStore');
-    const activeRegulations = (orgId) => (deps.activeRegulations
-        || ((o) => require('../../compliance/frameworkPolicy').activeRegulations(o)))(orgId);
+    const activeRegulations = (/** @type {string} */ orgId) => (deps.activeRegulations
+        || ((/** @type {string} */ o) => require('../../compliance/frameworkPolicy').activeRegulations(o)))(orgId);
     const moduleAvailable = deps.moduleAvailable
         || (() => { try { return require('../../modules/catalog').isModuleAvailable('compliance'); } catch { return false; } });
-    const defOf = (id) => {
+    const defOf = (/** @type {string} */ id) => {
         if (deps.checkDef) return deps.checkDef(id);
         try { return require('../../compliance/registry').get(id) || null; } catch { return null; }
     };
     const now = deps.now || (() => Date.now());
     const log = deps.log || require('../../telemetry/log');
 
-    /** Every hint that applies now (before this person's dismissals), or [] on any failure. */
+    /**
+     * Every hint that applies now (before this person's dismissals), or [] on any failure.
+     * @param {import('express').Request<{ id: string }>} req
+     */
     async function currentCandidates(req) {
         if (!moduleAvailable()) return [];
         const project = await getProject(req.params.id);
@@ -93,8 +102,13 @@ function makeComplianceHintsRouter(deps = {}) {
         res.json({ hint });
     });
 
+    /**
+     * @param {import('express').Request<{ id: string, key: string }>} req
+     * @param {import('express').Response} res
+     * @param {number | null} snoozeDays
+     */
     async function record(req, res, snoozeDays) {
-        const list = await currentCandidates(req).catch((e) => {
+        const list = await currentCandidates(req).catch(/** @returns {ReturnType<typeof hints.candidates>} */ (e) => {
             if (e instanceof HttpError) throw e;
             log.warn(`[ProjectComplianceHints] project ${req.params.id}: could not read hints to dismiss (${e?.message || e})`);
             return [];
@@ -113,11 +127,11 @@ function makeComplianceHintsRouter(deps = {}) {
 
     router.post('/:id/compliance-hints/:key/dismiss', requireRole('editor'),
         validate({ params: KeyParams, body: DismissBody }),
-        (req, res) => record(req, res, null));
+        (/** @type {import('express').Request<{ id: string, key: string }>} */ req, res) => record(req, res, null));
 
     router.post('/:id/compliance-hints/:key/snooze', requireRole('editor'),
         validate({ params: KeyParams, body: SnoozeBody }),
-        (req, res) => record(req, res, req.body?.days || 7));
+        (/** @type {import('express').Request<{ id: string, key: string }>} */ req, res) => record(req, res, req.body?.days || 7));
 
     return router;
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Cowork Runner — the scheduler tick for cowork schedules.
  *
@@ -23,6 +23,8 @@ const MAX_CONCURRENT = 5;
 
 /**
  * Run one schedule now. `manual` leaves next_run_at alone.
+ * @param {Parameters<typeof executeTask>[0]} schedule
+ * @param {{ manual?: boolean }} [opts]
  */
 async function executeCowork(schedule, { manual = false } = {}) {
     return executeTask(schedule, { manual, store: coworkStore });
@@ -46,7 +48,7 @@ async function processDueCowork() {
             await Promise.allSettled(batch.map(s => executeCowork(s)));
         }
     } catch (err) {
-        log.error('[CoworkRunner] Background checker error:', err.message);
+        log.error('[CoworkRunner] Background checker error:', /** @type {Error} */ (err).message);
     }
 }
 
@@ -88,7 +90,7 @@ async function pruneOldRuns() {
     } catch (err) {
         // Retention is housekeeping: a failed pass just means the next hourly
         // one has slightly more to do.
-        log.error(`[CoworkRunner] Retention pass error: ${err.message}`);
+        log.error(`[CoworkRunner] Retention pass error: ${/** @type {Error} */ (err).message}`);
     }
     if (deleted > 0) {
         log.info(`[CoworkRunner] Pruned ${deleted} cowork run(s) older than ${RETENTION_DAYS}d (cutoff ${cutoff})`);

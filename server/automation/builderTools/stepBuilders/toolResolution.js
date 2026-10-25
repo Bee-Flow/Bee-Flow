@@ -186,3 +186,5 @@ module.exports = {
     unknownToolError,
     findDuplicateAction,
 };
+
+/** @typedef {import('../stepEditing/typeChange').BuilderWrap} BuilderWrap */

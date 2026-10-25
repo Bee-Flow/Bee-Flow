@@ -692,3 +692,16 @@ module.exports = {
 
 // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init); withConfigGroup: zie configStoreGroup.js.
 Object.assign(module.exports, { initDB, withConfigGroup: require('./configStoreGroup').createWithConfigGroup({ initDB, withTransaction, onWritten: (k) => { _cacheInvalidate(k); _notifyInvalidate(k); } }) });
+
+/**
+ * The export surface, including initDB and withConfigGroup that the Object.assign below adds.
+ * @typedef {{ getConfig: typeof getConfig, getConfigFresh: typeof getConfigFresh, getConfigsByKeys: typeof getConfigsByKeys,
+ *   setConfig: typeof setConfig, mutateConfig: typeof mutateConfig, deleteConfig: typeof deleteConfig,
+ *   getAllConfig: typeof getAllConfig, listKeysWithPrefix: typeof listKeysWithPrefix, setSecret: typeof setSecret,
+ *   setSecretIfAbsent: typeof setSecretIfAbsent, getSecret: typeof getSecret, getSecretFresh: typeof getSecretFresh,
+ *   encryptValue: typeof encryptValue, decryptValue: typeof decryptValue,
+ *   reencryptLegacyPlaintextSecrets: typeof reencryptLegacyPlaintextSecrets, _applyInvalidation: typeof _applyInvalidation,
+ *   _startInvalidationListener: typeof _startInvalidationListener, _stopInvalidationListener: typeof _stopInvalidationListener,
+ *   CONFIG_INVALIDATE_CHANNEL: typeof CONFIG_INVALIDATE_CHANNEL, initDB: typeof initDB,
+ *   withConfigGroup: ReturnType<typeof import('./configStoreGroup').createWithConfigGroup> }} ConfigStoreExports
+ */

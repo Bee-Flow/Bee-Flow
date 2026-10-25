@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The serialisation helpers one tool round and its caller share: what a tool
  * result looks like on the model's tool message, the size cap on it, the
@@ -28,11 +28,18 @@ const { stableStringify } = require('../../../utils/stableJson');
 // returns several megabytes of JSON can blow the context window or rack up
 // token charges; truncate with a clear marker so the model knows.
 const MAX_TOOL_CONTENT_BYTES = 128 * 1024;
+/**
+ * @param {string} s
+ */
 function truncateToolContent(s) {
     if (typeof s !== 'string') return s;
     if (s.length <= MAX_TOOL_CONTENT_BYTES) return s;
     return s.slice(0, MAX_TOOL_CONTENT_BYTES) + `\n…[tool output truncated at ${MAX_TOOL_CONTENT_BYTES} chars]`;
 }
+/**
+ * @param {string | number | boolean | Record<string, unknown> | null | undefined} finalToolResult
+ * @returns {string}
+ */
 function buildLLMToolContent(finalToolResult) {
     if (typeof finalToolResult === 'string') return truncateToolContent(finalToolResult);
     if (finalToolResult == null || typeof finalToolResult !== 'object') {
@@ -45,6 +52,7 @@ function buildLLMToolContent(finalToolResult) {
     }
 
     const NOISE_KEYS = new Set(['instruction', 'resultCount']);
+    /** @type {Record<string, unknown>} */
     const clean = {};
     for (const [k, v] of Object.entries(finalToolResult)) {
         if (k.startsWith('_')) continue;     // Internal dispatch / UI-only fields
@@ -65,11 +73,18 @@ function buildLLMToolContent(finalToolResult) {
 // on the same error banner the bail exists to avoid. Flattening each call and
 // its result into plain prose keeps the context, keeps the request valid on
 // every provider, and leaves no structured tool surface to call back into.
+/**
+ * @template {{ role?: string, content?: unknown, tool_calls?: Array<{ id?: string, function?: { name?: string, arguments?: unknown } } | null>, tool_call_id?: string }} M
+ * @param {M[]} msgs
+ * @returns {Array<M | { role: string; content: string; }>}
+ */
 function _flattenToolRoundTrips(msgs) {
     const nameById = new Map();
+    /** @type {Array<M | { role: string; content: string; }>} */
     const out = [];
     for (const m of msgs) {
         if (m && m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length > 0) {
+            /** @type {string[]} */
             const lines = [];
             for (const tc of m.tool_calls) {
                 const fn = (tc && tc.function) || {};
@@ -94,6 +109,7 @@ function _flattenToolRoundTrips(msgs) {
     }
     return out;
 }
+/** @param {unknown} value */
 function _stableStringify(value) {
     return stableStringify(value, { undefined: 'raw' });
 }

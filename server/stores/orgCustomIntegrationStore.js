@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Org Custom Integration Store — AI Integration Builder persistence.
  *
@@ -62,6 +62,9 @@ function generateSlug(length = SLUG_LENGTH) {
 
 // pg usually hands JSONB back as objects, but normalize strings too (mirrors
 // mcpStore.parseRow) so callers never see double-encoded values.
+/**
+ * @param {Record<string, any>} row
+ */
 function shapeIntegration(row) {
     if (!row) return null;
     return {
@@ -97,6 +100,7 @@ const MAX_SLUG_ATTEMPTS = 5;
 /**
  * Create a draft integration with a fresh random slug. Retries on the
  * (astronomically unlikely) slug unique-collision.
+ * @param {{ orgId: string, name: string, kind?: string, createdBy: string, description?: string | null }} integration
  */
 async function createIntegration({ orgId, name, kind = 'rest', createdBy, description = null }) {
     if (!name || !createdBy) throw new Error('createIntegration requires name, createdBy');
@@ -122,16 +126,25 @@ async function createIntegration({ orgId, name, kind = 'rest', createdBy, descri
     throw lastErr || new Error('createIntegration: slug generation exhausted retries');
 }
 
+/**
+ * @param {string} id
+ */
 async function getById(id) {
     await initDB();
     return shapeIntegration(await getOne('SELECT * FROM org_custom_integrations WHERE id = $1', [id]));
 }
 
+/**
+ * @param {string} slug
+ */
 async function getBySlug(slug) {
     await initDB();
     return shapeIntegration(await getOne('SELECT * FROM org_custom_integrations WHERE slug = $1', [slug]));
 }
 
+/**
+ * @param {string} orgId
+ */
 async function listForOrg(orgId) {
     await initDB();
     const rows = await getAll(
@@ -141,7 +154,10 @@ async function listForOrg(orgId) {
     return rows.map(shapeIntegration);
 }
 
-/** Active integrations only — what the tool loader exposes to agents. */
+/**
+ * Active integrations only — what the tool loader exposes to agents.
+ * @param {string} orgId
+ */
 async function listActiveForOrg(orgId) {
     await initDB();
     const rows = await getAll(
@@ -163,6 +179,9 @@ async function listActiveForOrg(orgId) {
  * @param definition
  * @param userId
  * @param {{ lastValidation?: any }} [opts]
+ * @param {string} id
+ * @param {string} userId
+ * @param {Record<string, any>} definition
  */
 async function saveDefinition(id, definition, userId, { lastValidation } = {}) {
     if (!userId) throw new Error('saveDefinition requires userId');
@@ -197,6 +216,8 @@ async function saveDefinition(id, definition, userId, { lastValidation } = {}) {
  * passes the validated `definition` (must be what validation/test ran
  * against) plus the discovered/derived `toolsCache`; omitting `definition`
  * freezes the stored working copy.
+ * @param {string} id
+ * @param {{ definition?: Record<string, any> | null, toolsCache?: unknown[], allowWrites?: boolean, lendMode?: string | null, userId?: string | null }} [opts]
  */
 async function activate(id, { definition = null, toolsCache = [], allowWrites = false, lendMode = null, userId = null } = {}) {
     if (lendMode !== null && !LEND_MODES.has(lendMode)) {
@@ -223,6 +244,10 @@ async function activate(id, { definition = null, toolsCache = [], allowWrites = 
     return shapeIntegration(rows[0]);
 }
 
+/**
+ * @param {string} id
+ * @param {string} status
+ */
 async function setStatus(id, status) {
     if (!STATUSES.has(status)) throw new Error(`setStatus: invalid status '${status}'`);
     await initDB();
@@ -233,11 +258,17 @@ async function setStatus(id, status) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ */
 async function deactivate(id) {
     return setStatus(id, 'disabled');
 }
 
-/** Refuses to delete an active integration — deactivate first. */
+/**
+ * Refuses to delete an active integration — deactivate first.
+ * @param {string} id
+ */
 async function deleteIntegration(id) {
     await initDB();
     const { rowCount } = await run(
@@ -249,6 +280,10 @@ async function deleteIntegration(id) {
 
 // ── Builder session (AI agent scratchpad) ───────────────────────────
 
+/**
+ * @param {string} id
+ * @param {Record<string, any> | null} sessionObj
+ */
 async function setBuilderSession(id, sessionObj) {
     await initDB();
     const { rowCount } = await run(
@@ -258,6 +293,9 @@ async function setBuilderSession(id, sessionObj) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ */
 async function getBuilderSession(id) {
     await initDB();
     const row = await getOne('SELECT builder_session FROM org_custom_integrations WHERE id = $1', [id]);

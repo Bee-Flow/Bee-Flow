@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Golden runs: replay a saved run as a DRY RUN of the automation as it is now,
@@ -50,17 +50,32 @@ function effectiveStatus(lastReplay, now = Date.now()) {
     return 'running';
 }
 
-/** Is any of these goldens being replayed right now (and not stale)? */
+/**
+ * One saved golden run as the store lists it.
+ * @typedef {{ id: string, runId: string, ignorePaths?: string[], lastReplay?: { status: string, at?: string | Date | null } | null }} Golden
+ */
+
+/**
+ * Is any of these goldens being replayed right now (and not stale)?
+ * @param {Golden[] | null | undefined} goldens
+ * @param {number} [now]
+ */
 function anyRunning(goldens, now = Date.now()) {
-    return (goldens || []).some(g => effectiveStatus(g.lastReplay, now) === 'running');
+    return (goldens || []).some((g) => effectiveStatus(g.lastReplay, now) === 'running');
 }
 
+/** @param {{ code?: unknown, errorClass?: unknown } | null | undefined} e */
 const codeOf = (e) => {
     const c = e && (e.code || e.errorClass);
     return typeof c === 'string' && /^[a-z0-9_]{1,60}$/i.test(c) ? c : 'replay_failed';
 };
 
-/** The trigger the replay enters through: the saved run's, if it still exists, else the primary one. */
+/**
+ * The trigger the replay enters through: the saved run's, if it still exists, else the primary one.
+ * @param {ReplayDeps['runEntry']} runEntry
+ * @param {{ definition?: any }} automation
+ * @param {{ rootStepId?: string | null }} goldenRun
+ */
 async function resolveEntry(runEntry, automation, goldenRun) {
     const def = await runEntry.entryDefinitionOf(automation);
     let entered = goldenRun.rootStepId ? runEntry.resolveTriggerStepId(def, goldenRun.rootStepId) : null;
@@ -69,7 +84,24 @@ async function resolveEntry(runEntry, automation, goldenRun) {
     return entered.rootStepId;
 }
 
-/** Replay one golden; the outcome is written on the golden. */
+/**
+ * What replayGoldens resolves its collaborators to (the real modules, unless overridden).
+ * @typedef {Object} ReplayDeps
+ * @property {typeof import('../../stores/automationStore')} store
+ * @property {{ setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }} testingStore
+ * @property {typeof import('../../core/automationRunner').executeAutomation} executeAutomation
+ * @property {typeof import('./formAnswers').answersFromJourney} answersFromJourney
+ * @property {{ entryDefinitionOf: typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf, resolveTriggerStepId: typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId }} runEntry
+ * @property {typeof import('./runCompare').compareRuns} compareRuns
+ * @property {{ warn: (msg: string) => void }} log
+ */
+
+/**
+ * Replay one golden; the outcome is written on the golden.
+ * @param {Golden} golden
+ * @param {{ automation: any, userId: string, aiAnswers?: 'live'|'cache' }} input
+ * @param {ReplayDeps} deps
+ */
 async function replayOne(golden, input, deps) {
     const { automation, userId, aiAnswers } = input;
     const { store, testingStore, log } = deps;
@@ -97,8 +129,8 @@ async function replayOne(golden, input, deps) {
 
         const result = await deps.compareRuns({
             runA: goldenRun, runB: replay,
-            legsA: legs.filter(l => canReadRunData(l, userId)),
-            legsB: replayLegs.filter(l => canReadRunData(l, userId)),
+            legsA: legs.filter((/** @type {any} */ l) => canReadRunData(l, userId)),
+            legsB: replayLegs.filter((/** @type {any} */ l) => canReadRunData(l, userId)),
             viewerId: userId, ignorePaths: golden.ignorePaths || [],
         });
         await testingStore.setGoldenReplay(golden.id, { status: result.verdict, summary: result.summary, replayRunId, errorCode: null });
@@ -115,29 +147,28 @@ async function replayOne(golden, input, deps) {
 
 /**
  * @param {{ automation: any, goldens: any[], userId: string, aiAnswers?: 'live'|'cache' }} input
- * @param {{ store?: any, testingStore?: any, executeAutomation?: Function, answersFromJourney?: Function,
- *           runEntry?: any, compareRuns?: Function, log?: any, concurrency?: number }} [overrides]
+ * @param {Partial<ReplayDeps> & { concurrency?: number }} [overrides]
  * @returns {Promise<Array<{ goldenId: string, status: string }>>}
  */
 async function replayGoldens(input, overrides = {}) {
     const deps = {
         store: overrides.store || require('../../stores/automationStore'),
         testingStore: overrides.testingStore || {
-            setGoldenReplay: (...a) => require('../../stores/automationTestingStore').setGoldenReplay(...a),
+            setGoldenReplay: (/** @type {Parameters<typeof import('../../stores/automationTestingStore').setGoldenReplay>} */ ...a) => require('../../stores/automationTestingStore').setGoldenReplay(...a),
         },
-        executeAutomation: overrides.executeAutomation || ((...a) => require('../../core/automationRunner').executeAutomation(...a)),
-        answersFromJourney: overrides.answersFromJourney || ((input) => require('./formAnswers').answersFromJourney(input)),
+        executeAutomation: overrides.executeAutomation || ((/** @type {Parameters<typeof import('../../core/automationRunner').executeAutomation>} */ ...a) => require('../../core/automationRunner').executeAutomation(...a)),
+        answersFromJourney: overrides.answersFromJourney || ((/** @type {Parameters<typeof import('./formAnswers').answersFromJourney>[0]} */ input) => require('./formAnswers').answersFromJourney(input)),
         runEntry: overrides.runEntry || {
-            entryDefinitionOf: (...a) => require('../../core/automationRunner/entryPoint').entryDefinitionOf(...a),
-            resolveTriggerStepId: (...a) => require('../../core/automationRunner/entryPoint').resolveTriggerStepId(...a),
+            entryDefinitionOf: (/** @type {Parameters<typeof import('../../core/automationRunner/entryPoint').entryDefinitionOf>} */ ...a) => require('../../core/automationRunner/entryPoint').entryDefinitionOf(...a),
+            resolveTriggerStepId: (/** @type {Parameters<typeof import('../../core/automationRunner/entryPoint').resolveTriggerStepId>} */ ...a) => require('../../core/automationRunner/entryPoint').resolveTriggerStepId(...a),
         },
-        compareRuns: overrides.compareRuns || ((input) => require('./runCompare').compareRuns(input)),
+        compareRuns: overrides.compareRuns || ((/** @type {Parameters<typeof import('./runCompare').compareRuns>[0]} */ input) => require('./runCompare').compareRuns(input)),
         log: overrides.log || require('../../telemetry/log'),
     };
     const goldens = input.goldens || [];
     const configured = overrides.concurrency ?? envCap('AUTOMATION_GOLDEN_REPLAY_CONCURRENCY', 2);
     const workers = Math.max(1, Math.min(goldens.length || 1, configured > 0 ? configured : goldens.length));
-    const full = { ...input, aiAnswers: input.aiAnswers === 'cache' ? 'cache' : 'live' };
+    const full = { ...input, aiAnswers: /** @type {'cache'|'live'} */ (input.aiAnswers === 'cache' ? 'cache' : 'live') };
 
     const results = new Array(goldens.length);
     let next = 0;

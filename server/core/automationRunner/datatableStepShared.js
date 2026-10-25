@@ -69,3 +69,17 @@ module.exports = {
     PG, MIRROR_WRITE_MAX_PER_STEP, NC_WRITE_MAX_PER_STEP, WRITE_CHUNK,
     sources, isMirror, mirrorWrites, mirrorCtx, fail, skipped, emptyOutput,
 };
+
+/** @typedef {import('./datatableResolve').DatatableRow} DatatableRow */
+
+/** @typedef {ReturnType<typeof import('../dataEngine/accessFilter').compileAccessFilter>} AccessPredicate */
+
+/**
+ * The step context `t` execDatatable builds and every helper of the step takes.
+ * @typedef {import('./datatableResolve').ResolvedDatatable & {
+ *   step: { values?: Record<string, unknown>, matchColumn?: string, [key: string]: unknown },
+ *   ctx: { userId?: string, secretValues?: () => unknown, [key: string]: unknown },
+ *   runState: import('../automationModel/bind').BindRunState, op: string, mode: string,
+ *   filters: unknown[], match: 'any'|'all', accessAction: string,
+ *   readFilter: AccessPredicate|null, writeFilter: AccessPredicate|null }} DatatableStepContext
+ */

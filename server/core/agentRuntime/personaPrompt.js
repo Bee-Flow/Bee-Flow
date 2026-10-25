@@ -507,3 +507,22 @@ module.exports = {
     renderedPromptFor,
     applyPersonaToConfig,
 };
+
+/**
+ * @typedef {object} Persona
+ * @property {string} who
+ * @property {{ chips: string[], text: string }} tone
+ * @property {string[]} does
+ * @property {string[]} doesNot
+ * @property {{ mode: string, automationId: string|null }} unknown
+ * @property {string|null} language
+ * @property {string} mode
+ * @property {string} freeText
+ */
+
+/**
+ * @typedef {object} PersonaConfig
+ * @property {boolean} [strictKnowledge]
+ * @property {string[]} [enabledIntegrations]
+ * @property {Record<string, any>} [tools]
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A stand-in for the access guard the automation routers take
  * (`makeXRouter({ access })`, see automation/access.js), for route tests:
@@ -17,6 +17,12 @@ const { roleSatisfies } = require('../../../automation/access');
 /** @param {Record<string, 'owner'|'edit'|'view'|'run'>} rolesByUserId */
 function accessByRole(rolesByUserId) {
     return {
+        /**
+         * @param {import('express').Request} req
+         * @param {import('express').Response} res
+         * @param {unknown} _automation
+         * @param {string} need
+         */
         async guard(req, res, _automation, need) {
             const role = rolesByUserId[req.session.user.id];
             if (roleSatisfies(role, need)) return { role, via: role === 'owner' ? 'owner' : 'share' };

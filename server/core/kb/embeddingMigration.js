@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Keeps the stored knowledge-base vectors in the space of the CONFIGURED
@@ -55,6 +55,8 @@ const LOCK_KEY = 725172010;
 const BATCH = 64;
 const INDEX_SQL = 'CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)';
 
+/** @typedef {ReturnType<typeof defaultDeps>} MigrationDeps */
+
 function defaultDeps() {
     const db = require('../../db');
     return {
@@ -65,16 +67,20 @@ function defaultDeps() {
         getClient: db.getClient,
         configStore: require('../../stores/configStore'),
         resolveTarget: () => require('../embed/resolveTarget').resolveEmbedTarget(),
-        embed: (texts) => require('../embed/dispatch').dispatchEmbedTexts(texts, { kind: 'passage', strict: true }),
+        embed: (/** @type {string[]} */ texts) => require('../embed/dispatch').dispatchEmbedTexts(texts, { kind: 'passage', strict: true }),
         usesLocalIngest: () => require('./kbIngestionHelpers').usesLocalIngest(),
-        trackCost: (texts) => require('./localKBIngest').trackEmbeddingCost(texts),
+        trackCost: (/** @type {string[]} */ texts) => require('./localKBIngest').trackEmbeddingCost(texts),
         retryFailed: retryDimensionFailures,
     };
 }
 
-const fingerprintOf = (target) => `${target.providerId}:${target.modelId}`;
+const fingerprintOf = (/** @type {{ providerId: string, modelId: string }} */ target) => `${target.providerId}:${target.modelId}`;
 
-/** The declared dimension of a vector column, or null when it does not exist. */
+/**
+ * The declared dimension of a vector column, or null when it does not exist.
+ * @param {MigrationDeps} deps
+ * @param {string} column
+ */
 async function columnDim(deps, column) {
     const rows = await deps.getAll(
         `SELECT a.atttypmod AS typmod
@@ -86,7 +92,12 @@ async function columnDim(deps, column) {
     return Number.isInteger(dim) && dim > 0 ? dim : null;
 }
 
-/** Embed with the configured model only, and insist on the dimension. */
+/**
+ * Embed with the configured model only, and insist on the dimension.
+ * @param {MigrationDeps} deps
+ * @param {string[]} texts
+ * @param {number} dim
+ */
 async function embedExactly(deps, texts, dim) {
     const { vectors } = await deps.embed(texts);
     if (!Array.isArray(vectors) || vectors.length !== texts.length) {
@@ -100,7 +111,11 @@ async function embedExactly(deps, texts, dim) {
     return vectors;
 }
 
-/** Fill `embedding_next` for every chunk that has none yet. Resumable. */
+/**
+ * Fill `embedding_next` for every chunk that has none yet. Resumable.
+ * @param {MigrationDeps} deps
+ * @param {number} dim
+ */
 async function fillNextColumn(deps, dim) {
     let lastId = 0;
     let done = 0;
@@ -124,7 +139,10 @@ async function fillNextColumn(deps, dim) {
     }
 }
 
-/** Swap the filled side column in for the old one, in one transaction. */
+/**
+ * Swap the filled side column in for the old one, in one transaction.
+ * @param {MigrationDeps} deps
+ */
 async function swapColumns(deps) {
     const client = await deps.getClient();
     try {
@@ -142,9 +160,13 @@ async function swapColumns(deps) {
     }
     // Outside the transaction: building the index can take a while and
     // search works without it.
-    try { await deps.exec(INDEX_SQL); } catch (err) { log.warn(`[KBEmbedMigration] vector index not rebuilt: ${err.message}`); }
+    try { await deps.exec(INDEX_SQL); } catch (err) { log.warn(`[KBEmbedMigration] vector index not rebuilt: ${/** @type {Error} */ (err).message}`); }
 }
 
+/**
+ * @param {MigrationDeps} deps
+ * @param {{ reason: string }} opts
+ */
 async function migrate(deps, { reason }) {
     if (!(await deps.usesLocalIngest())) return { status: 'not_local' };
     const target = await deps.resolveTarget();
@@ -204,11 +226,15 @@ async function migrate(deps, { reason }) {
     }
 }
 
-/** Migrate, then — outside the lock, it can take minutes — retry what failed on the old dimension. */
+/**
+ * Migrate, then — outside the lock, it can take minutes — retry what failed on the old dimension.
+ * @param {MigrationDeps} deps
+ * @param {{ reason: string; }} opts
+ */
 async function migrateAndRetry(deps, opts) {
     const result = await migrate(deps, opts);
     if (result.status === 'migrated') {
-        try { await deps.retryFailed(); } catch (err) { log.warn(`[KBEmbedMigration] retrying failed documents: ${err.message}`); }
+        try { await deps.retryFailed(); } catch (err) { log.warn(`[KBEmbedMigration] retrying failed documents: ${/** @type {Error} */ (err).message}`); }
     }
     return result;
 }
@@ -236,13 +262,14 @@ async function retryDimensionFailures() {
             await syncSource(source, { reason: 'reembed', timeBudgetMs: 10 * 60_000 });
             retried += 1;
         } catch (err) {
-            log.warn(`[KBEmbedMigration] source ${sourceId} not retried: ${err.message}`);
+            log.warn(`[KBEmbedMigration] source ${sourceId} not retried: ${/** @type {Error} */ (err).message}`);
         }
     }
     log.info(`[KBEmbedMigration] retried ${retried} source(s) with documents that failed on the old dimension`);
     return retried;
 }
 
+/** @type {ReturnType<typeof migrateAndRetry> | null} */
 let running = null;
 
 /**
@@ -250,7 +277,7 @@ let running = null;
  * often: a no-op (one config read) while nothing changed, and concurrent
  * callers in this process share one run.
  *
- * @param {{ reason?: string, deps?: object }} [opts]
+ * @param {{ reason?: string, deps?: MigrationDeps }} [opts]
  * @returns {Promise<{ status: string, chunks?: number, dim?: number }>}
  */
 function ensureKbEmbeddingsCurrent({ reason = 'check', deps = null } = {}) {

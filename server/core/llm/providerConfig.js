@@ -711,3 +711,12 @@ module.exports = {
     deleteProvider,
     setDefaultProvider,
 };
+
+/**
+ * @typedef {{ id: string, name?: string, type?: string, url?: string, model?: string, apiKey?: string, project?: string, location?: string, serviceAccountKey?: string, apiVersion?: string }} ProviderRow
+ * @typedef {{ name: string, url: string, needsApiKey: boolean, local?: boolean, canPull?: boolean, description?: string, docsUrl?: string }} ProviderPreset
+ * @typedef {{ url?: string, model?: string, apiKey?: string, lakeraApiKey?: string, mistralOcrApiKey?: string, regexGuardrails?: Record<string, unknown> | unknown[] | null, piiDetectionEnabled?: boolean, piiDetectionCategories?: string[] | null, piiDetectionConfidenceThreshold?: number, piiDetectionAction?: string, piiDetectionScope?: { userInput: boolean, agentOutput: boolean }, embeddingModel?: string | null, embeddingProviderId?: string | null, providers?: ProviderRow[], defaultProviderId?: string | null }} AiRecord
+ * @typedef {{ url: string, providerType?: string | null, model: string, apiKey?: string, mistralApiKey?: string | null, lakeraApiKey: string, mistralOcrApiKey?: string | null, regexGuardrails: Record<string, unknown> | unknown[] | null, piiDetectionEnabled: boolean, piiDetectionCategories: string[] | null, piiDetectionConfidenceThreshold: number, piiDetectionAction?: string, piiDetectionScope?: { userInput: boolean, agentOutput: boolean }, embeddingModel?: string | null, embeddingProviderId?: string | null, providers?: ProviderRow[], defaultProviderId?: string | null, piiFailureMode?: undefined }} AIConfig
+ *   (piiFailureMode is an org shield setting, never a getAIConfig field; readers that fall back to it get undefined)
+ * @typedef {{ url: string, model: string, apikey: string, apiKey?: undefined, lakeraApiKey: string, regexGuardrails: Record<string, unknown> | unknown[] | null, piiDetectionEnabled: boolean, piiDetectionCategories: string[] | null, piiDetectionConfidenceThreshold: number, providers: ProviderRow[], defaultProviderId: string | null }} DefaultConfig
+ */

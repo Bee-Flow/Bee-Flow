@@ -399,3 +399,12 @@ function getRunner() {
 }
 
 module.exports = { makeRunner, getRunner, missingAcknowledgements, errorOf, LEASE_MS, HEARTBEAT_MS, ELIGIBILITY_CODES };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/solutionStage/deploymentModel').mapDeployment>>} Row */
+
+/**
+ * What a failed row records (errorOf).
+ * @typedef {{ code: string, message: string, ref?: string, why?: string, findings?: Array<{ code: string, ref?: string }> }} DeploymentError
+ */

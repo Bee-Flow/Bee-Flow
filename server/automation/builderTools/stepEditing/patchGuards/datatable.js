@@ -181,3 +181,9 @@ function patchDatatableBody(graph, step, patch, next, { filledTable, draftWrap, 
 }
 
 module.exports = { translateDatatablePatch, linkDatatablePatch, patchDatatableBody };
+
+/** @typedef {import('../../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {import('../../pendingDatatables').DatatableCatalogEntry} DatatableCatalogEntry */
+
+/** @typedef {import('../../draftGraph').DraftGraph} DraftGraph */

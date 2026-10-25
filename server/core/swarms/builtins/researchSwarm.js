@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Built-in swarm: Research Swarm
  *
@@ -10,6 +10,12 @@
  *
  * Worker manifest is deterministic in v2; v3 swaps in a dynamic LLM planner
  * that derives the manifest from the user's actual message.
+ */
+
+/**
+ * @typedef {{ id: string, role: string, name: string, tier?: string, systemPrompt?: string,
+ *   toolAllowlist?: string[] }} SwarmWorker
+ * @typedef {{ id: string, name: string, workers: SwarmWorker[], synthesiser?: boolean }} SwarmPhase
  */
 
 const MANIFEST = {
@@ -28,6 +34,13 @@ const MANIFEST = {
 // Researcher prompt template. Each researcher gets the same body but a
 // different "angle" so the parallel workers actually diverge instead of
 // duplicating each other's work.
+/**
+ * @typedef {Object} ResearcherPromptArgs
+ * @property {string} angle
+ */
+/**
+ * @param {ResearcherPromptArgs} param0
+ */
 function researcherPrompt({ angle }) {
     return [
         `You are a researcher inside a swarm. Your specific angle for this request is: **${angle}**.`,
@@ -63,6 +76,9 @@ const SYNTHESISER_PROMPT = [
  * v3 swap-in point: replace this function with a planner that calls an LLM
  * to derive workers from the user message (mirroring sessionSkillRuntime's
  * bootstrapSessionSkills).
+ *
+ * @param {{ message: string, hive?: unknown }} params
+ * @returns {Promise<SwarmPhase[]>}
  */
 async function getWorkerManifest({ message: _message }) {
     const angles = [
@@ -76,7 +92,7 @@ async function getWorkerManifest({ message: _message }) {
         name: `Researcher ${idx + 1}`,
         tier: 'thinking',
         systemPrompt: researcherPrompt({ angle }),
-        toolAllowlist: [],   // empty = full directChat tool stack
+        toolAllowlist: /** @type {string[]} */ ([]),   // empty = full directChat tool stack
     }));
     const synthesiser = {
         id: 'synthesiser',
@@ -84,7 +100,7 @@ async function getWorkerManifest({ message: _message }) {
         name: 'Writer',
         tier: 'writer',
         systemPrompt: SYNTHESISER_PROMPT,
-        toolAllowlist: [],   // can also use any tool if it needs to fact-check
+        toolAllowlist: /** @type {string[]} */ ([]),   // can also use any tool if it needs to fact-check
     };
     return [
         { id: 'research', name: 'Researching', workers: researchers },

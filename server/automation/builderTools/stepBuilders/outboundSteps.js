@@ -238,3 +238,9 @@ module.exports = {
     applyAddNotification,
     applyAddKnowledgeWrite,
 };
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {{ mode?: string, json?: string, arrayFormat?: string, items?: Array<{ key: string, value: string }> }} QueryShape  a step's stored `query` */

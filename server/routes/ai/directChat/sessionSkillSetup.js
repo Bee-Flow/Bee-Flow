@@ -19,6 +19,13 @@ const { encryptionOpts } = require('./shared');
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
 
+/** @typedef {Extract<Awaited<ReturnType<typeof import('./turnSetup').resolveTurnSetup>>, { tiers: unknown }>} TurnSetup */
+/** @typedef {Extract<Awaited<ReturnType<typeof import('./toolStackAssembly').assembleToolStack>>, { toolDisclosure: unknown }>} ToolStack */
+/** @typedef {Awaited<ReturnType<typeof import('./promptAssembly').buildPromptAndHistory>>} PromptAndHistory */
+
+/**
+ * @param {{ req: import('express').Request, send: ReturnType<typeof import('../../../core/http/sseHelpers').openSse>['send'], userId: string, convId: string, config: TurnSetup['config'], clientHistoryProvided: PromptAndHistory['clientHistoryProvided'], modelId: string, disableSearchOnUpload: boolean, directChatTools: ToolStack['directChatTools'], resolvedTier: string, requestSessionSkills?: unknown, requestActivatedSessionSkillIds?: string[] | null, message?: string | null, timezone?: string | null, tier: TurnSetup['tier'], adapter: TurnSetup['adapter'], apiKey: TurnSetup['apiKey'], apiUrl: string, messages: import('../../../core/agentRuntime/chatStream/turnState').ChatMessage[], volatileMessage?: PromptAndHistory['volatileMessage'] | null }} p
+ */
 async function setupSessionSkills({ req, send, userId, convId, config, clientHistoryProvided, modelId, disableSearchOnUpload, directChatTools, resolvedTier, requestSessionSkills, requestActivatedSessionSkillIds, message, timezone, tier, adapter, apiKey, apiUrl, messages, volatileMessage = null }) {
         let lastResponseId = null; // OpenAI Responses API chaining
         let conversationSummary = null; // Compaction summary
@@ -64,7 +71,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                         }
                     }
                     // Check DB messages for past file uploads (disableSearchOnUpload policy)
-                    if (disableSearchOnUpload && existingConv.messages?.some(m => m.attachments && m.attachments.length > 0)) {
+                    if (disableSearchOnUpload && existingConv.messages?.some((/** @type {{ attachments?: unknown[] }} */ m) => m.attachments && m.attachments.length > 0)) {
                         directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search' && t.function.name !== 'read_url');
                         log.info('[DirectChat] Web search disabled — files found in conversation history DB (org policy)');
                     }
@@ -122,6 +129,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
 
             // Pull lightweight user/org context so the bootstrap can tailor
             // language and tone. Best-effort — failures are non-fatal.
+            /** @type {import('../../../core/tools/sessionSkillRuntime').SessionUserContext | null} */
             let userContext = null;
             try {
                 const userStore = require('../../../stores/userStore');

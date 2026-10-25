@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * YouTrack service client — the plain-function surface that server code calls.
  *
@@ -47,6 +47,12 @@ const FIELDS_ISSUE_FULL = `${FIELDS_ISSUE_SHORT},description,reporter(login,full
  * configured base URL, mandatory timeout, error bodies truncated so no URL or
  * token can reach a log line or a model. YouTrack always answers JSON, so this
  * resolves to parsed JSON or null.
+ * @param {string} baseUrl
+ * @param {string} token
+ * @param {string} method
+ * @param {string} path
+ * @param {unknown} [body]
+ * @returns {Promise<any>}
  */
 async function youtrackRequest(baseUrl, token, method, path, body = null) {
     const url = `${baseUrl.replace(/\/+$/, '')}/api${path}`;
@@ -95,10 +101,11 @@ async function getDefaultProject() {
  * Is a service connection configured, and does it work?
  * Returns { configured, ok, host, projects?, error? } — never the token, and
  * never the full URL beyond its host, because this feeds an admin screen.
+ * @param {{ userId?: string | null }} [opts]
  */
 async function ping({ userId = null } = {}) {
     const creds = await resolveCredentials({ userId });
-    if (!creds) return { configured: false, ok: false, host: null };
+    if (!creds) return { configured: false, ok: false, host: /** @type {string | null} */ (null) };
 
     let host = null;
     try { host = new URL(creds.baseUrl).host; } catch (err) { fallback('integrations/youtrackClient:ping', err); /* malformed URL: reported as not-ok below */ }
@@ -125,10 +132,25 @@ async function ping({ userId = null } = {}) {
 // create, and a search-based verification after an ambiguous error.
 
 let VERIFY_DELAY_MS = 2000;
+/** @param {number} ms */
 function __setVerifyDelayMs(ms) { VERIFY_DELAY_MS = ms; }
 function __verifyDelayMs() { return VERIFY_DELAY_MS; }
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (/** @type {number} */ ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * @typedef {{ baseUrl: string, token: string, source?: string }} YoutrackCreds
+ */
+/**
+ * Raw issue JSON as the YouTrack REST API returns it.
+ * @typedef {{
+ *   id?: string, idReadable?: string, summary?: string, description?: string,
+ *   created?: number, updated?: number, resolved?: number | null, commentsCount?: number,
+ *   reporter?: { login?: string, fullName?: string },
+ *   customFields?: { name: string, value?: { name?: string } }[]
+ * }} YtIssue
+ */
+
+/** @param {unknown} s */
 function normalizeSummary(s) {
     return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
@@ -136,6 +158,8 @@ function normalizeSummary(s) {
 /**
  * Callers routinely hold a shortName where the database id belongs; when the
  * admin lookup fails, treat the given value as the shortName.
+ * @param {YoutrackCreds} creds
+ * @param {string} projectId
  */
 async function resolveProjectShortName({ baseUrl, token }, projectId) {
     if (!projectId) return null;
@@ -153,6 +177,10 @@ async function resolveProjectShortName({ baseUrl, token }, projectId) {
  * YouTrack full-text search is tokenized and morphological, never exact — the
  * query only narrows candidates and the real match is the normalized compare
  * below. Fails open: a broken search must never block a create.
+ * @param {YoutrackCreds} creds
+ * @param {string | null} shortName
+ * @param {string} summary
+ * @param {{ createdAfterMs?: number | null }} [opts]
  */
 async function findRecentIssueBySummary({ baseUrl, token }, shortName, summary, { createdAfterMs = null } = {}) {
     if (!shortName || !summary) return null;
@@ -177,10 +205,13 @@ async function findRecentIssueBySummary({ baseUrl, token }, shortName, summary, 
 
 // ── Shaping ───────────────────────────────────────────────────────────────
 
-/** Flatten YouTrack's customFields array into the three fields anyone wants. */
+/**
+ * Flatten YouTrack's customFields array into the three fields anyone wants.
+ * @param {YtIssue} i raw YouTrack issue JSON
+ */
 function shapeIssue(i) {
     if (!i) return null;
-    const cf = (name) => i.customFields?.find(f => f.name === name)?.value?.name || null;
+    const cf = (/** @type {string} */ name) => i.customFields?.find((/** @type {{ name: string, value?: { name?: string } }} */ f) => f.name === name)?.value?.name || null;
     return {
         id: i.idReadable || i.id,
         summary: i.summary || '',
@@ -197,6 +228,10 @@ function shapeIssue(i) {
 
 // ── Reads ─────────────────────────────────────────────────────────────────
 
+/**
+ * @param {YoutrackCreds} creds
+ * @param {string} query
+ */
 async function searchIssues(creds, query, { limit = 20, skip = 0 } = {}) {
     const params = new URLSearchParams({
         query: query || '',
@@ -208,6 +243,10 @@ async function searchIssues(creds, query, { limit = 20, skip = 0 } = {}) {
     return Array.isArray(issues) ? issues.map(shapeIssue) : [];
 }
 
+/**
+ * @param {YoutrackCreds} creds
+ * @param {string} issueId
+ */
 async function getIssue(creds, issueId) {
     if (!ISSUE_ID_RE.test(issueId || '')) throw new Error('invalid issue id');
     const params = new URLSearchParams({ fields: FIELDS_ISSUE_FULL });
@@ -220,6 +259,8 @@ async function getIssue(creds, issueId) {
  * Issues by id, in as few round trips as possible. The support poller holds a
  * few dozen linked issues and must not spend a request on each — YouTrack's
  * `issue id: A, B, C` accepts a disjunction, so one query answers the batch.
+ * @param {YoutrackCreds} creds
+ * @param {string[]} [issueIds]
  */
 async function getIssuesByIds(creds, issueIds = [], { chunkSize = 50 } = {}) {
     const ids = [...new Set(issueIds.filter(id => ISSUE_ID_RE.test(id || '')))];
@@ -237,6 +278,8 @@ async function getIssuesByIds(creds, issueIds = [], { chunkSize = 50 } = {}) {
  * endpoint takes no sort. `$top` alone therefore reads the start of the thread;
  * a caller after the newest comment skips to the end using the issue's
  * `commentsCount` (see supportIssueSync.latestComment).
+ * @param {YoutrackCreds} creds
+ * @param {string} issueId
  */
 async function getIssueComments(creds, issueId, { limit = 20, skip = 0 } = {}) {
     if (!ISSUE_ID_RE.test(issueId || '')) throw new Error('invalid issue id');
@@ -255,7 +298,8 @@ async function getIssueComments(creds, issueId, { limit = 20, skip = 0 } = {}) {
     }));
 }
 
-async function listProjects(creds, { limit = 50 } = {}) {
+/** @param {YoutrackCreds} creds */
+async function listProjects(creds,{ limit = 50 } = {}) {
     const params = new URLSearchParams({
         fields: 'id,name,shortName',
         $top: String(Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200)),
@@ -273,6 +317,8 @@ async function listProjects(creds, { limit = 50 } = {}) {
  * Resolves to { id, summary, alreadyExists?, verifiedAfterError? } or throws.
  * `alreadyExists` means nothing was created because an issue with this exact
  * summary is already there — the caller links that one instead.
+ * @param {YoutrackCreds} creds
+ * @param {{ projectId: string, summary: string, description?: string, allowDuplicate?: boolean }} opts
  */
 async function createIssue(creds, { projectId, summary, description = '', allowDuplicate = false }) {
     if (!projectId) throw new Error('projectId is required');
@@ -322,6 +368,11 @@ async function createIssue(creds, { projectId, summary, description = '', allowD
     }
 }
 
+/**
+ * @param {YoutrackCreds} creds
+ * @param {string} issueId
+ * @param {string} text
+ */
 async function addComment(creds, issueId, text) {
     if (!ISSUE_ID_RE.test(issueId || '')) throw new Error('invalid issue id');
     if (!text) throw new Error('text is required');
@@ -329,7 +380,12 @@ async function addComment(creds, issueId, text) {
     return true;
 }
 
-/** Add a tag. Best-effort: a tag the instance forbids must not fail the create. */
+/**
+ * Add a tag. Best-effort: a tag the instance forbids must not fail the create.
+ * @param {YoutrackCreds} creds
+ * @param {string} issueId
+ * @param {string} tag
+ */
 async function addTag(creds, issueId, tag) {
     if (!ISSUE_ID_RE.test(issueId || '')) throw new Error('invalid issue id');
     if (!tag || !/^[A-Za-z0-9 :._-]{1,80}$/.test(tag)) throw new Error('invalid tag');
@@ -340,6 +396,10 @@ async function addTag(creds, issueId, tag) {
     return true;
 }
 
+/**
+ * @param {string} baseUrl
+ * @param {string} issueId
+ */
 function issueUrl(baseUrl, issueId) {
     if (!baseUrl || !ISSUE_ID_RE.test(issueId || '')) return null;
     return `${baseUrl.replace(/\/+$/, '')}/issue/${issueId}`;

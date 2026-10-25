@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * LinkedIn Tools — AI tool for posting to LinkedIn
  * 
@@ -30,6 +30,9 @@ const LINKEDIN_TOOLS = [
 
 /**
  * Execute a LinkedIn tool call.
+ * @param {string} toolName
+ * @param {{ text?: string }} args
+ * @param {unknown} _session
  */
 async function executeLinkedInTool(toolName, args, _session) {
     if (toolName !== 'linkedin_create_post') {
@@ -58,6 +61,8 @@ async function executeLinkedInTool(toolName, args, _session) {
 
 /**
  * Execute a LinkedIn action after user approval.
+ * @param {{ action?: string, text?: string }} action
+ * @param {{ user?: { id?: string } } | null | undefined} session
  */
 async function executeLinkedInAction(action, session) {
     const userId = session?.user?.id;
@@ -104,6 +109,7 @@ async function executeLinkedInAction(action, session) {
     throw new Error(`Unknown LinkedIn action: ${action.action}`);
 }
 
+/** @param {string} toolName */
 function isLinkedInTool(toolName) {
     return toolName === 'linkedin_create_post';
 }

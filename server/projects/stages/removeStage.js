@@ -225,3 +225,9 @@ async function finishRemove({ deployment, stage }, deps = {}) {
 }
 
 module.exports = { prepareRemove, commitRemove, finishRemove, removeStarted, deletesData, removePart };
+
+/** @typedef {import('./model').DeploymentRow} DeploymentRow */
+
+/** @typedef {import('./model').StageRow} StageRow */
+
+/** @typedef {ReturnType<typeof storesOf>} Stores */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Run: node --test automation/patterns/sequences.test.js
@@ -58,7 +58,10 @@ test('mineSequences respects minDays and minSupport', () => {
     assert.strictEqual(mineSequences(same, { minSupport: 4, minDays: 1 }).length, 1);
 });
 
-/** Sessions of random tools from a vocabulary, each with `len` steps, one per day-slot. */
+/** Sessions of random tools from a vocabulary, each with `len` steps, one per day-slot.
+ * @param {number} seed
+ * @param {{ count: number, vocab: string[], len: number, plant?: string[]|null, plantEvery?: number }} opts
+ */
 function randomSessions(seed, { count, vocab, len, plant = null, plantEvery = 2 }) {
     const r = rng(seed);
     const out = [];

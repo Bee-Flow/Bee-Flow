@@ -92,3 +92,10 @@ function checkTable(ctx, step, at) {
 }
 
 module.exports = { checkReadTable, checkTable, checkSaltPlacement, checkSaltDeclared };
+
+/** @typedef {import('../../../core/automationModel/tableOps/readTableSpec').Finding} Finding */
+
+/**
+ * @typedef {import('./stepContext').StepCtx} StepCtx
+ * @typedef {import('./stepContext').StepDef} StepDef
+ */

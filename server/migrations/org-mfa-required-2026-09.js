@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: stamp the A3 org-MFA duty explicitly OFF for existing orgs (U10).
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Microsoft Teams → Meeting Notes settings API.
  *
@@ -19,10 +19,12 @@ const { HttpError } = require('../core/http/errors');
 const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
 const { fallback } = require('../utils/bestEffort');
 
+/** @param {import('zod').ZodRawShape} shape */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
+/** @param {string} name */
 const onOff = (name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
     .nullable().optional();
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
@@ -53,7 +55,7 @@ router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (req
     res.json({ ok: true, config });
 });
 
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     if (!(orgIds === null || (orgIds && orgIds.has(orgId)))) {
@@ -62,7 +64,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
     res.json(await teamsNotes.getOrgSettings(orgId));
 });
 
-router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         throw new HttpError(403, 'not_org_admin', 'Only organization admins can manage these settings');

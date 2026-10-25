@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AI Config — model tier configuration: standard/EU/custom/org tiers, the
  * auto-classifier and title-generation models, Claude settings, hidden
@@ -51,7 +52,7 @@ const ClaudeSettingsBody = z.object({
 
 // ─── Model Tier Config ───────────────────────────────────────────
 
-router.get('/config/chat-models', requireAuth, async (req, res) => {
+router.get('/config/chat-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const tiers = await configStore.getConfig('chat_model_tiers') || {
         fast: { modelId: '', label: 'Fast' },
         standard: { modelId: '', label: 'Flow (Direct)' },
@@ -66,7 +67,7 @@ router.get('/config/chat-models', requireAuth, async (req, res) => {
     res.json(tiers);
 });
 
-router.post('/config/chat-models', requireAuth, requireAdmin, async (req, res) => {
+router.post('/config/chat-models', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { fast, standard, swarm, thinking, writer, pro } = req.body;
     const tiers = {
         fast: fast || { modelId: '', label: 'Fast' },
@@ -95,12 +96,12 @@ router.post('/config/chat-models', requireAuth, requireAdmin, async (req, res) =
  * @param {{ afterSave?: () => void }} [options]
  */
 function modelIdSetting(path, configKey, { afterSave } = {}) {
-    router.get(path, requireAuth, requireAdmin, async (req, res) => {
+    router.get(path, requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const modelId = await configStore.getConfig(configKey);
         res.json({ modelId: typeof modelId === 'string' ? modelId : null });
     });
 
-    router.post(path, requireAuth, validate({ body: ModelIdBody }), requireAdmin, async (req, res) => {
+    router.post(path, requireAuth, validate({ body: ModelIdBody }), requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { modelId } = req.body;
 
         if (modelId) {
@@ -187,14 +188,14 @@ modelIdSetting('/config/builder-narration-model', 'builder_narration_model');
 // the model writes a real answer based on what it already thought. Default
 // true; flip off if you'd rather see the raw "no response" symptom.
 
-router.get('/config/claude-settings', requireAuth, async (req, res) => {
+router.get('/config/claude-settings', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const settings = (await configStore.getConfig('claude_settings')) || {};
     res.json({
         autoRetryOnEmpty: settings.autoRetryOnEmpty !== false, // default true
     });
 });
 
-router.post('/config/claude-settings', requireAuth, validate({ body: ClaudeSettingsBody }), requireAdmin, async (req, res) => {
+router.post('/config/claude-settings', requireAuth, validate({ body: ClaudeSettingsBody }), requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const settings = { autoRetryOnEmpty: req.body.autoRetryOnEmpty };
     await configStore.setConfig('claude_settings', settings);
     res.json({ success: true, ...settings });
@@ -206,13 +207,13 @@ router.post('/config/claude-settings', requireAuth, validate({ body: ClaudeSetti
 // `hidden_model_ids`. The list is purely cosmetic — it does NOT remove the
 // model from the provider catalog, just from the picker UI.
 
-router.get('/config/hidden-models', requireAuth, async (req, res) => {
+router.get('/config/hidden-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const raw = await configStore.getConfig('hidden_model_ids');
     const ids = Array.isArray(raw) ? raw.filter(id => typeof id === 'string') : [];
     res.json({ modelIds: ids });
 });
 
-router.post('/config/hidden-models', requireAuth, validate({ body: HiddenModelsBody }), requireAdmin, async (req, res) => {
+router.post('/config/hidden-models', requireAuth, validate({ body: HiddenModelsBody }), requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const ids = req.body.modelIds;
     await configStore.setConfig('hidden_model_ids', ids);
     res.json({ success: true, modelIds: ids });
@@ -221,7 +222,7 @@ router.post('/config/hidden-models', requireAuth, validate({ body: HiddenModelsB
 
 // ─── EU Model Tier Config ────────────────────────────────────────
 
-router.get('/config/chat-models-eu', requireAuth, async (req, res) => {
+router.get('/config/chat-models-eu', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const tiers = await configStore.getConfig('chat_model_tiers_eu') || {
         fast: { modelId: '', label: 'Fast' },
         standard: { modelId: '', label: 'Flow (Direct)' },
@@ -235,7 +236,7 @@ router.get('/config/chat-models-eu', requireAuth, async (req, res) => {
     res.json(tiers);
 });
 
-router.post('/config/chat-models-eu', requireAuth, requireAdmin, async (req, res) => {
+router.post('/config/chat-models-eu', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { fast, standard, swarm, thinking, writer, pro } = req.body;
     const tiers = {
         fast: fast || { modelId: '', label: 'Fast' },
@@ -247,7 +248,9 @@ router.post('/config/chat-models-eu', requireAuth, requireAdmin, async (req, res
     };
 
     // Validate that specified model IDs exist in configured providers
+    /** @type {string[]} */
     const warnings = [];
+    /** @type {string[]} */
     const notInEu = [];
     const { getProviderForModel } = require('../../../core/aiAgent');
     const { isEuResidencyUrl } = require('../../../core/providers/openaiModels');
@@ -293,6 +296,7 @@ const VALID_TASK_TYPES = ['direct_chat', 'agent_chat'];
 const STANDARD_TIER_KEYS = ['fast', 'standard', 'swarm', 'thinking', 'writer', 'pro'];
 
 // ── Custom tier helpers ──────────────────────────────────────────
+/** @param {import('express').Request} req */
 async function isOrgAdmin(req) {
     if (await isAdminUser(req)) return true;
     const userId = req.session.user?.id;
@@ -301,6 +305,7 @@ async function isOrgAdmin(req) {
     return perms.includes('all') || perms.includes('org_admin') || perms.includes('manage_users');
 }
 
+/** @param {import('express').Request} req */
 async function resolveSessionOrgId(req) {
     if (req.session.user?.organizationId) return req.session.user.organizationId;
     try {
@@ -325,6 +330,9 @@ async function loadGlobalCustomTiers() {
     return Array.isArray(arr) ? arr : [];
 }
 
+/**
+ * @param {string} orgId
+ */
 async function loadOrgCustomTiers(orgId) {
     if (!orgId) return [];
     const arr = await configStore.getConfig(`custom_chat_model_tiers_org_${orgId}`) || [];
@@ -334,6 +342,9 @@ async function loadOrgCustomTiers(orgId) {
 // Merge global + org tiers into a single array with stable ordering.
 // When IDs collide, the org tier wins (org admin has final word in their org).
 // Each tier gets a `_scope` field ('global' | 'org') so the UI can show badges.
+/**
+ * @param {string | undefined} orgId
+ */
 async function loadMergedCustomTiers(orgId) {
     const globalTiers = await loadGlobalCustomTiers();
     const orgTiers = orgId ? await loadOrgCustomTiers(orgId) : [];
@@ -343,6 +354,7 @@ async function loadMergedCustomTiers(orgId) {
     return Array.from(byId.values());
 }
 
+/** @param {Record<string, unknown>} t */
 function normalizeCustomTier(t) {
     if (!t || typeof t !== 'object') return null;
     const id = typeof t.id === 'string' && t.id.startsWith('custom:') ? t.id : null;
@@ -367,12 +379,12 @@ function normalizeCustomTier(t) {
     };
 }
 
-router.get('/config/custom-chat-models', requireAuth, requireAdmin, async (req, res) => {
+router.get('/config/custom-chat-models', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const tiers = await configStore.getConfig('custom_chat_model_tiers') || [];
     res.json({ tiers: Array.isArray(tiers) ? tiers : [] });
 });
 
-router.post('/config/custom-chat-models', requireAuth, requireAdmin, async (req, res) => {
+router.post('/config/custom-chat-models', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { tiers } = req.body;
     if (!Array.isArray(tiers)) {
         return res.status(400).json({ error: '`tiers` must be an array' });
@@ -383,6 +395,7 @@ router.post('/config/custom-chat-models', requireAuth, requireAdmin, async (req,
     for (const t of normalized) seen.set(t.id, t);
     const finalTiers = Array.from(seen.values());
 
+    /** @type {string[]} */
     const warnings = [];
     const { getProviderForModel } = require('../../../core/aiAgent');
     for (const t of finalTiers) {
@@ -398,7 +411,7 @@ router.post('/config/custom-chat-models', requireAuth, requireAdmin, async (req,
 
 // Lightweight tier list for org-admin group editor — metadata only (id, label, icon, scope)
 // Returns global + the caller's org tiers merged.
-router.get('/config/custom-tiers-list', requireAuth, async (req, res) => {
+router.get('/config/custom-tiers-list', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveSessionOrgId(req);
     const tiers = await loadMergedCustomTiers(orgId);
     const list = tiers.map(t => ({
@@ -413,7 +426,7 @@ router.get('/config/custom-tiers-list', requireAuth, async (req, res) => {
 // Operates on custom_chat_model_tiers_org_{orgId}. Org admins may create/edit
 // tiers that are scoped to their organization. Super admins may use this on
 // any org by passing ?orgId=xxx; org admins implicitly target their own org.
-router.get('/config/org-custom-chat-models', requireAuth, async (req, res) => {
+router.get('/config/org-custom-chat-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!(await isOrgAdmin(req))) return res.status(403).json({ error: 'Org admin access required' });
     let orgId = await isAdminUser(req) && typeof req.query.orgId === 'string' && req.query.orgId
         ? req.query.orgId
@@ -433,7 +446,7 @@ router.get('/config/org-custom-chat-models', requireAuth, async (req, res) => {
     });
 });
 
-router.post('/config/org-custom-chat-models', requireAuth, async (req, res) => {
+router.post('/config/org-custom-chat-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!(await isOrgAdmin(req))) return res.status(403).json({ error: 'Org admin access required' });
     let orgId = await isAdminUser(req) && typeof req.body.orgId === 'string' && req.body.orgId
         ? req.body.orgId
@@ -449,6 +462,7 @@ router.post('/config/org-custom-chat-models', requireAuth, async (req, res) => {
     for (const t of normalized) seen.set(t.id, t);
     const finalTiers = Array.from(seen.values());
 
+    /** @type {string[]} */
     const warnings = [];
     const { getProviderForModel } = require('../../../core/aiAgent');
     for (const t of finalTiers) {
@@ -468,7 +482,7 @@ router.post('/config/org-custom-chat-models', requireAuth, async (req, res) => {
 
 // Returns tiers a given user may use, optionally filtered by taskType.
 // Shape matches the existing /config/chat-models consumer: { fast: {...}, thinking: {...}, ..., 'custom:xyz': {...} }
-router.get('/config/tiers-for-user', requireAuth, async (req, res) => {
+router.get('/config/tiers-for-user', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const taskType = typeof req.query.taskType === 'string' ? req.query.taskType : null;
     const userId = req.session.user?.id;
     const userOrgId = req.session.user?.organizationId;
@@ -500,6 +514,9 @@ router.get('/config/tiers-for-user', requireAuth, async (req, res) => {
     //   (a) has allowedTiers empty/unset (no restriction), OR
     //   (b) lists the tier id in allowedTiers.
     // If the user has NO groups, treat as unrestricted (matches getUser default behaviour).
+    /**
+     * @param {string} tierId
+     */
     function tierPermittedByGroups(tierId) {
         if (userGroups.length === 0) return true;
         return userGroups.some(g => {
@@ -525,6 +542,7 @@ router.get('/config/tiers-for-user', requireAuth, async (req, res) => {
         : false;
     const hasFlowTier = hasFlowFeature && hasSkillsFeature;
 
+    /** @type {Record<string, Record<string, unknown>>} */
     const result = {};
     // Auto is a meta/routing tier (no concrete modelId) — always include it
     // when permitted by groups so the client's persisted 'auto' selection

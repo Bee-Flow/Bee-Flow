@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the `data_model` SSE payload.
  *
@@ -12,8 +12,12 @@
 /**
  * Row counts keyed by TABLE ID (the draftWrap/rendering convention). The
  * store's row_counts map is keyed by physical table KEY — tolerate both.
+ * @param {import('../../../appStudio/builderTools/dataTools').DataModel|null|undefined} dataModel
+ * @param {Record<string, number|string>|null|undefined} counts
+ * @returns {Record<string, number>}
  */
 function normalizeRowCounts(dataModel, counts) {
+    /** @type {Record<string, number>} */
     const out = {};
     const c = (counts && typeof counts === 'object') ? counts : {};
     for (const t of (dataModel && Array.isArray(dataModel.tables)) ? dataModel.tables : []) {
@@ -24,12 +28,16 @@ function normalizeRowCounts(dataModel, counts) {
     return out;
 }
 
-/** The `data_model` SSE payload, built from the live draftWrap state. */
+/**
+ * The `data_model` SSE payload, built from the live draftWrap state.
+ * @param {import('../../../appStudio/builderTools').BuilderDraft} draftWrap
+ */
 function dataModelEvent(draftWrap) {
     const model = draftWrap.dataModel || {};
     const counts = draftWrap.rowCounts || {};
     const linked = draftWrap.linkedTables instanceof Map ? draftWrap.linkedTables : null;
     const tables = (Array.isArray(model.tables) ? model.tables : []).map((t) => {
+        /** @type {{ id: string, key: string, name?: string, fieldCount: number, rowCount: number, linked?: { kind: ReturnType<typeof import('../../../core/dataEngine/sources').builderKindOf>, mode: string, missing?: boolean } }} */
         const row = {
             id: t.id,
             key: t.key,
@@ -51,7 +59,7 @@ function dataModelEvent(draftWrap) {
         return row;
     });
     const datasets = (Array.isArray(draftWrap.datasetIds) ? draftWrap.datasetIds : [])
-        .map((d) => (d && typeof d === 'object' ? { id: d.id, name: d.name ?? null } : { id: d, name: null }));
+        .map(/** @returns {{ id: unknown, name: string|null }} */ (d) => (d && typeof d === 'object' ? { id: d.id, name: d.name ?? null } : { id: d, name: null }));
     return { modelVersion: draftWrap.dataModelVersion ?? 0, tables, datasets };
 }
 

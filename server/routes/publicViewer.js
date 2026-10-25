@@ -746,3 +746,5 @@ router.post('/:token/unlock', unlockLimiter, formParser, async (req, res) => {
 });
 
 module.exports = router;
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/webpagePublicShareStore').findByToken>>>} PublicShare */

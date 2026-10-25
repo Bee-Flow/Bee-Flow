@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — group and role management, plus the SYSTEM_PERMISSIONS
  * catalogue. Split out of auth/adminRoutes.js; mounted there in the original
@@ -74,6 +74,8 @@ router.get('/groups', requireAuth, async (req, res) => {
  *
  * `undefined`/`null` means "field not supplied" and stays the caller's business.
  *
+ * @param {unknown} value
+ * @param {string} field
  * @returns {string|null} an error message, or null when the value is acceptable
  */
 function invalidStringArrayField(value, field) {
@@ -108,6 +110,7 @@ function invalidStringArrayField(value, field) {
  * edit form does) must not lock an org admin out of editing that group.
  * Removing roles is always allowed.
  *
+ * @param {{ userId: string | undefined, session: import('express').Request['session'], requested: unknown, existing?: string[] }} opts
  * @returns {Promise<string|null>} an error message, or null when the change is allowed
  */
 async function rejectUngrantableRoles({ userId, session, requested, existing = [] }) {
@@ -134,7 +137,7 @@ async function rejectUngrantableRoles({ userId, session, requested, existing = [
             blocked.push(`${rid} (unknown role)`);
             continue;
         }
-        const missing = (role.permissions || []).filter((p) => !userPerms.includes(p));
+        const missing = /** @type {string[]} */ (role.permissions || []).filter((p) => !userPerms.includes(p));
         if (missing.length > 0) blocked.push(`${rid} (grants: ${missing.join(', ')})`);
     }
     if (blocked.length === 0) return null;
@@ -145,6 +148,7 @@ async function rejectUngrantableRoles({ userId, session, requested, existing = [
  * The list shape as a schema, delegating to invalidStringArrayField so the one
  * definition above stays the only place that decides what a list field may be
  * — including that `null` is supplied-but-wrong and says to use [] instead.
+ * @param {string} field
  */
 const idList = (field) => z.any().superRefine((value, ctx) => {
     const message = invalidStringArrayField(value, field);
@@ -209,6 +213,7 @@ const OrgRolePermissionsBody = z.object({
 }).strict();
 
 router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (req, res) => {
+    /** @type {{ name: string, description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[] }} */
     const { name, description, permissions, roles, organizationId, allowedAgentTypes } = req.body;
 
     if (!name) {
@@ -278,8 +283,9 @@ router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (
     }
 });
 
-router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), async (req, res) => {
+router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
+    /** @type {{ description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], allowedTiers?: string[], orgRole?: string | null }} */
     const { description, permissions, roles, organizationId, allowedAgentTypes, allowedTiers, orgRole } = req.body;
 
     // Require org_admin or manage_users permission to edit groups
@@ -317,6 +323,7 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
         if (roleError) return res.status(403).json({ error: roleError });
     }
 
+    /** @type {{ description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], allowedTiers?: string[], orgRole?: string | null, [key: string]: unknown }} */
     const updates = { description, permissions, roles };
     // Only super admins can reassign a group to a different org
     if (organizationId !== undefined && isSuperAdmin) {
@@ -334,6 +341,7 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
 
     // Snapshot the group so the audit row carries the before/after of the
     // access-relevant fields, not just the new state.
+    /** @type {Record<string, any> | null} */
     let prevGroup = null;
     try {
         const all = await userStore.getAllGroups();
@@ -343,7 +351,9 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
     if (await userStore.updateGroup(id, updates)) {
         log.info(`[Audit] ${userId || 'system'} updated group '${id}' — fields: ${Object.keys(updates).filter(k => updates[k] !== undefined).join(', ')}`);
         const AUDIT_FIELDS = ['permissions', 'roles', 'orgRole', 'allowedAgentTypes', 'allowedTiers', 'organizationId'];
+        /** @type {Record<string, unknown>} */
         const oldVals = {};
+        /** @type {Record<string, unknown>} */
         const newVals = {};
         for (const f of AUDIT_FIELDS) {
             if (updates[f] === undefined) continue;
@@ -376,6 +386,11 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
 // from the Users tab); this lets an admin add/remove members directly from the
 // group view. Membership lives on the user's `groups` array, so we update the
 // target user. Same permission model + same-org guard as editing the group.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} groupId
+ */
 async function assertCanManageGroupMembers(req, res, groupId) {
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
     const adminId = req.session.user?.id;
@@ -397,7 +412,7 @@ async function assertCanManageGroupMembers(req, res, groupId) {
     return { group, adminId, isSuperAdmin };
 }
 
-router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody }), async (req, res) => {
+router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
     const targetUserId = req.body.userId;
     const ctx = await assertCanManageGroupMembers(req, res, id);
@@ -407,6 +422,7 @@ router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody
     if (!ctx.isSuperAdmin && target.organizationId !== ctx.group.organizationId) {
         return res.status(403).json({ error: 'User is not in this organisation' });
     }
+    /** @type {string[]} */
     const groups = Array.isArray(target.groups) ? target.groups : [];
     if (groups.includes(id)) return res.json({ success: true, alreadyMember: true });
     if (!await userStore.updateUser(targetUserId, { groups: [...groups, id] })) {
@@ -417,12 +433,13 @@ router.post('/groups/:id/members', requireAuth, validate({ body: GroupMemberBody
     res.json({ success: true });
 });
 
-router.delete('/groups/:id/members/:userId', requireAuth, async (req, res) => {
+router.delete('/groups/:id/members/:userId', requireAuth, async (/** @type {import('express').Request<{ id: string, userId: string }>} */ req, res) => {
     const { id, userId: targetUserId } = req.params;
     const ctx = await assertCanManageGroupMembers(req, res, id);
     if (!ctx) return;
     const target = await userStore.getUser(targetUserId);
     if (!target) return res.status(404).json({ error: 'User not found' });
+    /** @type {string[]} */
     const groups = Array.isArray(target.groups) ? target.groups : [];
     if (!groups.includes(id)) return res.json({ success: true, notMember: true });
     if (!await userStore.updateUser(targetUserId, { groups: groups.filter(g => g !== id) })) {
@@ -433,7 +450,7 @@ router.delete('/groups/:id/members/:userId', requireAuth, async (req, res) => {
     res.json({ success: true });
 });
 
-router.delete('/groups/:id', requireAuth, async (req, res) => {
+router.delete('/groups/:id', requireAuth, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
     if (id === 'admins' || id === 'users') {
         return res.status(400).json({ error: 'Cannot delete system groups' });
@@ -533,7 +550,7 @@ router.post('/roles', requireSuperAdmin, validate({ body: CreateRoleBody }), asy
     }
 });
 
-router.put('/roles/:id', requireSuperAdmin, validate({ body: UpdateRoleBody }), async (req, res) => {
+router.put('/roles/:id', requireSuperAdmin, validate({ body: UpdateRoleBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
     const { name, description, permissions } = req.body;
 
@@ -544,6 +561,7 @@ router.put('/roles/:id', requireSuperAdmin, validate({ body: UpdateRoleBody }), 
         return res.status(400).json({ error: 'Cannot modify system roles' });
     }
 
+    /** @type {Record<string, any> | null} */
     let prevRole = null;
     try {
         const all = await userStore.getAllRoles();
@@ -552,8 +570,11 @@ router.put('/roles/:id', requireSuperAdmin, validate({ body: UpdateRoleBody }), 
 
     if (await userStore.updateRole(id, { name, description, permissions })) {
         const AUDIT_FIELDS = ['name', 'description', 'permissions'];
+        /** @type {Record<string, unknown>} */
         const oldVals = {};
+        /** @type {Record<string, unknown>} */
         const newVals = {};
+        /** @type {Record<string, unknown>} */
         const incoming = { name, description, permissions };
         for (const f of AUDIT_FIELDS) {
             if (incoming[f] === undefined) continue;
@@ -579,7 +600,7 @@ router.put('/roles/:id', requireSuperAdmin, validate({ body: UpdateRoleBody }), 
     }
 });
 
-router.delete('/roles/:id', requireSuperAdmin, async (req, res) => {
+router.delete('/roles/:id', requireSuperAdmin, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
     if (SYSTEM_ROLE_IDS.has(id)) {
         return res.status(400).json({ error: 'Cannot delete system roles' });
@@ -666,7 +687,7 @@ router.get('/org-roles', requireAdmin, async (req, res) => {
  * guard: the editable set contains no permission that raises anyone's
  * privileges over the organisation — see the header of auth/orgRolePolicy.js.
  */
-router.put('/org-roles/:roleId', requirePrimaryOrgAdmin(), validate({ body: OrgRolePermissionsBody }), async (req, res) => {
+router.put('/org-roles/:roleId', requirePrimaryOrgAdmin(), validate({ body: OrgRolePermissionsBody }), async (/** @type {import('express').Request<{ roleId: string }>} */ req, res) => {
     const roleId = String(req.params.roleId || '');
     const known = getOrgRolePermissions();
     if (!Object.prototype.hasOwnProperty.call(known, roleId)) {

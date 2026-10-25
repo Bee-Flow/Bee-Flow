@@ -130,3 +130,8 @@ function tokenPreservationAddendum(conversation, piiTokenMap, d) {
 }
 
 module.exports = { resolveGenerationSettings, loadToolParamsMap, shieldIncomingMessages, tokenPreservationAddendum };
+
+/**
+ * @typedef {{ getAIConfig: typeof import('../aiAgent').getAIConfig, agentStore: typeof import('../../stores/agentStore'), getEUAwareTiers: typeof import('../llm/modelResolver').getEUAwareTiers, TIER_DEFAULTS: typeof import('../llm/modelResolver').TIER_DEFAULTS, findTierKeyForModel: typeof import('../llm/modelResolver').findTierKeyForModel, validateInputForPii: typeof import('../privacy/piiDetection').validateInputForPii, resolveShieldFor: typeof import('../privacy/orgShield').resolveShieldFor, dlpRunner: typeof import('../dlp/dlpRunner') }} PrepDeps
+ * @typedef {{ maxTokens?: number, temperature?: number, reasoningEffort?: string, reasoningSummary?: boolean | string, budgetTokens?: number }} TierSettings
+ */

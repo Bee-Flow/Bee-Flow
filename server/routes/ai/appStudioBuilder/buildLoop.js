@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the build loop: one turn's rounds with the model.
  *
@@ -40,6 +40,9 @@ const log = require('../../../telemetry/log');
  * modelEndedTurn, builtThisTurn, proposedPlan, lastPhaseIndex, the counters
  * and iter) lives on `turn`, and usageTotals/proseParts are the caller's
  * (Wave 6c), so the route's outer catch can still log a turn that blew up.
+ * @param {import('./buildRound').BuildCtx['profile']} profile
+ * @param {import('./buildRound').BuildCtx['tier']} tier
+ * @returns {import('./buildRound').LoopState}
  */
 function freshLoopState(profile, tier) {
     return {
@@ -64,7 +67,14 @@ function freshLoopState(profile, tier) {
     };
 }
 
-/** One round; returns 'next' to run another, or 'end' to end the turn. */
+/**
+ * One round; returns 'next' to run another, or 'end' to end the turn.
+ * @param {import('./turnClosing').BuilderTurn} turn
+ * @param {number} iter
+ * @param {import('./buildRound').BuildCtx} ctx
+ * @param {import('./buildRound').LoopState} ls
+ * @returns {Promise<'next'|'end'>}
+ */
 async function runRound(turn, iter, ctx, ls) {
     if (ls.escalateNextRound) log.info(`[AppStudioBuilder] round ${iter} follows a rejected call`);
     ls.escalateNextRound = false;
@@ -97,6 +107,10 @@ async function runRound(turn, iter, ctx, ls) {
     return turn.lastFinalized ? 'end' : 'next';
 }
 
+/**
+ * @param {import('./turnClosing').BuilderTurn} turn
+ * @param {import('./buildRound').BuildCtx} ctx
+ */
 async function runBuildLoop(turn, ctx) {
     const { res, iterationBudget, profile, tier } = ctx;
     const ls = freshLoopState(profile, tier);

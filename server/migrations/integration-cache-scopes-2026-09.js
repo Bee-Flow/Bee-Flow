@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: the two halves of extending the response cache to http_request
  * (2026-09).

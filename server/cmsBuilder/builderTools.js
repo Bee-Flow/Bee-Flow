@@ -319,3 +319,21 @@ module.exports = {
     // internals exposed for unit tests
     _test: { deepMerge, validateStylePatch, STYLE_KEYS, resolveInsertIndex, summariseDesign, sanitizeHeaderNav, sanitizeDesignPatch },
 };
+
+/**
+ * @typedef {import('../stores/cms/shared').SiteDoc} SiteDoc
+ * @typedef {import('../stores/cms/shared').PageDoc} PageDoc
+ * @typedef {import('../stores/cms/shared').CmsBlock} CmsBlock
+ * @typedef {import('../stores/cms/shared').CmsDoc} CmsDoc
+ * @typedef {{ siteId: string, userId: string, orgId: string, builderSessionId: string, site: SiteDoc,
+ *   pages: Map<string, PageDoc>, defaultLocale: string, locales: string[], createdPageIds: string[],
+ *   touchedPageIds: Set<string> }} DraftWrap  the draft wrapper shared with the route
+ * @typedef {Record<string, unknown>} ToolArgs  the model's arguments for one tool call (untrusted JSON)
+ * @typedef {Record<string, any>} ToolResult  a tool's JSON answer: a result object, or { error, _fixHint? }
+ * @typedef {(draftWrap: DraftWrap, args: ToolArgs) => Promise<ToolResult>} ToolImpl
+ * @typedef {{ index: number, type: unknown, reason: string, message?: string, _fixHint?: string }} DroppedBlock
+ * @typedef {{ id: string, label: string, link: Record<string, unknown>, description?: string, icon?: string,
+ *   openInNewTab?: boolean, children?: NavItem[], dropdown?: NavDropdown }} NavItem
+ * @typedef {{ id: string, heading: string, items: NavItem[] }} NavColumn
+ * @typedef {{ layout: string, columns: NavColumn[] }} NavDropdown
+ */

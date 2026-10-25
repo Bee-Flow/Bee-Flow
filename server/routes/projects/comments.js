@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Comment threads on the notebooks, pages and designed documents filed in a
  * project. Mounted under /api/projects (the mount carries requireAuthedUser
@@ -79,7 +79,7 @@ const H = require('./commentsHandlers');
  * @param {Function} [deps.resolveOrgs]         (req) => { orgId, limitOrgId }
  * @param {Function} [deps.emit]                (projectId, event) => durable event
  * @param {Function} [deps.logActivity]         (projectId, actorId, action, details) => activity row
- * @param {Function} [deps.postLimiter]         Express middleware on posting
+ * @param {import('express').RequestHandler} [deps.postLimiter]         Express middleware on posting
  * @param {any}   [deps.participationStore]  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
  * @param {any}   [deps.policy]              { resolveOrgPolicy } (projects/participation/policy)
  * @param {any}   [deps.collabNotifier]      projects/collabNotify surface: commentMentioned(...), the bell for someone mentioned on a document or notebook
@@ -92,7 +92,7 @@ function makeProjectCommentsRouter(deps = {}) {
     const ctx = makeCommentsContext(deps);
     const { requireRole, postLimiter } = ctx;
     /** @param {(ctx: any, req: any, res: any) => any} handler */
-    const h = (handler) => (req, res) => handler(ctx, req, res);
+    const h = (handler) => (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => handler(ctx, req, res);
 
     // ── Threads ───────────────────────────────────────────────────────────
 
@@ -101,8 +101,8 @@ function makeProjectCommentsRouter(deps = {}) {
     router.get('/:id/comments/:threadId', requireRole('viewer'), validate({ query: S.ThreadQuery }), h(H.getThread));
     router.patch('/:id/comments/:threadId', requireRole('editor'), validate({ body: S.UpdateThreadBody }), h(H.updateThread));
     router.delete('/:id/comments/:threadId', requireRole('editor'), h(H.deleteThread));
-    router.post('/:id/comments/:threadId/resolve', requireRole('editor'), (req, res) => H.changeStatus(ctx, req, res, 'resolved'));
-    router.post('/:id/comments/:threadId/reopen', requireRole('editor'), (req, res) => H.changeStatus(ctx, req, res, 'open'));
+    router.post('/:id/comments/:threadId/resolve', requireRole('editor'), (/** @type {import('express').Request<{ id: string, threadId: string }>} */ req, /** @type {import('express').Response} */ res) => H.changeStatus(ctx, req, res, 'resolved'));
+    router.post('/:id/comments/:threadId/reopen', requireRole('editor'), (/** @type {import('express').Request<{ id: string, threadId: string }>} */ req, /** @type {import('express').Response} */ res) => H.changeStatus(ctx, req, res, 'open'));
 
     // ── Comments ──────────────────────────────────────────────────────────
 

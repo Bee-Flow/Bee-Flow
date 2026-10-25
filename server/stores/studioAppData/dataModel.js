@@ -322,3 +322,21 @@ module.exports = {
     additiveModel,
     reconcileDataModel,
 };
+
+/**
+ * @typedef {{ id?: string, [key: string]: unknown }} DataModelField
+ * @typedef {{ id?: string, key?: string, fields?: DataModelField[], [key: string]: unknown }} DataModelTable
+ * @typedef {{ tables?: DataModelTable[], [key: string]: unknown }} DataModel
+ */
+
+/**
+ * The collaborators saveDataModelIn works over.
+ * @typedef {{
+ *   getClient: () => Promise<import('pg').PoolClient>,
+ *   ready?: () => Promise<unknown>,
+ *   applyMigration: (ownerId: string, appId: string, plan: string[], opts: { targetVersion: number, client?: import('pg').PoolClient }) => Promise<unknown>,
+ *   isPg: () => boolean,
+ *   recountRows: typeof recountRows,
+ *   managedParts?: ReturnType<typeof import('../lib/managedParts').makeManagedParts> | null,
+ * }} DataModelIo
+ */

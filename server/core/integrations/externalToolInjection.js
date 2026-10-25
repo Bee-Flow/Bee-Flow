@@ -134,3 +134,7 @@ function createExternalToolInjection({ lazy }) {
 }
 
 module.exports = { createExternalToolInjection };
+
+/**
+ * @typedef {import('../agentRuntime/toolPolicy/appIndex').ToolDef} ToolDef
+ */

@@ -363,3 +363,7 @@ module.exports = {
     validationRepairTurn,
     formatToolWarning,
 };
+
+/**
+ * @typedef {{ type: string, severity: 'error'|'warn'|'info', file: string, line: number, detail: string, fragment?: string, src?: string, suggestion?: string | null }} Violation
+ */

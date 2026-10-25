@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GET /api/compliance/calendar[?all=1] — the regulatory calendar.
  *

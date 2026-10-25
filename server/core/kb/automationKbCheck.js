@@ -196,3 +196,7 @@ async function kbStepFindings(definition, { orgId, userId, stage = 'draft', deps
 }
 
 module.exports = { kbStepFindings, collectKbSteps };
+
+/**
+ * @typedef {{ id?: string, type?: string, body?: unknown, branches?: unknown, knowledgeBaseIds?: unknown, knowledgeBaseId?: unknown }} StepLike
+ */

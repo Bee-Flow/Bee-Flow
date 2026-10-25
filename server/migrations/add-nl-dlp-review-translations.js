@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the Privacy Shield review dialog (the "check before it goes to the
  * AI" screen and its manual-marking affordances).

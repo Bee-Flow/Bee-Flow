@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 const router = require('express').Router();
 const { requireSuperAdmin, invalidatePermissionCache } = require('../permissions');
@@ -12,13 +12,13 @@ const { start, stopAllPeriodicSyncs } = require('../../integrations/azureGroupSy
 router.get('/microsoft/link-requests', requireSuperAdmin, async (_req, res) => res.json(await store.listRequests()));
 router.put('/microsoft/users/:userId/identity', requireSuperAdmin,
     validate({ body: z.object({ requestId: z.string().guid() }).strict() }), async (req, res) => {
-        await store.bind(req.params.userId, req.body.requestId, req.session.user.id);
-        await invalidatePermissionCache(req.params.userId);
+        await store.bind(/** @type {string} */ (req.params.userId), req.body.requestId, req.session.user.id);
+        await invalidatePermissionCache(/** @type {string} */ (req.params.userId));
         res.json({ ok: true });
     });
 router.delete('/microsoft/users/:userId/identity', requireSuperAdmin, async (req, res) => {
-    await store.unbind(req.params.userId, req.session.user.id);
-    await invalidatePermissionCache(req.params.userId);
+    await store.unbind(/** @type {string} */ (req.params.userId), req.session.user.id);
+    await invalidatePermissionCache(/** @type {string} */ (req.params.userId));
     res.json({ ok: true });
 });
 router.get('/microsoft/sync-binding', requireSuperAdmin, async (_req, res) => res.json(await configStore.getConfigFresh('azure_group_sync_binding') || {}));

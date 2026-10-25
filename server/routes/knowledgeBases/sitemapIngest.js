@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — sitemap ingestion.
  *
@@ -87,6 +87,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
     const baseUrl = parsedUrl.origin;
     const { fetchUrl: fetchSitemapUrl } = (() => {
         // Inline the core sitemap logic from website-sitemap-fetcher
+        /** @param {string} targetUrl @param {number} [timeout] @param {string} [userAgent] */
         async function fetchUrl(targetUrl, timeout = 10000, userAgent = 'Mozilla/5.0 (compatible; BeeFlow/1.0)') {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), timeout);
@@ -108,6 +109,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
         return { fetchUrl };
     })();
 
+    /** @param {string} sitemapUrl @param {Set<string>} allUrls @param {Set<string>} visitedSitemaps @param {number} limit */
     async function processSitemap(sitemapUrl, allUrls, visitedSitemaps, limit) {
         if (visitedSitemaps.has(sitemapUrl) || allUrls.size >= limit) return;
         visitedSitemaps.add(sitemapUrl);
@@ -171,6 +173,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
 
     // ── Step 2: Ingest each page ──
     const { htmlToMarkdown } = require('../../utils/htmlToMarkdown');
+    /** @type {{ ingested: number, skipped: number, errors: number, details: Array<{ url: string, status: string, reason?: string, [key: string]: unknown }> }} */
     const results = { ingested: 0, skipped: 0, errors: 0, details: [] };
 
     for (let i = 0; i < pageUrls.length; i++) {

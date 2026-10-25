@@ -99,3 +99,11 @@ function inspectBindings(args,wrap, prefix) {
     return error ? {error} : null;
 }
 module.exports = { schemas,execute,inspectBindings };
+
+/**
+ * @typedef {ReturnType<typeof getContract>} Contract
+ * @typedef {{ userId?: string, _documentContracts?: Record<string, Contract & { versionId?: string }>,
+ *   _documents?: Array<{ id: string, versionId?: string }>, _documentDiscoveryRequired?: boolean }} DiscoveryWrap
+ * @typedef {{ query?: string, offset?: number, limit?: number, documentId?: string, versionId?: string,
+ *   sectionId?: string, includeBody?: boolean }} DiscoveryArgs
+ */

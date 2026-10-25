@@ -329,3 +329,16 @@ async function runToolLoop({
 }
 
 module.exports = { runToolLoop };
+
+/**
+ * @typedef {(event: string, data: unknown) => void} Send
+ * @typedef {'html' | 'css' | 'js'} Slot
+ * @typedef {{ html: string, css: string, js: string }} SlotFiles
+ * @typedef {{ liveFiles: SlotFiles, preTurnFiles: SlotFiles, dirtySlots: Set<Slot>, readSlots: Set<string>,
+ *   touchedExtraPaths: Set<string>, validationRepairUsed: boolean, currentFramework: string,
+ *   planProposedThisTurn: boolean, pendingVisionImages: string[] }} TurnState
+ * @typedef {ReturnType<typeof import('../../../core/privacy/toolPiiGate').toolLoopGate>} ShieldGate
+ * @typedef {Awaited<ReturnType<typeof import('../../../stores/webpageStore').getWebpage>>} Webpage
+ * @typedef {Array<{ id?: string, name?: string, type?: string, status?: string, wordCount?: number, metadata?: unknown }>} WebpageSources
+ * @typedef {import('../../../core/documents/attachmentExtractor').Attachment} TurnAttachment
+ */

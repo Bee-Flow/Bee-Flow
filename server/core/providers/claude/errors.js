@@ -81,3 +81,5 @@ module.exports = {
     isForcedToolChoiceRejection,
     isContextManagementRejection,
 };
+
+/** @typedef {import('@anthropic-ai/sdk/resources/messages.js').Message} Message */

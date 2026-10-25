@@ -294,3 +294,16 @@ async function execHttpRequest(step, ctx, runState, mode) {
 }
 
 module.exports = { execHttpRequest };
+
+/**
+ * An http_request step as the definition stores it (parsed JSON).
+ * @typedef {{ id: string, url?: string, query?: import('./httpQuery').StepQuery, method?: string,
+ *   headers?: Record<string, unknown>, body?: string, auth?: { connectionId?: unknown, allowedHosts?: unknown } | null,
+ *   timeoutMs?: unknown, blockPrivateTargets?: boolean, parseResponse?: string,
+ *   askOnce?: boolean | { ttlSeconds?: unknown, acrossRuns?: unknown } }} HttpStep
+ * @typedef {ReturnType<typeof import('./runContext').buildRunContext>} HttpCtx
+ * @typedef {import('./runDagRecord').DagRunState & { [MASK_VALUES]?: string[] }} HttpRunState
+ * @typedef {ReturnType<typeof buildHttpRequest>} HttpReq
+ * @typedef {ReturnType<typeof parseStepUrl>} ParsedUrl
+ * @typedef {Awaited<ReturnType<typeof guardOutbound>>} Guarded
+ */

@@ -447,3 +447,14 @@ module.exports.HANDLERS = HANDLERS;
 module.exports.AGENT_TASK_TYPE = AGENT_TASK_TYPE;
 module.exports.runAgentTurn = runAgentTurn;
 module.exports.LANGUAGE_RULE = LANGUAGE_RULE;
+
+/** @typedef {Record<string, unknown>} TaskInput  the task input object Nextcloud sent (ExecuteBody.input) */
+
+/** @typedef {{ role: string, content: string, [key: string]: unknown }} AgentMessage */
+
+/**
+ * What llmClient.chat answers with stream:false. Providers differ: the adapters give
+ * `{ content, toolCalls }`, older shapes carry `text` / `tool_calls`.
+ * @typedef {{ id?: string, name?: string, arguments?: string | object, function?: { name?: string, arguments?: string | object } }} AgentToolCall
+ * @typedef {{ content?: string, text?: string, toolCalls?: AgentToolCall[], tool_calls?: AgentToolCall[] }} ChatCompletion
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Mail security probe (credential-less) — SPF / DMARC / DKIM presence for the
  * organisation's sending domain via public DNS. Evidence for information-
@@ -27,6 +27,7 @@ const ABSENT = new Set(['ENODATA', 'ENOTFOUND']);
  * recording "SPF/DMARC absent" and raising a drift notice. The DKIM selector
  * probes are not strict: NXDOMAIN is the normal answer there, and DKIM alone
  * never fails the check.
+ * @param {string} name
  */
 async function _txt(name, { strict = true } = {}) {
     try {
@@ -47,6 +48,7 @@ module.exports = {
     credential: null,
     settingsHint: 'domain: "beeflow.nl", dkim_selectors: ["mandrill"]',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ settings }) {
         const domain = String(settings?.domain || '').trim().toLowerCase();
         if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return [];

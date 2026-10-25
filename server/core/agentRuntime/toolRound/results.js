@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The second half of a tool round, once every call has settled: the
  * concurrent PII pre-scan of the results, then the in-order result loop —
@@ -21,8 +21,16 @@ const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
+ * One result's concurrent PII pre-scan.
+ * @typedef {{ content: string, scanStr: string, threshold: number, pii: Awaited<ReturnType<typeof import('../../privacy/piiDetection').detectPii>>, failed: boolean }} PreScan
+ */
+
+/**
  * Pre-scan, then process every result in call order. Pushes the tool
  * messages onto `rc.messages` and `rc.durableMessages`.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {import('../toolRoundExecutor').ToolCallOutcome[]} toolResults
  */
 async function processToolResults(rc, deps, toolResults) {
     const { dlpShield, onEvent, toolCalls, messages, durableMessages, _toolHistory } = rc;
@@ -45,7 +53,7 @@ async function processToolResults(rc, deps, toolResults) {
         // Sanitize tool result before streaming to client to prevent API key exposure
         onEvent('tool_end', { name: toolName, result: sanitizeToolResult(finalToolResult) });
 
-        emitSideChannels(rc, deps, { toolName, finalToolResult });
+        emitSideChannels(rc, deps, /** @type {{ toolName: string, finalToolResult: import('./sideChannels').SideChannelResult }} */ ({ toolName, finalToolResult }));
 
         await logToolUsageRow(rc, deps, toolName);
 
@@ -56,7 +64,7 @@ async function processToolResults(rc, deps, toolResults) {
         // rows and false 'success' statuses.
         if (result.blocked !== true) logSuccessEgress(rc, deps, result, _preScan);
 
-        let _toolContent = _preScan ? _preScan.content : buildLLMToolContent(finalToolResult);
+        let _toolContent = _preScan ? _preScan.content : buildLLMToolContent(/** @type {Parameters<typeof buildLLMToolContent>[0]} */ (finalToolResult));
         if (dlpShield?.enabled && _preScan && !_preScan.failed) {
             _toolContent = redactToolResultContent(rc, deps, result, _preScan, _toolContent);
         }
@@ -76,10 +84,12 @@ async function processToolResults(rc, deps, toolResults) {
  * privacy_scan_knowledge_bases=false: the org does not want knowledge-base
  * content tokenised. Such a result is still held to the tool class's block
  * list (strip, never tokenise).
+ * @param {import('../toolRoundExecutor').ToolRoundContext['dlpShield']} dlpShield
+ * @param {import('../toolRoundExecutor').ToolCallOutcome} r
  */
 function kbTokenisingOff(dlpShield, r) {
     return dlpShield?.privacy_scan_knowledge_bases === false
-        && (r.finalToolResult?._action === 'kb_sources' || r.toolName === 'kb_search');
+        && (/** @type {import('./sideChannels').SideChannelResult} */ (r.finalToolResult)?._action === 'kb_sources' || r.toolName === 'kb_search');
 }
 
 /**
@@ -96,6 +106,10 @@ function kbTokenisingOff(dlpShield, r) {
  * (GUARD_PII_MAX_CONCURRENCY), so an unbounded fan-out would not finish
  * sooner — it would queue there, and a 10-tool round would hold both slots
  * and push a CONCURRENT user's pre-first-token scan behind the whole burst.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {import('../toolRoundExecutor').ToolCallOutcome[]} toolResults
+ * @returns {Promise<Array<PreScan | null>>}
  */
 async function preScanToolResults(rc, deps, toolResults) {
     const { dlpShield } = rc;
@@ -111,9 +125,10 @@ async function preScanToolResults(rc, deps, toolResults) {
         for (;;) {
             const i = _nextIdx++;
             if (i >= toolResults.length) return;
-            const content = buildLLMToolContent(toolResults[i].finalToolResult);
+            const content = buildLLMToolContent(/** @type {Parameters<typeof buildLLMToolContent>[0]} */ (toolResults[i].finalToolResult));
             if (typeof content !== 'string' || content.length === 0) continue;
             const scanStr = content.slice(0, MAX_TOOL_CONTENT_BYTES);
+            /** @type {PreScan} */
             const entry = { content, scanStr, threshold: _preThreshold, pii: null, failed: false };
             try {
                 // Every built-in category, as before, plus the
@@ -127,7 +142,7 @@ async function preScanToolResults(rc, deps, toolResults) {
             } catch (e) {
                 // Fail-open, exactly as the in-loop version did.
                 entry.failed = true;
-                log.warn('[ToolResultDlp] result scan failed (fail-open):', e.message);
+                log.warn('[ToolResultDlp] result scan failed (fail-open):', /** @type {Error} */ (e).message);
             }
             _preScans[i] = entry;
         }
@@ -144,6 +159,9 @@ async function preScanToolResults(rc, deps, toolResults) {
  * carry zero token counts — tool execution doesn't consume model tokens.
  * Cost-bearing queries (summary, by-model, by-source) filter
  * `tool_name IS NULL` so these rows don't inflate call count or distort cost.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {string} toolName
  */
 async function logToolUsageRow(rc, deps, toolName) {
     const { userId, agent, agentId, conversation, modelToUse, messageMetadata } = rc;
@@ -167,6 +185,10 @@ async function logToolUsageRow(rc, deps, toolName) {
  * Integration Activity Logging (async, non-blocking). One shared write path
  * (core/integrationLogging.js): the minimal metadata row is ALWAYS written;
  * the org's monitorIntegrations toggle only gates the PII scan.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {import('../toolRoundExecutor').ToolCallOutcome} result
+ * @param {PreScan | null} _preScan
  */
 function logSuccessEgress(rc, deps, result, _preScan) {
     const { dlpShield, userAuth, userId, agent, agentId, conversation, modelToUse, messageMetadata, _lentByToolCall } = rc;
@@ -212,13 +234,13 @@ function logSuccessEgress(rc, deps, result, _preScan) {
             // that is what reaches the MODEL, whereas this row audits what
             // came through the INTEGRATION. Stripped `_`-prefixed / UI-only
             // fields can carry PII that reaches the user but not the model.
-            fullScan: async (_payloadText, threshold) => {
+            fullScan: async (/** @type {string} */ _payloadText, /** @type {number} */ threshold) => {
                 const logText = resultText.slice(0, 5000);
                 if (_preScan && !_preScan.failed && _preScan.pii
                     && _preScan.threshold === threshold
                     && _preScan.scanStr.startsWith(logText)) {
                     const entities = (_preScan.pii.entities || [])
-                        .filter(e => e.offset + e.length <= logText.length);
+                        .filter((/** @type {{ offset: number, length: number }} */ e) => e.offset + e.length <= logText.length);
                     return { hasPii: entities.length > 0, entities };
                 }
                 const { detectPii } = deps.piiDetection();
@@ -240,6 +262,12 @@ function logSuccessEgress(rc, deps, result, _preScan) {
  *       passes it into another tool (untokeniseToolArgs).
  * Fail-open everywhere: never drop the turn over a scan error. Returns the
  * content the model reads (`content` unchanged when nothing was found).
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {import('../toolRoundExecutor').ToolCallOutcome} result
+ * @param {PreScan} _preScan
+ * @param {string} content
+ * @returns {string}
  */
 function redactToolResultContent(rc, deps, result, _preScan, content) {
     const { dlpShield, userId, agent, agentId, conversation, modelToUse, messageMetadata } = rc;
@@ -252,8 +280,8 @@ function redactToolResultContent(rc, deps, result, _preScan, content) {
         const _resPii = _preScan.pii;      // scanned concurrently above
         // KB result with tokenising off: only blocked categories count.
         if (_resPii?.entities && kbTokenisingOff(dlpShield, result)) {
-            _resPii.entities = _resPii.entities.filter(e => _resBlockCats.has(e.category)
-                || (Array.isArray(e.alsoCategories) && e.alsoCategories.some(c => _resBlockCats.has(c))));
+            _resPii.entities = _resPii.entities.filter((/** @type {import('./piiPolicy').PiiHit} */ e) => _resBlockCats.has(e.category)
+                || (Array.isArray(e.alsoCategories) && e.alsoCategories.some((/** @type {string} */ c) => _resBlockCats.has(c))));
         }
         if (!(_resPii?.hasPii && _resPii.entities?.length)) return content;
         const _existing = _dlpRunner.getConversationTokenMap(conversation?.id) || {};
@@ -276,7 +304,7 @@ function redactToolResultContent(rc, deps, result, _preScan, content) {
         // tokenize-then-truncate so a [token] span is never split.
         return truncateToolContent(_r.content);
     } catch (e) {
-        log.warn('[ToolResultDlp] result scan failed (fail-open):', e.message);
+        log.warn('[ToolResultDlp] result scan failed (fail-open):', /** @type {Error} */ (e).message);
         return content;
     }
 }

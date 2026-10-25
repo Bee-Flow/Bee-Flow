@@ -22,8 +22,14 @@ const { assertQuota, answerDatatableError } = require('./refusals');
 const { readListDescriptor } = require('./rowDescriptor');
 const { mirrorCtx, mirrorWrites } = require('./source');
 
-/** A handler whose datatable refusals (quota, grade, managed part, ...) are answered, anything else thrown on. */
-const answering = (handler) => async (req, res) => {
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+/** @typedef {(req: DatatableRequest, res: import('express').Response) => Promise<unknown>} RowHandler */
+
+/**
+ * A handler whose datatable refusals (quota, grade, managed part, ...) are answered, anything else thrown on.
+ * @param {RowHandler} handler
+ */
+const answering = (handler) => async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
     try {
         return await handler(req, res);
     } catch (e) {
@@ -32,6 +38,7 @@ const answering = (handler) => async (req, res) => {
     }
 };
 
+/** @param {unknown} row */
 function conflictBody(row) {
     return {
         error: 'Someone else changed this row while you had it open',
@@ -40,6 +47,7 @@ function conflictBody(row) {
     };
 }
 
+/** @param {DatatableRequest} req @param {import('express').Response} res */
 async function listRows(req, res) {
     const { meta, filter } = await metaAndFilter(req, 'read');
     const compiled = queryCompiler.compileRecordList(meta, {
@@ -49,7 +57,7 @@ async function listRows(req, res) {
         // as -5: the SQL then ran at the compiler's default of 50 and
         // `rows.slice(0, -5)` returned 46 of them while reporting more.
         limit: req.query.limit, maxLimit: ROWS_PAGE_MAX,
-        cursor: req.query.cursor ?? null, dialect: 'pg',
+        cursor: /** @type {string | undefined} */ (req.query.cursor) ?? null, dialect: 'pg',
     }, filter);
     const out = await datatableDbStore.query(
         req.datatableScopeKey, req.datatableScopeKey, compiled.sql, compiled.params);
@@ -85,6 +93,8 @@ async function listRows(req, res) {
 /**
  * ONE row. The access filter is ANDed in, so a row the caller may not see
  * returns 0 rows and reads as 404, the same rule the whole surface follows.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
  */
 async function getRow(req, res) {
     const { meta, filter } = await metaAndFilter(req, 'read');
@@ -96,6 +106,7 @@ async function getRow(req, res) {
     res.json({ row });
 }
 
+/** @param {DatatableRequest} req @param {import('express').Response} res */
 async function insertRow(req, res) {
     const meta = await metaFor(req);
     accessFilter.assertCanWrite(meta, req.datatableGrade, 'create');
@@ -131,6 +142,8 @@ async function insertRow(req, res) {
  * absent, 409 `row_conflict` when it is stale, and the two are told apart by
  * re-reading the row: "changed under you" and "gone / not yours" need
  * different answers.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
  */
 async function updateRow(req, res) {
     const { meta, filter } = await metaAndFilter(req, 'update');
@@ -170,6 +183,7 @@ async function updateRow(req, res) {
     res.json({ row });
 }
 
+/** @param {DatatableRequest} req @param {import('express').Response} res */
 async function deleteRow(req, res) {
     const { meta, filter } = await metaAndFilter(req, 'delete');
     accessFilter.assertCanWrite(meta, req.datatableGrade, 'delete');
@@ -193,19 +207,25 @@ async function deleteRow(req, res) {
     res.json({ ok: true });
 }
 
-/** A selection deleted at a mirror's source: in one write where the source has one. */
+/**
+ * A selection deleted at a mirror's source: in one write where the source has one.
+ * @param {DatatableRequest} req
+ * @param {Awaited<ReturnType<typeof metaFor>>} meta
+ * @param {string[]} ids
+ */
 async function deleteAtSource(req, meta, ids) {
     const wt = sources.writeThrough(req.datatable);
     const ctx = mirrorCtx(req, meta);
     let gone = 0;
     let renumbered = false;
     if (typeof wt.deleteRows === 'function') {
-        const r = await wt.deleteRows(ctx, ids);
+        // The spreadsheet write-through adds `renumbered` (spreadsheetFile/writeThrough.js).
+        const r = /** @type {Awaited<ReturnType<typeof wt.deleteRows>> & { renumbered?: boolean }} */ (await wt.deleteRows(ctx, ids));
         gone = r.changed;
         renumbered = !!r.renumbered;
     } else {
         for (const id of ids) {
-            const r = await wt.deleteRow(ctx, id);
+            const r = /** @type {Awaited<ReturnType<typeof wt.deleteRow>> & { renumbered?: boolean }} */ (await wt.deleteRow(ctx, id));
             gone += r.changes;
             renumbered = renumbered || !!r.renumbered;
         }
@@ -217,6 +237,8 @@ async function deleteAtSource(req, meta, ids) {
  * A selection, deleted in ONE transaction (see rows.js): the single delete's
  * compiled statement N times, all-or-nothing, the counter moved by what
  * Postgres reports gone.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
  */
 async function bulkDelete(req, res) {
     const { meta, filter } = await metaAndFilter(req, 'delete');

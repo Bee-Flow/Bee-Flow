@@ -269,3 +269,20 @@ function makeWorkbookCells(g) {
 }
 
 module.exports = { makeWorkbookCells };
+
+/** @typedef {import('./oneDrive').GraphCtx} GraphCtx */
+
+/** @typedef {import('./index').FileRef} FileRef */
+
+/** @typedef {import('./oneDriveFormat').GraphMarker} GraphMarker */
+
+/** @typedef {string | { id?: string, name?: string }} SheetRef a sheet name, or a worksheet as listSheets returns it */
+
+/** @typedef {{ col: number|string, value: unknown, type: string }} CellWrite */
+
+/** @typedef {{ wb: string, headers: Record<string, string> }} WorkbookSession */
+
+/**
+ * @template {unknown[]} A
+ * @typedef {A extends [unknown, ...infer R] ? R : never} DropCtx the parameters after `g`
+ */

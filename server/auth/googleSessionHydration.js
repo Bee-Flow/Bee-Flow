@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck noImplicitAny
 /**
  * Google session hydration from the automation-credential vault (BFSF-255).
  *
@@ -25,6 +26,9 @@
  */
 const log = require('../telemetry/log');
 
+/**
+ * @param {Express.Session} session
+ */
 async function hydrateGoogleSessionFromVault(session) {
     const userId = session?.user?.id;
     if (!session || !userId) return false;
@@ -46,7 +50,7 @@ async function hydrateGoogleSessionFromVault(session) {
         }
         return true;
     } catch (e) {
-        log.warn(`[GoogleConnector] session hydration failed for user ${userId}: ${e.message}`);
+        log.warn(`[GoogleConnector] session hydration failed for user ${userId}: ${/** @type {Error} */ (e).message}`);
         return false;
     }
 }
@@ -54,6 +58,11 @@ async function hydrateGoogleSessionFromVault(session) {
 // Express middleware wrapper — mounted in front of the session-based Google
 // integration routers so their /status and API handlers see a hydrated
 // session without each route learning about the vault.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} _res
+ * @param {NextFunction} next
+ */
 function googleSessionHydration(req, _res, next) {
     hydrateGoogleSessionFromVault(req.session)
         .catch(() => false)

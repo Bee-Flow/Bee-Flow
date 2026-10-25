@@ -94,3 +94,5 @@ function collectDataBindings(def, screenId = null) {
 }
 
 module.exports = { collectDataBindings, DATA_BINDING_KINDS };
+
+/** @typedef {string | number | boolean | null | undefined | JsonValue[] | { [k: string]: JsonValue }} JsonValue */

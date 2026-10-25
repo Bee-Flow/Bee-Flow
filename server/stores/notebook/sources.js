@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/notebook/sources.js — notebook source CRUD (add, list, reorder,
  * update, retry claim, delete, the stuck-ingestion watchdog) and the activity
@@ -15,14 +15,19 @@ const { mapSourceRow } = require('./rowMappers');
 
 // ── Source CRUD ─────────────────────────────────────────────────────
 
+/**
+ * @param {{ notebookId: string, type: string, name?: string, storageKey?: string|null, fileName?: string|null,
+ *   metadata?: object, wordCount?: number, contentText?: string|null, stage?: string, sourceRefId?: string|number|null,
+ *   client?: import('pg').PoolClient|null }} source
+ */
 async function addSource({ notebookId, type, name, storageKey, fileName, metadata, wordCount, contentText, stage, sourceRefId, client: existingClient = null }) {
     await initDB();
     const id = crypto.randomUUID();
     // Append to the end of the manual order, in one round trip. Two sources
     // added at the same instant can still share a position; the list breaks
     // that tie on created_at (getSources), so the order stays stable.
-    const transaction = existingClient ? async (fn) => fn(existingClient) : withTransaction;
-    const ins = await transaction(async (client) => {
+    const transaction = existingClient ? async (/** @type {(client: import('pg').PoolClient) => Promise<any>} */ fn) => fn(existingClient) : withTransaction;
+    const ins = await transaction(async (/** @type {import('pg').PoolClient} */ client) => {
         const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [notebookId]);
         if (!rows[0]) throw Object.assign(new Error('Notebook not found'), { status: 404 });
         const resource = { ...contentCrypto.resourceOf(rows[0], 'notebook-source'), id };
@@ -50,6 +55,9 @@ const SOURCE_LIST_COLUMNS = `id, notebook_id, type, name, storage_key, file_name
     word_count, created_at, updated_at, sort_order, stage,
     (content_text IS NOT NULL AND content_text <> '') AS has_content`;
 
+/**
+ * @param {string} notebookId
+ */
 async function getSources(notebookId) {
     await initDB();
     const rows = await getAll(
@@ -59,14 +67,21 @@ async function getSources(notebookId) {
     return rows.map(mapSourceRow);
 }
 
-/** Full extracted text of a source (for the preview panel + text/meeting retry). */
+/**
+ * Full extracted text of a source (for the preview panel + text/meeting retry).
+ * @param {string} id
+ */
 async function getSourceContent(id) {
     await initDB();
     const r = await getOne('SELECT id, content_text FROM notebook_sources WHERE id = $1', [id]);
     return r ? (r.content_text || '') : null;
 }
 
-/** Persist a manual ordering (array of source ids in the desired order). */
+/**
+ * Persist a manual ordering (array of source ids in the desired order).
+ * @param {string} notebookId
+ * @param {string[]} orderedIds
+ */
 async function reorderSources(notebookId, orderedIds) {
     await initDB();
     let i = 0;
@@ -76,6 +91,9 @@ async function reorderSources(notebookId, orderedIds) {
     return true;
 }
 
+/**
+ * @param {string} id
+ */
 async function getSource(id) {
     await initDB();
     const r = await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1`, [id]);
@@ -86,7 +104,7 @@ const SOURCE_COLUMNS = {
     status: 'status',
     error: 'error',
     wordCount: 'word_count',
-    metadata: { col: 'metadata', transform: v => JSON.stringify(v) },
+    metadata: { col: 'metadata', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
     name: 'name',
     stage: 'stage',
     contentText: 'content_text',
@@ -103,7 +121,7 @@ const SOURCE_COLUMNS = {
  */
 async function updateSource(id, updates, { onlyIfProcessing = false } = {}) {
     await initDB();
-    return withTransaction(async (client) => {
+    return withTransaction(async (/** @type {import('pg').PoolClient} */ client) => {
         const { rows } = await client.query('SELECT n.* FROM notebooks n JOIN notebook_sources s ON s.notebook_id = n.id WHERE s.id = $1 FOR UPDATE OF n', [id]);
         if (!rows[0]) return false;
         const resource = { ...contentCrypto.resourceOf(rows[0], 'notebook-source'), id };
@@ -129,6 +147,7 @@ async function updateSource(id, updates, { onlyIfProcessing = false } = {}) {
  * Claim a finished or failed source for a retry: back to processing, in one
  * conditional write. False when it is already processing (an ingestion is
  * still running; a second one would race it) or gone.
+ * @param {string} id
  */
 async function claimSourceForRetry(id) {
     await initDB();
@@ -138,14 +157,20 @@ async function claimSourceForRetry(id) {
     return rowCount > 0;
 }
 
-/** Current status of a source, or null once the row is gone (deleted). */
+/**
+ * Current status of a source, or null once the row is gone (deleted).
+ * @param {string} id
+ */
 async function getSourceStatus(id) {
     await initDB();
     const r = await getOne('SELECT status FROM notebook_sources WHERE id = $1', [id]);
     return r ? r.status : null;
 }
 
-/** Number of sources in a notebook (for the per-notebook cap). */
+/**
+ * Number of sources in a notebook (for the per-notebook cap).
+ * @param {string} notebookId
+ */
 async function countSources(notebookId) {
     await initDB();
     const r = await getOne('SELECT COUNT(*) AS n FROM notebook_sources WHERE notebook_id = $1', [notebookId]);
@@ -156,6 +181,8 @@ async function countSources(notebookId) {
  * Delete several sources of ONE notebook in two statements. Ids that do not
  * belong to `notebookId` are skipped, exactly like deleteSource.
  * @returns {Promise<any[]>} the deleted sources (mapped), for artifact cleanup
+ * @param {string} notebookId
+ * @param {string[]} ids
  */
 async function deleteSources(ids, notebookId) {
     await initDB();
@@ -166,7 +193,7 @@ async function deleteSources(ids, notebookId) {
         [wanted, notebookId]
     );
     if (rows.length === 0) return [];
-    await run('DELETE FROM notebook_sources WHERE id = ANY($1::text[]) AND notebook_id = $2', [rows.map(r => r.id), notebookId]);
+    await run('DELETE FROM notebook_sources WHERE id = ANY($1::text[]) AND notebook_id = $2', [rows.map((/** @type {{ id: string }} */ r) => r.id), notebookId]);
     await touchActivity(notebookId, 'source');
     return rows.map(mapSourceRow);
 }
@@ -176,6 +203,10 @@ async function deleteSources(ids, notebookId) {
 // its id (defense in depth behind the route's ownership check). `notebook_sources`
 // carries no user_id of its own, so the parent notebook is the only ownership
 // anchor — always pass it from a route.
+/**
+ * @param {string} id
+ * @param {string} notebookId
+ */
 async function deleteSource(id, notebookId = null) {
     await initDB();
     const r = notebookId
@@ -190,6 +221,8 @@ async function deleteSource(id, notebookId = null) {
 /**
  * Record notebook activity (source add/remove, chat turn). Deliberately NOT
  * called from updateSource — ingestion stage churn would spam recency.
+ * @param {string} notebookId
+ * @param {string} kind
  */
 async function touchActivity(notebookId, kind) {
     await initDB();
@@ -205,6 +238,7 @@ async function touchActivity(notebookId, kind) {
  * users never see a yellow row stuck forever after an ingestion worker dies.
  *
  * Returns the number of rows transitioned so callers can decide whether to log.
+ * @param {string} notebookId
  */
 async function timeoutStuckSources(notebookId, { stuckMinutes = 10 } = {}) {
     await initDB();

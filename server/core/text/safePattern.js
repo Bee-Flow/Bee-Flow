@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Reject regex patterns with the classic catastrophic-backtracking shape: a
@@ -14,9 +14,11 @@
  * out of its reach, and an exotic-but-safe pattern can be refused — the author
  * gets a clear validation error and rewrites. Only linear-time matching (RE2)
  * would be a guarantee; this is the dependency-free 99% of it.
+ * @param {string} source
  */
 function hasNestedQuantifier(source) {
     const s = String(source || '');
+    /** @type {{ quant: boolean; }[]} */
     const stack = [];
     let current = { quant: false };
     for (let i = 0; i < s.length; i += 1) {

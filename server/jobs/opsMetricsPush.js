@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -31,8 +31,13 @@ const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const LOCK_KEY = 0xBEEF109;
 
+/**
+ * @param {string | undefined} raw
+ * @returns {Record<string, string>}
+ */
 function parseHeaders(raw) {
     if (!raw) return {};
+    /** @type {Record<string, string>} */
     const out = {};
     for (const pair of raw.split(',')) {
         const i = pair.indexOf('=');
@@ -55,6 +60,8 @@ function cfg() {
 
 // Ready only when enabled and an endpoint is configured (no salt needed — these
 // rollups carry no per-user data).
+/** @typedef {ReturnType<typeof cfg>} OpsPushConfig */
+/** @param {OpsPushConfig} c */
 function ready(c) { return !!(c.enabled && c.base); }
 
 async function orgNameMap() {
@@ -70,6 +77,11 @@ async function orgNameMap() {
 
 // Attach org_name + _timestamp to a collector row. Rows without an org_id (e.g.
 // platform-wide queue depths) get no org fields.
+/**
+ * @param {Record<string, any>} row  a metricsStore collector row
+ * @param {number} nowMicros
+ * @param {Map<string, string>} orgNames
+ */
 function toRecord(row, nowMicros, orgNames) {
     const rec = Object.assign({ _timestamp: nowMicros }, row);
     if (Object.prototype.hasOwnProperty.call(row, 'org_id')) {
@@ -78,6 +90,11 @@ function toRecord(row, nowMicros, orgNames) {
     return rec;
 }
 
+/**
+ * @param {OpsPushConfig} c
+ * @param {string} stream
+ * @param {Record<string, unknown>[]} records
+ */
 async function ingest(c, stream, records) {
     if (!records.length) return;
     const url = `${c.base}/${stream}/_json`;
@@ -109,6 +126,7 @@ async function ingest(c, stream, records) {
     }
 }
 
+/** @param {OpsPushConfig} c */
 async function pushSnapshot(c) {
     const snap = await metricsStore.collectAll();
     const orgNames = await orgNameMap();
@@ -160,6 +178,7 @@ async function processOpsPush() {
     }
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 function start() {

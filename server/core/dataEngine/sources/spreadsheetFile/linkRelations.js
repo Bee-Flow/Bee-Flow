@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The relations a link request declares between the sheets it links (and the
  * sheets linked earlier in the same scope), turned into per-mirror declared
@@ -15,13 +15,19 @@ const { PROVIDERS } = require('./index');
  * The request's `{ from:{provider,fileId,sheet,col}, to:{…} }` pairs → per-mirror
  * declared relations (columns.js shape). A side that names a sheet not in
  * this call or this scope is a warning, not a failure.
+ * @param {unknown} relations
+ * @param {Array<{ plan: { refKey: string, described: Array<{ col: number, headerHash: string }>, cols: Array<{ col: number, type: string, formula?: unknown }> }, table: { id: string, key: string, name: string } }>} created
+ * @param {{ byRef: Map<string, { id: string, key: string, name: string, source?: { columnMap?: Record<string, { derived?: boolean, col?: number, formula?: unknown }> } }> }} siblings
  */
 function resolveDeclared(relations, created, siblings) {
     const byTable = new Map();
     const warnings = [];
     const createdByRef = new Map(created.map(({ plan, table }) => [plan.refKey, { plan, table }]));
 
-    /** The mirror and the field a side names, or null. */
+    /**
+     * The mirror and the field a side names, or null.
+     * @param {{ provider?: string, fileId?: string, driveId?: string, path?: string, sheet?: unknown, col?: number }} side
+     */
     function sideOf(side) {
         if (!side || !PROVIDERS.includes(side.provider) || !Number.isInteger(side.col)) return null;
         let ref;

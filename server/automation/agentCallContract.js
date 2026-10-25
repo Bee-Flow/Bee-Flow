@@ -266,3 +266,33 @@ module.exports = {
     validateAgentCallTrigger,
     agentCallParams,
 };
+
+/**
+ * @typedef {object} ParamRow  one declared argument, as the builder wrote it
+ * @property {string|number} [name]
+ * @property {string} [type]
+ * @property {boolean} [required]
+ * @property {unknown} [description]
+ * @property {unknown[]} [enum]
+ * @property {{ type?: string }} [items]
+ */
+
+/**
+ * @typedef {object} PropertyDecl  one entry of a schema's `properties`, as the builder wrote it
+ * @property {string} [type]
+ * @property {unknown} [description]
+ * @property {unknown} [required]
+ * @property {unknown[]} [enum]
+ * @property {{ type?: string }} [items]
+ */
+
+/**
+ * @typedef {object} ParametersSchema
+ * @property {string} [type]
+ * @property {Record<string, PropertyDecl>} [properties]
+ * @property {string[]} [required]
+ */
+
+/**
+ * @typedef {{ toolName?: unknown, description?: unknown, parametersSchema?: ParametersSchema | null }} AgentCallTrigger
+ */

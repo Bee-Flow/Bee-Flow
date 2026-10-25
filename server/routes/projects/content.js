@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Project content routes — a new document or notebook, made inside a project.
  *
@@ -60,18 +61,19 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
- * @param {Function} [deps.getProject]          (id) => project | null
- * @param {Function} [deps.getUser]             (id) => user | null (its organizationId)
- * @param {object}   [deps.documents]           stores/documentStore surface ({ createDocument, getDocument })
- * @param {object}   [deps.cells]               core/documents/sheetCells surface ({ createSheetTable, dropSheetTable })
- * @param {Function} [deps.requireSheets]       the sheet gate (studioDocuments/sheetGate.makeSheetGate())
- * @param {object}   [deps.notebooks]           stores/notebookStore surface ({ createNotebook })
- * @param {Function} [deps.starters]            (locale) => document starters
- * @param {object}   [deps.membership]          projects/membership surface ({ isAllowedIn })
- * @param {object}   [deps.changeFeed]          projects/changeFeed surface ({ recordItemCreated })
- * @param {Function} [deps.createLimiter]       rate-limit middleware for the two creates
- * @param {Function} [deps.requireNotebooks]    the notebooks gates (notebookGate.makeNotebookGate())
+ * @param {typeof lazyProjectRoleGate} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
+ * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]          (id) => project | null
+ * @param {typeof import('../../stores/userStore').getUser} [deps.getUser]             (id) => user | null (its organizationId)
+ * @param {typeof import('../../stores/documentStore')}   [deps.documents]           stores/documentStore surface ({ createDocument, getDocument })
+ * @param {typeof import('../../core/documents/sheetCells')}   [deps.cells]               core/documents/sheetCells surface ({ createSheetTable, dropSheetTable })
+ * @param {import('express').RequestHandler} [deps.requireSheets]       the sheet gate (studioDocuments/sheetGate.makeSheetGate())
+ * @param {typeof import('../../stores/notebookStore')}   [deps.notebooks]           stores/notebookStore surface ({ createNotebook })
+ * @param {typeof import('../../core/documents/documentStarters').starters} [deps.starters]            (locale) => document starters
+ * @param {typeof import('../../projects/membership')}   [deps.membership]          projects/membership surface ({ isAllowedIn })
+ * @param {typeof import('../../projects/changeFeed')}   [deps.changeFeed]          projects/changeFeed surface ({ recordItemCreated })
+ * @param {typeof import('../../projects/projectOrg')}   [deps.projectOrg]          projects/projectOrg surface
+ * @param {import('express').RequestHandler} [deps.createLimiter]       rate-limit middleware for the two creates
+ * @param {import('express').RequestHandler} [deps.requireNotebooks]    the notebooks gates (notebookGate.makeNotebookGate())
  */
 function makeContentRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -79,11 +81,11 @@ function makeContentRouter(deps = {}) {
     // The real gate is required on first use, so loading this file does not
     // load the auth and user stores with it.
     const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
-    const getProject = (id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
-    const getUser = (id) => (deps.getUser || require('../../stores/userStore').getUser)(id);
+    const getProject = (/** @type {string} */ id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
+    const getUser = (/** @type {string} */ id) => (deps.getUser || require('../../stores/userStore').getUser)(id);
     const documents = () => deps.documents || require('../../stores/documentStore');
     const notebooks = () => deps.notebooks || require('../../stores/notebookStore');
-    const starters = (locale) => (deps.starters || require('../../core/documents/documentStarters').starters)(locale);
+    const starters = (/** @type {string | undefined} */ locale) => (deps.starters || require('../../core/documents/documentStarters').starters)(locale);
     const membership = () => deps.membership || require('../../projects/membership');
     const orgOf = () => deps.projectOrg || require('../../projects/projectOrg');
     const changeFeed = () => deps.changeFeed || require('../../projects/changeFeed');
@@ -96,21 +98,24 @@ function makeContentRouter(deps = {}) {
 
     const requireNotebooks = deps.requireNotebooks || require('./notebookGate').makeNotebookGate();
 
-    /** @type {Function|null} */
+    /** @type {import('express').RequestHandler | null} */
     let boundSheetGate = null;
-    const requireSheets = (req, res, next) => {
+    const requireSheets = (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (!boundSheetGate) boundSheetGate = deps.requireSheets || require('../studioDocuments/sheetGate').makeSheetGate();
         return boundSheetGate(req, res, next);
     };
     const cells = () => deps.cells || require('../../core/documents/sheetCells');
 
-    const userIdOf = (req) => req.session?.user?.id;
+    const userIdOf = (/** @type {import('express').Request} */ req) => req.session?.user?.id;
 
     /**
      * The project behind a passed role gate, checked to be a container that
      * holds `kind`, and in the creator's own organisation (what is made here is
      * the creator's, and its organisation is theirs; the two must be the same
      * or the project would hold another tenant's item).
+     * @param {import('express').Request<{ id: string }>} req
+     * @param {string} kind
+     * @param {string} noun
      */
     async function loadTarget(req, kind, noun) {
         const project = await getProject(req.params.id);
@@ -135,6 +140,10 @@ function makeContentRouter(deps = {}) {
      * last visit". After the item exists, so best-effort: the recorder never
      * throws (it logs), because failing the request here would make the
      * client retry and create a second one.
+     * @param {string} projectId
+     * @param {string} actorId
+     * @param {string} itemType
+     * @param {string} itemId
      */
     async function recordCreated(projectId, actorId, itemType, itemId) {
         await changeFeed().recordItemCreated({ projectId, itemType, itemId, actorId });
@@ -144,6 +153,7 @@ function makeContentRouter(deps = {}) {
      * A refusal the document store states on purpose (a cap, an organisation
      * mismatch, house styling that is briefly unavailable) carries a status
      * and a sentence; anything else stays a generic 500.
+     * @param {Error & { status?: unknown, errorClass?: string, code?: string }} err
      */
     function fromStoreError(err) {
         const status = Number(err?.status);
@@ -155,7 +165,7 @@ function makeContentRouter(deps = {}) {
 
     // ── Documents ─────────────────────────────────────────────────────
 
-    router.post('/:id/documents', requireRole('editor'), createLimiter, validate({ body: S.NewDocumentBody }), async (req, res) => {
+    router.post('/:id/documents', requireRole('editor'), createLimiter, validate({ body: S.NewDocumentBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const userId = userIdOf(req);
         const { name, docType, starterId, templateId, locale } = req.body;
         const isSheet = docType === 'spreadsheet';
@@ -178,7 +188,7 @@ function makeContentRouter(deps = {}) {
         if (isSheet) {
             // The sheet gate, as a promise inside the handler (the Studio duplicateSheet way).
             await new Promise((resolve, reject) => {
-                Promise.resolve().then(() => requireSheets(req, res, (err) => (err ? reject(err) : resolve(undefined)))).catch(reject);
+                Promise.resolve().then(() => requireSheets(req, res, (/** @type {unknown} */ err) => (err ? reject(err) : resolve(undefined)))).catch(reject);
             });
             const table = await cells().createSheetTable({ ownerUserId: userId, name });
             try {
@@ -192,6 +202,7 @@ function makeContentRouter(deps = {}) {
             const tpl = await documents().getDocument(templateId, userId);
             if (!tpl || tpl.kind !== 'template' || tpl.docType === 'spreadsheet') throw notFound('template_not_found', 'Template not found');
             // An explicit allow-list: never categories, folder, visibility or kind.
+            /** @type {Record<string, unknown>} */
             const settings = { ...tpl.settings, source: { documentId: tpl.id, versionId: tpl.versionId } };
             delete settings.sampleValues;
             delete settings.sectionOverrides;
@@ -223,7 +234,7 @@ function makeContentRouter(deps = {}) {
 
     // ── Notebooks ─────────────────────────────────────────────────────
 
-    router.post('/:id/notebooks', requireRole('editor'), requireNotebooks, createLimiter, validate({ body: S.NewNotebookBody }), async (req, res) => {
+    router.post('/:id/notebooks', requireRole('editor'), requireNotebooks, createLimiter, validate({ body: S.NewNotebookBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const userId = userIdOf(req);
         const { name, description } = req.body;
         const { project, user } = await loadTarget(req, 'notebook', 'notebooks');
@@ -243,5 +254,6 @@ function makeContentRouter(deps = {}) {
     return router;
 }
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = makeContentRouter();
-module.exports.makeContentRouter = makeContentRouter;
+/** @type {RouterExports} */ (module.exports).makeContentRouter = makeContentRouter;

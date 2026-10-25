@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * OneDrive / Graph vocabulary for ./oneDrive.js and ./oneDriveWorkbook.js:
  * the select lists and limits, A1 addresses, the driveItem -> FileRef
@@ -12,6 +12,16 @@
 const { formulaShaped } = require('../cells');
 const { formatOf } = require('./index');
 const { fallback } = require('../../../../../utils/bestEffort');
+
+/** @typedef {import('./index').FileRef} FileRef */
+/**
+ * A Graph driveItem, the ITEM_SELECT / PROBE_SELECT fields of it.
+ * @typedef {{ id?: string, name?: string, size?: number, eTag?: string, cTag?: string, lastModifiedDateTime?: string,
+ *             file?: { mimeType?: string }, folder?: object, webUrl?: string, deleted?: object,
+ *             parentReference?: { driveId?: string, id?: string, path?: string },
+ *             remoteItem?: DriveItem, '@microsoft.graph.downloadUrl'?: string }} DriveItem
+ */
+/** @typedef {{ eTag: string|null, cTag: string|null, lastModifiedDateTime: string|null, size: number|null }} GraphMarker */
 
 const provider = 'onedrive';
 const oauthProvider = 'microsoft';
@@ -29,7 +39,10 @@ const DOWNLOAD_TIMEOUT_MS = 60_000;
 const DATE_FORMAT_RE = /[dmy]/i;
 const TIME_FORMAT_RE = /[hs]|AM\/PM/i;
 
-/** 0-based column → letter(s). */
+/**
+ * 0-based column → letter(s).
+ * @param {number|string} col
+ */
 function colLetter(col) {
     let n = Number(col) + 1;
     let s = '';
@@ -41,14 +54,17 @@ function colLetter(col) {
     return s;
 }
 
-/** `Sheet1!C3:F20` → { sheet, first:{col,row}, last:{col,row} } (1-based rows, 0-based cols). */
+/**
+ * `Sheet1!C3:F20` → { sheet, first:{col,row}, last:{col,row} } (1-based rows, 0-based cols).
+ * @param {string|null|undefined} address
+ */
 function parseAddress(address) {
     const s = String(address || '');
     const bang = s.lastIndexOf('!');
     const range = bang >= 0 ? s.slice(bang + 1) : s;
     const m = /^\$?([A-Z]+)\$?(\d+)(?::\$?([A-Z]+)\$?(\d+))?$/i.exec(range);
     if (!m) return null;
-    const col = (l) => l.toUpperCase().split('').reduce((acc, ch) => acc * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
+    const col = (/** @type {string} */ l) => l.toUpperCase().split('').reduce((/** @type {number} */ acc, /** @type {string} */ ch) => acc * 26 + (ch.charCodeAt(0) - 64), 0) - 1;
     const first = { col: col(m[1]), row: Number(m[2]) };
     const last = m[3] ? { col: col(m[3]), row: Number(m[4]) } : { ...first };
     return { sheet: bang >= 0 ? s.slice(0, bang).replace(/^'|'$/g, '') : null, first, last };
@@ -60,6 +76,8 @@ function parseAddress(address) {
  * that id lands. "Outside" is `driveId !== ownDriveId` once the own drive
  * is known (every api call learns it first); before that, a `driveId` on
  * the ref is the client's composite id echoed back.
+ * @param {FileRef} file
+ * @param {string|null} [ownDriveId]
  */
 function refusalRef(file, ownDriveId = null) {
     const id = file && (file.fileId || file.id) || null;
@@ -68,6 +86,10 @@ function refusalRef(file, ownDriveId = null) {
     return { provider, fileId: id && foreign ? `${driveId}|${id}` : id };
 }
 
+/**
+ * @param {DriveItem} item
+ * @returns {GraphMarker}
+ */
 function markerOf(item) {
     return {
         eTag: item.eTag || null,
@@ -77,11 +99,18 @@ function markerOf(item) {
     };
 }
 
+/**
+ * @param {{ cTag?: string|null }} a
+ * @param {{ cTag?: string|null }} b
+ */
 function markerEquals(a, b) {
     return !!a && !!b && a.cTag != null && a.cTag === b.cTag;
 }
 
-/** `/drive/root:/Documents/Q3` + name → `/Documents/Q3/name`. */
+/**
+ * `/drive/root:/Documents/Q3` + name → `/Documents/Q3/name`.
+ * @param {DriveItem} item
+ */
 function pathOf(item) {
     const pr = item.parentReference || {};
     const raw = typeof pr.path === 'string' ? pr.path : null;
@@ -96,7 +125,9 @@ function pathOf(item) {
 /**
  * A driveItem → FileRef. A sharedWithMe entry is a stub whose real data is
  * under `remoteItem`; the ref then points at the remote drive + id.
- * @returns {object|null} null for anything that is neither a folder nor a spreadsheet
+ * @param {DriveItem} item
+ * @param {{ ownDriveId?: string|null, parentId?: string|null }} [opts]
+ * @returns {FileRef|null} null for anything that is neither a folder nor a spreadsheet
  */
 function toFileRef(item, { ownDriveId = null, parentId = null } = {}) {
     if (!item) return null;
@@ -125,9 +156,12 @@ function toFileRef(item, { ownDriveId = null, parentId = null } = {}) {
     };
 }
 
-/** Read a Graph error body → { code, message } (both may be empty). */
+/**
+ * Read a Graph error body → { code, message } (both may be empty).
+ * @param {Response} res
+ */
 async function graphError(res) {
-    const text = await res.text().catch(() => '');
+    const text = await res.text().catch(/** @returns {string} */ () => '');
     try {
         const j = JSON.parse(text);
         return { code: (j.error && j.error.code) || null, message: (j.error && j.error.message) || text };
@@ -136,7 +170,11 @@ async function graphError(res) {
     }
 }
 
-/** The value a workbook cell is written as: serials for dates, "" to clear (null = "leave as is" in Graph). */
+/**
+ * The value a workbook cell is written as: serials for dates, "" to clear (null = "leave as is" in Graph).
+ * @param {unknown} value
+ * @param {string} type
+ */
 function workbookValue(value, type) {
     if (value === null || value === undefined || value === '') return '';
     switch (type) {
@@ -158,12 +196,18 @@ function workbookValue(value, type) {
  * parses a string starting with = + - @ (or a tab / CR) as a formula — the
  * one rule every writer shares (cells.formulaShaped): only text-shaped
  * columns; a number column's -5 is a number.
+ * @param {unknown} value
+ * @param {string} type
  */
 function needsTextFormat(value, type) {
     return formulaShaped(value, type);
 }
 
-/** The number format a written cell needs: dates render their serial; a formula-shaped text is pinned as Text. */
+/**
+ * The number format a written cell needs: dates render their serial; a formula-shaped text is pinned as Text.
+ * @param {string} type
+ * @param {unknown} value
+ */
 function workbookFormat(type, value) {
     if (type === 'date') return 'yyyy-mm-dd';
     if (type === 'datetime') return 'yyyy-mm-dd hh:mm';

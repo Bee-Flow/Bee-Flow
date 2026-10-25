@@ -226,3 +226,5 @@ module.exports = {
     duplicateSiteHandler,
     deleteSiteHandler,
 };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

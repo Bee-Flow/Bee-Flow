@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 
 const NL_TRANSLATIONS = Object.freeze({

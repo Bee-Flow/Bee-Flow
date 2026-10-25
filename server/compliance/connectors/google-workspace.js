@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Workspace directory connector — identity-population evidence for the
  * access-management controls (A.5.16/A.5.18/A.8.2): how many accounts exist,
@@ -35,10 +35,17 @@ const SCOPE = 'https://www.googleapis.com/auth/admin.directory.user.readonly';
 const USERS_URL = 'https://admin.googleapis.com/admin/directory/v1/users';
 const DORMANT_MS = 90 * 86400000;
 
+/**
+ * @param {string} value
+ */
 function _b64url(value) {
     return Buffer.from(value).toString('base64url');
 }
 
+/**
+ * @param {{ clientEmail: string, privateKey: string, adminSubject: string }} creds
+ * @param {import('./index').SafeFetch} safeFetch
+ */
 async function _serviceAccountToken({ clientEmail, privateKey, adminSubject }, safeFetch) {
     const now = Math.floor(Date.now() / 1000);
     const header = _b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
@@ -66,7 +73,7 @@ async function _serviceAccountToken({ clientEmail, privateKey, adminSubject }, s
         const body = await res.text().catch(() => '');
         throw new Error(`Google token exchange failed (${res.status}): ${body.slice(0, 200)}`);
     }
-    const data = await res.json();
+    const data = /** @type {{ access_token?: string }} */ (await res.json());
     if (!data.access_token) throw new Error('Google token exchange returned no access_token');
     return data.access_token;
 }
@@ -80,6 +87,7 @@ module.exports = {
     credential: { provider: 'google-workspace', kinds: ['oauth2_cc'] },
     settingsHint: 'customer: "my_customer" (default) or domain: "acme.nl"',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         let token = secret?.access_token || null;
         if (!token) {
@@ -107,7 +115,7 @@ module.exports = {
             const body = await res.text().catch(() => '');
             throw new Error(`Google Directory users list failed (${res.status}): ${body.slice(0, 200)}`);
         }
-        const data = await res.json();
+        const data = /** @type {{ users?: { suspended?: boolean, isEnrolledIn2Sv?: boolean, isAdmin?: boolean, isDelegatedAdmin?: boolean, lastLoginTime?: string }[], nextPageToken?: string }} */ (await res.json());
         const users = Array.isArray(data.users) ? data.users : [];
         const cutoff = Date.now() - DORMANT_MS;
         let mfaEnrolled = 0;

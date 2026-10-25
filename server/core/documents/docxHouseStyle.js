@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Word (.docx) house style — the organisation's "kantoorstijl" applied to a
  * document built with html-to-docx.
@@ -22,9 +22,10 @@ const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 /** resolveHouseStyle's answer for an explicit id that names no style of this org. */
 const NO_SUCH_STYLE = Symbol('no such house style');
 
+/** @param {unknown} s */
 function escapeHtml(s) {
     if (s == null) return '';
-    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    return String(s).replace(/[&<>"']/g, (/** @type {string} */ c) => (/** @type {Record<string, string>} */ ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]));
 }
 
 /**
@@ -54,13 +55,27 @@ async function resolveHouseStyle(orgId, id) {
  * Font names and colours come from an uploaded Word template and are
  * interpolated into CSS and into style="…" attributes. Keep only what a font
  * name or a CSS colour needs, so a quote or an angle bracket cannot break out.
+ * @param {unknown} value
+ * @param {string} fallback
  */
 function cssToken(value, fallback) {
     const v = String(value ?? '').replace(/[^\w\s#.,%()-]/g, '').trim();
     return v || fallback;
 }
 
-/** A heading's inline declarations: what html-to-docx honours on a tag. */
+/**
+ * @typedef {{ font?: string, size?: number | string, bold?: boolean, color?: string }} HeadingMeta
+ * @typedef {{ defaultFont?: string, defaultFontSize?: number | string,
+ *   margins?: { top: number, right: number, bottom: number, left: number },
+ *   headings?: { h1?: HeadingMeta, h2?: HeadingMeta, h3?: HeadingMeta }, accents?: { secondary?: string },
+ *   header?: { text?: string }, footer?: { text?: string } }} StyleMeta
+ */
+/**
+ * A heading's inline declarations: what html-to-docx honours on a tag.
+ * @param {HeadingMeta} h
+ * @param {string} defaultFont
+ * @param {string} fallbackColor
+ */
 function headingDecl(h, defaultFont, fallbackColor) {
     const size = Number(h.size);
     return [
@@ -81,10 +96,11 @@ function headingDecl(h, defaultFont, fallbackColor) {
  * `inline` — tag → declarations — for applyInlineStyles to put on the tags.
  * The CSS stays for anything that renders the HTML itself.
  *
+ * @param {{ styleMeta?: Record<string, unknown> } | symbol | null | undefined} style  a symbol (NO_SUCH_STYLE) reads as no style
  * @returns {{ css: string, opts: object, inline: Record<string, string> }}
  */
 function buildDocxStylingFromHouseStyle(style) {
-    const meta = style?.styleMeta || {};
+    const meta = /** @type {StyleMeta} */ (/** @type {{ styleMeta?: Record<string, unknown> } | null | undefined} */ (style)?.styleMeta || {});
     const defaultFont = cssToken(meta.defaultFont, 'Calibri');
     const defaultSize = Number(meta.defaultFontSize) || 11;
     const margins = meta.margins || { top: 1440, right: 1440, bottom: 1440, left: 1440 };
@@ -92,7 +108,7 @@ function buildDocxStylingFromHouseStyle(style) {
     const h2 = meta.headings?.h2 || { font: defaultFont, size: 16, bold: true, color: '#1e293b' };
     const h3 = meta.headings?.h3 || { font: defaultFont, size: 13, bold: true, color: '#334155' };
     const accent = cssToken(meta.accents?.secondary, '#3b82f6');
-    const hCss = (h, color) => `font-family: "${cssToken(h.font, defaultFont)}", sans-serif; font-size: ${Number(h.size) || defaultSize}pt; font-weight: ${h.bold ? 'bold' : 'normal'}; color: ${cssToken(h.color, color)};`;
+    const hCss = (/** @type {HeadingMeta} */ h, /** @type {string} */ color) => `font-family: "${cssToken(h.font, defaultFont)}", sans-serif; font-size: ${Number(h.size) || defaultSize}pt; font-weight: ${h.bold ? 'bold' : 'normal'}; color: ${cssToken(h.color, color)};`;
 
     const css = `
         body { font-family: "${defaultFont}", Calibri, Arial, sans-serif; font-size: ${defaultSize}pt; line-height: 1.5; color: #1a1a1a; }
@@ -118,6 +134,7 @@ function buildDocxStylingFromHouseStyle(style) {
         h3: headingDecl(h3, defaultFont, '#334155'),
     };
 
+    /** @type {{ margin: StyleMeta['margins'], font: string, fontSize: number, header?: boolean, headerType?: string, headerHTML?: string, footer?: boolean, footerHTML?: string }} */
     const opts = {
         margin: margins,
         font: defaultFont,

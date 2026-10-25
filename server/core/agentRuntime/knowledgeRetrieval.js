@@ -179,3 +179,10 @@ function applyMetadataBoost(results, userMessage) {
 }
 
 module.exports = { searchQueryFrom, fetchKnowledgeResults, enrichResultsWithDocMetadata, applyMetadataBoost };
+
+/**
+ * @typedef {{ source?: string, type?: string, source_uri?: string, document_id?: string, threadId?: string, from?: string, subject?: string, date?: string, hasAttachments?: boolean }} KnowledgeResultMeta
+ * @typedef {{ content: string, metadata: KnowledgeResultMeta, score: number, docMeta?: Record<string, any>, sourceType?: string, metadataBoost?: number }} KnowledgeResult
+ * @typedef {{ content?: string, source_uri?: string, title?: string, document_id?: string, score?: number, rerank_score?: number }} RetrievedChunk
+ * @typedef {{ resolveProvider: () => typeof import('../kb/resolveProvider'), localKBIngest: () => typeof import('../kb/localKBIngest') }} KbSearchDeps
+ */

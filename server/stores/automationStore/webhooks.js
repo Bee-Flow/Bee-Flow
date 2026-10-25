@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * webhooks.js — automationStore aggregate (§WS5, extracted verbatim).
  */
@@ -10,6 +10,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Webhooks ──────────────────────────────────────────
 
+/**
+ * @param {string} automationId
+ * @param {string | null} [triggerStepId]
+ */
 async function createWebhook(automationId, triggerStepId = null) {
     await initDB();
     // WS5.1 — the slug is the only auth on /webhook/:slug, so give new ones
@@ -24,6 +28,7 @@ async function createWebhook(automationId, triggerStepId = null) {
     return { id, automationId, secret, triggerStepId };
 }
 
+/** @param {string} id */
 async function getWebhook(id) {
     await initDB();
     const r = await getOne('SELECT * FROM automation_webhooks WHERE id = $1', [id]);
@@ -31,12 +36,14 @@ async function getWebhook(id) {
     return { id: r.id, automationId: r.automation_id, secret: r.secret, allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, triggerStepId: r.trigger_step_id ?? null };
 }
 
+/** @param {string} automationId */
 async function getWebhooksForAutomation(automationId) {
     await initDB();
     const rows = await getAll('SELECT id, automation_id, allow_methods, last_seen_at, created_at, trigger_step_id FROM automation_webhooks WHERE automation_id = $1', [automationId]);
     return rows.map(r => ({ id: r.id, automationId: r.automation_id, allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, createdAt: r.created_at, triggerStepId: r.trigger_step_id ?? null }));
 }
 
+/** @param {string} id */
 async function touchWebhook(id) {
     await initDB();
     await run(`UPDATE automation_webhooks SET last_seen_at = NOW() WHERE id = $1`, [id]);
@@ -47,6 +54,8 @@ async function touchWebhook(id) {
  * only the secret used for signature verification changes — so any caller
  * still using the old secret immediately starts getting 401s, while a
  * newly-issued secret takes effect on the next inbound request.
+ * @param {string} webhookId
+ * @param {string} automationId
  */
 async function rotateWebhookSecret(webhookId, automationId) {
     await initDB();
@@ -61,6 +70,10 @@ async function rotateWebhookSecret(webhookId, automationId) {
     return { id: webhookId, automationId, secret: newSecret };
 }
 
+/**
+ * @param {string} webhookId
+ * @param {string} automationId
+ */
 async function deleteWebhook(webhookId, automationId) {
     await initDB();
     const { rowCount } = await run(
@@ -70,6 +83,7 @@ async function deleteWebhook(webhookId, automationId) {
     return rowCount > 0;
 }
 
+/** @param {string} nonce */
 async function checkAndStoreNonce(nonce) {
     await initDB();
     // Garbage-collect old nonces (> 24h) opportunistically.

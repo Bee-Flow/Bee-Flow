@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * House Style Extractor
  *
@@ -47,11 +47,28 @@ function parser() {
     });
 }
 
+/**
+ * A parsed XML element (fast-xml-parser): child elements, `@_` attributes and
+ * `#text`, a repeated child as an array.
+ * @typedef {{ [key: string]: XmlValue }} XmlNode
+ * @typedef {string | XmlNode | XmlValue[]} XmlValue
+ */
+/** @typedef {{ font?: string, size?: number, color?: string, bold?: boolean }} RunProps */
+
+/**
+ * @template T
+ * @param {T | T[] | null | undefined} v
+ * @returns {T[]}
+ */
 function asArray(v) {
     if (v === undefined || v === null) return [];
     return Array.isArray(v) ? v : [v];
 }
 
+/**
+ * @param {Record<string, string>} node
+ * @param {...string} names
+ */
 function pickFirst(node, ...names) {
     for (const n of names) {
         if (node && node[n] !== undefined) return node[n];
@@ -60,12 +77,18 @@ function pickFirst(node, ...names) {
 }
 
 // styles.xml stores sizes as half-points (sz value 22 = 11pt).
+/**
+ * @param {string | number} v
+ */
 function halfPointToPt(v) {
     const n = parseInt(v, 10);
     if (!Number.isFinite(n)) return undefined;
     return Math.round(n / 2);
 }
 
+/**
+ * @param {string} c
+ */
 function parseColor(c) {
     if (!c || typeof c !== 'string') return undefined;
     if (c.toLowerCase() === 'auto') return undefined;
@@ -73,8 +96,14 @@ function parseColor(c) {
     return undefined;
 }
 
+/**
+ * @param {{ 'w:rFonts'?: Record<string, string>, 'w:sz'?: { '@_w:val'?: string }, 'w:color'?: { '@_w:val'?: string },
+ *   'w:b'?: { '@_w:val'?: string } } | undefined} rPr  a parsed w:rPr element
+ * @returns {RunProps}
+ */
 function readRunProps(rPr) {
     if (!rPr) return {};
+    /** @type {RunProps} */
     const out = {};
     const fonts = rPr['w:rFonts'];
     if (fonts) {
@@ -95,6 +124,9 @@ function readRunProps(rPr) {
     return out;
 }
 
+/**
+ * @param {string} stylesXml
+ */
 function extractStylesXml(stylesXml) {
     const p = parser();
     const doc = p.parse(stylesXml);
@@ -107,12 +139,16 @@ function extractStylesXml(stylesXml) {
 
     // Heading styles — look up by styleId (Heading1, Heading2, Heading3)
     const styles = asArray(stylesNode['w:style']);
+    /** @type {Record<string, { 'w:rPr'?: Parameters<typeof readRunProps>[0] }>} */
     const byId = {};
     for (const s of styles) {
         const id = s['@_w:styleId'];
         if (id) byId[id] = s;
     }
 
+    /**
+     * @param {string} id
+     */
     function readHeading(id) {
         const s = byId[id];
         if (!s) return null;
@@ -130,12 +166,16 @@ function extractStylesXml(stylesXml) {
     };
 }
 
+/**
+ * @param {string} documentXml
+ */
 function extractDocumentXml(documentXml) {
     const p = parser();
     const doc = p.parse(documentXml);
     const sectPr = doc?.['w:document']?.['w:body']?.['w:sectPr']
         || doc?.['w:document']?.['w:body']?.['w:p']?.[Array.isArray(doc?.['w:document']?.['w:body']?.['w:p']) ? doc?.['w:document']?.['w:body']?.['w:p'].length - 1 : 0]?.['w:pPr']?.['w:sectPr'];
 
+    /** @type {{ margins: { top: number, right: number, bottom: number, left: number } | null, headerRefId: string | null, footerRefId: string | null }} */
     const out = { margins: null, headerRefId: null, footerRefId: null };
 
     if (sectPr) {
@@ -157,11 +197,15 @@ function extractDocumentXml(documentXml) {
     return out;
 }
 
+/**
+ * @param {string} relsXml
+ */
 function extractRelsXml(relsXml) {
     if (!relsXml) return {};
     const p = parser();
     const doc = p.parse(relsXml);
     const rels = asArray(doc?.['Relationships']?.['Relationship']);
+    /** @type {Record<string, { type: string, target: string }>} */
     const out = {};
     for (const r of rels) {
         out[r['@_Id']] = { type: r['@_Type'], target: r['@_Target'] };
@@ -170,19 +214,25 @@ function extractRelsXml(relsXml) {
 }
 
 // Pull plain text from a header/footer XML — best-effort, no formatting.
+/**
+ * @param {string | undefined} xml
+ */
 function extractTextFromPart(xml) {
     if (!xml) return '';
     const p = parser();
     let doc;
     try { doc = p.parse(xml); } catch { return ''; }
+    /** @type {string[]} */
     const texts = [];
+    /** @param {XmlNode | string} node */
     function walk(node) {
         if (!node || typeof node !== 'object') return;
         for (const k of Object.keys(node)) {
             if (k === 'w:t') {
-                const v = node[k];
+                // w:t holds text, a text node, or a list of those.
+                const v = /** @type {string | { '#text'?: string } | Array<string | { '#text'?: string }>} */ (node[k]);
                 if (typeof v === 'string') texts.push(v);
-                else if (v && typeof v === 'object' && v['#text']) texts.push(v['#text']);
+                else if (v && typeof v === 'object' && /** @type {{ '#text'?: string }} */ (v)['#text']) texts.push(/** @type {{ '#text'?: string }} */ (v)['#text']);
                 else asArray(v).forEach(item => {
                     if (typeof item === 'string') texts.push(item);
                     else if (item?.['#text']) texts.push(item['#text']);
@@ -200,6 +250,7 @@ function extractTextFromPart(xml) {
 /**
  * Main entry point. Accepts a Buffer with the .docx file and returns the
  * style metadata object that's persisted in org_house_styles.style_meta.
+ * @param {Buffer<ArrayBufferLike>} docxBuffer
  */
 async function extract(docxBuffer) {
     const meta = JSON.parse(JSON.stringify(DEFAULTS));
@@ -210,7 +261,9 @@ async function extract(docxBuffer) {
         const documentXml  = await zip.file('word/document.xml')?.async('string');
         const docRelsXml   = await zip.file('word/_rels/document.xml.rels')?.async('string');
 
+        /** @type {Record<string, RunProps | null | undefined>} */
         const styles = stylesXml ? extractStylesXml(stylesXml) : {};
+        /** @type {Partial<ReturnType<typeof extractDocumentXml>>} */
         const docInfo = documentXml ? extractDocumentXml(documentXml) : {};
         const rels = docRelsXml ? extractRelsXml(docRelsXml) : {};
 
@@ -247,7 +300,7 @@ async function extract(docxBuffer) {
             if (text) meta.footer = { text };
         }
     } catch (err) {
-        log.warn('[houseStyleExtractor] extraction error:', err.message);
+        log.warn('[houseStyleExtractor] extraction error:', /** @type {Error} */ (err).message);
     }
     return meta;
 }

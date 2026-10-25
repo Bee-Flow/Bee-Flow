@@ -317,3 +317,7 @@ async function runDatatableWrite(t, s = stores()) {
 }
 
 module.exports = { runDatatableWrite };
+
+/** @typedef {import('./datatableStepShared').DatatableStepContext} DatatableStepContext */
+
+/** @typedef {ReturnType<typeof stores>} WriteStores */

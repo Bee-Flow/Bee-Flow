@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GET /api/projects/:id/stream — the project's live feed, and optionally one
  * co-edited document on the same connection. The handler, as a factory so a

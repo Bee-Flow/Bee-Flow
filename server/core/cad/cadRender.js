@@ -61,11 +61,26 @@ const VIEWS = Object.freeze([
     { key: 'right', label: 'rechts', forward: [-1, 0, 0], up: [0, 0, 1] },
 ]);
 
+/**
+ * @param {number[]} a
+ * @param {number[]} b
+ */
 function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+/**
+ * @param {number[]} a
+ * @param {number[]} b
+ */
 function cross(a, b) {
     return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
+/**
+ * @param {number[]} a
+ * @param {number[]} b
+ */
 function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+/**
+ * @param {number[]} a
+ */
 function norm(a) {
     const l = Math.hypot(a[0], a[1], a[2]);
     return l > 1e-9 ? [a[0] / l, a[1] / l, a[2] / l] : [0, 0, 0];
@@ -77,6 +92,7 @@ function norm(a) {
  * Meshes are kept SEPARATE by the importer (one per B-rep solid/face group),
  * but a picture of an assembly wants them in one space — and the bounding box
  * has to span all of them or the views frame the first body and clip the rest.
+ * @param {Array<{ attributes?: { position?: { array: ArrayLike<number> } }, index?: { array: ArrayLike<number> } } | null> | null | undefined} meshes
  */
 function collectTriangles(meshes) {
     const tris = [];
@@ -114,6 +130,11 @@ function collectTriangles(meshes) {
  * exactly where these parts are interesting: two faces meeting at a hole are
  * at the same average depth and flicker over each other. Per-pixel depth is
  * the only version that always tells the truth.
+ * @param {number[][][]} tris
+ * @param {number[]} center
+ * @param {number} radius
+ * @param {{ key: string; label: string; forward: number[]; up: number[]; }} view
+ * @param {number} size
  */
 function renderView(tris, center, radius, view, size) {
     const f = norm(view.forward);
@@ -137,7 +158,7 @@ function renderView(tris, center, radius, view, size) {
     const cx = size / 2;
     const cy = size / 2;
 
-    const project = (v) => {
+    const project = /** @param {number[]} v */ (v) => {
         const d = sub(v, center);
         return [cx + dot(d, r) * scale, cy - dot(d, u) * scale, dot(d, f)];
     };
@@ -198,6 +219,10 @@ function renderView(tris, center, radius, view, size) {
  * that a reader — human or model — can miss entirely. A dark line wherever
  * neighbouring pixels sit far apart in depth turns every hole, step and
  * silhouette into an edge, which is how a technical drawing communicates.
+ * @param {Uint8ClampedArray<ArrayBuffer>} rgba
+ * @param {Float32Array<ArrayBuffer>} depth
+ * @param {number} size
+ * @param {number} radius
  */
 function drawDepthEdges(rgba, depth, size, radius) {
     // Scaled to the part, so the same threshold works for a 20 mm bracket and
@@ -223,6 +248,7 @@ function drawDepthEdges(rgba, depth, size, radius) {
 /**
  * Render a STEP/IGES buffer to one labelled PNG sheet.
  * @returns {Promise<{png: Buffer, stats: any}>}
+ * @param {Buffer<ArrayBuffer>} buffer
  */
 async function renderCadSheet(buffer, { format = 'step' } = {}) {
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('cadRender: empty buffer');

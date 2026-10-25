@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — listing.
  *
@@ -37,6 +37,7 @@ const SURFACES = [...VALID_USAGE_CONTEXTS];
 /**
  * One usage context, as listFilterFromQuery reads it: trimmed, and an empty
  * value is no filter — which is what it has always been.
+ * @param {string} name
  */
 const surface = (name) => z.preprocess(
     (v) => (typeof v === 'string' ? (v.trim() || undefined) : v),
@@ -91,6 +92,6 @@ router.get('/published', requireAuth, validate({ query: ListQuery }), async (req
     const kbs = await kbStore.listKBs(userId, orgIds, { ...listFilterFromQuery(req), systemSlugs });
     const accessible = kbStore.filterByGroupAccess(kbs, userId, userGroups);
     // Only KBs that are explicitly published (drafts owned by the user are dropped here)
-    res.json(await decorateKbList(accessible.filter(kb => !!kb.is_published)));
+    res.json(await decorateKbList(accessible.filter((/** @type {Record<string, any>} */ kb) => !!kb.is_published)));
 });
 module.exports = router;

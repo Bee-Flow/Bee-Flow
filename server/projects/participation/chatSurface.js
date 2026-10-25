@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The team chat as a participation surface (see engine.js for the contract).
  *
@@ -25,8 +25,8 @@ const CONTEXT_MESSAGES = 30;
 /**
  * @param {object} [deps]
  * @param {any}   [deps.store]         stores/projectChatStore surface
- * @param {Function} [deps.getProject]    (id) => project row
- * @param {Function} [deps.getProjectShares] (projectId) => share rows
+ * @param {typeof import('../../stores/projectStore').getProject} [deps.getProject]    (id) => project row
+ * @param {typeof import('../../stores/projectStore').getProjectShares} [deps.getProjectShares] (projectId) => share rows
  * @param {any}   [deps.chatCrypto]    { forProject(project) }
  * @param {any}   [deps.assistant]     { requestReply } (makeChatAssistant())
  */
@@ -35,6 +35,7 @@ function makeChatSurface(deps = {}) {
     const getProject = deps.getProject || ((id) => require('../../stores/projectStore').getProject(id));
     const getProjectShares = deps.getProjectShares || ((id) => require('../../stores/projectStore').getProjectShares(id));
     const chatCrypto = () => deps.chatCrypto || require('../chatCrypto');
+    /** @type {ReturnType<typeof import('../chatAssistant').makeChatAssistant> | null} */
     let sharedAssistant = null;
     const assistant = () => deps.assistant
         || (sharedAssistant || (sharedAssistant = require('../chatAssistant').makeChatAssistant()));
@@ -85,7 +86,7 @@ function makeChatSurface(deps = {}) {
             autoPausedUntil: chat.autoPausedUntil || null,
             messages: opened,
             memberCount,
-            readByOthers: (message) => store().countReadersAtLeast(chat.id, message.seq, message.authorUserId),
+            readByOthers: (/** @type {{ seq: number, authorUserId: string }} */ message) => store().countReadersAtLeast(chat.id, message.seq, message.authorUserId),
             project,
             chat,
         };

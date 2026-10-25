@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — the installation's own OAuth credentials (Nextcloud client
  * id/secret), read and written by the platform operator only. Split out of

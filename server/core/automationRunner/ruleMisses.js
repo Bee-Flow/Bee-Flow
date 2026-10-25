@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Rule misses: a path in a Condition, Filter or Switch rule that found
  * nothing on any of the items the rule was asked about.
@@ -217,3 +216,21 @@ function createRuleMissCounter(entries) {
 }
 
 module.exports = { rulePaths, createRuleMissCounter };
+
+/**
+ * A path token, as shared/expr/path.mjs reads and formats them.
+ * @typedef {import('../../shared/expr/path.mjs').PathToken} PathToken
+ */
+
+/**
+ * A node of a parsed rule (shared/expr engine AST); only the fields read here.
+ * @typedef {import('../../shared/expr/engine.mjs').ExprNode} ExprNode
+ */
+
+/** @typedef {'fallback'|'tolerant'|'strict'} PathUse */
+
+/**
+ * @typedef {{ path: string, tokens: PathToken[], field: string|null, use: PathUse,
+ *   listTokens: PathToken[]|null, column: PathToken[], hits: number, misses: number,
+ *   missScope: object|null, missList: unknown[]|null }} Tally
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The two halves of a "scan what is due, work it off" job, shared by
  * jobs/datatableNcSync.js and jobs/studioAppConnectorSync.js.

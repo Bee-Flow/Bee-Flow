@@ -269,3 +269,31 @@ module.exports = {
     // exported for tests
     toWire, refuseIfReadOnly, sameValue, currentColumns, ROW_MISSING,
 };
+
+/**
+ * @typedef {import('./columns').ColumnMapEntry} ColumnMapEntry
+ * @typedef {import('./providers').FileRef} FileRef
+ * @typedef {{ id?: string | number | null, name?: string } | string | number} SheetArg
+ * @typedef {Array<{ col: number, value: unknown, type: string }>} CellList
+ * @typedef {import('./providers').FileApi & {
+ *     upload: (file: FileRef, buffer: Buffer, opts: { ifMatch?: object | null, contentType?: string | null }) => Promise<{ marker?: Record<string, unknown> } | null>,
+ *     cells?: {
+ *         updateCells: (file: FileRef, sheet: SheetArg, row: number, cells: CellList, opts: { ifMatch?: object | null }) => Promise<{ marker: object }>,
+ *         deleteRow: (file: FileRef, sheet: SheetArg, row: number, opts: { ifMatch?: object | null }) => Promise<{ marker: object }>,
+ *         appendRow: (file: FileRef, sheet: SheetArg, cells: CellList, opts: { ifMatch?: object | null, afterRow?: number | null }) => Promise<{ rowNumber: number, marker: object }>,
+ *         readRow?: (file: FileRef, sheet: SheetArg, row: number) => Promise<unknown[]>,
+ *     },
+ * }} WriteApi
+ * @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Mirror
+ * @typedef {{ raws: Map<string, RawRow | null>, mode: string | null }} Scratch
+ * @typedef {{ table: Mirror, scope: { kind: string, id: string }, scopeKey: string,
+ *            tableMeta: import('../mirror/writeThroughRows').WriteCtx['tableMeta'], grade?: string, viewerId?: string | null,
+ *            [SCRATCH]?: Scratch }} WriteCtx
+ * @typedef {ReturnType<typeof toWire>} Wire
+ * @typedef {{ kind: 'update'|'append'|'delete', rowId?: string, wire?: Wire, tolerateMissing?: boolean }} Intent
+ * @typedef {{ op: 'append'|'update'|'delete', intent: number, index?: number, row?: number, cells?: Record<string, unknown> }} SheetOp
+ * @typedef {Awaited<ReturnType<typeof openFile>>} OpenFile
+ * @typedef {{ header: Array<string|null>, rows: Array<Array<unknown>>, rowNumbers: number[], touched?: number[] }} PostSheet
+ * @typedef {{ marker: object, appended: number[], post: PostSheet, retried: boolean, behind?: boolean }} WriteResult
+ * @typedef {{ id: string, rowNumber: number, cells: unknown[], columnMap: Record<string, ColumnMapEntry> }} RawRow
+ */

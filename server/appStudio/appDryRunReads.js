@@ -229,3 +229,20 @@ module.exports = {
     runAggregateBinding,
     runDatasetBinding,
 };
+
+/**
+ * @typedef {import('./builderTools/dataTools').DataModel} DataModel
+ * @typedef {import('./builderTools/dataTools').DataTable} DataTable
+ * @typedef {{ id: string, userId: string }} DryRunApp  the studio_apps row (the fields the dry run reads)
+ * @typedef {{ id?: string|null, role?: string }} DryRunViewer
+ * @typedef {{ [k: string]: unknown, kind?: string, tableId?: string, datasetId?: string,
+ *   groupBy?: Array<{ field?: string, bucket?: string, as?: string }>, aggregates?: Array<{ fn?: string, field?: string, as?: string }> }} DryRunBinding  a record / records / aggregate / dataset binding (an aggregate's groupBy/aggregates as the validator accepts them)
+ * @typedef {{ ok?: boolean, skipped?: string, rowCount?: number, note?: string, error?: string, sampled?: boolean, sampleLimit?: number, filtered?: boolean }} ReadFinding
+ * @typedef {{
+ *   dbQuery: (ownerScope: string, appId: string, sql: string, params: unknown[]) => Promise<{ rows?: unknown[] }>,
+ *   runDataset: (app: DryRunApp, model: DataModel, ds: object, viewer: DryRunViewer, opts?: object) => Promise<{ rows?: unknown[] }>,
+ *   getDataset: (datasetId: string, appId: string, ownerId: string) => Promise<object|null>,
+ *   readRecords: (ctx: import('./dataReadRunner').ReadCtx, table: DataTable, opts: object) => Promise<{ records?: unknown[], nextCursor?: unknown }>,
+ *   readAggregate: (ctx: import('./dataReadRunner').ReadCtx, table: DataTable, descriptor: object) => Promise<{ rows?: unknown[] }>,
+ * }} DryRunDeps
+ */

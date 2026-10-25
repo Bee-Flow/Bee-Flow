@@ -277,3 +277,9 @@ module.exports = {
     AUDIO_SCRATCH_DIR,
     MIME_BY_EXT,
 };
+
+/**
+ * @typedef {Object} DiscardSavedAudioArgs
+ * @property {string | null} [audioPath]
+ * @property {string | null} [audioStorageKey]
+ */

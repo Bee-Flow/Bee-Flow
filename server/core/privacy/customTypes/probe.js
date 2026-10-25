@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The test bench's line to the model: raw candidates for `ai` types, for
@@ -13,7 +13,7 @@ const { getGuardEndpoint } = require('../piiDetection/guardEndpoint');
 const { probeViaGuard } = require('../piiDetection/guardClient');
 const guardCapabilities = require('./guardCapabilities');
 
-const unavailable = (message) => new HttpError(503, 'guard_unavailable', message);
+const unavailable = (/** @type {string} */ message) => new HttpError(503, 'guard_unavailable', message);
 
 /**
  * @param {string[]} texts  1..8 texts of at most 4000 characters
@@ -42,7 +42,7 @@ async function probeGuard(texts, labelSet, opts = {}) {
             : 'The PII Guard service could not be reached. Try again in a moment.');
     }
     if (body && body.model_ready === false) throw unavailable('The PII Guard service is still starting. Try again in a moment.');
-    const candidates = Array.isArray(body?.candidates) ? body.candidates.filter(c => c
+    const candidates = Array.isArray(body?.candidates) ? body.candidates.filter((/** @type {{ text_idx: number, label: string, start: number, end: number, score: number }} */ c) => c
         && Number.isInteger(c.text_idx) && typeof c.label === 'string'
         && Number.isInteger(c.start) && Number.isInteger(c.end) && c.end > c.start
         && typeof c.score === 'number') : [];

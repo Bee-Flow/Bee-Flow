@@ -255,3 +255,5 @@ module.exports = {
 };
 
 Object.assign(module.exports, { _test: { _publicBaseUrl, _httpUrl, _sameUrl, SECURITY_TXT_PATH } });
+
+/** @typedef {import('url').URL} URL */

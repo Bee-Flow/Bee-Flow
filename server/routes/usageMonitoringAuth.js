@@ -79,3 +79,5 @@ async function requireMonitoringScope(req, res, next) {
 }
 
 module.exports = { requireMonitoringScope };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

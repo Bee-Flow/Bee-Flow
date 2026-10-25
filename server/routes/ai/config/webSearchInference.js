@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * AI Config — web-search inference routing: which backends the
  * search-service uses for its embed/rerank/cleanup tasks.
@@ -47,7 +47,11 @@ const requireAdmin = requireAdminUser(isAdminUser);
 // fails here rather than being quietly rewritten to cosine.
 const RERANK_METHODS = ['cosine', 'cpu', 'provider', 'local', 'disabled'];
 
-/** { providerId, modelId }: both set, or both empty ('' is "inherit" / "off"). */
+/**
+ * { providerId, modelId }: both set, or both empty ('' is "inherit" / "off").
+ * @param {string} section
+ * @param {string} meaning
+ */
 function pairOf(section, meaning) {
     const missing = `${section} is required — send { providerId: '', modelId: '' } for ${meaning}.`;
     return z.object({
@@ -56,9 +60,12 @@ function pairOf(section, meaning) {
     }, { error: typeError({ required: missing, invalid: missing }) }).strict();
 }
 
-/** Half a pair was treated as unset — a selection that silently did nothing. */
+/**
+ * Half a pair was treated as unset — a selection that silently did nothing.
+ * @param {string} section
+ */
 function wholePair(section) {
-    return (pair, ctx) => {
+    return (/** @type {{ providerId: string, modelId: string }} */ pair, /** @type {import('zod').RefinementCtx} */ ctx) => {
         if (!pair.providerId !== !pair.modelId) {
             ctx.addIssue({
                 code: 'custom',
@@ -79,7 +86,7 @@ const WebSearchInferenceBody = z.preprocess((v) => (v === undefined || v === nul
     cleanup: pairOf('cleanup', 'no cleanup').superRefine(wholePair('cleanup')),
 }).strict());
 
-router.get('/config/web-search-inference', requireAuth, requireAdmin, async (req, res) => {
+router.get('/config/web-search-inference', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const [config, embedSummary] = await Promise.all([
         readWebSearchInferenceConfig(),
         readEmbedSummary(),
@@ -87,7 +94,7 @@ router.get('/config/web-search-inference', requireAuth, requireAdmin, async (req
     res.json({ config, defaults: WEB_SEARCH_INFERENCE_DEFAULTS, embedSummary });
 });
 
-router.post('/config/web-search-inference', requireAuth, requireAdmin, validate({ body: WebSearchInferenceBody }), async (req, res) => {
+router.post('/config/web-search-inference', requireAuth, requireAdmin, validate({ body: WebSearchInferenceBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const saved = await writeWebSearchInferenceConfig(req.body);
     res.json({ success: true, config: saved });
 });
@@ -95,7 +102,7 @@ router.post('/config/web-search-inference', requireAuth, requireAdmin, validate(
 // Read-only debugging view — what backend each task will actually hit.
 // Flags `unresolved` when something the admin selected can't be resolved
 // (e.g. provider deleted after cleanup selection was saved).
-router.get('/config/web-search-inference/effective', requireAuth, requireAdmin, async (req, res) => {
+router.get('/config/web-search-inference/effective', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const resolved = await resolveInferenceTargets();
     res.json({ resolved });
 });

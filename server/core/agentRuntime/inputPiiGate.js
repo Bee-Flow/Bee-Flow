@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The PII step of the agent input guardrails (./guardrailsRunner): scan the
  * last messages, tokenise the user message in place on a redact verdict, or
@@ -16,6 +16,15 @@ const guardrailEventStore = require('../../stores/guardrailEventStore');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * @typedef {{ validateInputForPii: typeof import('../privacy/piiDetection').validateInputForPii, startPrivacyScanPhase: typeof import('./phaseEvents').startPrivacyScanPhase, messageText: typeof import('./phaseEvents').messageText, dlpRunner: () => typeof import('../dlp/dlpRunner') }} PiiGateDeps
+ * @typedef {{ organization_id: string | null, user_id: string | null, agent_id: string | null, agent_name: string | null, conversation_id: string | null, source: string, model: string | null, is_dry_run: boolean }} GuardrailEventCtx  the identity fields every guardrail event row of the turn carries
+ * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string | null, automatic: boolean, tokenizedPrompt?: string, tokenMap?: Record<string, string> }} PiiTokenisationInfo
+ * @typedef {{ moderationViolation: string | null, processedUserMessage: string, userPrivacyMeta: { piiTokenizedCount: number, piiCategories: string[] } | null, assistantTokenisationInfo: PiiTokenisationInfo | null }} PiiGateOut
+ * @typedef {NonNullable<Awaited<ReturnType<PiiGateDeps['validateInputForPii']>>>} PiiResult
+ * @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>} Shield
+ */
+
 const PRIVACY_MODE_RULES = `
 - Sensitive values in the user's message and retrieved memories have been replaced with placeholders like [email_1], [phone_2] or [iban_1].
 - When referring to these values in your response, write the SAME placeholder verbatim. The system restores the real value for the user automatically.
@@ -28,8 +37,12 @@ const PRIVACY_MODE_RULES = `
  * `{ moderationViolation, processedUserMessage, userPrivacyMeta, assistantTokenisationInfo }`
  * (each null/unchanged when the gate had nothing to say). `piiReport` is
  * filled in place (validate.js `options.report`).
+ * @param {{ messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, orgPiiEnabled: boolean, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId: string | null, model: string | null, eventCtx: GuardrailEventCtx, piiReport: import('../privacy/piiDetection/validate').PiiGateReport, processedUserMessage: string }} opts
+ * @param {PiiGateDeps} d
+ * @returns {Promise<PiiGateOut>}
  */
 async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, userId, conversationId, model, eventCtx, piiReport, processedUserMessage }, d) {
+    /** @type {PiiGateOut} */
     const out = { moderationViolation: null, processedUserMessage, userPrivacyMeta: null, assistantTokenisationInfo: null };
     try {
         const piiMessages = [
@@ -51,7 +64,7 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
         // Same status line the direct-chat path shows: a big paste is scanned
         // window by window and takes minutes, and the agent path reported
         // nothing at all while it did.
-        const _ps = d.startPrivacyScanPhase(onEvent, d.messageText(messages[messages.length - 1]));
+        const _ps = d.startPrivacyScanPhase(onEvent, d.messageText(/** @type {Parameters<PiiGateDeps["messageText"]>[0]} */ (messages[messages.length - 1])));
         let piiResult;
         try {
             piiResult = await d.validateInputForPii(piiMessages, orgPiiEnabled, orgShield, null, existingTokenMap, { vaultUserId: userId || null, onProgress: _ps.onProgress, report: piiReport });
@@ -68,7 +81,12 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
     return out;
 }
 
-/** Redact/tokenise mode: rewrite the user message, tell the model and the client, keep the persistence meta. */
+/**
+ * Redact/tokenise mode: rewrite the user message, tell the model and the client, keep the persistence meta.
+ * @param {PiiGateOut} out
+ * @param {{ piiResult: PiiResult, messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, onEvent: import('./chatStream/turnState').OnEvent, conversationId: string | null, model: string | null, eventCtx: GuardrailEventCtx }} opts
+ * @param {PiiGateDeps} d
+ */
 function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d) {
     // Replace the user message with the tokenized version
     const lastMsg = messages[messages.length - 1];
@@ -77,7 +95,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
             lastMsg.content = piiResult.tokenizedText;
             out.processedUserMessage = piiResult.tokenizedText;
         } else if (Array.isArray(lastMsg.content)) {
-            const textPart = lastMsg.content.find(p => p.type === 'text');
+            const textPart = lastMsg.content.find((/** @type {{ type?: string, text?: string }} */ p) => p.type === 'text');
             if (textPart) {
                 textPart.text = piiResult.tokenizedText;
                 out.processedUserMessage = piiResult.tokenizedText;
@@ -98,7 +116,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
     // redaction tokens and it should echo them back unchanged. Match the
     // format emitted by piiDetection.js → `[email_1]`, `[phone_2]`, …
     if (messages[0]?.role === 'system' && typeof messages[0].content === 'string') {
-        const categoryList = [...new Set(piiResult.entities.map(e => e.label || e.category))].join(', ');
+        const categoryList = [...new Set(piiResult.entities.map((/** @type {{ label?: string, category?: string }} */ e) => e.label || e.category))].join(', ');
         messages[0].content += `\n\n[PRIVACY MODE ACTIVE — strict rules (${categoryList}):${PRIVACY_MODE_RULES}`;
     }
 
@@ -106,9 +124,10 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
 
     // Persistence accumulators returned to the caller (chatStream)
     // so the redaction badge + privacy panel survive page refreshes.
-    const piiCats = [...new Set(piiResult.entities.map(e => e.label || e.category).filter(Boolean))];
+    const piiCats = [...new Set(piiResult.entities.map((/** @type {{ label?: string, category?: string }} */ e) => e.label || e.category).filter(Boolean))];
     const piiCount = Object.keys(piiResult.tokenMap).length;
     out.userPrivacyMeta = { piiTokenizedCount: piiCount, piiCategories: piiCats };
+    /** @type {PiiTokenisationInfo} */
     /** @type {Record<string, any>} */
     const assistantTokenisationInfo = out.assistantTokenisationInfo = {
         source: 'pii',
@@ -129,15 +148,18 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
     guardrailEventStore.logGuardrailEvent({
         ...eventCtx,
         violation_type: 'pii',
-        violation_categories: [...new Set(piiResult.entities.map(e => e.label || e.category))].join(', '),
+        violation_categories: [...new Set(piiResult.entities.map((/** @type {{ label?: string, category?: string }} */ e) => e.label || e.category))].join(', '),
         direction: 'input',
         action_taken: 'redacted',
     }).catch((e) => bestEffort('core/agentRuntime/inputPiiGate:applyPiiTokenisation#2', e));
 }
 
+/**
+ * @param {{ piiResult: PiiResult, orgShield: Shield, onEvent: import('./chatStream/turnState').OnEvent, model: string | null }} opts
+ */
 function emitTokenisationEvents({ piiResult, orgShield, onEvent, model }) {
     onEvent('pii_tokenized', {
-        entities: piiResult.entities.map(e => ({ label: e.label, category: e.category })),
+        entities: piiResult.entities.map((/** @type {{ label?: string, category?: string }} */ e) => ({ label: e.label, category: e.category })),
         tokenCount: Object.keys(piiResult.tokenMap).length,
     });
 
@@ -161,12 +183,15 @@ function emitTokenisationEvents({ piiResult, orgShield, onEvent, model }) {
 /**
  * A thrown PII verdict as a `moderationViolation`, or null when the error is
  * not one (service unavailable etc. → fail-open, the turn continues).
+ * @param {Error & { piiEntities?: Array<{ label?: string, category?: string }>, privacyUnavailable?: boolean, degradedReason?: string, privacyUnavailableKind?: string }} piiError
+ * @param {{ onEvent: import('./chatStream/turnState').OnEvent, eventCtx: GuardrailEventCtx }} opts
+ * @returns {string | null}
  */
 function piiBlockFromError(piiError, { onEvent, eventCtx }) {
     if (piiError.message?.includes('PII Detected')) {
         log.warn('[GuardrailsRunner] PII detected in user input:', piiError.message);
         const entityLabels = piiError.piiEntities
-            ? [...new Set(piiError.piiEntities.map(e => e.label || e.category))]
+            ? [...new Set(piiError.piiEntities.map((/** @type {{ label?: string, category?: string }} */ e) => e.label || e.category))]
             : ['personal information'];
         const labelList = entityLabels.join(', ');
 

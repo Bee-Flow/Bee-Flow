@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Schema definitions for the automation evolution tools (data only, no requires).
  * Kept as a leaf so tool-catalogue code can read the schemas without loading the

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * AFAS Profit Tools — Built-in tools for AI to discover and query AFAS Profit data
  *
@@ -21,6 +22,7 @@ const MAX_ERROR_MESSAGE_CHARS = 300;
 
 // Environment type → URL subdomain. Fixed map: the raw envType value must never
 // reach the hostname.
+/** @type {Record<string, string>} */
 const ENV_SUBDOMAIN = {
     production: 'rest',
     test: 'resttest',
@@ -28,6 +30,7 @@ const ENV_SUBDOMAIN = {
 };
 
 // Friendly operator names → AFAS operatortypes codes.
+/** @type {Record<string, number>} */
 const OPERATORS = {
     equals: 1,
     greater_or_equal: 2,
@@ -58,7 +61,7 @@ const AFAS_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {},
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -136,6 +139,8 @@ const AFAS_TOOLS = [
 /**
  * Build the Profit REST base URL. The member number forms the subdomain, so it
  * is strictly digits-only — this validation is the SSRF guard.
+ * @param {unknown} memberNumber
+ * @param {unknown} envType
  */
 function buildBaseUrl(memberNumber, envType) {
     const nr = String(memberNumber || '').trim();
@@ -153,6 +158,7 @@ function buildBaseUrl(memberNumber, envType) {
  * Normalize a pasted AppConnector token to canonical XML form. Accepts the full
  * '<token><version>1</version><data>HEX</data></token>' XML or just the hex
  * data (whitespace-tolerant). Returns null when unrecognizable.
+ * @param {unknown} raw
  */
 function normalizeAfasToken(raw) {
     const s = String(raw || '').trim();
@@ -170,6 +176,7 @@ function normalizeAfasToken(raw) {
     return null;
 }
 
+/** @param {unknown} rawToken */
 function buildAuthHeader(rawToken) {
     const xml = normalizeAfasToken(rawToken);
     if (!xml) {
@@ -182,6 +189,7 @@ function buildAuthHeader(rawToken) {
  * Map structured filters to AFAS filterfieldids/filtervalues/operatortypes.
  * AND-only (comma-joined); AFAS separators have no escaping, so values and
  * fields containing "," or ";" are rejected outright.
+ * @param {Array<{ field?: string, operator?: string, value?: unknown }> | null | undefined} filters
  */
 function buildFilterParams(filters) {
     if (!Array.isArray(filters) || filters.length === 0) return null;
@@ -210,8 +218,10 @@ function buildFilterParams(filters) {
     };
 }
 
+/** @param {Array<{ field?: string, direction?: string }> | null | undefined} orderBy */
 function buildOrderByParam(orderBy) {
     if (!Array.isArray(orderBy) || orderBy.length === 0) return null;
+    /** @type {string[]} */
     const parts = [];
     for (const o of orderBy) {
         const field = String((o && o.field) || '');
@@ -227,6 +237,9 @@ function buildOrderByParam(orderBy) {
 /**
  * Drop trailing rows until the serialized result fits the LLM-context budget.
  * Never truncates mid-row.
+ * @template T
+ * @param {T[]} rows
+ * @param {number} [maxChars]
  */
 function truncateRows(rows, maxChars = MAX_RESPONSE_CHARS) {
     if (!Array.isArray(rows)) return { rows: [], truncated: false };
@@ -251,6 +264,7 @@ function truncateRows(rows, maxChars = MAX_RESPONSE_CHARS) {
  * returns XML or JSON; we only surface the human-readable message text — never
  * the raw body and never the request URL (it carries the member number and
  * filter data).
+ * @param {unknown} bodyText
  */
 function extractAfasErrorMessage(bodyText) {
     if (!bodyText || typeof bodyText !== 'string') return null;
@@ -268,6 +282,7 @@ function extractAfasErrorMessage(bodyText) {
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
 }
 
+/** @type {Record<number, string>} */
 const STATUS_REASONS = {
     400: 'AFAS rejected the request (check connector ID, field IDs and filters)',
     401: 'AFAS token is invalid or has been revoked',
@@ -275,6 +290,21 @@ const STATUS_REASONS = {
     404: 'connector not found in this AFAS environment',
 };
 
+/**
+ * The parts of an AFAS response body this module reads (metainfo, connector metadata, rows).
+ * @typedef {{
+ *   getConnectors?: Array<{ id: string, description?: string }>,
+ *   fields?: Array<{ id: string, label?: string, dataType?: string, length?: number }>,
+ *   rows?: Array<Record<string, unknown>>,
+ * }} AfasResponse
+ */
+
+/**
+ * @param {{ token: string, memberNumber: string, envType: string }} creds
+ * @param {string} path
+ * @param {Record<string, string> | null} [query]
+ * @returns {Promise<AfasResponse>}
+ */
 async function afasRequest(creds, path, query = null) {
     const baseUrl = buildBaseUrl(creds.memberNumber, creds.envType);
     // Built outside the fetch try-block so an invalid stored token surfaces as
@@ -318,7 +348,7 @@ async function afasRequest(creds, path, query = null) {
     }
 
     try {
-        return await response.json();
+        return /** @type {AfasResponse} */ (await response.json());
     } catch {
         throw new Error('AFAS returned an unexpected non-JSON response.');
     }
@@ -326,6 +356,7 @@ async function afasRequest(creds, path, query = null) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/** @param {string} userId */
 async function getAfasCredentials(userId) {
     const token = await configStore.getSecret(`afas_token_user_${userId}`);
     const memberNumber = await configStore.getSecret(`afas_member_number_user_${userId}`);
@@ -334,6 +365,12 @@ async function getAfasCredentials(userId) {
     return { token, memberNumber, envType: envType || 'production' };
 }
 
+/**
+ * @param {string} toolName
+ * @param {{ connectorId?: string, take?: string, skip?: string,
+ *   filters?: Parameters<typeof buildFilterParams>[0], orderBy?: Parameters<typeof buildOrderByParam>[0] }} args
+ * @param {string} userId
+ */
 async function executeAfasTool(toolName, args, userId) {
     if (!userId) return { error: 'User context required for AFAS Profit.' };
     const creds = await getAfasCredentials(userId);
@@ -350,6 +387,7 @@ async function executeAfasTool(toolName, args, userId) {
                 id: c.id,
                 description: c.description || '',
             }));
+            /** @type {{ connectors: typeof connectors, count: number, message: string, truncated?: boolean, total?: number }} */
             const result = {
                 connectors,
                 count: connectors.length,
@@ -390,6 +428,7 @@ async function executeAfasTool(toolName, args, userId) {
             const take = Math.min(Math.max(parseInt(args.take) || DEFAULT_TAKE, 1), MAX_TAKE);
             const skip = Math.max(parseInt(args.skip) || 0, 0);
 
+            /** @type {Record<string, string>} */
             const query = { skip: String(skip), take: String(take) };
             const filterParams = buildFilterParams(args.filters);
             if (filterParams) Object.assign(query, filterParams);
@@ -401,6 +440,7 @@ async function executeAfasTool(toolName, args, userId) {
             const allRows = (data && Array.isArray(data.rows)) ? data.rows : [];
             const { rows, truncated } = truncateRows(allRows);
 
+            /** @type {{ connectorId: string, rows: typeof rows, count: number, skip: number, take: number, hasMore: boolean, truncated?: boolean, message?: string }} */
             const result = {
                 connectorId,
                 rows,
@@ -424,6 +464,7 @@ async function executeAfasTool(toolName, args, userId) {
     }
 }
 
+/** @param {string} toolName */
 function isAfasTool(toolName) {
     return [
         'afas_list_connectors',

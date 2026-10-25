@@ -35,6 +35,7 @@ const {
  * name a Solution knows the table by (NULL = its `key`), `isReference` whether
  * a release carries its rows. Spread over the base shape so it stays correct
  * once rowMappers.rowToDatatable maps them itself.
+ * @param {Record<string, any> | null | undefined} r
  */
 function rowToDatatable(r) {
     const d = baseRowToDatatable(r);
@@ -42,7 +43,11 @@ function rowToDatatable(r) {
     return { ...d, logicalKey: r.logical_key || null, isReference: !!r.is_reference };
 }
 
-/** One table by id, scoped to a tenant. Never call this unscoped. */
+/**
+ * One table by id, scoped to a tenant. Never call this unscoped.
+ * @param {string} id
+ * @param {{ kind: string; id: string; }} scope
+ */
 async function getDatatable(id, scope) {
     await initDB();
     if (!id || !scope || !scope.kind || !scope.id) return null;
@@ -56,6 +61,7 @@ async function getDatatable(id, scope) {
 /**
  * Every table in one scope. Callers filter by grade — this is the "what exists"
  * half, and auth/datatableAccess is the "who may see it" half.
+ * @param {{ kind: string, id: string }} scope
  */
 async function listDatatablesForScope(scope) {
     await initDB();
@@ -79,11 +85,13 @@ async function listDatatablesForScope(scope) {
  * `client` runs it on the CALLER's transaction: createDatatable counts tables
  * with the model row already FOR UPDATE-held, because counting outside the lock
  * is how two replicas both saw 49 and both created the 50th.
+ * @param {{ kind: string; id: string; }} scope
+ * @param {{ client?: import('pg').PoolClient | null }} [opts]
  */
 async function scopeUsage(scope, { client = null } = {}) {
     await initDB();
     assertScope(scope, 'scopeUsage');
-    const q = client ? (sql, p) => client.query(sql, p) : async (sql, p) => ({ rows: await getAll(sql, p) });
+    const q = client ? (/** @type {string} */ sql, /** @type {any[]} */ p) => client.query(sql, p) : async (/** @type {string} */ sql, /** @type {any[]} */ p) => ({ rows: await getAll(sql, p) });
     const counts = await q(
         `SELECT COUNT(*)::int AS table_count, COALESCE(SUM(row_count), 0)::bigint AS row_total
            FROM datatables WHERE scope_kind = $1 AND scope_id = $2`,
@@ -102,7 +110,10 @@ async function scopeUsage(scope, { client = null } = {}) {
     };
 }
 
-/** The scope's data model document (the engine's table descriptors). */
+/**
+ * The scope's data model document (the engine's table descriptors).
+ * @param {{ kind: string, id: string }} scope
+ */
 async function getModel(scope) {
     await initDB();
     assertScope(scope, 'getModel');
@@ -120,11 +131,15 @@ async function getModel(scope) {
     };
 }
 
-/** The table descriptor the query compiler needs, by datatable id. */
+/**
+ * The table descriptor the query compiler needs, by datatable id.
+ * @param {{ kind: string, id: string }} scope
+ * @param {string} datatableId
+ */
 async function getTableMeta(scope, datatableId) {
     const { model } = await getModel(scope);
     const tables = Array.isArray(model.tables) ? model.tables : [];
-    return tables.find(t => t && t.id === datatableId) || null;
+    return tables.find((/** @type {Record<string, any>} */ t) => t && t.id === datatableId) || null;
 }
 
 /**
@@ -158,7 +173,7 @@ async function getTableMeta(scope, datatableId) {
  * so every row writer but the deploy's own refuses it (queryCompiler).
  *
  * @param {object}   [opts]
- * @param {object}   [opts.client]  the caller's transaction, when they own one.
+ * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
  * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability (see above).
  * @param {(usage: {tables:number, rows:number, bytes:number}) => Promise<any>} [opts.assertQuota]
  *   Runs with the tenant's usage read UNDER the model row's FOR UPDATE lock and
@@ -167,7 +182,7 @@ async function getTableMeta(scope, datatableId) {
  *   runs inside the lock because the caller used to count every table in the
  *   organisation outside any transaction, so two replicas could both see 49 and
  *   both create the 50th. Throwing refuses the create.
- * @param {(client: object, ctx: {before: object, next: object, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
+ * @param {(client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
  *   Runs on the transaction's own client, AFTER the metadata is written (the
  *   engine's access check reads `datatable_models`, so the row has to be there
  *   already). Throwing rolls the whole create back.
@@ -281,10 +296,11 @@ async function createDatatable({
  * that stage), or the save is refused with 409 `managed_part`. An edit to an
  * unrelated table of the same scope never needs one.
  *
- * @param {object|null} proposed  the whole next model; ignored when `opts.buildNext` is given.
+ * @param {{ kind: string, id: string }} scope
+ * @param {Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown> | null} proposed  the whole next model; ignored when `opts.buildNext` is given.
  * @param {object}   [opts]
  * @param {number|null} [opts.expectedVersion]
- * @param {(lockedBefore: object) => object|Promise<object>} [opts.buildNext]
+ * @param {(lockedBefore: import('../../core/dataEngine/dataModel/migrationShape').ModelShape) => (Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>) | Promise<Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>>} [opts.buildNext]
  *   Computes the next model from a deep copy of the model read UNDER THE LOCK,
  *   so a writer that replaces only its own entries cannot overwrite a
  *   concurrent edit to another table (the deploy commit, design 3.2 step 6).
@@ -294,8 +310,8 @@ async function createDatatable({
  *   a stage table that is a source mirror (`source IS NOT NULL`) may then change
  *   its `fields` (and take its row's name) without a capability, because its
  *   columns follow its source, not a release. Any other change still needs one.
- * @param {object}   [opts.client]  the caller's transaction, when they own one.
- * @param {(client: object, ctx: {before: object, next: object, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
+ * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
+ * @param {(client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: Partial<import('../../core/dataEngine/dataModel/migrationShape').ModelShape> & Record<string, unknown>, modelVersion: number}) => Promise<any>} [opts.applyPhysical]
  *   `before` is the model as read UNDER THE LOCK — the only baseline a plan may
  *   be diffed against. Throwing rolls the model write back with it, so a failed
  *   ALTER can never leave `model_version` claiming a column that is not there.
@@ -356,7 +372,13 @@ async function saveModel(scope, proposed, {
     });
 }
 
-/** Sharing: publish state and the group list. Validated by the caller. */
+/**
+ * Sharing: publish state and the group list. Validated by the caller.
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
+ * @param {{ isPublished?: boolean, sharedGroups?: string[]|null, writeMode?: string }} patch
+ *   a member left undefined is not changed (COALESCE in the UPDATE)
+ */
 async function setSharing(id, scope, { isPublished, sharedGroups, writeMode }) {
     await initDB();
     assertScope(scope, 'setSharing');
@@ -419,12 +441,13 @@ const META_COLUMNS = Object.freeze({
  * @param {{kind: string, id: string}} scope
  * @param {Record<string, any>} patch
  * @param {object} [opts]
- * @param {object} [opts.client]  the caller's transaction, when they own one.
+ * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
  * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
  */
 async function updateDatatableMeta(id, scope, patch, { client = null, managedWrite = null } = {}) {
     await initDB();
     assertScope(scope, 'updateDatatableMeta');
+    /** @type {Record<string, unknown>} */
     const updates = {};
     for (const [key, value] of Object.entries(patch || {})) {
         if (value === undefined) continue;
@@ -463,7 +486,7 @@ async function updateDatatableMeta(id, scope, patch, { client = null, managedWri
         }
         if (cur.rows[0].is_reference) {
             const merged = { ...cur.rows[0] };
-            for (const [key, value] of Object.entries(updates)) merged[META_COLUMNS[key]] = value;
+            for (const [key, value] of Object.entries(updates)) merged[/** @type {Record<string, string>} */ (META_COLUMNS)[key]] = value;
             assertReferenceAllowed(merged);
         }
         const r = await c.query(built.sql, built.params);
@@ -508,6 +531,7 @@ function referenceRefusal(row) {
  * Throw the 409 the route passes through when `row` may not be a reference
  * table. Built as the HttpError shape (status, code, expose, details) rather
  * than imported from core/http: a store is platform and may not depend on core.
+ * @param {{ subject_column: string | null; row_scope: string; managed_kind: string | null; source: object | null; retention_days: number | null; }} row
  */
 function assertReferenceAllowed(row) {
     const refusal = referenceRefusal(row);
@@ -540,7 +564,7 @@ function assertReferenceAllowed(row) {
  * `opts.managedWrite`, like any other managed setting.
  *
  * @param {object} [opts]
- * @param {object} [opts.client]  the caller's transaction, when they own one.
+ * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
  * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
  * @returns {Promise<object|null>} the table, or null when it is not in `scope`.
  */
@@ -580,6 +604,9 @@ async function setReferenceFlag(id, scope, isReference, { client = null, managed
 /**
  * The hot path. One arithmetic UPDATE per write STEP — never per row, and never
  * a read-modify-write. `delta` may be negative (a delete).
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
+ * @param {number} [delta]
  */
 async function bumpAfterWrite(id, scope, delta = 0) {
     await initDB();
@@ -616,10 +643,12 @@ async function bumpAfterWrite(id, scope, delta = 0) {
  * `opts.managedWrite` (the capability of an active deployment of that stage,
  * a `remove` deployment or a release that drops it), else 409 `managed_part`.
  *
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
  * @param {object}   [opts]
- * @param {object}   [opts.client]  the caller's transaction, when they own one.
+ * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
  * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability.
- * @param {(client: object, ctx: {before: object, next: object, modelVersion: number}) => Promise<any>} [opts.dropPhysical]
+ * @param {(client: import('pg').PoolClient, ctx: {before: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, next: import('../../core/dataEngine/dataModel/migrationShape').ModelShape, modelVersion: number}) => Promise<any>} [opts.dropPhysical]
  *   Runs on the transaction's own client, after the metadata is gone and only
  *   when a row was actually deleted. Throwing rolls the whole delete back.
  */
@@ -643,7 +672,7 @@ async function deleteDatatable(id, scope, { dropPhysical = null, client: outerCl
             // table the plan is about to drop, or the diff is empty and nothing
             // is dropped at all.
             model = { ...before };
-            model.tables = (Array.isArray(before.tables) ? before.tables : []).filter(t => t && t.id !== id);
+            model.tables = (Array.isArray(before.tables) ? before.tables : []).filter((/** @type {Record<string, any>} */ t) => t && t.id !== id);
             await client.query(
                 `UPDATE datatable_models SET model = $1::jsonb, model_version = model_version + 1, updated_at = NOW()
                   WHERE scope_kind = $2 AND scope_id = $3`,

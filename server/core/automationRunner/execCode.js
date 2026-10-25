@@ -307,3 +307,11 @@ async function execCode(step, ctx, runState, mode) {
 }
 
 module.exports = { execCode };
+
+/**
+ * @typedef {{ id?: string, type?: string, code?: string, allowedHosts?: string[], allowedTools?: string[],
+ *   limits?: object, inputs?: Record<string, any> }} CodeStep  a code step as the definition stores it (parsed JSON)
+ * @typedef {{ orgId?: string, userId?: string, runId?: string, rootRunId?: string, nextcloudUrl?: string,
+ *   callerOnly?: { userId: string }|null, userOrgIds?: string[], allowedToolNames?: Set<string>,
+ *   triggerSynthetic?: boolean }} CodeCtx
+ */

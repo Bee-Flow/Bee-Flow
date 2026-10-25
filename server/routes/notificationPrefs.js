@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Notification preference routes — what I am told about, per channel.
  *
@@ -15,6 +15,9 @@ const { validate } = require('../core/http/validate');
 const { z, closedObject, bodyOf, typeError } = require('../core/http/schemaParts');
 
 const EVENT_TEXT = 'Each event is true or false.';
+/**
+ * @param {string} subject
+ */
 const perEvent = (subject) => closedObject(
     Object.fromEntries(notificationPrefsStore.EVENTS.map((e) => [e, z.boolean({ error: typeError({ invalid: EVENT_TEXT }) }).optional()])),
     subject,
@@ -25,16 +28,21 @@ const PrefsBody = bodyOf({
     email: perEvent('The e-mail preferences'),
 }, 'Notification preferences');
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function requireUser(req, res, next) {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
     return next();
 }
 
-router.get('/', requireUser, async (req, res) => {
+router.get('/', requireUser, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     res.json(await notificationPrefsStore.getPrefs(req.session.user.id));
 });
 
-router.put('/', requireUser, validate({ body: PrefsBody }), async (req, res) => {
+router.put('/', requireUser, validate({ body: PrefsBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
     await notificationPrefsStore.setPrefs(userId, { bell: req.body.bell, email: req.body.email });
     res.json(await notificationPrefsStore.getPrefs(userId));

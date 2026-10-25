@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Encryption for comment threads: the anchor of every thread (the quoted
  * passage with its context) and the body of every comment are sealed with the
@@ -105,6 +105,7 @@ function makeCommentCrypto(deps = {}) {
 
         /** @type {Map<string, Buffer>} */
         const keys = new Map();
+        /** @param {string} threadId */
         function keyOf(threadId) {
             if (!keys.has(threadId)) keys.set(threadId, threadKey(rootKey, threadId));
             return /** @type {Buffer} */ (keys.get(threadId));
@@ -130,7 +131,7 @@ function makeCommentCrypto(deps = {}) {
              * @param {string} threadId @param {object|null} anchor
              */
             sealAnchor: (threadId, anchor) => (anchor ? seal(threadId, threadId, 'anchor', JSON.stringify(anchor)) : null),
-            /** @param {string} threadId @param {string|null} stored @returns {object|null} */
+            /** @param {string} threadId @param {string|null} stored @returns {{ quote?: string, prefix?: string, suffix?: string, sectionId?: string|null }|null} */
             openAnchor: (threadId, stored) => (stored ? JSON.parse(open(threadId, threadId, 'anchor', stored)) : null),
             /** @param {string} threadId @param {string} commentId @param {string} text */
             sealContent: (threadId, commentId, text) => seal(threadId, commentId, 'content', text),

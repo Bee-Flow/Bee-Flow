@@ -152,10 +152,23 @@ const SuggestMappingsBody = z.object({
         .min(1, 'There is no data from earlier steps to map from yet.').max(MAX_SOURCES, `At most ${MAX_SOURCES} sources per request.`),
 }).strict();
 
-const oneLine = (s) => String(s ?? '').replace(ONE_LINE_RE, ' ').trim();
-const clip = (s, max) => (s.length > max ? `${s.slice(0, max)}…` : s);
+/**
+ * @typedef {import('./suggestMappingsVerify').MappingSource} MappingSource
+ * @typedef {ReturnType<typeof normaliseSuggestRequest>} SuggestRequest
+ * @typedef {SuggestRequest['params'][number]} SuggestParam
+ * @typedef {SuggestRequest['mapped'][number]} SuggestMapped
+ * @typedef {{ lines: number, chars: number, truncated: boolean }} PromptBudget  shared by every source's field list
+ * @typedef {typeof import('../../../core/llm/llmClient').chatForcedTool} ChatForcedTool
+ * @typedef {(messages: Parameters<ChatForcedTool>[1], tool: Parameters<ChatForcedTool>[2], options: Parameters<ChatForcedTool>[3]) => ReturnType<ChatForcedTool>} SuggestChat
+ */
 
-/** `steps.<id>.output`, `trigger.output` or `loop.<name>` → its tokens, else null. */
+const oneLine = (/** @type {unknown} */ s) => String(s ?? '').replace(ONE_LINE_RE, ' ').trim();
+const clip = (/** @type {string} */ s, /** @type {number} */ max) => (s.length > max ? `${s.slice(0, max)}…` : s);
+
+/**
+ * `steps.<id>.output`, `trigger.output` or `loop.<name>` → its tokens, else null.
+ * @param {string} root
+ */
 function rootTokensOf(root) {
     const tokens = parsePath(root);
     if (!tokens || tokens.some((t) => t.type !== 'prop' || typeof t.key !== 'string' || UNSAFE_KEYS.has(t.key))) return null;
@@ -169,10 +182,12 @@ function rootTokensOf(root) {
 /**
  * The validated body, normalised for the work below. Pure (tests). Throws a
  * 400 HttpError with a sentence a person can act on.
+ * @param {import('zod').infer<typeof SuggestMappingsBody>} body
  */
 function normaliseSuggestRequest(body) {
     const seenRoots = new Set();
     let total = 0;
+    /** @type {MappingSource[]} */
     const sources = [];
     for (const s of body.sources) {
         const root = s.root.trim();
@@ -220,11 +235,13 @@ function normaliseSuggestRequest(body) {
 
 // ── What the model sees ─────────────────────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const PLURAL_KIND = {
     text: 'texts', email: 'e-mail addresses', number: 'numbers', yesno: 'yes/no values', date: 'dates',
     list: 'lists', table: 'tables', group: 'groups', unknown: 'values',
 };
 
+/** @param {unknown} v */
 function kindWord(v) {
     if (Array.isArray(v)) {
         const k = valueKind(v);
@@ -244,6 +261,7 @@ function kindWord(v) {
  * that word goes: it may be an address cut before its domain, and masking
  * shortens the text, which can pull it into view. A head that is one word
  * throughout (base64, a token) is longer than any address and stays.
+ * @param {unknown} v
  */
 function shortValue(v) {
     if (typeof v !== 'string') return JSON.stringify(v);
@@ -264,7 +282,10 @@ function shortValue(v) {
     return JSON.stringify(cut ? `${s}…` : s);
 }
 
-/** The key that names the entries of a name/value list, or null. */
+/**
+ * The key that names the entries of a name/value list, or null.
+ * @param {unknown[]} list
+ */
 function pairNameKey(list) {
     if (list.length < 2 || !list.every(isPlainObject) || !list.every((o) => Object.keys(o).length <= 5)) return null;
     const withValue = list.filter((o) => PAIR_VALUE_KEYS.some((k) => Object.prototype.hasOwnProperty.call(o, k))).length;
@@ -272,18 +293,28 @@ function pairNameKey(list) {
     for (const k of PAIR_NAME_KEYS) {
         const names = list.map((o) => o[k]);
         if (!names.every((n) => typeof n === 'string' && n.trim() && n.length <= 80)) continue;
-        if (new Set(names.map((n) => n.toLowerCase())).size >= Math.max(2, list.length * 0.5)) return k;
+        if (new Set(/** @type {string[]} */ (names).map((n) => n.toLowerCase())).size >= Math.max(2, list.length * 0.5)) return k;
     }
     return null;
 }
 
-/** The lines describing one source's sample, sharing `budget` with the others. */
+/**
+ * The lines describing one source's sample, sharing `budget` with the others.
+ * @param {MappingSource} source
+ * @param {PromptBudget} budget
+ */
 function describeSource(source, budget) {
+    /** @type {string[]} */
     const lines = [];
     let own = MODEL_LINES_PER_SOURCE;
     const room = () => own > 0 && budget.lines > 0 && budget.chars > 0;
     // A line is admitted only whole and only when it fits: the budget is a
     // ceiling, not a starting signal (one 199k-char key once went through).
+    /**
+     * @param {string} path
+     * @param {string} what
+     * @param {string} [value]
+     */
     const add = (path, what, value) => {
         if (!room() || path.length > MODEL_PATH_CHARS) { budget.truncated = true; return; }
         const line = `  ${path}  (${what})${value === undefined ? '' : ` = ${value}`}`;
@@ -293,6 +324,12 @@ function describeSource(source, budget) {
         budget.lines -= 1;
         budget.chars -= line.length + 1;
     };
+    /**
+     * @param {string} path
+     * @param {unknown} v
+     * @param {number} depth
+     * @param {string | number} [key]
+     */
     const walkValue = (path, v, depth, key) => {
         // Below a path too long to show, every path is longer still.
         if (!room() || path.length > MODEL_PATH_CHARS) { budget.truncated = true; return; }
@@ -319,6 +356,11 @@ function describeSource(source, budget) {
         }
         walkChildren(path, v, depth + 1);
     };
+    /**
+     * @param {string} path
+     * @param {unknown} v
+     * @param {number} depth
+     */
     const walkChildren = (path, v, depth) => {
         if (depth > MODEL_MAX_DEPTH || v === null || typeof v !== 'object') return;
         if (Array.isArray(v)) {
@@ -364,7 +406,7 @@ function describeSource(source, budget) {
         let n = 0;
         for (const k of Object.keys(v)) {
             if (n++ >= MODEL_KEYS_PER_OBJECT) { budget.truncated = true; break; }
-            walkValue(appendKey(path, k), v[k], depth, k);
+            walkValue(appendKey(path, k), /** @type {Record<string, unknown>} */ (v)[k], depth, k);
         }
     };
     if (isPlainObject(source.sample)) walkChildren(source.root, source.sample, 0);
@@ -372,13 +414,15 @@ function describeSource(source, budget) {
     return lines;
 }
 
-const enumText = (e) => JSON.stringify(typeof e === 'string' ? clip(oneLine(e), MODEL_ENUM_CHARS) : e);
+const enumText = (/** @type {unknown} */ e) => JSON.stringify(typeof e === 'string' ? clip(oneLine(e), MODEL_ENUM_CHARS) : e);
 
 /**
  * One input as the model reads it. `compact`: key, kind and a few allowed
  * values only, for when the inputs block runs out of room. The allowed values
  * are shortened for the model only: it answers with a field, never a value,
  * and the verifier checks the field's value against the full list.
+ * @param {SuggestParam} p
+ * @param {boolean} [compact]
  */
 function paramLine(p, compact = false) {
     const kind = expectedKind(p);
@@ -394,7 +438,10 @@ function paramLine(p, compact = false) {
     return `- ${JSON.stringify(p.key)}${title} (${bits.join(', ')})${!compact && p.description ? ` — ${p.description}` : ''}`;
 }
 
-/** The inputs block, within MODEL_INPUTS_CHARS: the lines and the inputs they show. */
+/**
+ * The inputs block, within MODEL_INPUTS_CHARS: the lines and the inputs they show.
+ * @param {SuggestParam[]} params
+ */
 function inputsBlock(params) {
     const lines = [];
     const shown = [];
@@ -410,7 +457,10 @@ function inputsBlock(params) {
     return { lines, shown };
 }
 
-/** The "already have a value" block (context only), within MODEL_MAPPED_CHARS. */
+/**
+ * The "already have a value" block (context only), within MODEL_MAPPED_CHARS.
+ * @param {SuggestMapped[]} mapped
+ */
 function mappedBlock(mapped) {
     if (!mapped.length) return '';
     const lines = [];
@@ -454,6 +504,7 @@ const SHORTENED = '\n[field list shortened]';
 /**
  * The messages for one request. Pure (tests). `params` are the inputs the
  * message has room for: only those may be filled from the answer.
+ * @param {SuggestRequest} input
  */
 function buildSuggestPrompt({ step, params, mapped, sources }) {
     const head = step.label || step.tool
@@ -518,6 +569,8 @@ const SUGGEST_MAPPINGS_TOOL = {
 /**
  * The route's work with the model injected: `chat(messages, tool, options)`
  * answers like llmClient.chatForcedTool. Pure apart from that call.
+ * @param {SuggestRequest} input
+ * @param {{ chat: SuggestChat }} deps
  */
 async function suggestMappings(input, { chat }) {
     const { messages, params } = buildSuggestPrompt(input);
@@ -540,6 +593,8 @@ async function suggestMappings(input, { chat }) {
  *
  * Every dependency is injectable (the tests pass fakes; production passes
  * nothing and gets the real gates and the real model).
+ * @param {{ requireAuth?: import('express').RequestHandler, rateLimit?: import('express').RequestHandler, requireBeta?: import('express').RequestHandler,
+ *   resolveModel?: (opts: { userOrgId: string | null, userId: string }) => Promise<string | null>, chatForcedTool?: ChatForcedTool }} [deps]
  */
 function makeSuggestMappingsRouter(deps = {}) {
     const router = express.Router();
@@ -548,7 +603,7 @@ function makeSuggestMappingsRouter(deps = {}) {
     const requireBeta = deps.requireBeta || require('./routeRules').requireAutomationsBeta;
     const resolveModel = deps.resolveModel || ((opts) => require('../../../core/llm/modelResolver')
         .resolveModelForTierName('fast', { ...opts, fallback: 'gemini-2.0-flash-lite' }));
-    const chatForcedTool = deps.chatForcedTool || ((...args) => require('../../../core/llm/llmClient').chatForcedTool(...args));
+    const chatForcedTool = deps.chatForcedTool || ((/** @type {Parameters<typeof import('../../../core/llm/llmClient').chatForcedTool>} */ ...args) => require('../../../core/llm/llmClient').chatForcedTool(...args));
 
     router.post('/suggest-mappings', requireAuth, rateLimit, requireBeta, validate({ body: SuggestMappingsBody }), async (req, res) => {
         const input = normaliseSuggestRequest(req.body);
@@ -571,15 +626,18 @@ function makeSuggestMappingsRouter(deps = {}) {
     return router;
 }
 
+/**
+ * @typedef {ReturnType<typeof makeSuggestMappingsRouter> & { makeSuggestMappingsRouter: typeof makeSuggestMappingsRouter; SuggestMappingsBody: typeof SuggestMappingsBody; normaliseSuggestRequest: typeof normaliseSuggestRequest; buildSuggestPrompt: typeof buildSuggestPrompt; verifySuggestions: typeof verifySuggestions; suggestMappings: typeof suggestMappings; describeSource: typeof describeSource; pairNameKey: typeof pairNameKey; SUGGEST_MAPPINGS_TOOL: typeof SUGGEST_MAPPINGS_TOOL; PILL_TRANSFORMS: typeof PILL_TRANSFORMS; MODEL_PROMPT_CHARS: typeof MODEL_PROMPT_CHARS }} RouterExports
+ */
 module.exports = makeSuggestMappingsRouter();
-module.exports.makeSuggestMappingsRouter = makeSuggestMappingsRouter;
-module.exports.SuggestMappingsBody = SuggestMappingsBody;
-module.exports.normaliseSuggestRequest = normaliseSuggestRequest;
-module.exports.buildSuggestPrompt = buildSuggestPrompt;
-module.exports.verifySuggestions = verifySuggestions;
-module.exports.suggestMappings = suggestMappings;
-module.exports.describeSource = describeSource;
-module.exports.pairNameKey = pairNameKey;
-module.exports.SUGGEST_MAPPINGS_TOOL = SUGGEST_MAPPINGS_TOOL;
-module.exports.PILL_TRANSFORMS = PILL_TRANSFORMS;
-module.exports.MODEL_PROMPT_CHARS = MODEL_PROMPT_CHARS;
+/** @type {RouterExports} */ (module.exports).makeSuggestMappingsRouter = makeSuggestMappingsRouter;
+/** @type {RouterExports} */ (module.exports).SuggestMappingsBody = SuggestMappingsBody;
+/** @type {RouterExports} */ (module.exports).normaliseSuggestRequest = normaliseSuggestRequest;
+/** @type {RouterExports} */ (module.exports).buildSuggestPrompt = buildSuggestPrompt;
+/** @type {RouterExports} */ (module.exports).verifySuggestions = verifySuggestions;
+/** @type {RouterExports} */ (module.exports).suggestMappings = suggestMappings;
+/** @type {RouterExports} */ (module.exports).describeSource = describeSource;
+/** @type {RouterExports} */ (module.exports).pairNameKey = pairNameKey;
+/** @type {RouterExports} */ (module.exports).SUGGEST_MAPPINGS_TOOL = SUGGEST_MAPPINGS_TOOL;
+/** @type {RouterExports} */ (module.exports).PILL_TRANSFORMS = PILL_TRANSFORMS;
+/** @type {RouterExports} */ (module.exports).MODEL_PROMPT_CHARS = MODEL_PROMPT_CHARS;

@@ -324,3 +324,7 @@ module.exports = {
     KINDS,
     SCANS,
 };
+
+/** @typedef {import('pg').Pool} Pool */
+
+/** @typedef {{ agentId: string, kind: string, id: string | null, title: string | null, role: string, ownerId: string | null, lastAt: unknown }} UsageRow */

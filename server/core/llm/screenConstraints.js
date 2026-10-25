@@ -151,3 +151,7 @@ function applyScreenConstraints(design, c, { maxSections = 6 } = {}) {
 }
 
 module.exports = { deriveScreenConstraints, describeScreenConstraints, applyScreenConstraints, isBinding };
+
+/** @typedef {import('../../playbooks/phases/designPhase').Design} Design */
+
+/** @typedef {{ elements: { kind: string }[] } & Record<string, any>} Section */

@@ -662,3 +662,20 @@ module.exports = {
     // Tests / debugging only
     _internals: { buildJsonBody, extractErrorMessage, getByDotPath, clampInt, readBodyCapped },
 };
+
+/** @typedef {{ type?: string, valueTemplate?: string, header?: string, queryParam?: string }} AuthConfig */
+
+/**
+ * One tool of a 'rest' definition.
+ * @typedef {{ name?: string, method?: string, pathTemplate?: string, query?: Record<string, unknown>,
+ *   headers?: Record<string, unknown>, body?: { mode?: string, template?: unknown }, parameters?: ArgSchema,
+ *   resultPath?: string }} RestTool
+ */
+
+/**
+ * A custom integration definition: 'rest' (api/tools/auth) or 'mcp_remote' (mcp).
+ * @typedef {{ meta?: { source?: string },
+ *   api?: { baseUrl?: string, defaultHeaders?: Record<string, unknown>, timeoutMs?: number, maxResponseChars?: number },
+ *   tools?: RestTool[], auth?: AuthConfig, mcp?: import('../core/customIntegrations/customMcpClient').McpBlock,
+ *   [key: string]: unknown }} CustomIntegrationDefinition
+ */

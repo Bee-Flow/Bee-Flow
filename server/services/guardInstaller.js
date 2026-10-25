@@ -710,3 +710,7 @@ module.exports = {
     isServerInContainer,
     STATUS,
 };
+
+/** @typedef {InstanceType<typeof Docker>} DockerClient */
+
+/** @typedef {{ phase: string | null, message: string, percent: number | null, updatedAt: number }} GuardProgress */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: Layers (reusable sub-automations).
  *

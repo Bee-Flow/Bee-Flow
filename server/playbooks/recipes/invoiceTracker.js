@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Playbook recipe `invoice_tracker` — read an invoice folder, load a table,
  * build an invoice app with approvals. PURE: the schema, the phase list, the
@@ -46,6 +47,7 @@ const PHASE_KEYS = Object.freeze(['table', 'automation', 'fill', 'design', 'app'
 // decides in Studio → Approvals, the automation parks the invoice and writes the
 // outcome back. The app is not touched (measured 2026-09-14: an approval turn
 // on the app rebuilt screens the person never asked for).
+/** @type {ReadonlyArray<{ key: 'table'|'automation'|'fill'|'design'|'app'|'approvals', kind: string, requires?: string, requiresRole?: string }>} */
 const PHASE_SHAPE = Object.freeze([
     { key: 'table', kind: 'table' },
     { key: 'automation', kind: 'automation' },
@@ -59,6 +61,7 @@ const PHASE_SHAPE = Object.freeze([
 // mirror named by its column titles, an own table with English keys) is
 // mapped onto these; the briefs then use the table's real keys. The roles
 // keep their Dutch names: they are identifiers, not words a person reads.
+/** @type {Readonly<Record<string, import('../recipeDoc').RoleSpec>>} */
 const ROLES = Object.freeze({
     datum: { required: true, aliases: ['datum', 'date', 'factuurdatum', 'invoice_date', 'invoicedate'], types: ['date', 'datetime', 'text'] },
     leverancier: { required: true, aliases: ['leverancier', 'supplier', 'vendor', 'bedrijf', 'company'], types: ['text'] },
@@ -92,7 +95,7 @@ const PACKS = Object.freeze({
         tiles: { count: 'aantal facturen', excl: 'totaal excl. btw', vat: 'totaal btw', total: 'totaal incl. btw' },
         labelWords: 'Datum, Leverancier, Factuurnummer, Excl. btw, Btw, Totaal, Status',
         status: { open: 'open', review: 'in_beoordeling', approved: 'goedgekeurd' },
-        approvalPrompt: (ref) => `Factuur ${ref('factuurnummer')} van ${ref('leverancier')} — totaal ${ref('totaal')} goedkeuren?`,
+        approvalPrompt: (/** @type {(role: string) => string} */ ref) => `Factuur ${ref('factuurnummer')} van ${ref('leverancier')} — totaal ${ref('totaal')} goedkeuren?`,
         fields: Object.freeze([
             { role: 'datum', key: 'datum', name: 'Datum', type: 'date' },
             { role: 'leverancier', key: 'leverancier', name: 'Leverancier', type: 'text' },
@@ -119,7 +122,7 @@ const PACKS = Object.freeze({
         tiles: { count: 'invoice count', excl: 'total excl. VAT', vat: 'total VAT', total: 'total incl. VAT' },
         labelWords: 'Date, Supplier, Invoice number, Excl. VAT, VAT, Total, Status',
         status: { open: 'open', review: 'in_review', approved: 'approved' },
-        approvalPrompt: (ref) => `Approve invoice ${ref('factuurnummer')} from ${ref('leverancier')} — total ${ref('totaal')}?`,
+        approvalPrompt: (/** @type {(role: string) => string} */ ref) => `Approve invoice ${ref('factuurnummer')} from ${ref('leverancier')} — total ${ref('totaal')}?`,
         fields: Object.freeze([
             { role: 'datum', key: 'date', name: 'Date', type: 'date' },
             { role: 'leverancier', key: 'supplier', name: 'Supplier', type: 'text' },
@@ -133,16 +136,25 @@ const PACKS = Object.freeze({
     }),
 });
 
-/** The pack of the playbook's language — Dutch, or English for the rest. */
+/**
+ * The pack of the playbook's language — Dutch, or English for the rest.
+ * @param {string} locale
+ */
 function packFor(locale) {
-    return PACKS[packLocale(locale)];
+    return PACKS[/** @type {'nl'|'en'} */ (packLocale(locale))];
 }
 
+/**
+ * @param {{ folderPath?: string; inputs?: { folderPath?: string; }; automationTitle?: string; approverGroupId?: string; locale?: string; }} options
+ */
 function localeOf(options) {
     return (options && options.locale) || 'nl';
 }
 
-/** The table's columns in a language: what the `table` phase creates. */
+/**
+ * The table's columns in a language: what the `table` phase creates.
+ * @param {string} locale
+ */
 function schemaFor(locale) {
     return packFor(locale).fields.map(({ role, ...f }) => ({ ...f, ...(f.options ? { options: [...f.options] } : {}) }));
 }
@@ -158,18 +170,31 @@ function verifyExistingTable(fields) {
     return verifyAgainstRoles(fields, ROLES);
 }
 
-/** The mapping a NEW table gets — role → the key that language gives it. */
+/**
+ * The mapping a NEW table gets — role → the key that language gives it.
+ * @param {string} locale
+ */
 function schemaMapping(locale) {
+    /** @type {Record<string, string>} */
     const mapping = {};
     for (const f of packFor(locale).fields) mapping[f.role] = f.key;
     return mapping;
 }
 
+/**
+ * @param {string|null|undefined} title
+ * @param {Set<string>|string[]|null|undefined} usedKeys
+ * @param {string} locale
+ */
 function defaultTableKey(title, usedKeys, locale) {
     return keyFromTitle(String(title || packFor(locale).tableTitle), 0, usedKeys instanceof Set ? usedKeys : new Set(usedKeys || []));
 }
 
-/** The ordered phase list for a fresh playbook. */
+/**
+ * The ordered phase list for a fresh playbook.
+ * @param {Parameters<typeof localeOf>[0]} [options]
+ * @param {{ approvalsAllowed?: boolean }} [opts]
+ */
 function phasesFor(options = {}, { approvalsAllowed = false } = {}) {
     const pack = packFor(localeOf(options));
     return PHASE_SHAPE.map(({ key, kind, requires, requiresRole }) => ({
@@ -180,18 +205,22 @@ function phasesFor(options = {}, { approvalsAllowed = false } = {}) {
         ...(requiresRole ? { requiresRole } : {}),
         ...(kind === 'design' ? { goal: pack.designGoal } : {}),
         status: key === 'table' ? 'ready' : (key === 'approvals' && !approvalsAllowed ? 'locked' : 'pending'),
-        startedAt: null,
-        finishedAt: null,
-        brief: null,
+        startedAt: /** @type {string|null} */ (null),
+        finishedAt: /** @type {string|null} */ (null),
+        brief: /** @type {string|null} */ (null),
         briefVersion: BRIEF_VERSION,
         briefEdited: false,
         attempt: 0,
         artifacts: {},
-        summary: null,
-        error: null,
+        summary: /** @type {string|null} */ (null),
+        error: /** @type {string|null} */ (null),
     }));
 }
 
+/**
+ * @param {string} text
+ * @param {string} what
+ */
 function assertLength(text, what) {
     if (text.length > MAX_BRIEF_CHARS) throw new Error(`${what} brief is ${text.length} chars — over the ${MAX_BRIEF_CHARS} cap`);
     return text;
@@ -199,33 +228,49 @@ function assertLength(text, what) {
 
 // ── one writer, two readings ───────────────────────────────────────────────
 
+/** @typedef {{ id: string, name: string, key: string, mapping: Record<string, string>, isMirror?: boolean, hasStatus?: boolean }} BriefTable */
+/** @typedef {typeof PACKS[keyof typeof PACKS]} Pack */
+/**
+ * @typedef {{ f: (role: string) => string, name: string, id: string, key: string, folder: string, title: string, approver: string,
+ *   when: (path: string, fn: () => string) => string }} Vocabulary
+ */
+
 /**
  * The words a brief writer plugs the real world into. `render` fills in a
  * table's actual keys and ids; `template` writes the document's placeholders.
  * `when(path, fn)` is the single conditional: a real test in render mode,
  * `{{#if path}}…{{/if}}` in template mode.
+ * @param {string} mode
+ * @param {{ table?: BriefTable|null, folderPath?: string, title?: string, approver?: { userId?: string, groupId?: string }|null }} [opts]
+ * @returns {Vocabulary}
  */
 function vocabulary(mode, { table = null, folderPath = '', title = '', approver = null } = {}) {
     if (mode === 'template') {
         return {
-            f: (role) => `{{field.${role}}}`,
+            f: (/** @type {string} */ role) => `{{field.${role}}}`,
             name: '{{table.name}}', id: '{{table.id}}', key: '{{table.key}}',
             folder: '{{input.folderPath}}', title: '{{title}}', approver: '{{approver}}',
-            when: (path, fn) => `{{#if ${path}}}${fn()}{{/if}}`,
+            when: (/** @type {string} */ path, /** @type {() => string} */ fn) => `{{#if ${path}}}${fn()}{{/if}}`,
         };
     }
-    const m = (table && table.mapping) || {};
+    const m = /** @type {Record<string, string>} */ ((table && table.mapping) || {});
+    /** @param {string} path */
     const truth = (path) => (path === 'table.isMirror' ? !!(table && table.isMirror) : !!m[path.replace(/^field\./, '')]);
     return {
-        f: (role) => m[role],
+        f: (/** @type {string} */ role) => m[role],
         name: table ? table.name : '', id: table ? table.id : '', key: table ? table.key : '',
         folder: folderPath, title,
         approver: approver && approver.groupId ? `{groupId:"${approver.groupId}"}` : `{userId:"${(approver && approver.userId) || ''}"}`,
-        when: (path, fn) => (truth(path) ? fn() : ''),
+        when: (/** @type {string} */ path, /** @type {() => string} */ fn) => (truth(path) ? fn() : ''),
     };
 }
 
-/** Phase `automation`: the manual-trigger automation that fills the table. */
+/**
+ * Phase `automation`: the manual-trigger automation that fills the table.
+ * @param {Vocabulary} v
+ * @param {Pack} pack
+ * @param {string} title
+ */
 function automationText(v, pack, title) {
     return [
         '## Build an automation',
@@ -240,7 +285,11 @@ function automationText(v, pack, title) {
     ].join('\n');
 }
 
-/** Phase `app`: the read-only invoice app on the table. */
+/**
+ * Phase `app`: the read-only invoice app on the table.
+ * @param {Vocabulary} v
+ * @param {Pack} pack
+ */
 function appText(v, pack) {
     const grid = [
         `${v.f('datum')}, ${v.f('leverancier')}, ${v.f('factuurnummer')}, ${v.f('excl_btw')}`,
@@ -272,10 +321,13 @@ function appText(v, pack) {
  * Approvals, the automation parks the oldest open invoice, asks, and writes the
  * outcome back. One invoice per run (an approval never sits in a loop); the
  * person starts it by hand and may put it on a schedule later.
+ * @param {Vocabulary} v
+ * @param {Pack} pack
+ * @param {string} title
  */
 function approvalsText(v, pack, title) {
     const status = v.f('status') || 'status';
-    const prompt = pack.approvalPrompt((role) => `{{steps.<step1>.output.rows.0.${v.f(role)}}}`);
+    const prompt = pack.approvalPrompt((/** @type {string} */ role) => `{{steps.<step1>.output.rows.0.${v.f(role)}}}`);
     return [
         `## Build an automation "${title}"`,
         'I start it by hand: manual trigger, no schedule, no file event. One invoice per run.',
@@ -290,7 +342,7 @@ function approvalsText(v, pack, title) {
 }
 
 /**
- * @param {{ table:{ id, name, key, mapping, isMirror?, hasStatus? }, folderPath, title?, locale? }} p
+ * @param {{ table: BriefTable, folderPath: string, title?: string, locale?: string }} p
  */
 function composeAutomationBrief({ table, folderPath, title, locale }) {
     const pack = packFor(locale);
@@ -298,7 +350,7 @@ function composeAutomationBrief({ table, folderPath, title, locale }) {
 }
 
 /**
- * @param {{ table:{ id, name, key, mapping, hasStatus? }, title?, locale? }} p
+ * @param {{ table: BriefTable, title?: string, locale?: string }} p
  */
 function composeAppBrief({ table, title, locale }) {
     const pack = packFor(locale);
@@ -306,7 +358,7 @@ function composeAppBrief({ table, title, locale }) {
 }
 
 /**
- * @param {{ table:{ id, name, key, mapping }, approver:{ userId?:string, groupId?:string }, title?, locale? }} p
+ * @param {{ table: BriefTable, approver: { userId?: string, groupId?: string }, title?: string, locale?: string }} p
  */
 function composeApprovalsBrief({ table, approver, title, locale }) {
     const pack = packFor(locale);
@@ -317,6 +369,9 @@ function composeApprovalsBrief({ table, approver, title, locale }) {
  * The generic entry the lifecycle calls (recipeDoc.fromDocument has the
  * same): the brief of `key` for a table + options + playbook, or null for
  * the server-run phases.
+ *
+ * @param {string} key
+ * @param {{ table: BriefTable, options?: { folderPath?: string, inputs?: { folderPath?: string }, automationTitle?: string, approverGroupId?: string, locale?: string }, playbook?: { title?: string, userId?: string } }} args
  */
 function composeBrief(key, { table, options = {}, playbook = {} }) {
     const locale = localeOf(options);
@@ -334,6 +389,9 @@ function composeBrief(key, { table, options = {}, playbook = {} }) {
 // custom playbook. Its briefs are the TEMPLATES of the same writers above;
 // invoiceTracker.test.js pins that template and function agree, per language.
 
+/**
+ * @param {string} locale
+ */
 function buildDocument(locale) {
     const pack = packFor(locale);
     const v = vocabulary('template');
@@ -364,8 +422,9 @@ function buildDocument(locale) {
 const DOCUMENTS = Object.freeze({ nl: buildDocument('nl'), en: buildDocument('en') });
 const DOCUMENT = DOCUMENTS.nl;
 
+/** @param {string} locale */
 function toDocument(locale) {
-    return DOCUMENTS[packLocale(locale)];
+    return DOCUMENTS[/** @type {'nl'|'en'} */ (packLocale(locale))];
 }
 
 module.exports = {
@@ -375,7 +434,7 @@ module.exports = {
     DOCUMENTS,
     document: DOCUMENT,
     toDocument,
-    phaseSpec: (key, locale) => toDocument(locale).phases.find((p) => p.key === key) || null,
+    phaseSpec: (/** @type {string} */ key, /** @type {string} */ locale) => toDocument(locale).phases.find((p) => p.key === key) || null,
     source: 'builtin',
     schema: INVOICE_SCHEMA,
     schemaFor,
@@ -393,8 +452,8 @@ module.exports = {
     REQUIRED_ROLES,
     title: DOCUMENT.title,
     description: DOCUMENT.description,
-    titleFor: (locale) => packFor(locale).title,
-    tableTitleFor: (locale) => packFor(locale).tableTitle,
+    titleFor: (/** @type {string} */ locale) => packFor(locale).title,
+    tableTitleFor: (/** @type {string} */ locale) => packFor(locale).tableTitle,
     verifyExistingTable,
     schemaMapping,
     defaultTableKey,

@@ -169,3 +169,9 @@ module.exports = {
     parseAnswersText, answerTextOf, namedTableIds, resolveTableChoice, buildApprovedSet,
     choiceRequiredError, approvalGateError,
 };
+
+/**
+ * @typedef {{ id?: string, key?: string, name?: string, pending?: boolean }} CatalogTable
+ * @typedef {{ label?: string, create?: boolean, datatableId?: string }} ChoiceOption
+ * @typedef {{ prompt?: string, choice?: { options?: ChoiceOption[] } }} ReviewQuestion
+ */

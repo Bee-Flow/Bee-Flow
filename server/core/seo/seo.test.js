@@ -464,7 +464,7 @@ test('esc covers the five characters that matter, clamp cuts on a word', () => {
 
 test('the server and client routing rules have not drifted', () => {
     // publicPath.js duplicates RESERVED_TOP_LEVEL and the locale allowlist from
-    // agent-hub/src/utils/cmsPublicRouting.js, because that file is browser ESM
+    // agent-hub/src/utils/cmsPublicRouting.ts, because that file is browser ESM
     // in a different package. If they disagree the server renders a page the
     // client then refuses to route: the visitor sees content for an instant and
     // is bounced to /app. Parsed rather than imported, for the same reason.

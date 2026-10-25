@@ -398,3 +398,35 @@ module.exports = {
     mapLimited,
     COMPLETENESS_BUDGET,
 };
+
+/**
+ * @typedef {object} ProjectRow  a project row as listUserProjects returns it
+ * @property {string} id
+ * @property {string} [name]
+ * @property {string} [description]
+ * @property {string} [icon]
+ * @property {string} [color]
+ * @property {string} [ownerId]
+ * @property {string} [organizationId]
+ * @property {string} [permission]
+ * @property {string|Date} [updatedAt]
+ * @property {string|Date} [createdAt]
+ * @property {string} [installedFromBlueprintId]
+ * @property {string[]} [knowledgeBaseIds]
+ * @property {string} [stageOf]
+ * @property {string} [stage]
+ */
+
+/**
+ * @typedef {object} SummaryViewer
+ * @property {string} [userId]
+ * @property {string} [organizationId]
+ */
+
+/**
+ * @typedef {object} SummaryIo
+ * @property {(ids: string[]) => Promise<{ bySection: Map<string, Map<string, number>|null>, failed: string[] }>} [countMembers]
+ * @property {(ids: string[], opts: { sinceTs: Date }) => Promise<Map<string, { total: number, failed: number }>|null>} [runCounts]
+ * @property {(q: { userId: string, organizationId: string|null }) => Promise<any>} [blueprints]
+ * @property {(ids: string[]) => Promise<Map<string, number>|null>} [installedVersions]
+ */

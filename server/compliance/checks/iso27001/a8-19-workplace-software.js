@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.19 — workplace server software recorded in the evidence
  * chain. An evidence-value check: pass as soon as the Nextcloud connector
@@ -23,6 +23,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_workplace_software.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'nextcloud', 'Nextcloud connector not enabled — link an admin app password under ISO 27001 → Connectors to record the workplace server version.');
         if (read.result) return read.result;

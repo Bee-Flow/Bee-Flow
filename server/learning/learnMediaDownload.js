@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('url').URL} URL */
+// @typecheck noImplicitAny
 'use strict';
 /**
  * HTTP download helpers for the Learning Center video pack (learnMediaInstall.js):
@@ -15,12 +16,16 @@ const { bestEffort } = require('../utils/bestEffort');
 const MAX_REDIRECTS = 5;
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 
+/**
+ * @param {URL} url
+ */
 const isLoopback = (url) => ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
 
 /**
  * GET a URL, following redirects by hand so that every hop is held to the same
  * rule: https, or http on loopback. GitHub release assets redirect to
  * objects.githubusercontent.com, so redirects must work.
+ * @param {string} source
  */
 async function openUrl(source, { fetchImpl = globalThis.fetch, what = 'download', timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     let url = new URL(source);
@@ -42,6 +47,10 @@ async function openUrl(source, { fetchImpl = globalThis.fetch, what = 'download'
 /**
  * Stream a response body to `file`, hashing while writing. Refuses a body that
  * declares or turns out larger than `maxBytes`. Returns { sha256, bytes }.
+ * @param {Response} res
+ * @param {string} file
+ * @param {number} maxBytes
+ * @param {string} [tooLarge]
  */
 async function streamToFile(res, file, maxBytes, tooLarge = 'download too large') {
     const declared = Number(res.headers.get('content-length') || 0);
@@ -56,7 +65,7 @@ async function streamToFile(res, file, maxBytes, tooLarge = 'download too large'
             return cb(null, chunk);
         },
     });
-    await pipeline(Readable.fromWeb(res.body), meter, fs.createWriteStream(file));
+    await pipeline(Readable.fromWeb(/** @type {import('node:stream/web').ReadableStream} */ (res.body)), meter, fs.createWriteStream(file));
     return { sha256: hash.digest('hex'), bytes };
 }
 

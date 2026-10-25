@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -26,6 +26,9 @@ const pd = require('../../projects/projectData');
 
 const ORG = pd.orgMatch('p.organization_id');
 const WS = pd.isWorkspace('p');
+/**
+ * @param {string} u
+ */
 const LEFT = (u) => `(${u}.id IS NULL OR ${pd.hasLeft(`${u}.status`)} OR COALESCE(NULLIF(${u}."organizationId", ''), '${pd.NO_ORG_ORG_ID}') <> $1)`;
 
 const QUERIES = Object.freeze({
@@ -68,6 +71,9 @@ function verdict({ projects, owners, threads, notebooks, unreadable = [] }) {
         return { status: 'not_applicable', evidence: { projects: 0 }, details: 'This organisation has no collaborative projects.' };
     }
     const per = new Map();
+    /**
+     * @param {string} id
+     */
     const at = (id) => {
         const e = per.get(id) || { project_id: String(id), owner_left: false, threads: 0, notebooks: 0 };
         per.set(id, e);
@@ -117,7 +123,12 @@ function verdict({ projects, owners, threads, notebooks, unreadable = [] }) {
     return { status: 'pass', evidence, details: `Every owner of this organisation's ${projects} collaborative project(s), and of their shared chats and notebooks, is a current member.` };
 }
 
+/**
+ * @param {string} orgId
+ * @param {ReturnType<typeof defaultDeps>} deps
+ */
 async function _collect(orgId, deps) {
+    /** @type {{ owners: string[], threads: Record<string, number>, notebooks: Record<string, number>, unreadable: string[] }} */
     const out = { owners: [], threads: {}, notebooks: {}, unreadable: [] };
     for (const [name, sql] of Object.entries(QUERIES)) {
         let rows;
@@ -131,7 +142,7 @@ async function _collect(orgId, deps) {
         for (const r of rows || []) {
             if (!r?.project_id) continue;
             if (name === 'owners') out.owners.push(String(r.project_id));
-            else out[name][String(r.project_id)] = Number(r.n) || 0;
+            else out[/** @type {'threads' | 'notebooks'} */ (name)][String(r.project_id)] = Number(r.n) || 0;
         }
     }
     return out;
@@ -152,12 +163,20 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_project_orphaned_content.fix',
     remediationLink: 'admin/security/users',
 
+    /**
+     * @param {Record<string, any> | null | undefined} evidence
+     */
     fingerprintOf(evidence) {
         const offenders = Array.isArray(evidence?.offenders) ? evidence.offenders : [];
         return offenders.map(o => `${o.project_id}:${o.owner_left ? 'o' : ''}${o.threads > 0 ? 't' : ''}${o.notebooks > 0 ? 'n' : ''}`).sort();
     },
 
+    /**
+     * @param {string} orgId
+     * @param {unknown} _subject
+     */
     async evaluate(orgId, _subject, deps = defaultDeps()) {
+        /** @type {number} */
         let projects;
         let found;
         try {

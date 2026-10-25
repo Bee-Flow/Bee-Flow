@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What the two routers that read a run's tables (runTables.js, tablePreview.js)
  * set up the same way: lazily required store and table store, the table limits,

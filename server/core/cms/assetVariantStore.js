@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Variants of an uploaded CMS image, written to storage next to the original
@@ -60,7 +60,7 @@ async function storeVariants({ key, source, contentType, storage }) {
                 stored++;
             } catch (err) {
                 failed = true;
-                log.warn(`[CmsVariants] ${key} ${width}.${format} skipped: ${err.message}`);
+                log.warn(`[CmsVariants] ${key} ${width}.${format} skipped: ${/** @type {Error} */ (err).message}`);
             }
         }
     }
@@ -79,7 +79,7 @@ function enqueue(task) {
     if (queued >= MAX_QUEUED) return Promise.resolve(0);
     queued++;
     const run = tail.then(task);
-    tail = run.then(() => undefined, () => undefined);
+    tail = run.then(/** @returns {undefined} */ () => undefined, /** @returns {undefined} */ () => undefined);
     return run.finally(() => { queued--; });
 }
 
@@ -123,7 +123,7 @@ async function backfillVariants(storage) {
         }
     } catch (err) {
         // Local-fs mode (no listing) or a storage outage: nothing to backfill now.
-        log.warn(`[CmsVariants] backfill skipped: ${err.message}`);
+        log.warn(`[CmsVariants] backfill skipped: ${/** @type {Error} */ (err).message}`);
     }
     return handled;
 }

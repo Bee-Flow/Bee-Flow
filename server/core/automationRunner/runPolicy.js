@@ -179,3 +179,10 @@ module.exports = {
     stepRetryFor,
     runTimeoutMsFor,
 };
+
+/**
+ * @typedef {{ retry?: { max?: number, then?: string }, maxDurationMin?: number|null, concurrency?: string,
+ *   connections?: string, retentionDays?: number|null }} RunPolicyInput
+ * @typedef {ReturnType<typeof resolveRunPolicy>} RunPolicy
+ * @typedef {{ runPolicy?: RunPolicyInput, [key: string]: unknown }} PolicyDefinition
+ */

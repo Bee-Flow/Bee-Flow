@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Structured error hierarchy for the automation runner. Phase 1 lands
  * the classes and a classifier; the runner doesn't throw these yet — a
@@ -18,7 +18,13 @@
  * every call site at once.
  */
 
+/** @typedef {{ code?: string, transient?: boolean, userMessage?: string, cause?: unknown }} AutomationErrorOpts */
+
 class AutomationError extends Error {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message);
         this.name = this.constructor.name;
@@ -30,6 +36,10 @@ class AutomationError extends Error {
 }
 
 class TransientError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, { transient: true, ...opts });
         this.code = 'TransientError';
@@ -37,6 +47,10 @@ class TransientError extends AutomationError {
 }
 
 class PermissionError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, opts);
         this.code = 'PermissionError';
@@ -44,6 +58,10 @@ class PermissionError extends AutomationError {
 }
 
 class IntegrationError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, opts);
         this.code = 'IntegrationError';
@@ -51,6 +69,10 @@ class IntegrationError extends AutomationError {
 }
 
 class ValidationError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, opts);
         this.code = 'ValidationError';
@@ -58,6 +80,10 @@ class ValidationError extends AutomationError {
 }
 
 class TimeoutError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, { transient: true, ...opts });
         this.code = 'TimeoutError';
@@ -65,6 +91,10 @@ class TimeoutError extends AutomationError {
 }
 
 class UserCanceledError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, opts);
         this.code = 'UserCanceledError';
@@ -72,6 +102,10 @@ class UserCanceledError extends AutomationError {
 }
 
 class ApprovalExpiredError extends AutomationError {
+    /**
+     * @param {string} message
+     * @param {AutomationErrorOpts} [opts]
+     */
     constructor(message, opts = {}) {
         super(message, opts);
         this.code = 'ApprovalExpired';
@@ -87,6 +121,8 @@ class ApprovalExpiredError extends AutomationError {
  *   - Marker strings on the message
  * Falls back to 'IntegrationError' for anything that came from an
  * upstream call and 'AutomationError' for anything truly unknown.
+ * @param {(Error & { code?: string, errno?: string|number, status?: number, statusCode?: number, response?: { status?: number } })|null|undefined} err
+ * @returns {string}
  */
 function classifyUnknownError(err) {
     if (!err) return 'AutomationError';
@@ -136,6 +172,7 @@ const ALL_CODES = [
  * (e.g. nextcloudErrorClassifier) may supply a more precise remediation;
  * this is the generic fallback by class.
  */
+/** @type {Record<string, string>} */
 const REMEDIATION_BY_CODE = {
     PermissionError: 'Reconnect the integration in Settings → Connections, then re-run.',
     TimeoutError: 'This looks transient — retry; if it persists the connector or service may be down.',
@@ -149,6 +186,9 @@ const REMEDIATION_BY_CODE = {
     UserCanceledError: 'The run was canceled — start it again if that was unintended.',
 };
 
+/**
+ * @param {string | number} code
+ */
 function remediationFor(code) {
     if (Object.prototype.hasOwnProperty.call(REMEDIATION_BY_CODE, code)) return REMEDIATION_BY_CODE[code];
     return 'Open run history for the raw error detail.';

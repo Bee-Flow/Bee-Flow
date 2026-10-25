@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The `tabs` block (issue #238): catalogue entry, seeded defaults, the
  * validator's warnings and the server-rendered (pre-hydration) HTML.
@@ -14,10 +14,11 @@ const { renderBlocks } = require('../core/seo/renderBlocks');
 
 /** @param {Record<string, unknown>} content */
 function draftWith(content) {
-    return {
+    // A partial draft: the validator reads only the page list and the blocks.
+    return /** @type {Parameters<typeof validateSiteDraft>[0]} */ ({
         site: { pages: [{ id: 'p1', slug: 'home', title: 'Home' }] },
         pages: new Map([['p1', { blocks: [{ id: 'b1', type: 'tabs', content }] }]]),
-    };
+    });
 }
 
 /** @param {Record<string, unknown>} content */

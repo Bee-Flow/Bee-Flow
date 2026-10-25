@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Team chats inside a project: people talking to each other, with the AI
  * answering only when asked, on its own when it can help, always, or never —

@@ -208,3 +208,10 @@ module.exports = {
     envByteLimit, toolFileMaxBytes, kbWebPageMaxBytes, kbSitemapMaxBytes,
     readBytesBounded, fileTooLargeMessage, readTextOrThrowOversize, readKbPage,
 };
+
+/**
+ * A fetch Response from either implementation: the global one and undici's own
+ * (what `guardedFetch` returns) are separate declarations that TypeScript does
+ * not treat as assignable to each other.
+ * @typedef {Response | import('undici-types').Response} FetchResponse
+ */

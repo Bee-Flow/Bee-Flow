@@ -194,3 +194,7 @@ async function dispatchTool(tool, args, exec, deps, app, connector) {
 }
 
 module.exports = { providerFor, resolveViewerExecution, readRowPath, connectionError, dispatchTool };
+
+/**
+ * @typedef {{ userId: string, session: Awaited<ReturnType<typeof import('./session').defaultBuildUserSession>>, orgId?: string | null }} ConnectorExec  The identity one tool call runs as.
+ */

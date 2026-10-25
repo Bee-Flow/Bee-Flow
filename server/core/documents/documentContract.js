@@ -280,3 +280,5 @@ function assertFinal(fill) {
     if (!fill.valid) throw Object.assign(new Error(fill.issues.map(i => i.message).join('; ')), { status: 422, errorClass: 'document_validation_failed', issues: fill.issues });
 }
 module.exports = { TYPES, OPERATORS, safePath, setPath, normalizeContract, getContract, evaluateCondition, prepareDocument, assertFinal, validateCondition };
+
+/** @typedef {Pick<ContractParameter, 'key'|'type'|'required'> & Partial<ContractParameter>} ContractField */

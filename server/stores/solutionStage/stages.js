@@ -365,3 +365,7 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
 }
 
 module.exports = { makeStagesStore, mapStage, STAGES, BUSY_STATUSES, stageLockSql };
+
+/** @typedef {import('./deploymentModel').Queryable} Queryable */
+
+/** @typedef {import('./deploymentModel').StageDb} StageDb */

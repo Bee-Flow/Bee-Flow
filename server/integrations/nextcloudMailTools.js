@@ -489,3 +489,7 @@ module.exports = {
     executeNextcloudMailTool,
     isNextcloudMailTool,
 };
+
+/**
+ * @typedef {{ email?: string, label?: string }} MailAddress
+ */

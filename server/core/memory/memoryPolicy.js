@@ -208,3 +208,7 @@ module.exports = {
     setOrgMemorySettings,
     isMemoryEnabledForOrg,
 };
+
+/**
+ * @typedef {{ enabled?: unknown, sensitiveOptInAllowed?: unknown, maxPerUser?: unknown }} OrgMemoryDoc
+ */

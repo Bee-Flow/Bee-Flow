@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The one rule for Microsoft Graph ids and well-known folder names that end up
  * interpolated into a Graph path (`/me/messages/${id}/reply`, ...).
@@ -19,7 +19,11 @@ const GRAPH_ID_RE = /^[A-Za-z0-9_=-]{1,512}$/;
 const MESSAGE_ID_TEXT = 'That is not an Outlook message id.';
 const FOLDER_TEXT = 'folder is a mail folder name (inbox, sentitems, drafts, …) or a folder id.';
 
-/** Throws `message` unless `value` is a string matching GRAPH_ID_RE. */
+/**
+ * Throws `message` unless `value` is a string matching GRAPH_ID_RE.
+ * @param {string} value
+ * @param {string} message
+ */
 function assertGraphId(value, message) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one bounded character class ({1,512}), anchored: linear
     if (typeof value !== 'string' || !GRAPH_ID_RE.test(value)) {

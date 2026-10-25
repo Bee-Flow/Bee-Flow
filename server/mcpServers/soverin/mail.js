@@ -323,3 +323,5 @@ module.exports = {
     normalizeRecipients,
     allowedTools,
 };
+
+/** @typedef {{ name?: string, address?: string }} MailAddress */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Static file serving, moved verbatim out of server/index.js. Two halves, at
@@ -60,7 +60,7 @@ function mountSpaFallback(app) {
     if (process.env.NODE_ENV === 'production') {
         const indexPath = path.join(agentHubDistPath, 'index.html');
         if (fs.existsSync(indexPath)) {
-            app.use((req, res) => {
+            app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');

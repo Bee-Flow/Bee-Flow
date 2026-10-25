@@ -570,3 +570,7 @@ module.exports._test = {
     EDITOR_CONTEXT_PREFIX,
     BLOCK_FEEDBACK_PREFIX,
 };
+
+/**
+ * @typedef {import('express').Router & { _test: Record<string, unknown> }} RouterExports
+ */

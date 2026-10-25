@@ -229,3 +229,8 @@ function createTakeNext(queue, stepById, deferWaits) {
 }
 
 module.exports = { reachableFrom, createFanInGate, ancestorsOf, descendantsOf, createTakeNext };
+
+/**
+ * @typedef {{ from: string, to: string, label?: string, caseName?: string }} DagEdge
+ * @typedef {Map<string, DagEdge[]>} EdgeMap
+ */

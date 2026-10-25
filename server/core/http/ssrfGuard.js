@@ -447,3 +447,9 @@ module.exports = {
     createPinnedDispatcher,
     safeFetch,
 };
+
+/**
+ * @typedef {(err: NodeJS.ErrnoException | null, address?: string | dns.LookupAddress[], family?: number) => void} LookupCallback
+ * @typedef {(err: NodeJS.ErrnoException | null, address?: string | Array<string | dns.LookupAddress>, family?: number) => void} ResolverCallback
+ * @typedef {(host: string, opts: dns.LookupOptions, cb: ResolverCallback) => void} Resolver
+ */

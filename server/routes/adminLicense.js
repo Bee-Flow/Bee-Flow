@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin License Routes — direct license issuance from the admin console.
  *
@@ -51,7 +51,10 @@ const { requireSuperAdmin } = require('../auth/permissions');
 const userStore = require('../stores/userStore');
 const { sendServiceEmail, getServiceEmailConfig } = require('../utils/emailService');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {import('zod').ZodRawShape} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const ORG_TEXT = 'organizationId is the id of an organisation.';
@@ -126,6 +129,7 @@ router.use((req, res, next) => {
 // said "Super-admin only"; now the gate agrees with it.
 router.use(requireSuperAdmin);
 
+/** @param {import('express').Request} req */
 function actorId(req) {
     return req.session?.user?.id || null;
 }
@@ -146,7 +150,7 @@ router.get('/capabilities', (_req, res) => {
 });
 
 // ── GET / ──────────────────────────────────────────────────────────────
-router.get('/', validate({ query: ListQuery }), async (req, res) => {
+router.get('/', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, { organizationId?: string, includeInactive?: string }>} */ req, res) => {
     const { organizationId, includeInactive } = req.query;
     const list = await store.getAdminIssuedLicenses({
         organizationId: organizationId || null,
@@ -172,7 +176,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
             billingInterval, featuresOverride, limitsOverride,
             maxSeats, notes, deliverEmail,
         } = req.body;
-        const result = await adminIssuance.issueAdminLicense({
+        const result = /** @type {Awaited<ReturnType<typeof adminIssuance.issueAdminLicense>> & { emailDelivery?: unknown }} */ (await adminIssuance.issueAdminLicense({
             scope,
             organizationId: scope === 'organization' ? organizationId : null,
             tier,
@@ -183,7 +187,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
             maxSeats: maxSeats ?? null,
             notes: notes || null,
             activatedBy: actorId(req),
-        });
+        }));
 
         // Optional: email the blob straight to the customer. Failure here
         // is non-fatal — the admin still gets the blob in the response and
@@ -213,6 +217,9 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
     }
 });
 
+/**
+ * @param {{ to: string, tier: string, expiresAt: string|Date, organizationId: string|null, blob: string }} p
+ */
 async function deliverBlobByEmail({ to, tier, expiresAt, organizationId, blob }) {
     const cfg = await getServiceEmailConfig();
     if (!cfg.configured) {
@@ -248,7 +255,7 @@ async function deliverBlobByEmail({ to, tier, expiresAt, organizationId, blob })
 }
 
 // ── POST /:id/revoke ───────────────────────────────────────────────────
-router.post('/:id/revoke', validate({ body: RevokeBody }), async (req, res) => {
+router.post('/:id/revoke', validate({ body: RevokeBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { reason } = req.body;
     const lic = await store.getLicenseById(req.params.id);
     if (!lic) return res.status(404).json({ error: 'License not found' });
@@ -261,7 +268,7 @@ router.post('/:id/revoke', validate({ body: RevokeBody }), async (req, res) => {
 });
 
 // ── POST /:id/extend ───────────────────────────────────────────────────
-router.post('/:id/extend', validate({ body: ExtendBody }), async (req, res) => {
+router.post('/:id/extend', validate({ body: ExtendBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { expiresAt } = req.body;
     const lic = await store.getLicenseById(req.params.id);
     if (!lic) return res.status(404).json({ error: 'License not found' });

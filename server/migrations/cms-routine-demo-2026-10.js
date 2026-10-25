@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Data migration: product-website pages follow the demo that was renamed from
  * "routines" to "automations" (2026-10).
@@ -17,7 +18,12 @@
  *   node server/migrations/cms-routine-demo-2026-10.js
  */
 
-/** `value` with the demo renamed; `changed.n` counts the changes. Pure. */
+/**
+ * `value` with the demo renamed; `changed.n` counts the changes. Pure.
+ * @param {unknown} value
+ * @param {{ n: number; }} [changed]
+ * @returns {unknown}
+ */
 function renameDemo(value, changed = { n: 0 }) {
     if (typeof value === 'string') {
         const next = value.replace(/\/demo\/routines(?![\w-])/g, '/demo/automations');
@@ -26,6 +32,7 @@ function renameDemo(value, changed = { n: 0 }) {
     }
     if (Array.isArray(value)) return value.map((v) => renameDemo(v, changed));
     if (value && typeof value === 'object') {
+        /** @type {Record<string, unknown>} */
         const out = {};
         for (const [k, v] of Object.entries(value)) {
             if (k === 'feature' && v === 'routines') {

@@ -352,3 +352,15 @@ module.exports = {
     orderedColumns,
     fingerprintOf,
 };
+
+/**
+ * @typedef {Record<string, any>} Def  an automation definition, as stored
+ * @typedef {import('../formTriggerContract').FormField} FormField
+ * @typedef {import('../formTriggerContract').FormDeclaration} FormDeclaration
+ * @typedef {{ key: string, name: string, formName: string, pageStepId: string | null, formType: string, columnType: string,
+ *   options: string[] | null, required: boolean, retired: boolean, retiredAt: string | null, position?: number }} ColumnEntry
+ *   one column of the answers table, as kept in `source.columnMap`
+ * @typedef {Record<string, ColumnEntry>} ColumnMap  keyed by field id
+ * @typedef {{ id: string, key: string, name: string, type: string, options?: string[] }} DatatableField
+ * @typedef {string | number | boolean | null | undefined | Record<string, any>} Answer  one answer as a form submits it
+ */

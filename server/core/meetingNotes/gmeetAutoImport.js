@@ -35,6 +35,10 @@ const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
+/** @typedef {import('../../stores/gmeetImportStore').GmeetJob} GmeetJob */
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../auth/automationAuth').getProviderAuth>>>} ProviderAuth */
+/** @typedef {{ accessToken?: string, refreshToken?: string }} GoogleSession  a live web session or the vault shim */
+
 // Recording artifacts appear "soon after" the meeting ends (no SLA). A meeting
 // still without a FILE_GENERATED recording 24h past its end simply wasn't
 // recorded (the common case) — quiet terminal, no notification.
@@ -68,6 +72,7 @@ const QUIET_CODES = new Set(['no_recording', 'no_conference', 'no_drive_access']
  * `session.save?.()` after an SDK-side token refresh — write the rotated
  * tokens back to the vault so the next tick doesn't start from a stale
  * refresh token.
+ * @param {ProviderAuth} auth
  */
 function buildVaultSession(auth) {
     return {
@@ -90,6 +95,7 @@ function buildVaultSession(auth) {
     };
 }
 
+/** @param {string} userId */
 async function resolveOrgIdForUser(userId) {
     return kit.resolveOrgIdForUser(userId, () => require('../../stores/userStore'));
 }
@@ -109,6 +115,7 @@ async function listCandidateUsers() {
     });
 }
 
+/** @param {string} userId */
 async function discoverUser(userId) {
     const orgId = await resolveOrgIdForUser(userId);
     const settings = await resolveGmeetNotesSettings({ orgId, userId });
@@ -186,6 +193,8 @@ const discover = kit.makeDiscovery({
  * roster + the attendee → connected-user sharing map). The job table doesn't
  * carry attendees, so re-read the event from the user's calendar window
  * around the meeting. [] on any failure.
+ * @param {GoogleSession} session
+ * @param {GmeetJob} job
  */
 async function fetchEventAttendees(session, job) {
     if (!job.calendarEventId) return [];
@@ -193,7 +202,7 @@ async function fetchEventAttendees(session, job) {
         const startMs = job.meetingStart ? new Date(job.meetingStart).getTime() : meetingEndMs(job);
         const hours = Math.min(Math.max(Math.ceil((Date.now() - startMs) / 3600_000) + 1, 1), 168);
         const meetings = await listRecentlyEndedMeetMeetings({ session, lookbackHours: hours, graceMinutes: 0 });
-        return meetings.find((m) => m.eventId === job.calendarEventId)?.attendees || [];
+        return meetings.find((/** @type {{ eventId?: string, attendees?: Array<{ email?: string, displayName?: string | null, self?: boolean }> }} */ m) => m.eventId === job.calendarEventId)?.attendees || [];
     } catch (err) {
         log.warn(`[GmeetAutoImport] attendee lookup failed for job ${job.id}: ${err.message}`);
         return [];
@@ -202,6 +211,19 @@ async function fetchEventAttendees(session, job) {
 
 // No conference record (or even no space) yet: retry with backoff until the
 // 48h post-end deadline, then freeze as no_conference.
+/**
+ * A job that is not ready yet: it stays claimable.
+ * @typedef {{ pending: true, status: string, transcription?: undefined }} GmeetPending
+ */
+/**
+ * A finished import: the note (made here, or by an org sibling).
+ * @typedef {{ pending?: false, transcription: unknown }} GmeetImported
+ */
+/**
+ * @param {GmeetJob} job
+ * @param {string | null} [spaceName]
+ * @returns {Promise<GmeetPending>}
+ */
 async function awaitConference(job, spaceName = null) {
     if (Date.now() > meetingEndMs(job) + NO_CONFERENCE_DEADLINE_MS) {
         await gmeetImportStore.failJob(job.id, {
@@ -225,6 +247,9 @@ async function awaitConference(job, spaceName = null) {
  * attendee's job in the same org owns this conference. Freeze quietly
  * (organizer-first seeding makes the organizer's job win the race) and
  * surface the sibling's note when it already exists.
+ * @param {GmeetJob} job
+ * @param {string} conferenceRecordName
+ * @returns {Promise<GmeetPending | GmeetImported>}
  */
 async function resolveDuplicate(job, conferenceRecordName) {
     await gmeetImportStore.updateJob(job.id, { status: 'duplicate', errorCode: null });
@@ -251,6 +276,7 @@ async function resolveDuplicate(job, conferenceRecordName) {
  * `no_conference` and `no_recording` are properties of the meeting — waking the
  * siblings would only make each of them re-derive the same answer at the cost
  * of N more Google API round-trips.
+ * @param {GmeetJob} job
  */
 async function releaseClaimAfterTerminalFailure(job) {
     try {
@@ -263,6 +289,10 @@ async function releaseClaimAfterTerminalFailure(job) {
     }
 }
 
+/**
+ * @param {GmeetJob} job
+ * @param {Error & { code?: string }} err
+ */
 async function failIngest(job, err) {
     return kit.failIngest({
         store: gmeetImportStore, job, err,
@@ -282,6 +312,9 @@ async function failIngest(job, err) {
  *                                stays claimable and the poller carries on
  * Throws an Error with `.code` set to a stable failure code for classified
  * failures (the job row is already updated by the time it throws).
+ * @param {{ job: GmeetJob, session: GoogleSession, settings?: Awaited<ReturnType<typeof resolveGmeetNotesSettings>> | null,
+ *   language?: string | null, contextTerms?: string }} args
+ * @returns {Promise<GmeetPending | GmeetImported>}
  */
 async function processJobInline({ job, session, settings = null, language = null, contextTerms = '' }) {
     // `language`/`contextTerms` come from the manual from-gmeet route's request
@@ -366,6 +399,7 @@ async function processJobInline({ job, session, settings = null, language = null
     return { transcription: saved };
 }
 
+/** @param {GmeetJob} job */
 async function processClaimedJob(job) {
     // Re-resolve settings at claim time — an exclusion or opt-out flipped
     // after seeding must still win.

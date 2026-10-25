@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The TESTCHAT (A4 part A).
  *
@@ -96,12 +96,18 @@ const EPHEMERAL_PREFIX = 'ephemeral-';
  * Only a literal `true` counts. `'false'`, `0` and `''` are not a testchat — a string from a query
  * string that is read as truth is precisely how an ordinary turn accidentally becomes ephemeral and
  * disappears from the history.
+ * @param {{ test?: unknown } | null | undefined} body
+ * @returns {boolean}
  */
 function wantsTestChat(body) {
     return !!body && body.test === true;
 }
 
-/** Draait DEZE beurt als testchat? Leest de metadata die de route zette. */
+/**
+ * Draait DEZE beurt als testchat? Leest de metadata die de route zette.
+ * @param {{ testChat?: unknown } | null | undefined} messageMetadata
+ * @returns {boolean}
+ */
 function isTestChat(messageMetadata) {
     return !!messageMetadata && messageMetadata.testChat === true;
 }
@@ -116,6 +122,7 @@ function isTestChat(messageMetadata) {
  * Refuses; never degrades to an ordinary turn. A testchat that quietly runs the published config is
  * the one answer this route must never give.
  *
+ * @param {{ test?: any, canEdit?: boolean }} [p]
  * @returns {{ok:true, testChat:boolean}|{ok:false, status:number, error:string, code:string}}
  */
 function gateTestChatRequest(/** @type {{test?: any, canEdit?: any}} */ { test, canEdit } = {}) {
@@ -150,6 +157,8 @@ function usageSourceFor(messageMetadata, fallback) {
  * Deliberately a separate name next to `isTestChat`: the call sites below concern AUDIT, not runtime
  * behaviour, and a reader who sees `is_dry_run: isTestChat(m)` should not have to guess whether that is a
  * coincidence.
+ * @param {Parameters<typeof isTestChat>[0]} messageMetadata
+ * @returns {boolean}
  */
 function isDryRunTurn(messageMetadata) {
     return isTestChat(messageMetadata);
@@ -196,6 +205,8 @@ function ephemeralConversationId({ sessionKey, userId, agentId } = {}) {
  *
  * An opaque string from the client, nothing more — it is hashed and never held against anything. Too short
  * or too long counts as "no key", and that yields a fresh id instead of a shared one.
+ * @param {unknown} raw
+ * @returns {string | null}
  */
 function normaliseSessionKey(raw) {
     if (typeof raw !== 'string') return null;
@@ -221,6 +232,7 @@ function normaliseSessionKey(raw) {
  * site that the JSDoc of `ruleAttribution.attributeTurn` invites (`versionInfo(views)`), and for a projection that
  * may say something different tomorrow. They are not tested on this path because they do not occur on this path;
  * that is something other than "tested".
+ * @param {{ runtimeSource?: string, published_version?: unknown, rev?: unknown, published_rev?: unknown } | null | undefined} agent
  */
 function testChatConfigInfo(agent) {
     const src = agent && agent.runtimeSource;
@@ -268,9 +280,11 @@ function argsKeyFor(toolName, stableArgs) {
  * 'approve' or 'decline' does not count — so also not `decision: 'approve '` or `true`. More than
  * MAX_TOOL_DECISIONS are cut off, because this is a card that a human clicked, not a batch.
  *
+ * @param {unknown} raw
  * @returns {Map<string, 'approve'|'decline'>} argsKey → decision
  */
 function normaliseToolDecisions(raw) {
+    /** @type {Map<string, 'approve'|'decline'>} */
     const out = new Map();
     if (!Array.isArray(raw)) return out;
     for (const d of raw) {
@@ -292,6 +306,8 @@ function normaliseToolDecisions(raw) {
  *
  * Everything that is not demonstrably reading. `effectOf` itself already falls back to 'writes' for a name
  * that it does not know, so an unknown tool is held back — the side that lets nothing happen.
+ * @param {string} toolName
+ * @param {string | null} [knownEffect]
  */
 function holdsEffect(toolName, knownEffect) {
     const effect = knownEffect || (() => {

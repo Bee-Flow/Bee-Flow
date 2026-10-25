@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — chat signals: the settings card, its summary table and the
  * "Delete collected counts" button.
@@ -60,15 +61,15 @@ const STRUCTURAL_CODES = Object.freeze(['surfaces_required', 'surface_not_availa
 
 // ── What a caller may send ──────────────────────────────────────────────
 
-const oneOf = (name, values) => z.enum(/** @type {[string, ...string[]]} */ ([...values]), { error: () => `${name} is one of: ${values.join(', ')}.` });
-const flag = (name) => z.boolean({ error: `${name} is true or false.` });
-const uniqueList = (name, values, max) => z.array(oneOf(name, values), { error: `${name} is a list.` })
+const oneOf = (/** @type {string} */ name, /** @type {readonly string[]} */ values) => z.enum(/** @type {[string, ...string[]]} */ ([...values]), { error: () => `${name} is one of: ${values.join(', ')}.` });
+const flag = (/** @type {string} */ name) => z.boolean({ error: `${name} is true or false.` });
+const uniqueList = (/** @type {string} */ name, /** @type {readonly string[]} */ values, /** @type {number} */ max) => z.array(oneOf(name, values), { error: `${name} is a list.` })
     .max(max, `${name} has at most ${max} entries.`)
     .refine(a => new Set(a).size === a.length, `${name} lists each value once.`);
-const date = (name) => z.string({ error: `${name} is a date (YYYY-MM-DD) or null.` })
+const date = (/** @type {string} */ name) => z.string({ error: `${name} is a date (YYYY-MM-DD) or null.` })
     .refine(v => rules.dayString(v) === v, `${name} is a date (YYYY-MM-DD) or null.`)
     .nullable();
-const retention = (name) => z.number({ error: `${name} is a number of days.` })
+const retention = (/** @type {string} */ name) => z.number({ error: `${name} is a number of days.` })
     .int(`${name} is a whole number of days.`)
     .min(V.RETENTION.min, `${name} is at least ${V.RETENTION.min} days.`)
     .max(V.RETENTION.max, `${name} is at most ${V.RETENTION.max} days.`);
@@ -121,18 +122,25 @@ const NoQuery = z.object({}, { error: onUnknownKeys('This takes no query paramet
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-const actorOf = (req) => req.session?.user?.id || null;
-const dayOf = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : rules.dayString(v));
-const inVocab = (list, v) => (list.includes(v) ? v : null);
-const vocabList = (list, v) => (Array.isArray(v) ? v.filter(x => list.includes(x)) : []);
+const actorOf = (/** @type {import('express').Request} */ req) => req.session?.user?.id || null;
+const dayOf = (/** @type {unknown} */ v) => (v instanceof Date ? v.toISOString().slice(0, 10) : rules.dayString(v));
+const inVocab = (/** @type {readonly string[]} */ list, /** @type {string | null | undefined} */ v) => (list.includes(v) ? v : null);
+const vocabList = (/** @type {readonly string[]} */ list, /** @type {unknown} */ v) => (Array.isArray(v) ? v.filter((/** @type {string} */ x) => list.includes(x)) : []);
 
-/** May this request widen chat signals for the org? */
+/**
+ * May this request widen chat signals for the org?
+ * @param {import('express').Request} req
+ * @param {string} orgId
+ */
 async function canWiden(req, orgId) {
     if (orgId === 'default') return isSuperAdmin(req);
     try { return await isOrgAdminForOrg(req, orgId); } catch { return false; }
 }
 
-/** The body as the settings columns it replaces (the derived ones come later). */
+/**
+ * The body as the settings columns it replaces (the derived ones come later).
+ * @param {import('zod').z.infer<typeof PutBody>} b
+ */
 function columnsFromBody(b) {
     return {
         chat_monitoring_enabled: b.enabled === true,
@@ -157,6 +165,9 @@ function columnsFromBody(b) {
 /**
  * The allow-list behind every evidence payload and access-audit snapshot of a
  * save (amendment 10: compliance_evidence is hash-chained and never purged).
+ * @param {Record<string, any>} s
+ * @param {ReturnType<typeof rules.dpiaStatus>} dpia
+ * @param {{ change?: unknown, earlyStartAttested?: boolean, now?: Date }} [opts]
  */
 function snapshot(s, dpia, { change = null, earlyStartAttested = false, now = new Date() } = {}) {
     const scope = rules.normScope(s.chat_monitoring_works_council_scope);
@@ -189,11 +200,16 @@ function snapshot(s, dpia, { change = null, earlyStartAttested = false, now = ne
     return change ? { action: 'chat_monitoring_changed', change, ...out } : out;
 }
 
+/**
+ * @param {string} orgId
+ * @param {Record<string, unknown>} payload
+ */
 function addEvidence(orgId, payload) {
     const row = { organization_id: orgId, check_id: CHECK_ID, subject_type: 'setting', subject_id: 'chat_monitoring', payload };
     return complianceStore.addEvidence(row).catch(onEvidenceWriteFailed(row));
 }
 
+/** @param {string} orgId */
 function emitChanged(orgId) {
     try {
         const { emit, EVENTS } = require('../../compliance/events');
@@ -201,13 +217,18 @@ function emitChanged(orgId) {
     } catch (err) { bestEffort('routes/compliance/chatMonitoring:emitChanged', err); /* the bus is optional in tests */ }
 }
 
+/** @param {{ firstName?: string | null, lastName?: string | null, displayName?: string | null, username?: string | null } | null | undefined} user */
 function displayName(user) {
     if (!user) return null;
     const full = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
     return user.displayName || full || user.username || null;
 }
 
-/** The GET shape. Reads everything fresh; the resolver after any invalidate. */
+/**
+ * The GET shape. Reads everything fresh; the resolver after any invalidate.
+ * @param {import('express').Request} req
+ * @param {string} orgId
+ */
 async function buildView(req, orgId) {
     const now = new Date();
     const [s, dpiaRow, installHasOrganisations, effective, widen] = await Promise.all([
@@ -224,6 +245,7 @@ async function buildView(req, orgId) {
     }
     // Distinct active people over the last 4 completed weeks, as a band only (amendment 19).
     const w = sup.lastFourWeeks(now);
+    /** @type {Record<string, ReturnType<typeof sup.contributorBand>>} */
     const contributors = {};
     for (const surface of V.SURFACES.filter(x => V.isEmployeeSurface(x))) {
         let n = null;
@@ -372,6 +394,7 @@ router.get('/chat-monitoring/summary', requireAuth, requirePermission('admin_com
     // holds. Those weeks must pass the people gate on their own, or the
     // difference between the two views would show what a small group did.
     const short = days > SHORT_DAYS && employee ? sup.windowFor('direct', { days: SHORT_DAYS, effectiveFrom, today }) : null;
+    /** @type {Record<string, unknown>} */
     const surfaces = {};
     for (const surface of selected) {
         const w = V.isVisitorSurface(surface) ? visitor : employee;
@@ -392,7 +415,7 @@ router.get('/chat-monitoring/summary', requireAuth, requirePermission('admin_com
         surfaces[surface] = fig;
     }
     await userStore.logAccessAudit('compliance_chat_monitoring_viewed', 'compliance_setting', 'chat_monitoring', actorOf(req), null, { days }, orgId);
-    const shape = (w) => (w ? { granularity: w.granularity, from: w.from, to: w.to } : null);
+    const shape = (/** @type {ReturnType<typeof sup.windowFor>} */ w) => (w ? { granularity: w.granularity, from: w.from, to: w.to } : null);
     res.set('Cache-Control', 'no-store');
     res.json({ window: { days, employee: shape(employee), visitor: shape(visitor) }, surfaces });
 });
@@ -416,6 +439,9 @@ router.delete('/chat-monitoring/counts', requireAuth, requirePermission('admin_c
  * a successful save of the org-wide 'chat_monitoring' DPIA, the resolver memo
  * is dropped and both checks re-run. Calls next() at once; the handler body
  * is untouched.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function chatMonitoringDpiaHook(req, res, next) {
     if (req.params?.agentId === V.CHAT_MONITORING_DPIA_KEY) {
@@ -430,7 +456,8 @@ function chatMonitoringDpiaHook(req, res, next) {
     next();
 }
 
-module.exports = router;
-module.exports.chatMonitoringDpiaHook = chatMonitoringDpiaHook;
-module.exports.snapshot = snapshot;
-module.exports.PutBody = PutBody;
+/** @typedef {import('express').Router & { chatMonitoringDpiaHook: typeof chatMonitoringDpiaHook, snapshot: typeof snapshot, PutBody: typeof PutBody }} RouterExports */
+module.exports = /** @type {RouterExports} */ (router);
+/** @type {RouterExports} */ (module.exports).chatMonitoringDpiaHook = chatMonitoringDpiaHook;
+/** @type {RouterExports} */ (module.exports).snapshot = snapshot;
+/** @type {RouterExports} */ (module.exports).PutBody = PutBody;

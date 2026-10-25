@@ -332,3 +332,5 @@ async function bulk(req, res) {
 }
 
 module.exports = { listInbox, appendReply, patchThread, threadEvents, bulk };
+
+/** @typedef {Awaited<ReturnType<typeof supportStore.getThread>>} SupportThread */

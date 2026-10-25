@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * DOES THIS TEXT TELL ITS READER THAT AI WAS INVOLVED — asked of the guard
  * sidecar, and answered `null` every single time the sidecar cannot say.
@@ -118,6 +118,7 @@ let _circuitOpenUntil = 0;
  * latched per endpoint URL instead of being counted toward the breaker: one
  * 404 per sweep, not one per agent, and a URL change re-probes.
  */
+/** @type {string | null} */
 let _unsupportedUrl = null;
 
 function _noteFailure() {
@@ -151,6 +152,7 @@ function _resetDisclosureCircuit() {
  * throws is not cached by Node, so re-entering it once per agent would re-run
  * the store's module body for every row of a sweep.
  */
+/** @type {() => Promise<{ url: string | null; apiKey: string; }>} */
 let _resolveEndpoint;
 function _endpointResolver() {
     if (_resolveEndpoint === undefined) {
@@ -171,8 +173,13 @@ function _endpointResolver() {
  * behind a user's document scan (or vice versa) is exactly the interference
  * the two-lane queue over there was built to prevent. This is one small,
  * bounded request on its own deadline.
+ * @param {string | URL | Request} url
+ * @param {{ text: string }} body
+ * @param {string} apiKey
+ * @param {number} timeoutMs
  */
 async function _post(url, body, apiKey, timeoutMs) {
+    /** @type {Record<string, string>} */
     const headers = { 'Content-Type': 'application/json' };
     if (apiKey) headers['X-API-Key'] = apiKey;
     const res = await fetch(url, {
@@ -207,6 +214,8 @@ async function _post(url, body, apiKey, timeoutMs) {
  * `endpoint` and `post` are injection seams so a caller (or a test) can point
  * this at a specific guard or stub the transport; left out, the guard the
  * privacy shield already uses is resolved the usual way.
+ * @param {unknown} text
+ * @param {{ endpoint?: { url: string | null, apiKey?: string } | null, post?: typeof _post, timeoutMs?: number }} [opts]
  */
 async function classifyDisclosure(text, {
     endpoint = null,
@@ -268,6 +277,8 @@ async function classifyDisclosure(text, {
  * It exists because this is the rule most likely to be quietly inverted by
  * someone fixing a false negative in a hurry, and a single function is
  * something a test can pin.
+ * @param {boolean} keywordSaysDisclosed
+ * @param {{ disclosed: boolean; similarity: number | null; margin: number | null; anchor: string | null; engine: string | null; } | null} verdict
  */
 function applyVerdict(keywordSaysDisclosed, verdict) {
     if (!keywordSaysDisclosed) return false;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The door: who may touch this table, and the descriptor every compile takes.
  *
@@ -36,6 +36,18 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 
 /**
+ * A request that has passed requireDatatableGrade: the table, its scope and engine
+ * key, the caller's grade and principal, as that gate sets them.
+ * @typedef {import('express').Request<{ id: string, [param: string]: string }> & {
+ *   datatable: NonNullable<Awaited<ReturnType<typeof datatableStore.getDatatable>>>,
+ *   datatableScope: { kind: 'org' | 'user', id: string },
+ *   datatableScopeKey: string,
+ *   datatableGrade: 'owner' | 'editor' | 'viewer',
+ *   datatablePrincipal: import('../../auth/datatableAccess').DatatablePrincipal,
+ * }} DatatableRequest
+ */
+
+/**
  * Load the table, resolve the caller's grade, refuse below `minGrade`.
  * 404 when there is no grade at all; 403 when it is merely too low.
  *
@@ -49,9 +61,10 @@ const { HttpError } = require('../../core/http/errors');
  * distinguishes depends on that descriptor — see the header of
  * core/dataEngine/accessFilter.js. Do not drop a gradeAtLeast here on the
  * grounds that the filter covers it.
+ * @param {'owner' | 'editor' | 'viewer'} minGrade
  */
 function requireDatatableGrade(minGrade) {
-    return tagGate(async (req, res, next) => {
+    return tagGate(async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         try {
             const principal = await resolveDatatablePrincipal(req);
             let table = null;
@@ -90,7 +103,7 @@ function requireDatatableGrade(minGrade) {
  * has already established `owner` on a personal table means "you are it".
  */
 function requireManageForOrgScope() {
-    return tagGate(async (req, res, next) => {
+    return tagGate(async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (req.datatableScope?.kind === 'user') return next();
         return requirePermission(Permissions.MANAGE_DATATABLES)(req, res, next);
     }, { axis: 'rbac', anyOf: [Permissions.MANAGE_DATATABLES, 'all'] });
@@ -103,6 +116,9 @@ function requireManageForOrgScope() {
  * would put rows the surface promised were private in front of the whole
  * organisation, and a table that cannot be shared should say so instead of
  * accepting the request and doing something narrower.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function refuseWhenPersonal(req, res, next) {
     if (req.datatableScope?.kind === 'user') {
@@ -114,7 +130,11 @@ function refuseWhenPersonal(req, res, next) {
     next();
 }
 
-/** The compiler needs a descriptor plus an access filter; never one without the other. */
+/**
+ * The compiler needs a descriptor plus an access filter; never one without the other.
+ * @param {DatatableRequest} req
+ * @param {Parameters<typeof accessFilter.compileAccessFilter>[3]} action
+ */
 async function metaAndFilter(req, action) {
     const withAccess = await metaFor(req);
     const filter = accessFilter.compileAccessFilter(
@@ -129,6 +149,7 @@ async function metaAndFilter(req, action) {
  * compileAccessFilter now throws on 'create' rather than emitting the 1=0 this
  * route used to compute and discard with `void filter`. assertCanWrite is the
  * whole create permission check.
+ * @param {DatatableRequest} req
  */
 async function metaFor(req) {
     const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);

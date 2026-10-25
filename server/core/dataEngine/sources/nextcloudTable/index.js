@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A DATATABLE THAT MIRRORS A NEXTCLOUD TABLE — the engine behind
  * `managed_kind = 'nextcloud_table'`.
@@ -45,7 +45,10 @@
 
 const KIND = 'nextcloud_table';
 
-/** Is this datatable row a Nextcloud mirror? */
+/**
+ * Is this datatable row a Nextcloud mirror?
+ * @param {{ managedKind?: string|null } | null | undefined} table
+ */
 function isMirror(table) {
     return !!table && table.managedKind === KIND;
 }

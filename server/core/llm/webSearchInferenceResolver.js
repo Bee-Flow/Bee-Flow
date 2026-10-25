@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Web-Search Inference Routing
  *
@@ -22,6 +22,13 @@
 
 const configStore = require('../../stores/configStore');
 
+/**
+ * @typedef {{ providerId: string, modelId: string }} ProviderModel
+ * @typedef {{ method: string, providerId: string, modelId: string }} RerankConfig
+ * @typedef {{ task: string, method?: string, providerId: string|null, modelId: string|null, source?: string, providerType?: string, providerName?: string, endpoint?: string, unresolved?: boolean, reason?: string, apiKey?: string }} InferenceEntry
+ * @typedef {import('./providerConfig').AiRecord} AiRecord
+ */
+
 const RERANK_METHODS = new Set(['cosine', 'cpu', 'provider', 'local', 'disabled']);
 
 const DEFAULTS = {
@@ -30,6 +37,10 @@ const DEFAULTS = {
     cleanup: { providerId: '', modelId: '' },
 };
 
+/**
+ * @param {{ providerId?: unknown, modelId?: unknown } | null | undefined} raw
+ * @returns {ProviderModel}
+ */
 function sanitizeProviderModel(raw) {
     if (!raw || typeof raw !== 'object') return { providerId: '', modelId: '' };
     const providerId = typeof raw.providerId === 'string' ? raw.providerId.slice(0, 200) : '';
@@ -39,10 +50,15 @@ function sanitizeProviderModel(raw) {
     return { providerId, modelId };
 }
 
+/** @param {{ providerId?: unknown, modelId?: unknown } | null | undefined} raw */
 function sanitizeEmbedConfig(raw) {
     return sanitizeProviderModel(raw);
 }
 
+/**
+ * @param {{ method?: string, providerId?: unknown, modelId?: unknown } | null | undefined} raw
+ * @returns {RerankConfig}
+ */
 function sanitizeRerankConfig(raw) {
     if (!raw || typeof raw !== 'object') return { ...DEFAULTS.rerank };
     const method = RERANK_METHODS.has(raw.method) ? raw.method : DEFAULTS.rerank.method;
@@ -53,6 +69,7 @@ function sanitizeRerankConfig(raw) {
     return { method, providerId, modelId };
 }
 
+/** @param {{ providerId?: unknown, modelId?: unknown } | null | undefined} raw */
 function sanitizeCleanupConfig(raw) {
     return sanitizeProviderModel(raw);
 }
@@ -66,6 +83,7 @@ async function readWebSearchInferenceConfig() {
     };
 }
 
+/** @param {{ embed?: ProviderModel, rerank?: RerankConfig, cleanup?: ProviderModel } | null | undefined} body */
 async function writeWebSearchInferenceConfig(body) {
     const cleaned = {
         embed:   sanitizeEmbedConfig(body?.embed),
@@ -79,6 +97,7 @@ async function writeWebSearchInferenceConfig(body) {
 // ── Embed summary (read from global config — no picker on the web-search panel) ──
 
 async function readEmbedSummary() {
+    /** @type {AiRecord} */
     const ai = await configStore.getConfig('ai') || {};
     const providerId = ai.embeddingProviderId || null;
     const modelId = ai.embeddingModel || null;
@@ -95,8 +114,10 @@ async function readEmbedSummary() {
 
 // ── Resolve the provider type for a given providerId (so we can pick the right SDK) ──
 
+/** @param {string|null|undefined} providerId */
 async function lookupProvider(providerId) {
     if (!providerId) return null;
+    /** @type {AiRecord} */
     const ai = await configStore.getConfig('ai') || {};
     const providers = ai.providers || [];
     const p = providers.find(x => x.id === providerId);
@@ -113,6 +134,7 @@ async function resolveInferenceTargets() {
     const embedProviderId = cfg.embed.providerId || embedSummary.providerId;
     const embedModelId = cfg.embed.modelId || embedSummary.modelId;
     const embedSource = cfg.embed.providerId && cfg.embed.modelId ? 'override' : 'global';
+    /** @type {InferenceEntry} */
     const embedEntry = {
         task: 'embed',
         providerId: embedProviderId,
@@ -135,6 +157,7 @@ async function resolveInferenceTargets() {
     }
 
     // ── rerank ──
+    /** @type {InferenceEntry} */
     const rerankEntry = {
         task: 'rerank',
         method: cfg.rerank.method,
@@ -154,6 +177,7 @@ async function resolveInferenceTargets() {
     }
 
     // ── cleanup ──
+    /** @type {InferenceEntry} */
     const cleanupEntry = {
         task: 'cleanup',
         providerId: cfg.cleanup.providerId || null,
@@ -177,8 +201,10 @@ async function resolveInferenceTargets() {
 
 // ── Resolve + attach API keys (for outbound forwarding only) ─────────
 
+/** @param {string|null|undefined} providerId */
 async function fetchProviderApiKey(providerId) {
     if (!providerId) return null;
+    /** @type {AiRecord} */
     const ai = await configStore.getConfig('ai') || {};
     const providers = ai.providers || [];
     const p = providers.find(x => x.id === providerId);
@@ -187,7 +213,7 @@ async function fetchProviderApiKey(providerId) {
 
 async function resolveInferenceTargetsWithSecrets() {
     const resolved = await resolveInferenceTargets();
-    for (const task of ['embed', 'rerank', 'cleanup']) {
+    for (const task of /** @type {Array<'embed'|'rerank'|'cleanup'>} */ (['embed', 'rerank', 'cleanup'])) {
         const t = resolved[task];
         if (!t.providerId || !t.modelId) continue;
         const key = await fetchProviderApiKey(t.providerId);

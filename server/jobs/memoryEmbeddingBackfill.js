@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Memory embedding backfill — brings `user_memories` onto the pgvector columns
  * and keeps them on the dimension the ACTIVE embedding provider produces.
@@ -74,6 +74,7 @@ const MAX_EMBED_ATTEMPTS = 5;
 // memoryStore.ensureVectorColumn.
 const ANN_INDEX_THRESHOLD = 50_000;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _inFlight = false;
 
@@ -91,7 +92,10 @@ async function probeActiveDim() {
     return probe.dim;
 }
 
-/** Phase 1 — fill missing tsvectors. No provider involved. */
+/**
+ * Phase 1 — fill missing tsvectors. No provider involved.
+ * @param {number} deadline
+ */
 async function fillLexical(deadline) {
     let filled = 0;
     while (Date.now() < deadline) {
@@ -118,6 +122,8 @@ async function fillLexical(deadline) {
  * `embedding::text::vector` works because a JSONB number array renders in
  * exactly the literal form pgvector parses. Rows adopted here cost nothing and
  * are indistinguishable afterwards from freshly embedded ones.
+ * @param {number} dim
+ * @param {number} deadline
  */
 async function adoptExisting(dim, deadline) {
     const col = vectorColumn(dim);
@@ -149,6 +155,8 @@ async function adoptExisting(dim, deadline) {
  *
  * These are the genuinely stranded rows: written under a provider that is no
  * longer configured. Everything else was handled for free above.
+ * @param {number} dim
+ * @param {number} deadline
  */
 async function reembedStale(dim, deadline) {
     const col = vectorColumn(dim);
@@ -205,6 +213,7 @@ async function reembedStale(dim, deadline) {
  *
  * On its own client: `db.js` serialises DDL through a schema queue, and
  * `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block.
+ * @param {number} dim
  */
 async function maybeCreateAnnIndex(dim) {
     const col = vectorColumn(dim);
@@ -272,7 +281,7 @@ async function runOnce({ dryRun = false } = {}) {
     const t0 = Date.now();
     const deadline = t0 + MAX_RUN_MS;
     let ok = true;
-    const summary = { scrubbed: 0, lexical: 0, adopted: 0, embedded: 0, failed: 0, dim: null };
+    const summary = { scrubbed: 0, lexical: 0, adopted: 0, embedded: 0, failed: 0, dim: /** @type {number | null} */ (null) };
 
     try {
         client = await pool.connect();

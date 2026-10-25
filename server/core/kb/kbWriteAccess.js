@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "May this person WRITE into this knowledge base?" — asked when an automation
  * ingests, not only when somebody clicks.
@@ -95,8 +95,8 @@ async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {}
  * product's rule everywhere else, and a write is the place it matters most: a
  * trigger anyone can fire must not become a way to write as the owner into
  * something the owner could not.
- * @param kbId
- * @param ownerId
+ * @param {string} kbId
+ * @param {string} ownerId
  * @param {{ deps?: { askerContext?: Function, hasPermission?: Function, [key: string]: any } }} [opts]
  */
 async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
@@ -112,7 +112,7 @@ async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
         // available to this automation" for a transient outage, which reads as a
         // permission change and sends somebody to audit sharing that never
         // moved. The datatable sibling makes the same distinction.
-        log.warn('[kbWriteAccess] could not resolve the owner context:', e.message);
+        log.warn('[kbWriteAccess] could not resolve the owner context:', /** @type {Error} */ (e).message);
         return { ok: false, reason: REASONS.UNAVAILABLE };
     }
     let canManage = false;
@@ -125,7 +125,11 @@ async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
     return canWriteToKb(kbId, { userId: ownerId, orgIds, canManage, deps });
 }
 
-/** The sentence a person reads. Never says which base, when the base is not theirs to know about. */
+/**
+ * The sentence a person reads. Never says which base, when the base is not theirs to know about.
+ * @param {string | undefined} reason
+ * @param {string | null} [kbName]
+ */
 function messageFor(reason, kbName = null) {
     switch (reason) {
         case REASONS.SYSTEM:

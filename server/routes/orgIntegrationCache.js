@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Organisation policy for keeping integration answers BETWEEN runs.
  *
@@ -67,14 +67,17 @@ const { z, typeError } = require('../utils/zod');
 // orgIntegrationCache.test.js); a value that is not a number is refused rather
 // than replaced by the default.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the setting as a JSON object.' }) }).strict(),
 );
 
 const ENABLED_TEXT = 'Say whether answers may be kept: enabled is true or false.';
-const tick = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
+const tick = (/** @type {string} */ name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 
 const PolicyBody = bodyOf({
     enabled: z.boolean({ error: ENABLED_TEXT }),
@@ -93,6 +96,7 @@ const PolicyBody = bodyOf({
  */
 const NoBody = bodyOf({});
 
+/** @param {ReturnType<typeof normalizePolicy>} policy @param {Record<string, unknown>} [extra] */
 function envelope(policy, extra = {}) {
     return {
         ...policy,
@@ -105,7 +109,7 @@ function envelope(policy, extra = {}) {
 }
 
 // GET /:orgId — current policy (any member of the org may read it)
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
@@ -126,7 +130,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
 });
 
 // PUT /:orgId — save (org admin or super admin only)
-router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof PolicyBody>>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can change this setting' });
@@ -138,9 +142,10 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, r
     // and reading its missing `ai` as "off" would silently switch off what an
     // admin turned on in another screen.
     const stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
+    /** @type {Record<string, boolean>} */
     const merged = { ...normalizeScopes(stored?.scopes) };
     for (const kind of Object.keys(merged)) {
-        if (typeof scopes?.[kind] === 'boolean') merged[kind] = scopes[kind];
+        if (typeof /** @type {Record<string, boolean>} */ (scopes)?.[kind] === 'boolean') merged[kind] = /** @type {Record<string, boolean>} */ (scopes)[kind];
     }
     // normalizePolicy clamps and resolves the default of an absent field,
     // so a hand-rolled body can never write an unusable row. `scopes`
@@ -189,7 +194,7 @@ router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, r
 // DELETE /:orgId/entries — forget everything cached, without changing the policy.
 // The button an admin wants after a data-correction incident: the answers on
 // hand are wrong, and waiting out the TTL is not an answer.
-router.delete('/:orgId/entries', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.delete('/:orgId/entries', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can clear this' });

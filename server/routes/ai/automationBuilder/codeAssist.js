@@ -289,3 +289,7 @@ module.exports.CodeAssistBody = CodeAssistBody;
 module.exports.codeAssistRateLimit = codeAssistRateLimit;
 module.exports.resolveAssistModel = resolveAssistModel;
 module.exports.lookupToolDocs = lookupToolDocs;
+
+/**
+ * @typedef {ReturnType<typeof makeCodeAssistRouter> & { makeCodeAssistRouter: typeof makeCodeAssistRouter; CodeAssistBody: typeof CodeAssistBody; codeAssistRateLimit: typeof codeAssistRateLimit; resolveAssistModel: typeof resolveAssistModel; lookupToolDocs: typeof lookupToolDocs }} RouterExports
+ */

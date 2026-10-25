@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Industrial-integration detector — the automated half of the Machinery
  * Regulation checks (MACHINERY-Art3-industrial-detection feeds on it,
@@ -53,6 +54,7 @@ const ACTIVITY_WINDOW_DAYS = 90;
 const ROW_CAP = 500;
 const MAX_TEXT = 200_000;
 
+/** @type {Record<string, { label: string; confidence: string; }>} */
 const SCHEMES = {
     'opc.tcp': { label: 'OPC UA', confidence: 'high' },
     'opc.https': { label: 'OPC UA', confidence: 'high' },
@@ -75,6 +77,7 @@ const SCHEMES = {
     profinet: { label: 'PROFINET', confidence: 'high' },
 };
 
+/** @type {Record<string, { label: string; confidence: string; }>} */
 const PORTS = {
     502: { label: 'Modbus/TCP', confidence: 'high' },
     4840: { label: 'OPC UA', confidence: 'high' },
@@ -109,10 +112,14 @@ const URL_RE = /\b([a-z][a-z0-9+.-]{1,20}):\/\/([^\s"'<>\\)\]}]+)/gi;
 // Bare host:port outside a URL (IPv4 or hostname). The port must end at a word boundary.
 const HOSTPORT_RE = /(?:^|[\s"'=(\[{,])((?:\d{1,3}\.){3}\d{1,3}|[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)*\.?):(\d{2,5})(?![\d.])/gi;
 
+/** @param {{ code?: string } | null | undefined} e */
 function _isNotProvisioned(e) {
     return isMissingTable(e);
 }
 
+/**
+ * @param {string} hostPart
+ */
 function _stripUserinfo(hostPart) {
     // user:pass@host:port/path → host:port/path
     const at = hostPart.indexOf('@');
@@ -121,6 +128,9 @@ function _stripUserinfo(hostPart) {
     return hostPart;
 }
 
+/**
+ * @param {string} rest
+ */
 function _hostAndPort(rest) {
     const authority = _stripUserinfo(rest).split(/[/?#]/)[0];
     const m = authority.match(/^(\[[^\]]+\]|[^:]+)(?::(\d{1,5}))?$/);
@@ -132,12 +142,18 @@ function _hostAndPort(rest) {
 // mqttClient, OpcUaSession); the keyword regex allows the suffix and this
 // folds the match back to the protocol name for the evidence row.
 const KEYWORD_PREFIXES = ['opc-ua', 'opc ua', 'opcua', 'modbus', 'mqtt'];
+/**
+ * @param {string} raw
+ */
 function _canonicalKeyword(raw) {
     const v = String(raw).toLowerCase();
     for (const base of KEYWORD_PREFIXES) if (v.startsWith(base)) return base.replace(/[- ]/, '-');
     return v;
 }
 
+/**
+ * @param {string} value
+ */
 function _safeString(value) {
     if (value === null || value === undefined) return '';
     if (typeof value === 'string') return value;
@@ -153,8 +169,13 @@ function _safeString(value) {
  */
 function scanText(text, opts = {}) {
     const src = _safeString(text).slice(0, MAX_TEXT);
+    /** @type {{ kind: string; value: string; }[]} */
     const signals = [];
     const seen = new Set();
+    /**
+     * @param {string} kind
+     * @param {string} value
+     */
     const add = (kind, value) => {
         const key = `${kind}:${value}`;
         if (seen.has(key)) return;
@@ -163,6 +184,7 @@ function scanText(text, opts = {}) {
     };
 
     // URLs: scheme + port + vendor host.
+    /** @type {number[][]} */
     const urlSpans = [];
     for (const m of src.matchAll(URL_RE)) {
         urlSpans.push([m.index, m.index + m[0].length]);
@@ -205,6 +227,7 @@ function scanText(text, opts = {}) {
  * high when any non-MQTT scheme, non-MQTT industrial port or vendor host
  * fired; MQTT (scheme or port) and keywords alone stay low — MQTT is generic
  * IoT plumbing, not a machine-safety fingerprint by itself.
+ * @param {{ kind: string; value: string; }[]} signals
  */
 function confidenceOf(signals) {
     for (const s of signals) {
@@ -227,9 +250,12 @@ function confidenceOf(signals) {
  * Minimal step walker used when automation/automationGraph.js (another workstream)
  * is not on disk yet: flattens steps, loop/forEach bodies, parallel branches
  * and condition arms.
+ * @param {Record<string, any> | null | undefined} definition
+ * @param {(step: Record<string, any>) => void} fn
  */
 function _fallbackWalkSteps(definition, fn) {
     const seen = new Set();
+    /** @param {Record<string, any>[] | undefined} list */
     const walk = (list) => {
         for (const s of (Array.isArray(list) ? list : [])) {
             if (!s || typeof s !== 'object' || seen.has(s)) continue;
@@ -247,6 +273,10 @@ function _fallbackWalkSteps(definition, fn) {
     walk(definition?.steps);
 }
 
+/**
+ * @param {Record<string, any> | null | undefined} definition
+ * @param {(step: Record<string, any>) => void} fn
+ */
 function _walkSteps(definition, fn) {
     try {
         const graph = require('../../automation/automationGraph');
@@ -255,8 +285,12 @@ function _walkSteps(definition, fn) {
     return _fallbackWalkSteps(definition, fn);
 }
 
-/** The strings of a step worth scanning: urls, tool names, code, labels, tool lists. */
+/**
+ * The strings of a step worth scanning: urls, tool names, code, labels, tool lists.
+ * @param {Record<string, any>} step
+ */
 function stepText(step) {
+    /** @type {string[]} */
     const parts = [];
     for (const key of ['name', 'label', 'title', 'type', 'url', 'tool', 'integration', 'provider', 'server', 'endpoint', 'host', 'topic', 'broker', 'code', 'source', 'description', 'prompt']) {
         if (typeof step[key] === 'string') parts.push(step[key]);
@@ -268,8 +302,12 @@ function stepText(step) {
     return parts.join('\n');
 }
 
+/**
+ * @param {string | Record<string, any> | null | undefined} definition
+ */
 function scanAutomationDefinition(definition) {
     const def = typeof definition === 'string' ? (() => { try { return JSON.parse(definition); } catch { return {}; } })() : (definition || {});
+    /** @type {string[]} */
     const chunks = [];
     if (typeof def.name === 'string') chunks.push(def.name);
     if (typeof def.description === 'string') chunks.push(def.description);
@@ -280,6 +318,13 @@ function scanAutomationDefinition(definition) {
 
 // ── sources ─────────────────────────────────────────────────────────────────
 
+/**
+ * @template T
+ * @param {string} name
+ * @param {{ source: string, reason: string }[]} skipped
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T | null>}
+ */
 async function _source(name, skipped, fn) {
     try {
         return await fn();
@@ -291,15 +336,26 @@ async function _source(name, skipped, fn) {
     }
 }
 
+/** @typedef {{ source: string; id: string; label: string; signals: { kind: string; value: string; label?: string; }[]; confidence: string; scope?: string; active?: boolean; }} Match */
+
 /**
  * @param {string} orgId
- * @returns {Promise<{ scanned: object, matches: object[], skipped: object[], heuristics_version: string }>}
+ * @returns {Promise<{ scanned: { custom_integrations: number, automations: number, connections: number, activity_hosts: number, mcp_servers: number }, matches: Match[], skipped: { source: string, reason: string }[], heuristics_version: string }>}
  */
 async function detect(orgId) {
     const scanned = { custom_integrations: 0, automations: 0, connections: 0, activity_hosts: 0, mcp_servers: 0 };
+    /** @type {Match[]} */
     const matches = [];
+    /** @type {{ source: string, reason: string }[]} */
     const skipped = [];
 
+    /**
+     * @param {string} source
+     * @param {string | number} id
+     * @param {string} label
+     * @param {{ kind: string; value: string; }[]} signals
+     * @param {Record<string, any>} [extra]
+     */
     const push = (source, id, label, signals, extra = {}) => {
         if (!signals.length) return;
         matches.push({ source, id: String(id), label: String(label || id), signals, confidence: confidenceOf(signals), ...extra });

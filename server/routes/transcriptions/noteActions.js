@@ -502,3 +502,5 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: N
 });
 
 module.exports = router;
+
+/** @typedef {{ actionItems: object[], decisions: object[], questions: object[], tags: string[] }} UsableArtifacts  what `artifactsUsable` lets through */

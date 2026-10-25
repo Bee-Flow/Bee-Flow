@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Suggestion Scan Cache — caches the result of a Automations "Find repeating work"
  * scan so the (expensive) analysis isn't re-run on every panel open.
@@ -67,16 +67,25 @@ function deriveScopeKey({ userId } = {}) {
     return 'anon';
 }
 
+/**
+ * @type {typeof import('./lib/json').parseJSON}
+ */
 function safeJson(v, fallback) {
     if (v == null) return fallback;
     if (typeof v === 'object') return v; // pg already parsed JSONB
     try { return JSON.parse(v); } catch { return fallback; }
 }
 
+/**
+ * @param {string | null | undefined} [mode]
+ */
 function normaliseMode(mode) {
     return MODES.includes(mode) ? mode : null;
 }
 
+/**
+ * @param {import('pg').QueryResultRow | null} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -103,7 +112,9 @@ function mapRow(r) {
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
+    /** @param {string} sql @param {any[]} [params] */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
+    /** @param {string} sql @param {any[]} [params] */
     const one = async (sql, params) => (await q(sql, params)).rows[0] || null;
 
     /**
@@ -160,6 +171,7 @@ function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
      *
      * Powers the "dismiss a suggestion" action: stripping it from the persisted
      * rows means it never resurfaces from getLatestScan after a reload.
+     * @param {{ scopeKey?: string, predicate: (suggestion: unknown) => boolean }} opts
      */
     async function removeSuggestionsFromScope({ scopeKey, predicate }) {
         if (!scopeKey || typeof predicate !== 'function') return 0;
@@ -187,6 +199,7 @@ function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
      * Insert (or refresh) the cached scan for a (scope, inputs) pair. The row
      * id is deterministic (`scope:cacheKey`) so re-scanning the same inputs
      * overwrites in place. Always bumps scanned_at/expires_at.
+     * @param {{ scopeKey: string, cacheKey: string, userId?: string | null, organizationId?: string | null, mode?: string | null, focus?: string | null, integrationIds?: string[] | string | null, suggestions?: unknown[] | null, summary?: object | null, reason?: string | null, model?: string | null, eu?: boolean | null, expiresAt: string | Date }} opts
      */
     async function upsertScan({
         scopeKey, cacheKey, userId, organizationId, mode, focus, integrationIds,
@@ -236,6 +249,9 @@ function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
     }
 
     /** Drop every cached scan for a scope. Returns the number of rows removed. */
+    /**
+     * @param {{ scopeKey?: string }} opts
+     */
     async function invalidateForScope({ scopeKey }) {
         if (!scopeKey) return 0;
         const res = await q(`DELETE FROM suggestion_scan_cache WHERE scope_key = $1`, [scopeKey]);
@@ -245,6 +261,7 @@ function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
     /**
      * Art. 17: every scan of this user, whatever scope it was written under
      * (a legacy `org:` row carries the scanning user in user_id).
+     * @param {string} userId
      */
     async function purgeForUser(userId) {
         if (!userId) return 0;

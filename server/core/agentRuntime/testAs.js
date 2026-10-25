@@ -394,3 +394,14 @@ module.exports = {
     mayNameGroup, listSimulatableGroups, resolveTestAs, gateTestAsRequest,
     visibleKbIdsFor, audienceForTestAs,
 };
+
+/**
+ * @typedef {object} TestAsDeps  injection points, tests only
+ * @property {typeof import('../../stores/userStore').getAllGroups} [getAllGroups]
+ * @property {(id: string) => Promise<any>} [getGroup]
+ * @property {(uid: string) => Promise<string[]>} [resolveUserGroups]
+ * @property {typeof import('../kb/askerContext').askerContext} [askerContext]
+ * @property {typeof import('../kb/kbVisibility')} [kbVisibility]
+ * @property {object} [kbStore]
+ * @property {typeof import('../../auth/audience').canSeePublished} [canSeePublished]
+ */

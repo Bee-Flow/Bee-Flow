@@ -105,3 +105,15 @@ async function transcribe(provider, { filePath, fileName, language, contextTerms
 }
 
 module.exports = { chooseProvider, transcribe };
+
+/** @typedef {Awaited<ReturnType<typeof import('../voice/pyannoteClient').transcribeWithPyannote>>} PyannoteResult */
+
+/**
+ * @typedef {{ mapping: PyannoteResult['voiceprintMapping'] | null, roster: string[],
+ *   ruledOut: PyannoteResult['voiceprintRuledOut'] | null, info: PyannoteResult['voiceprintInfo'] | null }} Voiceprint
+ */
+
+/**
+ * @typedef {{ filePath: string, fileName: string, language: string, contextTerms?: string, orgId?: string | null,
+ *   userId?: string, participantNames?: string[], transcriptResponse?: { text?: string, segments?: any[] } | null }} TranscribeArgs
+ */

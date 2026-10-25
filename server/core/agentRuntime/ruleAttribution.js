@@ -432,3 +432,12 @@ module.exports = {
     parseAttribution, followedFrom,
     attributeTurn,
 };
+
+/** @typedef {import('./personaPrompt').Persona} Persona */
+
+/**
+ * @typedef {Object} BuildAttributionMessagesArgs
+ * @property {string[]} rules
+ * @property {string | undefined} question
+ * @property {string} answer
+ */

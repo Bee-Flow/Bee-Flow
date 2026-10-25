@@ -220,3 +220,22 @@ function parseOperations(buf) {
 }
 
 module.exports = { parseOperations, ContentLexer };
+
+/**
+ * @typedef {{ type: 'value', value: number | boolean | null | { bytes: Buffer } | { name: string }, start: number, end: number }
+ *   | { type: 'op', value: string, start: number, end: number }
+ *   | { type: 'dictOpen' | 'dictClose' | 'arrayOpen' | 'arrayClose' | 'junk', value?: undefined, start: number, end: number }} Token
+ */
+
+/**
+ * The fields an operand can carry; a number, boolean or array carries none of them.
+ * @typedef {{ name?: string, bytes?: Buffer, dict?: Record<string, PdfOperand>, value?: undefined }} PdfOperandFields
+ */
+
+/**
+ * @typedef {(number | boolean | {} | PdfOperand[]) & PdfOperandFields} PdfOperand
+ */
+
+/**
+ * @typedef {{ op: string, operands: PdfOperand[], start: number, end: number }} PdfOperation
+ */

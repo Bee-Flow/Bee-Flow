@@ -270,3 +270,9 @@ function stop() {
 }
 
 module.exports = { syncIssue, syncTick, syncThread, latestComment, linkBaseline, start, stop };
+
+/** @typedef {import('../integrations/youtrackClient').YoutrackCreds} YoutrackCreds */
+
+/** @typedef {Awaited<ReturnType<typeof ytc.getIssuesByIds>>[number]} SyncIssue */
+
+/** @typedef {Awaited<ReturnType<typeof ytc.getIssueComments>>} IssueComments */

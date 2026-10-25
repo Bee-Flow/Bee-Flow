@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * A structural diff of two JSON values, for comparing what two runs of an
@@ -40,21 +40,33 @@ const META_KEYS = Object.freeze(new Set([
     'wouldHaveCalled', '_fromScenario', 'httpCalls', FULL_OUTPUT_REF,
 ]));
 
+/** @param {unknown} v */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** The JSON kind of a value. */
+/**
+ * The JSON kind of a value.
+ * @param {unknown} v
+ */
 function kindOf(v) {
     if (v === null) return 'null';
     if (v === undefined) return 'undefined';
     return Array.isArray(v) ? 'array' : typeof v;
 }
 
-/** Exact JSON equality; null when a side cannot be serialised. */
+/**
+ * Exact JSON equality; null when a side cannot be serialised.
+ * @param {unknown} x
+ * @param {unknown} y
+ */
 function sameJson(x, y) {
     try { return JSON.stringify(x) === JSON.stringify(y); } catch { return null; }
 }
 
-/** A path relative to a handle, put under the handle's own path. */
+/**
+ * A path relative to a handle, put under the handle's own path.
+ * @param {string} base
+ * @param {string} rel
+ */
 function joinPath(base, rel) {
     if (!base) return rel;
     if (!rel) return base;
@@ -63,24 +75,28 @@ function joinPath(base, rel) {
 
 /** @param {string[]} ignorePaths */
 function makeIgnore(ignorePaths) {
-    const list = (Array.isArray(ignorePaths) ? ignorePaths : []).filter(p => typeof p === 'string' && p);
+    const list = (Array.isArray(ignorePaths) ? ignorePaths : []).filter((/** @type {unknown} */ p) => typeof p === 'string' && p);
     if (!list.length) return () => false;
-    return (path) => list.some(p => path === p || path.startsWith(`${p}.`) || path.startsWith(`${p}[`));
+    return (/** @type {string} */ path) => list.some(p => path === p || path.startsWith(`${p}.`) || path.startsWith(`${p}[`));
 }
 
 /**
  * @param {any} a
  * @param {any} b
  * @param {{ ignorePaths?: string[], maxChanges?: number, differs?: { differFor: (v: any) => any }, ctx?: object }} [opts]
- * @returns {Promise<{ changes: Array<{ path: string, change: string, before?: string, after?: string }>, truncated: boolean }>}
+ * @returns {Promise<{ changes: import('./outputDiffers').Change[], truncated: boolean }>}
  */
 async function diffJson(a, b, opts = {}) {
     const { ignorePaths = [], maxChanges = 200, differs = outputDiffers, ctx = {} } = opts;
     const ignored = makeIgnore(ignorePaths);
+    /** @type {import('./outputDiffers').Change[]} */
     const changes = [];
     let truncated = false;
 
-    /** Record one change; false once the cap is reached. */
+    /**
+     * Record one change; false once the cap is reached.
+     * @param {import('./outputDiffers').Change} change
+     */
     const push = (change) => {
         if (maxChanges > 0 && changes.length >= maxChanges) { truncated = true; return false; }
         changes.push(change);
@@ -88,6 +104,12 @@ async function diffJson(a, b, opts = {}) {
     };
     const full = () => truncated;
 
+    /**
+     * @param {any} da
+     * @param {any} va
+     * @param {any} vb
+     * @param {string} path
+     */
     async function viaDiffer(da, va, vb, path) {
         let out;
         try {
@@ -103,6 +125,12 @@ async function diffJson(a, b, opts = {}) {
         return true;
     }
 
+    /**
+     * @param {Record<string, any>} va
+     * @param {Record<string, any>} vb
+     * @param {string} path
+     * @param {number} depth
+     */
     async function walkObjects(va, vb, path, depth) {
         const keys = Object.keys(va).filter(k => !META_KEYS.has(k));
         for (const k of Object.keys(vb)) if (!META_KEYS.has(k) && !Object.prototype.hasOwnProperty.call(va, k)) keys.push(k);
@@ -118,6 +146,12 @@ async function diffJson(a, b, opts = {}) {
         }
     }
 
+    /**
+     * @param {any[]} va
+     * @param {any[]} vb
+     * @param {string} path
+     * @param {number} depth
+     */
     async function walkArrays(va, vb, path, depth) {
         const common = Math.min(va.length, vb.length);
         for (let i = 0; i < common && !full(); i++) {
@@ -130,6 +164,13 @@ async function diffJson(a, b, opts = {}) {
         }
     }
 
+    /**
+     * @param {any} va
+     * @param {any} vb
+     * @param {string} path
+     * @param {number} depth
+     * @returns {Promise<void>}
+     */
     async function walk(va, vb, path, depth) {
         if (full()) return;
         const ka = kindOf(va);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * cms_add_blocks accepts a per-entry `style` (same closed key set as
  * cms_update_block's stylePatch) instead of silently dropping it.
@@ -24,7 +24,7 @@ async function makeDraft() {
     for (const entry of site.pages) pages.set(entry.id, await cmsStore.getPage(created.id, entry.id));
     return {
         siteId: created.id, userId: 'u1', orgId: 'orgA', builderSessionId: 'cms_test', site, pages,
-        defaultLocale: 'en', locales: [], createdPageIds: [], touchedPageIds: new Set(),
+        defaultLocale: 'en', locales: /** @type {string[]} */ ([]), createdPageIds: /** @type {string[]} */ ([]), touchedPageIds: new Set(),
     };
 }
 
@@ -51,8 +51,8 @@ test('cms_add_blocks: unknown style keys are reported in warnings, bad values dr
         blocks: [{ type: 'hero', style: { bogus: 1, band: 'tint' } }, { type: 'cta', style: { band: 'neon' } }],
     });
     assert.ok(!r.error, JSON.stringify(r));
-    assert.ok(r.warnings.some((w) => w.includes('bogus')), JSON.stringify(r.warnings));
-    assert.deepStrictEqual(r.dropped.map((d) => d.reason), ['invalid-style']);
+    assert.ok(r.warnings.some((/** @type {string} */ w) => w.includes('bogus')), JSON.stringify(r.warnings));
+    assert.deepStrictEqual(r.dropped.map((/** @type {{ reason: string }} */ d) => d.reason), ['invalid-style']);
     assert.strictEqual(draft.pages.get(home).blocks.length, 1);
     assert.strictEqual(draft.pages.get(home).blocks[0].style.band, 'tint');
 });

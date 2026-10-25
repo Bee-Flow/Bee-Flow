@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the project chat composers (2026-10, golf 4): the accessible
  * names of the shared composer box in the team chat and in "start a conversation".
@@ -13,6 +14,7 @@ const NL_TRANSLATIONS = {
     'project_chat.new_composer_label': 'Nieuw gesprek',
 };
 
+/** @type {string[]} */
 const SAME_AS_ENGLISH = [];
 
 async function up({ languageStore = require('../stores/languageStore') } = {}) {

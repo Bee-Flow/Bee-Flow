@@ -741,3 +741,15 @@ module.exports = {
     _loadAttachment: loadAttachment,
     _usageEntry: usageEntry,
 };
+
+/** @typedef {import('stream').Readable} Readable */
+
+/** @typedef {{ id: string, userId: string, organizationId?: string | null, name?: string }} AppRef */
+
+/** @typedef {{ name: string, type: string, description: string, required: boolean }} SchemaField */
+
+/** @typedef {string | object[]} UserContent  plain text, or content blocks */
+
+/** @typedef {{ name: string, type: string, content: string }} LoadedAttachment */
+
+/** @typedef {Awaited<ReturnType<typeof resolveOwnerModel>>} OwnerModel */

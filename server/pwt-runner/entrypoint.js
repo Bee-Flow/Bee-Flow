@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Entrypoint for the throwaway Playwright runner container.
  *
@@ -37,6 +38,7 @@ const SERVE_HOST = process.env.PWT_SERVE_HOST || '';
 
 async function runServe() {
     const { chromium } = require('playwright');
+    /** @type {{ headless: boolean; port: number; args: string[]; wsPath?: string; host?: string }} */
     const launchOpts = {
         headless: true,
         port: SERVE_PORT,

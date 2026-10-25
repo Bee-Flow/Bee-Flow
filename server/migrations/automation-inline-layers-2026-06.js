@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: inline layers (n8n-style sub-flows) + run-step nesting columns.
  *
@@ -47,6 +48,10 @@ const { run, getAll, exec, getClient } = require('../db');
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
+/**
+ * @param {string} v
+ * @param {{}} fallback
+ */
 function safeParse(v, fallback) {
     if (v == null) return fallback;
     if (typeof v === 'object') return v;
@@ -59,6 +64,7 @@ function safeParse(v, fallback) {
  * slug: lowercase, runs of [^a-z0-9] → '_', trimmed; prefixed with 'layer'
  * when empty or starting with a digit so the result always matches
  * ^[a-z][a-z0-9_]*$. UUID first-8 chars are hex, so the suffix is safe.
+ * @param {Record<string, any>} row
  */
 function layerKeyFor(row) {
     let slug = String(row.title || '')
@@ -73,12 +79,19 @@ function layerKeyFor(row) {
 }
 
 /**
+ * @typedef {{ id?: string, type: string, layerId?: string, layerKey?: string, migratedFromLayerId?: string, version?: unknown, inputContract?: unknown, outputContract?: unknown }} CallStep
+ */
+
+/**
  * Walk a graph's steps (incl. loop bodies + parallel branches, recursively)
  * collecting every call_layer step object (by reference, so callers can
  * mutate them in place).
+ * @param {{ steps?: unknown } | null} graph
  */
 function collectCallSteps(graph) {
+    /** @type {CallStep[]} */
     const out = [];
+    /** @param {unknown} steps */
     const walk = (steps) => {
         if (!Array.isArray(steps)) return;
         for (const s of steps) {
@@ -94,7 +107,11 @@ function collectCallSteps(graph) {
     return out;
 }
 
-/** Rewrite one call step in place: layerId → layerKey (+ traceability). */
+/**
+ * Rewrite one call step in place: layerId → layerKey (+ traceability).
+ * @param {CallStep} step
+ * @param {string} key
+ */
 function rewriteCallStep(step, key) {
     step.layerKey = key;
     step.migratedFromLayerId = step.layerId;
@@ -108,6 +125,12 @@ function rewriteCallStep(step, key) {
  * Embed a layer row (and, recursively, the layers IT references) into
  * `def.layers`. Returns the key, or null when the row is missing (dangling).
  * The visited set terminates legacy cycles (A → B → A embeds both once).
+ * @param {{ layers: Record<string, { title?: string, steps?: unknown }> }} def
+ * @param {string} layerId
+ * @param {Map<string, Record<string, any>>} layersById
+ * @param {Set<string>} referenced
+ * @param {Set<string>} visited
+ * @param {(msg: string) => void} warn
  */
 function embedLayer(def, layerId, layersById, referenced, visited, warn) {
     const row = layersById.get(layerId);
@@ -169,6 +192,7 @@ async function up() {
             def.layers = (def.layers && typeof def.layers === 'object' && !Array.isArray(def.layers)) ? def.layers : {};
             let changed = false;
             const visited = new Set();
+            /** @param {string} msg */
             const warn = (msg) => console.warn(`[inline-layers] automation ${id}: ${msg}`);
             for (const step of callSteps) {
                 if (step.layerKey || !step.layerId) continue;
@@ -200,7 +224,7 @@ async function up() {
             migrated++;
         } catch (e) {
             await client.query('ROLLBACK').catch(() => {});
-            console.error(`[inline-layers] failed to migrate automation ${id}: ${e.message}`);
+            console.error(`[inline-layers] failed to migrate automation ${id}: ${/** @type {Error} */ (e).message}`);
         } finally {
             client.release();
         }

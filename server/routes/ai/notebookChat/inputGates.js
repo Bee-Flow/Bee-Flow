@@ -303,3 +303,12 @@ function runInputRegex({ orgShieldConfig, messages, message, send, res, userOrgF
 module.exports = {
     appendHistory, appendUserMessage, stripUnicodeSmuggling, runInputPiiGate, addTokenPreservation, runInputRegex,
 };
+
+/**
+ * @typedef {{ type: string, text?: string, image_url?: { url: string } }} ContentPart
+ * @typedef {{ role: string, content: string | ContentPart[] }} TurnMessage
+ * @typedef {Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>>} Shield
+ * @typedef {(event: string, data: unknown) => void} Send
+ * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string | null,
+ *   automatic: boolean, restoredCount?: number, tokenizedPrompt?: string, tokenMap?: Record<string, string> }} TokenisationInfo
+ */

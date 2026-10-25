@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * `app_pick` questions on a hosted form: who is searching (always the
  * signed-in FILLER, never the automation's owner), which declared question a
@@ -22,6 +23,9 @@ const { fallback } = require('../../../utils/bestEffort');
  *
  * Never fails the submission. A record that cannot be read arrives carrying
  * `textError`, and the automation decides what that means.
+ * @param {ReturnType<typeof import('../../../automation/formCoerce').coerceSubmission>['picks']} picks
+ * @param {ReturnType<typeof import('../../../automation/formCoerce').coerceSubmission>['values']} values
+ * @param {import('express').Request} req
  */
 async function resolvePicks(picks, values, req) {
     if (!picks.length) return;
@@ -47,6 +51,7 @@ async function resolvePicks(picks, values, req) {
  * automation's owner. An `app_pick` question shows the person in front of the form
  * the records THEY can open; building this context from the automation would
  * turn a form into a window on a colleague's mailbox.
+ * @param {import('express').Request} req
  */
 async function pickCaller(req) {
     const user = req.session?.user;
@@ -54,6 +59,7 @@ async function pickCaller(req) {
     // The same org/group read the Meeting-notes library does, so the internal
     // source's ACL is answered with exactly the context it expects.
     const { resolveAccessContext } = require('../../transcriptions/shared');
+    /** @type {Awaited<ReturnType<typeof resolveAccessContext>>} */
     let access = { orgIds: [], userGroupIds: [], isSuperAdmin: false };
     try { access = await resolveAccessContext(req); } catch (err) { fallback('routes/automation/formPublic/picks:pickCaller', err); /* narrower, never wider */ }
     return {
@@ -75,9 +81,13 @@ async function pickCaller(req) {
  * comes from the declaration, so the picker cannot be steered at an app the
  * question does not ask for — which is what makes this endpoint a picker rather
  * than "run an integration tool as me".
+ * @template {{ type: string }} F
+ * @param {F[]} fields
+ * @param {unknown} name
+ * @returns {F | null}
  */
 function declaredPickField(fields, name) {
-    return fields.find(f => f.type === 'app_pick' && f.name === String(name || '')) || null;
+    return fields.find((/** @type {{ type: string; name?: unknown; }} */ f) => f.type === 'app_pick' && f.name === String(name || '')) || null;
 }
 
 module.exports = { resolvePicks, pickCaller, declaredPickField };

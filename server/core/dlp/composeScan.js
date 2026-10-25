@@ -153,3 +153,5 @@ async function composeScan({ units, orgShield, conversationId, scope } = /** @ty
 }
 
 module.exports = { composeScan, SEP };
+
+/** @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveOrgShield>>} OrgShield */

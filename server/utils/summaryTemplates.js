@@ -223,3 +223,8 @@ module.exports = {
     pickDefaultTemplate,
     canAccessTemplate,
 };
+
+/**
+ * @typedef {{ id?: string, name?: string, prompt?: string, version?: number | null, scope?: string, isDefault?: boolean, userId?: string | null, organizationId?: string | null, groupId?: string | null, updatedAt?: string | Date | null }} SummaryTemplateRow
+ * @typedef {{ userId?: string | null, orgIds?: string[], groupIds?: string[] }} TemplateAccessContext
+ */

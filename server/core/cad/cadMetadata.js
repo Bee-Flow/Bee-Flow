@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * CAD metadata reader — bytes in, a short honest summary out.
  *
@@ -40,6 +41,7 @@ const DXF_SCAN_CAP = 512 * 1024;
 const STEP_HEADER_CAP = 64 * 1024;
 
 // AC10xx → AutoCAD release. Shared by the DWG magic and the DXF $ACADVER var.
+/** @type {Readonly<Record<string, string>>} */
 const ACAD_RELEASES = Object.freeze({
     AC1009: 'R11/R12',
     AC1012: 'R13',
@@ -54,6 +56,7 @@ const ACAD_RELEASES = Object.freeze({
 
 // $INSUNITS (group 70) → millimetres per drawing unit. Codes outside this map
 // are reported raw and honestly, never converted on a guess.
+/** @type {Readonly<Record<number, { label: string, mm: number }>>} */
 const INSUNITS_TO_MM = Object.freeze({
     1: { label: 'inches', mm: 25.4 },
     2: { label: 'feet', mm: 304.8 },
@@ -68,6 +71,9 @@ const COUNTED_ENTITIES = new Set(['LINE', 'ARC', 'CIRCLE', 'LWPOLYLINE', 'SPLINE
 const DXF_BINARY_SENTINEL = Buffer.from('AutoCAD Binary DXF\r\n\x1a\x00', 'latin1');
 
 // ── Format detection (bytes only — the caller already routed on name/mime) ──
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ */
 function detectFormat(buf) {
     if (buf.length >= DXF_BINARY_SENTINEL.length &&
         buf.subarray(0, DXF_BINARY_SENTINEL.length).equals(DXF_BINARY_SENTINEL)) return 'dxf-binary';
@@ -82,6 +88,9 @@ function detectFormat(buf) {
 // IGES is a fixed 80-column card format: cols 1–72 content, col 73 the section
 // letter (S = Start), cols 74–80 a right-aligned sequence number. Pragmatic:
 // first line 80±2 chars, an S in the col-73 zone, a trailing digit.
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ */
 function looksLikeIges(buf) {
     const head = buf.subarray(0, 256).toString('latin1');
     const nl = head.indexOf('\n');
@@ -92,14 +101,25 @@ function looksLikeIges(buf) {
     return /\d$/.test(line.trimEnd());
 }
 
+/**
+ * @param {number} v
+ */
 function round2(v) {
     return Math.round(v * 100) / 100;
 }
 
+/**
+ * @param {string} text
+ */
 function capSummary(text) {
     return text.length > SUMMARY_CAP ? text.slice(0, SUMMARY_CAP - 1) + '…' : text;
 }
 
+/**
+ * @param {string} text
+ * @param {object} meta
+ * @returns {{ kind: 'text', text: string, source: 'cad', meta: object }}
+ */
 function result(text, meta) {
     return { kind: 'text', text: capSummary(text), source: 'cad', meta };
 }
@@ -109,13 +129,21 @@ function result(text, meta) {
 // at a stride. HEADER harvesting stops at its ENDSEC or the 256 KB cap,
 // whichever comes first; the entity histogram runs over the ENTITIES section
 // inside the overall 512 KB scan window.
+/** @typedef {{ acadVer: string | null, insunits: number | null, extmin: { x?: number, y?: number }, extmax: { x?: number, y?: number } }} DxfHeader */
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ */
 function parseAsciiDxf(buf) {
     const lines = buf.subarray(0, DXF_SCAN_CAP).toString('utf8').split(/\r\n|\n/);
+    /** @type {DxfHeader} */
     const header = { acadVer: null, insunits: null, extmin: {}, extmax: {} };
+    /** @type {Record<string, number>} */
     const entities = {};
 
+    /** @type {string | null} */
     let section = null;        // current SECTION name (HEADER / ENTITIES / …)
     let pendingSection = false;
+    /** @type {string | null} */
     let currentVar = null;     // header variable being read ($EXTMIN, …)
     let headerDone = false;
     let offset = 0;            // ≈ bytes consumed, for the header cap
@@ -156,6 +184,7 @@ function parseAsciiDxf(buf) {
 
 // $EXTMIN/$EXTMAX → bounding-box width/height. Converted to mm only when
 // $INSUNITS names a unit we know; otherwise reported raw, honestly.
+/** @param {DxfHeader} header */
 function dxfExtents(header) {
     const { extmin, extmax, insunits } = header;
     const coords = [extmin.x, extmin.y, extmax.x, extmax.y];
@@ -170,6 +199,10 @@ function dxfExtents(header) {
     return { width: round2(w), height: round2(h), units, converted: false };
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ * @param {string} name
+ */
 function extractAsciiDxf(buf, name) {
     const { header, entities } = parseAsciiDxf(buf);
     const release = header.acadVer ? ACAD_RELEASES[header.acadVer] : null;
@@ -208,12 +241,18 @@ function extractAsciiDxf(buf, name) {
 }
 
 // ── STEP (ISO 10303-21) ─────────────────────────────────────────────
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ */
 function parseStepHeader(buf) {
     const text = buf.subarray(0, STEP_HEADER_CAP).toString('utf8');
     const start = text.indexOf('HEADER;');
     const end = text.indexOf('ENDSEC;');
     const head = start >= 0 ? text.slice(start, end > start ? end : undefined) : text;
     // Part-21 strings are 'quoted' with '' as the escape for a literal quote.
+    /**
+     * @param {RegExp} re
+     */
     const first = (re) => {
         const m = re.exec(head);
         return m ? m[1].replace(/''/g, "'") : null;
@@ -225,6 +264,9 @@ function parseStepHeader(buf) {
     };
 }
 
+/**
+ * @param {string | null} schema
+ */
 function stepApFromSchema(schema) {
     if (!schema) return null;
     const s = schema.toUpperCase();
@@ -234,6 +276,10 @@ function stepApFromSchema(schema) {
     return null;
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ * @param {string} name
+ */
 function extractStep(buf, name) {
     const { fileName, description, schema } = parseStepHeader(buf);
     const ap = stepApFromSchema(schema);
@@ -261,6 +307,10 @@ function extractStep(buf, name) {
 }
 
 // ── Binary formats: identify, never guess ───────────────────────────
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ * @param {string} name
+ */
 function extractBinaryDxf(buf, name) {
     return result(
         `"${name}" is a BINARY DXF file (${buf.length} bytes). The binary header was not read — no version, units, extents or entity counts are available. Do not infer anything about the drawing's contents.`,
@@ -268,6 +318,10 @@ function extractBinaryDxf(buf, name) {
     );
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ * @param {string} name
+ */
 function extractDwg(buf, name) {
     const magic = buf.subarray(0, 6).toString('latin1');
     const release = ACAD_RELEASES[magic] || null;
@@ -278,6 +332,10 @@ function extractDwg(buf, name) {
     );
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ * @param {string} name
+ */
 function extractIges(buf, name) {
     return result(
         `"${name}" is an IGES file (${buf.length} bytes). Identified by its fixed 80-column format only — the contents were not read; no dimensions are known.`,
@@ -310,8 +368,8 @@ function extractCad(buffer, filename) {
         }
     } catch (err) {
         return result(
-            `CAD file "${name}": metadata could not be read (${err.message}). Nothing is known about its contents.`,
-            { format: 'unknown', error: err.message },
+            `CAD file "${name}": metadata could not be read (${/** @type {Error} */ (err).message}). Nothing is known about its contents.`,
+            { format: 'unknown', error: /** @type {Error} */ (err).message },
         );
     }
 }

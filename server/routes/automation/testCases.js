@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Test cases on a code step or a custom node.
  *
@@ -40,7 +40,11 @@ const perStepMax = () => envCap('AUTOMATION_TEST_CASES_PER_STEP_MAX', 50);
 const assertionsMax = () => envCap('AUTOMATION_TEST_ASSERTIONS_MAX', 50);
 const runRpm = () => envCap('AUTOMATION_TEST_RUN_RPM', 20);
 
-/** The input as the detail answer shows it. */
+/**
+ * The input as the detail answer shows it.
+ * @param {{ input: { kind: string, runId?: string | null } }} testCase
+ * @param {{ available?: boolean, values?: unknown } | null | undefined} loaded
+ */
 function describeInput(testCase, loaded) {
     if (testCase.input.kind === 'typed') return { kind: 'typed', available: true, values: loaded?.values ?? null, runId: null };
     return {
@@ -55,7 +59,7 @@ function describeInput(testCase, loaded) {
  * @param {{
  *   store?: any, testingStore?: any, access?: any,
  *   sandbox?: any, runDataAccess?: { readableRun: Function, assertCapturable: Function, assertTestDataAllowed: Function },
- *   limiter?: Function, now?: () => number,
+ *   limiter?: import('express').RequestHandler, now?: () => number,
  * }} [overrides]
  */
 function makeTestCasesRouter(overrides = {}) {
@@ -74,6 +78,9 @@ function makeTestCasesRouter(overrides = {}) {
     /**
      * The automation, once the caller holds the role the call needs. A custom
      * node's writes need its owner. `null` after a 404 or the guard's 403.
+     * @param {import('express').Request<{ id: string }>} req
+     * @param {import('express').Response} res
+     * @param {string} need
      */
     async function load(req, res, need) {
         const a = await store().getAutomation(req.params.id);
@@ -83,14 +90,25 @@ function makeTestCasesRouter(overrides = {}) {
         return acc ? a : null;
     }
 
-    /** The code step a call names, else 404. */
+    /**
+     * The code step a call names, else 404.
+     * @param {{ definition?: unknown }} a
+     * @param {string} stepId
+     */
     function codeStepOf(a, stepId) {
         const step = findCodeStep(a.definition, stepId);
         if (!step) throw new HttpError(404, 'step_not_found', 'Not found');
         return step;
     }
 
-    /** Keep the input of a finished run as a fixture: the run must be this automation's, readable and finished. */
+    /**
+     * Keep the input of a finished run as a fixture: the run must be this automation's, readable and finished.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {{ id: string }} a
+     * @param {string} stepId
+     * @param {{ runId: string, attempts?: number }} input
+     */
     async function captureFromRun(req, res, a, stepId, input) {
         const found = await runData.readableRun(req, res, input.runId);
         if (!found) return null;
@@ -100,7 +118,7 @@ function makeTestCasesRouter(overrides = {}) {
             { store: store(), testingStore: testing() });
     }
 
-    router.get('/:id/test-cases', validate({ query: ListQuery }), async (req, res) => {
+    router.get('/:id/test-cases', validate({ query: ListQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const a = await load(req, res, 'view');
         if (!a) return;
         const testCases = await testing().listTestCases(a.id, req.query.stepId);
@@ -116,7 +134,7 @@ function makeTestCasesRouter(overrides = {}) {
         res.json({ testCase, input: describeInput(testCase, loaded) });
     });
 
-    router.post('/:id/test-cases', validate({ body: CreateBody }), async (req, res) => {
+    router.post('/:id/test-cases', validate({ body: CreateBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const a = await load(req, res, 'edit');
         if (!a) return;
         await runData.assertTestDataAllowed(a);
@@ -146,7 +164,7 @@ function makeTestCasesRouter(overrides = {}) {
         res.status(201).json({ testCase });
     });
 
-    router.put('/:id/test-cases/:caseId', validate({ body: UpdateBody }), async (req, res) => {
+    router.put('/:id/test-cases/:caseId', validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string, caseId: string }>} */ req, res) => {
         const a = await load(req, res, 'edit');
         if (!a) return;
         await runData.assertTestDataAllowed(a);
@@ -181,7 +199,7 @@ function makeTestCasesRouter(overrides = {}) {
         res.json({ deleted: true });
     });
 
-    router.post('/:id/test-cases/run', limiter, validate({ body: RunBody }), async (req, res) => {
+    router.post('/:id/test-cases/run', limiter, validate({ body: RunBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const a = await load(req, res, 'edit');
         if (!a) return;
         const { stepId, caseIds, code } = req.body;

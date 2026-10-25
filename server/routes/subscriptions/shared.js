@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Shared access gates for the subscriptions routers — the super-admin check,
  * the org-admin/org-member checks and the audit actor id.
@@ -28,10 +28,12 @@ const {
 // The three non-gate callers below use it as a cross-org override, so they are
 // tightened by the same change. Org admins keep their own org's lifecycle
 // rights via the explicit orgRole check in isOrgAdminForOrg.
+/** @param {import('express').Request} req */
 async function isSuperAdmin(req) {
     return isPlatformAdmin(req);
 }
 
+/** @type {import('express').RequestHandler} */
 async function requireAdmin(req, res, next) {
     if (!(await isSuperAdmin(req))) return res.status(403).json({ error: 'Admin access required' });
     next();
@@ -49,11 +51,16 @@ async function requireAdmin(req, res, next) {
 // appeared to work because the previous isSuperAdmin() did a DB permission
 // lookup that happened to admit them (and, being 'admin_subscriptions', admitted
 // them to the platform-wide routes as well — the hole this file was fixed for).
+/**
+ * @param {import('express').Request} req
+ * @param {string} orgId
+ */
 async function isOrgAdminForOrg(req, orgId) {
     return isOrgAdminForOrgCanonical(req, orgId);
 }
 
 // Allow authenticated users to read their own org's subscription, super admins can access all
+/** @type {import('express').RequestHandler<{ orgId?: string }>} */
 async function requireAuthOrOrgMember(req, res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     if (await isSuperAdmin(req)) return next();
@@ -67,8 +74,9 @@ async function requireAuthOrOrgMember(req, res, next) {
     return res.status(403).json({ error: 'Admin access required' });
 }
 
+/** @param {import('express').Request} req */
 function getAdminId(req) {
-    return req.session?.user?.id || req.session?.user?.username || 'unknown';
+    return req.session?.user?.id || /** @type {string | undefined} */ (req.session?.user?.username) || 'unknown';
 }
 
 module.exports = {

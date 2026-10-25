@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Keep. poll_diff over keep_list.
  *
@@ -58,7 +58,7 @@ const TRIGGER_SOURCES = [{
             id: 'note.new',
             label: 'New note',
             fields: FIELDS,
-            sample: { ...SAMPLE, changedKeys: [], previous: {}, current: { content: SAMPLE.content } },
+            sample: { ...SAMPLE, changedKeys: /** @type {string[]} */ ([]), previous: {}, current: { content: SAMPLE.content } },
             scope: 'user',
             source: source({ changePaths: [], emitOnAppear: true }),
         },

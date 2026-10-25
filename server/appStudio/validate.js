@@ -586,3 +586,10 @@ module.exports = {
     // the executor's row shape and the validator's list cannot drift.
     DATASET_QUERY_OUTPUTS,
 };
+
+/**
+ * @typedef {import('./validate/shared').Finding} Finding
+ * @typedef {import('./validate/shared').ValidationCtx} ValidationCtx
+ * @typedef {(finding: Finding) => void} PushFinding
+ * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean }} ValidateOpts
+ */

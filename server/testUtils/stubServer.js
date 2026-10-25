@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -16,7 +16,7 @@ const { preloadStubs } = require('./stubRequire');
 const SERVER = path.join(__dirname, '..');
 
 function serverStubber() {
-    return (rel, exportsObj) => preloadStubs(require, { [path.join(SERVER, rel)]: exportsObj });
+    return (/** @type {string} */ rel, /** @type {Parameters<typeof preloadStubs>[1][string]} */ exportsObj) => preloadStubs(require, { [path.join(SERVER, rel)]: exportsObj });
 }
 
 module.exports = { serverStubber };

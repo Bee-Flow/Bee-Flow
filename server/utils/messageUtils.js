@@ -213,3 +213,5 @@ module.exports = {
     findWireProblems,
     INTERNAL_MESSAGE_FIELDS,
 };
+
+/** @typedef {{ role?: string, content?: unknown, tool_calls?: unknown, tool_call_id?: string, name?: string, thinking?: unknown, reasoningItems?: unknown, [k: string]: unknown }} WireMessage */

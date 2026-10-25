@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Cell helpers shared by the table operations: numbers and text the way a
@@ -28,7 +28,7 @@ function tableError(errorClass, message, where = {}) {
     return err;
 }
 
-/** A finite number, or null (blank, text, boolean, NaN). */
+/** A finite number, or null (blank, text, boolean, NaN). @param {unknown} v @returns {number|null} */
 function toNumber(v) {
     if (typeof v === 'number') return Number.isFinite(v) ? v : null;
     if (v === null || v === undefined || typeof v === 'boolean') return null;
@@ -36,10 +36,10 @@ function toNumber(v) {
     return Number.isFinite(n) ? n : null;
 }
 
-/** Trimmed, lower-cased text; '' for null. The grouping key of a cell. */
+/** Trimmed, lower-cased text; '' for null. The grouping key of a cell. @param {unknown} v */
 const foldText = (v) => (v === null || v === undefined ? '' : String(v).trim().toLowerCase());
 
-/** A value as a JSON scalar cell: string | finite number | boolean | null. */
+/** A value as a JSON scalar cell: string | finite number | boolean | null. @param {unknown} v @returns {string|number|boolean|null} */
 function toScalar(v) {
     if (v === null || v === undefined) return null;
     if (typeof v === 'number') return Number.isFinite(v) ? v : null;
@@ -53,12 +53,13 @@ function toScalar(v) {
     try { return toScalar(JSON.stringify(v)); } catch { return null; }
 }
 
+/** @param {number} x @param {number} decimals */
 const roundTo = (x, decimals) => {
     const f = 10 ** decimals;
     return Math.round(x * f) / f;
 };
 
-/** Order two cells: numbers by value, other text by locale, blanks last. */
+/** Order two cells: numbers by value, other text by locale, blanks last. @param {unknown} a @param {unknown} b */
 function compareCells(a, b) {
     const ab = isBlankCell(a);
     const bb = isBlankCell(b);
@@ -85,7 +86,10 @@ function requireColumn(columns, name, where = {}) {
         where);
 }
 
-/** Rows from a function returning an iterable, an array, or an (async) iterable. */
+/** Rows from a function returning an iterable, an array, or an (async) iterable.
+ * @template T
+ * @param {(() => Iterable<T>|AsyncIterable<T>)|Iterable<T>|AsyncIterable<T>|null|undefined} rows
+ */
 async function* iterate(rows) {
     const it = typeof rows === 'function' ? rows() : rows;
     if (it === null || it === undefined) return;

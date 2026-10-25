@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Microsoft Graph API Client — Shared helper for Microsoft integrations
  * 
@@ -15,6 +16,12 @@ const { parseRetryAfter, backoffDelay, sleep, isReplayableBody } = require('../c
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+/**
+ * The session fields the Graph client reads and writes (an Express session or an automation's vault session).
+ * @typedef {{ accessToken?: string, refreshToken?: string, oauthScope?: string, save?: () => void }} MsSession
+ * @typedef {Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }} GraphRequestOptions
+ */
 
 // ── Throttling ─────────────────────────────────────────────────────────
 //
@@ -38,13 +45,20 @@ const GRAPH_WRITE_MAX_WAIT_MS = 5_000;
 const RESENDABLE_ON_5XX = new Set(['GET', 'HEAD']);
 let wait = sleep;
 
-/** Test hook: replace the throttling sleep (returns the restore function). */
+/**
+ * Test hook: replace the throttling sleep (returns the restore function).
+ * @param {(ms: number, signal?: AbortSignal | null) => Promise<void>} fn
+ */
 function _setSleepForTests(fn) {
     const previous = wait;
     wait = fn || sleep;
     return () => { wait = previous; };
 }
 
+/**
+ * @param {number} status
+ * @param {string} method
+ */
 function isThrottled(status, method) {
     if (status === 429) return true;
     return (status === 503 || status === 504) && RESENDABLE_ON_5XX.has(method);
@@ -53,6 +67,8 @@ function isThrottled(status, method) {
 /**
  * Refresh the Microsoft OAuth access token using the refresh token.
  * Returns the new access token (and updates the session).
+ *
+ * @param {MsSession} session
  */
 async function refreshAccessToken(session) {
     const config = await loadConfig();
@@ -90,7 +106,7 @@ async function refreshAccessToken(session) {
         throw new Error('Microsoft token refresh failed — user must re-authenticate');
     }
 
-    const tokenData = await response.json();
+    const tokenData = /** @type {{ access_token?: string, refresh_token?: string }} */ (await response.json());
 
     // Update session tokens
     if (tokenData.access_token) {
@@ -118,8 +134,8 @@ async function refreshAccessToken(session) {
  * item by its extension, and a JSON caller sets its own.
  *
  * @param {string} path - API path (e.g. '/me/drive') or an absolute Graph URL
- * @param {Object} session - session-shaped object with accessToken/refreshToken
- * @param {Object} options - fetch options (method, body, headers, signal, …)
+ * @param {MsSession} session - session-shaped object with accessToken/refreshToken
+ * @param {GraphRequestOptions} [options] - fetch options (method, body, headers, signal, …)
  * @returns {Promise<Response>}
  */
 async function graphRequest(path, session, options = {}) {
@@ -129,6 +145,9 @@ async function graphRequest(path, session, options = {}) {
 
     const url = path.startsWith('http') ? path : `${GRAPH_BASE}${path}`;
 
+    /**
+     * @param {string | undefined} token
+     */
     const doFetch = async (token) => {
         const headers = {
             'Authorization': `Bearer ${token}`,
@@ -145,7 +164,7 @@ async function graphRequest(path, session, options = {}) {
             const newToken = await refreshAccessToken(session);
             return await doFetch(newToken);
         } catch (refreshErr) {
-            log.error('[MSGraph] Token refresh failed:', refreshErr.message);
+            log.error('[MSGraph] Token refresh failed:', /** @type {Error} */ (refreshErr).message);
             throw new Error('NOT_CONNECTED');
         }
     };
@@ -180,9 +199,9 @@ async function graphRequest(path, session, options = {}) {
  * Automatically retries once with a refreshed token on 401.
  * 
  * @param {string} path - API path (e.g. '/me/messages')
- * @param {Object} session - Express session with accessToken/refreshToken
- * @param {Object} options - fetch options (method, body, headers, etc.)
- * @returns {Object} Parsed JSON response
+ * @param {MsSession} session - Express session with accessToken/refreshToken
+ * @param {GraphRequestOptions} [options] - fetch options (method, body, headers, etc.)
+ * @returns {Promise<any>} Parsed JSON response (arbitrary Graph JSON, shaped per endpoint by each caller)
  */
 async function graphFetch(path, session, options = {}) {
     // JSON by default; a caller's own Content-Type (spread after) still wins,
@@ -235,7 +254,7 @@ const GRAPH_RELATIVE_URL = /^\/[^\s]*$/;
  * counts against the mailbox's limit, and Graph runs at most four of a
  * mailbox's requests at once.
  *
- * @param {Object} session - Microsoft session (refreshed in place on 401)
+ * @param {MsSession} session - Microsoft session (refreshed in place on 401)
  * @param {Array<{ id: string, url: string, headers?: Object }>} requests - `url` relative to
  *   the version root, e.g. `/me/messages/<id>?$select=subject`
  * @param {{ signal?: AbortSignal | null }} [opts]
@@ -260,8 +279,10 @@ async function graphBatch(session, requests, { signal = null } = {}) {
                 }),
                 ...(signal ? { signal } : {}),
             });
-            const byId = new Map((answer?.responses || []).map(res => [String(res.id), res]));
+            const byId = new Map((answer?.responses || []).map((/** @type {{ id?: string, status: number, headers?: Record<string, string>, body?: unknown }} */ res) => [String(res.id), res]));
+            /** @type {{ id: string; url: string; headers?: Object; }[]} */
             const again = [];
+            /** @type {number | null} */
             let retryAfterMs = null;
             for (const r of pending) {
                 const res = byId.get(r.id);
@@ -285,6 +306,7 @@ async function graphBatch(session, requests, { signal = null } = {}) {
 
 /**
  * Check if the current session is connected to Microsoft.
+ * @param {Express.Session} session
  */
 function isMicrosoftConnected(session) {
     return !!(session?.accessToken && session?.oauthProvider === 'microsoft');

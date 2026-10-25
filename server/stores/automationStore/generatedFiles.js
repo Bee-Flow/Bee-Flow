@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * generatedFiles.js — the ledger for documents a RUN produced.
  *
@@ -22,6 +22,21 @@
 const crypto = require('crypto');
 const { initDB, run, getOne, getAll } = require('./core');
 
+/**
+ * @typedef {object} GeneratedFileRow
+ * @property {string} id
+ * @property {string} run_id
+ * @property {string} automation_id
+ * @property {string | null} [step_id]
+ * @property {string} storage_key
+ * @property {string} filename
+ * @property {string} mime_type
+ * @property {number | string | null} [size_bytes]
+ * @property {string | Date} created_at
+ * @property {string | Date} expires_at
+ */
+
+/** @param {GeneratedFileRow | null} r */
 function rowToGeneratedFile(r) {
     if (!r) return null;
     return {
@@ -38,6 +53,7 @@ function rowToGeneratedFile(r) {
     };
 }
 
+/** @param {{ runId: string, automationId: string, stepId?: string | null, storageKey: string, filename: string, mimeType: string, size?: number, ttlMs: number }} file */
 async function recordGeneratedFile({ runId, automationId, stepId = null, storageKey, filename, mimeType, size = 0, ttlMs }) {
     await initDB();
     const id = crypto.randomBytes(18).toString('hex');
@@ -54,6 +70,8 @@ async function recordGeneratedFile({ runId, automationId, stepId = null, storage
  * One file, but only if it belongs to a run the caller already has access to.
  * `runIds` is the journey the visitor's session covers; an expired row reads as
  * absent, so a stale link and an invented one are indistinguishable.
+ * @param {string} id
+ * @param {string[]} runIds
  */
 async function getGeneratedFileForRuns(id, runIds) {
     if (!id || !Array.isArray(runIds) || runIds.length === 0) return null;
@@ -65,7 +83,10 @@ async function getGeneratedFileForRuns(id, runIds) {
     ));
 }
 
-/** Every live file produced by these runs, newest first. */
+/**
+ * Every live file produced by these runs, newest first.
+ * @param {string[]} runIds
+ */
 async function listGeneratedFilesForRuns(runIds) {
     if (!Array.isArray(runIds) || runIds.length === 0) return [];
     await initDB();
@@ -78,7 +99,10 @@ async function listGeneratedFilesForRuns(runIds) {
     return rows.map(rowToGeneratedFile);
 }
 
-/** Expired rows — the caller deletes the blobs, then the rows. */
+/**
+ * Expired rows — the caller deletes the blobs, then the rows.
+ * @param {number} [limit]
+ */
 async function listExpiredGeneratedFiles(limit = 200) {
     await initDB();
     const rows = await getAll(
@@ -88,6 +112,7 @@ async function listExpiredGeneratedFiles(limit = 200) {
     return rows.map(rowToGeneratedFile);
 }
 
+/** @param {string[]} ids */
 async function deleteGeneratedFiles(ids) {
     if (!Array.isArray(ids) || ids.length === 0) return 0;
     await initDB();
@@ -103,6 +128,8 @@ async function deleteGeneratedFiles(ids) {
  * expiry intact, and a null `until` (an approval with no deadline) extends
  * nothing — such approvals accept that a short-TTL attachment can expire
  * first, rather than granting a file eternal life.
+ * @param {string[]} ids
+ * @param {string | Date | null} until
  */
 async function extendGeneratedFileExpiry(ids, until) {
     if (!Array.isArray(ids) || ids.length === 0 || !until) return 0;

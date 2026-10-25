@@ -48,6 +48,7 @@ function canonicalHtml(html) {
  * @param {AiDocWriterOptions} opts
  */
 function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store = require('../../stores/notebookStore'), collab = () => notebookCollab.defaultFacade() }) {
+    /** @type {Array<{ userId: string, kind: 'ai' | 'user' }>} */
     const contributors = [{ userId, kind: 'ai' }];
     // The row version the next compare-and-set write may replace; each write
     // advances it, so a turn's chained edits do not trip over each other.

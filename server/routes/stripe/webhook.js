@@ -42,16 +42,16 @@ const router = express.Router();
 // ── POST /webhook — Handle Stripe Webhook Events ─────────────────────────────
 // NOTE: This route needs raw body — handled by mounting express.raw() in index.js
 
-router.post('/webhook', async (req, res) => {
+router.post('/webhook', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const signature = req.headers['stripe-signature'];
     if (!signature) return res.status(400).send('Missing stripe-signature header');
 
     let event;
     try {
-        event = await stripeService.constructWebhookEvent(req.body, signature);
+        event = await stripeService.constructWebhookEvent(req.body, /** @type {string} */ (signature));
     } catch (err) {
-        log.error('[Stripe Webhook] Signature verification failed:', err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
+        log.error('[Stripe Webhook] Signature verification failed:', /** @type {Error} */ (err).message);
+        return res.status(400).send(`Webhook Error: ${/** @type {Error} */ (err).message}`);
     }
 
     // Idempotency: Stripe retries on 5xx/timeout, so we record event.id and
@@ -153,7 +153,7 @@ router.post('/webhook', async (req, res) => {
         try {
             await userStore.releaseStripeEventProcessed(event.id);
         } catch (releaseErr) {
-            log.error(`[Stripe Webhook] could not release ledger row ${event.id} — the retry will replay-skip:`, releaseErr.message);
+            log.error(`[Stripe Webhook] could not release ledger row ${event.id} — the retry will replay-skip:`, /** @type {Error} */ (releaseErr).message);
         }
         throw new HttpError(500, 'handler_failed', 'handler_failed', { event_id: event.id });
     }

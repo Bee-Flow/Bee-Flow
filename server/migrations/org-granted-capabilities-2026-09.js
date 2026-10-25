@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: grant-grandfather for growth of USER_FACING_CORE (U10).
  *
@@ -55,6 +56,9 @@ const { USER_FACING_CORE } = require('../core/entitlements/capabilityRegistry');
 const SEEDED_DEFAULTS = ['notebooks', 'projects'];
 const MARKER_PREFIX = 'cap_grant_backfill_';
 
+/**
+ * @param {string} v
+ */
 function parseList(v) {
     if (v == null) return null;
     if (Array.isArray(v)) return v;
@@ -68,6 +72,13 @@ function newUserFacingCoreIds() {
     return [...USER_FACING_CORE].filter((id) => !seeded.has(id)).sort();
 }
 
+/**
+ * @typedef {Object} UpArgs
+ * @property {boolean} [dryRun]
+ */
+/**
+ * @param {UpArgs} [param0]
+ */
 async function up({ dryRun = false } = {}) {
     const ids = newUserFacingCoreIds();
     if (ids.length === 0) return { ids, appended: 0 }; // registry == seeded pair: nothing new in this build
@@ -109,7 +120,7 @@ async function up({ dryRun = false } = {}) {
         } catch (e) {
             // Fail CLOSED and loud: no grant is written, nothing is unlocked by
             // guesswork, and the next boot retries (no marker was written).
-            console.warn(`[org-granted-capabilities] grandfather for '${id}' skipped:`, e.message);
+            console.warn(`[org-granted-capabilities] grandfather for '${id}' skipped:`, /** @type {Error} */ (e).message);
         }
     }
     return { ids, appended };

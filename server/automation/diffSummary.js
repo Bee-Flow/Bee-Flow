@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Human-readable diff between two automation definitions.
  *
@@ -197,3 +196,5 @@ module.exports = {
     stepIdsOf,
     planVersionWrite,
 };
+
+/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */

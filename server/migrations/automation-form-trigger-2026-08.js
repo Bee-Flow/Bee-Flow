@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Form trigger (`kind: 'form'`) — the public hosted form page.
  *

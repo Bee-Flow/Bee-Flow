@@ -694,3 +694,17 @@ module.exports = Object.assign(new LLMClient(), {
     // The pure helpers, for callers that already hold an adapter and for tests.
     forcedToolChoice, parseToolCallArgs, extractForcedResult,
 });
+
+/** @typedef {ReturnType<typeof getAdapter>} Adapter */
+
+/** @typedef {import('../../utils/messageUtils').WireMessage} WireMessage */
+
+/** @typedef {import('../providers/base').ToolCall & { name?: string, input?: unknown }} LLMToolCall */
+
+/** @typedef {{ content: string | null, toolCalls: LLMToolCall[] | null, usage: Awaited<ReturnType<Adapter['chat']>>['usage'], thinking?: string, raw?: unknown, stop_reason?: string | null, stopReason?: string | null }} ChatResult */
+
+/** @typedef {{ type?: string, function?: { name?: string, description?: string, parameters?: unknown } }} ToolDef */
+
+/** @typedef {{ rateLimit?: { signal?: AbortSignal | null } | null, [key: string]: unknown }} ChatOptions */
+
+/** @typedef {{ function?: { arguments?: unknown }, input?: unknown }} ToolCallLike */

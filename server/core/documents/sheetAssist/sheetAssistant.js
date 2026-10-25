@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The spreadsheet assistant: a request in plain language ("add a VAT column
  * at 21%", "which customer spent the most?", "fix the #REF! in column E")
@@ -112,8 +112,14 @@ const READ_TOOL_NAMES = Object.freeze(['read_range', 'find', 'evaluate']);
 const READ_TOOLS = Object.freeze(TOOLS.filter((t) => READ_TOOL_NAMES.includes(t.function.name)));
 const MAX_EVALUATE = 20;
 /** A cell holding exactly a number, typed rather than computed. */
+/** @typedef {ReturnType<typeof sheetTabsOf>[number]} SheetTab */
+
 const PLAIN_NUMBER_RE = /^\s*[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?\s*%?\s*$/i;
 
+/**
+ * @param {boolean} readOnly
+ * @param {string} activeTabName
+ */
 function systemPrompt(readOnly, activeTabName) {
     return [
         'You are the assistant inside a spreadsheet in Bee Flow. You read and change THIS sheet through tools.',
@@ -164,16 +170,23 @@ function makeSheetAssistant(deps = {}) {
         const modelId = model?.modelId;
         if (!modelId) throw new HttpError(503, 'ai_not_configured', 'No AI model is configured.');
 
-        /** @type {Map<string,{tab:any,original:Record<string,string>,staged:Record<string,string>,shown:Record<string,any>,name:string,tableId:string}>} */
+        /** @typedef {{tab:SheetTab,original:Record<string,string>,staged:Record<string,string>,shown:Record<string,any>,name:string,tableId:string}} SheetEntry */
+        /** @type {Map<string,SheetEntry>} */
         const loaded = new Map();
         function workbook() {
+            /** @type {Record<string, Record<string, string>>} */
             const out = {};
             for (const e of loaded.values()) out[e.name] = e.staged;
             return out;
         }
+        /** @param {SheetEntry} entry */
         function refreshShown(entry) {
             entry.shown = evaluate(entry.staged, { workbook: workbook(), activeSheet: entry.name });
         }
+        /**
+         * @param {SheetTab} tab
+         * @returns {Promise<SheetEntry>}
+         */
         async function loadTab(tab) {
             if (loaded.has(tab.id)) return loaded.get(tab.id);
             const { cells: original } = await cellsApi().readSheet(doc.userId, tab.datatableId);
@@ -186,6 +199,7 @@ function makeSheetAssistant(deps = {}) {
         const existingCharts = doc.settings?.sheet?.charts || [];
         /** @type {any[]} */
         const newCharts = [];
+        /** @param {unknown} sheetArg */
         async function resolveEntry(sheetArg) {
             if (!sheetArg) return activeEntry;
             const tab = tabs.find((t) => t.id === sheetArg) || tabs.find((t) => t.name === sheetArg);
@@ -215,11 +229,11 @@ function makeSheetAssistant(deps = {}) {
             { role: 'user', content: first },
         ];
 
-        const errorsBefore = (entry) => new Set(errorList(entry.shown, Infinity).map((e) => e.split(' ')[0]));
+        const errorsBefore = (/** @type {SheetEntry} */ entry) => new Set(errorList(entry.shown, Infinity).map((e) => e.split(' ')[0]));
         let changedCount = 0;
 
         /** Stage writes on one sheet, evaluate it, and say what they show. */
-        async function stage(entry, /** @type {Record<string, string>} */ writes) {
+        async function stage(/** @type {SheetEntry} */ entry, /** @type {Record<string, string>} */ writes) {
             const before = errorsBefore(entry);
             // Counted before anything is staged: the tool loop hands a refusal
             // back to the model and carries on, so a refused write must leave
@@ -292,7 +306,7 @@ function makeSheetAssistant(deps = {}) {
                 // Each formula in a scratch cell outside the sheet's columns
                 // (the engine reaches past Z), evaluated over the staged sheet.
                 const scratch = { ...entry.staged };
-                const names = list.map((f, i) => {
+                const names = list.map((/** @type {unknown} */ f, /** @type {number} */ i) => {
                     const cell = `ZZ${i + 1}`;
                     const text = restore(String(f || ''));
                     scratch[cell] = text.startsWith('=') ? text : `=${text}`;
@@ -301,7 +315,7 @@ function makeSheetAssistant(deps = {}) {
                 const wb = workbook();
                 wb[entry.name] = scratch;
                 const out = evaluate(scratch, { workbook: wb, activeSheet: entry.name });
-                return outbound(names.map((cell) => `${scratch[cell]} → ${out[cell]?.display ?? ''}`).join('\n'));
+                return outbound(names.map((/** @type {string} */ cell) => `${scratch[cell]} → ${out[cell]?.display ?? ''}`).join('\n'));
             }
             if (name === 'set_cells') {
                 const entry = await resolveEntry(args?.sheet);

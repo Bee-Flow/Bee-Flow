@@ -119,3 +119,7 @@ module.exports = { createMicrosoftIdentityStore,
     autoLinkLegacy: (...args) => current().autoLinkLegacy(...args),
     getIdentityBinding: (...args) => current().getIdentityBinding(...args),
 };
+
+/** @typedef {import('pg').PoolClient} PgClient */
+
+/** @typedef {ReturnType<typeof createMicrosoftIdentityStore>} MicrosoftIdentityStore */

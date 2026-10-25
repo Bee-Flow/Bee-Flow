@@ -121,3 +121,32 @@ module.exports = {
     sizeOfDescriptor,
     fileEntryAsAttachment,
 };
+
+/**
+ * Shared shapes of the file_intake phases (each phase module imports these).
+ * @typedef {import('../actionExecutor/shared').DataModel} DataModel
+ * @typedef {import('../actionExecutor/shared').DataTable} DataTable
+ * @typedef {import('../actionExecutor/shared').ExecCtx} ExecCtx
+ * @typedef {import('../actionExecutor/shared').Viewer} WriteViewer
+ * @typedef {import('../actionExecutor/shared').Binding} Binding
+ * @typedef {{ id: string, userId: string, organizationId?: string | null }} IntakeApp
+ * @typedef {{ id?: string | null, role?: string | null, organizationId?: string | null }} IntakeViewer
+ * @typedef {{ id?: string, filename?: string, map?: string, provider_attachment_id?: string, [k: string]: unknown }} AttachmentRow  a record of the attachments table
+ * @typedef {{ fileId?: string, attachmentId?: string, name?: string, mime?: string, size?: number, [k: string]: unknown }} FileDescriptor
+ * @typedef {{ rows: number, columns: number, hits: number, lineList: boolean, unmatched: string[], unmatchedCount: number }} SheetScan
+ * @typedef {{ name: string, baseName: string, kind: string, descriptor: FileDescriptor | null, folder: string, rowId?: string, row?: AttachmentRow, fromZip?: string, scan?: SheetScan | null }} IntakeFile  one redeemed attachment
+ * @typedef {{ name: string, reason: string }} Refusal
+ * @typedef {Error & { status?: number, code?: string }} QuotaError
+ * @typedef {{ field: string, op: string, value: unknown, required?: boolean }} RowFilter
+ * @typedef {(binding: unknown, ctx: ExecCtx, scope: import('../actionExecutor/shared').ServerScope) => unknown} ResolveBinding
+ * @typedef {(app: IntakeApp, model: DataModel, table: DataTable, values: Record<string, unknown>, opts: { viewer?: WriteViewer, recordId?: string }) => Promise<{ id?: string, recordId?: string } | null>} WriteRecord
+ * @typedef {(ctx: ExecCtx) => WriteViewer} WriteViewerOf
+ * @typedef {{ baseName: string, partKey: string, folder: string, operation: string, cadName: string | null, cadFile: FileDescriptor | null, drawingName: string | null, drawingFile: FileDescriptor | null, role: string, matchStatus: string, extraCad: string[], recordId?: string | null }} IntakePair
+ * @typedef {{ kind?: string, threadKey?: Binding, connectorId?: string, poPattern?: string, allowEmpty?: boolean, cadPreferred?: string, resultDetail?: string, writeTo?: { tableId?: string, mapping?: Record<string, string>, constants?: Record<string, Binding> } }} IntakeStep  the authored file_intake step
+ * @typedef {{ files: IntakeFile[], refused: Refusal[], quotaHit: QuotaError | null }} IntakeState  the phase state the phases share
+ * @typedef {{ name: string, extracted: number, refusedEntries: Refusal[], format?: string, entries?: number, filed?: number }} ZipReport
+ * @typedef {{ name: string, rows: number | null, columns: number | null, hits: number | null, missing: number | null, lineList: boolean }} SheetReport
+ * @typedef {{ name: string | null, descriptor: FileDescriptor | null }} DocumentEntry  a document the report points at
+ * @typedef {typeof import('../stepDataSource')} StepDataSourceModule
+ * @typedef {typeof import('../mailboxAttachments')} MailboxModule
+ */

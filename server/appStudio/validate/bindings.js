@@ -260,3 +260,5 @@ function validateBinding(key, value, path, ctx) {
 module.exports = {
     validateBinding,
 };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

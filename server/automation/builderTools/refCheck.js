@@ -652,3 +652,24 @@ module.exports = {
     describeProblem,
     schemaShape,
 };
+
+/**
+ * @typedef {import('./shapeTree').ShapeNode} ShapeNode
+ * @typedef {import('../../shared/expr/path.mjs').PathToken} PathToken
+ * @typedef {import('./shapeTree').WalkResult} WalkResult
+ * @typedef {{ id?: string, type?: string, layerKey?: string, tool?: string, op?: string, fields?: unknown,
+ *   outputSchema?: unknown, arrayRef?: string, operations?: unknown, forEach?: { overRef?: string, itemVar?: string } }} RefStep
+ * @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string } }} RefTrigger
+ * @typedef {import('./draftGraph').DraftGraph & { trigger?: RefTrigger, triggers?: RefTrigger[], steps?: RefStep[] }} RefGraph
+ * @typedef {import('./pendingDatatables').DraftWrap & {
+ *   _runtimeShapes?: Record<string, import('./shapeTree').Descriptor> | null,
+ *   _stepShapes?: Record<string, { sig: string, shape: ShapeNode }> | null,
+ *   _availableToolNames?: Set<string> | null,
+ *   _allowedModelTiers?: Set<string>,
+ *   _documents?: Array<{ id: string, name?: string, versionId?: string, parameters?: Array<{ key: string, default?: unknown }>,
+ *     placeholders?: Array<{ key: string }> }> | null,
+ *   _documentContracts?: Record<string, { versionId?: string }>,
+ *   _inputSchemasByTool?: Record<string, { properties?: Record<string, unknown>, required?: string[] }>,
+ * }} BuilderWrap
+ * @typedef {{ tokens: PathToken[], why: string, envelope?: string }} RefFix
+ */

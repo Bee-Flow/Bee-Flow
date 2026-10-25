@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GitHub Sync Routes — Configure and trigger sync of agent/skill configs to GitHub
  *
@@ -54,6 +54,7 @@ const ConfigureBody = z.object({
 }).strict();
 
 // Helper: resolve the user's first org ID
+/** @param {import('express').Request} req */
 async function getOrgId(req) {
     const orgIds = await resolveUserOrgIds(req);
     if (!orgIds || orgIds.size === 0) return null;
@@ -62,7 +63,7 @@ async function getOrgId(req) {
 
 // ─── Status ──────────────────────────────────────────────────────
 // Returns current sync configuration + pending change count
-router.get('/status', requirePermission('manage_agents'), async (req, res) => {
+router.get('/status', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await getOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
@@ -83,7 +84,7 @@ router.get('/status', requirePermission('manage_agents'), async (req, res) => {
 
 // ─── Configure ───────────────────────────────────────────────────
 // Set the target GitHub repository and branch for sync
-router.post('/configure', requirePermission('manage_agents'), validate({ body: ConfigureBody }), async (req, res) => {
+router.post('/configure', requirePermission('manage_agents'), validate({ body: ConfigureBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await getOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
@@ -120,7 +121,7 @@ router.post('/configure', requirePermission('manage_agents'), validate({ body: C
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.delete('/configure', requirePermission('manage_agents'), async (req, res) => {
+router.delete('/configure', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await getOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
@@ -131,7 +132,7 @@ router.delete('/configure', requirePermission('manage_agents'), async (req, res)
 
 // ─── Push All ────────────────────────────────────────────────────
 // Trigger a full sync of all agents and skills to GitHub
-router.post('/push', requirePermission('manage_agents'), async (req, res) => {
+router.post('/push', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await getOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
@@ -143,7 +144,7 @@ router.post('/push', requirePermission('manage_agents'), async (req, res) => {
 
 // ─── Push Pending ────────────────────────────────────────────────
 // Push only resources that changed since last sync
-router.post('/push-pending', requirePermission('manage_agents'), async (req, res) => {
+router.post('/push-pending', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await getOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
@@ -155,7 +156,7 @@ router.post('/push-pending', requirePermission('manage_agents'), async (req, res
 
 // ─── Sync Details ────────────────────────────────────────────────
 // Get detailed sync state for all resources
-router.get('/details', requirePermission('manage_agents'), async (req, res) => {
+router.get('/details', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await getOrgId(req);
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 

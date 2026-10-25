@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -46,6 +46,7 @@ const log = require('../../telemetry/log');
  * which is exactly what should not travel.
  *
  * Null when the table is gone.
+ * @param {string} datatableId
  */
 async function getDataVersion(datatableId) {
     await initDB();
@@ -59,6 +60,7 @@ const _liveTimers = new Map();
 
 // Consumers register themselves at boot (jobs/datatableChangePorts.js, loaded by
 // boot/featureRegistrations.js), so the storage layer never requires a feature.
+/** @type {{ listener: (datatableId: string) => unknown, label: string }[]} */
 const _listeners = [];
 let _warnedNoListener = false;
 
@@ -66,6 +68,8 @@ let _warnedNoListener = false;
  * Register a consumer of "this table's rows moved". `listener(datatableId)` may
  * be async; each one is caught separately, so a failing consumer never stops
  * the others.
+ * @param {(datatableId: string) => unknown} listener
+ * @param {string} [label]
  */
 function onDatatableChanged(listener, label = 'listener') {
     _listeners.push({ listener, label });
@@ -76,6 +80,10 @@ function liveListenerLabels() {
     return _listeners.map(l => l.label);
 }
 
+/**
+ * @param {string} datatableId
+ * @param {{ delayMs?: number, arm?: ((datatableId: string) => unknown) | null, reSnapshot?: ((datatableId: string) => unknown) | null }} opts
+ */
 function notifyDatatableChanged(datatableId, { delayMs = LIVE_DEBOUNCE_MS, arm = null, reSnapshot = null } = {}) {
     if (!datatableId) return;
     if (_liveTimers.has(datatableId)) return;   // already pending: one pass covers the burst

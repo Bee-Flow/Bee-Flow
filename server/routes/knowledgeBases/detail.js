@@ -104,8 +104,8 @@ const DeleteQuery = orEmpty(z.object({
  * holds no managed base, so it reports none and refuses nothing. The real
  * store always has both.
  */
-const managedOf = (kbId) => (typeof kbStore.managedPayload === 'function' ? kbStore.managedPayload(kbId) : null);
-const assertKbDeletable = (kbId) => (typeof kbStore.assertKbWrite === 'function' ? kbStore.assertKbWrite(kbId, ['delete']) : null);
+const managedOf = (/** @type {string} */ kbId) => (typeof kbStore.managedPayload === 'function' ? kbStore.managedPayload(kbId) : null);
+const assertKbDeletable = (/** @type {string} */ kbId) => (typeof kbStore.assertKbWrite === 'function' ? kbStore.assertKbWrite(kbId, ['delete']) : null);
 
 /**
  * Get a single KB with documents

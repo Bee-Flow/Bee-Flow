@@ -21,6 +21,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
  * reasons must not borrow each other's words: telling someone "a tool kept
  * failing" when the truth is "I am waiting for you to approve it" sends them
  * to debug a tool that is fine.
+ * @param {string | null} bailReason
  */
 function wrapUpFallbackText(bailReason) {
     return bailReason === 'pending_confirmation'
@@ -34,6 +35,7 @@ function wrapUpFallbackText(bailReason) {
  * them it produced no prose either, and the turn would end with an empty
  * assistant bubble — the original defect (a graceful bail that saves no
  * reply) wearing a different hat. Say what happened instead.
+ * @param {{ currentToolCalls: import('./turnState').ToolCall[], fullResponse: string, _bailReason: string | null, onEvent: import('./turnState').OnEvent }} round
  */
 function wrapUpAnswer({ currentToolCalls, fullResponse, _bailReason, onEvent }) {
     if (currentToolCalls.length > 0) {
@@ -61,6 +63,8 @@ function wrapUpAnswer({ currentToolCalls, fullResponse, _bailReason, onEvent }) 
  *
  * The agent store and the attribution module are handed in (they sit in the
  * server's large import cycle, which this module stays out of).
+ * @param {{ agent: import('./turnState').AgentRow, agentId: string, userId: string, userMessage: string, messageMetadata: import('./turnState').MessageMetadata, fullResponse: string, onEvent: import('./turnState').OnEvent }} turn
+ * @param {{ agentStore: Pick<typeof import('../../../stores/agentStore'), 'getAgent'>, ruleAttribution: () => typeof import('../ruleAttribution') }} deps
  */
 async function attributeTestChatTurn({ agent, agentId, userId, userMessage, messageMetadata, fullResponse, onEvent }, { agentStore, ruleAttribution }) {
     try {
@@ -85,6 +89,9 @@ async function attributeTestChatTurn({ agent, agentId, userId, userMessage, mess
 /**
  * A round threw: classify it for logging and the user-facing message, write
  * the `error` termination row once, and rethrow for the route handler.
+ * @param {Error & { _classified?: ReturnType<typeof classifyStreamError>, _terminationLogged?: boolean }} error
+ * @param {{ messages: import('./turnState').ChatMessage[], terminationBaseRow: import('./turnLoop').TerminationBaseRow }} ctx
+ * @returns {never}
  */
 function rethrowRoundError(error, { messages, terminationBaseRow }) {
     const classified = error._classified || classifyStreamError(error);
@@ -125,12 +132,15 @@ function rethrowRoundError(error, { messages, terminationBaseRow }) {
  *
  * Otherwise it is genuine budget exhaustion: the model kept asking for tools
  * until the configured max_tool_rounds_chat ran out.
+ * @param {{ signal: AbortSignal | null, abortLogged: boolean, terminationBaseRow: import('./turnLoop').TerminationBaseRow }} ctx
+ * @returns {never}
  */
 function throwLoopExit({ signal, abortLogged, terminationBaseRow }) {
     if (signal?.aborted) {
         if (!abortLogged) {
             terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'aborted' }).catch((e) => bestEffort('core/agentRuntime/chatStream/turnExits:throwLoopExit', e));
         }
+        /** @type {Error & { _terminationLogged?: boolean }} */
         const _abortErr = /** @type {Error & {_terminationLogged?: boolean}} */ (new Error('Client disconnected before the turn finished'));
         _abortErr.name = 'AbortError';
         _abortErr._terminationLogged = true;

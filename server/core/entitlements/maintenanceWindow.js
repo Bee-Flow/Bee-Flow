@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Deployment / maintenance window announcements.
  *
@@ -47,6 +47,7 @@ const MAX_ETA_SECONDS = 3600;
  * Number() would quietly turn a missing ETA into a 10-second window and
  * announce an outage nobody asked for. Numeric strings ARE accepted because
  * a JSON body legitimately carries "180".
+ * @param {unknown} etaSeconds
  */
 function _clampEta(etaSeconds) {
     if (typeof etaSeconds !== 'number' && typeof etaSeconds !== 'string') return null;
@@ -61,6 +62,8 @@ function _clampEta(etaSeconds) {
  *
  * Exported for tests. `now` is injectable so the expiry boundary can be tested
  * without sleeping.
+ * @param {{ endsAt?: string } | null | undefined} win
+ * @param {number} [now]
  */
 function _isActive(win, now = Date.now()) {
     if (!win || typeof win !== 'object') return false;

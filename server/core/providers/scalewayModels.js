@@ -429,3 +429,37 @@ module.exports = {
     isScalewayServedModel,
     _resetScalewayModelRegistry,
 };
+
+/**
+ * The catalog.
+ *
+ * `serverless: true` marks the models Generative APIs serves on demand — the
+ * set this provider is about. The handful of `serverless: false` entries are
+ * models Scaleway only offers on Dedicated Deployments; they are here so that
+ * an admin who points this adapter at a dedicated endpoint still gets proper
+ * metadata instead of a bare id.
+ *
+ * `org` is the vendor segment the community pricing database uses in its
+ * `scaleway/<org>/<id>` keys — case-sensitive, hence `BAAI`.
+ *
+ * `price` is Scaleway's published list price per 1M tokens (EUR), used only as
+ * a fallback for models the community pricing database has not picked up yet.
+ *
+ * @typedef {object} ScalewayModelEntry
+ * @property {string} org
+ * @property {string} name
+ * @property {string} cat
+ * @property {string} [desc]
+ * @property {number} [context]
+ * @property {number} [maxOutput]
+ * @property {boolean} [reasoning]
+ * @property {boolean} [vision]
+ * @property {boolean} [tools]
+ * @property {boolean} [embedding]
+ * @property {boolean} [audio]
+ * @property {readonly string[]} [effort]
+ * @property {boolean} [parallelToolCalls]
+ * @property {boolean} serverless
+ * @property {string} [status]
+ * @property {{ input: number, output: number, cacheRead?: number } | null} [price]
+ */

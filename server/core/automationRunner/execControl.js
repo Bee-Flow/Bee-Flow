@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Control-flow steps (extracted verbatim from engine.js): condition, the switch family
  * (scalar/collection/list modes), wait and stop_error — plus return_to_app, the second
@@ -502,3 +501,25 @@ async function execSwitch(step, ctx, runState) {
 }
 
 module.exports = { execCondition, execWait, execStopError, execReturnToApp, execSwitch };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/** @typedef {Parameters<typeof prepareTopics>[2] & { extendRunDeadline?: (ms: number) => void, _toolMemo?: { clear?: () => void } }} ControlCtx */
+
+/** @typedef {{ name?: string, value?: unknown, expr?: string }} SwitchCase */
+
+/** @typedef {{ c: SwitchCase, rule: boolean, ast: ReturnType<typeof parseTopicExpr> | null, parseError?: string }} CompiledCase */
+
+/** @typedef {Awaited<ReturnType<typeof prepareTopics>>['host']} TopicHost */
+
+/** @typedef {(msg: string) => void} OnEvalError */
+
+/** @typedef {import('../../shared/expr/engine.mjs').ExprOptions} ExprOptions  prepareTopics' host is the topic HostTable */
+
+/**
+ * The config fields the control-flow steps read.
+ * @typedef {{ id?: string, expr?: string, seconds?: number|string, message?: string,
+ *   navigateTo?: { screenId?: string, recordRef?: string } | null, toast?: { message?: string, tone?: string } | null,
+ *   refresh?: string | null, onError?: string | null, cases?: SwitchCase[], arrayRef?: string, matchMode?: string,
+ *   defaultBranch?: string, [key: string]: unknown }} ControlStep
+ */

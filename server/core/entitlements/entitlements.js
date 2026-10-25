@@ -766,3 +766,12 @@ module.exports = {
     _resetSingleOrgCache: () => { _singleOrgCache = { value: null, expiresAt: 0 }; },
     _buildOrgGrant: buildOrgGrant, // test-only: the org-grant composition
 };
+
+/**
+ * @typedef {import('./betaFeatures').SessionLike} SessionLike
+ * @typedef {{ core: Set<string>, beta: Set<string>, integration: Set<string>, [kind: string]: Set<string> }} KindSets
+ * @typedef {{ core: string[], beta: string[], integration: string[], [kind: string]: string[] }} KindArrays
+ * @typedef {{ userId?: string|null, orgId?: string|null, session?: SessionLike|null,
+ *   req?: { session?: SessionLike } | null, tierHint?: string|null }} ResolveInput
+ * @typedef {{ _sets?: { effective?: KindSets, ceiling?: KindSets }, effective?: KindArrays, degraded?: boolean } | null} SnapshotLike
+ */

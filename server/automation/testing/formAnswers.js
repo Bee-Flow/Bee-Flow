@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What a person typed into a run's forms, kept so the same run can be played
  * again (a form scenario, a golden replay).
@@ -32,12 +32,17 @@
 
 const { normalizeFields, isDisplayField, isFormTriggerDefinition } = require('../formTriggerContract');
 
+/** @param {unknown} v */
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** The trigger node a run entered through: the primary, or the `triggers[]` entry named by rootStepId. */
+/**
+ * The trigger node a run entered through: the primary, or the `triggers[]` entry named by rootStepId.
+ * @param {any} definition
+ * @param {string | null | undefined} rootStepId
+ */
 function enteredTriggerOf(definition, rootStepId) {
     if (rootStepId && Array.isArray(definition?.triggers)) {
-        const hit = definition.triggers.find((t) => t && t.id === rootStepId);
+        const hit = definition.triggers.find((/** @type {{ id?: string } | null} */ t) => t && t.id === rootStepId);
         if (hit) return hit;
     }
     return definition?.trigger || null;
@@ -50,7 +55,9 @@ function enteredTriggerOf(definition, rootStepId) {
  * @param {string|null} stepId
  */
 function keepDeclared(form, output, stepId) {
+    /** @type {Record<string, any>} */
     const kept = {};
+    /** @type {Array<{ stepId: string | null, field: string, reason: 'file' | 'app_pick' | 'not_declared' }>} */
     const skipped = [];
     if (!isPlainObject(output)) return { kept, skipped };
     const declared = new Map(normalizeFields(form).filter((f) => !isDisplayField(f)).map((f) => [f.name, f]));
@@ -74,6 +81,7 @@ function keepDeclared(form, output, stepId) {
  * @returns {{ v: 1, trigger: Record<string, any>|null, pages: Record<string, Record<string, any>>, skipped: Array<{ stepId: string|null, field: string, reason: 'file'|'app_pick'|'not_declared' }> }}
  */
 function answersFromJourney({ definition, rootRun, steps }) {
+    /** @type {Array<{ stepId: string | null, field: string, reason: 'file' | 'app_pick' | 'not_declared' }>} */
     const skipped = [];
 
     let trigger = null;
@@ -103,12 +111,18 @@ function answersFromJourney({ definition, rootRun, steps }) {
     return { v: 1, trigger, pages, skipped };
 }
 
-/** JSON bytes of the answers, for the size cap. */
+/**
+ * JSON bytes of the answers, for the size cap.
+ * @param {unknown} answers
+ */
 function answersSize(answers) {
     return Buffer.byteLength(JSON.stringify(answers ?? null), 'utf8');
 }
 
-/** True when the answers hold anything a replay could use (trigger values or a page). */
+/**
+ * True when the answers hold anything a replay could use (trigger values or a page).
+ * @param {{ trigger?: unknown, pages?: Record<string, unknown> } | null | undefined} answers
+ */
 function hasAnswers(answers) {
     return !!answers && ((isPlainObject(answers.trigger) && Object.keys(answers.trigger).length > 0)
         || Object.keys(answers.pages || {}).length > 0);

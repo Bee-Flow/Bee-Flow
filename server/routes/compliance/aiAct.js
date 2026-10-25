@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — EU AI Act classification register.
  *
@@ -49,28 +50,47 @@ const guard = [requireAuth, requirePermission('admin_compliance')];
 const KINDS = new Set(['automation', 'agent']);
 const ID_RE = /^[A-Za-z0-9._:@-]{1,160}$/;
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 function _target(req, res) {
-    const kind = String(req.params.kind || '');
+    const kind = /** @type {'automation' | 'agent'} */ (String(req.params.kind || ''));
     const id = String(req.params.id || '');
     if (!KINDS.has(kind)) { res.status(400).json({ error: 'invalid_kind', allowed: [...KINDS] }); return null; }
     if (!ID_RE.test(id)) { res.status(400).json({ error: 'invalid_target_id' }); return null; }
     return { kind, id };
 }
 
-/** The org-scoped row for the target, or null. Titles only. */
+/**
+ * The org-scoped row for the target, or null. Titles only.
+ * @param {string} orgId
+ * @param {string} kind
+ * @param {string} id
+ */
 async function _loadTarget(orgId, kind, id) {
     return kind === 'agent' ? signals.loadAgent(orgId, id) : signals.loadAutomation(orgId, id);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} kind
+ * @param {string} id
+ */
 async function _liveSignals(orgId, kind, id) {
     return kind === 'agent' ? signals.signalsForAgent(orgId, id) : signals.signalsForAutomation(orgId, id);
 }
 
+/**
+ * @param {string} kind
+ * @param {Record<string, any> | null} row
+ */
 function _titleOf(kind, row) {
     if (!row) return null;
     return kind === 'agent' ? (row.name || null) : (row.title || null);
 }
 
+/** @param {Record<string, any> | null} row */
 function _publicRow(row) {
     if (!row) return null;
     return {
@@ -92,7 +112,7 @@ const AssessmentBody = z.preprocess((v) => (v === undefined || v === null ? {} :
     answers: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'answers is a JSON object.' }) }).optional(),
 }).strict());
 
-router.get('/ai-act/assessments', ...guard, async (req, res) => {
+router.get('/ai-act/assessments', ...guard, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const rows = await aiActAssessmentStore.listForOrg(orgId);
@@ -109,7 +129,7 @@ router.get('/ai-act/assessments', ...guard, async (req, res) => {
     })));
 });
 
-router.get('/ai-act/assessments/:kind/:id/signals', ...guard, async (req, res) => {
+router.get('/ai-act/assessments/:kind/:id/signals', ...guard, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const t = _target(req, res);
@@ -119,7 +139,7 @@ router.get('/ai-act/assessments/:kind/:id/signals', ...guard, async (req, res) =
     res.json(live);
 });
 
-router.get('/ai-act/assessments/:kind/:id', ...guard, async (req, res) => {
+router.get('/ai-act/assessments/:kind/:id', ...guard, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const t = _target(req, res);
@@ -149,7 +169,7 @@ router.get('/ai-act/assessments/:kind/:id', ...guard, async (req, res) => {
     });
 });
 
-router.put('/ai-act/assessments/:kind/:id', ...guard, validate({ body: AssessmentBody }), async (req, res) => {
+router.put('/ai-act/assessments/:kind/:id', ...guard, validate({ body: AssessmentBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const t = _target(req, res);
@@ -164,7 +184,7 @@ router.put('/ai-act/assessments/:kind/:id', ...guard, validate({ body: Assessmen
         orgId, kind: t.kind, id: t.id, signals: live || {}, answers: body.answers || {}, actorId,
     });
 
-    res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: result.open_duties });
+    res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: /** @type {{ open_duties?: unknown }} */ (result).open_duties });
 });
 
 module.exports = router;

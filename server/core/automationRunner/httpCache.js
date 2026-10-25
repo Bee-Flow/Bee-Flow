@@ -798,3 +798,25 @@ module.exports = {
     CACHEABLE_METHODS, CREDENTIAL_RESPONSE_HEADERS, HTTP_MAX_ENTRY_BYTES,
     CACHE_INTO_DEFAULT_DAYS, CACHE_INTO_MAX_DAYS,
 };
+
+/**
+ * A response as the http path builds it (PRE-parse unless `data` is set).
+ * @typedef {{ status: number, ok: boolean, headers: Record<string, string>, body: string, truncated?: boolean, data?: unknown }} HttpOut
+ */
+
+/**
+ * What `lookup` decides before dispatch.
+ * @typedef {object} HttpCachePlan
+ * @property {ReturnType<typeof import('./runContext').buildRunContext>['_toolMemo'] | null} memo
+ * @property {string} memoKey
+ * @property {number | undefined} memoTtlMs
+ * @property {string} userId
+ * @property {string} hostname
+ * @property {string} method
+ * @property {string} parsedOrigin
+ * @property {string} parsedPath
+ * @property {{ store: typeof import('../../stores/integrationCacheStore'), key: string, organizationId: string, stepTtlSeconds: number | null, ttlSeconds: number } | null} durable
+ * @property {Awaited<ReturnType<typeof openInto>> | null} into
+ * @property {{ tier: string, out: HttpOut } | null} served
+ * @property {{ out: HttpOut, headers: Record<string, string> } | null} revalidate
+ */

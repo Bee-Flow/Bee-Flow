@@ -110,3 +110,5 @@ async function applyTemplate(id) {
 module.exports = {
     getTemplates, setTemplates, saveTemplate, deleteTemplate, applyTemplate,
 };
+
+/** @typedef {{ id: string, name: string, description: string, createdAt?: string, blocks: import('./shared').CmsDoc[] }} Template */

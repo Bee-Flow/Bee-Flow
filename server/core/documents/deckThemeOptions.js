@@ -656,3 +656,10 @@ module.exports = {
     mix,
     normHex,
 };
+
+/**
+ * @typedef {{ preset?: string, accent?: string, background?: string, text?: string, titleFont?: string,
+ *   bodyFont?: string, coverStyle?: string, tableStyle?: string, logoPlacement?: string, slideNumbers?: boolean,
+ *   brandOnSlides?: boolean, footerText?: string, template?: 'none' | NonNullable<ReturnType<typeof normaliseTemplate>>,
+ *   logo?: string }} DeckOverrides
+ */

@@ -629,3 +629,7 @@ module.exports = {
     deserializeSkillMeta,
     SKILL_META_FORMAT,
 };
+
+/** @typedef {Awaited<ReturnType<typeof import('../stores/agent/agentCrud').getAllAgents>>[number] & { updated_at?: string | Date }} SyncAgent  an agents row (SELECT *, so updated_at too) as agentCrud hands it out */
+
+/** @typedef {Record<string, any>} SkillRow  a raw `skills` row (SELECT *) or the store's camelCase mapping */

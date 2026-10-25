@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.10 — Information deletion.
  *
@@ -30,6 +30,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_deletion.desc',
     remediationKey: 'compliance.checks.iso_deletion.fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const lastRun = settings.last_retention_run_at ? new Date(settings.last_retention_run_at) : null;

@@ -54,3 +54,5 @@ async function resolveLabelIds(gmail, entries, cacheKey = null) {
 }
 
 module.exports = { rememberLabels, listLabels, resolveLabelIds };
+
+/** @typedef {import('./messageShape').GmailLabel} GmailLabel */

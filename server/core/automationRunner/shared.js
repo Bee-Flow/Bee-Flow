@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Shared constants, run-state helpers and DAG-traversal primitives for the
  * automation engine (extracted verbatim from engine.js). Leaf relative to
@@ -387,3 +386,24 @@ module.exports = {
     BRANCHER_TYPES, TERMINAL_STEP_TYPES, LOOP_ROOT_ID, PARALLEL_ROOT_ID, PII_RESCAN_EXEMPT_TYPES,
     refIsSynthetic, collectBindingPaths, stepInputsSynthetic,
 };
+
+/**
+ * A DAG edge as the definition stores it (see edgeLabel normalisation below).
+ * @typedef {{ from: string, to: string, label?: string, caseName?: string|null, [key: string]: unknown }} DagEdge
+ */
+
+/**
+ * A step node of a definition, as far as these helpers read it.
+ * @typedef {{ id: string, type?: string, inputs?: unknown, [key: string]: unknown }} DagStep
+ */
+
+/**
+ * A formula syntax-tree node (shared/expr parseExpr), as far as exprRootReads walks it.
+ * @typedef {{ kind?: string, v?: string | number | boolean, segments?: Array<{ kind?: string, v?: string, expr?: ExprNode }>,
+ *   cond?: ExprNode, a?: ExprNode, b?: ExprNode, expr?: ExprNode, args?: ExprNode[] }} ExprNode
+ */
+
+/**
+ * A step's bound inputs: JSON, with `{ kind: 'ref'|'template'|'expr', ... }` bindings anywhere inside.
+ * @typedef {string | number | boolean | null | undefined | BindingValue[] | { [key: string]: BindingValue }} BindingValue
+ */

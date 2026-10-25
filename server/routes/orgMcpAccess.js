@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The organisation's MCP access policy. Org admins only, on their own org.
  *

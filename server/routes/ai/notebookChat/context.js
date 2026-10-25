@@ -309,3 +309,10 @@ module.exports = {
     retrieveKbContext, buildDocumentContext, buildSelectionContext, isSearchAvailable, buildSourceSummary,
     buildSystemPrompt,
 };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../../stores/notebookStore').getNotebook>>>} Notebook
+ * @typedef {ReturnType<typeof import('../../../stores/notebook/rowMappers').mapSourceRow>} Source
+ * @typedef {Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>>} Shield
+ * @typedef {ReturnType<typeof import('./privacyScans').makeTurnScans>} TurnScans
+ */

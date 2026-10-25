@@ -774,3 +774,14 @@ module.exports = {
 const _configStore = require('./configStore');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 if (typeof _configStore.setLegacySecretResolver === 'function') _configStore.setLegacySecretResolver(getLegacySecretValue);
+
+/**
+ * A named connection as shapeConnection returns it. `secret` is only present on the
+ * runtime read (getConnectionWithSecret): the DECRYPTED JSON blob, keyed by field.
+ * @typedef {{ id: string, ownerUserId: string, orgId: string, provider: string, label: string, kind: string,
+ *   status: string, isDefault: boolean, secretMeta: Record<string, unknown> | undefined, lastUsedAt: Date | string | null,
+ *   lastError: string | null, createdAt: Date | string, updatedAt: Date | string,
+ *   secret?: Record<string, any> | null }} Connection
+ */
+
+/** @typedef {{ provider: string, field: string, kind: string }} LegacyKeyMapping */

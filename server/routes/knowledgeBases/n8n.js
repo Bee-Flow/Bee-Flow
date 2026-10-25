@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — n8n ingestion.
  *
@@ -75,14 +76,14 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
         }
 
         const orgWorkflows = await configStore.getConfig(`n8n_workflows_org_${orgId}`) || [];
-        const configuredWf = orgWorkflows.find(w => w.id === workflowId);
+        const configuredWf = orgWorkflows.find((/** @type {{ id: string, allowKbIngestion?: boolean }} */ w) => w.id === workflowId);
         if (!configuredWf || !configuredWf.allowKbIngestion) {
             return res.status(403).json({ error: 'This n8n workflow has not been enabled for KB ingestion by your Organisation administrator' });
         }
 
         // Fetch the full workflow definition from n8n
         const { fetchWorkflowById, triggerWebhookWorkflow } = require('../../integrations/n8nTools');
-        const workflow = await fetchWorkflowById(n8nUrl, n8nApiKey, workflowId);
+        const workflow = /** @type {{ name?: string, nodes?: Array<{ type?: string, parameters?: { path?: string, httpMethod?: string } }> } | null} */ (await fetchWorkflowById(n8nUrl, n8nApiKey, workflowId));
 
         if (!workflow || !workflow.nodes) {
             return res.status(400).json({ error: 'Invalid workflow data received from n8n' });
@@ -128,8 +129,8 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
                     parsedArray = [{ text: resultContent }];
                 }
             } else if (typeof resultContent === 'object') {
-                if (resultContent.error && Object.keys(resultContent).length === 1) {
-                     return res.status(400).json({ error: resultContent.error });
+                if (/** @type {{ error?: string }} */ (resultContent).error && Object.keys(resultContent).length === 1) {
+                     return res.status(400).json({ error: /** @type {{ error?: string }} */ (resultContent).error });
                 }
                 parsedArray = Array.isArray(resultContent) ? resultContent : [resultContent];
             }

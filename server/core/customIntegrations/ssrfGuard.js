@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * SSRF guard for custom-integration outbound HTTP.
  *

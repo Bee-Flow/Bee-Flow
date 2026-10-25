@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Music Generation Tool — Lyria RealTime via Google GenAI
  * 
@@ -40,10 +40,19 @@ const MUSIC_GEN_TOOLS = [
     }
 ];
 
+/**
+ * @param {string} name
+ */
 function isMusicGenTool(name) {
     return name === 'generate_music';
 }
 
+/**
+ * @param {{ prompt: string, bpm?: number, duration_seconds?: number }} args
+ * @param {(arg0: string, arg1: { data: string; mimeType: string; }) => void} send
+ * @param {import('express').Request} req
+ * @param {{ lyria?: { bpm?: number, durationSeconds?: number, density?: number, brightness?: number, guidance?: number, mode?: string, muteBass?: boolean, muteDrums?: boolean } } | null} nanoBananaSettings
+ */
 async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
@@ -77,6 +86,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
     send('audio', { data: result.audioBase64, mimeType: result.mimeType });
 
     // Save audio to RustFS (or local disk as fallback)
+    /** @type {string | null} */
     let audioUrl = null;
     try {
         const crypto = require('crypto');
@@ -100,7 +110,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
             log.info(`[MusicGen Tool] Saved to disk: ${audioUrl}`);
         }
     } catch (e) {
-        log.warn('[MusicGen Tool] Failed to save audio to disk:', e.message);
+        log.warn('[MusicGen Tool] Failed to save audio to disk:', /** @type {Error} */ (e).message);
     }
 
     // Log usage
@@ -116,7 +126,7 @@ async function executeMusicGenTool(args, send, req, nanoBananaSettings) {
             source: 'music_generation',
         });
     } catch (e) {
-        log.warn('[MusicGen Tool] Failed to log usage:', e.message);
+        log.warn('[MusicGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 
     return {

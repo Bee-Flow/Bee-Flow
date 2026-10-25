@@ -198,3 +198,9 @@ function keptDatatables(proposal) {
 }
 
 module.exports = { applyPendingDatatables, keptDatatables, CLAIM_LEASE_MS };
+
+/**
+ * @typedef {import('../../../automation/builderTools/pendingDatatables').PendingDatatable & { applyKey?: string|null, createdId?: string, createdKey?: string }} PendingEntry
+ * @typedef {{ id?: string, definition?: object, applying?: { token?: string, at: string }|null, pendingDatatables?: PendingEntry[] }} ApplyProposal
+ * @typedef {{ version?: number, proposal?: ApplyProposal|null, approvedDatatableIds?: string[], reviewOutcome?: unknown }} ApplySnapshot
+ */

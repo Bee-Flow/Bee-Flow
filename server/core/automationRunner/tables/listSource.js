@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * A list of rows as a table source for the `table` step.
@@ -22,9 +22,13 @@ const { COLUMN_TYPES } = require('./handle');
 
 const SCAN_FOR_KEYS = 1000;
 const RESERVED_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+/** @param {unknown} v @returns {v is Record<string, any>} */
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date);
 
-/** The list-shaped payload of a bound value, or null when it is not one. */
+/** The list-shaped payload of a bound value, or null when it is not one.
+ * @param {unknown} value
+ * @returns {{ rows: unknown[], columns: unknown[] | null } | null}
+ */
 function listPayload(value) {
     let v = value;
     if (isPlainObject(v) && isCodeEnvelope(v)) v = v.result;
@@ -35,11 +39,18 @@ function listPayload(value) {
     return null;
 }
 
+/**
+ * @param {string} k
+ */
 const safeKey = (k) => (RESERVED_KEYS.has(k) ? `${k}_` : k);
 
+/**
+ * @param {unknown[]} columns
+ * @returns {Array<{ key: string, source: string, label: string, declared: string | null }>}
+ */
 function declaredColumns(columns) {
     const used = new Set();
-    return columns.map((c, i) => {
+    return columns.map((/** @type {string | { key?: string | number, label?: string, type?: string }} */ c, /** @type {number} */ i) => {
         const raw = typeof c === 'string' ? { key: c } : c;
         if (!raw || (typeof raw.key !== 'string' && typeof raw.key !== 'number') || String(raw.key) === '') {
             throw badList(`Column ${i + 1} has no key. Give every column a "key".`);
@@ -51,6 +62,9 @@ function declaredColumns(columns) {
     });
 }
 
+/**
+ * @param {string} message
+ */
 function badList(message) {
     return Object.assign(new Error(message), { errorClass: 'table_source_invalid', field: 'source' });
 }
@@ -73,23 +87,26 @@ function listToTable(value, opts = {}) {
     const slice = sample ? list.slice(0, sample) : list;
 
     let decl = payload.columns ? declaredColumns(payload.columns) : null;
+    /** @param {unknown} r @returns {r is unknown[]} */
     const aligned = (r) => Array.isArray(r);
     if (!decl) {
+        /** @type {string[]} */
         const keys = [];
         const seen = new Set();
-        slice.slice(0, SCAN_FOR_KEYS).forEach((r) => {
+        slice.slice(0, SCAN_FOR_KEYS).forEach((/** @type {unknown} */ r) => {
             if (aligned(r) || !isPlainObject(r)) return;
             for (const k of Object.keys(r)) if (!seen.has(k)) { seen.add(k); keys.push(k); }
         });
-        decl = keys.map((k) => ({ key: safeKey(k), source: k, label: k, declared: null }));
+        decl = keys.map((k) => ({ key: safeKey(k), source: k, label: k, declared: /** @type {string | null} */ (null) }));
     }
 
     const masks = new Array(decl.length).fill(0);
-    const rows = slice.map((r, i) => {
+    const rows = slice.map((/** @type {Record<string, unknown> | unknown[]} */ r, /** @type {number} */ i) => {
         const isArr = aligned(r);
         if (!isPlainObject(r) && !(isArr && payload.columns)) {
             throw badList(`Row ${i + 1} is ${r === null ? 'empty' : isArr ? 'a list (rows as lists need "columns")' : `a ${typeof r}`}, not a record. Each row must be an object such as {"name": "Ann", "amount": 3}.`);
         }
+        /** @type {Record<string, unknown>} */
         const row = {};
         decl.forEach((c, j) => {
             const cell = toScalar(isArr ? r[j] : r[c.source]);

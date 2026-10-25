@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Website analytics (Umami): the parts both the operator dashboard
  * (routes/cmsAnalytics.js) and the CMS MCP analytics tools (cms/mcp/analytics.js)
@@ -55,6 +55,7 @@ function rangeToWindow(range, { start, end, now } = {}) {
  *   filters    - REQUIRED, an object even when empty (omitting it 400s)
  *   parameters - report options AND a repeat of the window; the top-level
  *                dateRange alone is not enough
+ * @param {{ type: string, websiteId: string, window: { startAt: number, endAt: number, unit: string }, timezone?: string, filters?: Record<string, unknown>, extra?: Record<string, unknown> }} opts
  */
 function buildReportBody({ type, websiteId, window: w, timezone = 'UTC', filters = {}, extra = {} }) {
     const startDate = new Date(w.startAt).toISOString();
@@ -77,6 +78,7 @@ function buildReportBody({ type, websiteId, window: w, timezone = 'UTC', filters
  * @param {RegExp} deps.siteIdRe
  */
 function createAnalyticsQueries({ configStore, umamiClient, getLiveSiteId, siteIdRe }) {
+    /** @param {string} key */
     async function readMap(key) {
         const v = await configStore.getConfig(key);
         return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
@@ -102,6 +104,7 @@ function createAnalyticsQueries({ configStore, umamiClient, getLiveSiteId, siteI
 
     // Pick the site to show: explicit siteId (must be tracked), else the live
     // site, else the first tracked site. Null when nothing is tracked.
+    /** @param {string | null | undefined} wantedRaw */
     async function resolveTarget(wantedRaw) {
         const map = await getSiteMap();
         const wanted = (wantedRaw || '').toString();
@@ -117,6 +120,7 @@ function createAnalyticsQueries({ configStore, umamiClient, getLiveSiteId, siteI
      * enabled -> configured -> provisioned.
      * @returns {Promise<{ ok: true, target: { siteId: string, websiteId: string } }
      *   | { ok: false, state: 'disabled'|'unconfigured'|'unprovisioned' }>}
+     * @param {string | null | undefined} siteId
      */
     async function preflight(siteId) {
         const settings = await getSettings();

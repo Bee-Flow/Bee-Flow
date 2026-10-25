@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('url').URL} URL */
+// @typecheck noImplicitAny
 /**
  * OpenObserve monitoring connector — is the org's log platform actually
  * receiving data, retaining it, and wired to alert someone (A.8.16
@@ -33,6 +34,7 @@
 
 const ORG_RE = /^[A-Za-z0-9_-]+$/;
 
+/** @param {Record<string, any> | null | undefined} secret */
 function _authHeader(secret) {
     const username = secret?.username || secret?.user || secret?.email || null;
     const password = secret?.password || null;
@@ -44,6 +46,11 @@ function _authHeader(secret) {
     throw new Error('OpenObserve connection needs { username, password } or { token }');
 }
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} url
+ * @param {string} auth
+ */
 async function _get(safeFetch, url, auth) {
     return safeFetch(url, {
         headers: { 'Authorization': auth, 'User-Agent': 'BeeFlow-ISO-Evidence' },
@@ -60,9 +67,11 @@ module.exports = {
     credential: { provider: 'openobserve', kinds: ['basic', 'bearer'] },
     settingsHint: 'base_url: "https://observe.example.com", org: "default"',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         const base = String(settings?.base_url || '').trim().replace(/\/+$/, '');
         if (!base) return [];
+        /** @type {URL} */
         let parsed;
         try { parsed = new URL(base); } catch { return []; }
         if (!/^https?:$/.test(parsed.protocol)) return [];
@@ -75,10 +84,12 @@ module.exports = {
             throw new Error(`OpenObserve credentials rejected (${streamsRes.status})`);
         }
         if (!streamsRes.ok) throw new Error(`OpenObserve streams list failed (${streamsRes.status})`);
-        const streamsBody = await streamsRes.json().catch(() => ({}));
+        const streamsBody = /** @type {{ list?: Record<string, any>[] }} */ (await streamsRes.json().catch(() => ({})));
+        /** @type {Record<string, any>[]} */
         const streams = Array.isArray(streamsBody?.list) ? streamsBody.list : [];
 
         const streamsWithData = streams.filter(s => Number(s?.stats?.doc_num) > 0).length;
+        /** @type {number | null} */
         let retentionMin = null;
         for (const s of streams) {
             const days = Number(s?.settings?.data_retention);
@@ -89,7 +100,9 @@ module.exports = {
 
         let alertRules = null;
         let alertRulesEnabled = null;
+        /** @type {string | null} */
         let alertsApi = null;
+        /** @type {string | null} */
         let alertsError = null;
         try {
             let api = 'v2';
@@ -99,15 +112,15 @@ module.exports = {
                 res = await _get(safeFetch, `${base}/api/${org}/alerts`, auth);
             }
             if (!res.ok) throw new Error(`alerts list failed (${res.status})`);
-            const body = await res.json().catch(() => ({}));
+            const body = /** @type {Record<string, any>} */ (await res.json().catch(() => ({})));
             const list = Array.isArray(body?.list) ? body.list
                 : (Array.isArray(body?.alerts) ? body.alerts
                     : (Array.isArray(body) ? body : []));
             alertRules = list.length;
-            alertRulesEnabled = list.filter(a => a?.enabled !== false).length;
+            alertRulesEnabled = list.filter((/** @type {{ enabled: boolean; }} */ a) => a?.enabled !== false).length;
             alertsApi = api;
         } catch (e) {
-            alertsError = String(e?.message || e).slice(0, 200);
+            alertsError = String(/** @type {Error} */ (e)?.message || e).slice(0, 200);
         }
 
         return [{

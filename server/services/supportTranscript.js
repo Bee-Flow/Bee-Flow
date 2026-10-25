@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Support transcript + genuine-customer-contact gate.
  *
@@ -22,6 +23,8 @@ const { isGenuineCustomerSender } = require('./email/parse');
  *  - { ok: true }    → delivered
  *  - { ok: false }   → send failed → NOT delivered
  *  - { state: ... }  → 'draft' | 'queued' | 'failed' → not yet delivered
+ *
+ * @param {SupportMessage|null} msg
  */
 function wasSentToCustomer(msg) {
     const s = msg && msg.email_send_status;
@@ -34,7 +37,12 @@ function wasSentToCustomer(msg) {
     return false;
 }
 
-/** Is this an outbound reply authored by the AI or a staff member? */
+/** @typedef {{ author_kind?: string, internal_note?: boolean, body?: string, author_display?: string, email_send_status?: { ok?: boolean, state?: string } | null, [key: string]: unknown }} SupportMessage */
+
+/**
+ * Is this an outbound reply authored by the AI or a staff member?
+ * @param {SupportMessage|null|undefined} m
+ */
 function _isOutbound(m) {
     return m && (m.author_kind === 'ai' || m.author_kind === 'staff');
 }
@@ -43,7 +51,7 @@ function _isOutbound(m) {
  * Build a customer-facing transcript (cleaned + PII-redacted). AI and staff are
  * both labelled "Agent" so the distilled article stays actor-neutral.
  *
- * @param {Array<object>} messages — support_messages rows (internal notes
+ * @param {SupportMessage[]} messages - support_messages rows (internal notes
  *   already excluded by getThreadMessages({includeInternal:false}))
  * @param {object} [opts]
  * @param {boolean} [opts.redactPII=true]
@@ -71,10 +79,10 @@ function buildCustomerTranscript(messages = [], { redactPII = true } = {}) {
  * Decide whether a resolved thread is a genuine customer conversation worth
  * distilling into the KB.
  *
- * @param {Array<object>} messages
+ * @param {SupportMessage[]} messages
  * @param {object} [opts]
- * @param {string|null} [opts.inboxAddress] — the connected mailbox address (self-loop guard)
- * @param {string|null} [opts.requesterEmail] — the ticket requester address
+ * @param {string|null} [opts.inboxAddress] - the connected mailbox address (self-loop guard)
+ * @param {string|null} [opts.requesterEmail] - the ticket requester address
  * @returns {{ genuine:boolean, genuineInbound:boolean, outboundSent:boolean }}
  */
 function evaluateGenuineContact(messages = [], { inboxAddress = null, requesterEmail = null } = {}) {

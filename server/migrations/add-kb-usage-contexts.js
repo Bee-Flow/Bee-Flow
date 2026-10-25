@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: Knowledge Base usage contexts + source kind.
  *

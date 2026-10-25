@@ -269,3 +269,8 @@ async function runRestConnector(connector, { app, params, deps }) {
 }
 
 module.exports = { runIntegrationTool, runAutomationConnector, runRestConnector };
+
+/**
+ * @typedef {{ level: number, tool: string, rows: import('./shared').ConnectorRow[], expandFrom?: string | null, parentLevel?: number }} ConnectorGrain  The rows at one grain of a traced chain run.
+ * @typedef {{ app: import('./shared').ConnectorApp, viewerId?: string, params?: unknown, systemArgs?: unknown, trace?: boolean, deps: import('./session').ConnectorDeps }} ConnectorCtx  What runConnector hands every kind runner.
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * AI Act Assessment Store — the per-automation / per-agent classification
  * (AI Act Art. 5 prohibited practices, Art. 50 transparency, Annex III
@@ -53,17 +53,20 @@ const ROW_COLUMNS = `id, organization_id, target_kind, target_id, signals, answe
                attested_by, attested_at, expires_at, created_at, source, evidence`;
 const SOURCES = new Set(['auto', 'mixed', 'manual']);
 
+/** @param {string} kind */
 function _kind(kind) {
     if (!TARGET_KINDS.has(kind)) throw new Error(`invalid target_kind "${kind}"`);
     return kind;
 }
 
+/** @param {unknown} v */
 function _plainObject(v) {
     if (v && typeof v === 'object' && !Array.isArray(v)) return v;
     if (typeof v === 'string') { try { const p = JSON.parse(v); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; } catch { return {}; } }
     return {};
 }
 
+/** @param {Date} from */
 function _defaultExpiry(from) {
     const d = new Date(from.getTime());
     d.setUTCMonth(d.getUTCMonth() + VALID_MONTHS);
@@ -118,6 +121,11 @@ async function record(orgId, kind, targetId, { signals, answers, outcome, attest
     return rows[0] || null;
 }
 
+/**
+ * @param {string} orgId
+ * @param {'automation'|'agent'} kind
+ * @param {string | number} targetId
+ */
 async function getLatest(orgId, kind, targetId) {
     await initDB();
     _kind(kind);
@@ -130,7 +138,10 @@ async function getLatest(orgId, kind, targetId) {
     `, [orgId, kind, String(targetId)]);
 }
 
-/** Newest row per (target_kind, target_id) — the register view. */
+/**
+ * Newest row per (target_kind, target_id) — the register view.
+ * @param {string} orgId
+ */
 async function listForOrg(orgId) {
     await initDB();
     return getAll(`
@@ -142,7 +153,13 @@ async function listForOrg(orgId) {
     `, [orgId]);
 }
 
-/** History for one target, newest first. */
+/**
+ * History for one target, newest first.
+ * @param {string} orgId
+ * @param {'automation'|'agent'} kind
+ * @param {string | number} targetId
+ * @param {{ limit?: number }} [opts]
+ */
 async function listHistory(orgId, kind, targetId, { limit = 50 } = {}) {
     await initDB();
     _kind(kind);
@@ -155,7 +172,11 @@ async function listHistory(orgId, kind, targetId, { limit = 50 } = {}) {
     `, [orgId, kind, String(targetId), limit]);
 }
 
-/** An attestation counts while it has not expired (no expiry = evergreen). */
+/**
+ * An attestation counts while it has not expired (no expiry = evergreen).
+ * @param {{ attested_at?: Date | string | null, expires_at?: Date | string | null } | null} row
+ * @param {number} [now]
+ */
 function isCurrent(row, now = Date.now()) {
     if (!row || !row.attested_at) return false;
     if (!row.expires_at) return true;
@@ -165,6 +186,7 @@ function isCurrent(row, now = Date.now()) {
 /**
  * {attested, expired} over the newest row per target — the counts the hub
  * rail and the AI-Act checks show. Both are over DISTINCT targets.
+ * @param {string} orgId
  */
 async function stats(orgId) {
     await initDB();
@@ -183,7 +205,11 @@ async function stats(orgId) {
     return row || { attested: 0, expired: 0 };
 }
 
-/** Newest-per-target rows whose attestation expires within `days` (or already did). */
+/**
+ * Newest-per-target rows whose attestation expires within `days` (or already did).
+ * @param {string} orgId
+ * @param {number} [days]
+ */
 async function listExpiring(orgId, days = 30) {
     await initDB();
     const d = Number.isFinite(Number(days)) && Number(days) >= 0 ? Math.floor(Number(days)) : 30;

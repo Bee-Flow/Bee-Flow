@@ -740,3 +740,17 @@ class ClaudeProvider extends BaseProvider {
 }
 
 module.exports = ClaudeProvider;
+
+/** @typedef {import('@anthropic-ai/sdk/resources/messages.js').Message} Message */
+
+/** @typedef {import('@anthropic-ai/sdk/resources/messages.js').RefusalStopDetails} RefusalStopDetails */
+
+/**
+ * @typedef {import('./claude/params').SdkParams} SdkParams
+ * @typedef {import('./base').OnEvent} OnEvent
+ * @typedef {{ type?: string, text?: string, cache_control?: unknown, [k: string]: unknown }} ClaudeBlock
+ * @typedef {{ id?: string, name?: string, arguments?: unknown, input?: unknown, function?: { name?: string, arguments?: unknown, input?: unknown } }} ToolCallIn
+ * @typedef {{ role?: string, content?: unknown, tool_call_id?: string, toolCallId?: string, id?: string, tool_calls?: ToolCallIn[], thinking?: unknown }} ClaudeMessage
+ * @typedef {{ maxTokens?: number, temperature?: number, tools?: ToolDef[], toolChoice?: unknown, reasoningEffort?: string, budgetTokens?: number, responseFormat?: { type?: string, json_schema?: { schema?: unknown } }, timeoutMs?: number, signal?: AbortSignal | null, _noThinkingReplay?: boolean, _noForcedToolChoice?: boolean, _noContextEditing?: boolean }} ClaudeOptions
+ * @typedef {{ type?: string, name?: string, description?: string, parameters?: unknown, input_schema?: unknown, function?: { name?: string, description?: string, parameters?: unknown, input_schema?: unknown } }} ToolDef
+ */

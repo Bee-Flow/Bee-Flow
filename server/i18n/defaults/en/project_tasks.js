@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 
 // English GUI defaults — namespace "project_tasks": every key whose part before the first "." is "project_tasks".
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)

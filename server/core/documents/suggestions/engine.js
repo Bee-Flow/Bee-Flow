@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -19,11 +19,14 @@ const NAMES = ['hunksFrom', 'anchorsForFragment', 'applyHunks', 'hunkWords'];
  * What applyHunks resolves an anchor's relative positions with: positions in
  * the live fragment (core/collab withFragment), so a suggestion finds its
  * passage even after colleagues moved or duplicated the text around it.
+ * @param {typeof import('../../markdown/editorCollab.cjs')} bundle
+ * @param {import('yjs').XmlFragment} fragment
+ * @param {import('yjs').Doc} ydoc
  */
 function relResolver(bundle, fragment, ydoc) {
     return {
-        toRel: () => null,
-        fromRel: (b64) => {
+        toRel: /** @returns {null} */ () => null,
+        fromRel: /** @returns {{ path: number[], offset: number } | null} */ (/** @type {string} */ b64) => {
             const rel = bundle.decodeRelpos(b64);
             const pos = rel ? bundle.posFromRelative(fragment, ydoc, rel) : null;
             return pos ? { path: pos.path, offset: pos.offset } : null;
@@ -31,7 +34,11 @@ function relResolver(bundle, fragment, ydoc) {
     };
 }
 
+/** @typedef {ReturnType<typeof engine>} SuggestionEngine */
+
+/** @type {SuggestionEngine | null} */
 let cached = null;
+/** @type {SuggestionEngine | null} */
 let override = null;
 
 function load() {
@@ -43,7 +50,7 @@ function load() {
         hunksFrom: bundle.hunksFrom, anchorsForFragment: bundle.anchorsForFragment,
         applyHunks: bundle.applyHunks, hunkWords: bundle.hunkWords,
         htmlToAst: md.htmlToAst, astToHtml: md.astToHtml,
-        relResolver: (fragment, ydoc) => relResolver(bundle, fragment, ydoc),
+        relResolver: (/** @type {import('yjs').XmlFragment} */ fragment, /** @type {import('yjs').Doc} */ ydoc) => relResolver(bundle, fragment, ydoc),
     };
 }
 
@@ -54,7 +61,10 @@ function engine() {
     return cached;
 }
 
-/** Test seam: pass a fake engine, or nothing to restore the real one. */
+/**
+ * Test seam: pass a fake engine, or nothing to restore the real one.
+ * @param {SuggestionEngine | null} [fake]
+ */
 function _setEngine(fake) {
     override = fake || null;
 }

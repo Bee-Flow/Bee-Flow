@@ -393,3 +393,7 @@ function applyUpdateSteps(graph, args, draftWrap) {
 }
 
 module.exports = { applyUpdateStep, applyUpdateSteps };
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */

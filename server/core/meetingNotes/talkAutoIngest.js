@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Talk recording auto-ingest.
  *
@@ -27,6 +27,9 @@ const log = require('../../telemetry/log');
 // The trigger bus lives in automation/, a feature: injected (../automationRunner/featurePorts.js).
 const { runnerPort } = require('../automationRunner/featurePorts');
 
+/**
+ * @param {string} userId
+ */
 async function resolveOrgIdForUser(userId) {
     if (!userId) return null;
     try {
@@ -47,6 +50,8 @@ async function resolveOrgIdForUser(userId) {
  * into `payload.owner`), so use it. Without this every auto-recorded call fell
  * through to the org's `defaultOwnerUserId` — unset on most tenants, which
  * dropped the recording, and wrong attribution where it was set.
+ * @param {string | null} orgId
+ * @param {string | null | undefined} ncUid
  */
 async function resolveUserFromNcUid(orgId, ncUid) {
     if (!orgId || !ncUid) return null;
@@ -141,7 +146,7 @@ async function maybeIngest({ payload, userId = null, orgId = null }) {
         else log.info(`[TalkAutoIngest] created Meeting Note ${out?.id} from ${sourceUri}` + (out?.writeBack ? ` (write-back: ${out.writeBack.ok ? 'ok' : out.writeBack.error})` : ''));
     } catch (err) {
         // Surface, don't swallow — but keep it out of the dispatcher's path.
-        log.error(`[TalkAutoIngest] ingest failed for ${ncPath} [${err.code || 'error'}]: ${err.message}`);
+        log.error(`[TalkAutoIngest] ingest failed for ${ncPath} [${err.code || 'error'}]: ${/** @type {Error} */ (err).message}`);
     } finally {
         // Disarmed on the FAILURE path too. The token means "the next recording
         // in this room came from auto-record"; that recording has now arrived,

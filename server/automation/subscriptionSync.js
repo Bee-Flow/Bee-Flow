@@ -201,3 +201,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
 }
 
 module.exports = { syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
+
+/** @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown>|null } }} AppTrigger */
+
+/** @typedef {{ provider?: string, eventType?: string, triggerStepId?: string|null, lastCursor?: any, externalRef?: string }} PriorSubscription */

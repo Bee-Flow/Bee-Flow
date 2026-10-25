@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the persisted builder-session snapshot the client
  * rehydrates from on mount (GET /session/:appId).
@@ -30,7 +30,7 @@ const NoQuery = z.object({}).strict();
 // SSE drop. Owner-scoped inside getBuilderSession (non-owners get null).
 router.get('/session/:appId', requireAuth, validate({ query: NoQuery }), async (req, res) => {
     const userId = req.session.user.id;
-    const snapshot = await studioAppStore.getBuilderSession(req.params.appId, userId);
+    const snapshot = await studioAppStore.getBuilderSession(/** @type {string} */ (req.params.appId), userId);
     if (!snapshot) return res.status(404).json({ error: 'No builder session for this app' });
     res.json({ snapshot });
 });

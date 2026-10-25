@@ -1,8 +1,14 @@
-// @typecheck
+/** @typedef {import('pg').Pool} Pool */
+// @typecheck noImplicitAny
 'use strict';
 
 // Graph reads can exceed PostgreSQL's idle-in-transaction timeout. Hold a
 // session lock on a dedicated connection, without a long open transaction.
+/**
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @param {Pool} [pool]
+ */
 async function withAzureSyncLock(fn, pool = require('../db').pool) {
     const client = await pool.connect();
     let locked = false;

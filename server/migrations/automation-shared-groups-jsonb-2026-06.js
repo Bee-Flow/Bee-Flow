@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: convert automations.shared_groups from TEXT to JSONB (§WS3.6).
  *

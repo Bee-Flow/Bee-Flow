@@ -192,3 +192,13 @@ module.exports = {
     updateServer,
     deleteServer,
 };
+
+/**
+ * An mcp_servers row with its JSON columns parsed.
+ * @typedef {{ key: string, label?: string, description?: string, [field: string]: unknown }} McpCredentialSpec
+ * @typedef {{ name: string, description?: string, inputSchema?: Record<string, unknown>, [field: string]: unknown }} McpCachedTool
+ * @typedef {{ id: string, name: string, command: string | null, args: string[], required_credentials: McpCredentialSpec[],
+ *   tools_cache: McpCachedTool[], enabled: boolean, status: string | null, error: string | null, transport: string | null,
+ *   url: string | null, category: string | null, description: string | null, icon: string | null, source: string | null,
+ *   created_at: Date, updated_at: Date, [column: string]: unknown }} McpServerRow
+ */

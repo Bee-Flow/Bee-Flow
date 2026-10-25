@@ -112,3 +112,5 @@ module.exports = {
     resetModelCost,
     onOverridesChanged,
 };
+
+/** @typedef {Record<string, { input: number, output: number }>} Overrides */

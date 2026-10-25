@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Tenant Support Inbox: what the settings UI reads, and the live feed.
  * The org-scoped canned replies, tags and insights, the teammates and the
@@ -17,6 +18,10 @@ const { getUserId, resolveOrgScope, loadInboxInScope } = require('./inboxScope')
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function listCanned(req, res) {
     const scope = await resolveOrgScope(req);
     const out = [];
@@ -24,6 +29,10 @@ async function listCanned(req, res) {
     res.json({ canned: out });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function listTags(req, res) {
     const scope = await resolveOrgScope(req);
     const out = [];
@@ -31,6 +40,10 @@ async function listTags(req, res) {
     res.json({ tags: out });
 }
 
+/**
+ * @param {import('express').Request<{}, any, any, { inbox?: string }>} req
+ * @param {import('express').Response} res
+ */
 async function insights(req, res) {
     const inboxes = await access.accessibleInboxes(req);
     const inboxIds = inboxes.map(i => i.id);
@@ -39,6 +52,7 @@ async function insights(req, res) {
     const { inbox } = req.query;
     // Optional single-inbox scope (validated like GET /threads); insights
     // always exclude non-support tickets so the numbers reflect real support.
+    /** @type {{ inboxId?: string, inboxIdIn?: string[], excludeTags?: string[] }} */
     let opts;
     if (inbox) {
         if (!inboxIds.includes(inbox)) return res.json({});
@@ -53,6 +67,10 @@ async function insights(req, res) {
 
 // Eligible teammates for assignment (read-only) — powers the ticket assignee
 // picker. Returns the union of in-scope orgs' support-capable staff with names.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function teammates(req, res) {
     const scope = await resolveOrgScope(req);
     const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
@@ -80,6 +98,10 @@ async function teammates(req, res) {
 // path uses), so "give the AI the integrations that user has access to" is
 // literal. The frontend joins these ids with its INTEGRATION_CATALOG for
 // labels/icons. Pass ?operator=<userId> to preview a not-yet-saved choice.
+/**
+ * @param {import('express').Request<{ id: string }, any, any, { operator?: string }>} req
+ * @param {import('express').Response} res
+ */
 async function availableIntegrations(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
@@ -145,8 +167,12 @@ async function availableIntegrations(req, res) {
     res.json({ integrations: ids, operatorUserId });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function stream(req, res) {
-    let listener = null, heartbeat = null, markEnded = () => {};
+    let /** @type {((msg: { event: string, data: { inboxId?: string, [key: string]: unknown } }) => void) | null} */ listener = null, /** @type {ReturnType<typeof startSseHeartbeat> | null} */ heartbeat = null, markEnded = () => {};
     let cleaned = false;
     const cleanup = () => {
         if (cleaned) return; cleaned = true;
@@ -175,6 +201,7 @@ async function stream(req, res) {
     }
 }
 
+/** @param {NonNullable<Awaited<ReturnType<typeof supportInboxStore.getInbox>>>} inbox */
 function inboxToSettings(inbox) {
     return {
         general: {
@@ -215,6 +242,10 @@ function inboxToSettings(inbox) {
 // Resolve which support-capable members an access list grants the inbox to.
 // Empty groups → all eligible org staff; non-empty → eligible staff in a granted
 // group. Capped so a huge org never blows up the response.
+/**
+ * @param {{ organization_id?: string }} inbox
+ * @param {string[]} sharedGroups
+ */
 async function _resolveAccessMembers(inbox, sharedGroups) {
     try {
         const userStore = require('../../stores/userStore');
@@ -225,7 +256,7 @@ async function _resolveAccessMembers(inbox, sharedGroups) {
             const filtered = [];
             for (const id of memberIds) {
                 const g = await access.userGroupsFor(id);
-                if (g.some(x => sharedGroups.includes(x))) filtered.push(id);
+                if (g.some(/** @param {string} x */ x => sharedGroups.includes(x))) filtered.push(id);
             }
             memberIds = filtered;
         }
@@ -238,12 +269,20 @@ async function _resolveAccessMembers(inbox, sharedGroups) {
     } catch { return []; }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function inboxSettings(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
     res.json({ inbox, settings: inboxToSettings(inbox) });
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function getAccess(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
@@ -260,6 +299,10 @@ async function getAccess(req, res) {
     });
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putAccess(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
@@ -283,6 +326,10 @@ async function putAccess(req, res) {
     });
 }
 
+/**
+ * @param {import('express').Request<{ id: string }, any, any, { inbox?: string, actor?: string, action?: string, from?: string, to?: string, cursor?: string, limit?: string }>} req
+ * @param {import('express').Response} res
+ */
 async function inboxAudit(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
@@ -299,6 +346,10 @@ async function inboxAudit(req, res) {
 // Org-wide audit feed. Restricted to the caller's accessible inboxes plus
 // config events (inbox_id IS NULL) within their org scope — a forbidden inbox's
 // events can never leak here.
+/**
+ * @param {import('express').Request<{}, any, any, { inbox?: string, actor?: string, action?: string, from?: string, to?: string, cursor?: string, limit?: string }>} req
+ * @param {import('express').Response} res
+ */
 async function orgAudit(req, res) {
     const inboxes = await access.accessibleInboxes(req);
     const inboxIds = inboxes.map(i => i.id);

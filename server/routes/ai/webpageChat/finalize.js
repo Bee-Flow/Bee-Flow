@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage chat: the end of one turn (routes/ai/webpageChat.js). The
  * tool-driven slot edits persisted with one AI version per turn, the
@@ -16,7 +16,12 @@ const versionFacts = require('../../../core/webpages/versionFacts');
 // element that pointed at the table. See automation/usageSync.savePaths.test.js.
 const webpageUsageSync = require('../../../core/webpages/webpageUsageSync');
 
-/** Everything before send('done'). */
+/**
+ * Everything before send('done').
+ * @param {{ send: import('./toolLoop').Send, webpageId: string, userId: string, dirtySlots: Set<import('./toolLoop').Slot>,
+ *   touchedExtraPaths: Set<string>, liveFiles: import('./toolLoop').SlotFiles, preTurnFiles: import('./toolLoop').SlotFiles,
+ *   _streamUntok: ReturnType<typeof import('../../../core/dlp/untokeniseStream').createUntokeniser> | null }} args
+ */
 async function finishTurn({
     send, webpageId, userId, dirtySlots, touchedExtraPaths, liveFiles, preTurnFiles, _streamUntok,
 }) {
@@ -54,6 +59,7 @@ async function finishTurn({
                         lineDelta: versionFacts.slotsLineDelta(preTurnFiles, liveFiles, dirtySlots),
                     });
             }
+            /** @type {Record<string, unknown>} */
             const updates = {};
             for (const slot of dirtySlots) {
                 const { sha, size } = await webpageStore.writeSlot(userId, webpageId, slot, liveFiles[slot]);

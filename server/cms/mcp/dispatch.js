@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * CMS over MCP — JSON-RPC handling and tool dispatch.
  *
@@ -65,26 +66,40 @@ const INSTRUCTIONS = [
     'Links: cms_check_links lists broken internal links (missing page, address that answers nothing); external:true also asks the external URLs. cms_publish returns the internal ones in `validation`.',
 ].join('\n');
 
+/**
+ * @param {unknown} id
+ * @param {unknown} result
+ */
 const rpcResult = (id, result) => ({ jsonrpc: '2.0', id, result });
+/**
+ * @param {unknown} id
+ * @param {number} code
+ * @param {string} message
+ */
 const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, message } });
+
+/**
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ */
 
 /**
  * @typedef {object} CmsMcpDeps
  * @property {object} cmsStore                 stores/cmsStore
  * @property {{ collectLocaleOverrides: Function, deepMerge: Function, sanitizeAnalytics: Function }} cmsParts  stores/cms/* helpers
- * @property {{ TOOL_SCHEMAS: object[], MUTATING_TOOLS: Set<string>, applyToolCall: Function }} builder
+ * @property {{ TOOL_SCHEMAS: Array<{ function?: { name?: string } }>, MUTATING_TOOLS: Set<string>, applyToolCall: Function }} builder
  * @property {(draftWrap: object) => { errors: object[], warnings: object[] }} validateDraft
- * @property {{ SITE_DEFAULTS: object }} defaults
+ * @property {{ SITE_DEFAULTS: Record<string, any> }} defaults
  * @property {{ scopeAllowsTool: Function, filterToolsByScope: Function }} access
  * @property {{ getLiveSiteId: Function, setLiveSiteId: Function, ensurePublishedSnapshot: Function, SITE_ID_RE: RegExp }} live
  * @property {(siteId: string, ctx: object) => Promise<void>} [afterPublish]
- * @property {ReturnType<import('./uploadTickets').createUploadTickets>} tickets
+ * @property {ReturnType<typeof import('./uploadTickets').createUploadTickets>} tickets
  * @property {{ render: Function }} screenshots
  * @property {{ isAvailable: Function, listKeys: Function }} storage
  * @property {Function} audit                  userStore.logAccessAudit
  * @property {(user: object) => Promise<boolean>} isAdmin
  * @property {(user: object) => boolean} [isSuperAdmin]  the operator test of requireSuperAdmin; absent = nobody (analytics tools stay hidden)
- * @property {{ analytics: object, umami: object }} [analytics]  core/cms/analyticsQueries instance + core/umamiClient
+ * @property {{ analytics: { preflight: Function, resolveTarget: Function, getSettings: Function }, umami: { isConfigured: Function, getStats: Function, getPageviews: Function, getMetrics: Function, getActive: Function, get: Function, post: Function } }} [analytics]  core/cms/analyticsQueries instance + core/umamiClient
  * @property {{ classifyRpc: Function, parseToolCall: Function, PROTOCOL_VERSION: string, INVALID_REQUEST: string }} rpc
  * @property {() => number} [now]
  */
@@ -94,7 +109,7 @@ const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, me
 /**
  * One JSON-RPC message in, one answer (or null) out. Module-level: it only
  * needs the rpc helpers and the instance's listTools / callTool.
- * @param {{ rpc: object, listTools: Function, callTool: Function }} instance
+ * @param {{ rpc: { classifyRpc: Function, parseToolCall: Function, PROTOCOL_VERSION: string, INVALID_REQUEST: string }, listTools: Function, callTool: Function }} instance
  * @param {unknown} message  one JSON-RPC message
  * @param {{ user: object, userId: string, orgId: string|null, token: { name: string, scopes: object }, baseUrl?: string }} ctx
  */
@@ -120,6 +135,7 @@ async function answerRpc({ rpc, listTools, callTool }, message, ctx) {
             const toolCall = rpc.parseToolCall(params);
             if (toolCall.error) return rpcError(id, -32602, toolCall.error);
             const out = await callTool(toolCall.name, toolCall.args, ctx);
+            /** @type {Array<{ type: string, text?: string, data?: any, mimeType?: any }>} */
             const content = [{ type: 'text', text: out.text ?? JSON.stringify(out.result ?? null) }];
             if (out.image) content.push({ type: 'image', data: out.image.data, mimeType: out.image.mimeType });
             return rpcResult(id, { content, isError: out.isError === true });
@@ -142,7 +158,10 @@ function createCmsMcp(deps) {
     const toolList = buildList(builder);
     const builderNames = new Set(builder.TOOL_SCHEMAS.map((t) => t.function?.name).filter(Boolean));
 
-    /** { readOnly, publish } for a tool name, or null when it does not exist. */
+    /**
+     * { readOnly, publish } for a tool name, or null when it does not exist.
+     * @param {string} name
+     */
     function classify(name) {
         const own = mcpOnly.get(name);
         if (own) return { readOnly: own.readOnly === true, publish: PUBLISH_TOOLS.has(name) };
@@ -152,15 +171,18 @@ function createCmsMcp(deps) {
 
     function buildToolList() { return toolList; }
 
-    /** The list a token may see: scoped, and empty for a user who is not a CMS admin. */
+    /**
+     * The list a token may see: scoped, and empty for a user who is not a CMS admin.
+     * @param {McpCtx} ctx
+     */
     async function listTools(ctx) {
         if (!(await deps.isAdmin(ctx.user))) return [];
         const scoped = access.filterToolsByScope(ctx.token.scopes, 'cms', toolList, {
-            isReadOnly: (t) => t.annotations?.readOnlyHint === true,
-            isPublish: (t) => PUBLISH_TOOLS.has(t.name),
+            isReadOnly: (/** @type {Record<string, any>} */ t) => t.annotations?.readOnlyHint === true,
+            isPublish: (/** @type {Record<string, any>} */ t) => PUBLISH_TOOLS.has(t.name),
         });
         // Analytics is an operator surface: a CMS admin who is not a super admin never sees it.
-        return isSuperAdmin(ctx.user) ? scoped : scoped.filter((t) => !ANALYTICS_TOOLS.has(t.name));
+        return isSuperAdmin(ctx.user) ? scoped : scoped.filter((/** @type {Record<string, any>} */ t) => !ANALYTICS_TOOLS.has(t.name));
     }
 
     // ── site plumbing and the tool handlers (one module per group) ───────
@@ -187,6 +209,7 @@ function createCmsMcp(deps) {
 
     const linkHandlers = createLinkHandlers({ deps, cmsStore, resolveSite }).handlers;
 
+    /** @type {Record<string, (args: ToolArgs, ctx: McpCtx) => Promise<any>>} */
     const HANDLERS = {
         ...linkHandlers,
         ...analyticsHandlers,
@@ -214,6 +237,9 @@ function createCmsMcp(deps) {
      * Run one tool call. Never throws: a failure is a described error the agent
      * can act on, not a transport fault. The scope is checked HERE as well as
      * in tools/list: a client can call a tool it was never shown.
+     * @param {string} name
+     * @param {unknown} rawArgs
+     * @param {McpCtx} ctx
      * @returns {Promise<{ result: object, text?: string, image?: { data: string, mimeType: string }, isError?: boolean }>}
      */
     async function callTool(name, rawArgs, ctx) {
@@ -250,7 +276,7 @@ function createCmsMcp(deps) {
         }
     }
 
-    const handleRpc = (message, ctx) => answerRpc({ rpc, listTools, callTool }, message, ctx);
+    const handleRpc = (/** @type {unknown} */ message, /** @type {McpCtx} */ ctx) => answerRpc({ rpc, listTools, callTool }, message, ctx);
 
     return { handleRpc, callTool, listTools, buildToolList, classify, INSTRUCTIONS, _shotBudget: shotBudget, _analyticsBudget: analyticsBudget };
 }

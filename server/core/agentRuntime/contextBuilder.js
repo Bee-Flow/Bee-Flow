@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const { processSystemPrompt } = require('../llm/promptUtils');
 const { nowLine } = require('../llm/clock');
 const { buildSkillInjection } = require('../tools/skillInjection');
@@ -41,6 +41,7 @@ const SECTION_DEPS = {
  * zero, and a 1h breakpoint costs 2x on write — so a churning prefix is more
  * expensive than no caching at all. When in doubt, put it in `volatile`.
  *
+ * @param {{ agent: import('./chatStream/turnState').AgentRow, tools: import('./chatStream/turnState').ToolDef[], userId: string, messageMetadata: import('./chatStream/turnState').MessageMetadata, memoryContext: string, isStrictKnowledge: boolean, forceDynamicSkills?: boolean }} opts
  * @returns {Promise<{stable: string, volatile: string}>}
  */
 async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memoryContext, isStrictKnowledge, forceDynamicSkills = false }) {
@@ -108,6 +109,7 @@ async function buildSystemPrompt({ agent, tools, userId, messageMetadata, memory
  * IN PLACE so the model sees activate_skill when any dynamic skills are in
  * play — safe because chatStream passes the same reference it later hands to
  * the LLM.
+ * @param {{ agent: import('./chatStream/turnState').AgentRow, tools: import('./chatStream/turnState').ToolDef[], userId: string, messageMetadata: import('./chatStream/turnState').MessageMetadata, forceDynamicSkills: boolean }} opts
  */
 async function injectSkills({ agent, tools, userId, messageMetadata, forceDynamicSkills }) {
     const sessionSkillIds = Array.isArray(messageMetadata?.activeSkillIds) ? messageMetadata.activeSkillIds : [];

@@ -762,3 +762,50 @@ module.exports = {
     unknownModelStats,
     resetUnknownModels,
 };
+
+/** @typedef {{ input: number, output: number, cacheRead?: number | null }} Rates */
+
+/** @typedef {NonNullable<ReturnType<typeof priceCatalog.lookup>>} CatalogRow */
+
+/**
+ * One model's list rates from one source at one moment.
+ * @typedef {object} RateCard
+ * @property {string} kind
+ * @property {string} source
+ * @property {string} currency
+ * @property {string | null} catalogVersion
+ * @property {string | null} validFrom
+ * @property {'exact'|'list'|'estimated'|'unknown'|'local'} basis
+ * @property {number} input
+ * @property {number} output
+ * @property {number | null} cacheRead
+ * @property {number | null} cacheWrite5m
+ * @property {number | null} cacheWrite1h
+ * @property {{ threshold: number, rates: Record<string, number> } | null} longCtx
+ * @property {boolean} tierPriced
+ * @property {Record<string, { input: number, output: number, cacheRead?: number }> | null} tierRates
+ * @property {Record<string, number> & { geo?: Record<string, number> } | null} multipliers
+ * @property {Rates} legacy
+ */
+
+/**
+ * The billing facts of one call (a usageStore log entry).
+ * @typedef {object} UsageFacts
+ * @property {string} [model]
+ * @property {string | number | Date | null} [timestamp]
+ * @property {string | number | Date | null} [at]
+ * @property {string} [provider_type]
+ * @property {string} [provider]
+ * @property {number} [prompt_tokens]
+ * @property {number} [completion_tokens]
+ * @property {number} [cached_tokens]
+ * @property {number} [cache_creation_tokens]
+ * @property {number} [cache_creation_5m_tokens]
+ * @property {number} [cache_creation_1h_tokens]
+ * @property {string | null} [cache_ttl]
+ * @property {boolean} [cache_creation_ttl_assumed]
+ * @property {boolean} [prompt_includes_cache]
+ * @property {string | null} [service_tier]
+ * @property {string | null} [traffic_type]
+ * @property {string | null} [inference_geo]
+ */

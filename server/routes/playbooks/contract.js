@@ -154,3 +154,5 @@ module.exports = {
     sendErr,
     isObject,
 };
+
+/** @typedef {import('qs').ParsedQs} ParsedQs */

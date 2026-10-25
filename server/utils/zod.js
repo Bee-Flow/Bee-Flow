@@ -157,3 +157,28 @@ const DATE_SOURCE = '((\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][0
 const datetimeWithOffset = new RegExp(`^${DATE_SOURCE}T([01]\\d|2[0-3]):[0-5]\\d(:[0-5]\\d(\\.\\d+)?)?(Z|([+-]\\d{2}:?\\d{2}))$`);
 
 module.exports = { z: zod.z, zod3Text, typeError, onUnknownKeys, datetimeWithOffset };
+
+/**
+ * The fields of a zod 4 issue that the zod 3 wording reads (a union in zod; every field is optional here).
+ * @typedef {Object} IssueLike
+ * @property {string} [code]
+ * @property {unknown} [input]
+ * @property {string} [origin]
+ * @property {unknown} [minimum]
+ * @property {unknown} [maximum]
+ * @property {boolean} [exact]
+ * @property {boolean} [inclusive]
+ * @property {string} [expected]
+ * @property {unknown[]} [values]
+ * @property {unknown[]} [keys]
+ * @property {unknown[]} [options]
+ * @property {string} [note]
+ * @property {string} [format]
+ * @property {string} [includes]
+ * @property {unknown} [position]
+ * @property {string} [prefix]
+ * @property {string} [suffix]
+ * @property {unknown} [divisor]
+ * @property {unknown} [inst]
+ * @property {Array<{ message?: string }>} [issues]
+ */

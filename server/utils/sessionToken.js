@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('qs').ParsedQs} ParsedQs */
+// @typecheck noImplicitAny
 /**
  * Session-token bridge for cross-context auth (embedded iframe, popup handoff).
  *
@@ -51,6 +52,9 @@ const SESSION_TOKEN_TTL_SECONDS = 3600;
  */
 const NATIVE_SESSION_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 
+/**
+ * @param {string} token
+ */
 async function getSessionToken(token) {
     const r = getRedis();
     if (r) {
@@ -69,6 +73,11 @@ async function getSessionToken(token) {
     return entry.data;
 }
 
+/**
+ * @param {string} token
+ * @param {number} [ttlSeconds]
+ * @param {unknown} data
+ */
 async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECONDS) {
     const r = getRedis();
     if (r) {
@@ -96,6 +105,8 @@ async function setSessionToken(token, data, ttlSeconds = SESSION_TOKEN_TTL_SECON
  * early, silently, and only on the deployment with no Redis. Firing early and
  * re-checking is the only version of this that is honest, so the timer deletes
  * nothing unless the deadline on the row has actually passed.
+ * @param {number} expiresAt
+ * @param {string} token
  */
 function armEviction(token, expiresAt) {
     const remaining = expiresAt - Date.now();
@@ -126,6 +137,7 @@ function armEviction(token, expiresAt) {
  * superseded ones from earlier renewals, still live out their TTL — closing
  * that needs a per-user index this store does not have, and it is written
  * down in the PR rather than half-built here.
+ * @param {string} token
  */
 async function deleteSessionToken(token) {
     if (!token) return;
@@ -151,6 +163,11 @@ async function deleteSessionToken(token) {
 // tinguishable from a failed sign-in. The token remains one-shot and is
 // deleted on the first claim.
 
+/**
+ * @param {{ sessionToken: string; }} data
+ * @param {number} [ttlSeconds]
+ * @param {string} pickupId
+ */
 async function setPickup(pickupId, data, ttlSeconds = 300) {
     const r = getRedis();
     if (r) {
@@ -161,6 +178,9 @@ async function setPickup(pickupId, data, ttlSeconds = 300) {
     }
 }
 
+/**
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} pickupId
+ */
 async function claimPickup(pickupId) {
     const r = getRedis();
     if (r) {

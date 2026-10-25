@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: Dutch translations for "Flatten a list" (flatten_node.*, and the
  * five automations.node.flatten.* node keys): the step card, the Simple

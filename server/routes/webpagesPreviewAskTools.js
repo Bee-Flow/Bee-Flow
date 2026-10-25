@@ -13,6 +13,7 @@ const { findOwnerOfTool, loadTools } = require('../automation/toolRegistry');
 // the full result via the SSE `tool_result` event.
 const MAX_TOOL_RESULT_ARRAY_ITEMS = 20;
 const MAX_TOOL_RESULT_STRING_LEN = 4000;
+/** @param {unknown} result */
 function compactToolResultForLLM(result) {
     if (result == null) return result;
     if (typeof result === 'string') {
@@ -27,6 +28,7 @@ function compactToolResultForLLM(result) {
         return result;
     }
     if (typeof result === 'object') {
+        /** @type {Record<string, unknown>} */
         const out = {};
         for (const [k, v] of Object.entries(result)) {
             if (Array.isArray(v) && v.length > MAX_TOOL_RESULT_ARRAY_ITEMS) {
@@ -43,8 +45,11 @@ function compactToolResultForLLM(result) {
     return result;
 }
 
-const automationToolName = (automationId) => `automation_${automationId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+const automationToolName = (/** @type {string} */ automationId) => `automation_${automationId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
+/**
+ * @param {import('../stores/webpage/bridgeGrants').IntegrationGrant} grant
+ */
 function integrationToolDef(grant) {
     const owner = findOwnerOfTool(grant.tool);
     if (!owner) return null;
@@ -60,7 +65,7 @@ function integrationToolDef(grant) {
             ...params,
             properties: props,
             required: Array.isArray(params.required)
-                ? params.required.filter(k => !(k in grant.fixedArgs))
+                ? params.required.filter((/** @type {string} */ k) => !(k in grant.fixedArgs))
                 : params.required,
         };
     }
@@ -74,6 +79,9 @@ function integrationToolDef(grant) {
     };
 }
 
+/**
+ * @param {{ bridgeGrants: import('../stores/webpage/bridgeGrants').BridgeGrants, webpage: { knowledgeBaseIds?: unknown } }} ctx
+ */
 function buildAskToolSurface(ctx) {
     const tools = [];
     const integrationGrantByTool = new Map();

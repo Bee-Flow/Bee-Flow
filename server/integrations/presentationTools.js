@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Presentation Tools — the chat's way to hand the user a real .pptx.
  *
@@ -56,6 +57,9 @@ const PRESENTATION_TOOLS = [
 
 const PRESENTATION_TOOL_NAMES = new Set(PRESENTATION_TOOLS.map((t) => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isPresentationTool(toolName) {
     return PRESENTATION_TOOL_NAMES.has(toolName);
 }
@@ -64,6 +68,8 @@ function isPresentationTool(toolName) {
  * A file name that is safe on disk, in a storage key and in a
  * Content-Disposition header. ASCII only: the proxy route derives the header
  * from the key, and a non-ASCII byte there is a header-encoding bug.
+ * @param {string} raw
+ * @param {string} [fallback]
  */
 function safePresentationFileName(raw, fallback = 'presentation') {
     const base = String(raw || '')
@@ -81,13 +87,20 @@ function safePresentationFileName(raw, fallback = 'presentation') {
     return `${base || fallback}.pptx`;
 }
 
-/** With `oneDrivePath`, the built deck into the user's OneDrive; null without one. */
+/**
+ * With `oneDrivePath`, the built deck into the user's OneDrive; null without one.
+ * @param {{ oneDrivePath?: string }} args
+ * @param {{ userId?: string; orgId?: string | null; session?: Express.Session; provider?: string; }} ctx
+ * @param {{ buffer: Buffer<ArrayBufferLike> | undefined; contentType: string; }} built
+ * @param {string} filename
+ */
 async function saveToOneDrive(args, ctx, built, filename) {
     const { destinationPath, uploadToOneDrive } = require('./officeFileDelivery');
     const path = destinationPath(args.oneDrivePath, 'pptx', filename);
     return path ? uploadToOneDrive(built, ctx, path) : null;
 }
 
+/** @param {Awaited<ReturnType<typeof saveToOneDrive>>} od */
 function onedriveNote(od) {
     if (!od) return '';
     if (od.error) return ` It could NOT be saved to OneDrive (${od.error}) — tell the user.`;
@@ -95,8 +108,8 @@ function onedriveNote(od) {
 }
 
 /**
- * @param {object} args   tool arguments
- * @param {{ userId: string, orgId?: string|null, session?: object }} ctx
+ * @param {{ slides?: object[], markdown?: string, title?: string, subtitle?: string, houseStyle?: boolean, theme?: object|null, fileName?: string, saveToLibrary?: boolean, oneDrivePath?: string }} args   tool arguments
+ * @param {{ userId?: string, orgId?: string|null, session?: Express.Session, provider?: string }} ctx
  */
 async function executePresentationTool(args = {}, ctx = {}) {
     const userId = ctx.userId;
@@ -121,7 +134,7 @@ async function executePresentationTool(args = {}, ctx = {}) {
         const { resolveMarking } = require('../core/automationRunner/documentMarking');
         marking = await resolveMarking(ctx.orgId || null, { automationId: null, aiStepIds: [], provider: ctx.provider || 'chat' });
     } catch (e) {
-        log.warn(`[PresentationTools] marking unavailable, rendering unmarked: ${e.message}`);
+        log.warn(`[PresentationTools] marking unavailable, rendering unmarked: ${/** @type {Error} */ (e).message}`);
     }
 
     const { renderPresentation, makeUserImageResolver } = require('../services/presentationRenderer');
@@ -137,7 +150,7 @@ async function executePresentationTool(args = {}, ctx = {}) {
             resolveImage: makeUserImageResolver(userId),
         });
     } catch (e) {
-        if (e && e.errorClass) return { error: e.message };
+        if (e && e.errorClass) return { error: /** @type {Error} */ (e).message };
         throw e;
     }
 

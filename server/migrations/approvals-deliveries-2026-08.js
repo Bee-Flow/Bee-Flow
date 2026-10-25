@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: the approval DELIVERY LEDGER (2026-08).
  *

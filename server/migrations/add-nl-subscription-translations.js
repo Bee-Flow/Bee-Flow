@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * One-time migration: Add Dutch translations for the subscription /
  * License & Usage page keys introduced with the cloud Subscription card,

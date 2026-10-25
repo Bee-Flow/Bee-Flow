@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Permissions — resolving what a user may do: getUserPermissions (with its
  * cache and degraded-state signal), the audit variant, hasPermission, the RBAC

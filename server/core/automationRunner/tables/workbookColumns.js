@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Column logic for the workbook reader: the keys a header row becomes, the
  * storage type of a column from the values in it, and the number reading of
@@ -23,7 +23,7 @@ const SNIFF_RECORDS = 200;
 const LEADING_ZERO_RE = /^[-+]?0\d/;
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-/** A header cell as text: spaces collapsed, a Date as its ISO date. */
+/** A header cell as text: spaces collapsed, a Date as its ISO date. @param {unknown} cell @returns {string} */
 function headerLabel(cell) {
     if (cell === null || cell === undefined) return '';
     if (cell instanceof Date) return Number.isNaN(cell.getTime()) ? '' : isoDate(cell);
@@ -37,6 +37,7 @@ function headerLabel(cell) {
  * @returns {{ keys: string[], labels: string[] }}
  */
 function headerKeys(headerCells, width) {
+    /** @type {string[]} */
     const keys = [];
     const used = new Set();
     for (let c = 0; c < width; c += 1) {
@@ -55,12 +56,15 @@ function headerKeys(headerCells, width) {
     return { keys, labels: keys.slice() };
 }
 
-/** True when a header cell holds text. */
+/** True when a header cell holds text. @param {unknown} cell */
 function hasHeaderText(cell) {
     return headerLabel(cell) !== '';
 }
 
-/** A Date as the ISO string the table keeps: the wall clock as UTC, a date when there is no time. */
+/**
+ * A Date as the ISO string the table keeps: the wall clock as UTC, a date when there is no time.
+ * @param {Date} d
+ */
 function dateToIso(d) {
     const midnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0;
     return { value: midnight ? isoDate(d) : isoDateTime(d), kind: midnight ? KIND.DATE : KIND.DATETIME };
@@ -80,7 +84,10 @@ function scalarOf(v) {
     return s === '' ? { value: null, kind: 0 } : { value: s, kind: KIND.TEXT };
 }
 
-/** The storage type of a column from the kinds seen in it. */
+/**
+ * The storage type of a column from the kinds seen in it.
+ * @param {number} mask
+ */
 function typeOfKinds(mask) {
     if (!mask) return 'empty';
     if (mask === KIND.TEXT) return 'text';
@@ -101,7 +108,10 @@ function buildColumns(keys, labels, masks) {
     return keys.map((key, i) => ({ key, label: labels[i], type: typeOfKinds(masks[i]) }));
 }
 
-/** 'YYYY-MM-DD' that is a real calendar day. */
+/**
+ * 'YYYY-MM-DD' that is a real calendar day.
+ * @param {string} s
+ */
 function isCalendarDate(s) {
     const m = ISO_DATE_RE.exec(s);
     if (!m) return false;

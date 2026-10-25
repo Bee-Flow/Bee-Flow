@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * jsonApiRequest — the hardened choke point for outbound calls to
  * user/org-configured third-party APIs (H10).
@@ -34,11 +35,20 @@ const { isPrivateTarget } = require('../../utils/isPrivateTarget');
 const DEFAULT_TIMEOUT_MS = 30000;
 const DEFAULT_MAX_ERROR_CHARS = 500;
 
+/**
+ * @param {string} s
+ * @param {number} n
+ */
 function _truncate(s, n) {
     s = String(s);
     return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
+/**
+ * @param {string} url
+ * @param {{ method?: string, headers?: Record<string, string>, body?: unknown, timeoutMs?: number,
+ *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean }} [opts]
+ */
 async function jsonApiRequest(url, opts = {}) {
     const {
         method = 'GET',
@@ -57,6 +67,7 @@ async function jsonApiRequest(url, opts = {}) {
     }
 
     const reqHeaders = { ...headers };
+    /** @type {string} */
     let payload;
     if (body !== undefined && body !== null) {
         payload = typeof body === 'string' ? body : JSON.stringify(body);
@@ -64,6 +75,7 @@ async function jsonApiRequest(url, opts = {}) {
         if (!hasCT) reqHeaders['Content-Type'] = 'application/json';
     }
 
+    /** @type {Response} */
     let resp;
     try {
         resp = await fetch(url, {
@@ -73,7 +85,7 @@ async function jsonApiRequest(url, opts = {}) {
             signal: AbortSignal.timeout(timeoutMs),
         });
     } catch (e) {
-        if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+        if (e && (/** @type {Error} */ (e).name === 'TimeoutError' || /** @type {Error} */ (e).name === 'AbortError')) {
             const err = new Error(`${errorPrefix}: request timed out after ${timeoutMs}ms`);
             err.code = 'ETIMEDOUT';
             throw err;

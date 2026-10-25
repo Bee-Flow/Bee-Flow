@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * System-agent seeding at boot.
  *
@@ -19,6 +19,7 @@ function seedSystemAgentsAtBoot() {
             // singleton — keeps the existing `configStore.support_ai_agent_id`
             // contract working without admins having to paste a UUID.
             try {
+                /** @type {typeof import('../stores/configStore')} */
                 const configStore = require('../stores/configStore');
                 const current = await configStore.getConfig('support_ai_agent_id');
                 if (current !== SYSTEM_AGENT_IDS.BEE_FLOW_SUPPORT) {
@@ -26,7 +27,7 @@ function seedSystemAgentsAtBoot() {
                     log.info('[Server] support_ai_agent_id pointed at Bee Flow Support singleton');
                 }
             } catch (e) {
-                log.warn('[Server] Could not sync support_ai_agent_id:', e.message);
+                log.warn('[Server] Could not sync support_ai_agent_id:', /** @type {Error} */ (e).message);
             }
             // Sanity check — if the seed failed silently or someone DELETE'd
             // the row, every support thread will escalate. Surface this as a
@@ -46,6 +47,9 @@ function seedSystemAgentsAtBoot() {
                     // modelId in the order: fast → standard → thinking → writer → pro.
                     const tierName = agent.model.slice(5);
                     const tiers = (await cfgStore.getConfig('chat_model_tiers')) || {};
+                    /**
+                     * @param {string} t
+                     */
                     const configured = (t) => tiers[t]?.modelId && String(tiers[t].modelId).trim().length > 0;
                     if (tierName !== 'auto' && !configured(tierName)) {
                         const fallback = ['fast', 'standard', 'thinking', 'writer', 'pro'].find(configured);
@@ -61,7 +65,7 @@ function seedSystemAgentsAtBoot() {
                     }
                 }
             } catch (e) {
-                log.warn('[Support] WARN: Bee Flow Support agent check failed:', e.message);
+                log.warn('[Support] WARN: Bee Flow Support agent check failed:', /** @type {Error} */ (e).message);
             }
         })
         .catch(err => log.error('[Server] System agents seed failed:', err.message));

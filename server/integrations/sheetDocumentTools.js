@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The chat's document tools (integrations/documentBuilderTools.js) on a
  * SPREADSHEET document. A sheet has no body or stylesheet: its cells live in a
@@ -88,7 +88,7 @@ async function addTab(doc, name, deps) {
         // A refusal the model can act on (no right to change it, a conflict) comes back as text.
         if (!(e && Number(e.status) >= 400 && Number(e.status) < 500)) throw e;
         await deps.cells.dropSheetTable(doc.userId, table.id);
-        return { error: e.message };
+        return { error: /** @type {Error} */ (e).message };
     }
     if (!updated) {
         await deps.cells.dropSheetTable(doc.userId, table.id);
@@ -130,7 +130,11 @@ async function readSheetDocument(doc, deps = {}, args = {}) {
     };
 }
 
-/** The charts on a tab (id, type, title, anchor, size in cells) so new ones can be laid out around them. */
+/**
+ * The charts on a tab (id, type, title, anchor, size in cells) so new ones can be laid out around them.
+ * @param {{ settings?: { sheet?: { charts?: Array<import('../core/documents/sheetChartFields').ChartFields & { id?: string, tab?: string }> } } }} doc
+ * @param {{ id: string; name: string; datatableId: string; }} tab
+ */
 function chartsOfTab(doc, tab) {
     const { chartSummary } = require('../core/documents/sheetChartSpec');
     return (doc.settings?.sheet?.charts || []).filter((c) => !c.tab || c.tab === tab.id).map(chartSummary);
@@ -245,7 +249,7 @@ async function writeSheetDocument(doc, args, deps = {}) {
                 + (charted ? ' The charts show in the sheet next to the user; they follow the cells when values change.' : ''),
         };
     } catch (e) {
-        if (e && Number(e.status) >= 400 && Number(e.status) < 500) return { error: e.message };
+        if (e && Number(e.status) >= 400 && Number(e.status) < 500) return { error: /** @type {Error} */ (e).message };
         throw e;
     }
 }

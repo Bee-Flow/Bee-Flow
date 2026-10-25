@@ -661,3 +661,33 @@ MistralProvider.toSnakeUsage = toSnakeUsage;
 MistralProvider.resolveServerUrl = resolveServerUrl;
 
 module.exports = MistralProvider;
+
+/** @typedef {import('url').URL} URL */
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {{ id?: string, function?: { name?: string, arguments?: unknown } }} MistralToolCall
+ * @typedef {{ type?: string, function?: object }} MistralTool
+ * @typedef {{
+ *   reasoningEffort?: string,
+ *   reasoningSummary?: boolean,
+ *   maxTokens?: number,
+ *   max_tokens?: number,
+ *   temperature?: number,
+ *   tools?: MistralTool[],
+ *   toolChoice?: unknown,
+ *   promptCacheKey?: unknown,
+ *   extraBody?: Record<string, unknown>,
+ *   retries?: import('@mistralai/mistralai/lib/retries.js').RetryConfig,
+ *   timeoutMs?: number,
+ *   signal?: AbortSignal,
+ * }} MistralOptions
+ * @typedef {{
+ *   choices?: Array<{
+ *     message?: { content?: unknown, toolCalls?: MistralToolCall[] | null },
+ *     finishReason?: unknown,
+ *   }>,
+ *   usage?: Parameters<typeof normalizeUsage>[1],
+ * }} MistralChatResponse
+ * @typedef {(type: string, data: Record<string, unknown>) => void} MistralOnEvent
+ */

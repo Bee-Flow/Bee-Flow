@@ -462,3 +462,9 @@ module.exports = {
     extractTranscriptClocks,
     sanitizeTimestamp,
 };
+
+/**
+ * @typedef {{ text?: string, start?: number, end?: number, speakerId?: string, gap?: boolean }} RawTranscriptSegment
+ * @typedef {{ speaker: string, speakerId: string, start: number | undefined, end: number | undefined, text: string, gap?: boolean }} MergedTranscriptSegment
+ * @typedef {{ id: string, speakingTime: string, speakingSeconds: number, segments: number }} SpeakerStat
+ */

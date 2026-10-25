@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: Automation Builder — initial schema (2026-05).
  *

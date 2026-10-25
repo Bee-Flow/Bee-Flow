@@ -303,3 +303,8 @@ function createNextcloudPollers(ctx) {
 }
 
 module.exports = { createNextcloudPollers, _ncFetchActivityRows, _ncNormaliseActivity };
+
+/**
+ * One row of the Nextcloud activity feed.
+ * @typedef {{ id?: number, type?: string, subject?: string, message?: string, actor?: string, objectName?: string, objectType?: string, link?: string, datetime?: string }} NcActivityRow
+ */

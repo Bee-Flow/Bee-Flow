@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The memory block of a direct-chat turn, made safe to send.
  *
@@ -24,7 +24,8 @@ const { tokenizeMemoryContext } = require('../../../core/memory/scrubMemoryConte
 const { fallback } = require('../../../utils/bestEffort');
 
 /**
- * @returns {Promise<{ memoryContext: string, memorySwap: object|null }>}
+ * @param {{ memoryContext: string, userId: string, conversationId?: string | null }} params
+ * @returns {Promise<{ memoryContext: string, memorySwap: { raw: string, labelled: string, orgShield: import('../../../core/memory/scrubMemoryContext').MemoryOrgShield | null, knownEntities: import('../../../core/memory/scrubMemoryContext').KnownEntity[] } | null }>}
  */
 async function protectMemoryContext({ memoryContext, userId, conversationId }) {
     let memorySwap = null;

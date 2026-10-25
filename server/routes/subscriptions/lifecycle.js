@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Subscription lifecycle — the in-app plan change (upgrade / scheduled
  * downgrade), its cost preview, and cancel / reactivate, for orgs and for
@@ -25,7 +26,10 @@ const router = express.Router();
 // code rather than in its spelling; `.strict()` names the key it did not
 // expect instead.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {import('zod').ZodRawShape} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const PLAN_TEXT = 'planId is required — the plan to change to.';
@@ -44,6 +48,7 @@ const NoBody = bodyOf({});
 // session). Downgrades are intentionally rejected — the funnel only opens
 // upward and cancellations end the relationship at period boundary.
 
+/** @type {Record<string, string>} */
 const lifecycleErrorMessages = {
     same_plan: 'You are already on this plan.',
     no_price_change: 'The selected plan has the same price as your current plan.',
@@ -58,6 +63,7 @@ const lifecycleErrorMessages = {
 // subscription.update — e.g. proration invoice declined — into HTTP 402 so
 // the UI can show a clear "update your payment method" prompt instead of a
 // generic 500.
+/** @param {{ statusCode?: number, code?: string, type?: string }} err */
 function stripePaymentErrorStatus(err) {
     if (!err) return null;
     if (err.statusCode === 402) return 402;
@@ -72,6 +78,11 @@ function stripePaymentErrorStatus(err) {
 // Schedule — no mid-cycle credit. Entitlements for a scheduled downgrade are
 // (deliberately) NOT applied now: the customer.subscription.updated webhook
 // applies them when the new price actually becomes active at the boundary.
+/**
+ * @param {string} orgId
+ * @param {string} planId
+ * @param {string} adminId
+ */
 async function performOrgPlanChange(orgId, planId, adminId) {
     const stripeService = require('../../services/stripeService');
     const sub = await userStore.getOrgSubscription(orgId);
@@ -173,7 +184,7 @@ async function performOrgPlanChange(orgId, planId, adminId) {
 
 // Upgrade OR downgrade — the route name stays /upgrade for back-compat but
 // the handler picks the right behaviour from the price delta.
-router.post('/orgs/:orgId/upgrade', validate({ body: PlanChangeBody }), async (req, res) => {
+router.post('/orgs/:orgId/upgrade', validate({ body: PlanChangeBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     try {
         const { planId } = req.body;
         const result = await performOrgPlanChange(req.params.orgId, planId, getAdminId(req));
@@ -189,7 +200,7 @@ router.post('/orgs/:orgId/upgrade', validate({ body: PlanChangeBody }), async (r
 // Preview the cost impact of a plan change before the customer confirms.
 // Upgrades return the prorated charge that will hit today; downgrades return
 // the new recurring total and the date it takes effect (no charge now).
-router.post('/orgs/:orgId/preview-change', validate({ body: PlanChangeBody }), async (req, res) => {
+router.post('/orgs/:orgId/preview-change', validate({ body: PlanChangeBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     try {
         const stripeService = require('../../services/stripeService');
         const { planId } = req.body;
@@ -230,7 +241,7 @@ router.post('/orgs/:orgId/preview-change', validate({ body: PlanChangeBody }), a
 
 // Undo a scheduled (end-of-period) downgrade — releases the Stripe schedule
 // and clears the local pending bookkeeping so the org stays on its plan.
-router.post('/orgs/:orgId/cancel-downgrade', validate({ body: NoBody }), async (req, res) => {
+router.post('/orgs/:orgId/cancel-downgrade', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     const orgId = req.params.orgId;
     const sub = await userStore.getOrgSubscription(orgId);
@@ -245,7 +256,7 @@ router.post('/orgs/:orgId/cancel-downgrade', validate({ body: NoBody }), async (
     res.json(await userStore.getOrgSubscription(orgId));
 });
 
-router.post('/orgs/:orgId/cancel', validate({ body: NoBody }), async (req, res) => {
+router.post('/orgs/:orgId/cancel', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     const orgId = req.params.orgId;
     const sub = await userStore.getOrgSubscription(orgId);
@@ -273,7 +284,7 @@ router.post('/orgs/:orgId/cancel', validate({ body: NoBody }), async (req, res) 
     res.json(await userStore.getOrgSubscription(orgId));
 });
 
-router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (req, res) => {
+router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     const orgId = req.params.orgId;
     const sub = await userStore.getOrgSubscription(orgId);
@@ -295,6 +306,11 @@ router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (req, r
 
 // Consumer (individual) lifecycle — mirror of the org trio.
 
+/**
+ * @param {string} userId
+ * @param {string} planId
+ * @param {string} actorId
+ */
 async function performConsumerUpgrade(userId, planId, actorId) {
     const stripeService = require('../../services/stripeService');
     const sub = await userStore.getConsumerSubscription(userId);
@@ -352,7 +368,7 @@ async function performConsumerUpgrade(userId, planId, actorId) {
     return userStore.getConsumerSubscription(userId);
 }
 
-router.post('/consumer/:userId/upgrade', validate({ body: PlanChangeBody }), async (req, res) => {
+router.post('/consumer/:userId/upgrade', validate({ body: PlanChangeBody }), async (/** @type {import('express').Request<{ userId: string }>} */ req, res) => {
     try {
         const { planId } = req.body;
         const result = await performConsumerUpgrade(req.params.userId, planId, getAdminId(req));
@@ -365,7 +381,7 @@ router.post('/consumer/:userId/upgrade', validate({ body: PlanChangeBody }), asy
     }
 });
 
-router.post('/consumer/:userId/cancel', validate({ body: NoBody }), async (req, res) => {
+router.post('/consumer/:userId/cancel', validate({ body: NoBody }), async (/** @type {import('express').Request<{ userId: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     const userId = req.params.userId;
     const sub = await userStore.getConsumerSubscription(userId);
@@ -386,7 +402,7 @@ router.post('/consumer/:userId/cancel', validate({ body: NoBody }), async (req, 
     res.json(await userStore.getConsumerSubscription(userId));
 });
 
-router.post('/consumer/:userId/reactivate', validate({ body: NoBody }), async (req, res) => {
+router.post('/consumer/:userId/reactivate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ userId: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     const userId = req.params.userId;
     const sub = await userStore.getConsumerSubscription(userId);

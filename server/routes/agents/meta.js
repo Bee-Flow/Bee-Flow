@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 require('../../stores/agentStore');
 const agentRuntime = require('../../core/agentRuntime');
@@ -47,14 +48,14 @@ const NoQuery = z.object({}).strict();
 // They now come only with a signed-in session, and only that user's org's
 // (core/agentRuntime/agentTools.js, subworkflowsVisibleTo); an anonymous
 // caller gets the file components alone.
-router.get('/meta/components', validate({ query: NoQuery }), async (req, res) => {
+router.get('/meta/components', validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = (req.session?.isAuthenticated && req.session.user?.id) || null;
     const components = await agentRuntime.getAvailableComponents({ userId });
     res.json(components);
 });
 
 // Get available models from ALL configured providers
-router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { getProviders } = require('../../core/aiAgent');
     const config = await getAIConfig();
     const providerData = await getProviders();
@@ -65,6 +66,7 @@ router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (req
     const results = await Promise.all(
         providerData.providers.map(async (provider) => {
             try {
+                /** @type {{ "Content-Type": string; Authorization?: string }} */
                 const headers = { 'Content-Type': 'application/json' };
                 const apiKey = provider.apiKey;
                 if (apiKey) {
@@ -78,6 +80,7 @@ router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (req
                     return [];
                 }
 
+                /** @type {{ id: string, name: string, providerId: string, providerName: string }[]} */
                 let models = [];
 
                 // Standard OpenAI-compatible API
@@ -88,7 +91,7 @@ router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (req
                 // Admin-configured URL: private networks are fine (self-hosted runtimes), metadata/link-local are not.
                 const response = await fetchConfiguredEndpoint(modelsUrl, { headers, signal: AbortSignal.timeout(15000) });
                 if (response.ok) {
-                    const data = await response.json();
+                    const data = /** @type {{ data?: { id: string }[] }} */ (await response.json());
                     models = (data.data || []).map(m => ({
                         id: m.id,
                         name: m.id,
@@ -98,7 +101,7 @@ router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (req
                 }
                 return models;
             } catch (e) {
-                log.error(`Failed to fetch models from ${provider.name}:`, e.message);
+                log.error(`Failed to fetch models from ${provider.name}:`, /** @type {Error} */ (e).message);
                 return [];
             }
         })

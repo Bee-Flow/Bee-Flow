@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * What the chat reports about the memories a turn used: the `memory_used` SSE
@@ -45,7 +45,11 @@ function persistedMemoryUsed(items) {
     return items.filter(i => i && i.id).map(i => ({ id: String(i.id), type: String(i.type || ''), why: i.why === 'profile' ? 'profile' : 'relevant' }));
 }
 
-/** Emit `memory_used` once, only for a non-empty list. Never throws. */
+/**
+ * Emit `memory_used` once, only for a non-empty list. Never throws.
+ * @param {((event: string, data: unknown) => void) | null | undefined} send
+ * @param {ReturnType<typeof memoryUsedItems> | null | undefined} items
+ */
 function emitMemoryUsed(send, items) {
     if (typeof send !== 'function' || !Array.isArray(items) || items.length === 0) return;
     try { send('memory_used', { items }); } catch (err) { bestEffort('core/memory/memoryUsed:emitMemoryUsed', err); /* never block the chat on an event */ }

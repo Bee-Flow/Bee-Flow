@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Trigger-filter primitives that aren't tied to a specific provider.
  *
@@ -17,16 +17,31 @@
  * touching call sites.
  */
 
+/**
+ * A trigger event's payload; the date fields are what the `age` combinator reads.
+ * @typedef {{ datetime?: string, timestamp?: string, date?: string, [key: string]: unknown }} TriggerPayload
+ */
+/**
+ * The rich-filter DSL on top of a structured filter.
+ * @typedef {{ any?: unknown[], none?: unknown[], expr?: string,
+ *   age?: { olderThanMinutes?: number, newerThanMinutes?: number }, [key: string]: unknown }} DslFilter
+ */
+
+/**
+ * @param {unknown} payload
+ * @param {Record<string, unknown> | null} filter
+ * @returns {boolean}
+ */
 function matchFilter(payload, filter) {
     if (!filter) return true;
     if (typeof filter !== 'object') return true;
     for (const k of Object.keys(filter)) {
         const want = filter[k];
-        const got = payload?.[k];
+        const got = (/** @type {Record<string, unknown>} */ (payload))?.[k];
         if (Array.isArray(want)) {
             if (!want.includes(got)) return false;
         } else if (typeof want === 'object' && want !== null) {
-            if (!matchFilter(got, want)) return false;
+            if (!matchFilter(got, /** @type {Record<string, unknown>} */ (want))) return false;
         } else if (got !== want) {
             return false;
         }
@@ -41,7 +56,11 @@ function matchFilter(payload, filter) {
  *
  * Fails closed on invalid `expr` strings — same defensive choice as
  * the Gmail subjectRegex matcher.
+ * @param {TriggerPayload} payload
+ * @param {DslFilter | null} filter
+ * @param {(payload: TriggerPayload, filter: unknown) => boolean} perEventMatcher
  */
+
 function applyDslFilter(payload, filter, perEventMatcher) {
     if (!filter || typeof filter !== 'object') return perEventMatcher(payload, filter);
 

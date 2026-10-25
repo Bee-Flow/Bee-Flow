@@ -134,3 +134,25 @@ module.exports = { SECRET_KEYS, createAuthConfigStore,
     load: () => defaultStore().load(), save: patch => defaultStore().save(patch),
     replaceAdminPasswordHash: (expectedHash, newHash) => defaultStore().replaceAdminPasswordHash(expectedHash, newHash),
     migrate: () => defaultStore().migrate() };
+
+/**
+ * @typedef {object} OAuthEntry
+ * @property {string} [nextcloudUrl]
+ * @property {string} [clientId]
+ * @property {string} [clientSecret]
+ * @property {boolean} [hasClientSecret]
+ */
+
+/** @typedef {{ username: string, passwordHash: string }} AdminConfig */
+
+/** @typedef {{ admin: AdminConfig, oauth: OAuthEntry, providers: Record<string, OAuthEntry> }} AuthConfigState */
+
+/** @typedef {{ admin?: Partial<AdminConfig>, oauth?: OAuthEntry, providers?: Record<string, OAuthEntry> }} AuthConfigPatch */
+
+/**
+ * @typedef {object} AuthConfigTx
+ * @property {AuthConfigState} state
+ * @property {(provider: string) => string} secretValue
+ * @property {(key: string, value: unknown, secret?: boolean) => Promise<void>} write
+ * @property {import('pg').PoolClient} client
+ */

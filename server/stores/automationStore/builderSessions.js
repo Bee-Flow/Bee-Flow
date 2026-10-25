@@ -172,3 +172,7 @@ async function clearBuilderSession(automationId, userId) {
 }
 
 module.exports = { getBuilderSession, setBuilderSession, setBuilderSessionWith, clearBuilderSession, trimSnapshot, SNAPSHOT_MAX_BYTES };
+
+/** @typedef {{ role?: string, toolCalls?: Array<Record<string, unknown>>, [key: string]: unknown }} BuilderMessage */
+
+/** @typedef {{ version?: number, conversation?: BuilderMessage[], [key: string]: unknown }} BuilderSnapshot */

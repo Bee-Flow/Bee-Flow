@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The Nextcloud Tables REST calls a mirror makes, bound to one authenticated
  * `fetch`.
@@ -28,9 +28,18 @@ const PAGE = 500;
 /** The agent tools' wire helpers (TABLES_API, HEADERS, toWireData, ...). */
 const tablesWire = () => integrationClient('nextcloudTables');
 
+/**
+ * @param {number} v
+ */
 function enc(v) { return encodeURIComponent(String(v)); }
 
-/** `{tableId}` or `{viewId}` → the collection prefix rows/columns live under. */
+/** @typedef {{ tableId?: number, viewId?: number }} NodeRef */
+/** @typedef {Array<{ columnId: number, value: unknown }>} CellPairs */
+
+/**
+ * `{tableId}` or `{viewId}` → the collection prefix rows/columns live under.
+ * @param {NodeRef} ref
+ */
 function nodePath(ref) {
     if (ref && ref.viewId) return `/views/${enc(ref.viewId)}`;
     if (ref && ref.tableId) return `/tables/${enc(ref.tableId)}`;
@@ -48,6 +57,7 @@ function forLinker(auth) {
     const { TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn } = tablesWire();
     const api = `${auth.baseUrl}${TABLES_API}`;
 
+    /** @param {string} method @param {string} path @param {{ body?: object, what?: string, ncTableId?: number }} [opts] */
     /** @param {string} method @param {string} path @param {{ body?:any, what?:string, ncTableId?:any }} [opts] */
     async function call(method, path, { body, what, ncTableId } = {}) {
         let res;
@@ -57,7 +67,7 @@ function forLinker(auth) {
             });
         } catch (e) {
             // A network failure has no status; fromNcResponse reads "no answer".
-            throw fromNcResponse(0, e && e.message, what, { ncTableId });
+            throw fromNcResponse(0, e && /** @type {Error} */ (e).message, what, { ncTableId });
         }
         const parsed = await readJsonSafe(res);
         if (!res.ok) {
@@ -74,39 +84,66 @@ function forLinker(auth) {
             const data = await call('GET', '/tables', { what: 'table list' });
             return Array.isArray(data) ? data : [];
         },
+        /**
+         * @param {number} tableId
+         */
         async getTable(tableId) {
             return call('GET', `/tables/${enc(tableId)}`, { what: `table ${tableId}`, ncTableId: tableId });
         },
+        /**
+         * @param {number} viewId
+         */
         async getView(viewId) {
             return call('GET', `/views/${enc(viewId)}`, { what: `view ${viewId}` });
         },
-        /** Full column objects (describeColumn), in the table's own order. */
+        /**
+         * Full column objects (describeColumn), in the table's own order.
+         * @param {NodeRef} ref
+         */
         async getColumns(ref) {
             const data = await call('GET', `${nodePath(ref)}/columns`, { what: 'column list', ncTableId: ref.tableId || null });
             const cols = (Array.isArray(data) ? data : []).map(describeColumn);
             cols.sort((a, b) => (a.orderWeight - b.orderWeight) || (a.id - b.id));
             return cols;
         },
-        /** One page of raw rows (`{id, data:[{columnId, value}], …}`). */
+        /**
+         * One page of raw rows (`{id, data:[{columnId, value}], …}`).
+         * @param {NodeRef} ref
+         * @param {{ limit?: number, offset?: number }} [opts]
+         */
         async listRows(ref, { limit = PAGE, offset = 0 } = {}) {
             const params = new URLSearchParams({ limit: String(Math.min(PAGE, Math.max(1, limit))), offset: String(Math.max(0, offset)) });
             const data = await call('GET', `${nodePath(ref)}/rows?${params}`, { what: 'row list', ncTableId: ref.tableId || null });
             return Array.isArray(data) ? data : [];
         },
+        /**
+         * @param {number} rowId
+         */
         async getRow(rowId) {
             return call('GET', `/rows/${enc(rowId)}`, { what: `row ${rowId}` });
         },
-        /** `pairs` is the [{columnId, value}] list; shaped at the wire like the tools do. */
+        /**
+         * `pairs` is the [{columnId, value}] list; shaped at the wire like the tools do.
+         * @param {NodeRef} ref
+         * @param {CellPairs} pairs
+         */
         async createRow(ref, pairs) {
             return call('POST', `${nodePath(ref)}/rows`, { body: { data: toWireData(pairs) }, what: 'row', ncTableId: ref.tableId || null });
         },
+        /**
+         * @param {number} rowId
+         * @param {CellPairs} pairs
+         */
         async updateRow(rowId, pairs) {
             return call('PUT', `/rows/${enc(rowId)}`, { body: { data: toWireData(pairs) }, what: `row ${rowId}` });
         },
+        /**
+         * @param {number} rowId
+         */
         async deleteRow(rowId) {
             return call('DELETE', `/rows/${enc(rowId)}`, { what: `row ${rowId}` });
         },
     };
 }
 
-module.exports = { forLinker, mapTable: (t) => tablesWire().mapTable(t), PAGE };
+module.exports = { forLinker, mapTable: (/** @type {Record<string, unknown>} */ t) => tablesWire().mapTable(t), PAGE };

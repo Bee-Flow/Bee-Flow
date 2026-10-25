@@ -281,3 +281,17 @@ module.exports = {
     paramTypeOf,
     TRIGGER_ID, BODY_ID, OUTPUT_ID, BODY_RESULT_PATH,
 };
+
+/** @typedef {{ code: string, path: string, message: string, hint?: string }} Issue */
+
+/**
+ * @typedef {object} CodeStep  a `code` step, as stored in the automation
+ * @property {string} [type]
+ * @property {string} [code]
+ * @property {string} [label]
+ * @property {object} [forEach]
+ * @property {Record<string, unknown> & { secretKeys?: { value?: string[] } }} [inputs]  secretKeys: a literal binding (or a bare array, checked at run time)
+ * @property {string[]} [allowedTools]
+ * @property {object} [limits]
+ * @property {{ properties?: object }} [outputSchema]
+ */

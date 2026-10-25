@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The test-bench assistant: what leaves the server, and what comes back.
@@ -36,6 +37,7 @@ const { maskExamples, acceptedKeepFixed, proposeKeepFixed } = require('./mask');
 const { fullMatchAll, describePattern } = require('./patternTools');
 const { buildAllowMatcher, filterAllowedEntities } = require('../../dlp/allowTerms');
 
+/** @type {readonly string[]} */
 const METHODS = Object.freeze(['words', 'pattern', 'ai']);
 const MAX_TEMPLATES = 16;
 const MAX_NEAR_MISSES = 8;
@@ -46,19 +48,26 @@ const MAX_GOLD = 5;
 const MAX_SCRUB_PASSES = 8;
 const LABEL_RX = /^[\p{L}\p{N} '-]{2,60}$/u;
 
-const cpLength = (s) => Array.from(s).length;
+const cpLength = (/** @type {string} */ s) => Array.from(s).length;
 // Only syntax characters: under the 'u' flag an escaped '-' is a SyntaxError.
-const escapeRx = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+const escapeRx = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
 // ── Outbound ────────────────────────────────────────────────────────────────
 
-/** Case-insensitive matcher for one example; short ones only as a whole word. */
+/**
+ * Case-insensitive matcher for one example; short ones only as a whole word.
+ * @param {string} example
+ */
 function exampleRx(example) {
     const body = escapeRx(example);
     const src = cpLength(example) < 3 ? `(?<![\\p{L}\\p{N}])${body}(?![\\p{L}\\p{N}])` : body;
     return new RegExp(src, 'giu');
 }
 
+/**
+ * @param {string} text
+ * @param {string} example
+ */
 function containsExample(text, example) {
     if (!text || !example) return false;
     if (cpLength(example) >= 3 && text.toLowerCase().includes(example.toLowerCase())) return true;
@@ -71,6 +80,8 @@ function containsExample(text, example) {
 /**
  * Remove an occurrence the regex cannot see but a lower-cased comparison can
  * (special casing such as 'İ'): the smallest window whose lower case holds it.
+ * @param {string} text
+ * @param {string} exampleLower
  */
 function cutLowercaseOccurrence(text, exampleLower) {
     const n = text.length;
@@ -87,6 +98,9 @@ function cutLowercaseOccurrence(text, exampleLower) {
  * Replace every real example in `text` by its look-alike (an example without
  * one is removed), repeat while a replacement created a new occurrence, and
  * finally cut whatever still matches. Terminates: the last stage only shortens.
+ * @param {unknown} text
+ * @param {string[]} examples
+ * @param {Map<string, string | null>} lookalikeOf
  */
 function scrubText(text, examples, lookalikeOf) {
     let out = String(text || '');
@@ -111,6 +125,8 @@ function scrubText(text, examples, lookalikeOf) {
 
 /**
  * What the assistant would see for this input.
+ * @param {{ type?: { id?: string, method?: string, name?: string, description?: string } | null, examples?: unknown,
+ *   keepFixed?: unknown, key: Buffer, orgId?: string | null }} input
  * @returns {{ outbound: { name: string, description: string, lookalikes: string[] },
  *             pairs: Array<{ example: string, lookalike: string }>,
  *             keepFixed: string[], keepFixedProposal: string[] }}
@@ -192,6 +208,7 @@ const SYSTEM_PROMPT = [
 /**
  * The whole payload that leaves for the provider. It is built from these four
  * values and nothing else, by construction.
+ * @param {{ name?: string, description?: string, lookalikes?: string[], method?: string }} input
  */
 function buildAssistMessages({ name, description, lookalikes, method }) {
     const values = (Array.isArray(lookalikes) ? lookalikes : []).map((v) => String(v));
@@ -217,6 +234,10 @@ const unavailable = () => new HttpError(503, 'assist_check_unavailable',
     'The assistant is not available right now: the check for personal data in your description could not run. Try again later.');
 
 /**
+ * @typedef {{ partial?: boolean, timedOut?: unknown[], failed?: unknown[], spans?: Array<{ start: number, end: number, typeId: string }> }} MatchNodeResult
+ */
+
+/**
  * Scan the outbound name and description for personal data (the guard) and
  * for the org's own words and pattern types (the Node matcher production
  * uses). Findings carry offsets into the OUTBOUND text, which is what the
@@ -229,7 +250,16 @@ const unavailable = () => new HttpError(503, 'assist_check_unavailable',
  * company the shield itself lets through. Matches of the org's own types are
  * never allowed away (filterAllowedEntities keeps `cdt_` categories).
  *
- * @param {{ piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean }} [params.allowConfig]
+ * @param {{
+ *   outbound?: { name?: string, description?: string },
+ *   detectPii: (text: string, a: null, b: undefined, opts: { priority: string }) => Promise<{ degraded?: boolean, guardAbsent?: boolean, entities?: Array<{ offset?: number, length?: number, category?: string }> }>,
+ *   engine: {
+ *     compileTypes: (types: object[]) => unknown,
+ *     matchNode: (text: string, compiled: unknown) => MatchNodeResult | Promise<MatchNodeResult>,
+ *   },
+ *   orgTypes?: Array<{ method?: string, status?: string }>,
+ *   allowConfig?: { piiAllowTerms?: string[], piiAllowPublicOrgs?: boolean },
+ * }} params
  * @returns {Promise<Array<{ field: 'name'|'description', start: number, end: number, category: string }>>}
  */
 async function checkOutbound({ outbound, detectPii, engine, orgTypes, allowConfig = {} }) {
@@ -240,10 +270,12 @@ async function checkOutbound({ outbound, detectPii, engine, orgTypes, allowConfi
     if (local.length) {
         try { compiled = await engine.compileTypes(local); } catch (_) { throw unavailable(); }
     }
+    /** @type {Array<{ field: 'name'|'description', start: number, end: number, category: string }>} */
     const findings = [];
-    for (const field of ['name', 'description']) {
+    for (const field of /** @type {Array<'name' | 'description'>} */ (['name', 'description'])) {
         const text = outbound?.[field];
         if (!text) continue;
+        /** @type {Awaited<ReturnType<typeof detectPii>>} */
         let scan;
         try { scan = await detectPii(text, null, undefined, { priority: 'bulk' }); } catch (_) { throw unavailable(); }
         if (!scan || scan.degraded || scan.guardAbsent) throw unavailable();
@@ -266,14 +298,18 @@ async function checkOutbound({ outbound, detectPii, engine, orgTypes, allowConfi
 
 // ── What comes back ─────────────────────────────────────────────────────────
 
-const clean = (s) => (typeof s === 'string'
+const clean = (/** @type {unknown} */ s) => (typeof s === 'string'
     ? s.replace(/\p{Cc}+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT)
     : '');
-const cleanPattern = (s) => (typeof s === 'string' ? s.replace(/\p{Cc}+/gu, '').trim() : '');
-const listOf = (v) => (Array.isArray(v) ? v : []);
+const cleanPattern = (/** @type {unknown} */ s) => (typeof s === 'string' ? s.replace(/\p{Cc}+/gu, '').trim() : '');
+const listOf = (/** @type {unknown} */ v) => (Array.isArray(v) ? v : []);
 const defaultId = () => `s_${crypto.randomBytes(5).toString('hex')}`;
 
-/** Non-overlapping exact (case-sensitive) look-alike occurrences, longest first at each position. */
+/**
+ * Non-overlapping exact (case-sensitive) look-alike occurrences, longest first at each position.
+ * @param {string} text
+ * @param {string[]} lookalikes
+ */
 function lookalikeOccurrences(text, lookalikes) {
     const ordered = [...lookalikes].sort((a, b) => b.length - a.length);
     const out = [];
@@ -285,6 +321,10 @@ function lookalikeOccurrences(text, lookalikes) {
     return out;
 }
 
+/**
+ * @param {string} text
+ * @param {string[]} values
+ */
 function mentionsAny(text, values) {
     const low = text.toLowerCase();
     return values.some((v) => v && (cpLength(v) >= 3 ? low.includes(v.toLowerCase()) : containsExample(text, v)));
@@ -298,7 +338,11 @@ function mentionsAny(text, values) {
  * @param {{ pairs: Array<{example: string, lookalike: string}>, examples?: string[],
  *           validatePattern: (source: string) => Promise<{ok: boolean}>,
  *           caseSensitive?: boolean, newId?: () => string }} ctx
- * @returns {Promise<null | { suggestedMethod, sentences, nearMisses, candidates, dropped }>}
+ * @typedef {{ id: string, text: string, gold: Array<{ start: number, end: number }>, origin: string }} AssistSentence
+ * @typedef {{ suggestedMethod: string | null, sentences: AssistSentence[], nearMisses: AssistSentence[],
+ *   candidates: { patterns: Array<{ source: string, describe?: string }>, aiLabels: string[] },
+ *   dropped: { sentences: number, patterns: number, labels: number } }} AssistResult
+ * @returns {Promise<null | AssistResult>}
  */
 async function sanitizeAssistOutput(structured, { pairs, examples, validatePattern, caseSensitive = true, newId = defaultId }) {
     if (!structured || typeof structured !== 'object' || Array.isArray(structured)) return null;
@@ -323,6 +367,7 @@ async function sanitizeAssistOutput(structured, { pairs, examples, validatePatte
         seenTemplates.add(template);
         let text = '';
         let last = 0;
+        /** @type {Array<{ start: number, end: number }>} */
         const gold = [];
         occ.forEach((o, k) => {
             const example = swapIn[(cursor + k) % swapIn.length];
@@ -352,6 +397,7 @@ async function sanitizeAssistOutput(structured, { pairs, examples, validatePatte
     }
 
     // Patterns: safe (local rules + the engine) and a complete match of every real example.
+    /** @type {Array<{ source: string, describe?: string }>} */
     const patterns = [];
     for (const raw of listOf(structured.patterns)) {
         const source = cleanPattern(raw);
@@ -381,7 +427,10 @@ async function sanitizeAssistOutput(structured, { pairs, examples, validatePatte
     return { suggestedMethod, sentences, nearMisses, candidates: { patterns, aiLabels }, dropped };
 }
 
-/** Did the cleaned answer leave anything to show? */
+/**
+ * Did the cleaned answer leave anything to show?
+ * @param {AssistResult | null} result
+ */
 function hasUsableOutput(result) {
     return !!result && (result.sentences.length + result.nearMisses.length
         + result.candidates.patterns.length + result.candidates.aiLabels.length) > 0;

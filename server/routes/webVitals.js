@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Web Vitals API — receives Core Web Vitals beacons from the browser.
  *
@@ -35,7 +36,7 @@
  */
 
 const express = require('express');
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -51,17 +52,22 @@ const beaconLimiter = rateLimit({
 const VALID_METRICS = new Set(['CLS', 'INP', 'LCP', 'FCP', 'TTFB']);
 const VALID_RATINGS = new Set(['good', 'needs-improvement', 'poor']);
 
+/**
+ * @param {string} s
+ * @param {number} max
+ */
 function truncate(s, max) {
     if (typeof s !== 'string') return '';
     return s.length > max ? s.slice(0, max) + '…[truncated]' : s;
 }
 
+/** @param {unknown} v */
 function num(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : null;
 }
 
-router.post('/', beaconLimiter, (req, res) => {
+router.post('/', beaconLimiter, (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const body = req.body || {};
         const name = String(body.name || '');

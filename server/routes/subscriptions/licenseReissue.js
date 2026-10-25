@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Manual license re-issue for an existing org or consumer subscription — the
  * Retry behind a `license_issuance_failed` audit row.
@@ -39,7 +39,7 @@ const NoBody = z.preprocess(
 // previous issuance failed (the audit log will have a `license_issuance_failed`
 // row); calling this retries against the current subscription state.
 router.post('/orgs/:orgId/reissue-license', validate({ body: NoBody }), async (req, res, next) => {
-    const orgId = req.params.orgId;
+    const orgId = /** @type {string} */ (req.params.orgId);
     const sub = await userStore.getOrgSubscription(orgId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
     const planId = sub.plan_id;
@@ -74,7 +74,7 @@ router.post('/orgs/:orgId/reissue-license', validate({ body: NoBody }), async (r
 // POST /api/subscriptions/consumer/:userId/reissue-license — same as above for
 // individual / consumer subscriptions.
 router.post('/consumer/:userId/reissue-license', validate({ body: NoBody }), async (req, res, next) => {
-    const userId = req.params.userId;
+    const userId = /** @type {string} */ (req.params.userId);
     const sub = await userStore.getConsumerSubscription(userId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
     const planId = sub.plan_id;

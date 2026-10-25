@@ -344,3 +344,11 @@ module.exports = {
     cutRelease, releaseVariables, connectionIdsOf, allocateLedger, defaultReadCutState, defaultCapturePayloads,
     MAX_CUT_ATTEMPTS,
 };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {typeof import('../../stores/blueprintStore')} BlueprintStore */
+
+/** @typedef {{ query: (sql: string, params: unknown[]) => Promise<Record<string, any>[] | { rows?: Record<string, any>[] }> }} Queryable */
+
+/** @typedef {{ ref: string, kind: string, sourceEntityId?: string, payload: unknown, contentHash?: string }} CutPayload */

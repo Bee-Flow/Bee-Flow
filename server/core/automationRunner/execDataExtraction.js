@@ -506,3 +506,13 @@ module.exports = {
     parseExtractionReply, shapeExtractionOutput, synthesiseDryRunExtraction,
     execDataExtraction,
 };
+
+/**
+ * @typedef {{ name: string, type: string, description: string, required: boolean }} ExtractionField
+ */
+
+/**
+ * @typedef {{ id?: string, fields?: Parameters<typeof normaliseFields>[0], source?: ExtractionSource, instructions?: string }} ExtractionStep
+ * @typedef {string | { kind?: string, path?: string, [key: string]: unknown } | null | undefined} ExtractionSource
+ * @typedef {{ orgId?: string, userId?: string, cancelSignal?: AbortSignal, automationId?: string, automationTitle?: string, [key: string]: unknown }} ExtractionCtx
+ */

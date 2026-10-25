@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * One-time migration: Dutch for the Solutions overview strings that arrived
  * after add-nl-solution-overview-translations had already run (the schema

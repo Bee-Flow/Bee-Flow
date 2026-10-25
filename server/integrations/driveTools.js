@@ -562,3 +562,14 @@ module.exports = {
     // exposed for tests
     listRecentDriveFiles,
 };
+
+/**
+ * @typedef {import('./driveHelpers').DriveClient} DriveClient
+ * @typedef {import('./googleClient').GoogleSession} GoogleSession
+ * Model-provided arguments of the drive_* tools.
+ * @typedef {{ query?: string, maxResults?: number, folderId?: string, fileId?: string, destinationFolderId?: string,
+ *   name?: string, parentFolderId?: string, content?: string, isBase64?: boolean, mimeType?: string,
+ *   overwriteIfExists?: boolean, since?: string, sourceHandle?: { kind?: string, messageId?: string,
+ *   attachmentId?: string, mimeType?: string, fileId?: string } }} DriveArgs
+ * @typedef {{ drive: DriveClient, session?: GoogleSession, extra?: { runScope?: { runId: string, rootRunId?: string } | null } }} DriveDeps
+ */

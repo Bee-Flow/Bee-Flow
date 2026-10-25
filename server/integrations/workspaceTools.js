@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Notebook Tools (formerly Workspace Tools)
  * Provides notebook_read, notebook_write, notebook_replace, notebook_insert,
@@ -34,7 +35,10 @@ const NOTEBOOK_LIVE_READ_FIRST = 'Others are editing this notebook live, so note
 // The live update a read of a co-edited notebook was made at, handed to the
 // model as `revision` and given back to notebook_write.
 const LIVE_REVISION = 'live:';
-const liveRevision = (seq) => `${LIVE_REVISION}${seq}`;
+const liveRevision = (/** @type {number} */ seq) => `${LIVE_REVISION}${seq}`;
+/**
+ * @param {unknown} value
+ */
 function parseRevision(value) {
     const text = typeof value === 'string' ? value.trim() : '';
     if (!text.startsWith(LIVE_REVISION)) return null;
@@ -43,7 +47,7 @@ function parseRevision(value) {
 }
 
 /** May this notebook role change the document? (routes/notebooksAccess.js ranks the same roles.) */
-const canEditNotebook = (role) => role === 'owner' || role === 'editor';
+const canEditNotebook = (/** @type {string | null | undefined} */ role) => role === 'owner' || role === 'editor';
 
 const WORKSPACE_TOOLS = [
     {
@@ -74,7 +78,7 @@ When others are editing the notebook live, the answer carries a "revision": pass
                         description: 'When mode is "search", the text or keywords to search for.'
                     }
                 },
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -169,6 +173,22 @@ const { fallback } = require('../utils/bestEffort');
 // `notebooks` table — that is the source of truth the UI reads, so the
 // tool must read/write there too. Otherwise we fall back to the legacy
 // per-conversation `workspace_content` column.
+/**
+ * The notebook a conversation's tools work on.
+ * @typedef {{ content: string, user_id: string, source: string, notebookId?: string | null,
+ *   notebookUnavailable?: boolean, notebookRole?: string | null, coEdited?: boolean,
+ *   liveSeq?: number | null, liveSeqAfter?: number | null }} Workspace
+ */
+/** @typedef {{ conversationId: string, callerUserId?: string }} NotebookCall */
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{ mode?: string, section_heading?: string, query?: string, content?: string, title?: string,
+ *   revision?: unknown, position?: string, after_text?: string, find_text?: string, replace_text?: string }} NotebookArgs
+ */
+/**
+ * @param {string} convId
+ * @returns {Promise<Workspace | null>}
+ */
 async function getWorkspace(convId) {
     // Lazy-load DB helpers to avoid circular deps
     const { getOne } = require('../db');
@@ -215,6 +235,10 @@ async function getWorkspace(convId) {
 // it by id alone, so this is the only thing standing between a caller and
 // another user's notebook. A missing callerUserId used to short-circuit the
 // comparison and wave everything through — treat it as a denial instead.
+/**
+ * @param {NotebookCall} call
+ * @param {Workspace | null} workspace
+ */
 function denyIfCrossUser({ conversationId, callerUserId }, workspace) {
     if (!workspace) return null;
     if (!callerUserId) {
@@ -233,6 +257,10 @@ function denyIfCrossUser({ conversationId, callerUserId }, workspace) {
 }
 
 // Every write tool: the conversation's owner, and edit rights on a linked notebook.
+/**
+ * @param {NotebookCall} c
+ * @param {Workspace | null} workspace
+ */
 function denyWrite(c, workspace) {
     const { conversationId } = c;
     const denied = denyIfCrossUser(c, workspace);
@@ -245,11 +273,18 @@ function denyWrite(c, workspace) {
 }
 
 // What a write tool answers when setWorkspace did not persist.
+/** @type {Record<string, string>} */
 const FAILED_WRITE = { conflict: NOTEBOOK_CONFLICT, forbidden: NOTEBOOK_READ_ONLY, stale: NOTEBOOK_LIVE_STALE, 'read-first': NOTEBOOK_LIVE_READ_FIRST };
+/**
+ * @param {NotebookCall} call
+ * @param {string | false} result
+ * @param {Workspace | null} workspace
+ * @param {string} what
+ */
 function failedWrite({ conversationId }, result, workspace, what) {
     const refusedLive = result === 'stale' || result === 'read-first';
     log[refusedLive ? 'info' : 'error'](`[NotebookTool] ${what} not persisted:`, { conversationId, notebookId: workspace?.notebookId || null, reason: result || 'no-rows' });
-    const error = FAILED_WRITE[result] || NOTEBOOK_SAVE_FAILED;
+    const error = FAILED_WRITE[/** @type {string} */ (result)] || NOTEBOOK_SAVE_FAILED;
     return { error, _nbWriteFailed: true, _revertContent: workspace?.content || '' };
 }
 
@@ -260,6 +295,12 @@ function failedWrite({ conversationId }, result, workspace, what) {
 // Answers true, or why not: 'forbidden', 'conflict', 'stale' or false.
 // `expectSeq`: `content` is a whole document the model composed from the
 // live notebook as it was at that update (notebook_write's revision).
+/**
+ * @param {string} convId
+ * @param {string} content
+ * @param {Workspace | null} workspace
+ * @param {{ expectSeq?: number | null }} [opts]
+ */
 async function setWorkspace(convId, content, workspace, { expectSeq = null } = {}) {
     const { run } = require('../db');
     const notebookStore = require('../stores/notebookStore');
@@ -328,6 +369,10 @@ async function setWorkspace(convId, content, workspace, { expectSeq = null } = {
     return directResult.rowCount > 0;
 }
 
+/**
+ * @param {NotebookArgs} args
+ * @param {NotebookCall} c
+ */
 async function notebookRead(args, c) {
     const { conversationId } = c;
     try {
@@ -349,6 +394,10 @@ async function notebookRead(args, c) {
     }
 }
 
+/**
+ * @param {NotebookArgs} args
+ * @param {NotebookCall} c
+ */
 async function notebookWrite(args, c) {
     const { conversationId } = c;
     const content = typeof args.content === 'string' ? args.content : '';
@@ -385,6 +434,10 @@ async function notebookWrite(args, c) {
     }
 }
 
+/**
+ * @param {NotebookArgs} args
+ * @param {NotebookCall} c
+ */
 async function notebookInsert(args, c) {
     const { conversationId } = c;
     const insertContent = args.content || '';
@@ -419,6 +472,10 @@ async function notebookInsert(args, c) {
     }
 }
 
+/**
+ * @param {NotebookArgs} args
+ * @param {NotebookCall} c
+ */
 async function notebookReplace(args, c) {
     const { conversationId } = c;
     const findText = args.find_text;
@@ -458,6 +515,7 @@ async function notebookReplace(args, c) {
     }
 }
 
+/** @type {Record<string, (args: NotebookArgs, c: NotebookCall) => Promise<object>>} */
 const NOTEBOOK_HANDLERS = {
     notebook_read: notebookRead,
     notebook_write: notebookWrite,
@@ -467,6 +525,9 @@ const NOTEBOOK_HANDLERS = {
 
 /**
  * Execute a notebook tool call.
+ * @param {string} toolName
+ * @param {NotebookArgs} args
+ * @param {{ conversationId?: string, userId?: string, agentId?: string, session?: unknown }} context
  */
 async function executeWorkspaceTool(toolName, args, context) {
     const { conversationId, userId: callerUserId } = context;
@@ -504,6 +565,9 @@ async function executeWorkspaceTool(toolName, args, context) {
  * Ownership-gated on userId here because the tool dispatcher omits userId, so the
  * in-tool cross-user guard is inert (userId here comes from request auth).
  *
+ * @param {string} conversationId
+ * @param {string} userId
+ * @param {unknown} content
  * @returns {Promise<{ seeded: boolean, reason: string }>}
  */
 async function syncClientWorkspaceContent(conversationId, userId, content) {
@@ -561,6 +625,7 @@ async function syncClientWorkspaceContent(conversationId, userId, content) {
  * for good.
  *
  * Returns Markdown (the dialect this pane and these tools speak).
+ * @param {{ notebookId?: string | null, userId: string, fallbackContent?: string }} opts
  */
 async function resolveWorkspaceContent({ notebookId, userId, fallbackContent }) {
     if (!notebookId) return fallbackContent || '';
@@ -581,6 +646,8 @@ async function resolveWorkspaceContent({ notebookId, userId, fallbackContent }) 
  * edit rights on the notebook (a viewer, or someone who only saw the id in a
  * URL, gets a refusal). The tools check the role again on every use.
  *
+ * @param {string | null | undefined} notebookId
+ * @param {string} userId
  * @returns {Promise<null | { status: 403|404, error: string }>}
  */
 async function notebookLinkRefusal(notebookId, userId) {

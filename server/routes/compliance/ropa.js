@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — the Records of Processing Activities: the synthesis, its PDF
  * rendition and the mark-as-reviewed stamp.
@@ -33,8 +34,10 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
  * The newest AI Act assessment per target, as `{ automation: {id: row}, … }`.
  * Missing table / fresh install → empty maps; the register then simply says
  * `ai_act: null` per activity, which is the honest answer.
+ * @param {string} orgId
  */
 async function _assessments(orgId) {
+    /** @type {Record<string, Record<string, Record<string, any>>>} */
     const out = { automation: {}, agent: {} };
     let rows = [];
     try { rows = await require('../../stores/aiActAssessmentStore').listForOrg(orgId); } catch { return out; }
@@ -45,7 +48,10 @@ async function _assessments(orgId) {
     return out;
 }
 
-/** The §1.2 `ai_act` block on an activity — allow-listed: outcome + stamps. */
+/**
+ * The §1.2 `ai_act` block on an activity — allow-listed: outcome + stamps.
+ * @param {Record<string, any> | null | undefined} row
+ */
 function _aiActBlock(row) {
     if (!row) return null;
     return {
@@ -61,6 +67,8 @@ function _aiActBlock(row) {
  * setSccConfirmed, which preserves contract_ref/critical/country); the
  * observed country stays the fallback so a register row is never blank just
  * because nobody filled the form in yet.
+ * @param {unknown} list
+ * @param {string} operator
  */
 function _sccEntryFor(list, operator) {
     return (Array.isArray(list) ? list : []).find(e => e && typeof e === 'object' && e.operator === operator) || null;
@@ -69,12 +77,16 @@ function _sccEntryFor(list, operator) {
 /**
  * A processor that took data to a known place outside Europe. Rows from a
  * reader without the location counts fall back on is_eu, as before.
+ * @param {{ outside_calls?: number | string | null, is_eu?: boolean }} p
  */
 function _isThirdCountryProcessor(p) {
     if (p.outside_calls !== undefined && p.outside_calls !== null) return Number(p.outside_calls) > 0;
     return !p.is_eu;
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _buildRopa(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/ropa:_buildRopa', e, null));
@@ -103,6 +115,7 @@ async function _buildRopa(orgId) {
             processors = await ledgerProcessors(orgId);
         } catch (err) { fallback('routes/compliance/ropa:_buildRopa#3', err); /* fresh */ }
 
+        /** @type {Record<string, any>[]} */
         const activities = agents.map(a => ({
             activity_id: a.id,
             name: a.name,
@@ -137,7 +150,7 @@ async function _buildRopa(orgId) {
         try {
             activities.push(...await require('../../compliance/ropa/datatableActivities').datatableActivities(orgId));
         } catch (e) {
-            log.warn('[ROPA] datatable activities unavailable:', e.message);
+            log.warn('[ROPA] datatable activities unavailable:', /** @type {Error} */ (e).message);
         }
 
         // Collaborative projects with a recorded processing record (a lawful
@@ -145,7 +158,7 @@ async function _buildRopa(orgId) {
         try {
             activities.push(...await require('../../compliance/ropa/projectActivities').projectActivities(orgId));
         } catch (e) {
-            log.warn('[ROPA] project activities unavailable:', e.message);
+            log.warn('[ROPA] project activities unavailable:', /** @type {Error} */ (e).message);
         }
 
         // Chat signals (checking whether the Privacy Shield works) while they
@@ -154,7 +167,7 @@ async function _buildRopa(orgId) {
         try {
             activities.push(...await require('../../compliance/ropa/chatMonitoringActivity').chatMonitoringActivity(orgId));
         } catch (e) {
-            log.warn('[ROPA] chat signals activity unavailable:', e.message);
+            log.warn('[ROPA] chat signals activity unavailable:', /** @type {Error} */ (e).message);
         }
 
         // Product measurement.
@@ -264,6 +277,7 @@ async function _buildRopa(orgId) {
         // assessments already ride on their activity row above). Allow-listed:
         // kind, id, title, outcome, stamps. No prompts, no run content.
         const automationAssessments = Object.values(assessments.automation || {});
+        /** @type {Record<string, Record<string, string>>} */
         let titles = { automation: {}, agent: {} };
         if (automationAssessments.length) {
             try {
@@ -304,13 +318,13 @@ async function _buildRopa(orgId) {
         };
 }
 
-router.get('/ropa', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/ropa', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     res.json(await _buildRopa(orgId));
 });
 
 // PDF rendition of the same synthesis — the document a DPO hands an auditor.
-router.get('/ropa.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/ropa.pdf', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const ropa = await _buildRopa(orgId);
@@ -332,7 +346,7 @@ router.get('/ropa.pdf', requireAuth, requirePermission('admin_compliance'), asyn
     res.send(buffer);
 });
 
-router.post('/ropa/review', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res) => {
+router.post('/ropa/review', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     await complianceStore.markRopaReviewed(orgId, actorId);

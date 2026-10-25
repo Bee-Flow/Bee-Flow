@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * The automation feature's side of core/automationRunner/featurePorts.js: the
  * capabilities core's runner (and meeting notes, for the trigger bus) call in
@@ -25,72 +26,72 @@ const formTriggerContract = () => require('./formTriggerContract');
 
 registerRunnerPorts({
     approvals: {
-        projectStamp: (...args) => require('./approvalProject').projectStamp(...args),
-        dispatchApprovalRequested: (...args) => approvalEvents().dispatchApprovalRequested(...args),
-        dispatchApprovalDecided: (...args) => approvalEvents().dispatchApprovalDecided(...args),
-        runOnDecidedHook: (...args) => require('./approvalHooks').runOnDecidedHook(...args),
-        notifyApproval: (...args) => approvalNotify().notifyApproval(...args),
-        automationForApproval: (...args) => approvalNotify().automationForApproval(...args),
-        pollTalkReactions: (...args) => require('./approvalReactionIngest').pollTalkReactions(...args),
+        /** @type {typeof import('./approvalProject').projectStamp} */ projectStamp: (...args) => require('./approvalProject').projectStamp(...args),
+        /** @type {typeof import('./approvalEvents').dispatchApprovalRequested} */ dispatchApprovalRequested: (...args) => approvalEvents().dispatchApprovalRequested(...args),
+        /** @type {typeof import('./approvalEvents').dispatchApprovalDecided} */ dispatchApprovalDecided: (...args) => approvalEvents().dispatchApprovalDecided(...args),
+        /** @type {typeof import('./approvalHooks').runOnDecidedHook} */ runOnDecidedHook: (...args) => require('./approvalHooks').runOnDecidedHook(...args),
+        /** @type {typeof import('./approvalNotify').notifyApproval} */ notifyApproval: (...args) => approvalNotify().notifyApproval(...args),
+        /** @type {typeof import('./approvalNotify').automationForApproval} */ automationForApproval: (...args) => approvalNotify().automationForApproval(...args),
+        /** @type {typeof import('./approvalReactionIngest').pollTalkReactions} */ pollTalkReactions: (...args) => require('./approvalReactionIngest').pollTalkReactions(...args),
         // Run notifications: the Talk room and card, and the approval card.
-        resolveNcContext: (...args) => approvalDelivery().resolveNcContext(...args),
-        resolveTalkRoom: (...args) => approvalDelivery().resolveTalkRoom(...args),
-        postTalkCard: (...args) => approvalDelivery().postTalkCard(...args),
-        deliverApprovalToNextcloud: (...args) => approvalDelivery().deliverApprovalToNextcloud(...args),
+        /** @type {typeof import('./approvalDelivery').resolveNcContext} */ resolveNcContext: (...args) => approvalDelivery().resolveNcContext(...args),
+        /** @type {typeof import('./approvalDelivery').resolveTalkRoom} */ resolveTalkRoom: (...args) => approvalDelivery().resolveTalkRoom(...args),
+        /** @type {typeof import('./approvalDelivery').postTalkCard} */ postTalkCard: (...args) => approvalDelivery().postTalkCard(...args),
+        /** @type {typeof import('./approvalDelivery').deliverApprovalToNextcloud} */ deliverApprovalToNextcloud: (...args) => approvalDelivery().deliverApprovalToNextcloud(...args),
     },
     triggerBus: {
-        runPollingPass: (...args) => triggerBus().runPollingPass(...args),
-        renewExpiringSubscriptions: (...args) => triggerBus().renewExpiringSubscriptions(...args),
+        /** @type {typeof import('./triggerBus').runPollingPass} */ runPollingPass: (...args) => triggerBus().runPollingPass(...args),
+        /** @type {typeof import('./triggerBus').renewExpiringSubscriptions} */ renewExpiringSubscriptions: (...args) => triggerBus().renewExpiringSubscriptions(...args),
         // core/meetingNotes: background Nextcloud auth, the meeting.processed event,
         // and the matcher its usage list shares with the bus.
-        loadSession: (...args) => triggerBus().loadSession(...args),
-        dispatchEvent: (...args) => triggerBus().dispatchEvent(...args),
-        pickMatcher: (...args) => require('./triggerBus/filters').pickMatcher(...args),
+        /** @type {typeof import('./triggerBus').loadSession} */ loadSession: (...args) => triggerBus().loadSession(...args),
+        /** @type {typeof import('./triggerBus').dispatchEvent} */ dispatchEvent: (...args) => triggerBus().dispatchEvent(...args),
+        /** @type {typeof import('./triggerBus/filters').pickMatcher} */ pickMatcher: (...args) => require('./triggerBus/filters').pickMatcher(...args),
     },
     formQueue: {
-        recoverPending: (...args) => formQueue().recoverPending(...args),
-        stop: (...args) => formQueue().stop(...args),
+        /** @type {typeof import('./formQueue').recoverPending} */ recoverPending: (...args) => formQueue().recoverPending(...args),
+        /** @type {typeof import('./formQueue').stop} */ stop: (...args) => formQueue().stop(...args),
     },
     evolution: {
-        evaluateCanaries: (...args) => require('./evolution').evaluateCanaries(...args),
+        /** @type {typeof import('./evolution').evaluateCanaries} */ evaluateCanaries: (...args) => require('./evolution').evaluateCanaries(...args),
     },
     codeSandbox: {
-        isAvailable: (...args) => codeSandbox().isAvailable(...args),
-        loadError: (...args) => codeSandbox().loadError(...args),
-        runCode: (...args) => codeSandbox().runCode(...args),
-        defaultFetchHttp: (...args) => codeSandbox().defaultFetchHttp(...args),
+        /** @type {typeof import('./codeSandbox').isAvailable} */ isAvailable: (...args) => codeSandbox().isAvailable(...args),
+        /** @type {typeof import('./codeSandbox').loadError} */ loadError: (...args) => codeSandbox().loadError(...args),
+        /** @type {typeof import('./codeSandbox').runCode} */ runCode: (...args) => codeSandbox().runCode(...args),
+        /** @type {typeof import('./codeSandbox').defaultFetchHttp} */ defaultFetchHttp: (...args) => codeSandbox().defaultFetchHttp(...args),
         secretsNotConfiguredMessage: () => codeSandbox().SECRETS_NOT_CONFIGURED_MESSAGE,
     },
     outputSchemas: {
-        synthesizeDryRunOutput: (...args) => require('./outputSchemas').synthesizeDryRunOutput(...args),
+        /** @type {typeof import('./outputSchemas').synthesizeDryRunOutput} */ synthesizeDryRunOutput: (...args) => require('./outputSchemas').synthesizeDryRunOutput(...args),
     },
     shapeCache: {
-        recordShape: (...args) => require('./shapeCache').recordShape(...args),
+        /** @type {typeof import('./shapeCache').recordShape} */ recordShape: (...args) => require('./shapeCache').recordShape(...args),
     },
     summarise: {
-        summariseDefinition: (...args) => require('./summarise').summariseDefinition(...args),
+        /** @type {typeof import('./summarise').summariseDefinition} */ summariseDefinition: (...args) => require('./summarise').summariseDefinition(...args),
     },
     forms: {
-        renderFormConfig: (...args) => formTriggerContract().renderFormConfig(...args),
+        /** @type {typeof import('./formTriggerContract').renderFormConfig} */ renderFormConfig: (...args) => formTriggerContract().renderFormConfig(...args),
         maxRenderedDescriptionLen: () => formTriggerContract().MAX_RENDERED_DESCRIPTION_LEN,
-        emptyFormValues: (...args) => formTriggerContract().emptyFormValues(...args),
+        /** @type {typeof import('./formTriggerContract').emptyFormValues} */ emptyFormValues: (...args) => formTriggerContract().emptyFormValues(...args),
         // A dry run that answers a page from saved answers (form scenario, golden replay).
-        scenarioPageValues: (...args) => require('./testing/formScenarioValues').scenarioPageValues(...args),
+        /** @type {typeof import('./testing/formScenarioValues').scenarioPageValues} */ scenarioPageValues: (...args) => require('./testing/formScenarioValues').scenarioPageValues(...args),
     },
     automationGraph: {
-        walkSteps: (...args) => automationGraph().walkSteps(...args),
-        isAiStep: (...args) => automationGraph().isAiStep(...args),
-        generatingStepsDownstreamOfAi: (...args) => automationGraph().generatingStepsDownstreamOfAi(...args),
+        /** @type {typeof import('./automationGraph').walkSteps} */ walkSteps: (...args) => automationGraph().walkSteps(...args),
+        /** @type {typeof import('./automationGraph').isAiStep} */ isAiStep: (...args) => automationGraph().isAiStep(...args),
+        /** @type {typeof import('./automationGraph').generatingStepsDownstreamOfAi} */ generatingStepsDownstreamOfAi: (...args) => automationGraph().generatingStepsDownstreamOfAi(...args),
     },
     runOutcome: {
-        resolveRunOutcome: (...args) => runOutcome().resolveRunOutcome(...args),
-        storeOutcomeDeps: (...args) => runOutcome().storeOutcomeDeps(...args),
+        /** @type {typeof import('./runOutcome').resolveRunOutcome} */ resolveRunOutcome: (...args) => runOutcome().resolveRunOutcome(...args),
+        /** @type {typeof import('./runOutcome').storeOutcomeDeps} */ storeOutcomeDeps: (...args) => runOutcome().storeOutcomeDeps(...args),
     },
     stepTypes: {
-        isBuiltinStepType: (...args) => require('./builtinStepTools').isBuiltinStepType(...args),
+        /** @type {typeof import('./builtinStepTools').isBuiltinStepType} */ isBuiltinStepType: (...args) => require('./builtinStepTools').isBuiltinStepType(...args),
     },
     toolRegistry: {
-        availabilityFor: (...args) => toolRegistry().availabilityFor(...args),
+        /** @type {typeof import('./toolRegistry').availabilityFor} */ availabilityFor: (...args) => toolRegistry().availabilityFor(...args),
         allToolApps: () => toolRegistry().ALL_TOOL_APPS,
     },
 });

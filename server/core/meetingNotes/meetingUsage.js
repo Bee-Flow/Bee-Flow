@@ -541,3 +541,7 @@ module.exports = {
     MEETING_EVENT,
     MEETING_SOURCE_CONFIG_KEY,
 };
+
+/** @typedef {import('pg').Pool} Pool */
+
+/** @typedef {{ id?: string | number | null, tags?: unknown, ownerId?: string | null, userId?: string | null, organizationId?: string | null }} MeetingRef */

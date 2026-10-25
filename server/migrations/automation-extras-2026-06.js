@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: Phase-2 scaffolding tables (§4b, §6b, §18).
  *

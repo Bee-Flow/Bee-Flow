@@ -349,3 +349,16 @@ module.exports = {
     KINDS,
     REASONS,
 };
+
+/**
+ * @typedef {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: Record<string, any>[] }> }} UsageDb
+ */
+
+/**
+ * @typedef {{ kind: string, id: string, title: string | null, role: string, ownerId: string | null,
+ *   lastAt: Date | string | null, siteLabel?: string, foreign?: boolean }} UsageRow
+ */
+
+/** @typedef {{ rows: UsageRow[], unchecked?: string }} ScanResult */
+
+/** @typedef {{ id?: string|number, projectId?: string|null }} UsageWebpage */

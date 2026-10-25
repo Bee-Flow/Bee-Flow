@@ -105,3 +105,14 @@ module.exports = {
     certificateCourses,
     CERTIFICATES,
 };
+
+/**
+ * One lesson's entry in the progress blob; legacy entries are a bare `true`.
+ * @typedef {{ completedAt?: string | null, masteredAt?: string | null, steps?: Record<string, unknown> }} LessonProgress
+ * A legacy bare `true`: reading a field off it gives undefined, which the readers rely on.
+ * @typedef {true & { completedAt?: undefined, masteredAt?: undefined, steps?: undefined }} LegacyLessonDone
+ * @typedef {Record<string, LessonProgress | LegacyLessonDone | null | undefined>} ProgressMap
+ * @typedef {typeof COURSES[number]} Course
+ * An org-authored course: only the fields the completion and badge math read.
+ * @typedef {{ id: string, lessonIds: string[], badge?: { id?: string, title?: string } | null }} ExtraCourse
+ */

@@ -405,3 +405,28 @@ function renderPickerBlocks(catalog) {
 }
 
 module.exports = { renderCatalog, renderCatalogLean, renderCatalogSlim, emptyCatalogLine, renderAgentsBlock, renderKnowledgeBasesBlock, renderAppEventProvidersBlock, renderPickerBlocks, scoreRelevantTools, renderRelevantToolSchemas, renderDatatablesBlock, renderDocumentsBlock };
+
+/** @typedef {{ type?: string, description?: string, enum?: unknown[] }} ToolInputProp */
+
+/** @typedef {{ properties?: Record<string, ToolInputProp>, required?: string[] }} ToolInputSchema */
+
+/** @typedef {{ name: string, label?: string, description?: string, sideEffect?: boolean, inputSchema?: ToolInputSchema|null }} CatalogAction */
+
+/** @typedef {{ id: string, label?: string, available?: boolean, actions?: CatalogAction[] }} CatalogAppRow */
+
+/**
+ * @typedef {object} PromptCatalog  what buildCatalogForUser and buildPickerCatalogsForUser hand the prompt renderers
+ * @property {CatalogAppRow[]} [apps]
+ * @property {number} [appsOmitted]  set only when the app cap cut the list
+ * @property {string} [catalogError]
+ * @property {ReturnType<typeof import('../agentPickerRows').agentPickerRows>|null} [agents]
+ * @property {string|null} [agentsError]
+ * @property {Awaited<ReturnType<typeof import('../builderPickerCatalog').listKnowledgeBasePicker>>|null} [knowledgeBases]
+ * @property {string|null} [knowledgeBasesError]
+ * @property {Awaited<ReturnType<typeof import('../builderPickerCatalog').buildAppEventProvidersFor>>|null} [appEventProviders]
+ * @property {string|null} [appEventProvidersError]
+ */
+
+/** @typedef {import('../builderTools/pendingDatatables').DatatableCatalogEntry[]} DatatableList  the catalog, staged (pending) entries included; read defensively */
+
+/** @typedef {Awaited<ReturnType<typeof import('../builderDocumentCatalog').buildDocumentCatalogForUser>>} DocumentList */

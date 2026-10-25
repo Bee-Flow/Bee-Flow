@@ -299,3 +299,9 @@ module.exports = {
     // Exported for the colocated tests.
     mapTest, mapRun,
 };
+
+/** @typedef {import('pg').Pool} Pool */
+
+/** @typedef {{ id: string, agent_id: string, name?: string | null, question?: string | null, expect?: unknown, written_by?: unknown, suggested_by?: string | null, from_conversation_id?: string | null, created_at?: string | number | Date, updated_at?: string | number | Date }} AgentTestRow */
+
+/** @typedef {{ id: string, agent_id: string, version?: unknown, results?: unknown, passed?: unknown, total?: unknown, ran_at?: string | number | Date }} AgentTestRunRow */

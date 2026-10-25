@@ -529,3 +529,9 @@ module.exports = {
     // bind the SAME AAD this table uses — exported rather than copied.
     _metaAad,
 };
+
+/** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
+
+/** @typedef {import('./normalizeStoredMessages').StoredMessage} StoredMessage */
+
+/** @typedef {{ id?: string, user_id?: string, project_id?: string | null, crypto_scope?: string | null }} ConversationCryptoRow */

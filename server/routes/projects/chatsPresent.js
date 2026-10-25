@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project team chats: the pure pieces of routes/projects/chats.js. Constants,
  * title and excerpt derivation, the effective AI mode, the feed event shape,
@@ -19,13 +19,14 @@ const PAUSE_MS = 24 * 60 * 60_000;
 const TITLE_FROM_MESSAGE = 60;
 const EXCERPT_CHARS = 140;
 
-/** "The first ~60 characters of the message", on one line. */
+/** "The first ~60 characters of the message", on one line. @param {string} message */
 function titleFromMessage(message) {
     const line = String(message || '').replace(/\s+/g, ' ').trim();
     if (!line) return '';
     return line.length > TITLE_FROM_MESSAGE ? `${line.slice(0, TITLE_FROM_MESSAGE).trimEnd()}…` : line;
 }
 
+/** @param {string} text */
 function excerptOf(text) {
     const line = String(text || '').replace(/\s+/g, ' ').trim();
     return line.length > EXCERPT_CHARS ? `${line.slice(0, EXCERPT_CHARS).trimEnd()}…` : line;
@@ -46,11 +47,23 @@ function effectiveAiMode(aiMode, allowed) {
     return aiMode;
 }
 
+/**
+ * @param {string} kind
+ * @param {string} actorId
+ * @param {string} chatId
+ * @param {Record<string, unknown>} [payload]
+ */
 const chatEvent = (kind, actorId, chatId, payload = {}) => ({
     kind, actorId, targetType: 'project_chat', targetId: chatId, payload: { chatId, ...payload },
 });
 
-/** Open a sealed field, or report it unreadable without taking the request down. */
+/**
+ * Open a sealed field, or report it unreadable without taking the request down.
+ * @template [T=string]
+ * @param {() => T} open
+ * @param {string} what
+ * @returns {{ text: T | '', ok: boolean }}
+ */
 function tryOpen(open, what) {
     try {
         return { text: open(), ok: true };

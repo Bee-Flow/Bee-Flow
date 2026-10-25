@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The "Find repeating work" routes mounted on a real HTTP server, for the
  * tests next to routes/ai/automationBuilder/suggestions.js. The router comes

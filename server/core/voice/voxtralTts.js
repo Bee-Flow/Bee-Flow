@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Voxtral TTS — Text-to-Speech with Mistral Voxtral-TTS, falling back to ElevenLabs.
  *
@@ -26,9 +27,11 @@ const DEFAULT_TTS_MODEL = 'voxtral-mini-tts-2603';
 // POST /v1/audio/voices. We lazily list voices on the account and cache the
 // first one for the process lifetime. A manifest change (new voice created,
 // voice deleted) only takes effect on restart, which is fine for Beta.
+/** @type {string | null} */
 let _cachedVoiceId = null;
 let _voiceDiscoveryFailed = false;
 
+/** @param {string} apiKey */
 async function discoverVoiceId(apiKey) {
     if (_cachedVoiceId) return _cachedVoiceId;
     if (_voiceDiscoveryFailed) return null;
@@ -41,7 +44,7 @@ async function discoverVoiceId(apiKey) {
             _voiceDiscoveryFailed = true;
             return null;
         }
-        const json = await resp.json();
+        const json = /** @type {{ items?: Array<{ id?: string, name?: string }> }|null} */ (await resp.json());
         const first = Array.isArray(json?.items) ? json.items[0] : null;
         if (first?.id) {
             _cachedVoiceId = first.id;
@@ -52,7 +55,7 @@ async function discoverVoiceId(apiKey) {
         _voiceDiscoveryFailed = true;
         return null;
     } catch (err) {
-        log.warn('[Voxtral TTS] voice discovery error:', err.message);
+        log.warn('[Voxtral TTS] voice discovery error:', /** @type {Error} */ (err).message);
         _voiceDiscoveryFailed = true;
         return null;
     }
@@ -85,7 +88,7 @@ async function synthesize(text, opts = {}) {
         try {
             return await voxtralSynthesize(mistralKey, text, opts);
         } catch (err) {
-            log.warn('[Voxtral TTS] failed, falling back:', err.message);
+            log.warn('[Voxtral TTS] failed, falling back:', /** @type {Error} */ (err).message);
             // Fall through to ElevenLabs
         }
     }
@@ -110,6 +113,9 @@ async function synthesize(text, opts = {}) {
  * Handles both possible response shapes the API returns:
  *   - binary audio bytes with an audio/* Content-Type
  *   - JSON with a base64-encoded audio field (e.g. { audio, format })
+ * @param {string} apiKey
+ * @param {string} text
+ * @param {{ provider?: string | undefined; voice?: string | undefined; model?: string | undefined; language?: string | undefined; }} [opts]
  */
 async function voxtralSynthesize(apiKey, text, opts = {}) {
     const started = Date.now();
@@ -142,11 +148,12 @@ async function voxtralSynthesize(apiKey, text, opts = {}) {
     }
 
     const contentType = resp.headers.get('content-type') || '';
+    /** @type {string | null} */
     let audioBase64 = null;
     let mimeType = 'audio/mpeg';
 
     if (contentType.includes('application/json')) {
-        const json = await resp.json();
+        const json = /** @type {{ audio?: string, audio_base64?: string, data?: string, format?: string, mime_type?: string }} */ (await resp.json());
         // Try the common field names used by speech APIs.
         audioBase64 = json.audio || json.audio_base64 || json.data || null;
         if (json.format) mimeType = `audio/${json.format}`;

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 const NL_TRANSLATIONS = {
     'azure.identity_admin_title': 'Microsoft-identiteiten en directorysynchronisatie',

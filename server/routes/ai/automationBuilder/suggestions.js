@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Automation Builder — "Find repeating work": the scan (POST /suggest, SSE),
  * the sources it can read (GET /suggest/sources), the viewer's last scan
@@ -424,3 +423,8 @@ function suggestionsRouter(req, res, next) {
 }
 
 module.exports = Object.assign(suggestionsRouter, { createSuggestionsRouter });
+
+/**
+ * @typedef {{ [K in keyof typeof LOADERS]: ReturnType<(typeof LOADERS)[K]> }} SuggestDeps
+ * @typedef {Parameters<typeof usageLogFields>[0]} ScanUsage
+ */

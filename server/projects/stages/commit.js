@@ -374,3 +374,19 @@ async function commitSettings({ deployment, stage }, deps = {}) {
 }
 
 module.exports = { commit, commitSettings, buildStageTables, stageMigrationPlan, lockAndCas, toConverging, planStale, UNPUBLISH_SQL };
+
+/** @typedef {import('pg').PoolClient} Client */
+
+/** @typedef {import('./model').PreparedDeployment} PreparedDeployment */
+
+/** @typedef {import('./model').StageRow & { newPartsActive?: boolean }} StageRow */
+
+/** @typedef {ReturnType<typeof makeJournal>} Journal */
+
+/**
+ * What the flips and retirements share.
+ * @typedef {{ s: ReturnType<typeof storesOf>, deps: Record<string, unknown>, stage: StageRow,
+ *   prepared: PreparedDeployment, managedWrite: { deploymentId: string } }} CommitCtx
+ */
+
+/** @typedef {PreparedDeployment['parts'][number]} PreparedPart */

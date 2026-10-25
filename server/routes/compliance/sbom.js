@@ -93,3 +93,5 @@ router.get('/sbom/meta', requireAuth, requirePermission('admin_compliance'), asy
 module.exports = router;
 module.exports.contentTypeFor = contentTypeFor;
 module.exports.filenameFor = filenameFor;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Icon Routes — Appearance / icon-pack management.
  *
@@ -127,7 +128,11 @@ const imageGenLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 
 // ── Request schemas (see the header) ────────────────────────────────
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const KEY_TEXT = 'An icon key is letters, digits and . _ : -, like tools.search.';
@@ -138,6 +143,10 @@ const EMOJI_TEXT = 'An emoji icon is at most 64 characters.';
 const TYPE_TEXT = "An icon's type is 'emoji' or 'image'.";
 const iconType = z.enum(['emoji', 'image'], { error: () => TYPE_TEXT });
 const iconValue = worded('An icon needs a value.').min(1, 'An icon needs a value.');
+/**
+ * @param {{ type?: 'emoji' | 'image', value?: string }} icon
+ * @param {import('zod').RefinementCtx} ctx
+ */
 function checkIconValue(icon, ctx) {
     if (icon.type === 'image' && !/^\/api\/icons\/data\/[A-Za-z0-9._-]+$/.test(icon.value)) {
         ctx.addIssue({ code: 'custom', path: ['value'], message: IMAGE_TEXT });
@@ -251,7 +260,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
     res.status(201).json(newPack);
 });
 
-router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
+router.put('/:id', validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const userId = req.session.user.id;
     const ok = await iconStore.updateIconPack(req.params.id, userId, req.body);
     if (ok) res.json({ success: true });
@@ -259,7 +268,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
 });
 
 // PATCH /api/icons/:id/icons/:key — single-icon edit (no full-pack PUT race)
-router.patch('/:id/icons/:key', validate({ params: IconParams, body: SetIconBody }), async (req, res) => {
+router.patch('/:id/icons/:key', validate({ params: IconParams, body: SetIconBody }), async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, res) => {
     const userId = req.session.user.id;
     // null clears the override (see SetIconBody).
     const data = req.body;
@@ -268,7 +277,7 @@ router.patch('/:id/icons/:key', validate({ params: IconParams, body: SetIconBody
     res.json({ success: true, icons: next });
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const userId = req.session.user.id;
     const ok = await iconStore.deleteIconPack(req.params.id, userId);
     if (!ok) return res.status(404).json({ error: 'Pack not found or access denied' });
@@ -279,7 +288,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true });
 });
 
-router.post('/:id/activate', validate({ body: NoBody }), async (req, res) => {
+router.post('/:id/activate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const userId = req.session.user.id;
     const packId = req.params.id;
 
@@ -302,7 +311,7 @@ router.post('/upload', uploadIcon, async (req, res) => {
     // uploadGuard already answered 400/413/415 for anything it rejected, so
     // reaching here means the bytes matched an allowed image type (and an
     // SVG has been replaced by its sanitized rendering).
-    const ext = ICON_MIME_EXT[String(req.file.mimetype || '').toLowerCase()];
+    const ext = /** @type {Record<string, string>} */ (ICON_MIME_EXT)[String(req.file.mimetype || '').toLowerCase()];
     if (!ext) return res.status(415).json({ error: 'Unsupported image type' });
 
     const filename = `icon-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
@@ -315,6 +324,8 @@ router.post('/upload', uploadIcon, async (req, res) => {
 /**
  * Build the prompt sent to Nano Banana. We always layer in our base style
  * so a customised pack stays visually coherent; the user prompt is appended.
+ * @param {string} userPrompt
+ * @param {{ style?: string }} [opts]
  */
 function buildIconPrompt(userPrompt, opts = {}) {
     const style = opts.style?.trim() || 'flat 2D vector icon, single subject centred, solid background, no text, no watermark, app-icon style';
@@ -323,6 +334,10 @@ function buildIconPrompt(userPrompt, opts = {}) {
     return `${subject}. Style: ${style}.`;
 }
 
+/**
+ * @param {string} base64
+ * @param {string | undefined} mimeType
+ */
 async function saveBase64Png(base64, mimeType) {
     const ext = (mimeType || '').includes('jpeg') ? 'jpg' : 'png';
     const filename = `icon_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
@@ -356,7 +371,7 @@ router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), asyn
 
 // POST /api/icons/:id/bulk-generate — generate every missing icon in a pack
 //   body: { style?: string, model?: string, overwrite?: boolean, only?: string[] }
-router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerateBody }), async (req, res) => {
+router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerateBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const userId = req.session.user.id;
     const pack = await iconStore.getIconPack(req.params.id);
     if (!pack || pack.user_id !== userId) {
@@ -370,7 +385,7 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
 
     const { style, model, overwrite, only } = req.body;
     const targetIds = (only || ALL_EMOJI_IDS)
-        .filter(id => overwrite || !(pack.icons || {})[id]);
+        .filter((/** @type {string} */ id) => overwrite || !(pack.icons || {})[id]);
 
     if (targetIds.length === 0) {
         return res.json({ success: true, generated: 0, total: 0, message: 'No missing icons to generate.' });
@@ -384,7 +399,7 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
     const CONCURRENCY = 3;
     for (let i = 0; i < targetIds.length; i += CONCURRENCY) {
         const batch = targetIds.slice(i, i + CONCURRENCY);
-        const results = await Promise.allSettled(batch.map(async (id) => {
+        const results = await Promise.allSettled(batch.map(async (/** @type {string} */ id) => {
             const entry = EMOJI_BY_ID[id];
             const label = entry?.label || id;
             const subject = `An icon representing "${label}"`;

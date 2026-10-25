@@ -259,3 +259,14 @@ function emptyDataModel() {
 }
 
 module.exports = { canonicalizeDataModel, emptyDataModel };
+
+/**
+ * The model as canonicalize reads it: every key may be missing or of the wrong
+ * kind (the input is whatever an author or the AI sent), which is why each one
+ * is checked before it is trusted.
+ * @typedef {{ id?: string, key?: string, name?: string, type?: string, required?: boolean, unique?: boolean, options?: unknown[], [k: string]: unknown }} CanonField
+ * @typedef {{ id?: string, key?: string, name?: string, icon?: string | null, source?: { kind?: string, datatableId?: string, mode?: string } | null, fields?: CanonField[], access?: { default?: string, roles?: Record<string, unknown>, rowFilters?: Record<string, unknown> }, [k: string]: unknown }} CanonTable
+ * @typedef {{ mode?: string, keyField?: string, retentionDays?: number, incremental?: { field?: string, format?: string }, children?: Array<{ relationField?: string, retentionField?: string, retentionCascade?: boolean, [k: string]: unknown }>, [k: string]: unknown }} CanonSync
+ * @typedef {{ id?: string, kind?: string, name?: string, params?: unknown, provider?: string, mode?: string, folder?: string, address?: string, lookbackDays?: number, maxPerRun?: number, includeBody?: boolean, includeAttachmentMeta?: boolean, groupIntoThreads?: boolean, runAs?: string, integrationId?: string, sharedMode?: string, sync?: CanonSync, [k: string]: unknown }} CanonConnector
+ * @typedef {{ modelVersion?: number, tables?: CanonTable[], roles?: Array<{ key?: string, label?: unknown }>, roleMapping?: { default?: string | null, byGroup?: Record<string, string> }, connectors?: CanonConnector[], directory?: { orgMembers?: boolean } }} CanonModel
+ */

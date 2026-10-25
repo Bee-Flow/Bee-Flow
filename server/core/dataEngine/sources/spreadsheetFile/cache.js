@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The in-process DOWNLOAD CACHE — one copy of a file's bytes, and of what was
  * parsed from them, per version marker; shared by describe, sync and (later)
@@ -47,22 +47,36 @@ const BUDGET_BYTES = 100 * 1024 * 1024;
 /** Rough bytes per parsed cell — what a row array of small values costs in V8. */
 const CELL_ESTIMATE = 16;
 
+/** @typedef {{ at: number, size: number, buffer: Buffer|null, parsed: Map<string, { size: number, value: unknown }> }} CacheEntry */
+/** A parsed value: a reader's contract (`{ rows, header }`) or a list. @typedef {{ rows?: unknown, header?: unknown, length?: number, [i: number]: unknown }} ParsedValue */
+
+/** @type {Map<string, CacheEntry>} */
 const entries = new Map();   // key → { at, size, buffer, parsed: Map<subKey, { size, value }> }
+/** @type {Map<string, Promise<Buffer>>} */
 const inFlight = new Map();  // key → Promise<Buffer>
 let total = 0;
 
-/** A marker as a stable string: sorted keys, so the same probe makes the same key. */
+/**
+ * A marker as a stable string: sorted keys, so the same probe makes the same key.
+ * @param {Record<string, unknown> | null | undefined} marker
+ */
 function markerKey(marker) {
     if (!marker || typeof marker !== 'object') return 'none';
     const keys = Object.keys(marker).sort();
     return JSON.stringify(keys.map(k => [k, marker[k] === undefined ? null : marker[k]]));
 }
 
-/** The cache key of one file at one version. */
+/**
+ * The cache key of one file at one version.
+ * @param {string} provider
+ * @param {string} fileId
+ * @param {Record<string, unknown> | null | undefined} marker
+ */
 function keyOf(provider, fileId, marker) {
     return `${provider}|${fileId}|${markerKey(marker)}`;
 }
 
+/** @param {string} key */
 function drop(key) {
     const e = entries.get(key);
     if (!e) return;
@@ -83,6 +97,10 @@ function sweep(now = Date.now()) {
     }
 }
 
+/**
+ * @param {string} key
+ * @param {number} [now]
+ */
 function live(key, now = Date.now()) {
     const e = entries.get(key);
     if (!e) return null;
@@ -90,14 +108,20 @@ function live(key, now = Date.now()) {
     return e;
 }
 
+/** @param {string} key */
 function ensure(key) {
     const e = live(key);
     if (e) return e;
+    /** @type {CacheEntry} */
     const fresh = { at: Date.now(), size: 0, buffer: null, parsed: new Map() };
     entries.set(key, fresh);
     return fresh;
 }
 
+/**
+ * @param {CacheEntry} e
+ * @param {number} delta
+ */
 function grow(e, delta) {
     e.size += delta;
     total += delta;
@@ -131,6 +155,10 @@ async function bytes(key, load) {
  * header row, a tab list — computed once per `subKey` by `compute()`.
  * `size` is the caller's estimate of what the value weighs; a reader's
  * contract (`{ rows }`) is estimated from its cell count when none is given.
+ * @param {string} key
+ * @param {string} subKey
+ * @param {() => Promise<ParsedValue>} compute
+ * @param {{ size?: number|null }} [opts]
  * @returns {Promise<any>}
  */
 async function parsed(key, subKey, compute, { size = null } = {}) {
@@ -147,6 +175,7 @@ async function parsed(key, subKey, compute, { size = null } = {}) {
     return value;
 }
 
+/** @param {ParsedValue} value */
 function estimate(value) {
     if (!value || typeof value !== 'object') return 256;
     const rows = Array.isArray(value.rows) ? value.rows : (Array.isArray(value) ? value : null);
@@ -155,7 +184,10 @@ function estimate(value) {
     return 1024 + rows.length * Math.max(1, width) * CELL_ESTIMATE;
 }
 
-/** Forget one file version (a write replaced it), or one provider|fileId prefix. */
+/**
+ * Forget one file version (a write replaced it), or one provider|fileId prefix.
+ * @param {string} prefix
+ */
 function forget(prefix) {
     for (const key of [...entries.keys()]) if (key === prefix || key.startsWith(`${prefix}|`)) drop(key);
 }
@@ -173,9 +205,14 @@ function stats() {
 
 // ── the per-file write lock ─────────────────────────────────────────────
 
+/** @type {Map<string, Promise<unknown>>} */
 const locks = new Map();     // lockKey → Promise that settles when the current holder releases
 
-/** The lock key of one file, whatever its version: the cache key without the marker. */
+/**
+ * The lock key of one file, whatever its version: the cache key without the marker.
+ * @param {string} provider
+ * @param {string} fileId
+ */
 function lockKeyOf(provider, fileId) {
     return `${provider}|${fileId}`;
 }
@@ -191,6 +228,7 @@ function lockKeyOf(provider, fileId) {
  */
 async function withLock(key, fn) {
     const previous = locks.get(key) || Promise.resolve();
+    /** @type {(value?: unknown) => void} */
     let release;
     const mine = new Promise((resolve) => { release = resolve; });
     const turn = previous.then(() => mine);

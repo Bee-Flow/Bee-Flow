@@ -303,3 +303,9 @@ module.exports = {
     CACHE_TTL_MS,
     MAX_VALUE_ROWS,
 };
+
+/**
+ * @typedef {Object} LoadDefinitionsFromDbArgs
+ * @property {string | null} [orgId]
+ * @property {string} userId
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "Which button of this app runs which automation": pure.
  *
@@ -59,6 +59,16 @@ const ACTION_LIST_PROPS = Object.freeze(['itemActions', 'rowActions', 'bulkActio
 /** Het voorvoegsel van `ref_id`. Zie de kop: de ACTIE is de sleutel. */
 const REF_PREFIX = 'act:';
 
+/**
+ * One object read out of a (possibly hand-written) definition: only the fields
+ * the scan branches on are typed.
+ * @typedef {{ [k: string]: unknown, id?: string, kind?: string, props?: Record<string, unknown>, children?: unknown[], steps?: unknown[] }} DefObject
+ */
+
+/**
+ * @param {unknown} v
+ * @returns {v is DefObject}
+ */
 function isObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -74,13 +84,17 @@ function isObject(v) {
  * @returns {{ids: string[], unset: number}} `unset` counts the
  *   `run_automation` places WITHOUT an automation (`automationId: null`, the state in which every
  *   template is shipped). Those are NOT usage, but they do belong in the log line.
+ * @param {unknown} action
  */
 function automationsInAction(action) {
+    /**
+     * @type {string[]}
+     */
     const ids = [];
     let unset = 0;
     const seen = new Set();
 
-    const take = (obj) => {
+    const take = (/** @type {DefObject} */ obj) => {
         const aid = obj && typeof obj.automationId === 'string' ? obj.automationId.trim() : '';
         if (!aid) { unset += 1; return; }
         if (seen.has(aid)) return;
@@ -88,6 +102,11 @@ function automationsInAction(action) {
         ids.push(aid);
     };
 
+    /**
+     * @param {unknown} steps
+     * @param {number} depth
+     * @returns {void}
+     */
     const walkSteps = (steps, depth) => {
         // The same depth limit as the validator (MAX_ACTION_STEP_DEPTH is an error there,
         // here only a stop): a hand-written definition must not be able to drive this scan into a cycle.
@@ -125,9 +144,16 @@ function automationsInAction(action) {
  * one place in the app that runs the automation — the row names the first one,
  * and that is more honest than a second row that pretends they are two
  * different links.
+ * @param {unknown} screens
  */
 function collectActionSites(screens) {
+    /** @type {Map<string, { screenId: string|null, nodeId: string|null, label: string|null }>} */
     const sites = new Map();
+    /**
+     * @param {string} actionId
+     * @param {string|null} screenId
+     * @param {DefObject} node
+     */
     const remember = (actionId, screenId, node) => {
         if (typeof actionId !== 'string' || !actionId) return;
         if (sites.has(actionId)) return;
@@ -138,14 +164,19 @@ function collectActionSites(screens) {
         });
     };
 
+    /**
+     * @param {unknown} node
+     * @param {string|null} screenId
+     * @returns {void}
+     */
     const visit = (node, screenId) => {
         if (!isObject(node)) return;
         for (const ev of EVENT_NAMES) {
-            if (typeof node[ev] === 'string' && node[ev]) remember(node[ev], screenId, node);
+            if (typeof node[ev] === 'string' && node[ev]) remember(/** @type {string} */ (node[ev]), screenId, node);
         }
         const props = isObject(node.props) ? node.props : {};
         for (const key of ACTION_LIST_PROPS) {
-            for (const entry of (Array.isArray(props[key]) ? props[key] : [])) {
+            for (const entry of (Array.isArray(props[key]) ? /** @type {unknown[]} */ (props[key]) : [])) {
                 if (isObject(entry) && typeof entry.actionId === 'string') remember(entry.actionId, screenId, node);
             }
         }
@@ -175,6 +206,7 @@ function collectActionSites(screens) {
  * "this app uses nothing" without first knowing that the definition was really read.
  * See line 1 in automationUsageSync.js.
  *
+ * @param {unknown} definition
  * @returns {{entries: Array<{automationId:string, refId:string, actionId:string,
  *            screenId:string|null, nodeId:string|null, label:string|null,
  *            wired:boolean}>, unset:number}}

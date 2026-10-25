@@ -115,3 +115,9 @@ function makeTasksContext(deps = {}) {
 }
 
 module.exports = { makeTasksContext };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} TaskProject */
+
+/** @typedef {NonNullable<Parameters<typeof import('./tasks').makeProjectTasksRouter>[0]>} TasksDeps */
+
+/** @typedef {ReturnType<typeof makeTasksContext>} TasksCtx */

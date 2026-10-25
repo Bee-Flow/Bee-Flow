@@ -529,3 +529,37 @@ module.exports = {
     INSTALL_SECRET_KEY,
     CONNECTION_META_KEY,
 };
+
+/**
+ * @typedef {{ body?: unknown, auth?: boolean, timeoutMs?: number, forceToken?: boolean }} HubRequestOpts
+ */
+
+/**
+ * @typedef {Object} _catalogQueryArgs
+ * @property {string} [q]
+ * @property {string} [category]
+ * @property {string | undefined} [cursor]
+ * @property {number | undefined} [limit]
+ */
+
+/**
+ * @typedef {Object} FetchCatalogArgs
+ * @property {string} [q]
+ * @property {string} [category]
+ * @property {string} [cursor]
+ * @property {number} [limit]
+ */
+
+/**
+ * @typedef {Object} FetchCatalogCachedArgs
+ * @property {string} [q]
+ * @property {string} [category]
+ * @property {string} [cursor]
+ * @property {number} [limit]
+ */
+
+/**
+ * @typedef {Object} FetchRevocationListArgs
+ * @property {number} [since]
+ * @property {number} [limit]
+ */

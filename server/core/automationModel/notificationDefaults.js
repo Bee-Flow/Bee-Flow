@@ -261,3 +261,11 @@ module.exports = {
     normalizeNotificationSettings,
     foldsIntoDigest,
 };
+
+/**
+ * @typedef {{ type: string, id?: string }} NotificationRecipient
+ * @typedef {{ enabled: boolean, channels: string[], recipients: NotificationRecipient[], urgency: string, throttle: { maxPerHour: number|null }, delivery: string, talkRoom?: string }} EventSettings
+ * @typedef {{ enabled: boolean, time: string }} DigestSettings
+ */
+
+/** @typedef {ReturnType<typeof freezeEvent>} FrozenEvent */

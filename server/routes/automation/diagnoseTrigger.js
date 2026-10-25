@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * POST /:id/diagnose-trigger: the trigger pipeline health check, split out of
  * routes/automation/runs.js (which mounts this router in its old place, so the
@@ -45,9 +45,10 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
     // how Nextcloud connects or how auth is resolved. Mirrors the Gmail
     // check shape so the generic TriggerDiagnosePanel renders it unchanged.
     if (trig?.kind === 'app_event' && provider === 'nextcloud') {
+        /** @type {Array<{ name: string, status: string, message: string, detail?: Record<string, unknown> }>} */
         const checks = [];
-        const finish = (ok) => res.json({ ok, kind: `nextcloud.${event}`, checks });
-        const ncAppIdForEvent = (ev) => {
+        const finish = (/** @type {boolean} */ ok) => res.json({ ok, kind: `nextcloud.${event}`, checks });
+        const ncAppIdForEvent = (/** @type {string} */ ev) => {
             if (!ev) return 'nextcloud';
             if (ev.startsWith('calendar.')) return 'nextcloud-calendar';
             if (ev.startsWith('deck.')) return 'nextcloud-deck';
@@ -139,8 +140,9 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         });
     }
 
+    /** @type {Array<{ name: string, status: string, message: string, detail?: Record<string, unknown> }>} */
     const checks = [];
-    const finish = (ok) => res.json({ ok, kind: 'gmail.mail.new', checks });
+    const finish = (/** @type {boolean} */ ok) => res.json({ ok, kind: 'gmail.mail.new', checks });
 
     // 1) Subscription row
     const subs = await automationStore.getSubscriptionsForAutomation(a.id);
@@ -198,7 +200,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
     // 3) Live Gmail history call (or bootstrap)
     try {
         const { createGoogleApiClient } = require('../../integrations/googleClient');
-        const gmail = await createGoogleApiClient(session, { api: 'gmail', version: 'v1' });
+        const gmail = /** @type {{ users: { history: { list: (params: { userId: string, startHistoryId: string, historyTypes: string[] }) => Promise<{ data: { history?: Array<{ messagesAdded?: unknown[] }>, historyId?: string } }> }, getProfile: (params: { userId: string }) => Promise<{ data: { historyId?: string } }> } }} */ (await createGoogleApiClient(session, { api: 'gmail', version: 'v1' }));
         if (sub.lastCursor) {
             try {
                 const r = await gmail.users.history.list({
@@ -206,7 +208,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
                     startHistoryId: sub.lastCursor,
                     historyTypes: ['messageAdded'],
                 });
-                const count = (r.data.history || []).reduce((acc, h) => acc + (h.messagesAdded?.length || 0), 0);
+                const count = (r.data.history || []).reduce((/** @type {number} */ acc, /** @type {{ messagesAdded?: unknown[] }} */ h) => acc + (h.messagesAdded?.length || 0), 0);
                 checks.push({
                     name: 'gmail_history',
                     status: 'ok',

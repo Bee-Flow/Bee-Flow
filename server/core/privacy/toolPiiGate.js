@@ -386,3 +386,11 @@ module.exports = {
     toolLoopGate, resolveToolShield, stripInjectedText, stripInjectedPassages, injectedPassagesPrompt,
     _deps,
 };
+
+/**
+ * The parts of a resolved shield (resolveShieldFor) this module reads.
+ * @typedef {{ enabled?: boolean, privacyAction?: string, piiDetectionConfidenceThreshold?: number,
+ *   toolPiiPolicy?: Record<string, { blockCategories?: string[] }> }} ToolShield
+ * @typedef {import('./piiDetection/scanCache').PiiEntity} PiiEntity
+ * @typedef {(fields: Record<string, string>) => void} LogEvent
+ */

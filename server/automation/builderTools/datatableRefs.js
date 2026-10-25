@@ -454,3 +454,16 @@ module.exports = {
     mapColumnKeys,
     mapColumnName,
 };
+
+/** @typedef {import('./pendingDatatables').DatatableCatalogEntry} DatatableCatalogEntry */
+
+/** @typedef {import('./pendingDatatables').DatatableColumn} DatatableColumn */
+
+/**
+ * What a datatable step call carries (the model's arguments, after
+ * translateDatatableVocabulary).
+ * @typedef {{ op?: string, label?: string, datatableId?: string, datatableKey?: string,
+ *   values?: Record<string, unknown>, where?: object|object[], sort?: object|object[], matchColumn?: string,
+ *   match?: string, limit?: number|string, cursor?: unknown, forEach?: object, afterStepId?: string,
+ *   branch?: string, caseName?: string, splice?: boolean }} DatatableStepArgs
+ */

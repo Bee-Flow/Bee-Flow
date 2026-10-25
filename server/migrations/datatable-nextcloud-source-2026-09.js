@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: `datatables.source` + `datatables.sync_state` (2026-09).
  *

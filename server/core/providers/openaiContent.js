@@ -164,3 +164,15 @@ function _completionsPart(part, role) {
 }
 
 module.exports = { toResponsesPart, toCompletionsContent };
+
+/**
+ * A content part in any of the shapes a history can carry (OpenAI Chat,
+ * Responses, Claude); every field is optional because the shape decides.
+ * @typedef {{
+ *   type?: string, text?: string, title?: string, filename?: string,
+ *   detail?: string, file_data?: string,
+ *   image_url?: string | { url?: string, detail?: string },
+ *   source?: { type?: string, data?: string, media_type?: string, url?: string },
+ *   file?: { file_data?: string, filename?: string },
+ * }} ContentPart
+ */

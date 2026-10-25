@@ -312,3 +312,9 @@ function checkRoutes(ctx, step, at) {
 }
 
 module.exports = { checkRoutes, checkRouteReads, checkRuleFields, checkRuleShapes, checkWholeList };
+
+/**
+ * @typedef {import('./stepContext').StepCtx} StepCtx
+ * @typedef {import('./stepContext').StepDef} StepDef
+ * @typedef {Record<string, any>} AstNode  a node of the parsed rule expression
+ */

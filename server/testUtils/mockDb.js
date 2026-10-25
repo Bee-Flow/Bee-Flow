@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Recording mock for `../db` — shared test harness (H2).
  *
@@ -42,9 +42,14 @@ const { TransactionRollback } = require('../utils/txRollback');
  *   optional escape hatch: return a result to fully override dispatch for a query
  */
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
+    /** @typedef {{ sql: string, params: unknown[] }} RecordedCall */
+    /** @type {{ run: RecordedCall[], getOne: RecordedCall[], getAll: RecordedCall[], client: RecordedCall[], exec: Array<{ sql: string }> }} */
     const calls = { run: [], getOne: [], getAll: [], client: [], exec: [] };
 
     // Route a statement to the first registered table it names.
+    /**
+     * @param {string} sql
+     */
     function tableFor(sql) {
         for (const name of Object.keys(tables)) {
             if (new RegExp(`\\b${name}\\b`, 'i').test(sql)) return name;
@@ -54,13 +59,21 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
 
     // Extract `col = $n` equalities from the WHERE clause only (SET clauses in
     // an UPDATE must not pollute the condition list).
+    /**
+     * @param {string} sql
+     * @param {unknown[]} params
+     */
     function whereConds(sql, params) {
         const m = sql.match(/\bWHERE\b([\s\S]*)/i);
         if (!m) return [];
         return [...m[1].matchAll(/([a-z_]+)\s*=\s*\$(\d+)/gi)]
-            .map((x) => [x[1], params[Number(x[2]) - 1]]);
+            .map((x) => /** @type {[string, unknown]} */ ([x[1], params[Number(x[2]) - 1]]));
     }
 
+    /**
+     * @param {string} sql
+     * @param {unknown[]} params
+     */
     function matchRows(sql, params) {
         const name = tableFor(sql);
         const rows = name ? tables[name] : [];
@@ -75,6 +88,11 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
         return rows.filter((r) => conds.every(([col, val]) => r[col] === val));
     }
 
+    /**
+     * @param {string} sql
+     * @param {unknown[]} [params]
+     * @returns {{ rows: Record<string, unknown>[], rowCount: number }}
+     */
     function dispatch(sql, params = []) {
         const s = String(sql).trim();
         if (onQuery) {
@@ -90,7 +108,7 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     }
 
     const client = {
-        query: async (sql, params = []) => {
+        query: async (/** @type {string} */ sql, /** @type {unknown[]} */ params = []) => {
             calls.client.push({ sql, params });
             return dispatch(sql, params);
         },
@@ -98,26 +116,26 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     };
 
     const db = {
-        run: async (sql, params = []) => {
+        run: async (/** @type {string} */ sql, /** @type {unknown[]} */ params = []) => {
             calls.run.push({ sql, params });
             return dispatch(sql, params);
         },
-        getOne: async (sql, params = []) => {
+        getOne: async (/** @type {string} */ sql, /** @type {unknown[]} */ params = []) => {
             calls.getOne.push({ sql, params });
             return dispatch(sql, params).rows[0] || null;
         },
-        getAll: async (sql, params = []) => {
+        getAll: async (/** @type {string} */ sql, /** @type {unknown[]} */ params = []) => {
             calls.getAll.push({ sql, params });
             return dispatch(sql, params).rows;
         },
-        exec: async (sql) => {
+        exec: async (/** @type {string} */ sql) => {
             calls.exec.push({ sql });
-            return undefined;
+            return /** @type {void} */ (undefined);
         },
         getClient: async () => client,
         // Faithful mirror of db.withTransaction: BEGIN/COMMIT/ROLLBACK flow
         // through the same recorded client, so mutation assertions see them.
-        withTransaction: async (fn) => {
+        withTransaction: async (/** @type {(c: typeof client) => Promise<unknown>} */ fn) => {
             await client.query('BEGIN');
             try {
                 const result = await fn(client);
@@ -132,7 +150,8 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
                 throw e;
             }
         },
-        makeStoreInit: (_tag, schemaFn) => {
+        makeStoreInit: (/** @type {string} */ _tag, /** @type {() => void | Promise<void>} */ schemaFn) => {
+            /** @type {Promise<void> | null} */
             let promise = null;
             return function ensureInit() {
                 if (!promise) promise = Promise.resolve().then(schemaFn);
@@ -141,7 +160,7 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
         },
         pool: { connect: async () => client },
         getPoolStats: () => ({ total: 0, idle: 0, waiting: 0 }),
-        getRedis: () => null,
+        getRedis: () => /** @type {unknown} */ (null),
         redisHealthy: () => false,
     };
 

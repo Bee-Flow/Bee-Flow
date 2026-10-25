@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — the caller's own permission snapshot: permissions, groups,
  * organisations, allowed agent types and the entitlement-derived feature map
@@ -56,6 +56,7 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
     // from a parallel resolver (getUserBetaFeatures + tier/grant math); that
     // second path could drift, which is what made a page render while its API 403'd.
     let betaFeatures = [];
+    /** @type {Record<string, boolean>} */
     const canUseFeature = {};
     try {
         const entitlements = require('../../core/entitlements/entitlements');

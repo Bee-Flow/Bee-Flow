@@ -416,3 +416,5 @@ module.exports = {
     makeSignalReader, sharedReader, recordCheckDeps, hasSpecialKinds, listPersonalDataProjects, personalDataPopulation,
     SOURCES, SPECIAL_KINDS, GENERIC_KIND, EVENT_WINDOW_DAYS,
 };
+
+/** @typedef {{ categories: Record<string, number>, kinds: Set<string>, sources: Set<string> }} SignalAcc */

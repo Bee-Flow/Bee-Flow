@@ -28,7 +28,7 @@ const SetupBody = z.object({
 }).strict();
 
 // Check if setup is complete (admin password set)
-router.get('/setup-status', async (req, res) => {
+router.get('/setup-status', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const config = await loadConfig();
     const isSetupComplete = !!config.admin.passwordHash;
     const isOAuthConfigured = !!(config.oauth.clientId && config.oauth.clientSecret);
@@ -40,13 +40,14 @@ router.get('/setup-status', async (req, res) => {
         ? `${process.env.SERVER_PROTOCOL || 'https'}://${process.env.SERVER_PUBLIC_HOST}`
         : '';
     // Include available locales for pre-auth language picker
+    /** @type {Array<{ code: string, name: string }>} */
     let availableLocales = [];
     try {
         const languageStore = require('../../stores/languageStore');
         const locales = await languageStore.getAvailableLocales();
         availableLocales = locales.map(l => ({ code: l.code, name: l.name }));
     } catch (err) {
-        log.error('[Auth] setup-status — failed to load locales:', err.message);
+        log.error('[Auth] setup-status — failed to load locales:', /** @type {Error} */ (err).message);
     }
     // ── Granular signup toggles (database-backed, fallback to env) ──
     const envAllowSignups = process.env.ALLOW_SIGNUPS !== 'false';
@@ -69,7 +70,7 @@ router.get('/setup-status', async (req, res) => {
             const org = Array.isArray(orgs) ? orgs.find(o => o.logo || o.name) || orgs[0] : null;
             if (org) branding = { logo: org.logo || null, name: org.name || null };
         } catch (err) {
-            log.warn('[Auth] setup-status — branding lookup failed:', err.message);
+            log.warn('[Auth] setup-status — branding lookup failed:', /** @type {Error} */ (err).message);
         }
     }
 
@@ -104,7 +105,7 @@ router.get('/setup-status', async (req, res) => {
 });
 
 // Initial admin setup (set password for first time)
-router.post('/setup', validate({ body: SetupBody }), async (req, res) => {
+router.post('/setup', validate({ body: SetupBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const config = await loadConfig();
 
     // Only allow if password not set yet
@@ -159,7 +160,7 @@ router.post('/setup', validate({ body: SetupBody }), async (req, res) => {
         log.info('[Auth] Admin DEK created with per-user Argon2id encryption');
         res.json({ success: true, recoveryKey });
     } catch (err) {
-        log.error('[Auth] Admin DEK setup failed:', err.message);
+        log.error('[Auth] Admin DEK setup failed:', /** @type {Error} */ (err).message);
         // Config was saved, so setup is complete, but DEK failed —
         // getOrCreateUserDEKCompat will create it on first login
         res.json({ success: true });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Canonical JSON for the compliance evidence chain.
  *
@@ -68,6 +68,8 @@ const crypto = require('crypto');
  * different order from what a bytewise-UTF-8 implementation in another
  * language would produce. Code-point order is the one every language agrees
  * on, so an external verifier can reproduce the digest.
+ * @param {string} a
+ * @param {string} b
  */
 function compareCodePoints(a, b) {
     const ia = a[Symbol.iterator]();
@@ -86,6 +88,13 @@ function compareCodePoints(a, b) {
 
 // Recursive serialiser over an already round-tripped value: only null,
 // boolean, number, string, array and plain object can occur here.
+/**
+ * @typedef {string | number | boolean | null | Json[] | { [key: string]: Json }} Json
+ */
+/**
+ * @param {Json} v
+ * @returns {string}
+ */
 function serialise(v) {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     if (Array.isArray(v)) return `[${v.map(serialise).join(',')}]`;

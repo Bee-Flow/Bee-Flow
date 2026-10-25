@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the bell notifications of project collaboration (2026-10): a
  * mention in a team chat or a comment, being added, a role change, removal,
@@ -93,6 +94,7 @@ const NL_TRANSLATIONS = {
     'project_collab.mute.menu_unmute': 'Demping van dit project opheffen',
 };
 
+/** @type {string[]} */
 const SAME_AS_ENGLISH = [];
 
 async function up({ languageStore = require('../stores/languageStore') } = {}) {

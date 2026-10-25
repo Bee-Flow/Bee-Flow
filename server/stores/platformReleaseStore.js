@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Platform Release Store — which builds of Bee Flow this installation has
  * run (CRA Art. 13 / Annex I part II: a record of releases and their SBOM).
@@ -30,6 +30,9 @@ async function _initDB() {
 const SHA_RE = /^[0-9a-f]{7,64}$/;
 const HEX64_RE = /^[0-9a-f]{64}$/;
 
+/**
+ * @param {string | undefined} v
+ */
 function _sha(v) {
     const s = String(v || '').trim().toLowerCase();
     if (!SHA_RE.test(s)) throw new Error('buildSha must be a hex git sha (7–64 chars)');
@@ -43,12 +46,13 @@ function _sha(v) {
  * the newer truth.
  *
  * @param {{buildSha?:string, appVersion?:string|null, sbomHash?:string|null}} [input]
- * @returns {Promise<{build_sha, app_version, first_seen_at, sbom_hash, inserted:boolean}>}
+ * @returns {Promise<{build_sha: string, app_version: string | null, first_seen_at: string | Date, sbom_hash: string | null, inserted: boolean}>}
  */
 async function upsertSeen({ buildSha, appVersion, sbomHash } = {}) {
     await initDB();
     const sha = _sha(buildSha);
     const version = appVersion == null ? null : String(appVersion).trim().slice(0, 64) || null;
+    /** @type {string | null} */
     let sbom = null;
     if (sbomHash != null && String(sbomHash).trim() !== '') {
         sbom = String(sbomHash).trim().toLowerCase();
@@ -76,6 +80,9 @@ async function latest() {
     `, []);
 }
 
+/**
+ * @param {string} buildSha
+ */
 async function get(buildSha) {
     await initDB();
     return getOne(`
@@ -85,7 +92,10 @@ async function get(buildSha) {
     `, [_sha(buildSha)]);
 }
 
-/** Newest first. */
+/**
+ * Newest first.
+ * @param {number} [limit]
+ */
 async function listRecent(limit = 20) {
     await initDB();
     const n = Number.isInteger(Number(limit)) && Number(limit) > 0 ? Math.min(Number(limit), 500) : 20;
@@ -109,7 +119,10 @@ async function recordBuild({ build_sha, app_version, sbom_hash } = {}) {
     return upsertSeen({ buildSha: build_sha, appVersion: app_version, sbomHash: sbom_hash });
 }
 
-/** The build seen immediately BEFORE `buildSha` (by first_seen_at), or null. */
+/**
+ * The build seen immediately BEFORE `buildSha` (by first_seen_at), or null.
+ * @param {string} buildSha
+ */
 async function getPreviousBuild(buildSha) {
     await initDB();
     return getOne(`

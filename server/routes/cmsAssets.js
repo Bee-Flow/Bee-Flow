@@ -59,7 +59,7 @@ const upload = multer({
     // (the typical sim.ai-style screen recording is well under this), low
     // enough that we don't silently accept multi-hundred-MB uploads.
     limits: { fileSize: IMAGE_MAX_BYTES },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string, originalname?: string }} */ file, /** @type {(err: Error | null, accept?: boolean) => void} */ cb) => {
         if (UPLOAD_MIME_WHITELIST.has(file.mimetype) || cmsMedia.isVttFile(file)) cb(null, true);
         else cb(new Error(`Unsupported file type: ${file.mimetype}`));
     },
@@ -68,8 +68,13 @@ const upload = multer({
 // Wrap upload.single('file') so multer errors (LIMIT_FILE_SIZE, fileFilter
 // rejections) come back as 400 with a useful message instead of the
 // default 500 the upstream client sees today.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function uploadFile(req, res, next) {
-    upload.single('file')(req, res, (err) => {
+    upload.single('file')(req, res, (/** @type {Error & { code?: string }} */ err) => {
         if (!err) return next();
         const message = err.code === 'LIMIT_FILE_SIZE'
             ? 'File too large (max 25 MB)'
@@ -78,6 +83,10 @@ function uploadFile(req, res, next) {
     });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function handleUpload(req, res) {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
     if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage unavailable');
@@ -132,6 +141,10 @@ async function handleUpload(req, res) {
 const ASSET_LIST_EXT_RE = /\.(png|jpe?g|gif|webp|avif|svg|ico|mp4|webm|vtt)$/i;
 const ASSET_LIST_MAX = 500;
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function listAssetsHandler(req, res) {
     try {
         const keys = await storageStore.listKeys('cms/');
@@ -159,6 +172,7 @@ async function listAssetsHandler(req, res) {
 // these by setting Content-Disposition: attachment regardless of what
 // the storage layer reports.
 const SCRIPTABLE_MIME_PREFIXES = ['image/svg', 'text/html', 'text/xml', 'application/xhtml', 'application/xml'];
+/** @param {unknown} mime */
 function isScriptableMime(mime) {
     if (typeof mime !== 'string') return false;
     const lower = mime.toLowerCase();
@@ -191,6 +205,10 @@ async function sendStoredVariant(res, key, width, format, cacheHeaders) {
     }
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function serveAsset(req, res) {
     try {
         // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- MINTED_KEY_RE is anchored with a bounded and a single-class run: linear

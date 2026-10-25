@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The organisation switch for real-time co-editing of project notebooks and
  * pages (core/collab/settings.js holds the rule and the storage; this router
@@ -38,11 +38,11 @@ const CollabBody = bodyOf({
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireAuth]        Express middleware: 401 without a session
- * @param {Function} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
- * @param {Function} [deps.isOrgAdmin]         (req, orgId) => boolean
+ * @param {import('express').RequestHandler} [deps.requireAuth]        Express middleware: 401 without a session
+ * @param {(req: import('express').Request) => Set<string> | null | Promise<Set<string> | null>} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
+ * @param {(req: import('express').Request, orgId: string) => boolean} [deps.isOrgAdmin]         (req, orgId) => boolean
  * @param {any}   [deps.settings]           core/collab/settings surface
- * @param {Function} [deps.getConfig]          configStore.getConfig: the stored row, read fresh by GET
+ * @param {typeof import('../stores/configStore').getConfig} [deps.getConfig]          configStore.getConfig: the stored row, read fresh by GET
  */
 function makeOrgCollabRouter(deps = {}) {
     const router = express.Router();
@@ -54,7 +54,11 @@ function makeOrgCollabRouter(deps = {}) {
     const settings = () => deps.settings || require('../core/collab/settings');
     const getConfig = deps.getConfig || ((key) => require('../stores/configStore').getConfig(key));
 
-    /** The organisation's members may read its switch; a stranger may not learn it exists. */
+    /**
+     * The organisation's members may read its switch; a stranger may not learn it exists.
+     * @param {import('express').Request} req
+     * @param {string} orgId
+     */
     async function assertMember(req, orgId) {
         const orgIds = await resolveUserOrgIds(req);
         const member = orgIds === null || (orgIds && orgIds.has(orgId));
@@ -70,7 +74,7 @@ function makeOrgCollabRouter(deps = {}) {
         };
     }
 
-    router.get('/:orgId', requireAuth, async (req, res) => {
+    router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { orgId } = req.params;
         await assertMember(req, orgId);
         const s = settings();
@@ -86,7 +90,7 @@ function makeOrgCollabRouter(deps = {}) {
         res.json(answer(s.normalizeSettings(stored), !!stored));
     });
 
-    router.put('/:orgId', requireAuth, validate({ body: CollabBody }), async (req, res) => {
+    router.put('/:orgId', requireAuth, validate({ body: CollabBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { orgId } = req.params;
         if (!(await isOrgAdmin(req, orgId))) {
             throw forbidden('not_org_admin', 'Only an admin of this organisation can switch co-editing on or off.');

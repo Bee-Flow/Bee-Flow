@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * License API Routes
  *
@@ -16,7 +17,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
 const license = require('../license');
 const { hasPermission, resolveUserOrgIds, SystemRoles, Permissions, isOrgAdminRole } = require('../auth/permissions');
@@ -44,7 +45,11 @@ const { fallback } = require('../utils/bestEffort');
 // Unknown keys are refused too; the token is trimmed (a JWT has no spaces,
 // a pasted one often has a newline).
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the request as a JSON object.' }) }).strict(),
@@ -69,6 +74,7 @@ const NoBody = bodyOf({});
 // isSuperAdmin below) and is available on every deployment mode: a
 // server-wide licence governs the whole install, which is exactly what a
 // single-tenant operator wants whether they run cloud or self-hosted.
+/** @param {import('express').Request} req */
 function isSuperAdmin(req) {
     return !!(req.session?.isAdmin || req.session?.user?.role === SystemRoles.SUPER_ADMIN);
 }
@@ -85,20 +91,24 @@ const licenseLimiter = rateLimit({
     message: { error: 'Too many license requests' },
 });
 
+/** @param {import('express').Request} req */
 function getSessionUser(req) {
     return req.session?.user || null;
 }
 
+/** @param {import('express').Request} req */
 function getOrgId(req) {
     const u = getSessionUser(req);
     if (!u) return null;
-    return u.organizationId || u.orgId || null;
+    return u.organizationId || /** @type {string | undefined} */ (u.orgId) || null;
 }
 
+/** @param {import('express').Request} req */
 function getUserId(req) {
     return getSessionUser(req)?.id || null;
 }
 
+/** @param {import('express').Request} req */
 async function isOrgAdmin(req) {
     if (req.session?.isAdmin || req.session?.user?.role === SystemRoles.SUPER_ADMIN) return true;
     const userId = getUserId(req);

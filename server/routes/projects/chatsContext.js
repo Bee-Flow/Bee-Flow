@@ -205,3 +205,31 @@ function makeChatsContext(deps = {}) {
 }
 
 module.exports = { makeChatsContext };
+
+/**
+ * @typedef {typeof import('../../projects/chatAssistant')} ChatAssistantModule
+ * @typedef {Parameters<typeof projectAccessDeps>[0] & {
+ *   signalProjectChanged?: typeof import('./complianceSignal').signalProjectChanged,
+ *   store?: typeof import('../../stores/projectChatStore'),
+ *   taskStore?: typeof import('../../stores/projectTaskStore'),
+ *   collabNotifier?: ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>,
+ *   chatCrypto?: { forProject: typeof import('../../projects/chatCrypto').forProject },
+ *   assistant?: ReturnType<ChatAssistantModule['makeChatAssistant']>,
+ *   resolveAgent?: ChatAssistantModule['resolveUsableAgent'],
+ *   isChatAgentAllowed?: ChatAssistantModule['isChatAgentAllowed'],
+ *   listChatAgents?: ChatAssistantModule['listChatAgents'],
+ *   filedIds?: (projectId: string, kind: string) => Promise<Set<string>>,
+ *   resolveOrgs?: (req: import('express').Request) => Promise<{ orgId: string | null, limitOrgId: string | null }>,
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<unknown>,
+ *   logActivity?: typeof import('../../stores/projectStore').logActivity,
+ *   postLimiter?: import('express').RequestHandler,
+ *   participation?: typeof import('../../projects/participation'),
+ *   policy?: ReturnType<typeof import('../../projects/participation/policy').defaultPolicy>,
+ *   participationStore?: typeof import('../../stores/projectAiParticipationStore'),
+ *   now?: () => number,
+ *   newId?: () => string,
+ * }} ChatsDeps
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} ProjectRow
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectChatStore').getChat>>>} ChatRow
+ * @typedef {Exclude<Awaited<ReturnType<typeof import('../../stores/projectChatStore').appendMessage>>, { stale: true }>} StoredPost
+ */

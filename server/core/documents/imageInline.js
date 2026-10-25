@@ -186,3 +186,5 @@ async function inlineInternalImages(messages) {
 }
 
 module.exports = { inlineInternalImages, readAsDataUrl, MAX_INLINE_BYTES, PLACEHOLDER };
+
+/** @typedef {{ type?: string, text?: string, image_url?: string | { url?: string } }} ImagePart */

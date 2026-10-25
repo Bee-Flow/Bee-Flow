@@ -368,3 +368,14 @@ async function saveRunTokenMap(runId, tokenMap) {
 }
 
 module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, recordRunStepWith, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };
+
+/**
+ * @typedef {{ user?: { userId: string }, org?: { orgId: string }, automation?: { automationId: string } }} RunScope
+ * @typedef {{ status?: string | string[], triggerKind?: string | string[], mode?: string | string[],
+ * automationId?: string, kind?: string, sinceTs?: string | null, untilTs?: string | null,
+ * startedByUserId?: string, startedBy?: string, tests?: string, q?: string,
+ * viewerUserId?: string | null, limit?: number | string, cursor?: string | null }} RunFilters
+ * @typedef {{ automationId: string, title: string | null, kind: string, total: number,
+ * status: Record<string, number>, lastRunAt: string | null, lastErrorAt: string | null,
+ * lastErrorClass: string | null }} AutomationRollup
+ */

@@ -311,3 +311,5 @@ module.exports = {
     _viewerHasIntegration: viewerHasIntegration,
     _vaultOrgId: vaultOrgId,
 };
+
+/** @typedef {ReturnType<typeof defaultDeps>} Deps */

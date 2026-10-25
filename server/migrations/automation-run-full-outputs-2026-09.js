@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: automation_run_full_outputs (2026-09, BFSF-435).
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The pattern sources: which exist, which the user has, and collecting them.
@@ -124,6 +124,9 @@ function listSourceGroups(availableToolNames) {
     };
 }
 
+/**
+ * @param {string} s
+ */
 const norm = (s) => String(s ?? '').trim().toLowerCase().replace(/-/g, '_');
 
 /**
@@ -135,6 +138,7 @@ const norm = (s) => String(s ?? '').trim().toLowerCase().replace(/-/g, '_');
  */
 function selectUnits(sources, names) {
     const wanted = new Set((Array.isArray(sources) ? sources : []).map(norm).filter(Boolean));
+    /** @type {{ group: SourceGroup; app: SourceApp; }[]} */
     const units = [];
     for (const group of SOURCE_GROUPS) {
         for (const app of group.apps) {
@@ -153,6 +157,10 @@ function selectUnits(sources, names) {
  * @param {AbortSignal} signal
  */
 function guardExecutor(executeTool, names, signal) {
+    /**
+     * @param {string} name
+     * @param {object} args
+     */
     return async (name, args) => {
         if (signal.aborted) throw sourceError('aborted', 'source stopped');
         if (!LIVE_TOOLS.has(name) || isSideEffect(name)) throw sourceError('error', `tool not allowed: ${name}`);
@@ -177,6 +185,10 @@ function runWithin(run, limit, controller, parentSignal) {
         let settled = false;
         /** @type {ReturnType<typeof setTimeout>|undefined} */
         let timer;
+        /**
+         * @param {(value?: any) => void} fn resolve or reject of the promise
+         * @param {any} value the events, or the rejection reason
+         */
         const finish = (fn, value) => {
             if (settled) return;
             settled = true;
@@ -184,6 +196,9 @@ function runWithin(run, limit, controller, parentSignal) {
             parentSignal?.removeEventListener('abort', onAbort);
             fn(value);
         };
+        /**
+         * @param {string} code
+         */
         const stop = (code) => {
             controller.abort();
             finish(reject, sourceError(code, code === 'aborted' ? 'scan aborted' : `${code} after ${limit.ms} ms`));
@@ -198,6 +213,11 @@ function runWithin(run, limit, controller, parentSignal) {
 
 const REASONS = new Set(['auth', 'error', 'timeout', 'budget', 'aborted', 'not_connected', 'shield']);
 
+/**
+ * @typedef {Object} RunUnitArgs
+ * @property {SourceGroup} group
+ * @property {SourceApp} app
+ */
 /**
  * @param {{
  *   userId: string,
@@ -229,13 +249,19 @@ async function collectAll(ctx, opts = {}) {
     const since = now - windowDays * DAY;
     const deadline = Date.now() + limits.totalMs;
     const pseudoDomain = mailLive.makeDomainPseudonymiser();
+    /** @type {import('../events').WorkEvent[]} */
     const events = [];
+    /** @type {Array<{ source: string, app: string, status: 'done'|'skipped', events: number, reason?: string }>} */
     const steps = [];
 
+    /** @param {{ source: string, app: string, status: 'start'|'done'|'skipped', events: number, reason?: string }} step */
     const emit = (step) => {
         try { onProgress(step); } catch (err) { log.warn('[RepeatingWork] onProgress threw', err); }
     };
 
+    /**
+     * @param {RunUnitArgs} param0
+     */
     const runUnit = async ({ group, app }) => {
         const base = { source: group.id, app: app.id };
         const left = deadline - Date.now();

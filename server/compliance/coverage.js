@@ -142,3 +142,5 @@ module.exports = {
     coverageFailure,
     coverageSummary,
 };
+
+/** @typedef {{ kind?: string, label?: string, examined_as?: string, next_step?: string, unexamined?: { id?: string | number, label?: string }[], total?: number, examined?: number, link?: string }} CoverageReport */

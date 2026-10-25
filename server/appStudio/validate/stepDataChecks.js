@@ -150,3 +150,5 @@ const KIND_CHECKS = {
 };
 
 module.exports = { DATASET_QUERY_OUTPUTS, KIND_CHECKS };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

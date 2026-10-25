@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -39,8 +39,13 @@ const LOCK_KEY = 0xBEEF108;
 const WATERMARK_KEY = 'usage_openobserve_watermark';
 const HOUR_MS = 60 * 60 * 1000;
 
+/**
+ * @param {string | undefined} raw
+ * @returns {Record<string, string>}
+ */
 function parseHeaders(raw) {
     if (!raw) return {};
+    /** @type {Record<string, string>} */
     const out = {};
     for (const pair of raw.split(',')) {
         const i = pair.indexOf('=');
@@ -66,7 +71,7 @@ function cfg() {
         salt: process.env.USAGE_HASH_SALT || '',
         currency: resolveCurrency(),
         // Bucket size: 'hour' (prod default) | 'minute' (responsive local test) | 'day'.
-        bucket: ['minute', 'hour', 'day'].includes(process.env.USAGE_PUSH_BUCKET) ? process.env.USAGE_PUSH_BUCKET : 'hour',
+        bucket: /** @type {'minute' | 'hour' | 'day'} */ (['minute', 'hour', 'day'].includes(process.env.USAGE_PUSH_BUCKET) ? process.env.USAGE_PUSH_BUCKET : 'hour'),
         backfillDays: Number(process.env.USAGE_PUSH_BACKFILL_DAYS || 7),
         intervalMs: Number(process.env.USAGE_PUSH_INTERVAL_MS || 900000),
         timeoutMs: Number(process.env.USAGE_PUSH_TIMEOUT_MS || 8000),
@@ -77,8 +82,14 @@ function cfg() {
 
 // Ready to run only when enabled, with an endpoint, and a salt (per-user
 // pseudonymization must be configured — refuse to push raw-ish data otherwise).
+/** @typedef {ReturnType<typeof cfg>} UsagePushConfig */
+/** @param {UsagePushConfig} c */
 function ready(c) { return !!(c.enabled && c.base && c.salt); }
 
+/**
+ * @param {string | null | undefined} userId
+ * @param {string} salt
+ */
 function hashUser(userId, salt) {
     if (!userId) return 'none';
     return crypto.createHmac('sha256', salt).update(String(userId)).digest('hex').slice(0, 16);
@@ -95,6 +106,11 @@ async function orgNameMap() {
     }
 }
 
+/**
+ * @param {Record<string, any>} r  one bucketed ai_usage_log aggregate row
+ * @param {UsagePushConfig} c
+ * @param {Map<string, string>} orgNames
+ */
 function toRecord(r, c, orgNames) {
     const bucketMs = new Date(r.bucket).getTime();
     const orgId = r.organization_id || '';
@@ -112,7 +128,7 @@ function toRecord(r, c, orgNames) {
     const rawSplit = (split.input_cost || 0) + (split.output_cost || 0);
     const inputCost = rawSplit > 0 ? estimated * (split.input_cost / rawSplit) : 0;
     const outputCost = rawSplit > 0 ? estimated * (split.output_cost / rawSplit) : estimated;
-    const round4 = (n) => Math.round(n * 10000) / 10000;
+    const round4 = (/** @type {number} */ n) => Math.round(n * 10000) / 10000;
 
     return {
         _timestamp: bucketMs * 1000, // OpenObserve _timestamp is microseconds
@@ -135,6 +151,10 @@ function toRecord(r, c, orgNames) {
     };
 }
 
+/**
+ * @param {UsagePushConfig} c
+ * @param {Record<string, unknown>[]} records
+ */
 async function ingest(c, records) {
     const url = `${c.base}/${c.stream}/_json`;
     const ac = new AbortController();
@@ -170,6 +190,7 @@ async function ingest(c, records) {
 
 // Push all CLOSED hour buckets since the watermark. Throws on ingest failure so
 // the watermark is NOT advanced (retry next tick).
+/** @param {UsagePushConfig} c */
 async function pushSince(c) {
     const now = Date.now();
     const bucketMs = { minute: 60 * 1000, hour: HOUR_MS, day: 24 * HOUR_MS }[c.bucket] || HOUR_MS;
@@ -230,6 +251,7 @@ async function processUsagePush() {
     }
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 function start() {

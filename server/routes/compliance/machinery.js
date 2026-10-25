@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — Machinery Regulation (EU) 2023/1230: the detected industrial
  * integrations (Art. 3 relevance) and the per-subject Art. 18 safety-component
@@ -79,7 +80,7 @@ router.get('/machinery/detections', ...guard, async (req, res) => {
     const latest = await customFrameworkStore.listLatestByPrefix(orgId, ART18_CHECK_ID).catch((e) => fallback('routes/compliance/machinery:anon#2', e, []));
     const bySubject = new Map();
     for (const a of latest || []) if (a.subject_id && !bySubject.has(a.subject_id)) bySubject.set(a.subject_id, a);
-    const decorate = (subjectId) => {
+    const decorate = (/** @type {string} */ subjectId) => {
         const a = bySubject.get(subjectId);
         if (!a) return null;
         return {
@@ -90,11 +91,11 @@ router.get('/machinery/detections', ...guard, async (req, res) => {
             current: customFrameworkStore.isCurrent(a),
         };
     };
-    const matches = (Array.isArray(result?.matches) ? result.matches : []).map(m => {
+    const matches = (Array.isArray(result?.matches) ? result.matches : []).map(/** @param {{ subject_id?: string, source?: string, id?: string | number }} m */ m => {
         const subjectId = m.subject_id || (m.source && m.id != null ? `${m.source}:${m.id}` : null);
         return { ...m, subject_id: subjectId, assessment: subjectId ? decorate(subjectId) : null };
     });
-    const manualSubjects = manual.map((s, i) => {
+    const manualSubjects = manual.map((/** @type {string | { id?: string, subject_id?: string, label?: string, name?: string } | null} */ s, /** @type {number} */ i) => {
         const id = typeof s === 'string' ? s : (s?.id ?? s?.subject_id ?? String(i));
         const subjectId = String(id).includes(':') ? String(id) : `manual:${id}`;
         return {
@@ -113,12 +114,14 @@ router.get('/machinery/detections', ...guard, async (req, res) => {
     });
 });
 
+/** @param {Record<string, any> | null} att */
 function _classificationOf(att) {
     if (att?.classification && CLASSIFICATIONS.includes(att.classification)) return att.classification;
     const m = /^\s*\[(safety_component|monitoring_only|not_safety_component)\]/.exec(String(att?.statement || ''));
     return m ? m[1] : null;
 }
 
+/** @param {unknown} raw */
 function _subjectId(raw) {
     // Express has already decoded the param once; a second pass only helps a
     // client that double-encoded, and must never throw on a stray '%'.
@@ -162,7 +165,7 @@ router.post('/machinery/subjects/:id/attest', ...guard, validate({ body: AttestB
                 attestation_id: attestation?.id || null,
                 subject_id: subjectId,
                 classification: outcome,
-                evidence_refs: refs.map(r => ({ evidence_id: r.evidence_id ?? null, sha256: r.sha256 ?? null })),
+                evidence_refs: refs.map((/** @type {{ evidence_id?: string | number, sha256?: string }} */ r) => ({ evidence_id: r.evidence_id ?? null, sha256: r.sha256 ?? null })),
                 expires_at: attestation?.expires_at || null,
                 by: actorId,
                 at: attestedAt.toISOString(),
@@ -184,6 +187,7 @@ router.get('/machinery/subjects/:id/attestations', ...guard, async (req, res) =>
     res.json(rows.map(a => ({ ...a, classification: _classificationOf(a) })));
 });
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = router;
-module.exports.ART18_CHECK_ID = ART18_CHECK_ID;
-module.exports.CLASSIFICATIONS = CLASSIFICATIONS;
+/** @type {RouterExports} */ (module.exports).ART18_CHECK_ID = ART18_CHECK_ID;
+/** @type {RouterExports} */ (module.exports).CLASSIFICATIONS = CLASSIFICATIONS;

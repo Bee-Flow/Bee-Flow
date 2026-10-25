@@ -476,3 +476,44 @@ class EuGptProvider extends BaseProvider {
 }
 
 module.exports = EuGptProvider;
+
+/**
+ * @typedef {string | Array<string | { type?: string, text?: string }> | null | undefined} EuGptContent
+ * @typedef {{ function?: { name?: string, arguments?: string | object }, name?: string, input?: object }} EuGptToolCall
+ * @typedef {{ role: string, content?: EuGptContent, name?: string, tool_call_id?: string, tool_calls?: EuGptToolCall[] }} EuGptMessage
+ * @typedef {{ name?: string, description?: string, parameters?: object, input_schema?: object, function?: { name?: string, description?: string, parameters?: object } }} EuGptTool
+ * @typedef {{ type?: string, name?: string, schema?: object, json_schema?: { name?: string, schema?: object }, properties?: object }} EuGptResponseFormat
+ * @typedef {{
+ *   tools?: EuGptTool[],
+ *   toolChoice?: string | { function?: { name?: string }, name?: string },
+ *   responseFormat?: EuGptResponseFormat,
+ *   responseSchema?: EuGptResponseFormat,
+ *   maxTokens?: number,
+ *   max_tokens?: number,
+ *   stream?: boolean,
+ *   extraBody?: Record<string, unknown>,
+ *   reasoningSummary?: boolean,
+ *   timeoutMs?: number,
+ *   signal?: AbortSignal,
+ * }} EuGptOptions
+ * @typedef {{ name: string, description: string, schema: object }} EuGptForced
+ * @typedef {{
+ *   id?: string,
+ *   model?: string,
+ *   status?: string,
+ *   incomplete_details?: { reason?: string },
+ *   output_text?: string,
+ *   output?: Array<{ type?: string, content?: Array<{ text?: string }> }>,
+ *   usage?: Parameters<typeof normalizeUsage>[1],
+ * }} EuGptResponse
+ * @typedef {{
+ *   type?: string,
+ *   response?: EuGptResponse,
+ *   model_id?: string,
+ *   category?: string,
+ *   delta?: string,
+ *   item?: { type?: string, name?: string, status?: string },
+ *   code?: string,
+ *   message?: string,
+ * }} EuGptStreamEvent
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Bridge Auth — author-context resolver shared by all three webpage
  * runtime bridges (AI / Automations / Integrations).
@@ -30,6 +30,10 @@ const { resolveEnabledIntegrations } = require('../integrations/enabledIntegrati
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
+/**
+ * @param {string} authorUserId
+ * @param {Awaited<ReturnType<typeof userStore.getUser>> | null} authorUser
+ */
 async function buildAuthorSession(authorUserId, authorUser) {
     const allEnabled = await resolveEnabledIntegrations(authorUserId, authorUser?.organizationId || null);
     try {
@@ -51,7 +55,7 @@ async function buildAuthorSession(authorUserId, authorUser) {
             };
         }
     } catch (err) {
-        log.warn(`[WebpageBridgeAuth] buildUserAuth failed for user ${authorUserId}: ${err.message}`);
+        log.warn(`[WebpageBridgeAuth] buildUserAuth failed for user ${authorUserId}: ${/** @type {Error} */ (err).message}`);
     }
 
     // Legacy fallback (matches automationRunner.resolveUserSession).
@@ -69,7 +73,7 @@ async function buildAuthorSession(authorUserId, authorUser) {
                 return sess;
             }
         } catch (err) {
-            log.warn(`[WebpageBridgeAuth] legacy session lookup failed: ${err.message}`);
+            log.warn(`[WebpageBridgeAuth] legacy session lookup failed: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -91,6 +95,7 @@ async function buildAuthorSession(authorUserId, authorUser) {
 /**
  * Load everything a bridge route needs to act on behalf of the webpage's
  * author. Returns `null` if the webpage doesn't exist.
+ * @param {string} webpageId
  */
 async function loadAuthorContext(webpageId) {
     if (!webpageId) return null;

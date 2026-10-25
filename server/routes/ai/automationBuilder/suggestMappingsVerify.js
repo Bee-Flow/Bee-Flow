@@ -627,3 +627,25 @@ module.exports = {
     PAIR_NAME_KEYS,
     PAIR_VALUE_KEYS,
 };
+
+/**
+ * @typedef {import('../../../shared/expr/path.mjs').PathToken} PathToken
+ * @typedef {{ root: string, rootTokens: PathToken[], label?: string, real?: boolean, sample: unknown }} MappingSource
+ *   one offered source: its root path as the editor spells it, parsed, and its sample
+ * @typedef {{ key: string, type?: string | string[], format?: string, enum?: unknown[] }} MappingParam  an input to fill (JSON-schema-ish)
+ * @typedef {{ sources: MappingSource[], runState: Record<string, unknown>, json: WeakMap<object, string | null>, loopMatch: Map<unknown, Map<MappingSource, boolean>> }} VerifyCtx
+ * @typedef {{ kind: 'ref', path: string } | { kind: 'template', value: string } | { kind: 'expr', value: string }} MappingBinding
+ * @typedef {{ reason: string, binding?: undefined, value?: undefined } | { binding: MappingBinding, value: unknown, reason?: undefined }} Verified
+ */
+
+/**
+ * The shared/expr AST node kinds this module inspects (parseExpr's output).
+ * @typedef {{ kind: 'str', v: string }} StrNode
+ * @typedef {{ kind: 'num', v: number }} NumNode
+ * @typedef {{ kind: 'path', segments: PathSegment[] }} PathNode
+ * @typedef {{ kind: 'unop', op: string, a: ExprNode }} UnopNode
+ * @typedef {{ kind: 'binop', op: string, a: ExprNode, b: ExprNode }} BinopNode
+ * @typedef {{ kind: 'call', name: string, args: ExprNode[] }} CallNode
+ * @typedef {StrNode | NumNode | PathNode | UnopNode | BinopNode | CallNode} ExprNode
+ * @typedef {{ kind: 'name', v: string } | { kind: 'wildcard' } | { kind: 'match', key: string | number, value: string | number | boolean | null } | { kind: 'index', expr: ExprNode }} PathSegment
+ */

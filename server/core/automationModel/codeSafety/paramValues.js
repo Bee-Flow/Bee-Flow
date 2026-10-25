@@ -172,3 +172,12 @@ function applyParamValues(params, inputs) {
 }
 
 module.exports = { applyParamValues, numberFrom };
+
+/**
+ * A refusal: a plain sentence plus its i18n key and parameters.
+ * @typedef {{ message: string, messageKey: string, messageParams: Record<string, unknown> }} ParamRefusal
+ */
+
+/**
+ * @typedef {{ name: string, label?: string, type?: string, items?: { type?: string }, default?: unknown, required?: boolean, enum?: unknown[], [key: string]: unknown }} CodeParam
+ */

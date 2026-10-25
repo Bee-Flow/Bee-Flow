@@ -345,3 +345,22 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
 }
 
 module.exports = { createLogUsage };
+
+/**
+ * One AI call as the callers hand it over. Every field is optional: the row is
+ * built from a whitelist of these.
+ * @typedef {{
+ *   timestamp?: string | Date, provider?: string, provider_type?: string, model?: string,
+ *   prompt_tokens?: number, completion_tokens?: number, total_tokens?: number, cached_tokens?: number,
+ *   cache_creation_tokens?: number, cache_creation_5m_tokens?: number, cache_creation_1h_tokens?: number,
+ *   cache_creation_ttl_assumed?: boolean, cache_ttl?: string, reasoning_tokens?: number,
+ *   prompt_includes_cache?: boolean, service_tier?: string, inference_geo?: string, traffic_type?: string,
+ *   tool_use?: Record<string, unknown> | null, modality?: Record<string, unknown> | null,
+ *   user_id?: string | null, organization_id?: string | null, agent_id?: string | null, agent_name?: string | null,
+ *   agent_type?: string, tool_name?: string | null, source?: string, duration_ms?: number,
+ *   conversation_id?: string | null, swarm_run_id?: string | null, parent_call_id?: string | null,
+ *   stop_reason?: string | null, client?: string,
+ * }} UsageLogEntry
+ */
+
+/** @typedef {ReturnType<typeof import('../../core/llm/modelCosts').rateUsage>} RatedUsage */

@@ -93,3 +93,8 @@ function walkAllSteps(definition, fn) {
 }
 
 module.exports = { walkObjects, walkSteps, walkTriggers, walkAllSteps };
+
+/**
+ * A definition node: one object out of a stored definition's parsed JSON.
+ * @typedef {Record<string, any>} DefinitionNode
+ */

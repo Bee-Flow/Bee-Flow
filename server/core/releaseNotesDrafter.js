@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * releaseNotesDrafter — turns a build's raw git material into customer-facing
  * release notes, using the org's configured model.
@@ -33,6 +33,9 @@ const { resolveModelForTierName } = require('./llm/modelResolver');
 const fmt = require('./releaseNotesFormat');
 const log = require('../telemetry/log');
 
+/**
+ * @param {string} [modelTier]
+ */
 async function _resolveModel(modelTier = 'fast') {
     try {
         return await resolveModelForTierName(modelTier || 'fast', { fallback: 'mistral-small-latest' });
@@ -44,8 +47,8 @@ async function _resolveModel(modelTier = 'fast') {
 /**
  * Draft notes for one release range.
  *
- * @param {{ commitSubjects?, prTitles?, diffstat?, services?, version?, modelTier? }} material
- * @returns {Promise<{title: string, lead: string, items: Array}>}
+ * @param {import('./releaseNotesFormat').ReleaseMaterial} [material]
+ * @returns {Promise<import('./releaseNotesFormat').ReleaseDraft>}
  */
 async function draftReleaseNotes(material = {}) {
     const commits = fmt.normaliseLines(material.commitSubjects);
@@ -70,7 +73,7 @@ async function draftReleaseNotes(material = {}) {
         // A malformed reply must not poison the changelog with garbage, and it
         // must not fail the build that triggered it. Empty is the safe answer;
         // the next dev build recomputes the same range anyway.
-        log.warn('[releaseNotesDrafter] unparseable model reply:', e.message);
+        log.warn('[releaseNotesDrafter] unparseable model reply:', /** @type {Error} */ (e).message);
         return { title: '', lead: '', items: [] };
     }
 

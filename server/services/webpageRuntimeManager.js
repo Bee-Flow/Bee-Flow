@@ -509,3 +509,10 @@ module.exports = {
     _shouldReap: shouldReap,
     _STARTUP_GRACE_MS: STARTUP_GRACE_MS,
 };
+
+/**
+ * The part of a dockerode client this module uses (dockerode ships no types).
+ * @typedef {{ id: string, start(): Promise<unknown>, stop(opts?: { t?: number }): Promise<unknown>, remove(opts?: { force?: boolean }): Promise<unknown>, inspect(): Promise<{ State?: { Running?: boolean }, NetworkSettings?: { Ports?: Record<string, Array<{ HostIp?: string, HostPort?: string }> | null> } }> }} DockerContainer
+ * @typedef {{ ping(): Promise<unknown>, getContainer(id: string): DockerContainer, createContainer(opts: Record<string, unknown>): Promise<DockerContainer>, listContainers(opts: { all?: boolean, filters?: Record<string, string[]> }): Promise<Array<{ Id: string, State: string, Labels?: Record<string, string> }>> } & import('./docker/dockerKit').DockerClient} DockerClient
+ * @typedef {{ containerId: string, lastAccess: number, reachableHost: string }} RuntimeEntry
+ */

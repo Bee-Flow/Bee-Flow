@@ -18,10 +18,16 @@ const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
 const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
+/** @typedef {{ category: string, alsoCategories?: string[], label?: string }} PiiHit */
+
 /**
  * The org tool-PII policy for this tool's CLASS. Read before the DLP restore,
  * on the arguments as the model wrote them, exactly as before.
  * @returns {{ _toolClass: string, _piiThreshold: number, _blockCats: Set<string> }}
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {string} toolName
+ * @param {Record<string, unknown>} toolArgs
  */
 function resolveToolPiiPolicy(rc, deps, toolName, toolArgs) {
     const { dlpShield, webSearchGuardEnabled, webSearchGuardPiiCategories } = rc;
@@ -45,7 +51,13 @@ function resolveToolPiiPolicy(rc, deps, toolName, toolArgs) {
     return { _toolClass, _piiThreshold, _blockCats };
 }
 
-/** Put the real values back into tokenised arguments (best-effort). */
+/**
+ * Put the real values back into tokenised arguments (best-effort).
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {Record<string, unknown>} toolArgs
+ * @returns {Record<string, unknown>}
+ */
 function restoreDlpArgs(rc, deps, toolArgs) {
     const { conversation } = rc;
     const { untokeniseToolArgs } = deps;
@@ -60,7 +72,12 @@ function restoreDlpArgs(rc, deps, toolArgs) {
     return toolArgs;
 }
 
-/** Regex guardrails, tool-input scope. Returns the sentinel, or null. */
+/**
+ * Regex guardrails, tool-input scope. Returns the sentinel, or null.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string, toolArgs: Record<string, unknown> }} call
+ * @returns {import('../toolRoundExecutor').ToolCallOutcome | null}
+ */
 function regexInputGuard(rc, { toolCall, toolName, toolArgs }) {
     const { onEvent, regexConfig } = rc;
     // Regex Guardrails - Tool Input scope
@@ -86,6 +103,8 @@ function regexInputGuard(rc, { toolCall, toolName, toolArgs }) {
  * The categories a search tool is MONITORED for (logged, allowed) when the
  * legacy guard is configured but disabled, or null. The caller only runs the
  * (awaited) argument scan when this or the block list asks for one.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {string} toolName
  */
 function monitorCategoriesFor(rc, toolName) {
     const { webSearchGuardEnabled, webSearchGuardPiiCategories } = rc;
@@ -99,6 +118,10 @@ function monitorCategoriesFor(rc, toolName) {
 /**
  * The pre-dispatch tool-PII block on the (restored) arguments. Returns the
  * sentinel result for a refused call, or null when it may go on.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, policy: ReturnType<typeof resolveToolPiiPolicy>, _monitorCats: string[] | null }} call
+ * @returns {Promise<import('../toolRoundExecutor').ToolCallOutcome | null>}
  */
 async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy, _monitorCats }) {
     const {
@@ -112,7 +135,7 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
         _argPii = await detectPii(JSON.stringify(toolArgs || {}), _checkCats, _piiThreshold);
     } catch (e) {
         _guardErr = true;
-        log.warn('[ToolPiiGuard] arg PII check failed:', e.message);
+        log.warn('[ToolPiiGuard] arg PII check failed:', /** @type {Error} */ (e).message);
     }
     // A degraded scan is NOT a clean scan. detectPii returns
     // { degraded: true, entities: [] } WITHOUT throwing when the
@@ -145,12 +168,12 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
     } else if (_argPii?.hasPii) {
         // A span an org's own data type won still carries
         // the built-in categories it covered (alsoCategories).
-        const _hitsAny = (e, cats) => cats.has(e.category)
+        const _hitsAny = (/** @type {PiiHit} */ e, /** @type {Set<string>} */ cats) => cats.has(e.category)
             || (Array.isArray(e.alsoCategories) && e.alsoCategories.some(c => cats.has(c)));
-        const _logLabel = (e) => (isCustomTypeId(e.category) ? e.category : e.label);
-        const _blockedHits = _argPii.entities.filter(e => _hitsAny(e, _blockCats));
+        const _logLabel = (/** @type {PiiHit} */ e) => (isCustomTypeId(e.category) ? e.category : e.label);
+        const _blockedHits = _argPii.entities.filter((/** @type {PiiHit} */ e) => _hitsAny(e, _blockCats));
         if (_blockedHits.length > 0) {
-            const _labels = [...new Set(_blockedHits.map(e => e.label))].join(', ');
+            const _labels = [...new Set(_blockedHits.map((/** @type {PiiHit} */ e) => e.label))].join(', ');
             guardrailEventStore.logGuardrailEvent({
                 organization_id: agent.organization_id || null,
                 user_id: userId, agent_id: agentId, agent_name: agent.name,
@@ -173,9 +196,9 @@ async function checkArgumentPii(rc, deps, { toolCall, toolName, toolArgs, policy
         }
         // Monitor-only (search guard configured but disabled): log, allow.
         if (_monitorCats) {
-            const _monHits = _argPii.entities.filter(e => _hitsAny(e, new Set(_monitorCats)));
+            const _monHits = _argPii.entities.filter((/** @type {PiiHit} */ e) => _hitsAny(e, new Set(_monitorCats)));
             if (_monHits.length > 0) {
-                const _monLabels = [...new Set(_monHits.map(e => e.label))].join(', ');
+                const _monLabels = [...new Set(_monHits.map((/** @type {PiiHit} */ e) => e.label))].join(', ');
                 guardrailEventStore.logGuardrailEvent({
                     organization_id: agent.organization_id || null,
                     user_id: userId, agent_id: agentId, agent_name: agent.name,

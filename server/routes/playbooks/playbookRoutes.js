@@ -377,3 +377,8 @@ function registerDelete(router, ctx) {
 }
 
 module.exports = { register, registerDelete };
+
+/**
+ * @typedef {import('../../playbooks/lifecycle').Phase} Phase
+ * @typedef {{ titleFor?: (locale: string) => string, tableTitleFor?: (locale: string) => string }} LocalisedTitles
+ */

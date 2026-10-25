@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Who else has this document open, and in which section: the heartbeat of a
  * designed document's editor. Mounted by routes/studioDocuments.js.
@@ -37,11 +37,11 @@ const Beat = bodyOf({
 /**
  * @param {object} [deps]
  * @param {any} [deps.documents]       stores/documentStore surface ({ getDocument })
- * @param {any} [deps.presence]        core/documents/sectionPresence surface
+ * @param {typeof import('../../core/documents/sectionPresence')} [deps.presence]        core/documents/sectionPresence surface
  * @param {Function} [deps.publishTransient]
  * @param {Function} [deps.publishChannel]   the `doc:<id>` channel
- * @param {Function} [deps.requireAuth]
- * @param {Function} [deps.limiter]       rate limit for the beats
+ * @param {import('express').RequestHandler} [deps.requireAuth]
+ * @param {import('express').RequestHandler} [deps.limiter]       rate limit for the beats
  * @param {Function} [deps.describePeople]
  * @param {any} [deps.log]
  */
@@ -49,19 +49,19 @@ function makeDocumentPresenceRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const documents = () => deps.documents || require('../../stores/documentStore');
     const presence = () => deps.presence || require('../../core/documents/sectionPresence');
-    const publishTransient = (...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
+    const publishTransient = (/** @type {Parameters<typeof import('../../core/projectEventBus').publishTransient>} */ ...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
     // Looked up per request, so loading this router does not load the auth
     // and user stores, and a test's session gate is the one used.
-    const publishChannel = (...a) => (deps.publishChannel || require('../../core/projectEventBus').publishChannel)(...a);
+    const publishChannel = (/** @type {Parameters<typeof import('../../core/projectEventBus').publishChannel>} */ ...a) => (deps.publishChannel || require('../../core/projectEventBus').publishChannel)(...a);
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
-    const describePeople = (...a) => (deps.describePeople || require('../../core/documents/documentPeople').describePeople)(...a);
+    const describePeople = (/** @type {Parameters<typeof import('../../core/documents/documentPeople').describePeople>} */ ...a) => (deps.describePeople || require('../../core/documents/documentPeople').describePeople)(...a);
     const log = deps.log || require('../../telemetry/log');
     // An editor beats every ~20 s and on every section change; this is far
     // above that and still stops a runaway loop.
     const limiter = deps.limiter || require('../../utils/perUserRateLimit')
         .perUserRateLimit({ windowMs: 60_000, max: 120, name: 'document-presence' });
 
-    router.post('/:id/presence', requireAuth, limiter, validate({ body: Beat }), async (req, res) => {
+    router.post('/:id/presence', requireAuth, limiter, validate({ body: Beat }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const doc = await documents().getDocument(req.params.id, userId);
         if (!doc) throw notFound('document_not_found', 'Document not found');
@@ -77,7 +77,7 @@ function makeDocumentPresenceRouter(deps = {}) {
             kind: 'document.presence', actorId: userId, targetType: 'document', targetId: doc.id,
             payload: { documentId: doc.id, clientId, sectionId, state },
         };
-        const failed = (err) => log.warn('[Documents] presence event not sent:', err && err.message);
+        const failed = (/** @type {Error} */ err) => log.warn('[Documents] presence event not sent:', err && err.message);
         if (doc.projectId) publishTransient(doc.projectId, event).catch(failed);
         // The document's own channel, for every document (GET /:id/stream).
         publishChannel(`doc:${doc.id}`, event).catch(failed);

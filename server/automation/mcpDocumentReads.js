@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Which document contracts a caller has read over MCP, kept between calls.
@@ -25,6 +25,7 @@ const reads = new Map();
 /** @param {string} userId @param {string} automationId */
 const keyOf = (userId, automationId) => JSON.stringify([userId, automationId]);
 
+/** @param {number} now */
 function sweep(now) {
     for (const [k, v] of reads) if (now - v.at > TTL_MS) reads.delete(k);
     while (reads.size > MAX_ENTRIES) reads.delete(reads.keys().next().value);
@@ -32,12 +33,13 @@ function sweep(now) {
 
 /**
  * Put the contracts this caller read earlier on a fresh draft wrap.
- * @param {{ userId?: string, automationId?: string, _documents?: Array<any> | null, _documentContracts?: Record<string, any> }} wrap
+ * @param {{ userId?: string, automationId?: string, _documents?: Array<{ id?: string, versionId?: string }> | null, _documentContracts?: Record<string, any> }} wrap
  */
 function restore(wrap, now = Date.now()) {
     if (!wrap.userId || !wrap.automationId) return;
     const entry = reads.get(keyOf(wrap.userId, wrap.automationId));
     if (!entry || now - entry.at > TTL_MS) return;
+    /** @type {Record<string, any>} */
     const current = {};
     for (const [id, contract] of Object.entries(entry.contracts)) {
         const listed = wrap._documents?.find(d => d.id === id);

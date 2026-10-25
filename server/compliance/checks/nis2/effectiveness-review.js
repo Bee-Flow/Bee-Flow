@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NIS2 Art. 21(2)(f) — policies and procedures to assess the effectiveness of
  * the cybersecurity risk-management measures.
@@ -22,13 +22,18 @@ const REVIEW_OK_DAYS = 365;
 const REVIEW_GRACE_DAYS = 540;
 const SWEEP_FRESH_DAYS = 7;
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return !!rel && rel.nis2 === 'not_relevant';
 }
 
-/** MAX(column) for one org-scoped table; null when empty or the table is missing. */
+/**
+ * MAX(column) for one org-scoped table; null when empty or the table is missing.
+ * @param {string} sql
+ * @param {string} orgId
+ */
 async function _latest(sql, orgId) {
     try {
         const row = await getOne(sql, [orgId]);
@@ -42,6 +47,9 @@ async function _latest(sql, orgId) {
     }
 }
 
+/**
+ * @param {string | null} iso
+ */
 function _ageDays(iso) {
     if (!iso) return null;
     return Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
@@ -62,6 +70,7 @@ module.exports = {
     descriptionKey: 'compliance.check_nis2_effectiveness_review_desc',
     remediationKey: 'compliance.check_nis2_effectiveness_review_fix',
     remediationLink: 'admin/compliance/audits',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {

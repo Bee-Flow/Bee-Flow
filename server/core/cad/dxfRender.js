@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Draw an ASCII DXF — the flat cutting geometry, as one picture.
  *
@@ -72,18 +73,32 @@ const DXF_BINARY_SENTINEL = 'AutoCAD Binary DXF' + String.fromCharCode(13, 10, 2
 // vertex it follows. So entities keep their pair list rather than a map, and
 // each type reads what it needs out of it.
 
-/** Split the file into ENTITIES, the BLOCKS table, and the header bits we use. */
+/** @typedef {[string, string]} DxfPair one (group code, value) line pair */
+/** @typedef {{ type: string, pairs: DxfPair[] }} DxfEntity */
+/** @typedef {{ name: string | null, base: number[], entities: DxfEntity[] }} DxfBlock */
+
+/**
+ * Split the file into ENTITIES, the BLOCKS table, and the header bits we use.
+ * @param {string} text
+ */
 function parseDxf(text) {
     const lines = text.split(/\r\n|\n/);
+    /** @type {DxfEntity[]} */
     const entities = [];
+    /** @type {Map<string, DxfBlock>} */
     const blocks = new Map();
+    /** @type {{ insunits: number | null }} */
     const header = { insunits: null };
 
+    /** @type {string | null} */
     let section = null;
     let pendingSection = false;
+    /** @type {string | null} */
     let headerVar = null;
+    /** @type {DxfEntity | null} */
     let current = null;          // the entity being collected
     let sink = entities;         // where finished entities go (swapped inside BLOCKS)
+    /** @type {DxfBlock | null} */
     let block = null;            // the BLOCK being collected
     let count = 0;
     let truncated = false;
@@ -144,18 +159,30 @@ function parseDxf(text) {
     return { entities, blocks, header, truncated };
 }
 
+/**
+ * @param {string} v
+ */
 function num(v) {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
 }
 
-/** First value for a group code, or a fallback. */
+/**
+ * First value for a group code, or a fallback.
+ * @param {DxfPair[]} pairs
+ * @param {string} code
+ * @param {number | null} [fallback]
+ */
 function pick(pairs, code, fallback = null) {
     for (const [c, v] of pairs) if (c === code) return num(v);
     return fallback;
 }
 
-/** First STRING value for a group code. */
+/**
+ * First STRING value for a group code.
+ * @param {DxfPair[]} pairs
+ * @param {string} code
+ */
 function pickStr(pairs, code) {
     for (const [c, v] of pairs) if (c === code) return v;
     return null;
@@ -163,7 +190,15 @@ function pickStr(pairs, code) {
 
 // ── Curve flattening ────────────────────────────────────────────────
 
-/** Points along an arc, inclusive of both ends. */
+/**
+ * Points along an arc, inclusive of both ends.
+ * @param {number | null} cx
+ * @param {number | null} cy
+ * @param {number} r
+ * @param {number} a0
+ * @param {number} a1
+ * @param {number[][]} out
+ */
 function arcPoints(cx, cy, r, a0, a1, out) {
     let sweep = a1 - a0;
     while (sweep <= 0) sweep += TAU;
@@ -179,6 +214,10 @@ function arcPoints(cx, cy, r, a0, a1, out) {
  * which is how a rounded slot or a filleted corner is stored. bulge = tan(θ/4)
  * where θ is the included angle; a rounded part drawn as straight chords looks
  * like a stop sign, so this is not cosmetic.
+ * @param {number[]} p0
+ * @param {number[]} p1
+ * @param {number} bulge
+ * @param {number[][]} out
  */
 function bulgeArc(p0, p1, bulge, out) {
     const theta = 4 * Math.atan(bulge);
@@ -196,6 +235,7 @@ function bulgeArc(p0, p1, bulge, out) {
     const cy = my + (sign * h * dx) / chord;
     const a0 = Math.atan2(p0[1] - cy, p0[0] - cx);
     const a1 = Math.atan2(p1[1] - cy, p1[0] - cx);
+    /** @type {number[][]} */
     const pts = [];
     // A negative bulge sweeps clockwise. arcPoints only ever walks CCW, so the
     // clockwise case is the same arc walked from the other end and reversed.
@@ -206,7 +246,12 @@ function bulgeArc(p0, p1, bulge, out) {
 
 // ── Entities → polylines ────────────────────────────────────────────
 
-/** Apply an INSERT's scale/rotation/offset to a point. */
+/**
+ * Apply an INSERT's scale/rotation/offset to a point.
+ * @param {{ox: number;oy: number;sx: number;sy: number;rot: number;}} t
+ * @param {number} x
+ * @param {number} y
+ */
 function transform(t, x, y) {
     if (!t) return [x, y];
     const sx = x * t.sx;
@@ -216,14 +261,24 @@ function transform(t, x, y) {
     return [t.ox + sx * c - sy * s, t.oy + sx * s + sy * c];
 }
 
+/**
+ * @param {number[][][]} paths
+ * @param {number[][]} pts
+ * @param {{ ox: number; oy: number; sx: number; sy: number; rot: number; } | null} t
+ */
 function pushPath(paths, pts, t) {
     if (pts.length < 2) return;
     paths.push(t ? pts.map(([x, y]) => transform(t, x, y)) : pts);
 }
 
-/** Ordered (x, y) vertices of an LWPOLYLINE, with each vertex's bulge. */
+/**
+ * Ordered (x, y) vertices of an LWPOLYLINE, with each vertex's bulge.
+ * @param {DxfPair[]} pairs
+ */
 function lwVertices(pairs) {
+    /** @type {{ x: number; y: number; bulge: number; }[]} */
     const verts = [];
+    /** @type {{ x: number; y: number; bulge: number; } | null} */
     let cur = null;
     for (const [code, raw] of pairs) {
         if (code === '10') { if (cur) verts.push(cur); cur = { x: num(raw), y: 0, bulge: 0 }; }
@@ -234,8 +289,13 @@ function lwVertices(pairs) {
     return verts;
 }
 
-/** Straight/bulged vertex list → one flattened path. */
+/**
+ * Straight/bulged vertex list → one flattened path.
+ * @param {{ x: number; y: number; bulge: number; }[]} verts
+ * @param {boolean} closed
+ */
 function vertexPath(verts, closed) {
+    /** @type {number[][]} */
     const pts = [];
     if (!verts.length) return pts;
     pts.push([verts[0].x, verts[0].y]);
@@ -256,8 +316,15 @@ function vertexPath(verts, closed) {
  * recursion. Old-style POLYLINE keeps its vertices in the SEPARATE entities
  * that follow it up to SEQEND, so the walk carries a small piece of state for
  * exactly that case — the only entity in the format that spans siblings.
+ * @param {DxfEntity[]} entities
+ * @param {Map<string, DxfBlock>} blocks
+ * @param {number[][][]} paths
+ * @param {{ ox: number; oy: number; sx: number; sy: number; rot: number; } | null} t
+ * @param {number} depth
+ * @param {{ segments: number; truncated: boolean; }} budget
  */
 function collectPaths(entities, blocks, paths, t, depth, budget) {
+    /** @type {{ verts: { x: number; y: number; bulge: number; }[], closed: boolean } | null} */
     let poly = null;   // { verts, closed } while inside a POLYLINE…SEQEND run
 
     for (const ent of entities) {
@@ -296,6 +363,7 @@ function collectPaths(entities, blocks, paths, t, depth, budget) {
                 break;
             }
             case 'CIRCLE': {
+                /** @type {number[][]} */
                 const pts = [];
                 arcPoints(pick(p, '10', 0), pick(p, '20', 0), Math.abs(pick(p, '40', 0)), 0, TAU, pts);
                 budget.segments += pts.length;
@@ -303,6 +371,7 @@ function collectPaths(entities, blocks, paths, t, depth, budget) {
                 break;
             }
             case 'ARC': {
+                /** @type {number[][]} */
                 const pts = [];
                 arcPoints(pick(p, '10', 0), pick(p, '20', 0), Math.abs(pick(p, '40', 0)),
                     pick(p, '50', 0) * DEG, pick(p, '51', 0) * DEG, pts);
@@ -320,6 +389,7 @@ function collectPaths(entities, blocks, paths, t, depth, budget) {
                 const a1 = pick(p, '42', TAU);
                 const major = Math.hypot(mx, my);
                 const rot = Math.atan2(my, mx);
+                /** @type {number[][]} */
                 const pts = [];
                 let sweep = a1 - a0;
                 while (sweep <= 0) sweep += TAU;
@@ -338,13 +408,17 @@ function collectPaths(entities, blocks, paths, t, depth, budget) {
                 // Fit points describe the curve the draughtsman drew; control
                 // points only its hull. Prefer the former, fall back to the
                 // latter — a hull is a rougher shape but still the right one.
+                /** @type {number[][]} */
                 const fit = [];
+                /** @type {number[][]} */
                 const ctrl = [];
+                /** @type {number[] | null} */
                 let cur = null;
                 for (const [code, raw] of p) {
                     if (code === '11') { if (cur) fit.push(cur); cur = [num(raw), 0]; }
                     else if (code === '21' && cur) { cur[1] = num(raw); fit.push(cur); cur = null; }
                 }
+                /** @type {number[] | null} */
                 let ctrlCur = null;
                 for (const [code, raw] of p) {
                     if (code === '10') { if (ctrlCur) ctrl.push(ctrlCur); ctrlCur = [num(raw), 0]; }
@@ -380,6 +454,7 @@ function collectPaths(entities, blocks, paths, t, depth, budget) {
                     oy: pick(p, '20', 0) - base[1] * sy,
                     sx, sy, rot,
                 };
+                /** @type {number[][][]} */
                 const nested = [];
                 collectPaths(block.entities, blocks, nested, inner, depth + 1, budget);
                 for (const path of nested) pushPath(paths, path, t);
@@ -393,9 +468,19 @@ function collectPaths(entities, blocks, paths, t, depth, budget) {
 
 // ── Drawing ─────────────────────────────────────────────────────────
 
-/** The caption: what a quoter wants to know before opening anything else. */
+/**
+ * The caption: what a quoter wants to know before opening anything else.
+ * @param {number} width
+ * @param {number} height
+ * @param {number | null} insunits
+ * @param {number[][][]} paths
+ * @param {boolean} truncated
+ */
 function captionFor(width, height, insunits, paths, truncated) {
     const unit = INSUNITS_TO_MM[insunits];
+    /**
+     * @param {number} v
+     */
     const round = (v) => Math.round(v * 10) / 10;
     const size = unit
         ? `${round(width * unit.mm)} × ${round(height * unit.mm)} mm`
@@ -414,6 +499,7 @@ function captionFor(width, height, insunits, paths, truncated) {
  * Throws — never returns a blank sheet — when there is nothing to draw. The
  * caller turns that into a 415 with the reason on it, which is a better answer
  * than a white rectangle the viewer has to interpret.
+ * @param {Buffer<ArrayBuffer>} buffer
  */
 async function renderDxfSheet(buffer, { name = '' } = {}) {
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('dxfRender: empty buffer');
@@ -428,6 +514,7 @@ async function renderDxfSheet(buffer, { name = '' } = {}) {
     }
 
     const { entities, blocks, header, truncated: entTruncated } = parseDxf(buffer.toString('utf8'));
+    /** @type {number[][][]} */
     const paths = [];
     const budget = { segments: 0, truncated: false };
     collectPaths(entities, blocks, paths, null, 0, budget);
@@ -472,8 +559,8 @@ async function renderDxfSheet(buffer, { name = '' } = {}) {
     // canvas's downward, so drawing it straight would mirror every part.
     const ox = LIMITS.PADDING + (drawW - spanX * scale) / 2;
     const oy = LIMITS.PADDING + (drawH - spanY * scale) / 2;
-    const px = (x) => ox + (x - minX) * scale;
-    const py = (y) => oy + (maxY - y) * scale;
+    const px = (/** @type {number} */ x) => ox + (x - minX) * scale;
+    const py = (/** @type {number} */ y) => oy + (maxY - y) * scale;
 
     ctx.strokeStyle = '#111827';
     ctx.lineWidth = 1.4;

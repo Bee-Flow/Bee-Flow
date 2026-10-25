@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/memoryRecall.js — which memories reach this turn's prompt:
  * findRelevantMemories (hybrid retrieval in SQL, or scoring in JS when the
@@ -23,7 +23,11 @@ const initDB = () => dep('initDB')();
 
 // ============ Memory Retrieval ============
 
-/** Words of the message that a memory can share (kept from the keyword fallback). */
+/**
+ * Words of the message that a memory can share (kept from the keyword fallback).
+ * @param {unknown} content
+ * @param {string} lowerMsg
+ */
 const _keywordHits = (content, lowerMsg) => {
     const words = String(content || '').toLowerCase().split(/\s+/).filter(w => w.length > 3);
     let n = 0;
@@ -31,7 +35,10 @@ const _keywordHits = (content, lowerMsg) => {
     return n;
 };
 
-/** A caller-supplied query vector, if it is usable. */
+/**
+ * A caller-supplied query vector, if it is usable.
+ * @param {number[] | null} v
+ */
 function _usableVector(v) {
     return Array.isArray(v) && validateDim(v.length) && v.every(n => typeof n === 'number' && Number.isFinite(n));
 }
@@ -40,9 +47,12 @@ function _usableVector(v) {
  * Does this owner scope hold rows that are sealed (or carry a sealed vector)?
  * Also tells whether it holds anything at all, so an empty memory costs one
  * query and no embedding call.
+ * @param {{ userId: string; agentId: string | null; projectId: string | null; includeGeneral: boolean; includeSensitive: boolean; }} scope
  */
 async function _scopeState(scope) {
+    /** @type {unknown[]} */
     const params = [];
+    /** @param {unknown} v */
     const bind = (v) => { params.push(v); return `$${params.length}`; };
     const where = scopePredicate(scope, bind);
     const row = await getOne(
@@ -52,7 +62,12 @@ async function _scopeState(scope) {
     return { present: !!row?.present, sealed: !!row?.sealed };
 }
 
-/** Plaintext mode: pgvector + tsvector + base legs, one round trip. */
+/**
+ * Plaintext mode: pgvector + tsvector + base legs, one round trip.
+ * @param {{ userId: string; agentId: string | null; projectId: string | null; includeGeneral: boolean; includeSensitive: boolean; }} scope
+ * @param {string} queryText
+ * @param {{ vector: number[], dim: number } | null} q
+ */
 async function _retrieveInSql(scope, queryText, q) {
     let dim = null;
     let queryVector = null;
@@ -61,7 +76,7 @@ async function _retrieveInSql(scope, queryText, q) {
     // Nothing is sealed in this scope, so this is a pass-through; it is the
     // seam that keeps a row sealed in the meantime from reaching the prompt as ciphertext.
     const opened = await hydrateRows(candidates.map(c => c.memory));
-    const byId = new Map(opened.map(m => [m.id, m]));
+    const byId = new Map(opened.map((/** @type {Record<string, any>} */ m) => [m.id, m]));
     return candidates.filter(c => byId.has(c.memory.id)).map(c => ({ memory: byId.get(c.memory.id), score: c.score, relevant: c.relevant === true }));
 }
 
@@ -70,10 +85,16 @@ async function _retrieveInSql(scope, queryText, q) {
  * scope, bounded by the org's maxPerUser, are opened and scored here. A row
  * whose vector has another dimension than the query's is "not embedded": it is
  * ranked by keywords and the base order, never by a cosine of 0.
+ * @param {{ userId: string; agentId: string | null; projectId: string | null; includeGeneral: boolean; includeSensitive: boolean; }} scope
+ * @param {string} queryText
+ * @param {{ vector: number[], dim: number } | null} q
+ * @param {number} maxPerUser
  */
 async function _retrieveInJs(scope, queryText, q, maxPerUser) {
     const cap = Math.max(1, Math.min(10000, parseInt(String(maxPerUser), 10) || DEFAULT_SCAN_LIMIT));
+    /** @type {unknown[]} */
     const params = [];
+    /** @param {unknown} v */
     const bind = (v) => { params.push(v); return `$${params.length}`; };
     const rows = await hydrateRows(await getAll(
         `SELECT * FROM user_memories WHERE ${scopePredicate(scope, bind)}
@@ -96,9 +117,10 @@ async function _retrieveInJs(scope, queryText, q, maxPerUser) {
         if (hits > 0) kw.push({ id: m.id, s: hits });
         overlapById.set(m.id, lowerMsg ? keywordOverlap(m.content, lowerMsg) : 0);
     }
+    /** @param {Array<{ id: string, s: number }>} list */
     const top = (list) => list.sort((a, b) => b.s - a.s).slice(0, LEG_LIMIT).map(x => x.id);
     const legs = [
-        { key: 'base', ids: rows.slice(0, LEG_LIMIT).map(m => m.id) },
+        { key: 'base', ids: rows.slice(0, LEG_LIMIT).map((/** @type {Record<string, any>} */ m) => m.id) },
         { key: 'fts', ids: top(kw) },
     ];
     if (vec.length) legs.push({ key: 'vec', ids: top(vec) });
@@ -107,17 +129,20 @@ async function _retrieveInJs(scope, queryText, q, maxPerUser) {
     // or sharing enough words with the message.
     const best = vec.reduce((mx, x) => Math.max(mx, x.s), -1);
     const cosFloor = Math.max(VEC_MIN_COSINE, best - RELATIVE_COSINE_MARGIN);
-    const vectors = new Map(rows.map(m => [m.id, q ? _rowVector(m) : null]));
+    const vectors = new Map(rows.map((/** @type {Record<string, any>} */ m) => [m.id, q ? _rowVector(m) : null]));
 
     // The vector is bookkeeping, not part of what the prompt or the caller sees.
-    return scoreFused(rows.map(({ embedding, ...m }) => m), legs).map(item => ({
+    return scoreFused(rows.map(/** @param {Record<string, any>} row */ ({ embedding, ...m }) => m), legs).map(item => ({
         ...item,
         relevant: (cosById.get(item.memory.id) ?? -1) >= cosFloor || (overlapById.get(item.memory.id) || 0) >= KEYWORD_OVERLAP_MIN,
         vector: vectors.get(item.memory.id) || null,
     }));
 }
 
-/** Mark memories as used: one statement, fire-and-forget, never failing the turn. */
+/**
+ * Mark memories as used: one statement, fire-and-forget, never failing the turn.
+ * @param {string[]} ids
+ */
 function _trackUsage(ids) {
     if (!ids.length) return;
     try {
@@ -125,7 +150,7 @@ function _trackUsage(ids) {
             `UPDATE user_memories SET last_used_at = NOW(), use_count = COALESCE(use_count, 0) + 1 WHERE id = ANY($1::text[])`,
             [ids])).catch(e => log.warn('[MemoryStore] usage tracking failed:', e.message));
     } catch (e) {
-        log.warn('[MemoryStore] usage tracking failed:', e.message);
+        log.warn('[MemoryStore] usage tracking failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -165,7 +190,7 @@ async function findRelevantMemories(userId, agentId, userMessage, tokenLimit = 5
         try {
             scored = await _retrieveInSql(scope, text, q);
         } catch (e) {
-            log.warn('[MemoryStore] hybrid retrieval failed, scoring in JS:', e.message);
+            log.warn('[MemoryStore] hybrid retrieval failed, scoring in JS:', /** @type {Error} */ (e).message);
         }
     }
     if (!scored) scored = await _retrieveInJs(scope, text, q, maxPerUser);
@@ -200,6 +225,7 @@ async function findRelevantMemories(userId, agentId, userMessage, tokenLimit = 5
  * @param {Array<{memory: any, score: number, relevant?: boolean, vector?: number[]|null}>} scoredMemories
  * @param {number} tokenLimit  prompt budget in tokens (≈ 4 chars each)
  * @returns {any[]}
+ * @param {{ profile: boolean; relevantMax: number; } | undefined} tierOptions
  */
 function selectWithinBudget(scoredMemories, tokenLimit = 500, tierOptions) {
     if (!Array.isArray(scoredMemories) || scoredMemories.length === 0) return [];

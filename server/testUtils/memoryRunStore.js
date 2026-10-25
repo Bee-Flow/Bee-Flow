@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -28,17 +28,21 @@ function makeMemoryRunStore() {
     const fullCopies = new Map();
     const mem = { runs, stepsByRun, updateRunCalls, fullCopies, automation: /** @type {any} */ (null), seq: 0 };
 
+    /**
+     * @param {{ automationId: string, version?: number, userId: string, triggerKind: string, triggerPayload?: unknown,
+     *           mode?: string, parentRunId?: string | null, rootRunId?: string | null }} args
+     */
     function makeRun({ automationId, version, userId, triggerKind, triggerPayload, mode, parentRunId, rootRunId }) {
         const id = `run-${++mem.seq}`;
         const row = {
             id, automationId, version, userId, triggerKind,
             triggerPayload: triggerPayload || null, mode, status: 'queued',
-            startedAt: new Date().toISOString(), finishedAt: null, durationMs: null,
+            startedAt: new Date().toISOString(), finishedAt: /** @type {string | null} */ (null), durationMs: /** @type {number | null} */ (null),
             // The journey: a run is its own root unless it CONTINUES a paused one.
             // Mirrors createRun's COALESCE($rootRunId, id).
-            error: null, summary: null, parentRunId: parentRunId ?? null, rootRunId: rootRunId ?? id,
-            cancelRequested: false, awaitingStepId: null, approvalToken: null,
-            awaitingStepExpiresAt: null, errorClass: null, handledErrorCount: 0,
+            error: /** @type {string | null} */ (null), summary: /** @type {string | null} */ (null), parentRunId: parentRunId ?? null, rootRunId: rootRunId ?? id,
+            cancelRequested: false, awaitingStepId: /** @type {string | null} */ (null), approvalToken: /** @type {string | null} */ (null),
+            awaitingStepExpiresAt: /** @type {string | null} */ (null), errorClass: /** @type {string | null} */ (null), handledErrorCount: 0,
         };
         runs.set(id, row);
         stepsByRun.set(id, []);
@@ -56,7 +60,7 @@ function makeMemoryRunStore() {
             Object.assign(r, updates);
             return true;
         },
-        getRunsForAutomation: async () => [],
+        getRunsForAutomation: async () => /** @type {unknown[]} */ ([]),
         getRunSteps: async (/** @type {string} */ id) => (stepsByRun.get(id) || []).map(s => ({ ...s })),
         // Upsert on (runId, stepId, attempts), exactly like the real store's
         // ON CONFLICT clause. The runner writes a 'running' row when a step starts
@@ -72,7 +76,7 @@ function makeMemoryRunStore() {
         resetAttempts: async () => {},
         updateAutomation: async () => true,
         touchRunHeartbeat: async () => {},
-        requestCancelRun: async () => null,
+        requestCancelRun: async () => /** @type {unknown} */ (null),
         getAutomation: async () => mem.automation,
         getRunFullOutput: async (/** @type {string} */ runId, /** @type {string} */ stepId, attempts = 1) => fullCopies.get(`${runId}|${stepId}|${attempts}`) ?? null,
     };

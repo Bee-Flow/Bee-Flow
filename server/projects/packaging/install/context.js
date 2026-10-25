@@ -129,3 +129,16 @@ async function stampAll(ctx, report) {
 }
 
 module.exports = { installHashOf, versionOf, makeInstallCtx, writeOpts, READ_BACK_KINDS, stampAll };
+
+/**
+ * @typedef {ReturnType<typeof makeInstallCtx>} InstallCtx
+ * @typedef {import('../../../core/packaging/walkers').DefinitionNode} ManifestEntity
+ * @typedef {{ ref: string|null, id: string, name?: string, title?: string, key?: string, forKey?: string, versionId?: string }} InstalledEntry
+ * @typedef {{ ref: string|null, kind: string, why: string, permanent?: boolean }} SkippedEntry
+ * @typedef {{
+ *   installed?: Record<string, InstalledEntry[]>,
+ *   computed?: { skills?: Array<{ ref: string, id: string, fields: Record<string, unknown> }> },
+ *   skipped: SkippedEntry[], warnings: string[], resolved?: object[],
+ *   grantRequires?: ReturnType<typeof import('./grants').collectGrantRequires>,
+ * }} InstallReport
+ */

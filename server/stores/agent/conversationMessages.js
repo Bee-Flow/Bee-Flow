@@ -651,3 +651,11 @@ module.exports = {
     // Awaitbare init-ingang voor migrateDb.
     initDB: initMessagesTable,
 };
+
+/** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
+
+/** @typedef {import('pg').PoolClient} PoolClient */
+
+/** @typedef {import('./normalizeStoredMessages').StoredMessage} StoredMessage */
+
+/** @typedef {{ id: string, conversation_id: string, conversation_type?: string | null, role: string, content: string, meta_json: string | null, tool_name?: string | null, author_user_id?: string | null, client_msg_id?: string | null }} MessageRow */

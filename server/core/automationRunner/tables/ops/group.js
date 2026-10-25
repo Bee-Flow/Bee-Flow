@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * group: one row per combination of the `by` columns with counts, sums,
@@ -12,6 +12,14 @@ const { AGG_FNS } = require('../../../automationModel/tableOps/normalize');
 const { effectiveMinN } = require('../groupPolicy');
 const { tableError, requireColumn, toNumber, foldText, isBlankCell, makeColumn, resolveColumn, compareCells } = require('./values');
 
+/** @typedef {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.group>} GroupOp */
+/** @typedef {{ values?: number[], set?: Set<string>, num?: number|null, text?: string|null, sw?: number, swx?: number, any?: boolean }} AggAcc */
+/** @typedef {{ vals: unknown[], n: number, w: number, accs: AggAcc[] }} Group */
+
+/**
+ * @param {string} fn
+ * @returns {AggAcc}
+ */
 function newAcc(fn) {
     switch (fn) {
         case 'median': return { values: [] };
@@ -21,6 +29,13 @@ function newAcc(fn) {
     }
 }
 
+/**
+ * @param {string} fn
+ * @param {AggAcc} acc
+ * @param {number} w
+ * @param {boolean} hasColumn
+ * @param {unknown} cell
+ */
 function feed(fn, acc, cell, w, hasColumn) {
     if (fn === 'share') return;
     if (fn === 'count') {
@@ -31,6 +46,10 @@ function feed(fn, acc, cell, w, hasColumn) {
     if (fn === 'count_distinct') { acc.set.add(foldText(cell)); return; }
     const x = toNumber(cell);
     if (fn === 'min' || fn === 'max') {
+        /**
+         * @param {string | number} a
+         * @param {string | number} b
+         */
         const better = (a, b) => (fn === 'min' ? a < b : a > b);
         if (x !== null) { if (acc.num === null || better(x, acc.num)) acc.num = x; return; }
         const d = typeof cell === 'string' && parseIsoUtc(cell) ? cell.trim() : null;
@@ -44,6 +63,7 @@ function feed(fn, acc, cell, w, hasColumn) {
     acc.sw += w;
 }
 
+/** @param {number[]} values */
 function median(values) {
     if (!values.length) return null;
     const s = values.slice().sort((a, b) => a - b);
@@ -51,6 +71,12 @@ function median(values) {
     return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+/**
+ * @param {string} fn
+ * @param {AggAcc} acc
+ * @param {Group} g
+ * @param {number} totalW
+ */
 function result(fn, acc, g, totalW) {
     switch (fn) {
         case 'count': return acc.sw;
@@ -64,6 +90,10 @@ function result(fn, acc, g, totalW) {
     }
 }
 
+/**
+ * @param {GroupOp} op
+ * @param {import('./index').OpInput} input
+ */
 function plan(op, input) {
     const by = op.by.map((name, i) => requireColumn(input.columns, name, { opId: op.id, field: `by[${i}]` }));
     if (by.length > 5) throw tableError('table_op_invalid', 'Group by at most 5 columns.', { opId: op.id, field: 'by' });
@@ -82,6 +112,11 @@ function plan(op, input) {
     return { by, aggs, weight };
 }
 
+/**
+ * @param {GroupOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 function apply(op, input, ctx) {
     const { by, aggs, weight } = plan(op, input);
     const minN = effectiveMinN(op.minN, ctx.minGroupFloor);
@@ -97,8 +132,10 @@ function apply(op, input, ctx) {
         return { key: col.key, sign: s.dir === 'desc' ? -1 : 1 };
     });
 
+    /** @type {Promise<import('./index').TableRow[]>|null} */
     let done = null;
     async function build() {
+        /** @type {Map<string, Group>} */
         const groups = new Map();
         let totalW = 0;
         let badWeights = 0;
@@ -126,10 +163,12 @@ function apply(op, input, ctx) {
         if (badWeights) ctx.warn(`${badWeights} row${badWeights === 1 ? ' has' : 's have'} no usable weight and count${badWeights === 1 ? 's' : ''} as 0.`, 'weight_unusable');
         if (!groups.size && !by.length) groups.set('', { vals: [], n: 0, w: 0, accs: aggs.map((a) => newAcc(a.fn)) });
         let suppressed = 0;
+        /** @type {import('./index').TableRow[]} */
         const out = [];
         for (const g of groups.values()) {
             const hide = minN > 0 && g.n < minN;
             if (hide) suppressed++;
+            /** @type {import('./index').TableRow} */
             const row = {};
             by.forEach((c, i) => { row[c.key] = g.vals[i]; });
             aggs.forEach((a, i) => { row[a.as] = hide ? null : result(a.fn, g.accs[i], g, totalW); });

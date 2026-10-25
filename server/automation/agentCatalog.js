@@ -189,3 +189,20 @@ async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
 }
 
 module.exports = { collectAgentIds, mayAutomationUseAgent, agentCatalogFor, agentCatalogForOwner, servesPublishedConfig };
+
+/**
+ * @typedef {object} CatalogDeps  injectable collaborators (tests pass fakes)
+ * @property {typeof import('../stores/agentStore')} [agentStore]
+ * @property {typeof import('../stores/userStore')} [userStore]
+ * @property {typeof import('../auth/audience')} [audience]
+ */
+
+/**
+ * @typedef {object} AgentRuntimeRow
+ * @property {string} [owner_id]
+ * @property {boolean} [is_published]
+ * @property {string|null} [organization_id]
+ * @property {string} [runtimeSource]
+ * @property {unknown} [published_version]
+ * @property {string[]|string|null} [shared_groups]  a parsed list, or the raw JSON text of one that was not parsed
+ */

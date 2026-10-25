@@ -48,6 +48,7 @@ async function getSignupAccessConfig() {
  * Best-effort client IP. Express resolves req.ip honoring `trust proxy`
  * (set in server/index.js); fall back to the forwarded header / socket.
  * For connector requests this resolves to the connecting Nextcloud server.
+ * @param {import('express').Request} req
  */
 function clientIp(req) {
     const fwd = req.headers?.['x-forwarded-for'];
@@ -55,7 +56,10 @@ function clientIp(req) {
     return String(req.ip || first || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
 }
 
-/** Loopback / private / link-local ranges — always allowed (dev, internal networks). */
+/**
+ * Loopback / private / link-local ranges — always allowed (dev, internal networks).
+ * @param {string} ip
+ */
 function isPrivateIp(ip) {
     if (!ip) return true; // unknown peer → treat as internal, never geo-block
     const a = String(ip).replace(/^::ffff:/, '').toLowerCase();
@@ -84,6 +88,8 @@ let _warnedPrivateIpWithGeoOn = false;
  * Deliberately NOT changed to fail closed — that would lock out every signup the
  * moment a proxy is misconfigured, which is a far worse outage than a policy that
  * is briefly too permissive.
+ * @param {string} ip
+ * @param {Awaited<ReturnType<typeof getSignupAccessConfig>>} cfg
  */
 async function evaluateGeo(ip, cfg) {
     if (!cfg || cfg.geoMode === 'off') return { allowed: true, country: null };
@@ -112,7 +118,7 @@ async function evaluateGeo(ip, cfg) {
         if (cfg.geoMode === 'blocklist') return { allowed: !inList, country };
         return { allowed: true, country };
     } catch (e) {
-        log.warn('[SignupGuards] geo evaluation failed (allowing):', e.message);
+        log.warn('[SignupGuards] geo evaluation failed (allowing):', /** @type {Error} */ (e).message);
         return { allowed: true, country: null };
     }
 }
@@ -124,6 +130,7 @@ const GEO_MSG = 'Account creation is not available in your region.';
  * Gate a browser/web signup attempt — enforces connector-only mode and geo
  * policy against the end user's IP. Invited users should bypass this (call it
  * only when there is no invite). Returns { ok } or { ok, status, error, code }.
+ * @param {import('express').Request} req
  */
 async function checkWebSignupAllowed(req) {
     const cfg = await getSignupAccessConfig();
@@ -142,6 +149,7 @@ async function checkWebSignupAllowed(req) {
  * mode never blocks the connector — that is the whole point), evaluated against
  * the connecting Nextcloud server's IP, and only when geoApplyConnector is on.
  * Never throws — the connector must not break on a geo hiccup.
+ * @param {import('express').Request} req
  */
 async function checkConnectorSignupAllowed(req) {
     try {
@@ -153,7 +161,7 @@ async function checkConnectorSignupAllowed(req) {
         }
         return { ok: true };
     } catch (e) {
-        log.warn('[SignupGuards] connector geo check failed (allowing):', e.message);
+        log.warn('[SignupGuards] connector geo check failed (allowing):', /** @type {Error} */ (e).message);
         return { ok: true };
     }
 }
@@ -163,6 +171,10 @@ async function checkConnectorSignupAllowed(req) {
 // org_default_locale → first language of the Accept-Language header → 'en'.
 // Always returns a non-empty string; getEffectiveEmailTemplate falls back to
 // English per field if the locale has no overrides.
+/**
+ * @param {import('express').Request} req
+ * @param {string} [explicitLocale]
+ */
 async function resolveSignupLocale(req, explicitLocale) {
     try {
         const languageStore = require('../stores/languageStore');
@@ -181,7 +193,7 @@ async function resolveSignupLocale(req, explicitLocale) {
             if (known.has(first)) return first;
         }
     } catch (e) {
-        log.warn('[SignupGuards] resolveSignupLocale failed (falling back to en):', e.message);
+        log.warn('[SignupGuards] resolveSignupLocale failed (falling back to en):', /** @type {Error} */ (e).message);
     }
     return 'en';
 }
@@ -204,16 +216,26 @@ async function resolveSignupLocale(req, explicitLocale) {
  * else's address made the attacker an org_admin, and the approval exemption
  * then carried them past the verification gate too — so the account was usable
  * without ever proving the address. Only a system admin skips verification.
+ * @param {{ role?: string, orgRole?: string } | null | undefined} storedUser
+ * @param {boolean} [sessionIsAdmin]
  */
 function isSystemAdminAccount(storedUser, sessionIsAdmin = false) {
     return !!(sessionIsAdmin || storedUser?.role === 'admin');
 }
 
+/**
+ * @param {{ role?: string, orgRole?: string } | null | undefined} storedUser
+ * @param {boolean} [sessionIsAdmin]
+ */
 function canSkipApproval(storedUser, sessionIsAdmin = false) {
     return isSystemAdminAccount(storedUser, sessionIsAdmin)
         || storedUser?.orgRole === 'org_admin';
 }
 
+/**
+ * @param {{ role?: string, orgRole?: string } | null | undefined} storedUser
+ * @param {boolean} [sessionIsAdmin]
+ */
 function canSkipEmailVerification(storedUser, sessionIsAdmin = false) {
     return isSystemAdminAccount(storedUser, sessionIsAdmin);
 }

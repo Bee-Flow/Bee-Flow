@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Data Act Art. 30(5) — exports come in a structured, commonly used,
  * machine-readable format.
@@ -24,12 +24,18 @@
 const complianceStore = require('../../../stores/complianceStore');
 const exportRegistry = require('../../dataPortability/exportRegistry');
 
+/**
+ * @param {Record<string, any> | null | undefined} settings
+ */
 function _relevance(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return rel && typeof rel === 'object' ? rel : {};
 }
 
+/**
+ * @param {string[]} formats
+ */
 function _machineReadable(formats) {
     return (formats || []).filter(f => exportRegistry.MACHINE_READABLE_FORMATS.includes(f));
 }
@@ -49,6 +55,9 @@ module.exports = {
     remediationKey: 'compliance.check_data_act_formats_fix',
     remediationLink: 'admin/compliance/portability',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = (await complianceStore.getSettings(orgId)) || {};
         if (_relevance(settings).data_act === 'not_relevant') {
@@ -63,7 +72,7 @@ module.exports = {
         const held = matrix.filter(k => typeof k.held === 'number' && k.held > 0);
         const covered = held.filter(k => k.route && k.mounted);
         const renderOnly = held.filter(k => !k.route && k.render_only).map(k => ({
-            kind: k.kind, held: k.held, formats: k.render_only.formats || [],
+            kind: k.kind, held: k.held, formats: /** @type {{formats?:string[]}} */ (k.render_only).formats || [],
         }));
 
         const perKind = covered.map(k => {

@@ -84,7 +84,10 @@ function configuredOrigin() {
     return configured.replace(/\/+$/, '');
 }
 
-/** The public origin. Wrong here means wrong canonicals on every page. */
+/**
+ * The public origin. Wrong here means wrong canonicals on every page.
+ * @param {import('express').Request} req
+ */
 function resolveOrigin(req) {
     const configured = configuredOrigin();
     if (configured) return configured;
@@ -96,6 +99,7 @@ function resolveOrigin(req) {
 /**
  * Only index the real site. A preview host or a bare IP that answers on the
  * same image would otherwise compete with beeflow.nl in the index.
+ * @param {string} origin
  */
 function isIndexableHost(origin) {
     const configured = configuredOrigin();
@@ -113,6 +117,7 @@ function isIndexableHost(origin) {
  */
 async function siteLocales() {
     const defaultLocale = await cmsStore.getDefaultLocale();
+    /** @type {string[]} */
     let extra = [];
     try {
         const available = await languageStore.getAvailableLocales();
@@ -130,6 +135,7 @@ async function getLiveSiteId() {
 /**
  * The query exactly as it arrived, repeated keys and all — not req.query,
  * whose arrays URLSearchParams would join with commas (see the header).
+ * @param {import('express').Request} req
  */
 function rawQuery(req) {
     const url = String(req.originalUrl || req.url || '');
@@ -139,19 +145,19 @@ function rawQuery(req) {
 
 
 // ── robots.txt ───────────────────────────────────────────────────────
-router.get('/robots.txt', async (req, res, next) => {
+router.get('/robots.txt', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const origin = resolveOrigin(req);
         res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
         return res.send(buildRobots({ origin, allow: isIndexableHost(origin) }));
     } catch (err) {
-        log.warn('[SEO] robots.txt failed:', err.message);
+        log.warn('[SEO] robots.txt failed:', /** @type {Error} */ (err).message);
         return next();
     }
 });
 
 // ── sitemap.xml ──────────────────────────────────────────────────────
-router.get('/sitemap.xml', async (req, res, _next) => {
+router.get('/sitemap.xml', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ _next) => {
     /* A sitemap must never fall through to the SPA.
      *
      * Every `return next()` here used to end at the client-side shell, which
@@ -184,7 +190,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
         // Per-page when the snapshot carries it (cmsStore.publishSite), else the site-wide publish date.
         const lastmod = snapshot.publishedAt || null;
         const pages = (snapshot.site?.pages || [])
-            .map(entry => {
+            .map(/** @param {import('../stores/cms/shared').PageIndexEntry} entry */ entry => {
                 const full = snapshot.pages?.[entry.id] || {};
                 return {
                     ...entry,
@@ -200,7 +206,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
         return res.send(buildSitemap([...pages, ...blogEntries, ...integrationSitemapEntries(listGalleryItems(), { defaultLocale, lastmod })], { origin, defaultLocale, locales }));
     } catch (err) {
-        log.warn('[SEO] sitemap failed:', err.message);
+        log.warn('[SEO] sitemap failed:', /** @type {Error} */ (err).message);
         res.type('application/xml').set('Cache-Control', 'no-store');
         return res.status(503).send(buildSitemap([], { origin }));
     }
@@ -209,7 +215,7 @@ router.get('/sitemap.xml', async (req, res, _next) => {
 // ── blog feeds (RSS 2.0 at feed.xml, Atom 1.0 at atom.xml) ──────────────────────────────────────────────
 // /blog/feed.xml and /<locale>/blog/feed.xml. Like the sitemap, never falls
 // through to the SPA: a feed reader that got HTML would report a broken feed.
-router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => {
+router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const origin = resolveOrigin(req);
     try {
         const siteId = await getLiveSiteId();
@@ -222,6 +228,7 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => 
         const locale = asked || defaultLocale;
         const latest = await cmsStore.getLatestPublishedPosts(siteId, { locale, limit: 30, withBody: true });
         const blogSettings = cmsStore.sanitizeBlogSettings(latest.site?.blog);
+        /** @param {Record<string, string> | undefined} m */
         const pick = (m) => (m && (m[locale] || m[defaultLocale])) || '';
         const { blogLabels } = require('../stores/cms/blogEffective');
         const labels = await blogLabels(locale);
@@ -238,7 +245,7 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => 
             lastBuildDate: latest.publishedAt,
         }));
     } catch (err) {
-        log.warn('[SEO] blog feed failed:', err.message);
+        log.warn('[SEO] blog feed failed:', /** @type {Error} */ (err).message);
         return res.status(503).type('text/plain').set('Cache-Control', 'no-store').send('Feed unavailable');
     }
 });
@@ -248,6 +255,10 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (req, res) => 
  * the same failure posture as pages — every error path is next().
  * Returns false when the URL should be handled as an ordinary page instead
  * (a legacy page slugged "blog").
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ origin: string, siteId: string, parsed: NonNullable<ReturnType<typeof import('../core/seo/publicPath').parsePublicPath>>, defaultLocale: string, locales: string[] }} opts
+ * @returns {Promise<boolean>}
  */
 async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, locales }) {
     const locale = parsed.locale || defaultLocale;
@@ -262,7 +273,7 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
         siteLocales: locales,
     });
     if (!eff) return false;
-    if (parsed.blog.view === 'index' && (eff.pages || []).some(p => p.slug === 'blog')) return false;
+    if (parsed.blog.view === 'index' && (eff.pages || []).some(/** @param {import('../stores/cms/shared').PageIndexEntry} p */ p => p.slug === 'blog')) return false;
 
     if (!eff.found || (!eff.blog?.post && parsed.blog.view === 'post')) {
         const notFoundShell = await getShell();
@@ -310,7 +321,7 @@ router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLi
 router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
 router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId }));
 
-router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res, next) => {
+router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const origin = resolveOrigin(req);
         const siteId = await getLiveSiteId();
@@ -366,7 +377,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
         // they would fall through to the SPA and render a 404 shell, throwing
         // away whatever ranking and inbound links they had earned. Keep the
         // locale prefix so /nl/<old> lands on /nl/<new>.
-        const legacy = LEGACY_SLUGS[parsed.slug];
+        const legacy = /** @type {Record<string, string>} */ (LEGACY_SLUGS)[parsed.slug];
         if (legacy) {
             return res.redirect(301, buildPublicPath(parsed.locale, legacy, defaultLocale));
         }
@@ -500,7 +511,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (req, res
             'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
         return res.send(injectIntoShell(shell, { head: headWithCss, body, lang: locale }));
     } catch (err) {
-        log.warn('[SEO] render failed for', req.path, '-', err.message);
+        log.warn('[SEO] render failed for', req.path, '-', /** @type {Error} */ (err).message);
         return next();
     }
 });

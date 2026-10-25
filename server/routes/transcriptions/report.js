@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Transcriptions — multi-meeting AI report.
  *
@@ -48,12 +48,15 @@ const REPORT_MAX_CHARS = 400_000; // same order as ACTION_ITEM_MAX_CHARS; smart 
  * DATA. A note title or a spoken line containing `</meeting>` would close the
  * envelope early and let the rest read as prompt — so the angle brackets never
  * survive into the payload.
+ * @param {unknown} value
  */
 function sanitizeEnvelope(value) {
     return String(value || '').replace(/[<>]/g, ' ');
 }
 
-/** As above, plus the quote that would otherwise end the `title="…"` attribute. */
+/** As above, plus the quote that would otherwise end the `title="…"` attribute.
+ * @param {unknown} value
+ */
 function sanitizeEnvelopeAttr(value) {
     return sanitizeEnvelope(value).replace(/"/g, "'");
 }
@@ -67,6 +70,7 @@ router.post('/report', requireAuth, validate({ body: ReportBody, query: NO_QUERY
     }
 
     const ctx = await resolveAccessContext(req);
+    /** @type {NonNullable<Awaited<ReturnType<typeof transcriptionStore.getTranscription>>>[]} */
     const notes = [];
     for (const id of [...new Set(ids)]) {
         const t = await transcriptionStore.getTranscription(id, userId, ctx);
@@ -84,10 +88,10 @@ router.post('/report', requireAuth, validate({ body: ReportBody, query: NO_QUERY
     // long meeting sitting among short ones. The summaries branch keeps an
     // even per-note share as its safety valve.
     const perNoteBudget = useTranscripts ? Infinity : Math.floor(REPORT_MAX_CHARS / notes.length);
-    const digest = (n) => [
+    const digest = /** @param {(typeof notes)[number]} n */ (n) => [
         n.summary || '',
-        (n.decisions || []).length ? `Decisions:\n${n.decisions.map((d) => `- ${d.text}`).join('\n')}` : '',
-        (n.actionItems || []).length ? `Action items:\n${n.actionItems.map((a) => `- [${a.done ? 'x' : ' '}] ${a.text} (${a.assignee})`).join('\n')}` : '',
+        (n.decisions || []).length ? `Decisions:\n${n.decisions.map(/** @param {{ text: string }} d */ (d) => `- ${d.text}`).join('\n')}` : '',
+        (n.actionItems || []).length ? `Action items:\n${n.actionItems.map(/** @param {{ done?: boolean, text: string, assignee?: string }} a */ (a) => `- [${a.done ? 'x' : ' '}] ${a.text} (${a.assignee})`).join('\n')}` : '',
     ].filter(Boolean).join('\n\n');
     let truncatedNotes = 0;
     const sections = notes.map((n) => {

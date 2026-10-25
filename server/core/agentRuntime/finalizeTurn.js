@@ -240,3 +240,7 @@ function scheduleRedactionRewrite(turn) {
 }
 
 module.exports = { finalizeStreamTurn };
+
+/**
+ * @typedef {Pick<import('./chatStream/turnLoop').LoopTurn, 'onEvent' | 'messageMetadata' | 'conversation' | '_ut' | '_captureRaw' | '_userPrivacyMeta' | 'userSave' | 'durableMessages' | 'messages' | 'persistDurable' | 'isEphemeral' | 'agent' | 'agentId' | 'userId' | 'processedUserMessage' | 'userMessage' | 'userAuth' | 'extractMemoriesEnabled' | 'validProjectId' | 'modelToUse' | 'memoryPolicy' | 'memoryUsed' | '_kbSources' | '_assistantTokenisationInfo' | 'guardrailViolation'> & { fullResponse: string, useNativeAdapter: boolean, _emailDrafts: Record<string, unknown>[], _calendarDrafts: Record<string, unknown>[], _linkedInDrafts: Record<string, unknown>[], _mapEmbeds: Record<string, unknown>[], _audioFiles: Record<string, unknown>[], _generatedFiles?: Record<string, unknown>[], _pendingToolCalls?: Record<string, unknown>[], _toolHistory: import('./assistantMessageExtras').ToolHistoryEntry[], _thinkingParts: import('./assistantMessageExtras').ThinkingPart[], _thinking: string, _rawResponseBuffer: string, toolCalls: Record<string, unknown>[], _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} FinalizeTurn  the final answer and everything the turn collected
+ */

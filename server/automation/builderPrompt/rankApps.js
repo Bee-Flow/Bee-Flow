@@ -186,3 +186,7 @@ function applyCatalogOrder(catalog, order) {
 }
 
 module.exports = { rankAppsForMessage, applyCatalogOrder, catalogOrderOf, APP_CAP, _internals: { appDocument, isPinned, pinnedAppIds } };
+
+/** @typedef {import('./catalogRender').PromptCatalog} PromptCatalog */
+
+/** @typedef {import('./catalogRender').CatalogAppRow} CatalogAppRow */

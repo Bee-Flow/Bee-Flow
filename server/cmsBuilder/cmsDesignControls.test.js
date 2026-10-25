@@ -27,7 +27,7 @@ async function makeDraft() {
     for (const entry of site.pages) pages.set(entry.id, await cmsStore.getPage(created.id, entry.id));
     return {
         siteId: created.id, userId: 'u1', orgId: 'orgA', builderSessionId: 'cms_test',
-        site, pages, defaultLocale: 'en', locales: [], createdPageIds: [], touchedPageIds: new Set(),
+        site, pages, defaultLocale: 'en', locales: /** @type {string[]} */ ([]), createdPageIds: /** @type {string[]} */ ([]), touchedPageIds: new Set(),
     };
 }
 
@@ -312,7 +312,9 @@ test('cms_update_design: tile enums are validated', async () => {
 
 test('cms_update_header_nav: a mega item icon may be a Lucide name, an uploaded asset or legacy emoji; foreign addresses are rejected', async () => {
     const draft = await makeDraft();
+    /** @param {string} icon */
     const item = (icon) => ({ label: 'Docs', link: { kind: 'app', path: '/app' }, icon });
+    /** @param {string} icon */
     const nav = (icon) => ({ nav: [{ label: 'Menu', link: { kind: 'app', path: '/app' }, dropdown: { columns: [{ heading: 'H', items: [item(icon)] }] } }] });
     for (const icon of ['ShieldCheck', '/api/cms/asset/cms/shield.svg', 'cms/shield.svg', '🚀']) {
         const r = await applyToolCall(draft, 'cms_update_header_nav', nav(icon));

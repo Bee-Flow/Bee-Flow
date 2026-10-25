@@ -11,6 +11,10 @@ const { lostToConcurrency, LEASE_MS, MAX_RECOVERIES, RECOVERY_BATCH } = require(
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /**
+ * @typedef {Object} RecoverPendingArgs
+ * @property {number} [limit]
+ */
+/**
  * @param {{
  *   automationStore: any,
  *   automationForRun: Function,
@@ -22,6 +26,9 @@ const { fallback, bestEffort } = require('../utils/bestEffort');
  * }} deps
  */
 function createFormRecovery({ automationStore, automationForRun, clearPending, makeItem, push, heldSessionIds, isStopping }) {
+    /**
+     * @param {string} sessionId
+     */
     function isHeld(sessionId) {
         return heldSessionIds().includes(sessionId);
     }
@@ -30,6 +37,7 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
      * Turn a claimed row back into a queue item, or settle it when there is
      * nothing (left) to run. Never runs anything twice: a submission whose run
      * already exists, or a resume whose child already exists, is only cleared.
+     * @param {import('./formQueueShared').FormSession} session
      */
     async function itemFromRow(session) {
         const work = session.pendingWork;
@@ -37,6 +45,7 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
             await clearPending(session.id);
             return null;
         }
+        /** @returns {Promise<void>} */
         const restorePage = async () => {
             if (work.kind !== 'resume') return;
             const parent = await automationStore.getRun(work.parentRunId).catch((e) => fallback('automation/formQueueRecovery:restorePage', e, null));
@@ -80,6 +89,7 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
      * Claim form work whose lease lapsed and queue it on this pod. Called from the
      * runner's reaper tick and once shortly after boot. Returns how many units
      * were queued.
+     * @param {RecoverPendingArgs} [param0]
      */
     async function recoverPending({ limit = RECOVERY_BATCH } = {}) {
         if (isStopping()) return 0;
@@ -94,7 +104,7 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
                 queued += 1;
             } catch (e) {
                 // Left leased: it lapses again and the next sweep retries it.
-                log.warn('[automation/form] could not recover queued form work:', e.message);
+                log.warn('[automation/form] could not recover queued form work:', /** @type {Error} */ (e).message);
             }
         }
         if (queued) log.info(`[automation/form] recovered ${queued} queued form submission(s)`);

@@ -377,3 +377,47 @@ module.exports = {
     defaultAiActAuto,
     loadBlocksWith,
 };
+
+/**
+ * @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition
+ * @typedef {import('./aiActCheck').AiActRow} AiActRow
+ * @typedef {ReturnType<typeof detect.detectQuestions> & { verdict?: (import('./aiActDetect').Verdict & { hash?: string, modelId?: string|null })|null, hintText?: string }} Detection
+ */
+
+/**
+ * @typedef {object} AutomationLike  the parts of an automation row this module reads
+ * @property {string} id  a uuid
+ * @property {string} [userId]
+ * @property {string} [title]
+ * @property {string} [description]
+ * @property {AutomationDefinition} [definition]
+ */
+
+/**
+ * @typedef {object} CheckResult
+ * @property {AiActStateResult} state
+ * @property {ReturnType<typeof publicFinding>[]} findings
+ * @property {ReturnType<typeof publicQuestion>[]} pending
+ * @property {boolean} recorded
+ * @property {boolean|null} applicable
+ */
+
+/**
+ * @typedef {object} AiActStateResult  what aiActCheck.makeAiActState returns
+ * @property {boolean} required
+ * @property {string} status
+ * @property {string|null} [orgId]
+ * @property {import('./aiActCheck').AiActRow|null} [row]
+ */
+
+/**
+ * @typedef {object} AnswerRecord  one question's answer in the per-question record
+ * @property {string} [answer]
+ * @property {string} [by]
+ * @property {string} [sig]
+ * @property {string[]} [domains]
+ * @property {string[]} [practices]
+ * @property {string} [confidence]
+ * @property {import('./aiActDetect').Evidence[]} [evidence]
+ * @property {string|null} [lean]
+ */

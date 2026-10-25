@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What a run-step row keeps of the mappings that found nothing while the step
  * ran: the runner's binding log (automation/bind.js withBindingLog, carried
@@ -25,13 +25,20 @@ const MAX_STORED_WARNINGS = 50;
 const REASONS = new Set(['missing', 'not_run', 'syntax', 'error']);
 const KINDS = new Set(['ref', 'template', 'expr']);
 
+/** @typedef {{ path?: string, kind?: string, reason?: string, size?: number, index?: boolean, count?: number, [field: string]: unknown }} BindingLogEntry */
+
 // field → longest string kept. A path or a formula can be long; the rest are
 // names and kinds of value.
+/** @type {Record<string, number>} */
 const STRING_FIELDS = { field: 200, path: 1000, at: 1000, found: 20, missing: 200, message: 500, step: 200 };
 
+/** @param {number} v */
 const isCount = (v) => Number.isInteger(v) && v > 0;
 
-/** One log entry as stored, or null when it has no path to show. */
+/**
+ * One log entry as stored, or null when it has no path to show.
+ * @param {BindingLogEntry | null} e
+ */
 function pickEntry(e) {
     if (!e || typeof e !== 'object' || Array.isArray(e)) return null;
     if (typeof e.path !== 'string' || !e.path) return null;

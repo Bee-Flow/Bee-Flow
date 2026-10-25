@@ -257,3 +257,23 @@ function canonicalizeAppDefinition(input) {
 }
 
 module.exports = { canonicalizeAppDefinition };
+
+/** @typedef {{ type: string, default?: string | null, optional?: boolean, values?: unknown[], presets?: string[], description?: string }} ThemeSpecEntry */
+
+/** @typedef {{ code: string, path: string, message: string }} Repair */
+
+/**
+ * @typedef {object} CanonDef  The canonicalised definition shell.
+ * @property {number} schemaVersion
+ * @property {{ name?: string, description?: string, icon?: string }} [meta]
+ * @property {Record<string, unknown>} [theme]
+ * @property {string | null} [homeScreenId]
+ * @property {Array<{ id: string, name?: string }>} [roles]
+ * @property {unknown[]} [variables]
+ * @property {import('./references').PassTwoScreen[]} [screens]
+ * @property {Record<string, Record<string, any>>} [actions]
+ * @property {unknown} [design]
+ * @property {unknown} [nav]
+ * @property {unknown} [publicAccess]
+ * @property {{ enabled: boolean, allowedDomains?: string[] }} [aiBrowsing]
+ */

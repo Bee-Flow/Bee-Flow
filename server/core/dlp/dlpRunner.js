@@ -342,3 +342,9 @@ module.exports = {
     gc,
     sweepIdle: eviction.sweepIdle,
 };
+
+/**
+ * @typedef {{ category: string, label: string, offset: number, length: number, text: string, source: string,
+ *            severity: string, confidence?: number }} DlpFinding
+ * @typedef {{ role?: string, content?: string | Array<{ type?: string, text?: string }> }} DlpChatMessage
+ */

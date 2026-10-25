@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * routes/privacyShieldStatus.js — the status behind every privacy claim.
  *

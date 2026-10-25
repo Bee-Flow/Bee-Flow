@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Tenant Support Inbox: the org-scoped tag taxonomy, canned replies and
  * SLA policies the tenant Support studio owns. Split out of
@@ -15,6 +16,7 @@ const { getUserId } = require('./inboxScope');
 // policies. (Reads live on GET /tags, /canned, /sla-policies; the super-admin
 // /api/support/* namespace is for Bee Flow's own company inbox only.)
 
+/** @param {import('express').Request} req */
 async function _firstWritableOrg(req) {
     const { scope } = await access.resolveOrgScope(req);
     return scope[0] || null;
@@ -26,6 +28,10 @@ async function _firstWritableOrg(req) {
 // keep their 400 and their sentence; anything else goes to the terminal error
 // handler, which logs it and answers a generic 500 with a correlationId.
 const STORE_REFUSALS = new Set(['tag name required', 'title required', 'body required', 'invalid priority']);
+/**
+ * @param {Error & { expose?: boolean, code?: string }} err
+ * @param {string | null} [duplicate]
+ */
 function _studioWriteError(err, duplicate = null) {
     if (err?.expose === true) return err;
     if (typeof err?.message === 'string' && STORE_REFUSALS.has(err.message)) {
@@ -37,6 +43,10 @@ function _studioWriteError(err, duplicate = null) {
     return err;
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function createTag(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
@@ -49,6 +59,10 @@ async function createTag(req, res) {
     } catch (err) { throw _studioWriteError(err, 'tag already exists'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deleteTag(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
@@ -59,6 +73,10 @@ async function deleteTag(req, res) {
     } catch (err) { throw _studioWriteError(err); }
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function createCanned(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
@@ -70,6 +88,10 @@ async function createCanned(req, res) {
     } catch (err) { throw _studioWriteError(err, 'shortcut already in use'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function updateCanned(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
@@ -82,6 +104,10 @@ async function updateCanned(req, res) {
     } catch (err) { throw _studioWriteError(err, 'shortcut already in use'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deleteCanned(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
@@ -92,6 +118,10 @@ async function deleteCanned(req, res) {
     } catch (err) { throw _studioWriteError(err); }
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function listSlaPolicies(req, res) {
     const { scope } = await access.resolveOrgScope(req);
     const orgId = scope[0] || null;
@@ -99,6 +129,10 @@ async function listSlaPolicies(req, res) {
     res.json({ policies });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function putSlaPolicy(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);

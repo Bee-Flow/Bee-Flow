@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The <head> a crawler actually receives.
  *
@@ -29,6 +29,10 @@ const DESC_MAX = 155;
 // Pages that describe the product itself get SoftwareApplication.
 const PRODUCT_SLUGS = new Set(['', 'platform', 'sovereignty']);
 
+/**
+ * @param {string} origin
+ * @param {string | null | undefined} urlOrPath
+ */
 function absolute(origin, urlOrPath) {
     if (!urlOrPath) return '';
     const s = String(urlOrPath);
@@ -72,6 +76,7 @@ function buildHead(ctx) {
     const image = generated || absolute(origin, seo.ogImage || design.logo || '');
     const favicon = absolute(origin, design.favicon || '/app-icon.svg');
 
+    /** @type {string[]} */
     const out = [];
     out.push(`<title>${esc(title)}</title>`);
     out.push(meta('description', description));

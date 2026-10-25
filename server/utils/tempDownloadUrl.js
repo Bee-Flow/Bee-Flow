@@ -124,3 +124,5 @@ module.exports = {
     verifyTempSignature,
     resolveTempDownloadKey,
 };
+
+/** @typedef {import('url').URL} URL */

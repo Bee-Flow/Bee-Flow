@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Streaming agent chat — DLP un-tokeniser event wrapper.
  *
@@ -9,6 +9,9 @@
  * got this answer" panel. Moved verbatim out of chatStream.js; the caller
  * swaps its own onEvent for the returned one and reads the raw buffer back
  * at end of turn via getRawResponseBuffer().
+ */
+/**
+ * @param {{ onEvent: (type: string, data: { text?: string, [key: string]: unknown }) => void, dlpShield?: { showRawPayload?: boolean, enabled?: boolean } | null, conversation?: { id?: string } | null }} opts
  */
 function createUntokenisingEventWrapper({ onEvent, dlpShield, conversation }) {
     // ── DLP un-tokeniser (wraps onEvent for the rest of the turn) ──
@@ -26,6 +29,7 @@ function createUntokenisingEventWrapper({ onEvent, dlpShield, conversation }) {
     // Hoisted so the assistant-message build step can read which tokens were
     // actually restored in this turn's response and surface the "Privacy
     // protection" panel even when no new redaction fired.
+    /** @type {ReturnType<typeof import('../dlp/untokeniseStream').createUntokeniser> | null} */
     let _ut = null;
     {
         const _dlpRunner = require('../dlp/dlpRunner');

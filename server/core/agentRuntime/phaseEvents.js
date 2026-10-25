@@ -23,6 +23,11 @@ function emitPhase(send, stage, detail) {
     } catch (err) { bestEffort('core/agentRuntime/phaseEvents:emitPhase', err); /* never block the chat on telemetry failures */ }
 }
 
+/**
+ * @param {PhaseSend} send
+ * @param {string} stage
+ * @param {number} [durationMs]
+ */
 function emitPhaseEnd(send, stage, durationMs) {
     if (typeof send !== 'function' || !stage) return;
     try {
@@ -30,6 +35,14 @@ function emitPhaseEnd(send, stage, durationMs) {
     } catch (err) { bestEffort('core/agentRuntime/phaseEvents:emitPhaseEnd', err); /* swallow */ }
 }
 
+/**
+ * @template T
+ * @param {PhaseSend} send
+ * @param {string} stage
+ * @param {string | undefined} detail
+ * @param {() => Promise<T> | T} fn
+ * @returns {Promise<T>}
+ */
 async function withPhase(send, stage, detail, fn) {
     emitPhase(send, stage, detail);
     const t = Date.now();
@@ -54,9 +67,9 @@ async function withPhase(send, stage, detail, fn) {
  * copy of `len > 8000`, which is the window size spelled out a fourth time.
  * Ask the scanner instead.
  *
- * @param {function} send  the runtime's SSE emitter / onEvent callback
+ * @param {PhaseSend} send  the runtime's SSE emitter / onEvent callback
  * @param {string} text    the text about to be scanned
- * @returns {{stage:string, onProgress:function, end:function}}
+ * @returns {{stage:string, onProgress:(progress?: { done?: number, total?: number }) => void, end:() => void}}
  */
 function startPrivacyScanPhase(send, text) {
     let total = 1;
@@ -78,7 +91,11 @@ function startPrivacyScanPhase(send, text) {
     };
 }
 
-/** The text a message contributes to a scan (string or content-block array). */
+/**
+ * The text a message contributes to a scan (string or content-block array).
+ * @param {{ content?: string | Array<{ type?: string, text?: string }> } | null | undefined} message
+ * @returns {string}
+ */
 function messageText(message) {
     const content = message?.content;
     if (typeof content === 'string') return content;
@@ -87,3 +104,8 @@ function messageText(message) {
 }
 
 module.exports = { emitPhase, emitPhaseEnd, withPhase, startPrivacyScanPhase, messageText };
+
+/**
+ * The runtime's SSE emitter / onEvent callback.
+ * @typedef {(event: string, data: Record<string, unknown>) => void} PhaseSend
+ */

@@ -760,3 +760,9 @@ module.exports = {
     // copy of the prefix would open the replay hole _directMetaAad exists to close.
     _directMetaAad,
 };
+
+/** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
+
+/** @typedef {import('./normalizeStoredMessages').StoredMessage} StoredMessage */
+
+/** @typedef {{ id?: string, user_id?: string, project_id?: string | null, crypto_scope?: string | null }} ConversationCryptoRow */

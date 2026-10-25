@@ -201,3 +201,17 @@ function rerouteFlatten(graph, next, patch, draftWrap) {
 }
 
 module.exports = { applyAddFlatten, patchFlatten, sampleRootFor, planSentence };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('../refCheck').RefGraph} RefGraph
+ * @typedef {import('../refCheck').RefStep} RefStep
+ * @typedef {import('../shapeTree').ShapeNode} ShapeNode
+ * @typedef {import('./inputBindings').Placement} Placement
+ * @typedef {{ from?: string, to?: string, mode?: string }} FlattenField
+ * @typedef {{ overRef: string, itemVar: string, auto?: boolean, fields?: FlattenField[] }} FlattenParent
+ * @typedef {Placement & { arrayRef?: string, childField?: string, keepFields?: string[], keepEmpty?: boolean }} FlattenArgs
+ * @typedef {{ arrayRef?: string, childField?: string, keepFields?: string[], parents?: FlattenParent[], label?: string }} FlattenPatch
+ * @typedef {{ arrayRef?: string, parents?: FlattenParent[], label?: string }} FlattenStepDef
+ */

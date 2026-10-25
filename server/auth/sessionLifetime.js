@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * How long a session lasts, and whether the clock restarts on activity.
  *

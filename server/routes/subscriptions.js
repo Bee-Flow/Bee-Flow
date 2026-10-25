@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Subscriptions API Routes — Plan and org subscription management
  * All write routes require super admin access. Org members can read their own subscription.

@@ -56,3 +56,5 @@ function applyPositionPatch(graph, stepId, step, patch) {
 }
 
 module.exports = { applyPositionPatch };
+
+/** @typedef {import('../../draftGraph').DraftGraph} DraftGraph */

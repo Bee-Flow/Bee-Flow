@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Adopting source-less documents into kb_sources (a sibling of stores/kbSources.js;
  * routes/knowledgeBases/sources.js builds it with KbSourcesStore.initDB).
@@ -46,7 +46,7 @@ function makeAdoptOrphanDocuments(initDB, deps = {}) {
             [kbId],
         );
         if (!any) return 0;
-        return withTransaction(async (client) => {
+        return withTransaction(async (/** @type {import('pg').PoolClient} */ client) => {
             await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, [`kb-adopt:${kbId}`]);
             const owner = await client.query(`SELECT tenant_id FROM knowledge_bases WHERE id = $1`, [kbId]);
             const createdBy = (owner.rows[0] && owner.rows[0].tenant_id) || null;

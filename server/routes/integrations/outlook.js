@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Outlook Routes — REST API for Outlook Mail integration UI
  *
@@ -43,7 +43,14 @@ const { worded } = require('../../core/http/schemaParts');
 // `Email sent via Outlook`. `replyToMessageId` is interpolated into
 // `/me/messages/${id}/reply`, so it is pinned to a Graph id too.
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
+/**
+ * @param {string} name
+ */
 const optionalText = (name) => worded(`${name} must be text.`).nullish();
 
 // GRAPH_ID_RE, FOLDER_TEXT and MESSAGE_ID_TEXT come from integrations/graphIds,
@@ -80,13 +87,14 @@ const EmailBody = z.object({
  * gets a Microsoft-only shim from the vault (auth/microsoftSessionHydration),
  * so the approval card's Send works for them too and the Google tokens on
  * req.session are never touched.
+ * @param {Pick<import('express').Request, 'session'>} req
  */
 async function msSessionOf(req) {
     return (await resolveMicrosoftSession(req.session)) || req.session;
 }
 
 // ── Status ──────────────────────────────────────────────────────────────────
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const msSession = await msSessionOf(req);
     const isConnected = isMicrosoftConnected(msSession);
     log.info('[Outlook] Status check — hasAccessToken:', !!msSession?.accessToken, 'oauthProvider:', req.session?.oauthProvider, 'connected:', isConnected);
@@ -94,7 +102,7 @@ router.get('/status', requireAuth, async (req, res) => {
 });
 
 // ── List / Search Messages ──────────────────────────────────────────────────
-router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (req, res, next) => {
+router.get('/messages', requireAuth, validate({ query: MessagesQuery }), /** @param {import('express').Request<{}, any, any, { search?: string, top?: number, folder?: string }>} req */ async (req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const msSession = await msSessionOf(req);
     if (!isMicrosoftConnected(msSession)) {
         return res.status(401).json({ error: 'Not connected to Outlook' });
@@ -115,10 +123,16 @@ router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (
 
         const data = await graphFetch(path, msSession);
 
-        const messages = (data.value || []).map(msg => ({
+        /**
+         * @typedef {{ emailAddress?: { name?: string, address?: string } }} GraphRecipient
+         * @typedef {{ id: string, from?: GraphRecipient, toRecipients?: GraphRecipient[], subject?: string,
+         *   sentDateTime?: string, receivedDateTime?: string, bodyPreview?: string, isRead?: boolean,
+         *   hasAttachments?: boolean }} GraphMessageSummary
+         */
+        const messages = (data.value || []).map((/** @type {GraphMessageSummary} */ msg) => ({
             id: msg.id,
             from: msg.from?.emailAddress ? `${msg.from.emailAddress.name || ''} <${msg.from.emailAddress.address}>` : '',
-            to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+            to: (msg.toRecipients || []).map((/** @type {GraphRecipient} */ r) => r.emailAddress?.address).filter(Boolean).join(', '),
             subject: msg.subject || '(no subject)',
             date: (isSentFolder ? msg.sentDateTime : msg.receivedDateTime) || msg.receivedDateTime || msg.sentDateTime || '',
             snippet: msg.bodyPreview || '',
@@ -129,8 +143,8 @@ router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (
         res.json({ messages });
 
     } catch (err) {
-        log.error('[Outlook] Error listing messages:', err.message);
-        if (err.message === 'NOT_CONNECTED') {
+        log.error('[Outlook] Error listing messages:', /** @type {Error} */ (err).message);
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Microsoft session expired' });
         }
         next(err);
@@ -138,7 +152,7 @@ router.get('/messages', requireAuth, validate({ query: MessagesQuery }), async (
 });
 
 // ── Get Single Message ──────────────────────────────────────────────────────
-router.get('/messages/:id', requireAuth, validate({ params: MessageParams }), async (req, res) => {
+router.get('/messages/:id', requireAuth, validate({ params: MessageParams }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const msSession = await msSessionOf(req);
     if (!isMicrosoftConnected(msSession)) {
         return res.status(401).json({ error: 'Not connected to Outlook' });
@@ -160,8 +174,8 @@ router.get('/messages/:id', requireAuth, validate({ params: MessageParams }), as
     res.json({
         id: msg.id,
         from: msg.from?.emailAddress ? `${msg.from.emailAddress.name || ''} <${msg.from.emailAddress.address}>` : '',
-        to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
-        cc: (msg.ccRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+        to: (msg.toRecipients || []).map((/** @type {{ emailAddress?: { address?: string } }} */ r) => r.emailAddress?.address).filter(Boolean).join(', '),
+        cc: (msg.ccRecipients || []).map((/** @type {{ emailAddress?: { address?: string } }} */ r) => r.emailAddress?.address).filter(Boolean).join(', '),
         subject: msg.subject || '(no subject)',
         date: msg.receivedDateTime || '',
         body,
@@ -172,13 +186,13 @@ router.get('/messages/:id', requireAuth, validate({ params: MessageParams }), as
 });
 
 // ── Send Email (after user approval) ────────────────────────────────────────
-router.post('/send', requireAuth, validate({ body: EmailBody }), async (req, res) => {
+router.post('/send', requireAuth, validate({ body: EmailBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const result = await executeOutlookSend(req.body, await msSessionOf(req));
     res.json(result);
 });
 
 // ── Save as Draft ───────────────────────────────────────────────────────────
-router.post('/draft', requireAuth, validate({ body: EmailBody }), async (req, res) => {
+router.post('/draft', requireAuth, validate({ body: EmailBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const result = await executeOutlookSaveDraft(req.body, await msSessionOf(req));
     res.json(result);
 });

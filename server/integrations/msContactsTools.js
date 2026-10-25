@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Microsoft Contacts Tools — Built-in tools for AI to manage Outlook Contacts
  * 
@@ -11,6 +11,16 @@ const { graphFetch, isMicrosoftConnected } = require('./msGraphClient');
 /**
  * Tool definitions in OpenAI function-calling format.
  */
+/**
+ * A Graph contact, as far as this file reads or writes it.
+ * @typedef {{ id?: string, givenName?: string, surname?: string, displayName?: string,
+ *   emailAddresses?: Array<{ address?: string, name?: string }>, businessPhones?: string[], mobilePhone?: string,
+ *   homePhones?: string[], companyName?: string, jobTitle?: string }} GraphContact
+ * The contact draft the user approves (built by executeMsContactsTool).
+ * @typedef {{ contactId?: string, givenName?: string, surname?: string | null, emailAddress?: string | null,
+ *   phone?: string | null, companyName?: string | null, jobTitle?: string | null }} MsContactDraft
+ */
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: { type: string, properties: Record<string, object>, required: string[] } } }>} */
 const MS_CONTACTS_TOOLS = [
     {
         type: 'function',
@@ -132,6 +142,7 @@ const MS_CONTACTS_TOOLS = [
 
 /**
  * Format a Graph API contact into a consistent shape.
+ * @param {GraphContact} contact
  */
 function formatContact(contact) {
     const emails = contact.emailAddresses || [];
@@ -157,6 +168,10 @@ function formatContact(contact) {
 
 /**
  * Execute a Microsoft Contacts tool call.
+ * @param {string} toolName
+ * @param {{ query?: string, maxResults?: number | string, contactId?: string, givenName?: string, surname?: string,
+ *   emailAddress?: string, phone?: string, companyName?: string, jobTitle?: string }} args
+ * @param {Express.Session} session
  */
 async function executeMsContactsTool(toolName, args, session) {
     if (!isMicrosoftConnected(session)) {
@@ -221,6 +236,7 @@ async function executeMsContactsTool(toolName, args, session) {
         const { contactId, givenName, surname, emailAddress, phone, companyName, jobTitle } = args;
         if (!contactId) throw new Error('contactId is required');
 
+        /** @type {MsContactDraft} */
         const changes = {};
         if (givenName) changes.givenName = givenName;
         if (surname) changes.surname = surname;
@@ -244,6 +260,9 @@ async function executeMsContactsTool(toolName, args, session) {
 
 /**
  * Execute an approved MS Contacts action via Graph API.
+ * @param {string} action
+ * @param {MsContactDraft} draft
+ * @param {Express.Session} session
  */
 async function executeMsContactsAction(action, draft, session) {
     if (!isMicrosoftConnected(session)) {
@@ -251,6 +270,7 @@ async function executeMsContactsAction(action, draft, session) {
     }
 
     if (action === 'create') {
+        /** @type {GraphContact} */
         const contact = {
             givenName: draft.givenName,
         };
@@ -278,6 +298,7 @@ async function executeMsContactsAction(action, draft, session) {
 
     } else if (action === 'update') {
         const { contactId, ...changes } = draft;
+        /** @type {GraphContact} */
         const patch = {};
 
         if (changes.givenName) patch.givenName = changes.givenName;
@@ -310,6 +331,7 @@ async function executeMsContactsAction(action, draft, session) {
 
 /**
  * Check if a tool name is an MS Contacts tool.
+ * @param {string} toolName
  */
 function isMsContactsTool(toolName) {
     return ['ms_contacts_search', 'ms_contacts_list', 'ms_contacts_create', 'ms_contacts_update'].includes(toolName);

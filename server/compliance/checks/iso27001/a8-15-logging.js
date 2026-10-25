@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.15 / A.8.16 — Event logging and monitoring.
  *
@@ -34,13 +34,22 @@ const { getOne } = require('../../../db');
 
 const ACTIVITY_WINDOW_DAYS = 30;
 
-/** SQL: the row belongs to the org in $1; the 'default' bucket also owns the org-less rows. */
+/**
+ * SQL: the row belongs to the org in $1; the 'default' bucket also owns the org-less rows.
+ * @param {string} orgId
+ */
 function _orgWhere(orgId) {
     return orgId === 'default'
         ? "(organization_id = $1 OR organization_id IS NULL OR organization_id = '')"
         : 'organization_id = $1';
 }
 
+/**
+ * @param {string} table
+ * @param {boolean} orgScoped
+ * @param {string} [timeCol]
+ * @param {string} orgId
+ */
 async function _oldestAgeDays(table, orgScoped, orgId, timeCol = 'timestamp') {
     try {
         const row = orgScoped
@@ -52,6 +61,13 @@ async function _oldestAgeDays(table, orgScoped, orgId, timeCol = 'timestamp') {
     }
 }
 
+/**
+ * @param {string} table
+ * @param {boolean} orgScoped
+ * @param {string} [timeCol]
+ * @param {string} [where]
+ * @param {string} orgId
+ */
 async function _recentCount(table, orgScoped, orgId, timeCol = 'timestamp', where = '') {
     try {
         const clause = `${timeCol} >= NOW() - INTERVAL '${ACTIVITY_WINDOW_DAYS} days'${where}`;
@@ -83,6 +99,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_logging.desc',
     remediationKey: 'compliance.checks.iso_logging.fix',
     remediationLink: 'admin/monitoring/activity',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const integrationRecent = await _recentCount('integration_activity_log', true, orgId);
         const guardrailRecent = await _recentCount('guardrail_events', false, orgId);
@@ -113,6 +130,7 @@ module.exports = {
             };
         }
 
+        /** @type {string[]} */
         const quiet = [];
         if (!integrationActive) quiet.push('integration activity log');
         if (!guardrailActive) quiet.push('guardrail event log');

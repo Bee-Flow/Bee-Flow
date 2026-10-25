@@ -102,3 +102,7 @@ module.exports = {
     gatePasses, buildVisibleByCourse,
     getCourse, getCertificate,
 };
+
+/**
+ * @typedef {{ permission?: string | string[], permissionsAll?: string[], feature?: string | string[] }} LessonGate
+ */

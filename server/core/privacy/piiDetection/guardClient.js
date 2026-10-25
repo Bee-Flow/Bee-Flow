@@ -283,3 +283,9 @@ async function probeViaGuard(endpoint, texts, labelSet, priority = 'bulk') {
 }
 
 module.exports = { httpPost, httpGetJson, detectPiiViaCpuModel, probeViaGuard, _describeFailure };
+
+/**
+     * @typedef {{ text: string, category: string, confidence: number, offset: number, length: number, label?: string }} GuardWireEntity
+     * @typedef {{ text: string, category: string, subCategory: string | null, confidence: number, offset: number,
+     *   length: number, label: string }} GuardEntity
+     */

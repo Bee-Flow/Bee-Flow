@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * File comments over the DAV comments endpoint — read the thread on a file id
  * and post a new comment.
@@ -8,6 +8,11 @@ const { parseMultistatus } = require('./webdav');
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
+/**
+ * @param {string} toolName
+ * @param {{ fileId?: string | number, limit?: number, message?: string }} args
+ * @param {import('./webdav').FilesToolCtx} ctx
+ */
 async function executeCommentTool(toolName, args, ctx) {
     const { baseUrl, ncFetch, authError } = ctx;
 

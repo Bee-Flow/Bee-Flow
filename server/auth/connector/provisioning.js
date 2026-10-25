@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Connector: what binding a Nextcloud to an organisation provisions.
  *
@@ -22,6 +22,8 @@ const { invalidateTenantKeyCache } = require('../connectorJwt');
 const { orgHealth, planEntitlements } = require('./serviceDeps');
 const { NC_INTEGRATION_IDS } = require('../../utils/ncIntegrationCatalog');
 
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getOrganization>>>} OrgRow */
+
 // Auto-apply the operator-flagged "Nextcloud recommended" plan to freshly
 // provisioned or freshly-adopted NC orgs so they get enterprise-equivalent
 // entitlements (Webpages, Meeting Notes, Automations, …) without manual
@@ -29,6 +31,10 @@ const { NC_INTEGRATION_IDS } = require('../../utils/ncIntegrationCatalog');
 // admin lands on a stripped-down SPA on their first visit. Best-effort — a
 // failure logs and continues; the org is still usable on the community
 // fallback.
+/**
+ * @param {string} orgId
+ * @param {string} source
+ */
 async function applyNcDefaultPlanIfConfigured(orgId, source) {
     try {
         const plan = await userStore.getDefaultNcPlan();
@@ -141,6 +147,9 @@ async function resolveProvisioningMode() {
 // bootstrapped org silently started without them.
 const NC_INTEGRATIONS = NC_INTEGRATION_IDS.slice();
 
+/**
+ * @param {unknown} s
+ */
 function slugify(s) {
     return String(s || 'nc')
         .toLowerCase()
@@ -152,6 +161,9 @@ function slugify(s) {
 // Mint or fetch the tenantKey for an org. Idempotent — re-runs return the
 // same key. Used by the bootstrap branches, the verification route and the
 // approval handler in ncBindingRoutes.js.
+/**
+ * @param {string} orgId
+ */
 async function getOrMintTenantKey(orgId) {
     const cfgKey = `${TENANT_KEY_PREFIX}${orgId}`;
     const existing = await configStore.getSecret(cfgKey);
@@ -175,6 +187,10 @@ async function getOrMintTenantKey(orgId) {
 
 // Promote / create the NC admin user inside an org. Used by the fresh-org
 // branch and the approval handler.
+/**
+ * @param {OrgRow} org
+ * @param {{ ncAdminEmail: string, ncAdminUid: string, ncAdminDisplayName?: string|null }} admin
+ */
 async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
     let user = await userStore.getUserByEmail(ncAdminEmail);
     if (!user) {
@@ -243,6 +259,10 @@ async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDispla
 // Pure: the secondary admins worth provisioning — trimmed, lower-cased email,
 // deduped by uid, with the primary and any email-less entry dropped. Exported
 // for unit tests.
+/**
+ * @param {unknown} ncAdmins
+ * @param {string} primaryUid
+ */
 function _selectSecondaryAdmins(ncAdmins, primaryUid) {
     if (!Array.isArray(ncAdmins)) return [];
     const seen = new Set();
@@ -257,6 +277,11 @@ function _selectSecondaryAdmins(ncAdmins, primaryUid) {
     return out;
 }
 
+/**
+ * @param {OrgRow} org
+ * @param {unknown} ncAdmins
+ * @param {string} primaryUid
+ */
 async function ensureAdditionalOrgAdmins(org, ncAdmins, primaryUid) {
     for (const a of _selectSecondaryAdmins(ncAdmins, primaryUid)) {
         try {
@@ -274,6 +299,10 @@ async function ensureAdditionalOrgAdmins(org, ncAdmins, primaryUid) {
 // Bind an existing un-bound org to this NC instance. Used by the approval
 // handler in ncBindingRoutes.js. Replaces what used to be the inline
 // "adopt existing org" branch.
+/**
+ * @param {OrgRow} org
+ * @param {{ ncInstanceId: string, ncBaseUrl: string, ncAdminUid: string, connectorCallbackUrl?: string|null }} params
+ */
 async function bindOrgToNcInstance(org, params) {
     const { ncInstanceId, ncBaseUrl, ncAdminUid, connectorCallbackUrl } = params;
     let existingIntegrations = [];

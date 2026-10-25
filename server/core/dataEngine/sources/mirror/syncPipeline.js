@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * ONE FULL PASS over a mirror: the source's columns and rows → the copy —
  * the same pass for every kind, with the adapter answering the three
@@ -71,9 +72,30 @@ const C = require('./constants');
 
 const DEFAULT_PAGE = 500;
 
+/** A mirror as the store hands it out (siblingsOf collects whole rows).
+ * @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} MirrorRow */
+/** @typedef {{ byId: Map<string, MirrorRow>, byRef?: Map<string, MirrorRow>, linkedTargets?: Map<number, string>, linkedViews?: Map<number, string> }} MirrorSiblings */
 /**
- * @param {object} adapter   see the header
- * @returns {object} the kind's `sync` module: syncRows, isStale, kickStale, …
+ * The adapter a source kind hands to `makeSync` (see the header). The members the
+ * pipeline itself reads are listed; the rest of the contract is the kind's own.
+ * @typedef {import('./syncPass').PassAdapter & { KIND: string, TAG?: string, PAGE?: number,
+ *             isMirror: (table: object) => boolean }} MirrorAdapter
+ */
+/**
+ * @typedef {{ syncRows: (datatable: object, opts?: { reason?: string, force?: boolean }) => Promise<{ ok: boolean, alreadyRunning?: boolean, syncState: object|null, warnings?: string[], error?: { message?: string, code?: string } }>,
+ *             isStale: typeof import('./staleness').isStale,
+ *             kickStale: ReturnType<typeof import('./staleness').makeKickStale>,
+ *             nextRunAtFor: typeof import('./staleness').nextRunAtFor,
+ *             scheduleOf: typeof import('./staleness').scheduleOf,
+ *             siblingsOf: (scope: { kind: string, id: string }) => Promise<MirrorSiblings>,
+ *             DEFAULT_ROW_CAP: number, ENGINE_READ_CAP: number, DEFAULT_MINUTES: number,
+ *             MIN_MIRROR_MINUTES: number, MAX_MIRROR_MINUTES: number, LIVE_STALE_MS: number,
+ *             CLAIM_STALE_MS: number, _kicks: Map<string, object> }} MirrorSync
+ */
+
+/**
+ * @param {MirrorAdapter} adapter   see the header
+ * @returns {MirrorSync} the kind's `sync` module: syncRows, isStale, kickStale, …
  */
 function makeSync(adapter) {
     if (!adapter || typeof adapter.open !== 'function' || typeof adapter.isMirror !== 'function') {
@@ -83,17 +105,17 @@ function makeSync(adapter) {
     const PAGE = Number(adapter.PAGE) || DEFAULT_PAGE;
 
     /**
-     * @param {object} datatable   a datatables row of this adapter's kind
-     * @param {object} [opts]
-     * @param {string} [opts.reason]   'link'|'view'|'live'|'schedule'|'manual'|'event'|'relations'|'write'
-     * @param {boolean} [opts.force]   re-read the source even if its marker did not move. It never
+     * @param {{ id: string, source?: object, syncState?: object }} datatable   a datatables row of this adapter's kind
+     * @param {{ reason?: string, force?: boolean }} [opts]
+     *   reason  'link'|'view'|'live'|'schedule'|'manual'|'event'|'relations'|'write'
+     *   force   re-read the source even if its marker did not move. It never
      *                                 takes over a running claim: two passes writing one copy at
      *                                 once could leave the older bytes in it under the newer
      *                                 marker. A caller that must run after the pass in flight
      *                                 marks the copy stale and kicks (the mark survives the
      *                                 finish); only a claim older than CLAIM_STALE_MS — a replica
      *                                 that died mid-pass — is ever taken over
-     * @returns {Promise<{ ok:boolean, alreadyRunning?:boolean, syncState:object|null, warnings?:string[] }>}
+     * @returns {Promise<{ ok:boolean, alreadyRunning?:boolean, syncState:object|null, warnings?:string[], error?: { message?: string, code?: string } }>}
      */
     async function syncRows(datatable, { reason = 'manual', force = false } = {}) {
         if (!datatable || !adapter.isMirror(datatable) || !datatable.source) {
@@ -106,6 +128,7 @@ function makeSync(adapter) {
         const startedAt = Date.now();
         const prev = claimed.syncState || {};
         const schedule = staleness.scheduleOf(claimed.source);
+        /** @type {string[]} */
         const warnings = [];
         try {
             return await runPass(adapter, claimed, { reason, force, PAGE, schedule, startedAt, warnings });

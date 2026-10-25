@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Dataset upload guard — the intake policy for LARGE dataset parts.
  *
@@ -19,7 +19,10 @@
 const express = require('express');
 const { _sniffFamily, EICAR } = require('./uploadGuard');
 
-/** Raw-body parser for one part. `partSize` + slack, any content type. */
+/**
+ * Raw-body parser for one part. `partSize` + slack, any content type.
+ * @param {number} partSizeBytes
+ */
 function datasetPartBody(partSizeBytes) {
     return express.raw({ type: '*/*', limit: partSizeBytes + 1024 * 1024 });
 }
@@ -27,6 +30,7 @@ function datasetPartBody(partSizeBytes) {
 /**
  * Policy check for the FIRST part's head bytes.
  * @returns {{ok:true, family:'gzip'|'text'} | {ok:false, reason:string}}
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 function sniffDatasetHead(buffer) {
     if (!Buffer.isBuffer(buffer) || buffer.length === 0) {

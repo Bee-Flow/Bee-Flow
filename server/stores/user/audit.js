@@ -181,3 +181,5 @@ module.exports = {
     logAccessAudit, getAccessAuditLog, countAccessAuditLog, listAccessAuditActions,
     claimNotification,
 };
+
+/** @typedef {{ targetType?: string, targetId?: string, organizationId?: string, globalOnly?: boolean, actions?: string[], changedBy?: string, since?: string | Date, until?: string | Date }} AccessAuditFilter */

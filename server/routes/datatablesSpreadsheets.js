@@ -288,3 +288,5 @@ function makeSpreadsheetsRouter({ publicTable }) {
 }
 
 module.exports = makeSpreadsheetsRouter;
+
+/** @typedef {import('qs').ParsedQs} ParsedQs */

@@ -100,3 +100,9 @@ module.exports = {
     specForTypeChange,
     typeChangeHint,
 };
+
+/**
+ * The builder turn's draft wrapper with the tool-availability members the route sets (not yet on the
+ * pendingDatatables.js typedef).
+ * @typedef {import('../pendingDatatables').DraftWrap & { _inputSchemasByTool?: Record<string, object>, _availableToolNames?: Set<string>, _offeredTools?: Set<string> }} BuilderWrap
+ */

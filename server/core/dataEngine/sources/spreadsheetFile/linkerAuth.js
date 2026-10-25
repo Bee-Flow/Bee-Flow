@@ -54,13 +54,22 @@ function deps() {
     };
 }
 
+/** @typedef {{ provider?: string, file?: { id?: string, fileId?: string, path?: string }, linkedByUserId?: string, ncInstanceId?: string }} LinkerSource */
+/** @typedef {{ connectorOrgId?: string, isAdmin?: boolean, user?: { organizationId?: string } }} LinkerSession */
+
+/** @type {Record<string, string>} */
 const STORAGE_NAME = { google_drive: 'Google Drive', onedrive: 'OneDrive', nextcloud_files: 'Nextcloud' };
 
+/** @param {LinkerSource} source */
 function refKeyOf(source) {
     const file = (source && source.file) || {};
     return source && source.provider === 'nextcloud_files' ? (file.path || '') : (file.id || file.fileId || '');
 }
 
+/**
+ * @param {string|null} orgId
+ * @param {LinkerSession|null} session
+ */
 function orgForScope(orgId, session) {
     return orgId || (session && (session.connectorOrgId || (session.user && session.user.organizationId))) || null;
 }
@@ -101,6 +110,13 @@ async function resolveLinker(source, { orgId = null, fresh = false, write = fals
     return value;
 }
 
+/**
+ * @param {ReturnType<typeof deps>} d
+ * @param {LinkerSource} source
+ * @param {string} userId
+ * @param {string|null} orgId
+ * @param {boolean} fresh
+ */
 async function resolveUncached(d, source, userId, orgId, fresh) {
     let mod;
     try {
@@ -123,7 +139,7 @@ async function resolveUncached(d, source, userId, orgId, fresh) {
     const ctx = { userId, orgId, session };
 
     if (source.provider !== 'nextcloud_files') {
-        const cred = await d.credentials.resolveProviderCredential(userId, mod.oauthProvider, { session, orgId, fresh });
+        const cred = await d.credentials.resolveProviderCredential(userId, /** @type {'google'|'microsoft'} */ (mod.oauthProvider), { session, orgId, fresh });
         return { api: mod.forLinker(cred, ctx), userId, session, cred };
     }
 
@@ -169,6 +185,13 @@ async function resolveUncached(d, source, userId, orgId, fresh) {
     return { api: mod.forLinker(auth, ctx), userId, session, cred: auth };
 }
 
+/**
+ * @param {ReturnType<typeof deps>} d
+ * @param {string} toolName
+ * @param {LinkerSource} source
+ * @param {string} userId
+ * @param {string|null} orgId
+ */
 async function assertScope(d, toolName, source, userId, orgId) {
     const path = source.file && source.file.path;
     const denial = await d.checkToolCall({ toolName, toolArgs: { path }, userId, orgId });
@@ -187,6 +210,9 @@ async function assertScope(d, toolName, source, userId, orgId) {
  * scope cache makes it cheap, and a scope narrowed a minute ago must bite
  * now). Only Nextcloud has a per-path write policy; Google and Microsoft
  * answer with their own 403 at write time.
+ * @param {LinkerSource} source
+ * @param {{ userId: string, session: LinkerSession|null }} linker
+ * @param {string|null} orgId
  */
 async function assertWritable(source, linker, orgId) {
     if (!source || source.provider !== 'nextcloud_files') return;
@@ -194,7 +220,10 @@ async function assertWritable(source, linker, orgId) {
     await assertScope(d, 'nextcloud_upload_file', source, linker.userId, orgForScope(orgId, linker.session));
 }
 
-/** Test/relink hook: forget a linker's memo — and their credential memo. */
+/**
+ * Test/relink hook: forget a linker's memo — and their credential memo.
+ * @param {string} userId
+ */
 function forget(userId) {
     for (const k of _memo.keys()) if (k.startsWith(`${userId}|`)) _memo.delete(k);
     try { require('./credentials').forget(userId); } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/linkerAuth:forget', err); /* pure module — cannot fail */ }

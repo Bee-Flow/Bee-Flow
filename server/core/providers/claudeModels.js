@@ -584,3 +584,17 @@ module.exports = {
     listCatalogModels,
     getDeprecation,
 };
+
+/**
+ * @typedef {{
+ *   name: string, cat: string, family: string, generation: number, desc?: string,
+ *   context: number, maxOutput: number, thinking: string,
+ *   efforts: readonly string[] | null, defaultEffort: string | null,
+ *   thinkingOnByDefault?: boolean, disableThinkingMaxEffort?: string,
+ *   temperature: boolean, vision: boolean, tools: boolean,
+ *   forcedToolChoice: boolean, midConvSystem: boolean, contextEditing: boolean,
+ *   refusalStop?: boolean, cacheMinTokens: number,
+ *   price?: { input: number, cachedInput: number, output: number },
+ *   released?: string, deprecated?: Record<string, string> | null,
+ * }} ModelEntry
+ */

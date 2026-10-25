@@ -717,3 +717,19 @@ module.exports = {
     // (compliance/coverage.js) and of "is this subject list the whole population".
     _coverageVerdict: coverageVerdict, _coverageSummary: coverageSummary, _asListing,
 };
+
+/**
+ * @typedef {{ id: string, label?: string, capped?: boolean }} RunnerSubject
+ * @typedef {{ status: string, evidence?: Record<string, unknown>, details?: string | null }} RunnerResult
+ * @typedef {{ check_id: string, regulation?: string, scope: string, subject: RunnerSubject | null, status: string, evidence?: Record<string, unknown>, details?: string | null }} RunnerRow
+ * @typedef {{ subjectId?: string | null, actorId?: string | null, [k: string]: unknown }} AutoFixOpts
+ * A registered check as the runner uses it (registry.js documents the full contract).
+ * @typedef {{
+ *   id: string, regulation: string, article?: string, severity?: string, scope?: string,
+ *   remediationLink?: string, retiresVanished?: boolean, retiredDetails?: string,
+ *   evaluate: (orgId: string, subject: RunnerSubject | null) => Promise<RunnerResult> | RunnerResult,
+ *   listSubjects?: (orgId: string) => Promise<RunnerSubject[] | { subjects: RunnerSubject[], complete?: boolean }>,
+ *   listCoverage?: (orgId: string) => Promise<Record<string, any>>,
+ *   autoFix?: (orgId: string, opts: AutoFixOpts) => Promise<unknown>,
+ * }} RunnerCheck
+ */

@@ -144,6 +144,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     if (limitError) return res.status(402).json({ error: limitError, code: 'subscription_limit' });
 
     // ── Load the draft (owner-only) — a bad appId 404s pre-SSE. ──
+    /** @type {import('./buildRound').LoopDraft} */
     let draftWrap;
     let priorSnapshot = null;
     const loaded = await loadDraftWrap(req, { userId, requestedAppId, clientSession });
@@ -200,6 +201,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     //    no monitoring tables). Codes: subscription_limit | rate_limited |
     //    model_unavailable | transient_upstream | budget_exhausted |
     //    validation_failed | save_conflict | internal. ──
+    /** @type {import('./buildRound').BuildCtx['sendError']} */
     const sendError = (code, userMessage) => {
         send('error', { message: userMessage, code });
         log.error(`[AppStudioBuilder] code=${code} appId=${draftWrap.appId || '-'} session=${draftWrap.builderSessionId || '-'} model=${modelId || '-'}`);
@@ -208,10 +210,12 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     // ── Wave 6c per-turn usage metrics + outcome. Declared out here (not inside
     //    the try) so the outer catch can still log a turn that blew up. ──
     const usageTotals = { inputTokens: 0, outputTokens: 0 };
+    /** @type {string[]} */
     const proseParts = [];
     // What the build loop records and the rest of the turn reads back. An
     // object rather than let-bindings, because ./buildLoop.js writes to it and
     // the outer catch has to be able to log a turn that died inside the loop.
+    /** @type {import('./turnClosing').BuilderTurn} */
     const turn = {
         iter: 0,
         lastFinalized: false,
@@ -248,6 +252,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
 
         // Per-turn checkpoint bookkeeping.
         let checkpointsThisTurn = 0;     // capped at MAX_CHECKPOINTS_PER_TURN
+        /** @type {import('./buildRound').BuildCtx['writeCheckpoint']} */
         const writeCheckpoint = async (summary) => {
             if (!draftWrap.appId || checkpointsThisTurn >= MAX_CHECKPOINTS_PER_TURN) return;
             try {
@@ -295,6 +300,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         const outcome = classifyTurnOutcome(turn, { awaitingPlan, continuation, budgetExhausted });
         logTurnUsage(outcome);
 
+        /** @type {{ appId: string|null|undefined, finalized: boolean, awaitingPlan?: boolean, continuation?: import('./turnClosing').Continuation }} */
         const donePayload = { appId: draftWrap.appId, finalized: turn.lastFinalized };
         if (awaitingPlan) donePayload.awaitingPlan = true;
         if (continuation) donePayload.continuation = continuation;

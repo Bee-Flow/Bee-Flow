@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The job plumbing the meeting-note engines share: gmeetAutoImport and
  * teamsAutoImport (discover -> seed jobs -> claim -> ingest), and the
@@ -132,6 +132,7 @@ async function listCandidateUsers({ configStore, kind, resolveSettings, flag, ge
 function makeDiscovery({ label, maxUsersPerTick, jitterMs, listCandidateUsers: listUsers, discoverUser }) {
     let userCursor = 0;
     return async function discover() {
+        /** @type {string[]} */
         let users;
         try { users = await listUsers(); }
         catch (e) { log.error(`[${label}] candidate scan failed:`, /** @type {any} */ (e).message); return; }

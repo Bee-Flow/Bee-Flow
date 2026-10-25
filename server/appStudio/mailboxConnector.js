@@ -459,3 +459,12 @@ module.exports = {
     _groupIntoThreads: groupIntoThreads,
     MAX_MAILBOX_ROWS,
 };
+
+/**
+ * @typedef {{ id?: string, provider?: 'gmail'|'outlook', runAs?: string, displayName?: string, mode?: string, address?: string, maxPerRun?: number, lookbackDays?: number,
+ *   groupIntoThreads?: boolean, folder?: string, query?: string, includeBody?: boolean, includeAttachmentMeta?: boolean }} MailboxConnectorConfig
+ */
+
+/** @typedef {Error & { status?: number, code?: string, retryAfterMs?: number, provider?: string }} MailboxError */
+
+/** @typedef {{ provider_message_id?: string, provider_thread_id?: string, thread_key?: string, has_attachments?: boolean, subject?: string, direction?: string, is_read?: boolean, received_at?: string, from_email?: string, from_name?: string, to_emails?: string, mailbox_address?: string, provider?: string, _parentIndex?: number }} MailMessage  one message row as the mail provider layer returns it */

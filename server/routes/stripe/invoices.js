@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The in-app billing view's invoice surface — the caller's own invoice list and
  * an ownership-checked proxy for a single Stripe-hosted invoice PDF.
@@ -53,7 +53,7 @@ router.get('/invoices/:id/pdf', requireCloud, requireAuth, async (req, res, next
         const customerId = sub?.stripe_customer_id;
         if (!customerId) return res.status(404).json({ error: 'No billing account found' });
 
-        const pdf = await stripeService.getInvoicePdf(req.params.id, { customerId });
+        const pdf = await stripeService.getInvoicePdf(/** @type {string} */ (req.params.id), { customerId });
         if (!pdf) return res.status(404).json({ error: 'Invoice PDF not available' });
 
         res.setHeader('Content-Type', 'application/pdf');

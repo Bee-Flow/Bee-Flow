@@ -30,17 +30,17 @@ const ApproveBody = bodyOf({ approved: z.boolean({ error: 'approved is true or f
 /**
  * @typedef {object} AdminDeps
  * @property {(userId: string) => Promise<string | null>} userOrg the caller's organisation, read fresh (the session may be stale)
- * @property {(organizationId: string | null) => Promise<Record<string, any>[]>} listActiveAutomationsOfOrg
- * @property {(id: string) => Promise<Record<string, any> | null>} getAutomation
+ * @property {(organizationId: string | null) => Promise<(Record<string, any> & { id: string })[]>} listActiveAutomationsOfOrg
+ * @property {(id: string) => Promise<(Record<string, any> & { id: string }) | null>} getAutomation
  * @property {(automation: Record<string, any>) => Promise<string | null>} organisationOf
- * @property {(automation: Record<string, any>, userId: string, session: unknown) => Promise<boolean>} canEdit owner, edit share, or manage_automations
+ * @property {(automation: Record<string, any> & { id: string }, userId: string, session: unknown) => Promise<boolean>} canEdit owner, edit share, or manage_automations
  * @property {() => Promise<Map<string, { organizationId: string | null, blockIds: string[] }>>} listFormAutomations
  * @property {(id: string, meta: { organizationId: string | null, enabledBy: string | null }) => Promise<void>} enableFormAutomation
  * @property {(id: string) => Promise<void>} disableFormAutomation
  * @property {(id: string, blockId: string, approved: boolean) => Promise<void>} setBlockApproved
  * @property {() => Promise<{ blockId: string, pageId: string, pageTitle: string, automationId: string }[]>} listDraftFormBlocks
  * @property {(blockIds: string[]) => Promise<Record<string, { honeypot: number, tooFast: number }>>} getDrops
- * @property {(action: string, targetType: string, targetId: string, actorId: string | null, before: unknown, after: unknown, orgId: string | null) => Promise<unknown>} audit
+ * @property {(action: string, targetType: string, targetId: string, actorId: string | null, before: Record<string, unknown> | null, after: Record<string, unknown> | null, orgId: string | null) => Promise<unknown>} audit
  */
 
 /**
@@ -62,7 +62,7 @@ function createAdminRouter(deps) {
      */
     async function editableAutomation(req) {
         const userId = actorOf(req);
-        const automation = userId ? await deps.getAutomation(req.params.automationId) : null;
+        const automation = userId ? await deps.getAutomation(/** @type {string} */ (req.params.automationId)) : null;
         if (!userId || !automation || automation.kind !== 'automation') throw notFound('automation_not_found', 'Automation not found.');
         const [mine, theirs] = await Promise.all([deps.userOrg(userId), deps.organisationOf(automation)]);
         if (!mine || mine !== theirs || !(await deps.canEdit(automation, userId, req.session))) {
@@ -116,7 +116,7 @@ function createAdminRouter(deps) {
 
     router.put('/form-automations/:automationId/blocks/:blockId', validate({ body: ApproveBody }), async (req, res) => {
         const { automation, userId, orgId } = await editableAutomation(req);
-        const { blockId } = req.params;
+        const { blockId } = /** @type {{ blockId: string }} */ (req.params);
         if (!ID_RE.test(blockId)) throw notFound('block_not_found', 'Form block not found.');
         if (!(await deps.listFormAutomations()).has(automation.id)) {
             throw new HttpError(409, 'not_enabled', 'Enable this automation for website forms first.');

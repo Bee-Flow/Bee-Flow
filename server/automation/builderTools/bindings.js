@@ -561,3 +561,12 @@ module.exports = {
     unboundLoopVarError,
     LOOP_RUNTIME_KEYS,
 };
+
+/**
+ * @typedef {import('./draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('./pendingDatatables').DraftWrap} DraftWrap
+ * @typedef {string | number | boolean | null | undefined | BVal[] | { [k: string]: BVal }} BVal
+ * @typedef {{ kind?: string, path?: string, value?: BVal, [k: string]: BVal }} Binding
+ * @typedef {NonNullable<ReturnType<typeof normalizeAiPath>['tokens']>} Tokens
+ * @typedef {{ overRef?: string, itemVar?: string, parents?: { itemVar: string, overRef: string }[] }} ForEachSpec
+ */

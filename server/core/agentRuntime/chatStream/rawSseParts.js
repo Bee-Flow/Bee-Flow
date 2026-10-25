@@ -15,7 +15,30 @@ const { retryStreamCall } = require('../streamRetry');
 const log = require('../../../telemetry/log');
 const { bestEffort } = require('../../../utils/bestEffort');
 
-/** The OpenAI-compatible request body for this round. */
+/**
+ * @typedef {import('./turnState').AgentRow} AgentRow
+ * @typedef {import('./turnState').ConversationRow} ConversationRow
+ * @typedef {import('./turnState').OnEvent} OnEvent
+ * @typedef {import('./turnState').ChatMessage} ChatMessage
+ * @typedef {import('./turnState').ToolDef} ToolDef
+ * @typedef {import('./turnState').MessageMetadata} MessageMetadata
+ * @typedef {import('./roundRequest').TierSettings} TierSettings
+ * @typedef {import('../../providers/usageNormalizer').RawUsage} RawUsage
+ * @typedef {{ id: string, function: { name: string, arguments: string } }} RawToolCall
+ * @typedef {{ contentBuffer: string, currentToolCalls: RawToolCall[], thinking: string, usage: RawUsage | null, finishReason: string | null, guardTripped: boolean }} RawRoundState
+ * @typedef {{ type?: string, text?: string, thinking?: { type?: string, text?: string }[] }} StructuredChunk
+ * @typedef {{ index: number, id?: string, function?: { name?: string, arguments?: string } }} ToolCallDelta
+ * @typedef {{ usage?: RawUsage, choices?: { finish_reason?: string, delta?: { content?: string | StructuredChunk[] | null, tool_calls?: ToolCallDelta[] } }[] }} SseFrame
+ * @typedef {{ applyTokenMapToOutbound: typeof import('../../dlp/applyTokenMapToOutbound').applyTokenMapToOutbound, usageStore: typeof import('../../../stores/usageStore') }} RawPartsDeps
+ * @typedef {{ model: string, messages: unknown[], stream: boolean, stream_options: { include_usage: boolean }, temperature?: number, reasoning_effort?: string, tools?: unknown[], tool_choice?: string }} RawRequestBody
+ */
+
+/**
+ * The OpenAI-compatible request body for this round.
+ * @param {{ agentId: string, modelToUse: string, conversation: ConversationRow, tools: ToolDef[], _forceFinalAnswer?: boolean, effectiveSystemPrompt: string, effectiveVolatilePrompt: string, finalMessages: ChatMessage[], tierSettings: TierSettings }} turn
+ * @param {RawPartsDeps} d
+ * @returns {RawRequestBody}
+ */
 function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceFinalAnswer, effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, tierSettings }, d) {
     // Detect reasoning models that need special handling
     const isReasoningModel = /^o\d|^gpt-5/i.test(modelToUse);
@@ -30,6 +53,7 @@ function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceF
         systemPrompt: effectiveSystemPrompt + effectiveVolatilePrompt,
         messages: sanitizeMessages(finalMessages),
     });
+    /** @type {RawRequestBody} */
     const requestBody = {
         model: modelToUse,
         messages: [{ role: 'system', content: _guardedRaw.systemPrompt }, ..._guardedRaw.messages],
@@ -66,7 +90,10 @@ function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceF
     return requestBody;
 }
 
-/** POST the body and resolve to the streaming response; a non-2xx throws (and is retried). */
+/**
+ * POST the body and resolve to the streaming response; a non-2xx throws (and is retried).
+ * @param {{ apiUrl: string, headers: Record<string, string>, requestBody: RawRequestBody, signal?: AbortSignal }} req
+ */
 function fetchRawStream({ apiUrl, headers, requestBody, signal }) {
     // Combine client disconnect signal with a 120s timeout to prevent indefinite hangs
     const timeoutMs = 120000;
@@ -96,6 +123,9 @@ function fetchRawStream({ apiUrl, headers, requestBody, signal }) {
  * models send structured chunks: [{type: "thinking", thinking: [{type:
  * "text", text: "..."}]}]. Thinking text goes out as `thinking` events and
  * into `rs.thinking`.
+ * @param {StructuredChunk[]} content
+ * @param {RawRoundState} rs
+ * @param {OnEvent} onEvent
  */
 function textOfStructuredContent(content, rs, onEvent) {
     let textChunk = '';
@@ -116,7 +146,11 @@ function textOfStructuredContent(content, rs, onEvent) {
     return textChunk;
 }
 
-/** Accumulate streamed tool-call fragments by index. */
+/**
+ * Accumulate streamed tool-call fragments by index.
+ * @param {RawToolCall[]} currentToolCalls
+ * @param {ToolCallDelta[]} toolCallDeltas
+ */
 function mergeToolCallDeltas(currentToolCalls, toolCallDeltas) {
     for (const tc of toolCallDeltas) {
         const idx = tc.index;
@@ -135,6 +169,9 @@ function mergeToolCallDeltas(currentToolCalls, toolCallDeltas) {
 /**
  * Apply one parsed SSE frame to the round state `rs`. Returns 'break' when
  * the output guard tripped (the caller stops reading this batch of lines).
+ * @param {SseFrame} parsed
+ * @param {RawRoundState} rs
+ * @param {{ splitter: { push: (text: string) => void }, onEvent: OnEvent }} ctx
  */
 function applySseFrame(parsed, rs, { splitter, onEvent }) {
     // Buffer the latest usage frame — log once after stream completes.
@@ -171,6 +208,8 @@ function applySseFrame(parsed, rs, { splitter, onEvent }) {
  * Log usage once after the SSE stream finishes. Buffering inside the loop and
  * writing here avoids duplicate rows when servers emit multiple usage frames
  * or when [DONE] races the last frame.
+ * @param {{ agent: AgentRow, agentId: string, userId: string, modelToUse: string, messageMetadata: MessageMetadata, conversation: ConversationRow, usage: RawUsage | null, finishReason: string | null, _streamCallStart: number }} turn
+ * @param {RawPartsDeps} d
  */
 async function logRawUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, usage, finishReason, _streamCallStart }, d) {
     if (!usage) return;

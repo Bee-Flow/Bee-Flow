@@ -150,3 +150,5 @@ async function buildTurnMessages({
 }
 
 module.exports = { buildTurnMessages, STOP };
+
+/** @typedef {{ role: string, content: string | unknown[] | null, tool_calls?: unknown[], tool_call_id?: string }} TurnMessage */

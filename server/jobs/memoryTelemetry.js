@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Memory telemetry: every MEMORY_TELEMETRY_INTERVAL_MS (default 5 min) log the
  * process memory in MB, so a slowly growing server shows up in the logs before
@@ -8,6 +8,7 @@
 const log = require('../telemetry/log');
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
+/** @type {Array<keyof NodeJS.MemoryUsage>} */
 const FIELDS = ['rss', 'heapUsed', 'heapTotal', 'external', 'arrayBuffers'];
 
 function intervalMs() {
@@ -17,8 +18,12 @@ function intervalMs() {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : DEFAULT_INTERVAL_MS;
 }
 
-/** Process memory in whole MB, keyed like process.memoryUsage(). */
+/**
+ * Process memory in whole MB, keyed like process.memoryUsage().
+ * @param {NodeJS.MemoryUsage} [usage]
+ */
 function snapshot(usage = process.memoryUsage()) {
+    /** @type {Record<string, number>} */
     const out = {};
     for (const f of FIELDS) out[f] = Math.round((Number(usage[f]) || 0) / (1024 * 1024));
     return out;
@@ -30,6 +35,7 @@ function logOnce() {
     return m;
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _interval = null;
 
 function start() {

@@ -400,3 +400,5 @@ module.exports = {
     normalizeName,
     rankCandidates,
 };
+
+/** @typedef {Awaited<ReturnType<typeof voiceprintStore.listOrgVoiceprintMeta>>[number]} VoiceprintMeta */

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: seed org_health_problems for ALREADY-broken Nextcloud orgs.
  *
@@ -53,8 +54,12 @@ const SEED_META = JSON.stringify({ reason: 'seeded from pre-existing state' });
 // only runs for bound instances.
 const NC_ORG = `(o.nc_instance_id IS NOT NULL OR o.registration_source = 'nextcloud_connector')`;
 
+/**
+ * @param {string} code
+ * @param {string} whereSql
+ */
 async function seedProblem(code, whereSql) {
-    const def = CODES[code];
+    const def = /** @type {Record<string, (typeof CODES)[keyof typeof CODES]>} */ (CODES)[code];
     if (!def) throw new Error(`org-health-seed: unknown code ${code}`);
     const r = await run(
         `INSERT INTO org_health_problems
@@ -84,6 +89,7 @@ async function up() {
     const noSubscriptionRow =
         `NOT EXISTS (SELECT 1 FROM organization_subscriptions os WHERE os.organization_id = o.id)`;
 
+    /** @type {{ subscriptionBlocked?: number; communityFallback?: number; onboardingPending?: number; pendingApproval?: number }} */
     const counts = {};
     counts.subscriptionBlocked = await seedProblem('chat.subscription_blocked', noSubscriptionRow);
     counts.communityFallback = await seedProblem('bootstrap.community_fallback', noSubscriptionRow);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Pure transform for the tool-RESULT DLP step (server/core/agentRuntime/chatStream.js).
  *
@@ -21,10 +21,10 @@
  * log. Keeping the string surgery here makes the ordering unit-testable.
  *
  * @param {string} text                 serialized (already size-capped) result
- * @param {Array}  entities             detectPii entities ({ text, category, label, offset, length })
+ * @param {Array<{ text?: string, category: string, label?: string, offset: number, length: number, alsoCategories?: string[] }>}  entities             detectPii entities ({ text, category, label, offset, length })
  * @param {Set<string>} blockCats       canonical category ids to hard-block for this tool class
- * @param {object} existingTokenMap     conversation's accumulated { token: realValue } map
- * @returns {{ content, tokenMap, redactedLabels, redactedLogLabels, blockedCount, tokenizedCount }}
+ * @param {Record<string, string>} existingTokenMap     conversation's accumulated { token: realValue } map
+ * @returns {{ content: string, tokenMap: Record<string, string>, redactedLabels: string[], redactedLogLabels: string[], blockedCount: number, tokenizedCount: number }}
  */
 function redactAndTokenizeToolResult(text, entities, blockCats, existingTokenMap) {
     if (typeof text !== 'string' || !Array.isArray(entities) || entities.length === 0) {

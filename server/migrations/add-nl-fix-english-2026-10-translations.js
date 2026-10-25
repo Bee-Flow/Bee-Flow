@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for keys that still read English in a Dutch workspace (2026-10).
  *
@@ -26,6 +27,8 @@ const NL_FIXES = Object.freeze({ ...DATA.translations });
 /**
  * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
  * `english`: the English defaults (a stored value equal to its English default is a shipped value, not a choice).
+ * @param {Record<string, string>} merged
+ * @param {Record<string, string>} english
  */
 function applyNl(merged, english) {
     let changed = 0;

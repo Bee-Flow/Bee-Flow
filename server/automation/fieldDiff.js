@@ -580,3 +580,18 @@ module.exports = {
     describeText,
     describeVersion,
 };
+
+/**
+ * @typedef {Record<string, any>} Obj  a step, trigger, graph or setting object as stored (loose JSON)
+ * @typedef {string | number | boolean | null | undefined | Obj} Value  a setting value as stored
+ * @typedef {{ parts: string[], before: Value, after: Value }} SettingDiff  one changed setting
+ * @typedef {{ from: string, label: string | null, caseName: string | null }} Incoming
+ * @typedef {{ id: string, layer: string | null, node: Obj, isTrigger: boolean, parentId: string | null,
+ *   label: string, layerTitle: string | null, number: number | null, incoming: Incoming[] }} NodeInfo
+ * @typedef {{ stepId: string | null, stepNumber: number | null, stepLabel: string, layer?: string, isTrigger?: boolean,
+ *   change: 'added' | 'removed' | 'changed' | 'moved', setting: string | null, settingLabel: string | null,
+ *   path: string | null, before: string | null, after: string | null,
+ *   beforeText?: string | null, afterText?: string | null, textTruncated?: true }} Change  one field-level change
+ * @typedef {Pick<Change, 'stepId' | 'stepNumber' | 'stepLabel'> & { layer?: string, isTrigger?: boolean }} Head  who a change belongs to
+ * @typedef {{ code: string, params: Record<string, string | number | null> }} Entry  a description entry
+ */

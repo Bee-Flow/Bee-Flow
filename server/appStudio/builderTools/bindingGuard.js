@@ -204,3 +204,10 @@ function guardResult(check, at = 'components') {
 }
 
 module.exports = { checkComponentDataRefs, guardResult, DATA_BINDING_KINDS };
+
+/**
+ * One model-authored object — a component entry, a binding, a filter — read defensively.
+ * @typedef {{ [k: string]: unknown, kind?: string, type?: string, tableId?: string, props?: Record<string, unknown>, children?: unknown[] }} GuardObject
+ * @typedef {{ index: number, path: string, suggestion?: string|null, message: string, hint: string }} GuardError
+ * @typedef {import('./dataTools').DataTable} DataTable
+ */

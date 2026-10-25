@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the nested-data mapping work: per-item steps over lists inside
  * lists, the AI fallback of "Automatisch koppelen", JSON text read as the

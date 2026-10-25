@@ -362,3 +362,13 @@ async function relink(datatable, principal, session) {
 }
 
 module.exports = { listLinkable, describe, linkTables, setRelations, relink, MAX_TABLES_PER_LINK, orderParentsFirst, resolveDeclared };
+
+/** @typedef {{ userId: string, orgId?: string }} Principal */
+
+/** @typedef {{ kind: 'org'|'user', id: string }} Scope */
+
+/** @typedef {{ ncTableId?: number, ncViewId?: number }} TableRef */
+
+/** @typedef {{ id: number, title?: string, emoji?: string, rowsCount?: number, columnsCount?: number, isShared?: boolean, archived?: boolean, views?: Array<{ id: number, title?: string }> }} NcTableListing */
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Datatable */

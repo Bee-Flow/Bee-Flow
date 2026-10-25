@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -142,13 +142,21 @@ module.exports = {
     remediationLink: 'admin/compliance/gdpr',
     autoFixId: 'project_prune_dangling_shares',
 
-    /** The same finding while the same projects are affected the same way. */
+    /**
+     * The same finding while the same projects are affected the same way.
+     * @param {Record<string, any> | null | undefined} evidence
+     */
     fingerprintOf(evidence) {
         const offenders = Array.isArray(evidence?.offenders) ? evidence.offenders : [];
-        return offenders.map(o => `${o.project_id}:${o.foreign > 0 ? 'f' : ''}${o.dangling > 0 ? 'd' : ''}`).sort();
+        return offenders.map(/** @param {Record<string, any>} o */ o => `${o.project_id}:${o.foreign > 0 ? 'f' : ''}${o.dangling > 0 ? 'd' : ''}`).sort();
     },
 
+    /**
+     * @param {string} orgId
+     * @param {unknown} _subject
+     */
     async evaluate(orgId, _subject, deps = defaultDeps()) {
+        /** @type {number} */
         let projects;
         let rows;
         try {
@@ -165,6 +173,9 @@ module.exports = {
         return verdict({ projects, rows: all.slice(0, pd.ROW_LIMIT), orgId, truncated });
     },
 
+    /**
+     * @param {string} orgId
+     */
     async autoFix(orgId, { subjectId = null } = {}, deps = defaultDeps()) {
         const projectId = subjectId ? pd.projectIdOf(subjectId) : null;
         const removed = await deps.query(PRUNE_SQL, [orgId, projectId]);

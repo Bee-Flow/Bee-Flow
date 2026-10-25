@@ -426,3 +426,8 @@ router.delete('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, data
 
 module.exports = router;
 module.exports._internals = { PART_BYTES, MAX_FILE_BYTES, TOTAL_BYTES_PER_OWNER, MAX_FILES_PER_APP, publicDataset };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} StudioApp
+ * @typedef {NonNullable<Awaited<ReturnType<typeof datasetFileStore.getDataset>>>} Dataset
+ */

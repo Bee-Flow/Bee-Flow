@@ -115,3 +115,15 @@ module.exports = {
     validateAllPlanTiers,
     reportPlanTierProblems,
 };
+
+/**
+ * @typedef {object} PlanRow  a subscription_plans row, or a join exposing plan_* columns
+ * @property {string} [id]
+ * @property {string} [plan_id]
+ * @property {string} [name]
+ * @property {string} [plan_name]
+ * @property {string} [tier]
+ * @property {string} [plan_tier]
+ * @property {number|string} [price]
+ * @property {number|string} [amount]
+ */

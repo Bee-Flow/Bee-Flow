@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Custom sensitive-term scanner for the org Privacy Shield.
  *
@@ -33,6 +33,14 @@
 
 // In-memory cache: orgId → { unions: [...], termIndex: [...] }
 const log = require('../../telemetry/log');
+/**
+ * @typedef {{ id?: string, label?: string, pattern?: string, caseSensitive?: boolean, type?: string }} CustomTermConfig
+ * @typedef {{ id: string, label: string, pattern: string, type: string, caseSensitive: boolean, groupName: string,
+ *            source: string }} CompiledTerm
+ * @typedef {{ compiled: RegExp | null, entries: CompiledTerm[], flags: string }} CompiledUnion
+ * @typedef {{ category: string, label: string, start: number, end: number, match: string, termId: string }} CustomTermFinding
+ */
+/** @type {Map<string, { unions: CompiledUnion[], termIndex: CompiledTerm[] }>} */
 const _cache = new Map();
 
 /**
@@ -46,11 +54,15 @@ const _cache = new Map();
  */
 const MAX_SCAN_CHARS = 100_000;
 
+/** @param {unknown} str */
 function escapeRegex(str) {
     return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** The regex source for a term, honouring literal-vs-regex. */
+/**
+ * The regex source for a term, honouring literal-vs-regex.
+ * @param {CustomTermConfig} term
+ */
 function _sourceFor(term) {
     return term.type === 'literal' ? escapeRegex(term.pattern) : term.pattern;
 }
@@ -75,8 +87,8 @@ function _sourceFor(term) {
  * same `source` that was validated and recorded. There is no second pass to get
  * out of step, and a pattern that failed validation can no longer reach a union.
  *
- * @param {Array} terms  [{ id, label, pattern, caseSensitive, type: 'regex'|'literal' }]
- * @returns {{ unions: Array<{compiled: RegExp|null, entries: Array}>, termIndex: Array }}
+ * @param {CustomTermConfig[]} terms  [{ id, label, pattern, caseSensitive, type: 'regex'|'literal' }]
+ * @returns {{ unions: CompiledUnion[], termIndex: CompiledTerm[] }}
  */
 function _compile(terms) {
     if (!Array.isArray(terms) || terms.length === 0) {
@@ -84,6 +96,7 @@ function _compile(terms) {
     }
 
     // Two buckets: `gi` for the default, `g` for terms that asked for exact case.
+    /** @type {Record<'i' | 's', { flags: string, parts: string[], entries: CompiledTerm[] }>} */
     const buckets = {
         i: { flags: 'gi', parts: [], entries: [] },
         s: { flags: 'g', parts: [], entries: [] },
@@ -101,7 +114,7 @@ function _compile(terms) {
         try {
             new RegExp(source, bucket.flags);
         } catch (err) {
-            log.warn(`[CustomTerms] Skipping invalid term "${term.label}": ${err.message}`);
+            log.warn(`[CustomTerms] Skipping invalid term "${term.label}": ${/** @type {Error} */ (err).message}`);
             continue;
         }
 
@@ -122,11 +135,14 @@ function _compile(terms) {
         bucket.entries.push(entry);
     }
 
+    /** @type {CompiledUnion[]} */
     const unions = [];
+    /** @type {CompiledTerm[]} */
     const termIndex = [];
     for (const bucket of [buckets.i, buckets.s]) {
         if (bucket.entries.length === 0) continue;
         termIndex.push(...bucket.entries);
+        /** @type {RegExp | null} */
         let compiled = null;
         try {
             compiled = new RegExp(bucket.parts.join('|'), bucket.flags);
@@ -134,7 +150,7 @@ function _compile(terms) {
             // Individually-valid patterns can still fail to combine (duplicate
             // group names inside admin-supplied sources, for instance). Fall
             // back to per-term scanning for this bucket rather than dropping it.
-            log.error(`[CustomTerms] Union compile failed (${bucket.flags}), falling back to per-term scanning:`, err.message);
+            log.error(`[CustomTerms] Union compile failed (${bucket.flags}), falling back to per-term scanning:`, /** @type {Error} */ (err).message);
         }
         unions.push({ compiled, entries: bucket.entries, flags: bucket.flags });
     }
@@ -142,6 +158,10 @@ function _compile(terms) {
     return { unions, termIndex };
 }
 
+/**
+ * @param {string} orgId
+ * @param {CustomTermConfig[]} terms
+ */
 function _getCompiled(orgId, terms) {
     const cached = _cache.get(orgId);
     if (cached) return cached;
@@ -152,14 +172,22 @@ function _getCompiled(orgId, terms) {
 
 /**
  * Drop the cached compile for an org. Call from the Privacy Shield PUT route.
+ * @param {string} orgId
  */
 function invalidate(orgId) {
     if (orgId) _cache.delete(orgId);
 }
 
-/** Push every match of `re` in `text`, attributing via `resolve(match)`. */
+/**
+ * Push every match of `re` in `text`, attributing via `resolve(match)`.
+ * @param {RegExp} re
+ * @param {string} text
+ * @param {(m: RegExpExecArray) => CompiledTerm | null} resolve
+ * @param {CustomTermFinding[]} findings
+ */
 function _collect(re, text, resolve, findings) {
     re.lastIndex = 0;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(text)) !== null) {
         const entry = resolve(m);
@@ -183,14 +211,14 @@ function _collect(re, text, resolve, findings) {
  *
  * @param {string} text
  * @param {string} orgId
- * @param {Array} terms  Raw term config from org Privacy Shield
- * @returns {{ findings: Array, partial: boolean, processedChars: number, totalChars: number }}
+ * @param {CustomTermConfig[]} terms  Raw term config from org Privacy Shield
+ * @returns {{ findings: CustomTermFinding[], partial: boolean, processedChars: number, totalChars: number }}
  *          `findings` entries are
  *          { category, label, start, end, match, termId }.
  */
 function scanCustomTerms(text, orgId, terms) {
     const totalChars = typeof text === 'string' ? text.length : 0;
-    const empty = { findings: [], partial: false, processedChars: 0, totalChars };
+    const empty = { findings: /** @type {CustomTermFinding[]} */ ([]), partial: false, processedChars: 0, totalChars };
     if (!text || !orgId || !Array.isArray(terms) || terms.length === 0) return empty;
 
     // Bounded prefix rather than an unbounded walk — see MAX_SCAN_CHARS.
@@ -201,6 +229,7 @@ function scanCustomTerms(text, orgId, terms) {
     }
 
     const { unions } = _getCompiled(orgId, terms);
+    /** @type {CustomTermFinding[]} */
     const findings = [];
 
     for (const union of unions) {
@@ -214,6 +243,7 @@ function scanCustomTerms(text, orgId, terms) {
         // Per-term fallback for a bucket whose union wouldn't compile. Slower,
         // but every term still gets scanned under its own flags.
         for (const entry of union.entries) {
+            /** @type {RegExp} */
             let re;
             try {
                 re = new RegExp(entry.source, union.flags);

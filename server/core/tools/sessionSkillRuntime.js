@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Session Skill Runtime
  *
@@ -7,7 +8,6 @@
  * - Activated dynamically to reduce token usage.
  * - Optionally publishable to the persistent skill library on user request.
  */
-// @typecheck
 const crypto = require('crypto');
 const skillStore = require('../../stores/skillStore');
 const log = require('../../telemetry/log');
@@ -22,12 +22,22 @@ const MAX_SESSION_SKILLS = 5;
 // falls back to the conversation's tier.
 const ALLOWED_STAGE_TIERS = new Set(['auto', 'fast', 'thinking', 'writer', 'pro']);
 
+/**
+ * One chat-local skill (a Flow stage). The bootstrap fallback carries no
+ * order/dependsOn, hence optional.
+ * @typedef {{ id: string, name: string, description?: string, instructions?: string, workflow?: string,
+ *   rules?: string, examples?: string, order?: number, dependsOn?: string[], dynamicActivation?: boolean,
+ *   tier?: string }} SessionSkill
+ */
+
+/** @param {unknown} raw */
 function normalizeStageTier(raw) {
     if (typeof raw !== 'string') return undefined;
     const t = raw.trim().toLowerCase();
     return ALLOWED_STAGE_TIERS.has(t) ? t : undefined;
 }
 
+/** @param {unknown} text */
 function stripCodeFences(text) {
     if (typeof text !== 'string') return '';
     const t = text.trim();
@@ -35,11 +45,22 @@ function stripCodeFences(text) {
     return (m ? m[1] : t).trim();
 }
 
+/**
+ * @param {unknown} v
+ * @param {number} [max]
+ */
 function sanitizeText(v, max = 4000) {
     if (typeof v !== 'string') return '';
     return v.trim().slice(0, max);
 }
 
+/**
+ * @param {{ id?: unknown, name?: unknown, description?: unknown, instructions?: unknown, workflow?: unknown,
+ *   rules?: unknown, examples?: unknown, order?: number, dependsOn?: unknown, tier?: unknown,
+ *   dynamicActivation?: unknown }} raw  one parsed-JSON entry from the model
+ * @param {number} [idx]
+ * @returns {SessionSkill | null}
+ */
 function normalizeSessionSkill(raw, idx = 0) {
     if (!raw || typeof raw !== 'object') return null;
     const name = sanitizeText(raw.name, 120) || `Session Skill ${idx + 1}`;
@@ -83,6 +104,7 @@ function normalizeSessionSkill(raw, idx = 0) {
 // these on bootstrap so the first-turn system prompt actually carries the
 // full Instructions body. Without this the AI can (and in the wild, does)
 // answer using only the short manifest, making the pipeline decorative.
+/** @param {SessionSkill[]} skills */
 function initialActivatedSkillIds(skills) {
     if (!Array.isArray(skills) || skills.length === 0) return [];
     const minOrder = skills.reduce((m, s) => {
@@ -96,8 +118,13 @@ function initialActivatedSkillIds(skills) {
         .map(s => s.id);
 }
 
+/**
+ * @param {SessionSkill[]} skills
+ * @returns {SessionSkill[]}
+ */
 function resolveDependencies(skills) {
     if (!Array.isArray(skills) || skills.length === 0) return skills;
+    /** @type {Map<string, string>} */
     const byKey = new Map();
     for (const s of skills) {
         if (s.id) byKey.set(s.id, s.id);
@@ -114,7 +141,8 @@ function resolveDependencies(skills) {
     // Break the cycle by emptying its dependsOn and logging — better to run
     // the skill in the wrong order than to permanently brick the pipeline.
     const inDegree = new Map(resolved.map(s => [s.id, (s.dependsOn || []).length]));
-    const graph = new Map(resolved.map(s => [s.id, []]));
+    /** @type {Map<string, string[]>} */
+    const graph = new Map(resolved.map(s => [s.id, /** @type {string[]} */ ([])]));
     for (const s of resolved) {
         for (const dep of s.dependsOn || []) {
             if (graph.has(dep)) graph.get(dep).push(s.id);
@@ -139,6 +167,7 @@ function resolveDependencies(skills) {
     return resolved;
 }
 
+/** @param {unknown} rawText */
 function parseSkillPayload(rawText) {
     const txt = stripCodeFences(rawText);
     if (!txt) return [];
@@ -150,6 +179,7 @@ function parseSkillPayload(rawText) {
         // path instead of crashing the request.
         return [];
     }
+    /** @type {Array<Parameters<typeof normalizeSessionSkill>[0]>} */
     const arr = Array.isArray(parsed)
         ? parsed
         : (parsed && Array.isArray(parsed.skills) ? parsed.skills : []);
@@ -160,6 +190,11 @@ function parseSkillPayload(rawText) {
     return resolveDependencies(normalized);
 }
 
+/**
+ * @typedef {{ language?: string, role?: string, orgName?: string, orgTagline?: string }} SessionUserContext
+ */
+
+/** @param {SessionUserContext | null} userContext */
 function formatUserContext(userContext) {
     if (!userContext || typeof userContext !== 'object') return '';
     const parts = [];
@@ -173,6 +208,11 @@ function formatUserContext(userContext) {
     return parts.length > 0 ? parts.join(' · ') : '';
 }
 
+/**
+ * @param {{ adapter: import('../llm/llmClient').Adapter, apiKey: string, apiUrl?: string, modelId: string,
+ *   message?: string, timezone?: string, userContext?: SessionUserContext | null }} opts
+ * @returns {Promise<SessionSkill[]>}
+ */
 async function bootstrapSessionSkills({
     adapter,
     apiKey,
@@ -258,13 +298,17 @@ async function bootstrapSessionSkills({
  *   - it's activated AND is a terminal node (no one depends on it) —
  *     reaching it means the pipeline's work is done.
  * Pure function, no storage. Caller decides what to do with the result.
+ * @param {SessionSkill[]} sessionSkills
+ * @param {string[]} activatedSkillIds
+ * @returns {string[]}
  */
 function deriveCompletedSkillIds(sessionSkills, activatedSkillIds) {
     if (!Array.isArray(sessionSkills) || sessionSkills.length === 0) return [];
     const activated = new Set(Array.isArray(activatedSkillIds) ? activatedSkillIds : []);
     if (activated.size === 0) return [];
     // Build reverse-dep map: for each skill id, list ids of skills that depend on it.
-    const downstream = new Map(sessionSkills.map(s => [s.id, []]));
+    /** @type {Map<string, string[]>} */
+    const downstream = new Map(sessionSkills.map(s => [s.id, /** @type {string[]} */ ([])]));
     for (const s of sessionSkills) {
         for (const dep of s.dependsOn || []) {
             if (downstream.has(dep)) downstream.get(dep).push(s.id);
@@ -281,6 +325,10 @@ function deriveCompletedSkillIds(sessionSkills, activatedSkillIds) {
     return completed;
 }
 
+/**
+ * @param {{ sessionSkills?: SessionSkill[], activatedSkillIds?: string[], completedSessionSkillIds?: string[] | null,
+ *   completions?: Array<{ skillId?: string, summary?: string }>, compactMode?: boolean }} opts
+ */
 function buildSessionSkillInjection({
     sessionSkills = [],
     activatedSkillIds = [],
@@ -440,6 +488,10 @@ function buildSessionSkillInjection({
     return { systemPromptAddendum: addendum, tools };
 }
 
+/**
+ * @param {{ args?: { skill_ids?: unknown }, sessionSkills?: SessionSkill[], activatedSkillIds?: string[],
+ *   completedSkillIds?: string[] | null }} opts
+ */
 async function executeActivateSessionSkill({ args, sessionSkills = [], activatedSkillIds = [], completedSkillIds = null }) {
     const ids = Array.isArray(args?.skill_ids) ? args.skill_ids.filter(Boolean) : [];
     if (ids.length === 0) return { error: 'No skill_ids provided.' };
@@ -506,6 +558,10 @@ async function executeActivateSessionSkill({ args, sessionSkills = [], activated
     };
 }
 
+/**
+ * @param {{ args?: { skill_id?: unknown, name?: unknown, is_shared?: unknown, dynamic_activation?: unknown },
+ *   sessionSkills?: SessionSkill[], orgId?: string, userId?: string }} opts
+ */
 async function executePublishSessionSkill({
     args,
     sessionSkills = [],
@@ -550,6 +606,8 @@ async function executePublishSessionSkill({
  *   - skill_id must be activated (you can't complete a step you haven't started)
  *   - skill_id must not already be completed (idempotent guard)
  *   - summary is required (short plain-text recap; trimmed + length-capped)
+ * @param {{ args?: { skill_id?: unknown, summary?: unknown }, sessionSkills?: SessionSkill[],
+ *   activatedSessionSkillIds?: string[], completedSessionSkillIds?: string[], roundsInCurrentStep?: number | null }} opts
  */
 async function executeCompleteSessionSkill({
     args,
@@ -615,6 +673,9 @@ async function executeCompleteSessionSkill({
  *                               (final answer phase is unlocked)
  *   - currentActiveId         — lowest-order activated-but-not-completed skill
  *   - nextReadyId             — lowest-order inactive skill with all deps met
+ * @param {SessionSkill[]} sessionSkills
+ * @param {string[]} activatedSkillIds
+ * @param {string[]} completedSkillIds
  */
 function describeStepMachineState(sessionSkills, activatedSkillIds, completedSkillIds) {
     const hasPipeline = Array.isArray(sessionSkills) && sessionSkills.length > 0;
@@ -624,7 +685,8 @@ function describeStepMachineState(sessionSkills, activatedSkillIds, completedSki
     const activated = new Set(Array.isArray(activatedSkillIds) ? activatedSkillIds : []);
     const completed = new Set(Array.isArray(completedSkillIds) ? completedSkillIds : []);
 
-    const downstream = new Map(sessionSkills.map(s => [s.id, []]));
+    /** @type {Map<string, string[]>} */
+    const downstream = new Map(sessionSkills.map(s => [s.id, /** @type {string[]} */ ([])]));
     for (const s of sessionSkills) {
         for (const dep of s.dependsOn || []) {
             if (downstream.has(dep)) downstream.get(dep).push(s.id);
@@ -657,12 +719,16 @@ function describeStepMachineState(sessionSkills, activatedSkillIds, completedSki
  *   - readySkillIds      — skills whose dependencies are all activated but
  *                          which aren't activated themselves (activation
  *                          candidates, in step order).
+ * @param {SessionSkill[]} sessionSkills
+ * @param {string[]} activatedSkillIds
+ * @returns {{ hasPipeline: boolean, allTerminalsDone: boolean, readySkillIds: string[] }}
  */
 function describePipelineState(sessionSkills, activatedSkillIds) {
     const hasPipeline = Array.isArray(sessionSkills) && sessionSkills.length > 0;
     if (!hasPipeline) return { hasPipeline: false, allTerminalsDone: true, readySkillIds: [] };
     const activated = new Set(Array.isArray(activatedSkillIds) ? activatedSkillIds : []);
-    const downstream = new Map(sessionSkills.map(s => [s.id, []]));
+    /** @type {Map<string, string[]>} */
+    const downstream = new Map(sessionSkills.map(s => [s.id, /** @type {string[]} */ ([])]));
     for (const s of sessionSkills) {
         for (const dep of s.dependsOn || []) {
             if (downstream.has(dep)) downstream.get(dep).push(s.id);

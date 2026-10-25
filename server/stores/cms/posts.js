@@ -515,3 +515,11 @@ module.exports = {
     getPostLocaleOverride, setPostLocaleOverride, deletePostLocaleOverride,
     collectPostLocaleOverrides, restorePosts,
 };
+
+/** @typedef {{ metaTitle: string, metaDescription: string, ogImage: string, noIndex: boolean }} PostSeo */
+
+/** @typedef {{ version: number, id: string, slug: string, title: string, excerpt: string, body: string, coverImage: string, coverAlt: string, authorName: string, tags: string[], status: string, publishedAt: string | null, seo: PostSeo, createdAt: string, updatedAt: string, [k: string]: any }} PostDoc */
+
+/** @typedef {{ id: string, slug: string }} PostIndexEntry */
+
+/** @typedef {{ version: number, posts: PostIndexEntry[] }} PostsIndex */

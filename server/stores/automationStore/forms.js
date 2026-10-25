@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * forms.js — automationStore aggregate for the `form` trigger.
  *
@@ -24,6 +24,55 @@ const UPLOAD_TTL_MS = 6 * 60 * 60 * 1000;
 
 const { AUDIENCES } = require('../../automation/formAudience');
 
+/**
+ * @typedef {object} PageRow
+ * @property {string} id
+ * @property {string} automation_id
+ * @property {string | null} [trigger_step_id]
+ * @property {string | Date} created_at
+ * @property {string | Date | null} [last_seen_at]
+ * @property {number | string | null} [submissions]
+ * @property {string} [audience]
+ * @property {unknown} [shared_groups]
+ * @property {unknown} [shared_user_ids]
+ * @property {string | null} [title]
+ * @property {string | null} [description]
+ * @property {boolean} [is_active]
+ * @property {boolean} [is_draft]
+ * @property {string} [user_id]
+ * @property {unknown} [definition_json]
+ * @property {unknown} [live_definition_json]
+ * @property {number | null} [live_version]
+ */
+/**
+ * @typedef {object} UploadRow
+ * @property {string} id
+ * @property {string} form_page_id
+ * @property {string} storage_key
+ * @property {string} filename
+ * @property {string} mime_type
+ * @property {number | string | null} [size_bytes]
+ * @property {boolean | null} [scanned]
+ * @property {string | Date} created_at
+ * @property {string | Date | null} [expires_at]
+ * @property {string | Date | null} [claimed_at]
+ */
+/**
+ * @typedef {object} SessionRow
+ * @property {string} id
+ * @property {string} form_page_id
+ * @property {string} automation_id
+ * @property {string | null} [run_id]
+ * @property {string | null} [root_step_id]
+ * @property {Record<string, unknown> | null} [trigger_headers]
+ * @property {unknown} [pending_work]
+ * @property {number | null} [pending_attempts]
+ * @property {string | Date} created_at
+ * @property {string | Date} updated_at
+ * @property {string | Date} expires_at
+ */
+
+/** @param {unknown} value */
 function idList(value) {
     let arr = value;
     if (typeof value === 'string') {
@@ -33,6 +82,7 @@ function idList(value) {
     return Array.from(new Set(arr.filter(v => typeof v === 'string' && v)));
 }
 
+/** @param {PageRow | null} r */
 function rowToPage(r) {
     if (!r) return null;
     return {
@@ -53,6 +103,9 @@ function rowToPage(r) {
 /**
  * A NEW page is the owner's until they share it: 'restricted' with nobody
  * on it. The column's own default is 'org', for the rows that predate it.
+ * @param {string} automationId
+ * @param {string | null} [triggerStepId]
+ * @param {{ audience?: string, sharedGroups?: string[], sharedUserIds?: string[] }} [opts]
  */
 async function createFormPage(automationId, triggerStepId = null, { audience = 'restricted', sharedGroups = [], sharedUserIds = [] } = {}) {
     await initDB();
@@ -70,6 +123,9 @@ async function createFormPage(automationId, triggerStepId = null, { audience = '
  * Who may fill the form in. Owner-scoped by `automationId` like every other
  * write on a page row. Returns the updated page, or null when the row is
  * not this automation's.
+ * @param {string} id
+ * @param {string} automationId
+ * @param {{ audience: string, sharedGroups: string[], sharedUserIds: string[] }} opts
  */
 async function setFormPageAudience(id, automationId, { audience, sharedGroups, sharedUserIds }) {
     await initDB();
@@ -84,6 +140,7 @@ async function setFormPageAudience(id, automationId, { audience, sharedGroups, s
     return rowToPage(row);
 }
 
+/** @param {string} id */
 async function getFormPage(id) {
     await initDB();
     // Exact match on the PK: no LIKE, no prefix search, so a partial token is
@@ -91,18 +148,26 @@ async function getFormPage(id) {
     return rowToPage(await getOne('SELECT * FROM automation_form_pages WHERE id = $1', [id]));
 }
 
+/** @param {string} automationId */
 async function getFormPagesForAutomation(automationId) {
     await initDB();
     const rows = await getAll('SELECT * FROM automation_form_pages WHERE automation_id = $1 ORDER BY created_at', [automationId]);
     return rows.map(rowToPage);
 }
 
-/** Bump the counters after an accepted submission (best-effort, never blocks). */
+/**
+ * Bump the counters after an accepted submission (best-effort, never blocks).
+ * @param {string} id
+ */
 async function touchFormPage(id) {
     await initDB();
     await run(`UPDATE automation_form_pages SET last_seen_at = NOW(), submissions = submissions + 1 WHERE id = $1`, [id]);
 }
 
+/**
+ * @param {string} id
+ * @param {string} automationId
+ */
 async function deleteFormPage(id, automationId) {
     await initDB();
     const { rowCount } = await run(`DELETE FROM automation_form_pages WHERE id = $1 AND automation_id = $2`, [id, automationId]);
@@ -123,6 +188,8 @@ async function deleteFormPage(id, automationId) {
  * read as "not live" rather than as a working link. The definition comes too —
  * the row survives the author switching the trigger to something else, and the
  * caller drops those the same way loadForm does.
+ * @param {string | null} organizationId
+ * @param {string} userId
  */
 async function listFormPagesForOrg(organizationId, userId) {
     await initDB();
@@ -184,6 +251,7 @@ async function listFormPagesForOrg(organizationId, userId) {
  * the same reason (see the note there): the automation's own organisation when it
  * has one, the OWNER's for every row created before that column started being
  * written. Returns null for an unknown token, which the caller answers as 404.
+ * @param {string} id
  */
 async function formPageAudience(id) {
     await initDB();
@@ -218,6 +286,8 @@ async function formPageAudience(id) {
  *
  * Minting early costs nothing: loadForm 404s while the automation is a draft or
  * inactive, so a token without a live automation opens nothing.
+ * @param {string} automationId
+ * @param {string | null} [triggerStepId]
  */
 async function ensureFormPage(automationId, triggerStepId = null) {
     await initDB();
@@ -234,6 +304,8 @@ async function ensureFormPage(automationId, triggerStepId = null) {
  * Replace a form page with a fresh token, keeping its trigger binding. The old
  * URL stops working the instant this returns — the URL *is* the credential, so
  * there is nothing else to rotate.
+ * @param {string} id
+ * @param {string} automationId
  */
 async function rotateFormPage(id, automationId) {
     await initDB();
@@ -249,6 +321,7 @@ async function rotateFormPage(id, automationId) {
 
 // ── Upload ledger ─────────────────────────────────────
 
+/** @param {UploadRow | null} r */
 function rowToUpload(r) {
     if (!r) return null;
     return {
@@ -265,7 +338,11 @@ function rowToUpload(r) {
     };
 }
 
-/** Only called AFTER a clean scan — an unscanned blob never gets a row. */
+/**
+ * Only called AFTER a clean scan — an unscanned blob never gets a row.
+ * @param {string} formPageId
+ * @param {{ storageKey: string, filename: string, mimeType: string, size: number }} file
+ */
 async function recordFormUpload(formPageId, { storageKey, filename, mimeType, size }) {
     await initDB();
     const id = crypto.randomBytes(18).toString('hex');
@@ -277,6 +354,10 @@ async function recordFormUpload(formPageId, { storageKey, filename, mimeType, si
     return { id, formPageId, storageKey, filename, mimeType, size };
 }
 
+/**
+ * @param {string} id
+ * @param {string} formPageId
+ */
 async function getFormUpload(id, formPageId) {
     await initDB();
     // Scoped to the page: a token for form A can never claim a file uploaded
@@ -287,6 +368,8 @@ async function getFormUpload(id, formPageId) {
 /**
  * Claim an upload for a submission. Returns the row only if this call was the
  * one that claimed it — a replayed submission cannot re-attach the same file.
+ * @param {string} id
+ * @param {string} formPageId
  */
 async function claimFormUpload(id, formPageId) {
     await initDB();
@@ -299,7 +382,11 @@ async function claimFormUpload(id, formPageId) {
     return getFormUpload(id, formPageId);
 }
 
-/** Bytes + count uploaded through one form inside a window — the anonymous quota. */
+/**
+ * Bytes + count uploaded through one form inside a window — the anonymous quota.
+ * @param {string} formPageId
+ * @param {number} windowMs
+ */
 async function formUploadUsage(formPageId, windowMs) {
     await initDB();
     const r = await getOne(
@@ -311,7 +398,10 @@ async function formUploadUsage(formPageId, windowMs) {
     return { files: Number(r?.files || 0), bytes: Number(r?.bytes || 0) };
 }
 
-/** Expired, never-claimed uploads — the caller deletes the blobs, then the rows. */
+/**
+ * Expired, never-claimed uploads — the caller deletes the blobs, then the rows.
+ * @param {number} [limit]
+ */
 async function listExpiredFormUploads(limit = 200) {
     await initDB();
     const rows = await getAll(
@@ -323,6 +413,7 @@ async function listExpiredFormUploads(limit = 200) {
     return rows.map(rowToUpload);
 }
 
+/** @param {string[]} ids */
 async function deleteFormUploads(ids) {
     if (!Array.isArray(ids) || ids.length === 0) return 0;
     await initDB();
@@ -343,6 +434,7 @@ async function deleteFormUploads(ids) {
 // bound on the session pointer itself, refreshed on every poll.
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 
+/** @param {SessionRow | null} r */
 function rowToSession(r) {
     if (!r) return null;
     return {
@@ -360,6 +452,11 @@ function rowToSession(r) {
     };
 }
 
+/**
+ * @param {string} formPageId
+ * @param {string} automationId
+ * @param {{ rootStepId?: string | null, triggerHeaders?: Record<string, unknown> | null }} [opts]
+ */
 async function createFormSession(formPageId, automationId, { rootStepId = null, triggerHeaders = null } = {}) {
     await initDB();
     const id = crypto.randomBytes(24).toString('hex');
@@ -368,9 +465,13 @@ async function createFormSession(formPageId, automationId, { rootStepId = null, 
          VALUES ($1, $2, $3, $4, $5::jsonb, NOW() + ($6::bigint * INTERVAL '1 millisecond'))`,
         [id, formPageId, automationId, rootStepId, triggerHeaders ? JSON.stringify(triggerHeaders) : null, SESSION_TTL_MS],
     );
-    return { id, formPageId, automationId, rootStepId, triggerHeaders, runId: null };
+    return { id, formPageId, automationId, rootStepId, triggerHeaders, runId: /** @type {string | null} */ (null) };
 }
 
+/**
+ * @param {string} id
+ * @param {string} formPageId
+ */
 async function getFormSession(id, formPageId) {
     await initDB();
     // Scoped to the page for the same reason uploads are: a session minted on
@@ -380,7 +481,11 @@ async function getFormSession(id, formPageId) {
     ));
 }
 
-/** Point the session at the run that is now carrying it (the newest child). */
+/**
+ * Point the session at the run that is now carrying it (the newest child).
+ * @param {string} id
+ * @param {string} runId
+ */
 async function attachFormSessionRun(id, runId) {
     await initDB();
     await run(
@@ -391,7 +496,10 @@ async function attachFormSessionRun(id, runId) {
     );
 }
 
-/** Keep a session the visitor is actively polling from ageing out under them. */
+/**
+ * Keep a session the visitor is actively polling from ageing out under them.
+ * @param {string} id
+ */
 async function touchFormSession(id) {
     await initDB();
     await run(
@@ -408,7 +516,12 @@ async function touchFormSession(id) {
 // deploy or a crash cannot drop it. `pending_lease_until` says how long the pod
 // that queued it owns it; a lapsed lease is claimable by the sweep on any pod.
 
-/** Persist the work and lease it to this pod for `leaseMs`. */
+/**
+ * Persist the work and lease it to this pod for `leaseMs`.
+ * @param {string} id
+ * @param {unknown} work
+ * @param {number} leaseMs
+ */
 async function setFormSessionPending(id, work, leaseMs) {
     await initDB();
     await run(
@@ -421,7 +534,10 @@ async function setFormSessionPending(id, work, leaseMs) {
     );
 }
 
-/** The work is done with (its run exists, or it was given up on): drop the payload. */
+/**
+ * The work is done with (its run exists, or it was given up on): drop the payload.
+ * @param {string} id
+ */
 async function clearFormSessionPending(id) {
     await initDB();
     await run(
@@ -432,7 +548,11 @@ async function clearFormSessionPending(id) {
     );
 }
 
-/** Keep the lease on work this pod still holds. */
+/**
+ * Keep the lease on work this pod still holds.
+ * @param {string[]} ids
+ * @param {number} leaseMs
+ */
 async function renewFormSessionLeases(ids, leaseMs) {
     if (!ids.length) return;
     await initDB();
@@ -444,7 +564,11 @@ async function renewFormSessionLeases(ids, leaseMs) {
     );
 }
 
-/** Hand work back so the sweep may claim it after `delayMs` (0: at once). */
+/**
+ * Hand work back so the sweep may claim it after `delayMs` (0: at once).
+ * @param {string[]} ids
+ * @param {number} [delayMs]
+ */
 async function releaseFormSessionLeases(ids, delayMs = 0) {
     if (!ids.length) return;
     await initDB();
@@ -459,6 +583,8 @@ async function releaseFormSessionLeases(ids, delayMs = 0) {
 /**
  * Claim work whose lease lapsed (its pod died, or handed it back). Atomic and
  * SKIP LOCKED, so two pods sweeping at once never claim the same row.
+ * @param {number} limit
+ * @param {number} leaseMs
  */
 async function claimStaleFormSessionWork(limit, leaseMs) {
     await initDB();
@@ -480,6 +606,7 @@ async function claimStaleFormSessionWork(limit, leaseMs) {
     return rows.map(rowToSession);
 }
 
+/** @param {number} [limit] */
 async function deleteExpiredFormSessions(limit = 500) {
     await initDB();
     const { rowCount } = await run(

@@ -73,3 +73,5 @@ function normaliseCells(tableMeta, values) {
 }
 
 module.exports = { normaliseCell, normaliseCells };
+
+/** @typedef {{ key: string, type?: string, subtype?: string }} DatatableCellField */

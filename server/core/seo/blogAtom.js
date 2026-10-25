@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Atom 1.0 twin of the blog's RSS feed (core/seo/blog.buildFeed): same posts,
  * same escaping, for readers and tools that prefer Atom. Every string goes
@@ -16,7 +16,11 @@ const { xmlText, postPath, FEED_MAX_ITEMS } = require('./blog');
 
 const ATOM_FILE = 'atom.xml';
 
-/** Path of the Atom feed for a locale: /blog/atom.xml, /nl/blog/atom.xml. */
+/**
+ * Path of the Atom feed for a locale: /blog/atom.xml, /nl/blog/atom.xml.
+ * @param {string | null} locale
+ * @param {string} defaultLocale
+ */
 function atomPath(locale, defaultLocale) {
     return `${buildPublicPath(locale, BLOG_BASE, defaultLocale)}/${ATOM_FILE}`;
 }
@@ -49,7 +53,7 @@ function buildAtomFeed(posts, { origin, siteName, title, description, locale, de
             `    <updated>${xmlText(isoOr(p.updatedAt || p.publishedAt, updated))}</updated>`,
             p.publishedAt ? `    <published>${xmlText(isoOr(p.publishedAt, updated))}</published>` : '',
             `    <author><name>${xmlText(p.authorName || siteName)}</name></author>`,
-            ...(p.tags || []).map(t => `    <category term="${xmlText(t.label)}"/>`),
+            ...(p.tags || []).map((/** @type {import('./blog').BlogTag} */ t) => `    <category term="${xmlText(t.label)}"/>`),
             p.excerpt ? `    <summary type="text">${xmlText(p.excerpt)}</summary>` : '',
             `    <content type="html">${xmlText(content)}</content>`,
             '  </entry>',

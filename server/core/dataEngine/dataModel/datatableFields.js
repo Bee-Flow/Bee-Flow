@@ -238,3 +238,8 @@ module.exports = {
     RETENTION_SYSTEM_FIELDS,
     FIELD_ID_RE,
 };
+
+/**
+ * A column as normalizeFields returns it.
+ * @typedef {{ id: string | null, key: string, name: string, type: string, options?: string[], required?: boolean, unique?: boolean }} NormalizedField
+ */

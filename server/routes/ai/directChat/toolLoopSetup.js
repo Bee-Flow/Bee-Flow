@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — everything the streamed turn prepares between the input gates
  * and its first LLM round: the round cap, the volatile step-machine guard,
@@ -23,12 +23,15 @@ const { createToolContextFactory } = require('./toolContext');
 const { createUntokeniserSink } = require('./streamCallbacks');
 const { bestEffort } = require('../../../utils/bestEffort');
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+
 /**
  * Strip internal metadata (_mcp etc.) before sending tools to the LLM
  * (providers may reject unknown fields), then sort by name. Tools are
  * serialised ahead of the system prompt, so the same tool SET in a different
  * ORDER produces a different cache prefix and rebuilds the whole cache;
  * assembly order depends on integration timing and Set iteration.
+ * @param {Turn} turn
  */
 function cleanAndSortTools(turn) {
     turn.directChatTools = turn.directChatTools.map(t => {
@@ -36,7 +39,7 @@ function cleanAndSortTools(turn) {
         return clean;
     });
     turn.directChatTools.sort((a, b) =>
-        (a.function?.name || a.name || '').localeCompare(b.function?.name || b.name || ''));
+        /** @type {string} */ (a.function?.name || a.name || '').localeCompare(/** @type {string} */ (b.function?.name || b.name || '')));
     log.info(`[DirectChat] Tool set for this turn: ${turn.directChatTools.length} tools, fingerprint=${toolSetFingerprint(turn.directChatTools)}`);
 }
 
@@ -51,6 +54,7 @@ function cleanAndSortTools(turn) {
  * skips when the tag is already on the volatile block. The token list grows
  * over a conversation, so it lives on the per-turn block, never on the
  * cached prefix.
+ * @param {Turn} turn
  */
 function addTokenPreservationAddendum(turn) {
     try {
@@ -69,6 +73,8 @@ function addTokenPreservationAddendum(turn) {
  * Same rationale as the agent runtime (chatStream.js). Gated on
  * canUseNotebooks (the authoritative entitlement/permission gate, also used
  * to inject WORKSPACE_TOOLS) and non-empty live content.
+ * @param {Turn} turn
+ * @param {string} notebookspaceContent
  */
 async function seedNotebook(turn, notebookspaceContent) {
     if (!(turn.canUseNotebooks && typeof notebookspaceContent === 'string' && notebookspaceContent.trim() !== '' && turn.convId)) return;
@@ -76,7 +82,7 @@ async function seedNotebook(turn, notebookspaceContent) {
         const seedRes = await syncClientWorkspaceContent(turn.convId, turn.userId, notebookspaceContent);
         if (seedRes?.seeded) log.info(`[DirectChat] Seeded notebook from live editor content (${notebookspaceContent.length} chars, ${seedRes.reason})`);
     } catch (e) {
-        log.warn('[DirectChat] notebook seed-on-entry failed:', e.message);
+        log.warn('[DirectChat] notebook seed-on-entry failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -85,6 +91,8 @@ async function seedNotebook(turn, notebookspaceContent) {
  * handler used to arm its interrupted-turn hook (after the tool-context
  * factory exists). Returns what the rounds need: the round cap, the tool
  * context factory and the volatile-block helpers.
+ * @param {Turn} turn
+ * @param {{ notebookspaceContent: string, armInterruptedTurnHook: () => void }} opts
  */
 async function prepareToolLoop(turn, { notebookspaceContent, armInterruptedTurnHook }) {
     // Skipping the non-streaming tool pre-check per provider is decided per
@@ -97,14 +105,17 @@ async function prepareToolLoop(turn, { notebookspaceContent, armInterruptedTurnH
     // messages[0], the provider-cached prefix, changed that prefix every
     // round and re-read the entire prompt on a self-hosted model.
     const volatileGuard = createVolatileGuard(turn);
+    /**
+     * @param {string | null} text
+     */
     const setVolatileGuard = (text) => volatileGuard.set(text);
 
     cleanAndSortTools(turn);
 
     // The tool dispatcher calls these when the model asks for more tools
     // mid-turn; both push onto the live turn.directChatTools.
-    turn.applyLoadTools = (toolArgs) => applyLoadTools(turn, toolArgs);
-    turn.onSkillsActivated = (justActivatedIds) => onSkillsActivated(turn, justActivatedIds);
+    turn.applyLoadTools = /** @param {{ groups?: string[] }} toolArgs */ (toolArgs) => applyLoadTools(turn, toolArgs);
+    turn.onSkillsActivated = /** @param {string[]} justActivatedIds */ (justActivatedIds) => onSkillsActivated(turn, justActivatedIds);
 
     addTokenPreservationAddendum(turn);
 
@@ -133,7 +144,7 @@ async function prepareToolLoop(turn, { notebookspaceContent, armInterruptedTurnH
     volatileGuard.capture();
     // Stable-prefix trace: the same fingerprint on consecutive turns is what
     // a prefix cache needs; a drifting one names the culprit in the app log.
-    const traceStablePrefix = (label) => traceTurnPrefix(turn, label);
+    const traceStablePrefix = (/** @type {string} */ label) => traceTurnPrefix(turn, label);
     traceStablePrefix('placed');
 
     return { maxToolRounds, mkToolCtx, setVolatileGuard, layoutVolatile, traceStablePrefix };

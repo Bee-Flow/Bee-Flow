@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * License Issuance — Outbound callout to license.beeflow.nl
  *
@@ -69,7 +69,7 @@ async function issueLicenseFromCheckout(args) {
         } finally {
             clearTimeout(timeout);
         }
-        body = await resp.json().catch(() => ({}));
+        body = /** @type {{ token?: string, license_id?: string }} */ (await resp.json().catch(() => ({})));
     } catch (e) {
         log.error('[License Issuance] callout failed:', e.message);
         const err = new Error(`callout_failed: ${e.message}`);
@@ -79,6 +79,7 @@ async function issueLicenseFromCheckout(args) {
 
     if (!resp.ok || !body.token || !body.license_id) {
         log.error('[License Issuance] license server returned error', resp.status, body);
+        /** @type {Error & { code?: string, httpStatus?: number, responseBody?: unknown }} */
         /** @type {Error & { code?: string, httpStatus?: number, responseBody?: any }} */
         const err = new Error(`license_server_error: status=${resp.status}`);
         err.code = 'license_server_error';

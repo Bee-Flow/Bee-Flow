@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Deleting a page: links to it elsewhere on the site are neutralised, the
  * outcome says what happened, and nothing of it is left behind.

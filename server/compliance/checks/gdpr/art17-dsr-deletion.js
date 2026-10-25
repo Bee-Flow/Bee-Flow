@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 17 — Right to erasure ("right to be forgotten").
  *
@@ -19,6 +19,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art17.desc',
     remediationKey: 'compliance.checks.gdpr_art17.fix',
     remediationLink: 'admin/compliance/dsr',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         let stats;
         try {

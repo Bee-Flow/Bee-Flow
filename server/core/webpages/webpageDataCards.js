@@ -133,19 +133,19 @@ async function buildDataCards({ webpageId, userId }) {
                 // Only the code, not the text of the error: this goes to a
                 // screen, not to a log.
                 reason: (err && err.safe === true && err.code) ? err.code : 'unavailable',
-                name: null, key: null, rowCount: null, allColumns: [],
+                name: /** @type {string | null} */ (null), key: /** @type {string | null} */ (null), rowCount: /** @type {number | null} */ (null), allColumns: /** @type {{ key: string, label: string }[]} */ ([]),
             });
             continue;
         }
 
         const allColumns = (Array.isArray(resolved.meta?.fields) ? resolved.meta.fields : [])
-            .map(f => ({ key: f.key, label: f.label || f.name || f.key }))
-            .filter(c => c.key);
+            .map((/** @type {{ key: string, label?: string, name?: string }} */ f) => ({ key: f.key, label: f.label || f.name || f.key }))
+            .filter((/** @type {{ key: string, label: string }} */ c) => c.key);
 
         tables.push({
             ...base,
             missing: false,
-            reason: null,
+            reason: /** @type {string | null} */ (null),
             name: resolved.table.name || null,
             key: resolved.table.key || null,
             // Bij benadering tussen retentie-vegen door — de UI zegt dat erbij.
@@ -154,6 +154,7 @@ async function buildDataCards({ webpageId, userId }) {
             grade: resolved.grade,
         });
 
+        /** @type {Awaited<ReturnType<typeof datatableStore.listUsage>>} */
         let usage = [];
         try { usage = await datatableStore.listUsage(binding.datatableId); }
         catch { usage = []; }

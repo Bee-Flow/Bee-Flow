@@ -102,3 +102,5 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
 }
 
 module.exports = { createTerminalErrorHandler, terminalErrorHandler: createTerminalErrorHandler() };
+
+/** @typedef {Error & { type?: string, status?: number, statusCode?: number, expose?: boolean, code?: unknown, details?: unknown }} HttpishError */

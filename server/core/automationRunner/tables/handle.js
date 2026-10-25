@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The table handle: what a step output carries instead of the rows.
  *
@@ -31,6 +31,7 @@ function isTableHandle(v) {
         && typeof h.rowCount === 'number';
 }
 
+/** @param {unknown} value */
 function cutCell(value) {
     if (typeof value === 'string' && value.length > PREVIEW_CELL_CHARS) return value.slice(0, PREVIEW_CELL_CHARS);
     return value === undefined ? null : value;
@@ -66,6 +67,7 @@ function previewOf(rows, columns, previewRows = tableLimits().previewRows) {
     return { preview: out, previewCut: cut };
 }
 
+/** @param {Record<string, unknown>|null|undefined} provenance */
 function cleanProvenance(provenance) {
     if (!provenance || typeof provenance !== 'object') return null;
     const entries = Object.entries(provenance).slice(0, PROVENANCE_ENTRIES);
@@ -73,6 +75,7 @@ function cleanProvenance(provenance) {
     return Object.fromEntries(entries.map(([k, v]) => [String(k).slice(0, 200), String(v ?? '').slice(0, 500)]));
 }
 
+/** @param {unknown} columns */
 function cleanColumns(columns) {
     return (Array.isArray(columns) ? columns : []).map(c => ({
         key: String(c.key),
@@ -89,6 +92,10 @@ function cleanColumns(columns) {
 function buildHandle({ tableId, runId = null, name, columns, rowCount, rows = null, expiresAt = null, provenance = null, previewRows }) {
     const cols = cleanColumns(columns);
     const { preview, previewCut } = previewOf(rows, cols, previewRows);
+    /**
+     * @type {{ kind: string, tableId: string, runId: string|null, name: string, columns: { key: string, label: string, type: string }[],
+     *   rowCount: number, preview: Array<Record<string, unknown>>, expiresAt: string|null, provenance: Record<string, string>|null, previewCut?: boolean }}
+     */
     const handle = {
         kind: 'table',
         tableId,
@@ -104,7 +111,7 @@ function buildHandle({ tableId, runId = null, name, columns, rowCount, rows = nu
     return handle;
 }
 
-/** The handle a dry run returns: the planned columns, no rows, nothing stored. */
+/** The handle a dry run returns: the planned columns, no rows, nothing stored. @param {{ name: string, columns?: Array<{ key: string, label?: string, type?: string }>|null }} args */
 function dryRunHandle({ name, columns }) {
     return buildHandle({ tableId: 'dry-run', runId: null, name, columns: columns || [], rowCount: 0, rows: [], expiresAt: null, provenance: null });
 }

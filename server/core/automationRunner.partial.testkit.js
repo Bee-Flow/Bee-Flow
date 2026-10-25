@@ -126,3 +126,14 @@ function installPartialRunHarness(/** @type {{getRunsForAutomation?: Function}} 
 }
 
 module.exports = { installPartialRunHarness };
+
+/** @typedef {import('./automationRunner.testkit').FakeRun} FakeRun */
+
+/** @typedef {import('./automationRunner.testkit').FakeRunArgs} FakeRunArgs */
+
+/**
+     * A recorded step row.
+     * @typedef {{ runId: string, stepId: string, parentStepId?: string|null, stepType?: string, attempts?: number, status?: string,
+     *   startedAt?: string|null, finishedAt?: string|null, input?: unknown, output?: unknown, error?: unknown,
+     *   errorClass?: string|null, branchIndex?: number|null }} FakeStepRow
+     */

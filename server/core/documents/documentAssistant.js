@@ -68,3 +68,9 @@ async function propose(doc, { message, mode, userId, orgId, values, history = []
     return proposal;
 }
 module.exports = { propose,parseProposal,PROPOSAL_TOOL };
+
+/**
+ * @typedef {import('../../stores/documentStore').DocumentView} DocumentView
+ * @typedef {{ explanation?: unknown, bodyHtml?: unknown, css?: unknown, design?: Record<string, unknown>,
+ *   contract?: { parameters?: any[], sections?: any[], instructions?: any }, suggestions?: unknown }} RawProposal
+ */

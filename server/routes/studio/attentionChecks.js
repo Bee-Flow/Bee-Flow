@@ -762,3 +762,30 @@ module.exports = {
     MAX_SOLUTIONS_CHECKED,
     MAX_ROWS_PER_SOURCE,
 };
+
+/**
+ * @typedef {import('../../core/findings/finding').Finding} Finding
+ * @typedef {import('../../core/findings/finding').FindingInput} FindingInput
+ * @typedef {Awaited<ReturnType<typeof visibleKnowledgeBasesFor>>[number]} KnowledgeBaseRow
+ * @typedef {import('./shared').GateDeps & {
+ *   audience: typeof import('../../auth/audience'),
+ *   studioAppStore: typeof import('../../stores/studioAppStore'),
+ *   automationStore: typeof import('../../stores/automationStore'),
+ *   kbSourcesStore: typeof import('../../stores/kbSources'),
+ *   kbUsage: typeof import('../../core/kb/kbUsage'),
+ *   db: typeof import('../../db'),
+ *   mapLimited: typeof import('../../projects/summary').mapLimited,
+ *   solutionCompleteness: (projectId: string) => ReturnType<typeof import('../../projects/completeness').collectCompleteness>,
+ *   now?: () => number,
+ * }} AttentionDeps
+ * @typedef {{ once: (key: string, fn: () => Promise<KnowledgeBaseRow[]>) => Promise<KnowledgeBaseRow[]> }} AttentionCtx  per-request shared reads
+ * @typedef {{ findings: Finding[], gaps: string[] }} Evaluation
+ * @typedef {{
+ *   key: string,
+ *   kind: string,
+ *   linkFor?: (finding: Finding) => string | null,
+ *   gate: (req: import('express').Request, d: AttentionDeps) => Promise<boolean>,
+ *   load: (req: import('express').Request, d: AttentionDeps, ctx: AttentionCtx) => Promise<Record<string, unknown>>,
+ *   evaluate: (data: Record<string, unknown>) => Evaluation,
+ * }} AttentionSource
+ */

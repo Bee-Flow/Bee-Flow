@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: automation_run_steps.binding_warnings.
  *
@@ -19,6 +20,7 @@
  * Postgres.
  */
 
+/** @param {{ exec?: (sql: string) => Promise<unknown> }} [opts] */
 async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
     await exec(`
         ALTER TABLE automation_run_steps ADD COLUMN IF NOT EXISTS binding_warnings JSONB NULL;

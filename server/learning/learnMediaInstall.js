@@ -411,3 +411,9 @@ module.exports = {
     syncFromPin,
     sha256File,
 };
+
+/**
+ * One clip of a pack manifest (a lesson video, or one of its language variants).
+ * @typedef {{ file?: string, captions?: Record<string, string>, poster?: string, locales?: Record<string, LearnClip> }} LearnClip
+ * @typedef {{ videos?: Record<string, LearnClip>, files?: Record<string, string> }} LearnMediaManifest
+ */

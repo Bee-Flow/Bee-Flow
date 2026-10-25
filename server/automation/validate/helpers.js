@@ -183,3 +183,39 @@ module.exports = {
     pickClosestId,
     secondSegment,
 };
+
+/**
+ * @typedef {Record<string, any>} StepDef  one step (or trigger) of a stored definition: JSON authored by a person or an LLM
+ * @typedef {Record<string, any>} GraphDoc  the root definition or a layer/Step mini-definition, as stored
+ * @typedef {(finding: Finding) => void} PushFinding  a finding sink (pushE / pushW)
+ * @typedef {Record<string, { title?: string, params?: Array<{ name?: string, required?: boolean }> }>} AvailableBlocks  the callable-Steps catalog, by block id
+ * @typedef {Record<string, { trigger?: { params?: Array<{ name?: string, required?: boolean }> } }>} LayersMap  the `layers` of a definition, by key
+ * @typedef {object} ValidateCatalogs  the optional catalogs a caller hands the validator (see validateDefinition)
+ * @property {Set<string> | null} [availableTools]
+ * @property {Record<string, string[]> | null} [toolRequiredParams]
+ * @property {Record<string, Set<string>> | null} [deliverableEvents]
+ * @property {AvailableBlocks | null} [availableBlocks]
+ * @property {Set<string> | null} [knownConnectionIds]
+ * @property {Set<string> | null} [knownVarNames]
+ * @property {Set<string> | null} [availableAgents]
+ * @property {boolean | null} [topicClassifier]
+ * @typedef {ValidateCatalogs & { scope?: string, stage?: string }} ValidateOptions  the options of validateDefinition
+ * @typedef {object} GraphCtx  what validateGraph hands to every rule group of one graph
+ * @property {GraphDoc} graph
+ * @property {string} pathPrefix
+ * @property {string} scope
+ * @property {(s: string) => string} p  prefixes a path with the graph's own prefix
+ * @property {PushFinding} pushE
+ * @property {PushFinding} pushW
+ * @property {boolean} isContractScope
+ * @property {string} contractNoun
+ * @property {StepDef} trigger
+ * @property {typeof import('./stepRules').checkPinnedOutput} checkPinnedOutput
+ * @property {typeof import('./stepRules').createStepChecker} createStepChecker
+ */
+
+/**
+ * @typedef {{ code: string, severity: string, path: string, message: string, hint?: string, ref?: string, kind?: string, targetRef?: Record<string, any> }} Finding  one validation finding
+ * @typedef {string | number | boolean | null | undefined | Json[] | { [key: string]: Json }} Json  loose JSON, as a definition is stored
+ * @typedef {{ kind: string, path?: string, src?: string, where: string, template?: boolean, binding?: boolean, host?: string, parse?: boolean }} RefEntry  one reference found by collectRefPaths
+ */

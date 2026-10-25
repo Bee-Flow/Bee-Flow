@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Rate limiters for the anonymous public-share AI bridge
  * (server/routes/publicShareBridge.js).
@@ -16,8 +17,9 @@
  * uses req.ip and works regardless of ordering.)
  */
 
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
+/** @param {import('express').Request} req */
 function shareKey(req) {
     const c = req.shareBridgeClaims;
     return c ? `share:${c.shareId}` : 'anon';

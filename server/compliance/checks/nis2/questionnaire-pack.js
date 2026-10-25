@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NIS2 Art. 21(2)(d) — supply-chain security, seen from the supplier side:
  * customers in NIS2 scope send supplier questionnaires, and the ISO evidence
@@ -30,12 +30,16 @@ const SWEEP_FRESH_DAYS = 7;
 const BUNDLE_ACTIONS = ['evidence_bundle_exported', 'evidence_bundle_generated'];
 const DAY = 86400 * 1000;
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return !!rel && rel.nis2 === 'not_relevant';
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
@@ -59,6 +63,7 @@ module.exports = {
     remediationLink: 'admin/compliance/soa',
     REQUIRED_SLUGS,
     BUNDLE_ACTIONS,
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -102,6 +107,7 @@ module.exports = {
         const sweepFresh = sweepAgeDays !== null && sweepAgeDays <= SWEEP_FRESH_DAYS;
         const lastBundleExportAt = _iso(facts?.last_bundle_export_at);
 
+        /** @type {string[]} */
         const missing = [];
         if (policiesMissing.length) missing.push(`published policies (${policiesMissing.join(', ')})`);
         if (soaEntries === 0) missing.push('a seeded Statement of Applicability');

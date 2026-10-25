@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Sprints inside a project: named time boxes the team fills with tasks,
  * estimates in planning poker, starts and completes. One sprint per project
@@ -58,12 +58,13 @@ function makeProjectSprintsRouter(deps = {}) {
     const taskStore = () => deps.taskStore || require('../../stores/projectTaskStore');
     const chatCrypto = () => deps.chatCrypto || require('../../projects/chatCrypto');
     const emit = deps.emit
-        || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectSprints' }));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectSprints' }));
     const logActivity = deps.logActivity
-        || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details));
+        || ((/** @type {string} */ projectId, /** @type {string} */ actorId, /** @type {string} */ action, /** @type {Parameters<typeof import('../../stores/projectStore').logActivity>[3]} */ details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details));
     const newId = deps.newId || (() => crypto.randomUUID());
-    const userIdOf = (req) => req.session.user.id;
+    const userIdOf = (/** @type {import('express').Request} */ req) => req.session.user.id;
 
+    /** @param {import('express').Request<{ id: string }>} req */
     async function loadProject(req) {
         const project = await getProject(req.params.id);
         if (!project) throw notFound('not_found', 'Not found');
@@ -73,6 +74,10 @@ function makeProjectSprintsRouter(deps = {}) {
         return project;
     }
 
+    /**
+     * @param {{ id: string }} project
+     * @param {string} sprintId
+     */
     async function loadSprint(project, sprintId) {
         const sprint = await store().getSprint(project.id, sprintId);
         if (!sprint) throw notFound('sprint_not_found', 'This sprint does not exist in this project.');
@@ -82,10 +87,22 @@ function makeProjectSprintsRouter(deps = {}) {
     const closedError = () => conflict('sprint_closed', 'This sprint is completed. Plan a new sprint instead.');
     const notActiveError = () => conflict('sprint_not_active', 'Only the active sprint can be completed. Start it first.');
 
+    /**
+     * @param {string} kind
+     * @param {string} actorId
+     * @param {string} sprintId
+     * @param {Record<string, unknown>} [payload]
+     */
     const sprintEvent = (kind, actorId, sprintId, payload = {}) => ({
         kind, actorId, targetType: 'project_sprint', targetId: sprintId, payload: { sprintId, ...payload },
     });
 
+    /**
+     * @param {string} projectId
+     * @param {string} actorId
+     * @param {string} action
+     * @param {string} sprintId
+     */
     async function audit(projectId, actorId, action, sprintId) {
         try {
             await logActivity(projectId, actorId, action, { targetType: 'project_sprint', targetId: sprintId });
@@ -94,6 +111,10 @@ function makeProjectSprintsRouter(deps = {}) {
         }
     }
 
+    /**
+     * @param {() => string} fn
+     * @param {string} what
+     */
     function open(fn, what) {
         try {
             return { text: fn(), ok: true };
@@ -103,11 +124,16 @@ function makeProjectSprintsRouter(deps = {}) {
         }
     }
 
+    /**
+     * @param {Awaited<ReturnType<typeof import('../../projects/chatCrypto').forProject>>} box
+     * @param {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectSprintStore').getSprint>>>} s
+     */
     function presentSprint(box, s) {
         const name = open(() => box.openTitle(s.id, s.name), `name of sprint ${s.id}`);
         const goal = s.goal
             ? open(() => box.openContent(s.id, s.id, s.goal), `goal of sprint ${s.id}`)
             : { text: '', ok: true };
+        /** @type {Record<string, unknown>} */
         const out = {
             id: s.id,
             name: name.text,
@@ -129,7 +155,11 @@ function makeProjectSprintsRouter(deps = {}) {
         return out;
     }
 
-    /** A range a caller sends must hold on its own; a patch must hold against the endpoint it does not change. */
+    /**
+     * A range a caller sends must hold on its own; a patch must hold against the endpoint it does not change.
+     * @param {string | null | undefined} start
+     * @param {string | null | undefined} end
+     */
     function checkDates(start, end) {
         if (start && end && start > end) throw badRequest('invalid_date_range', 'The start date must be on or before the end date.');
     }
@@ -138,10 +168,10 @@ function makeProjectSprintsRouter(deps = {}) {
         const project = await loadProject(req);
         const box = await chatCrypto().forProject(project, { what: 'Sprints' });
         const sprints = await store().listSprints(project.id);
-        res.json({ sprints: sprints.map((s) => presentSprint(box, s)) });
+        res.json({ sprints: sprints.map((/** @type {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectSprintStore').getSprint>>>} */ s) => presentSprint(box, s)) });
     });
 
-    router.post('/:id/sprints', requireRole('editor'), validate({ body: S.CreateSprintBody }), async (req, res) => {
+    router.post('/:id/sprints', requireRole('editor'), validate({ body: S.CreateSprintBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const box = await chatCrypto().forProject(project, { what: 'Sprints' });
@@ -163,7 +193,7 @@ function makeProjectSprintsRouter(deps = {}) {
         res.status(201).json({ sprint: presentSprint(box, sprint) });
     });
 
-    router.patch('/:id/sprints/:sprintId', requireRole('editor'), validate({ body: S.UpdateSprintBody }), async (req, res) => {
+    router.patch('/:id/sprints/:sprintId', requireRole('editor'), validate({ body: S.UpdateSprintBody }), async (/** @type {import('express').Request<{ id: string, sprintId: string }>} */ req, res) => {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);
@@ -193,7 +223,7 @@ function makeProjectSprintsRouter(deps = {}) {
     });
 
     // Every task must belong to the project before anything is assigned, so a refusal assigns nothing.
-    router.post('/:id/sprints/:sprintId/items', requireRole('editor'), validate({ body: S.AssignItemsBody }), async (req, res) => {
+    router.post('/:id/sprints/:sprintId/items', requireRole('editor'), validate({ body: S.AssignItemsBody }), async (/** @type {import('express').Request<{ id: string, sprintId: string }>} */ req, res) => {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);
@@ -249,7 +279,7 @@ function makeProjectSprintsRouter(deps = {}) {
     });
 
     // The database also checks the range when two editors change different endpoints.
-    router.use((err, req, res, next) => {
+    router.use((/** @type {{ code?: string, constraint?: string }} */ err, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (err.code === '23514' && err.constraint === 'project_sprints_date_range') return next(badRequest('invalid_date_range', 'The start date must be on or before the end date.'));
         // Two sprints started at the same moment: the index lets one win.
         if (err.code === '23505' && err.constraint === 'uq_project_sprints_one_active') return next(conflict('sprint_start_conflict', 'Another sprint was started at the same moment. Reload and try again.'));

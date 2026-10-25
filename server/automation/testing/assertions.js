@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Assertions on the result of a test case: a CLOSED vocabulary evaluated in
  * plain JS. Nothing here evaluates text: a path is read with the shared
@@ -35,14 +35,26 @@ const MAX_DEPTH = 100;
 
 const maxAssertions = () => envCap('AUTOMATION_TEST_ASSERTIONS_MAX', 50);
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, any>}
+ */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/** @param {unknown} v */
 const typeOf = (v) => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v);
+/**
+ * @param {object} o
+ * @param {PropertyKey} k
+ */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 /** @returns {typeof import('../../shared/expr/index.mjs')} */
 const expr = () => require('../../shared/expr/index.mjs');
 
-/** JSON text of a value, cut to CUT_CHARS. */
+/**
+ * JSON text of a value, cut to CUT_CHARS.
+ * @param {unknown} value
+ */
 function cut(value) {
     let text;
     try { text = JSON.stringify(value); } catch { text = undefined; }
@@ -50,23 +62,37 @@ function cut(value) {
     return text.length > CUT_CHARS ? `${text.slice(0, CUT_CHARS)}…` : text;
 }
 
-/** Deep equality with JSON semantics: key order is irrelevant. */
+/**
+ * Deep equality with JSON semantics: key order is irrelevant.
+ * @param {any} a
+ * @param {any} b
+ * @param {number} [depth]
+ * @returns {boolean}
+ */
 function deepEqual(a, b, depth = 0) {
     if (a === b) return true;
     if (depth > MAX_DEPTH || typeof a !== typeof b || a === null || b === null || typeof a !== 'object') return false;
     if (Array.isArray(a) !== Array.isArray(b)) return false;
     if (Array.isArray(a)) {
-        return a.length === b.length && a.every((x, i) => deepEqual(x, b[i], depth + 1));
+        return a.length === b.length && a.every((/** @type {unknown} */ x, /** @type {number} */ i) => deepEqual(x, b[i], depth + 1));
     }
     const ka = Object.keys(a);
     if (ka.length !== Object.keys(b).length) return false;
     return ka.every((k) => hasOwn(b, k) && deepEqual(a[k], b[k], depth + 1));
 }
 
-/** Every key of `part` is in `whole` with an equal value. */
+/**
+ * Every key of `part` is in `whole` with an equal value.
+ * @param {Record<string, any>} part
+ * @param {Record<string, any>} whole
+ */
 const isSubset = (part, whole) => Object.keys(part).every((k) => hasOwn(whole, k) && deepEqual(part[k], whole[k]));
 
-/** Is `wanted` contained in `actual` (a string, an array or an object)? null when `actual` cannot contain anything. */
+/**
+ * Is `wanted` contained in `actual` (a string, an array or an object)? null when `actual` cannot contain anything.
+ * @param {unknown} actual
+ * @param {unknown} wanted
+ */
 function containsValue(actual, wanted) {
     if (typeof actual === 'string') return typeof wanted === 'string' && actual.includes(wanted);
     if (Array.isArray(actual)) {
@@ -76,13 +102,19 @@ function containsValue(actual, wanted) {
     return null;
 }
 
-/** The size of a string, array or object, or null for anything else. */
+/**
+ * The size of a string, array or object, or null for anything else.
+ * @param {unknown} v
+ */
 function sizeOf(v) {
     if (typeof v === 'string' || Array.isArray(v)) return v.length;
     return isObject(v) ? Object.keys(v).length : null;
 }
 
-/** Is `path` a path the shared grammar reads? '' and '$' are the whole value. */
+/**
+ * Is `path` a path the shared grammar reads? '' and '$' are the whole value.
+ * @param {unknown} path
+ */
 function isReadablePath(path) {
     const p = String(path).trim();
     if (p === '' || p === '$') return true;
@@ -92,11 +124,16 @@ function isReadablePath(path) {
     return expr().parsePath(q.startsWith('[') ? `$${q}` : `$.${q}`) !== null;
 }
 
+/** @param {unknown} v */
 function byteSize(v) {
     try { return Buffer.byteLength(JSON.stringify(v) ?? '', 'utf8'); } catch { return Infinity; }
 }
 
-/** The problem with an assertion's `value` for its op, or null. */
+/**
+ * The problem with an assertion's `value` for its op, or null.
+ * @param {string} op
+ * @param {any} value
+ */
 function valueProblem(op, value) {
     if (op === 'equals' || op === 'not_equals') {
         return value === undefined ? 'needs a value' : null;
@@ -118,12 +155,14 @@ function valueProblem(op, value) {
  * @returns {{ ok: boolean, errors: Array<{ index: number, message: string }> }}
  */
 function validateAssertions(list) {
+    /** @type {Array<{ index: number, message: string }>} */
     const errors = [];
     if (!Array.isArray(list)) return { ok: false, errors: [{ index: -1, message: 'assertions must be a list' }] };
     const max = maxAssertions();
     if (max > 0 && list.length > max) errors.push({ index: -1, message: `at most ${max} assertions` });
     const seen = new Set();
     list.forEach((a, index) => {
+        /** @param {string} message */
         const fail = (message) => errors.push({ index, message });
         if (!isObject(a)) return fail('must be an object');
         const id = a.id;
@@ -145,9 +184,19 @@ function validateAssertions(list) {
  * @typedef {{ id: string, ok: boolean, code: string, params: { path: string, expected?: string, actual?: string } }} AssertionResult
  */
 
-/** @returns {AssertionResult} */
+/**
+ * @param {unknown} target
+ * @param {{ id: string, op: string, path?: unknown, value?: any }} a
+ * @returns {AssertionResult}
+ */
 function evaluateOne(target, a) {
     const path = typeof a.path === 'string' ? a.path : '';
+    /**
+     * @param {boolean} ok
+     * @param {string} code
+     * @param {unknown} [expected]
+     * @param {unknown} [actual]
+     */
     const result = (ok, code, expected, actual) => ({
         id: a.id,
         ok,

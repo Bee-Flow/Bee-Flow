@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * templates.js — organisation templates ("Save as template", Studio →
  * Automations handoff 5). The built-in gallery is static config
@@ -20,6 +20,7 @@ const crypto = require('crypto');
 
 const MAX_LISTED = 200;
 
+/** @param {import('pg').QueryResultRow | null} r */
 function rowToTemplate(r) {
     if (!r) return null;
     let definition = r.definition_json;
@@ -38,7 +39,10 @@ function rowToTemplate(r) {
     };
 }
 
-/** WHERE clause for "templates this caller may see"; $2 is the org, or the caller without one. */
+/**
+ * WHERE clause for "templates this caller may see"; $2 is the org, or the caller without one.
+ * @param {string | null} orgId
+ */
 function scopeSql(orgId) {
     return orgId ? 'organization_id = $2' : '(organization_id IS NULL AND created_by = $2)';
 }
@@ -48,6 +52,10 @@ function scopeSql(orgId) {
  * @param {{ ready?: () => Promise<void> }} [opts]
  */
 function makeTemplateStore(db, { ready = async () => {} } = {}) {
+    /**
+     * @param {{ organizationId?: string | null, createdBy: string, title: string, description?: string | null,
+     * icon?: string | null, definition: Record<string, unknown> }} opts
+     */
     async function createTemplate({ organizationId = null, createdBy, title, description = null, icon = null, definition }) {
         await ready();
         const id = `org-${crypto.randomUUID()}`;
@@ -60,7 +68,10 @@ function makeTemplateStore(db, { ready = async () => {} } = {}) {
         return rowToTemplate(r.rows[0]);
     }
 
-    /** Newest first. */
+    /**
+     * Newest first.
+     * @param {{ userId: string, orgId?: string | null }} scope
+     */
     async function listTemplatesFor({ userId, orgId = null }) {
         await ready();
         const r = await db.query(
@@ -73,7 +84,11 @@ function makeTemplateStore(db, { ready = async () => {} } = {}) {
         return r.rows.map(rowToTemplate);
     }
 
-    /** One template, or null when it does not exist or is not in the caller's scope. */
+    /**
+     * One template, or null when it does not exist or is not in the caller's scope.
+     * @param {string} id
+     * @param {{ userId: string, orgId?: string | null }} scope
+     */
     async function getTemplateFor(id, { userId, orgId = null }) {
         await ready();
         const r = await db.query(

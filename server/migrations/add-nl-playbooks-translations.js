@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for Studio → Playbooks (2026-09-13): the section list, the New dialog,
  * the run page (bar, phase rail, handoff card, the four stages, done card)

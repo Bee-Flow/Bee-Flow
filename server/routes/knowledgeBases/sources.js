@@ -81,6 +81,10 @@ const DocumentsQuery = z.object({
     q: worded('The search term must be text.').trim().max(200).optional(),
 }).strict();
 
+/**
+ * @param {{ query: { status?: string, pii?: string, q?: string } }} req
+ * @param {string} sourceId
+ */
 function parseDocFilters(req, sourceId) {
     return {
         sourceId,
@@ -92,7 +96,7 @@ function parseDocFilters(req, sourceId) {
 
 // ── GET /:id/sources ────────────────────────────────────────────────
 
-router.get('/:id/sources', requireAuth, async (req, res) => {
+router.get('/:id/sources', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const kb = await resolveKb(req, res);
     if (!kb) return;
 
@@ -105,7 +109,7 @@ router.get('/:id/sources', requireAuth, async (req, res) => {
             await adoptOrphanDocuments(kb.id);
         }
     } catch (e) {
-        log.warn('[KB] Adopting source-less documents failed:', e.message);
+        log.warn('[KB] Adopting source-less documents failed:', /** @type {Error} */ (e).message);
     }
     const sources = await kbSourcesStore.listByKb(kb.id);
     const counts = sources.length > 0
@@ -145,7 +149,7 @@ router.post('/:id/sources/:sid/files', requireAuth, requirePermission('manage_kn
 // ── PATCH /:id/sources/:sid ─────────────────────────────────────────
 // ── PATCH /:id/sources/:sid ─────────────────────────────────────────
 
-router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), validate({ body: PatchSourceBody }), async (req, res, next) => {
+router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), validate({ body: PatchSourceBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const kb = await resolveKb(req, res, { manage: true });
         if (!kb) return;
@@ -153,6 +157,7 @@ router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowled
         if (!source) return;
 
         const { name, refresh } = req.body;
+        /** @type {ReturnType<typeof refreshPatchFor> & { name?: string, nextRefreshAt?: string | null }} */
         const patch = refreshPatchFor(refresh, source.kind);
         if (name !== undefined) patch.name = name;
         // Switching back to manual clears the schedule so no stale cron fires.
@@ -197,16 +202,16 @@ router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowled
     } catch (e) {
         if (e instanceof HttpError) return next(e);
         if (e.code === 'invalid_refresh_mode' || e.code === 'invalid_status') {
-            return res.status(400).json({ error: e.message, code: e.code });
+            return res.status(400).json({ error: /** @type {Error} */ (e).message, code: e.code });
         }
-        log.error('[KB] Update source error:', e.message);
+        log.error('[KB] Update source error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
 
 // ── DELETE /:id/sources/:sid ────────────────────────────────────────
 
-router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), async (req, res) => {
+router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const kb = await resolveKb(req, res, { manage: true });
     if (!kb) return;
     const source = await resolveSource(kb, req, res);
@@ -253,7 +258,7 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
             const { resolveDatatableForStep } = require('../../core/automationRunner/datatableResolve');
             const { askerContext } = require('../../core/kb/askerContext');
             const asker = await askerContext(getUserId(req));
-            const resolved = await resolveDatatableForStep(source.config?.datatableId, {
+            const resolved = await resolveDatatableForStep(/** @type {string | undefined} */ (source.config?.datatableId), {
                 userId: getUserId(req),
                 orgId: [...asker.orgIds][0] || null,
                 userGroupIds: asker.userGroups,
@@ -262,7 +267,7 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
         } catch (e) {
             // The table may have been deleted first, which took its usage
             // rows with it. Nothing to reconcile, and nothing to report.
-            log.warn('[KB] datatable usage not reconciled after source delete:', e.message);
+            log.warn('[KB] datatable usage not reconciled after source delete:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -271,7 +276,7 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
 
 // ── POST /:id/sources/:sid/refresh ──────────────────────────────────
 
-router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_knowledge'), async (req, res) => {
+router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_knowledge'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const kb = await resolveKb(req, res, { manage: true });
     if (!kb) return;
     const source = await resolveSource(kb, req, res);
@@ -286,7 +291,7 @@ router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_
 
 // ── GET /:id/sources/:sid/documents ─────────────────────────────────
 
-router.get('/:id/sources/:sid/documents', requireAuth, validate({ query: DocumentsQuery }), async (req, res) => {
+router.get('/:id/sources/:sid/documents', requireAuth, validate({ query: DocumentsQuery }), async (/** @type {import('express').Request<{ id: string, sid: string }, any, any, import('qs').ParsedQs & { limit?: number, offset?: number, status?: string, pii?: string, q?: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const kb = await resolveKb(req, res);
     if (!kb) return;
     const source = await resolveSource(kb, req, res);
@@ -306,7 +311,7 @@ router.get('/:id/sources/:sid/documents', requireAuth, validate({ query: Documen
 
 // ── GET /:id/sources/:sid/documents/:docId ──────────────────────────
 
-router.get('/:id/sources/:sid/documents/:docId', requireAuth, async (req, res) => {
+router.get('/:id/sources/:sid/documents/:docId', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const kb = await resolveKb(req, res);
     if (!kb) return;
     const source = await resolveSource(kb, req, res);

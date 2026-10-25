@@ -131,3 +131,12 @@ module.exports = {
     triggerFires,
     triggerLabel,
 };
+
+/**
+ * @typedef {{ kind?: string, appEvent?: { provider?: string, event?: string,
+ *   filter?: Record<string, unknown> | null } }} AppEventTrigger
+ */
+
+/** @typedef {{ trigger?: AppEventTrigger, triggers?: AppEventTrigger[] }} TriggerDefinition */
+
+/** @typedef {{ id?: string | number | null, tags?: unknown, organizationId?: string | null }} MeetingLike */

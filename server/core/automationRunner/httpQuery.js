@@ -343,3 +343,8 @@ module.exports = {
     queryError,
     _test: { flatten, pairsOfObject, rootKeyOf, jsonProblem },
 };
+
+/**
+ * @typedef {import('../automationModel/bind').BindRunState} BindRunState
+ * @typedef {{ mode?: string, arrayFormat?: string, json?: unknown, items?: Array<{ key?: unknown, value?: unknown }> }} StepQuery
+ */

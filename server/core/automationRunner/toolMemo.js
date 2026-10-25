@@ -277,3 +277,8 @@ module.exports = {
     createToolMemo, memoKey, memoKeyParts, memoKeyFromParts, stableStringify,
     DEFAULT_TTL_MS, MAX_ENTRY_BYTES, MAX_ENTRIES, MAX_TOTAL_BYTES,
 };
+
+/**
+ * @typedef {{ toolName?: string | null, stepUserId?: string | null, stepOrgId?: string | null, connectionId?: string | null, grantId?: string | null,
+ *   integrationServer?: string | null, destination?: string | null, policyAction?: string | null, policyScope?: string | null, args?: unknown }} MemoKeyInput
+ */

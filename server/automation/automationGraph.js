@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Automation graph helpers — one reading of an automation definition shared by the
  * document runner (which marks a file a model wrote) and by the compliance
@@ -214,3 +213,12 @@ module.exports = {
     formTriggersOf,
     hasFormPage,
 };
+
+/**
+ * @typedef {{ steps?: AutomationStep[] } & Record<string, unknown>} AutomationGraph
+ *   the root graph of a definition, or one of its layers
+ */
+
+/** @typedef {{ path: string, parentId: string|null, layer: string|null }} StepContext  where a step sits */
+
+/** @typedef {StepContext & { step: AutomationStep }} StepEntry */

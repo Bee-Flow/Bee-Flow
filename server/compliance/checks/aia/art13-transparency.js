@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * EU AI Act Art. 13 — Transparency / information to users.
  * Ensures each published agent has a meaningful description so users can
@@ -31,6 +31,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.aia_art13.desc',
     remediationKey: 'compliance.checks.aia_art13.fix',
     remediationLink: 'admin/agents',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const scope = orgId || pd.NO_ORG_ORG_ID;
         let agents = [];
@@ -71,6 +72,7 @@ module.exports = {
             return { status: 'not_applicable', evidence: {}, details: 'No agents in this organization.' };
         }
 
+        /** @type {string} */
         let status;
         if (missing.length === 0) status = 'pass';
         else if (missing.length < applicable) status = 'warn';

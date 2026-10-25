@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Special categories (GDPR Art. 9) in the per-person monitoring views.
  *

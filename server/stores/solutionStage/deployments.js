@@ -464,3 +464,7 @@ function makeDeploymentsStore(db, { ready }) {
 module.exports = {
     makeDeploymentsStore, mapDeployment, ACTIVE_STATUSES, IN_FLIGHT_STATUSES, TERMINAL_STATUSES, DEFAULT_LEASE_MS,
 };
+
+/** @typedef {import('./deploymentModel').Queryable} Queryable */
+
+/** @typedef {import('./deploymentModel').StageDb} StageDb */

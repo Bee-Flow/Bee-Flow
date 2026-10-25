@@ -312,3 +312,9 @@ async function notifyFinalApprover(approval) {
 }
 
 module.exports = { castStageVote, castPanelVote, nextStageRemindAt };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+
+/** @typedef {import('./approvalRulebook').ApprovalStage} ApprovalStage */
+
+/** @typedef {import('./approvalDecision').DecisionCall} DecisionCall */

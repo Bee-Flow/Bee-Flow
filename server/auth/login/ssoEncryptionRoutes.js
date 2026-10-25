@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — the SSO user's encryption PIN: first-time setup, unlock,
  * PIN change and recovery-key rescue of the DEK. Split out of
@@ -35,6 +35,7 @@ const RECOVERY_TEXT = 'Enter your recovery key.';
  *
  * A PIN is never trimmed: the user typed it, and the bytes they typed are the
  * ones that have to unwrap the key again tomorrow.
+ * @param {string} message
  */
 const pin = (message) => worded(message).min(MIN_PIN, message);
 
@@ -53,7 +54,7 @@ const RecoveryBody = z.object({
 }).strict();
 
 // SSO Encryption PIN Setup — first-time SSO user sets their encryption PIN
-router.post('/sso-encryption-setup', validate({ body: SetupBody }), async (req, res) => {
+router.post('/sso-encryption-setup', validate({ body: SetupBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -61,6 +62,7 @@ router.post('/sso-encryption-setup', validate({ body: SetupBody }), async (req, 
     const userId = req.session.user.id;
 
     // Check if session already has a legacy DEK (from master-key unlock)
+    /** @type {Buffer<ArrayBuffer> | null} */
     let existingDEK = null;
     if (req.session.encryptionKey) {
         existingDEK = Buffer.from(req.session.encryptionKey, 'base64');
@@ -85,7 +87,7 @@ router.post('/sso-encryption-setup', validate({ body: SetupBody }), async (req, 
 });
 
 // SSO Encryption PIN Unlock — returning SSO user enters their PIN
-router.post('/sso-encryption-unlock', validate({ body: UnlockBody }), async (req, res) => {
+router.post('/sso-encryption-unlock', validate({ body: UnlockBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -109,7 +111,7 @@ router.post('/sso-encryption-unlock', validate({ body: UnlockBody }), async (req
 });
 
 // SSO Encryption PIN Change — re-wrap DEK with new PIN
-router.post('/sso-change-pin', validate({ body: ChangePinBody }), async (req, res) => {
+router.post('/sso-change-pin', validate({ body: ChangePinBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -142,7 +144,7 @@ router.post('/sso-change-pin', validate({ body: ChangePinBody }), async (req, re
 });
 
 // SSO Recovery — unlock with recovery key and set new PIN
-router.post('/sso-recovery', validate({ body: RecoveryBody }), async (req, res) => {
+router.post('/sso-recovery', validate({ body: RecoveryBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!req.session.isAuthenticated || !req.session.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }

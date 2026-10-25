@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * groups: how many rows fall in each answer of the chosen columns. The table
@@ -13,17 +13,30 @@ const { DEFAULT_SEPARATOR } = require('../../../automationModel/tableOps/rules')
 const { GROUPS_COLUMNS } = require('../../../automationModel/tableOps/planColumns');
 const { tableError, requireColumn, foldText, isBlankCell } = require('./values');
 
-/** A stable id from `column=value`. */
+/**
+ * A stable id from `column=value`.
+ * @param {string} text
+ */
 function slug(text) {
     const s = String(text).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
     return s || 'segment';
 }
 
+/** @typedef {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.groups>} GroupsOp */
+/** @typedef {{ def: GroupsOp['splits'][number], col: ReturnType<typeof requireColumn> }} Split */
+
+/** @param {unknown} cell @param {string} sep */
 const splitItems = (cell, sep) => [...new Set(String(cell).split(sep).map((s) => s.trim()).filter(Boolean))];
 
+/**
+ * @param {GroupsOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ * @param {Split[]} splits
+ */
 async function count(op, input, ctx, splits) {
     const counters = splits.map(() => new Map());
-    const wanted = splits.map((s) => (s.def.values ? new Map(s.def.values.map((v) => [foldText(v), v])) : null));
+    const wanted = splits.map((s) => (s.def.values ? new Map(s.def.values.map((/** @type {string} */ v) => [foldText(v), v])) : null));
     let total = 0;
     for await (const row of input.rows()) {
         await ctx.tick();
@@ -50,6 +63,11 @@ async function count(op, input, ctx, splits) {
     return { counters, total, wanted };
 }
 
+/**
+ * @param {GroupsOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 async function apply(op, input, ctx) {
     if (!op.splits.length) throw tableError('table_op_invalid', 'Pick at least one column to split on.', { opId: op.id, field: 'splits' });
     if (op.splits.length > 10) throw tableError('table_op_invalid', 'Split on at most 10 columns.', { opId: op.id, field: 'splits' });
@@ -58,14 +76,27 @@ async function apply(op, input, ctx) {
     const { counters, total } = await count(op, input, ctx, splits);
 
     const used = new Set();
+    /**
+     * @param {string} base
+     */
     const idFor = (base) => {
         let id = base;
         for (let i = 2; used.has(id); i++) id = `${base}-${i}`;
         used.add(id);
         return id;
     };
+    /** @type {Array<{ segment: string, label: string, column: string|null, value: string|null, n: number|null, suppressed: boolean }>} */
     const table = [];
+    /** @type {Array<{ id: string, label: string, column: string|null, value: string|null, n: number, rules: Array<Record<string, string>> }>} */
     const segments = [];
+    /**
+     * @param {string} segment
+     * @param {string} label
+     * @param {string|null} column
+     * @param {string|null} value
+     * @param {number} n
+     * @param {Array<Record<string, string>>} rules
+     */
     const consider = (segment, label, column, value, n, rules) => {
         const hidden = n < minN;
         table.push({ segment, label, column, value, n: hidden ? null : n, suppressed: hidden });

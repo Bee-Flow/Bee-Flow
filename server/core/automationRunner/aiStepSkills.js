@@ -311,3 +311,12 @@ module.exports = {
     attentionFieldOf,
     unattendedStepFraming,
 };
+
+/**
+ * A skill row (stores/skillStore.js mapRow) as far as a step reads it.
+ * @typedef {{ id?: string, outputSchema?: { properties?: Record<string, object>, required?: string[] } | null,
+ *             dynamicActivation?: unknown, automationId?: unknown, enabledIntegrations?: string[] | null }} StepSkill
+ * @typedef {{ type: string, properties: Record<string, object>, required?: string[] }} SkillSchema
+ * @typedef {{ tools?: unknown, [k: string]: unknown }} StepAgentConfig  an agent's runtime config
+ * @typedef {{ properties?: Record<string, unknown>, [k: string]: unknown } | null | undefined} SchemaLike
+ */

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: Automations — atomic claim + builder session snapshot (2026-05).
  *

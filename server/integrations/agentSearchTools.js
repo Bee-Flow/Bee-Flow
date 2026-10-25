@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Agent Search Tools — Self-hosted AI-powered search integration
  *
@@ -10,8 +11,11 @@ const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
 const { READ_URL_TOOLS } = require('./readUrlTools');
 
+/** @typedef {{ type: string, function: { name: string, description: string, parameters: { type: string, properties: Record<string, object>, required?: string[] } } }} ToolDef */
+
 /**
  * Tool definitions in OpenAI function-calling format.
+ * @type {ToolDef[]}
  */
 const AGENT_SEARCH_TOOLS = [
     {
@@ -79,6 +83,15 @@ CITATION RULES:
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * The agent_search arguments as the model sends them.
+ * @typedef {{ query?: string, mode?: string, max_results?: string, fetch_top_n?: string, detail_level?: string }} WebSearchArgs
+ */
+
+/**
+ * @param {string} toolName
+ * @param {WebSearchArgs} args
+ */
 async function executeAgentSearchTool(toolName, args) {
     const envUrl = process.env.SEARCH_SERVICE_URL;
     let configUrl = null;
@@ -102,6 +115,7 @@ async function executeAgentSearchTool(toolName, args) {
     if (!query) return { error: 'query is required' };
 
     // Load admin-configured defaults (resilient to transient DB failures)
+    /** @type {{ mode?: string, web_fast?: Record<string, string>, web?: Record<string, string>, include_citations?: boolean }} */
     let defaults = {};
     try {
         defaults = (await configStore.getConfig('agent_search_defaults')) || {};
@@ -148,6 +162,7 @@ async function executeAgentSearchTool(toolName, args) {
         } catch (cfgErr) {
             log.warn(`[AgentSearch] Secret lookup failed (serper_api_key): ${cfgErr.message}`);
         }
+        /** @type {Record<string, string>} */
         const headers = { 'Content-Type': 'application/json' };
         if (serperKey) headers['X-Serper-Key'] = serperKey;
         const apiKey = process.env.SERVICES_API_KEY;
@@ -174,7 +189,7 @@ async function executeAgentSearchTool(toolName, args) {
             throw new Error(`Agent Search API error (${response.status}): ${text}`);
         }
 
-        const data = await response.json();
+        const data = /** @type {{ results?: Array<{ title?: string, url?: string, score?: number, markdown?: string }>, mode_used?: string }} */ (await response.json());
         const results = Array.isArray(data.results) ? data.results : [];
 
         log.info(`[AgentSearch] Found ${results.length} results (mode=${data.mode_used})`);
@@ -235,6 +250,7 @@ ${sourcesList}
     }
 }
 
+/** @param {string} toolName */
 function isAgentSearchTool(toolName) {
     return toolName === 'agent_search';
 }
@@ -248,6 +264,8 @@ function isAgentSearchTool(toolName) {
  * core/toolDispatcher and server-side callers
  * should call THIS rather than executeAgentSearchTool directly, so they don't
  * hardwire the GPU-service path.
+ * @param {string} toolName
+ * @param {WebSearchArgs} args
  */
 async function executeWebSearch(toolName, args) {
     try {

@@ -19,13 +19,40 @@ const FILLS = new Set(['f', 'F', 'f*', 'B', 'B*', 'b', 'b*']);
 const STROKES = new Set(['S', 's', 'B', 'B*', 'b', 'b*']);
 const MAX_FORM_DEPTH = 8;
 
-const mul = (a, b) => [
+/** @typedef {import('pdf-lib').PDFContext} PDFContext */
+/** @typedef {import('./pdfFonts').PdfFont} PdfFont */
+/** @typedef {import('./contentLexer').PdfOperation} PdfOperation */
+/** @typedef {import('./contentLexer').PdfOperand} PdfOperand */
+/**
+ * One drawable object on a page; `id` is its index in the page's `objects`.
+ * @typedef {object} PageObject
+ * @property {'text'|'path'|'image'} kind
+ * @property {number} [id]
+ * @property {number} start
+ * @property {number} end
+ * @property {number[]} bbox
+ * @property {string} [text]
+ * @property {number[]} [origin]
+ * @property {number} [size]
+ * @property {number[]|null} [fill]
+ * @property {number[]|null} [stroke]
+ * @property {number} [lineWidth]
+ * @property {number} [segments]
+ * @property {boolean} [clip]
+ * @property {string|null} [name]
+ * @property {boolean} [inline]
+ * @property {string|null} form
+ * @property {boolean} removable
+ */
+
+const mul = (/** @type {number[]} */ a, /** @type {number[]} */ b) => [
     a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3],
     a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3],
     a[4] * b[0] + a[5] * b[2] + b[4], a[4] * b[1] + a[5] * b[3] + b[5],
 ];
-const apply = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+const apply = (/** @type {number[]} */ m, /** @type {number} */ x, /** @type {number} */ y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 
+/** @param {number[][]} points */
 function bboxOf(points) {
     let x0 = Infinity; let y0 = Infinity; let x1 = -Infinity; let y1 = -Infinity;
     for (const [x, y] of points) {
@@ -34,11 +61,14 @@ function bboxOf(points) {
     return [x0, y0, x1, y1];
 }
 
-/** A colour operand list to 0-255 RGB; a pattern (name operand) or unknown space gives null. */
+/**
+ * A colour operand list to 0-255 RGB; a pattern (name operand) or unknown space gives null.
+ * @param {unknown[]} values
+ */
 function toRgb(values) {
     const n = values.filter((v) => typeof v === 'number');
     if (n.length !== values.length) return null;
-    const c = (v) => Math.round(Math.max(0, Math.min(1, v)) * 255);
+    const c = (/** @type {number} */ v) => Math.round(Math.max(0, Math.min(1, v)) * 255);
     if (n.length === 1) return [c(n[0]), c(n[0]), c(n[0])];
     if (n.length === 3) return [c(n[0]), c(n[1]), c(n[2])];
     if (n.length === 4) {
@@ -48,7 +78,12 @@ function toRgb(values) {
     return null;
 }
 
-/** Look a key up on a page node, walking /Parent for inheritable attributes. */
+/**
+ * Look a key up on a page node, walking /Parent for inheritable attributes.
+ * @param {PDFContext} context
+ * @param {import('./pdfFonts').PdfObjectView} node
+ * @param {string} key
+ */
 function inherited(context, node, key) {
     for (let n = node, hops = 0; n && hops < 32; hops++) {
         const v = n.get(PDFName.of(key));
@@ -59,11 +94,17 @@ function inherited(context, node, key) {
     return undefined;
 }
 
-/** The page's content streams, decoded and joined, plus the refs they came from. */
+/**
+ * The page's content streams, decoded and joined, plus the refs they came from.
+ * @param {PDFContext} context
+ * @param {import('pdf-lib').PDFDict} pageNode
+ */
 function readPageContent(context, pageNode) {
     const contents = pageNode.get(PDFName.of('Contents'));
     const resolved = context.lookup(contents);
+    /** @type {Buffer[]} */
     const parts = [];
+    /** @type {import('pdf-lib').PDFRef[]} */
     const refs = [];
     const list = resolved instanceof PDFArray ? resolved.asArray() : (contents ? [contents] : []);
     for (const item of list) {
@@ -74,19 +115,30 @@ function readPageContent(context, pageNode) {
         if (item instanceof PDFRef) refs.push(item);
     }
     // Streams may only be split at token boundaries, so a newline between them is always safe.
+    /** @type {Buffer[]} */
     const joined = [];
     parts.forEach((p, i) => { if (i) joined.push(Buffer.from('\n')); joined.push(p); });
     return { bytes: Buffer.concat(joined), refs };
 }
 
 class Interpreter {
+    /**
+     * @param {PDFContext} context
+     * @param {Map<string, PdfFont>} fontCache
+     */
     constructor(context, fontCache) {
         this.context = context;
         this.fontCache = fontCache;
+        /** @type {PageObject[]} */
         this.objects = [];
         this.malformed = 0;
     }
 
+    /**
+     * @param {import('pdf-lib').PDFDict|null} resources
+     * @param {string} name
+     * @returns {PdfFont}
+     */
     font(resources, name) {
         const fonts = resources ? this.context.lookup(resources.get(PDFName.of('Font'))) : null;
         const ref = fonts instanceof PDFDict ? fonts.get(PDFName.of(name)) : undefined;
@@ -98,6 +150,11 @@ class Interpreter {
         return f;
     }
 
+    /**
+     * @param {import('pdf-lib').PDFDict|null} resources
+     * @param {string} name
+     * @returns {(import('pdf-lib').PDFObject & { dict?: import('pdf-lib').PDFDict }) | undefined}
+     */
     xobject(resources, name) {
         const xo = resources ? this.context.lookup(resources.get(PDFName.of('XObject'))) : null;
         return xo instanceof PDFDict ? this.context.lookup(xo.get(PDFName.of(name))) : undefined;
@@ -106,17 +163,25 @@ class Interpreter {
     /**
      * Walk one content stream. `form` is the XObject name when we are inside a form: those
      * objects are visible to detection and verification but cannot be cut out of the page.
+     * @param {Buffer} bytes
+     * @param {import('pdf-lib').PDFDict|null} resources
+     * @param {number[]} baseCtm
+     * @param {string|null} [form]
+     * @param {number} [depth]
      */
     run(bytes, resources, baseCtm, form = null, depth = 0) {
         const { ops, malformed } = parseOperations(bytes);
         this.malformed += malformed;
+        /** @type {{ ctm: number[], fill: number[]|null, stroke: number[]|null, lineWidth: number, tc: number, tw: number, th: number, tl: number, rise: number, font: PdfFont|null, size: number }} */
         let gs = { ctm: baseCtm, fill: [0, 0, 0], stroke: [0, 0, 0], lineWidth: 1, tc: 0, tw: 0, th: 1, tl: 0, rise: 0, font: null, size: 0 };
+        /** @type {Array<typeof gs>} */
         const stack = [];
         let tm = IDENTITY; let tlm = IDENTITY;
+        /** @type {{ start: number, points: number[][], segments: number, clip: boolean }|null} */
         let path = null;
 
-        const nums = (o) => o.operands.map((v) => (typeof v === 'number' ? v : NaN));
-        const showText = (o, pieces) => {
+        const nums = (/** @type {PdfOperation} */ o) => o.operands.map((v) => (typeof v === 'number' ? v : NaN));
+        const showText = (/** @type {PdfOperation} */ o, /** @type {PdfOperand[]} */ pieces) => {
             const f = gs.font || loadFont(this.context, undefined);
             let x = 0;
             let text = '';
@@ -219,10 +284,17 @@ class Interpreter {
         }
     }
 
+    /**
+     * @param {PdfOperation} o
+     * @param {import('pdf-lib').PDFDict|null} resources
+     * @param {number[]} ctm
+     * @param {string|null} form
+     * @param {number} depth
+     */
     drawXObject(o, resources, ctm, form, depth) {
         const name = o.operands[0]?.name;
         const xo = name ? this.xobject(resources, name) : undefined;
-        const subtype = xo?.dict?.get(PDFName.of('Subtype'))?.asString?.();
+        const subtype = /** @type {import('pdf-lib').PDFObject & { asString?: () => string }} */ (xo?.dict?.get(PDFName.of('Subtype')))?.asString?.();
         if (subtype === '/Image') {
             const corners = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y]) => apply(ctm, x, y));
             this.objects.push({ kind: 'image', start: o.start, end: o.end, bbox: bboxOf(corners), name, inline: false, form, removable: !form });
@@ -231,7 +303,7 @@ class Interpreter {
         if (subtype !== '/Form' || depth >= MAX_FORM_DEPTH) return;
         const matrixArr = this.context.lookup(xo.dict.get(PDFName.of('Matrix')));
         const matrix = matrixArr instanceof PDFArray
-            ? matrixArr.asArray().map((v) => (this.context.lookup(v) instanceof PDFNumber ? this.context.lookup(v).asNumber() : 0))
+            ? matrixArr.asArray().map((v) => (this.context.lookup(v) instanceof PDFNumber ? /** @type {import('pdf-lib').PDFNumber} */ (this.context.lookup(v)).asNumber() : 0))
             : IDENTITY;
         const formRes = this.context.lookup(xo.dict.get(PDFName.of('Resources')));
         const bytes = streamBytes(xo);
@@ -244,11 +316,14 @@ class Interpreter {
 /**
  * Model one page: its objects (text, paths, images; ids are indexes into `objects`), the joined
  * content bytes the byte ranges refer to, and the page geometry.
+ * @param {PDFContext} context
+ * @param {import('pdf-lib').PDFDict} pageNode
+ * @param {Map<string, PdfFont>} [fontCache]
  */
 function analyzePage(context, pageNode, fontCache = new Map()) {
     const resources = inherited(context, pageNode, 'Resources');
     const box = inherited(context, pageNode, 'MediaBox');
-    const nums = box instanceof PDFArray ? box.asArray().map((v) => context.lookup(v)?.asNumber?.() ?? 0) : [0, 0, 612, 792];
+    const nums = box instanceof PDFArray ? box.asArray().map((v) => /** @type {import('pdf-lib').PDFObject & { asNumber?: () => number }} */ (context.lookup(v))?.asNumber?.() ?? 0) : [0, 0, 612, 792];
     const [bx0, by0, bx1, by1] = nums;
     const { bytes, refs } = readPageContent(context, pageNode);
     const interp = new Interpreter(context, fontCache);

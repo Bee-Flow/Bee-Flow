@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Release notes routes.
  *
@@ -56,8 +57,11 @@ const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { unavailable } = require('../core/http/errors');
 
+/** @param {string} message */
 const text = (message) => z.string({ error: typeError({ invalid: message }) });
-/** git lines: one text the CI joins with newlines, or a list. normaliseLines reads both. */
+/** git lines: one text the CI joins with newlines, or a list. normaliseLines reads both.
+ * @param {string} name
+ */
 const lines = (name) => z.union([z.string(), z.array(z.string())],
     { error: () => `${name} is the git lines, as one text or a list of texts.` }).nullish();
 
@@ -98,6 +102,7 @@ const EntryPatch = z.object({
  * Constant-time bearer check. Lengths are compared first because
  * timingSafeEqual THROWS on a length mismatch — the same shape as the
  * storageProxy and maintenance token gates.
+ * @param {import('express').Request} req
  */
 function _authorized(req) {
     const expected = process.env.RELEASE_NOTES_TOKEN || '';
@@ -110,6 +115,11 @@ function _authorized(req) {
     return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function _requireIngestToken(req, res, next) {
     if (!process.env.RELEASE_NOTES_TOKEN) {
         return next(unavailable('release_notes_ingest_disabled', 'release_notes_ingest_disabled'));
@@ -126,8 +136,11 @@ function _requireIngestToken(req, res, next) {
 
 const PUBLIC_TTL_MS = 5 * 60 * 1000;
 const PUBLIC_FAILURE_TTL_MS = 60 * 1000;
+/** @typedef {Awaited<ReturnType<typeof _loadPublished>>} PublicEntries */
+/** @type {{ at: number, data: PublicEntries | null }} */
 let _cache = { at: 0, data: null };
 let _failedAt = 0;
+/** @type {Promise<PublicEntries> | null} */
 let _inFlight = null;
 
 function invalidatePublicCache() {
@@ -230,7 +243,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
     res.json({ entries: await store.listAll({ limit: 100 }) });
 });
 
-router.put('/admin/:id', requireAdmin, validate({ body: EntryPatch }), async (req, res) => {
+router.put('/admin/:id', requireAdmin, validate({ body: EntryPatch }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const { title, lead, items, version } = req.body;
     const entry = await store.updateEntry(req.params.id, { title, lead, items, version });
     if (!entry) return res.status(404).json({ error: 'Not found' });
@@ -238,25 +251,25 @@ router.put('/admin/:id', requireAdmin, validate({ body: EntryPatch }), async (re
     res.json({ success: true, entry });
 });
 
-router.post('/admin/:id/publish', requireAdmin, async (req, res) => {
+router.post('/admin/:id/publish', requireAdmin, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const entry = await store.publishEntry(req.params.id);
     if (!entry) return res.status(404).json({ error: 'Not found' });
     invalidatePublicCache();
     res.json({ success: true, entry });
 });
 
-router.post('/admin/:id/unpublish', requireAdmin, async (req, res) => {
+router.post('/admin/:id/unpublish', requireAdmin, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const entry = await store.unpublishEntry(req.params.id);
     if (!entry) return res.status(404).json({ error: 'Not found' });
     invalidatePublicCache();
     res.json({ success: true, entry });
 });
 
-router.delete('/admin/:id', requireAdmin, async (req, res) => {
+router.delete('/admin/:id', requireAdmin, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const ok = await store.deleteEntry(req.params.id);
     invalidatePublicCache();
     res.json({ success: ok });
 });
 
 module.exports = router;
-module.exports.invalidatePublicCache = invalidatePublicCache;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).invalidatePublicCache = invalidatePublicCache;

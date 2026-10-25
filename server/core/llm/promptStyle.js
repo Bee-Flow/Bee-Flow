@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Writing-style prompt addendum (BFSF-261, part b).
  *

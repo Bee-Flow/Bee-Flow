@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Re-export shim: this module moved to core/cms/umamiClient.js (the core/ layout in
  * server/ARCHITECTURE.md). Kept so every existing require, test stub and

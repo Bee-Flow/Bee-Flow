@@ -327,3 +327,9 @@ module.exports = {
     describePick,
     boundText,
 };
+
+/**
+ * @typedef {{ userId?: string, session?: Record<string, any>, isAdmin?: boolean, isSuperAdmin?: boolean,
+ *   userAuth?: Record<string, unknown>, orgId?: string | null, orgIds?: string[], userGroupIds?: string[] }} Caller
+ *   the signed-in filler a picker acts as
+ */

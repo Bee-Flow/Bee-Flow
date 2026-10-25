@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.5.9 — Inventory of information and associated assets.
  *
@@ -35,6 +35,10 @@ const INTERNAL_TYPES = new Set(['local', ...LOCAL_PROVIDER_TYPES]);
  * One asset-class count, named after its key in `counts`. Not provisioned
  * (42P01/42703) is null, "not enumerable yet"; any other error is recorded
  * in `failed` (the SQLSTATE only) and is null too, so it never counts as zero.
+ * @param {string} asset
+ * @param {string} sql
+ * @param {unknown[]} params
+ * @param {{ asset: string, error_code: string | null }[]} failed
  */
 async function _count(asset, sql, params, failed) {
     try {
@@ -59,9 +63,10 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_asset_inventory.desc',
     remediationKey: 'compliance.checks.iso_asset_inventory.fix',
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const ai = (await configStore.getConfig('ai')) || {};
-        const providers = (Array.isArray(ai.providers) ? ai.providers : []).map(p => ({
+        const providers = (Array.isArray(ai.providers) ? ai.providers : []).map((/** @type {Record<string, any>} */ p) => ({
             id: p.id || null,
             type: String(p.type || '').toLowerCase(),
             external: !INTERNAL_TYPES.has(String(p.type || '').toLowerCase()),

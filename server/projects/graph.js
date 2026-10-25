@@ -467,3 +467,10 @@ function buildProjectGraph({
     return { projectId: project?.id || null, nodes, edges, externals, problems };
 }
 module.exports = { buildProjectGraph, PROBLEM, PROSE, SEVERITY };
+
+/**
+ * @typedef {{ kind: string, id: string|null, title?: string|null, stepId?: string|null }} GraphTargetRef
+ * @typedef {{ code: string, severity: string, from: string, targetId: string|null, message: string, kind: string,
+ *             targetRef: GraphTargetRef }} GraphProblem
+ * @typedef {{ kind: string, id: string, referencedBy: string[] }} GraphExternal
+ */

@@ -341,3 +341,7 @@ module.exports = Object.assign(router, {
     SECRET_KEY,
     PROTOCOL_VERSION,
 });
+
+/** @typedef {{ name: string, description?: string, parameters?: unknown }} FunctionDef */
+
+/** @typedef {{ type?: string, function?: FunctionDef }} ToolDef */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The member side of the organisation MCP library: the servers a person may
  * use that need a key, and their own key for each (Settings → Connections).
@@ -24,6 +24,14 @@ const userStore = () => deps.userStore();
 const entitlements = () => deps.entitlements();
 const mcpClient = () => deps.mcpClient();
 
+/**
+ * @typedef {{ userId: string, orgId: string | null, effective: Set<string> }} MemberContext
+ */
+
+/**
+ * @param {import('express').Request} req
+ * @returns {Promise<MemberContext>}
+ */
 async function memberContext(req) {
     const userId = req.session.user.id;
     const user = await userStore().getUser(userId);
@@ -37,7 +45,10 @@ async function memberContext(req) {
     return { userId, orgId, effective };
 }
 
-/** Running library servers of the member's org that they may use and that take a key. */
+/**
+ * Running library servers of the member's org that they may use and that take a key.
+ * @param {MemberContext} ctx
+ */
 async function usableKeyedRows(ctx) {
     if (!ctx.orgId) return [];
     const gate = await loadRunGate();
@@ -48,6 +59,7 @@ async function usableKeyedRows(ctx) {
         && authOfRow(r).authStyle !== 'none');
 }
 
+/** @param {import('express').Request} req */
 async function listForMember(req) {
     const ctx = await memberContext(req);
     const rows = await usableKeyedRows(ctx);
@@ -86,6 +98,10 @@ async function listForMember(req) {
     return { servers };
 }
 
+/**
+ * @param {MemberContext} ctx
+ * @param {string} id
+ */
 async function loadMemberRow(ctx, id) {
     const rows = await usableKeyedRows(ctx);
     const row = rows.find(r => r.id === id);
@@ -94,6 +110,11 @@ async function loadMemberRow(ctx, id) {
     return row;
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {string} id
+ * @param {string} value
+ */
 async function saveOwnCredential(req, id, value) {
     def.checkCredentialValue(value);
     const ctx = await memberContext(req);
@@ -127,6 +148,10 @@ async function saveOwnCredential(req, id, value) {
     return { connected: true };
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {string} id
+ */
 async function deleteOwnCredential(req, id) {
     const ctx = await memberContext(req);
     const row = await loadMemberRow(ctx, id);

@@ -559,3 +559,10 @@ module.exports = {
     requireBetaFeature,
     FeatureServiceUnavailableError,
 };
+
+/**
+ * @typedef {Omit<Partial<Express.Session>, 'user'> & { user?: Partial<Express.Session['user']> }} SessionLike
+ *   an express session, or a synthetic one carrying only the fields a caller has
+ * @typedef {{ id: string, name: string, description: string, licenseFeature?: string|null, lifecycle?: string,
+ *   groupScoped?: boolean, aliasOf?: string, deprecated?: boolean, sunsetDate?: string, _remoteModule?: boolean }} BetaFeature
+ */

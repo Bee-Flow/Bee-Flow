@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * GET /agents/tool-catalog — which apps, and which of their actions, an agent
  * may be granted.
@@ -110,7 +111,7 @@ const MAX_ACTIONS_PER_APP = 500;
 
 const NoQuery = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
-router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
 
     // The strict availability gate. A throw here is "I could not check",
@@ -127,10 +128,11 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
             if (name) userToolNames.add(name);
         }
     } catch (e) {
-        log.warn('[agents/tool-catalog] availability gate unavailable:', e.message);
+        log.warn('[agents/tool-catalog] availability gate unavailable:', /** @type {Error} */ (e).message);
         userToolNames = null;
     }
 
+    /** @type {(toolName: string) => string|null} */
     let providerForTool = () => null;
     let lendingEnabled = false;
     try {
@@ -143,7 +145,7 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
         // that borrows credentials. Unknown stays unknown (`provider: null`
         // with `providersKnown: false`), and the editor offers no owner
         // option at all there.
-        log.warn('[agents/tool-catalog] connection resolution unavailable:', e.message);
+        log.warn('[agents/tool-catalog] connection resolution unavailable:', /** @type {Error} */ (e).message);
         providerForTool = null;
     }
     const providersKnown = typeof providerForTool === 'function';
@@ -160,6 +162,7 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
         let loaded;
         try { loaded = loadToolsResult(entry); } catch (_) { loaded = null; }
         const tools = loaded && loaded.ok === true && Array.isArray(loaded.tools) ? loaded.tools : null;
+        /** @type {string[]} */
         const names = [];
         for (const t of tools || []) {
             const name = t?.function?.name;
@@ -195,7 +198,11 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
      *   the owner does not already have it: the broader row then replaces him entirely.
      */
     const availableOf = new Map();
-    const overlaps = (names) => names.some(n => userToolNames.has(n));
+    const overlaps = (/** @type {string[]} */ names) => names.some(n => userToolNames.has(n));
+    /**
+     * @param {string} app
+     * @param {string[]} names
+     */
     const availabilityFor = (app, names) => {
         if (userToolNames === null) return null;
         if (availableOf.has(app)) return availableOf.get(app);
@@ -268,6 +275,7 @@ router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (re
         }
 
         const actions = [];
+        /** @type {string | null} */
         let provider = null;
         for (const t of tools) {
             const name = t?.function?.name;

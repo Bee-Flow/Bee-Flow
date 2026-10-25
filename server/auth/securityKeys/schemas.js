@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The browser's credential JSON (what @simplewebauthn/browser returns from a
  * ceremony), as every route that accepts one validates it. Its inner fields

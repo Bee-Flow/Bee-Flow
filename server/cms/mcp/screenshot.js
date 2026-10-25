@@ -75,6 +75,7 @@ function isHubAssetPath(pathname) {
         && !pathname.includes('//');
 }
 
+/** @param {{ origin?: string, fetchImpl?: typeof fetch, now?: () => number }} [opts] */
 function createHubFetcher({ origin, fetchImpl = (...a) => fetch(...a), now = Date.now } = {}) {
     const cache = new Map();
     return async function fetchHubAsset(pathname) {
@@ -280,7 +281,10 @@ function defaultDeps() {
 function createScreenshotRenderer(overrides = null) {
     const deps = overrides ? { ...overrides } : defaultDeps();
 
-    /** The content to photograph, or an `unavailable` reason. */
+    /**
+     * The content to photograph, or an `unavailable` reason.
+     * @param {{ siteId?: string, pageId?: string, slug?: string, state?: 'draft'|'published', locale?: string, postSlug?: string, blog?: boolean }} args
+     */
     async function resolveContent({ siteId, pageId, slug, state, locale, postSlug, blog }) {
         const { cmsStore } = deps;
         const defaultLocale = await cmsStore.getDefaultLocale();
@@ -333,7 +337,10 @@ function createScreenshotRenderer(overrides = null) {
         return { eff, entrySlug, locale: wanted, defaultLocale };
     }
 
-    /** The full HTML document for the chosen content, plus whether the shell was reachable. */
+    /**
+     * The full HTML document for the chosen content, plus whether the shell was reachable.
+     * @param {{ eff?: any, entrySlug?: any, locale?: any, defaultLocale?: any, ok?: boolean, unavailable?: boolean, reason?: any }} content
+     */
     async function composeDocument({ eff, entrySlug, locale, defaultLocale }) {
         const siteName = (eff.header && eff.header.logoText) || 'Bee Flow';
         const blogSeo = eff.blog ? (deps.blogSeo || require('../../core/seo/blog')) : null;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * What a direct-chat turn (POST /ai/chat/direct/stream) may carry.
@@ -24,9 +24,22 @@
 
 const { z, worded, orEmpty, flag, onUnknownKeys, typeError } = require('../../../core/http/schemaParts');
 
+/**
+ * @param {string} name
+ * @param {number} max
+ */
 const text = (name, max) => worded(`${name} is text.`).max(max, `${name} is at most ${max} characters.`);
+/**
+ * @param {string} name
+ */
 const list = (name) => z.array(z.unknown(), { error: typeError({ invalid: `${name} is a list.` }) });
+/**
+ * @param {string} name
+ */
 const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} is an object.` }) });
+/**
+ * @param {string} name
+ */
 const onOff = (name) => flag(`${name} is true or false.`);
 
 /** The keys every chat-engine turn shares, typed. */
@@ -75,6 +88,9 @@ const DirectTurnBody = orEmpty(z.object({
  * with a 400. Closed: it is one shape, written by one caller.
  */
 const SELECTION_TEXT = 'notebookSelection is { text, from?, to?, action? }.';
+/**
+ * @param {string} name
+ */
 const position = (name) => z.number({ error: typeError({ invalid: `${name} is a position in the document.` }) })
     .int(`${name} is a position in the document.`).min(0, `${name} is a position in the document.`);
 const NotebookSelection = z.object({

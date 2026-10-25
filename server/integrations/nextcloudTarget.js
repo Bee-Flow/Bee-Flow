@@ -8,3 +8,5 @@
 'use strict';
 
 module.exports = require('../utils/nextcloudTarget');
+
+/** @typedef {import('url').URL} URL */

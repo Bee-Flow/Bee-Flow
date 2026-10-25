@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Direct Chat — posting into a conversation shared with a project.
  *
@@ -13,6 +14,7 @@
 const { emitThreadEvent } = require('./shared');
 const log = require('../../../telemetry/log');
 
+/** @param {ReturnType<typeof import('./turnState').createTurnState>} turn */
 async function claimSharedThreadTurn(turn) {
     const { res, send, userId } = turn;
     if (!turn.convId) return true;
@@ -42,7 +44,7 @@ async function claimSharedThreadTurn(turn) {
             // speaking".
             if (!claim.acquired) {
                 send('turn_busy', {
-                    holderUserId: claim.holder?.holderUserId || null,
+                    holderUserId: /** @type {{ holder?: { holderUserId?: string } }} */ (claim).holder?.holderUserId || null,
                     conversationId: turn.convId,
                 });
                 res.end();

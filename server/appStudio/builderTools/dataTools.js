@@ -285,3 +285,23 @@ module.exports = {
     linkedTableRefusal,
     MAX_QUERY_LIMIT,
 };
+
+/** @typedef {import('../builderTools').BuilderDraft} BuilderDraft */
+
+/** @typedef {import('../builderTools').ToolArgs} ToolArgs */
+
+/** @typedef {import('../builderTools').ToolResult} ToolResult */
+
+/** @typedef {{ id: string, key: string, name?: string, type: string, required?: boolean, unique?: boolean, subtype?: string, default?: unknown, options?: unknown[], relation?: { table: string, tableId?: string, displayField?: string }, computed?: { expr: string, type?: string, stored?: boolean } }} DataField */
+
+/** @typedef {{ id: string, key: string, name?: string, icon?: string|null, fields?: DataField[], access?: { default?: string, roles?: Record<string, Record<string, string|boolean>>, rowFilters?: Record<string, string> }, source?: { kind?: string, mode?: string, datatableId?: string } }} DataTable */
+
+/** @typedef {{ id: string, name?: string, kind?: string, params?: Array<{ key?: string }>, sync?: import('../connectorSync').SyncBlock }} DataConnector */
+
+/** @typedef {{ modelVersion?: number, connectors?: DataConnector[], tables?: DataTable[], roles?: Array<{ key: string, label: string }>, roleMapping?: { default?: string, byGroup?: Record<string, string> }, directory?: { orgMembers: boolean } }} DataModel */
+
+/** @typedef {{ id: string, props?: unknown, children?: RefNode[] }} RefNode */
+
+/** @typedef {{ error?: string, _fixHint?: string, model?: DataModel, table?: DataTable, hints?: string[] }} TableMerge */
+
+/** @typedef {{ ok?: boolean, version?: number, model?: DataModel, invalid?: boolean, errors?: string[], error?: string }} DataModelPersisted */

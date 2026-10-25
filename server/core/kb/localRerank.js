@@ -225,3 +225,5 @@ async function rerankCandidates(candidates, query, topK) {
 }
 
 module.exports = { applyRerank, rerankCandidates, wire };
+
+/** @typedef {typeof globalThis & { _azureRerankerPath?: string | null }} AzureRerankerGlobal */

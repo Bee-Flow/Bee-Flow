@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * What Bee can work out about the AI Act on its own, per question, with how
  * sure it is (Studio → Automations handoff 5, "the check should be automatic").
@@ -385,3 +384,33 @@ module.exports = {
     hintText,
     detectQuestions,
 };
+
+/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+
+/** @typedef {import('./automationGraph').AutomationGraph} AutomationGraph */
+
+/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+
+/** @typedef {{ stepId: string|null, label: string, type: string|null, tool?: string }} StepRef  where a finding sits */
+
+/** @typedef {{ code: string, params: Record<string, unknown> }} Evidence */
+
+/** @typedef {{ step: AutomationStep, ref: StepRef, kind: string, reach: string }} OutwardStep */
+
+/**
+ * @typedef {object} Question  one question's answer
+ * @property {string} answer  'yes' | 'no' | 'unknown'
+ * @property {string} confidence  'certain' | 'likely' | 'unknown'
+ * @property {Evidence[]} evidence
+ * @property {string} [sig]  the fingerprint, set by detectQuestions
+ * @property {string|null} [lean]
+ * @property {string[]} [domains]
+ * @property {string[]} [practices]
+ */
+
+/**
+ * @typedef {object} Verdict  the fast model's verdict (aiActClassify.js)
+ * @property {boolean} [available]
+ * @property {{ answer?: unknown, confidence?: string, domains?: string[] }} [highRisk]
+ * @property {{ answer?: unknown, confidence?: string, practices?: string[] }} [prohibited]
+ */

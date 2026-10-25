@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.32 — change management: does the review process actually
  * operate? Judged on the github connector's sample of the last merged PRs
@@ -26,6 +26,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_change_mgmt.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.');
         if (read.result) return read.result;
@@ -59,6 +62,7 @@ module.exports = {
                 unapproved_or_self_merged: mp.accessible === true ? (mp.unapproved_or_self_merged || 0) : null,
             });
         }
+        /** @type {Record<string, unknown>} */
         const evidence = {
             repos: rows,
             merges_sampled: sampled,

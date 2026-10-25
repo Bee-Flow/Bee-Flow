@@ -623,3 +623,14 @@ async function planPartialRun(automation, stepId, opts = {}) {
 }
 
 module.exports = { runPartial, planPartialRun, configurePartialRuns };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./execution').ExecuteOptions} ExecuteOptions
+ * @typedef {import('./partialRunPlan').SeedOptions} SeedOptions
+ * @typedef {'only' | 'from' | 'upTo'} PartialMode
+ * @typedef {{ id: string, type?: string, pinnedOutput?: unknown, body?: DefStep[], overRef?: string,
+ *   batchSize?: number | string, itemVar?: string, layerKey?: string, [key: string]: unknown }} DefStep
+ * @typedef {{ trigger?: DefStep, steps?: DefStep[], edges?: Array<{ from?: string, to?: string }>,
+ *   vars?: Record<string, unknown>, [key: string]: unknown }} DefLayer
+ */

@@ -161,3 +161,5 @@ function makeStorageProbe(storageStore) {
 }
 
 module.exports = { enrichMediaDims, makeStorageProbe, assetKeyFromSrc };
+
+/** @typedef {{ [k: string]: unknown, src?: string, kind?: string, width?: number | null, height?: number | null }} MediaNode */

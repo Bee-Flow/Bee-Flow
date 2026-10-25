@@ -218,3 +218,10 @@ function liveHasTrigger(automation, triggerStepId) {
 }
 
 module.exports = { definitionForRun, automationForRun, isTestRun, liveHasTrigger, triggersOf, withWorkingSettings, managedNotDeployedError, TEST_TRIGGER_KINDS, SETTINGS_KEYS };
+
+/**
+ * A store row (or a synthetic one) as far as choosing its copy goes.
+ * @typedef {{ id?: string, kind?: string, definition?: object, version?: number|null,
+ *             liveDefinition?: object|null, liveVersion?: number|null, runsLiveVersion?: boolean,
+ *             workingVersion?: number|null }} RunAutomation
+ */

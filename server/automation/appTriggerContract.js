@@ -253,3 +253,5 @@ module.exports = {
     validateAppTriggerRef,
     checkInputValue,
 };
+
+/** @typedef {{ trigger?: { kind?: string, params?: unknown, appRef?: unknown } | null }} TriggerDefinition */

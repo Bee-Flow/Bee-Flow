@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Machinery Regulation (EU) 2023/1230 Art. 3(3) / Annex III B §1.1.9
  * (indicative) — are there industrial control integrations?
@@ -33,12 +34,14 @@ const detector = require('../../detectors/industrialIntegrations');
 const MAX_MATCHES_IN_EVIDENCE = 50;
 const MAX_SIGNALS_PER_MATCH = 8;
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _relevance(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return rel && typeof rel.machinery === 'string' ? rel.machinery : null;
 }
 
+/** @param {import('../../detectors/industrialIntegrations').Match} m */
 function _slim(m) {
     return {
         source: m.source,
@@ -64,6 +67,9 @@ module.exports = {
     remediationKey: 'compliance.check_machinery_detection_fix',
     remediationLink: 'admin/compliance/machinery',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId) || {};
         const override = _relevance(settings);
@@ -75,7 +81,7 @@ module.exports = {
             };
         }
 
-        const result = await detector.detect(orgId);
+        const result = /** @type {Awaited<ReturnType<typeof detector.detect>>} */ (await detector.detect(orgId));
         const matches = Array.isArray(result.matches) ? result.matches : [];
         const high = matches.filter(m => m.confidence === 'high').length;
         const low = matches.length - high;

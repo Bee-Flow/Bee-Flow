@@ -265,3 +265,5 @@ module.exports = {
     _verdict: verdict,
     _subjects,
 };
+
+/** @typedef {{ id: string, label?: string, kind: string, projectId: string, agentId?: string | null, aiMode: string }} Subject */

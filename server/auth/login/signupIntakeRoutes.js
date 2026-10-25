@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — what the signup form needs before it submits: the (optional)
  * public organisation directory and the pending-signup blob the OAuth flows
@@ -23,6 +23,8 @@ const { worded } = require('../../core/http/schemaParts');
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not
  * enough: zod reports a string that is not a member as `invalid_enum_value`,
  * whose default message quotes the whole option list back at the caller.
+ * @param {string[]} values
+ * @param {string} message
  */
 const wordedEnum = (values, message) => z.enum(values, { error: () => message });
 
@@ -79,7 +81,7 @@ async function isOrgDirectoryPublic() {
     return (process.env.DEPLOYMENT_MODE || 'cloud') !== 'cloud';
 }
 
-router.get('/organizations/public', async (req, res) => {
+router.get('/organizations/public', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     try {
         if (!(await isOrgDirectoryPublic())) return res.json([]);
         const allOrgs = await userStore.getAllOrganizations();
@@ -92,7 +94,7 @@ router.get('/organizations/public', async (req, res) => {
 
 
 // Store pending signup data in session (for OAuth flows)
-router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBody }), async (req, res, next) => {
+router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     if (process.env.ALLOW_SIGNUPS === 'false') {
         return res.status(403).json({ error: 'Account creation is disabled on this server.' });
     }

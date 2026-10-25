@@ -1,9 +1,9 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert');
 const { renderBlocks } = require('./renderBlocks');
 
-const block = (content, type = 'feature') => ({ id: 'b1', type, content });
+const block = (/** @type {Record<string, unknown>} */ content, type = 'feature') => ({ id: 'b1', type, content });
 
 test('block media becomes an <img> with its alt text and a resolved asset URL', () => {
     const html = renderBlocks([block({

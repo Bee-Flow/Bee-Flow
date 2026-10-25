@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Notification Routes — REST API for in-app notifications.
  *
@@ -51,6 +51,11 @@ const ListQuery = z.object({
         .optional(),
 }).strict();
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function requireUser(req, res, next) {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
     return next();
@@ -71,6 +76,8 @@ function requireUser(req, res, next) {
  * Not racy: `user_id` is written once at INSERT and never updated anywhere in
  * the codebase, and ids are crypto.randomUUID() so a deleted row's id is never
  * reused.
+ * @param {string} userId
+ * @param {string} id
  */
 async function ownsNotification(userId, id) {
     const { rowCount } = await pool.query(
@@ -80,8 +87,9 @@ async function ownsNotification(userId, id) {
     return rowCount > 0;
 }
 
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} NotificationListReq */
 // GET / — list notifications
-router.get('/', requireUser, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireUser, validate({ query: ListQuery }), /** @param {NotificationListReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     const { unread: unreadOnly = false, limit = 50 } = req.query;
     const notifications = await notificationStore.getNotifications(userId, { unreadOnly, limit });
@@ -101,7 +109,7 @@ router.post('/read-all', requireUser, validate({ body: NoBody }), async (req, re
 });
 
 // POST /:id/read — mark one as read
-router.post('/:id/read', requireUser, validate({ body: NoBody }), async (req, res) => {
+router.post('/:id/read', requireUser, validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const userId = req.session.user.id;
 
     // 404 rather than 403 — a distinct "exists but isn't yours" answer would
@@ -115,7 +123,7 @@ router.post('/:id/read', requireUser, validate({ body: NoBody }), async (req, re
 });
 
 // DELETE /:id — delete one
-router.delete('/:id', requireUser, async (req, res) => {
+router.delete('/:id', requireUser, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const userId = req.session.user.id;
 
     if (!await ownsNotification(userId, req.params.id)) {

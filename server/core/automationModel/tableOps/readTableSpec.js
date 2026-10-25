@@ -159,3 +159,8 @@ module.exports = {
     READ_TABLE_FORMATS, READ_TABLE_DELIMITERS, DEFAULTS,
     EXPIRES_MIN_DAYS, EXPIRES_MAX_DAYS, EXPIRES_DEFAULT_DAYS, HEADER_ROW_MIN, HEADER_ROW_MAX,
 };
+
+/**
+ * A source as bound: a binding object (or a file descriptor), or plain text.
+ * @typedef {{ kind?: unknown, path?: unknown, value?: unknown, sourceHandle?: unknown }} SourceBinding
+ */

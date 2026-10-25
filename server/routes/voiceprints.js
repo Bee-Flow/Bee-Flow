@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Voiceprints API — self-enrollment for pyannoteAI speaker identification.
  *
@@ -59,7 +60,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
 const userStore = require('../stores/userStore');
 const voiceprintStore = require('../stores/voiceprintStore');
@@ -76,7 +77,7 @@ const MAX_ENROLL_BYTES = 15 * 1024 * 1024;
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: MAX_ENROLL_BYTES, files: 1 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: /** @param {import('express').Request} req @param {{ originalname?: string, mimetype?: string }} file @param {(err: Error | null, accept?: boolean) => void} cb */ (req, file, cb) => {
         const ext = path.extname(file.originalname || '').toLowerCase();
         const allowed = ['.webm', '.mp4', '.m4a', '.ogg', '.opus', '.wav', '.mp3', '.flac'];
         if (allowed.includes(ext) || (file.mimetype || '').startsWith('audio/') || (file.mimetype || '').startsWith('video/')) {
@@ -105,9 +106,12 @@ const enrollLimiter = rateLimit({
 /**
  * multer, with its refusals answered as refusals. Its errors carry no status,
  * so passed on as they were they became a 500 (see the header).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function receiveRecording(req, res, next) {
-    upload.single('audio')(req, res, (err) => {
+    upload.single('audio')(req, res, (/** @type {(Error & { code?: string }) | undefined} */ err) => {
         if (!err) return next();
         const tooBig = err.code === 'LIMIT_FILE_SIZE';
         return res.status(tooBig ? 413 : 400).json({
@@ -120,7 +124,7 @@ function receiveRecording(req, res, next) {
 }
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = (/** @type {Parameters<typeof z.object>[0]} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 // The multipart text fields of POST /me (see the header).
 const EnrollFields = bodyOf({
@@ -133,7 +137,10 @@ const EnrollFields = bodyOf({
 
 const NoBody = bodyOf({});
 
-/** Client IP for the consent ledger, honouring the proxy chain like consentGuards does. */
+/**
+ * Client IP for the consent ledger, honouring the proxy chain like consentGuards does.
+ * @param {import('express').Request} req
+ */
 function clientIp(req) {
     try {
         const { auditClientIp } = require('../auth/consentGuards');
@@ -147,6 +154,7 @@ function clientIp(req) {
  * Re-read the user from the DB rather than trusting the session snapshot: a
  * recording takes ~30 seconds, during which the account could have been
  * suspended or moved between organisations.
+ * @param {import('express').Request} req
  */
 async function freshUser(req) {
     return userStore.getUser(req.session.user.id);
@@ -168,7 +176,7 @@ router.get('/availability', requireAuth, async (req, res) => {
     const payload = {
         ...availability,
         enrolled: false,
-        voiceprint: null,
+        voiceprint: /** @type {Awaited<ReturnType<typeof voiceprintStore.getVoiceprintForUser>>} */ (null),
         coverage: { enrolled: 0, members: 0 },
         limits: voiceprintClient.LIMITS,
         consentVersion: CONSENT_VERSION,
@@ -294,6 +302,8 @@ router.delete('/me', requireAuth, validate({ body: NoBody }), async (req, res) =
 /**
  * Mirror a deletion into the consent ledger + optional-consent state, so
  * "granted" can never outlive the data it authorised.
+ * @param {import('express').Request} req
+ * @param {string} userId
  */
 async function recordConsentWithdrawal(req, userId) {
     try {
@@ -327,7 +337,7 @@ async function recordConsentWithdrawal(req, userId) {
  * voice profile is not org-wide public information; org admins additionally
  * get the per-member list so they can chase up adoption and offboarding.
  */
-router.get('/org/:orgId/coverage', requireAuth, async (req, res) => {
+router.get('/org/:orgId/coverage', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
@@ -355,7 +365,7 @@ router.get('/org/:orgId/coverage', requireAuth, async (req, res) => {
  * Deliberately the ONLY thing an admin may do to someone else's voiceprint —
  * there is no corresponding create, and no read.
  */
-router.delete('/org/:orgId/user/:userId', requireAuth, async (req, res) => {
+router.delete('/org/:orgId/user/:userId', requireAuth, /** @param {import('express').Request<{ orgId: string, userId: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const { orgId, userId } = req.params;
     if (!(await isOrgAdminForOrg(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can revoke voice profiles' });

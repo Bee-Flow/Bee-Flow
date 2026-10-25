@@ -220,3 +220,7 @@ module.exports = {
     extractLeakedToolCalls,
     recoverLeakedToolCalls,
 };
+
+/** @typedef {{ name: string, args: object, raw: string, format: string }} LeakedCall */
+
+/** @typedef {{ name: string | null, reason: 'unknown_tool' | 'unparsable', raw: string, format: string }} RejectedCall */

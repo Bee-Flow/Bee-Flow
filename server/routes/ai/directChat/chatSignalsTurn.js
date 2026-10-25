@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Direct chat → chat signals (core/privacy/chatSignals.js).
@@ -27,7 +28,10 @@
 const chatSignals = require('../../../core/privacy/chatSignals');
 const { bestEffort } = require('../../../utils/bestEffort');
 
-/** The marker and the switch the composer sent; anything else reads as absent. */
+/**
+ * The marker and the switch the composer sent; anything else reads as absent.
+ * @param {import('express').Request} req
+ */
 function _fromBody(req) {
     const body = req && req.body && typeof req.body === 'object' ? req.body : {};
     return {
@@ -46,7 +50,7 @@ function _providerOf(config) {
  * turn counts under exactly the org whose notice the person saw), then count.
  * @param {any} req
  * @param {string} userId
- * @param {object} turn everything countTurn needs except the org key
+ * @param {Omit<Parameters<typeof import('../../../core/privacy/chatSignals').countTurn>[0], 'orgKey' | 'userId'>} turn everything countTurn needs except the org key
  */
 function _countLater(req, userId, turn) {
     void (async () => {

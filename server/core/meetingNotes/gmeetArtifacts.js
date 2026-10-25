@@ -326,3 +326,5 @@ module.exports = {
     downloadRecordingToFile,
     extractAudioTrack,
 };
+
+/** @typedef {{ accessToken?: string, refreshToken?: string } | undefined} GoogleSession  a live session or vault shim */

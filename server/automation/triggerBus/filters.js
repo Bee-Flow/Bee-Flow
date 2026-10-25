@@ -555,3 +555,7 @@ function pickMatcher(provider, event) {
 }
 
 module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };
+
+/** @typedef {Record<string, any>} TriggerPayload  an event payload: loose provider JSON, shape differs per provider */
+
+/** @typedef {Record<string, any>} TriggerFilter  a trigger's filter as authored: loose JSON, keys differ per event */

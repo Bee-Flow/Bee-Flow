@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { GUID } = require('../auth/microsoftIdentity');
@@ -7,13 +8,30 @@ const log = require('../telemetry/log');
 
 // The dry run opens only a read-only transaction. It does not import stores
 // whose initialization creates tables, migrates rows or starts background work.
+/**
+ * @typedef {{ syncOrganizationId?: string, syncTenantId?: string, configuredBy?: string, configuredAt?: string }} SyncBinding
+ * @typedef {{ apply: boolean, tenantId: string | null, binding: SyncBinding | null, autoBinding: SyncBinding | null,
+ *   syncBindingAmbiguous: string[], schemaUpgradeRequired: boolean, organizations: Record<string, any>[],
+ *   verified: { userId: string, tenantId: string, objectId: string, basis: string }[],
+ *   unresolved: { userId: string, reason: string }[], duplicateIdentities: { objectId: string, users: string[] }[],
+ *   groups: { groupId: string, tenantId: string, objectId: string, organizationId: string }[],
+ *   duplicateGroups: { identity: string, groups: string[] }[], periodicSyncsDisabled: string[],
+ *   plaintextSecretProviders: string[] }} UpgradeReport
+ */
+/**
+ * @param {{ db: { withTransaction: typeof import('../db').withTransaction }, initialize: () => Promise<void>,
+ *   migrateSecrets: () => Promise<unknown>, request?: typeof fetch, tokenFor?: typeof getClientCredentialsToken }} deps
+ */
 function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetch, tokenFor = getClientCredentialsToken }) {
+    /** @param {{ apply?: boolean }} [opts] */
     return async function inspectUpgrade({ apply = false } = {}) {
         if (apply) await initialize();
         const snapshot = await db.withTransaction(async client => {
             await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
             const { rows: columns } = await client.query("SELECT table_name, column_name FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('config','users','groups','organizations')");
-            const has = (table, column) => columns.some(c => c.table_name === table && c.column_name === column);
+            /** @param {string} table @param {string} column */
+            const has = (table, column) => columns.some(/** @param {Record<string, any>} c */ c => c.table_name === table && c.column_name === column);
+            /** @param {string} sql */
             const rows = async sql => (await client.query(sql)).rows;
             const config = has('config', 'key') ? await rows('SELECT key,value FROM config') : [];
             const users = has('users', 'azureUserId') ? await rows(`SELECT id,"azureUserId",${has('users', 'azureTenantId') ? '"azureTenantId"' : 'NULL::text AS "azureTenantId"'},"organizationId" FROM users WHERE "azureUserId" IS NOT NULL`) : [];
@@ -21,12 +39,15 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
             const organizations = has('organizations', 'id') ? await rows('SELECT id,name FROM organizations') : [];
             return { config, users, groups, organizations, schemaUpgradeRequired: !has('users', 'azureTenantId') || !has('groups', 'azureTenantId') };
         });
-        const values = new Map(snapshot.config.map(row => [row.key, row.value]));
+        const values = new Map(snapshot.config.map(/** @param {Record<string, any>} row */ row => [row.key, row.value]));
+        /** @param {string} key */
         const read = key => values.has(key) ? JSON.parse(values.get(key)) : null;
         const providers = read('providers') || {};
         const ms = providers.microsoft || {};
         const tenantId = GUID.test(ms.tenantId || '') ? ms.tenantId.toLowerCase() : null;
+        /** @type {SyncBinding | null} */
         let binding = read('azure_group_sync_binding');
+        /** @type {UpgradeReport} */
         const report = { apply, tenantId, binding: binding || null, autoBinding: null, syncBindingAmbiguous: [], schemaUpgradeRequired: snapshot.schemaUpgradeRequired,
             organizations: snapshot.organizations, verified: [], unresolved: [], duplicateIdentities: [], groups: [],
             duplicateGroups: [], periodicSyncsDisabled: [], plaintextSecretProviders: [] };
@@ -51,6 +72,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
             grouped.set(key, [...(grouped.get(key) || []), group.id]);
         }
         for (const [identity, ids] of grouped) if (ids.length > 1) report.duplicateGroups.push({ identity, groups: ids });
+        /** @type {Awaited<ReturnType<typeof getClientCredentialsToken>> | undefined} */
         let token;
         if (tenantId && ms.clientId) {
             const rawSecret = values.get('oauth_microsoft_client_secret');
@@ -61,15 +83,17 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
                 catch (err) { log.debug('Directory unavailable: leave identities unbound.', err); }
             }
         }
+        /** @param {string} kind @param {string} oid */
         const verifyDirectoryObject = async (kind, oid) => {
             const response = await request(`https://graph.microsoft.com/v1.0/${kind}/${oid}?$select=id`, {
                 headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000),
             });
-            const data = response.ok ? await response.json() : null;
+            const data = /** @type {{ id?: string }|null} */ (response.ok ? await response.json() : null);
             return data?.id?.toLowerCase() === oid.toLowerCase();
         };
         // 'yes' | 'no' (the directory answered that the object does not exist) |
         // 'unknown' (no credentials, missing Graph permission, network error).
+        /** @param {string} oid */
         const checkUser = async oid => {
             if (!token) return 'unknown';
             try {
@@ -78,10 +102,10 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
                 });
                 if (response.status === 404) return 'no';
                 if (!response.ok) return 'unknown';
-                return (await response.json())?.id?.toLowerCase() === oid.toLowerCase() ? 'yes' : 'no';
+                return (/** @type {{ id?: string }} */ (await response.json()))?.id?.toLowerCase() === oid.toLowerCase() ? 'yes' : 'no';
             } catch { return 'unknown'; }
         };
-        for (const user of snapshot.users.filter(u => !u.azureTenantId)) {
+        for (const user of snapshot.users.filter(/** @param {Record<string, any>} u */ u => !u.azureTenantId)) {
             if (!tenantId || !GUID.test(user.azureUserId) || seen.get(user.azureUserId.toLowerCase()).length !== 1) {
                 report.unresolved.push({ userId: user.id, reason: 'administrator_confirmation_required' }); continue;
             }
@@ -98,7 +122,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
         // configured concrete tenant, so periodic sync keeps running. Anything
         // else stays unbound until a platform administrator decides.
         if (!binding?.syncOrganizationId || !GUID.test(binding.syncTenantId || '')) {
-            const known = new Set(snapshot.organizations.map(o => o.id));
+            const known = new Set(snapshot.organizations.map(/** @param {Record<string, any>} o */ o => o.id));
             const candidates = new Set();
             for (const [key] of values) {
                 if (!key.startsWith('azure_group_sync_') || key.startsWith('azure_group_sync_status_') || key === 'azure_group_sync_binding') continue;
@@ -139,6 +163,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
         return report;
     };
 }
+/** @param {{ apply?: boolean }} [options] */
 function inspectUpgrade(options) {
     return createUpgradeInspector({ db: require('../db'),
         initialize: async () => { await require('../stores/userStore').initDB(); await require('../stores/configStore').initDB(); },

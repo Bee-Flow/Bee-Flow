@@ -110,3 +110,12 @@ function cleanProps(node, spec, id, path, push) {
 }
 
 module.exports = { cleanPropValue, cleanProps };
+
+/**
+ * @typedef {object} PropFieldSpec  One entry of a COMPONENT_SPECS `props` table.
+ * @property {string} type
+ * @property {number} [maxLen]
+ * @property {number} [itemMaxLen]
+ * @property {unknown} [default]
+ * @property {Record<string, { maxLen?: number }>} [itemShape]
+ */

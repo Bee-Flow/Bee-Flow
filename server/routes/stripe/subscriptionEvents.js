@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Subscription-lifecycle webhooks: customer.subscription.created/updated,
  * trial_will_end and customer.subscription.deleted — plus the two idempotent
@@ -13,13 +14,33 @@ const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
+ * The fields of a Stripe subscription (as delivered, unexpanded, in a webhook)
+ * that these handlers read.
+ * @typedef {{
+ *   id: string,
+ *   status: string,
+ *   customer?: string,
+ *   metadata?: Record<string, string> | null,
+ *   items?: { data?: Array<{ quantity?: number, price?: { id?: string, product?: string, nickname?: string | null, unit_amount?: number | null, currency?: string, recurring?: { interval?: string } | null } | null }> },
+ *   current_period_start?: number,
+ *   current_period_end?: number | null,
+ *   billing_cycle_anchor?: number,
+ *   trial_end?: number | null,
+ *   cancel_at_period_end?: boolean,
+ *   cancel_at?: number | null,
+ * }} WebhookSubscription
+ */
+
+/**
  * customer.subscription.updated — Plan change, trial ending, status change
+ * @param {WebhookSubscription} subscription
  */
 async function handleSubscriptionUpdated(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
 
     // past_due no longer collapses to 'active' — customers behind on payments
     // surface as past_due so dunning + cron suspension can take effect.
+    /** @type {Record<string, string>} */
     const statusMap = {
         active: 'active',
         past_due: 'past_due',
@@ -31,6 +52,7 @@ async function handleSubscriptionUpdated(subscription) {
         unpaid: 'suspended',
     };
 
+    /** @type {Record<string, string>} */
     const paymentStatusMap = {
         active: 'paid',
         past_due: 'past_due',
@@ -42,6 +64,7 @@ async function handleSubscriptionUpdated(subscription) {
         unpaid: 'failed',
     };
 
+    /** @type {{ status: string, payment_status: string, stripe_subscription_id: string, stripe_seat_quantity?: number, billing_cycle_start?: string, plan_id?: string, trial_end_date?: string, cancel_at_period_end?: boolean, cancel_at?: string | null, current_period_end?: string | null }} */
     const updateData = {
         status: statusMap[subscription.status] || 'active',
         payment_status: paymentStatusMap[subscription.status] || subscription.status,
@@ -204,6 +227,7 @@ async function handleSubscriptionUpdated(subscription) {
  * ends. Persist an audit row, then send the customer a "trial ending" email
  * with a portal link to add a payment method. The send is gated by
  * `notifications_sent` so re-delivered webhooks don't double-send.
+ * @param {WebhookSubscription} subscription
  */
 async function handleTrialWillEnd(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
@@ -227,6 +251,9 @@ async function handleTrialWillEnd(subscription) {
 // FIRST and only sends if the claim succeeded; that way a webhook redelivery
 // after a partial failure doesn't re-spam the customer. Failures are
 // swallowed: a missing email or a transient SMTP error must not 5xx Stripe.
+/**
+ * @param {{ scope: string, orgId?: string, userId?: string, subscription: { id?: string, customer?: string }, trialEndIso: string|null }} p
+ */
 async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, trialEndIso }) {
     try {
         const targetType = scope === 'consumer' ? 'consumer' : 'organization';
@@ -273,7 +300,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
         let portalUrl = `${clientHost}${appPaths.legacyBillingSettingsPath()}`;
         try {
             if (subscription.customer) {
-                const portal = await stripeService.createPortalSession(subscription.customer, portalUrl);
+                const portal = /** @type {{ url: string }} */ (await stripeService.createPortalSession(subscription.customer, portalUrl));
                 if (portal?.url) portalUrl = portal.url;
             }
         } catch (e) {
@@ -303,6 +330,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
  * per-subscription notification slot first so a webhook redelivery never
  * re-sends. All failures are swallowed — a notification must never 5xx Stripe.
  */
+/** @param {WebhookSubscription} subscription */
 async function _notifyAdminNewSubscriptionOnce(subscription) {
     try {
         const configStore = require('../../stores/configStore');
@@ -376,6 +404,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
 /**
  * customer.subscription.deleted — Subscription cancelled or expired
  */
+/** @param {WebhookSubscription} subscription */
 async function handleSubscriptionDeleted(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
 
@@ -425,6 +454,10 @@ async function handleSubscriptionDeleted(subscription) {
     }
 }
 
+/**
+ * @param {string} orgId
+ * @param {WebhookSubscription} _subscription
+ */
 async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
     // BFSF-226: a no-card trial that ends without payment (or any never-paid
     // subscription) should drop the org back to the capped Free plan rather than
@@ -449,6 +482,10 @@ async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
     log.info(`[Stripe Webhook] Subscription cancelled for org ${orgId}`);
 }
 
+/**
+ * @param {string} userId
+ * @param {WebhookSubscription} _subscription
+ */
 async function handleSubscriptionDeletedForConsumer(userId, _subscription) {
     await userStore.setConsumerSubscription(userId, {
         status: 'cancelled',

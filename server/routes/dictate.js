@@ -72,7 +72,7 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: MAX_BYTES, files: 1 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string }} */ file, /** @type {(err: Error | null, accept: boolean) => void} */ cb) => {
         const ok = /^audio\//i.test(file.mimetype || '') || /^video\/webm/i.test(file.mimetype || '');
         // MediaRecorder in Chrome labels its output video/webm even for an
         // audio-only track, so that one non-audio type has to be allowed.
@@ -81,7 +81,7 @@ const upload = multer({
 });
 
 router.post('/', requireAuth, (req, res, next) => {
-    upload.single('audio')(req, res, (err) => {
+    upload.single('audio')(req, res, (/** @type {(Error & { code?: string }) | undefined} */ err) => {
         if (!err) return next();
         const tooBig = err.code === 'LIMIT_FILE_SIZE';
         return res.status(tooBig ? 413 : 400).json({

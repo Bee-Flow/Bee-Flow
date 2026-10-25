@@ -53,6 +53,11 @@ const { FIELD_TYPES, DISPLAY_FIELD_TYPES, CHOICE_FIELD_TYPES, MAX_FIELDS, valida
 const { PARAM_NAME_RE } = require('./appTriggerContract');
 const { mergeRevision, currentInfoBlocks } = require('./formDraftRevise');
 
+/**
+ * @typedef {import('./formTriggerContract').FormField} FormField
+ * @typedef {import('./formTriggerContract').FormDeclaration} FormDeclaration
+ */
+
 // A pasted intake document or a long e-mail fits; a whole handbook does not.
 const MAX_BRIEF_CHARS = 12000;
 const MAX_NOTE_CHARS = 2000;
@@ -136,11 +141,18 @@ const SYSTEM_COMMON = [
     'Submit with the draft_form tool.',
 ].join('\n');
 
+/**
+ * @param {unknown} v
+ * @param {number} max
+ */
 function clean(v, max) {
     return typeof v === 'string' ? v.replace(/\r\n?/g, '\n').trim().slice(0, max) : '';
 }
 
-/** The current questions as quoted lines the model can refer to by name. */
+/**
+ * The current questions as quoted lines the model can refer to by name.
+ * @param {FormDeclaration | null | undefined} current
+ */
 function describeCurrent(current) {
     // Text blocks are not questions: the model never sees them (they are put back after).
     const fields = normalizeFields(current).filter(f => f.type !== 'info');
@@ -157,6 +169,7 @@ function describeCurrent(current) {
  * The messages for one drafting call.
  * `create`: the brief is the material. `revise`: the current form is quoted
  * and the note says what should change.
+ * @param {{ mode?: string, brief?: string, note?: string, current?: FormDeclaration | null }} [p]
  */
 function buildDraftMessages({ mode = 'create', brief = '', note = '', current = null } = {}) {
     const briefText = clean(brief, MAX_BRIEF_CHARS);
@@ -205,7 +218,11 @@ function buildDraftMessages({ mode = 'create', brief = '', note = '', current = 
     ];
 }
 
-/** Server twin of FormBuilderFields.slugifyFieldName: a label → a PARAM_NAME_RE name, unique. */
+/**
+ * Server twin of FormBuilderFields.slugifyFieldName: a label → a PARAM_NAME_RE name, unique.
+ * @param {unknown} label
+ * @param {Set<string>} taken
+ */
 function nameFromLabel(label, taken) {
     const base = String(label || '')
         .normalize('NFKD')
@@ -224,6 +241,7 @@ function nameFromLabel(label, taken) {
     return null;
 }
 
+/** @param {unknown} raw */
 function parseOptions(raw) {
     if (!Array.isArray(raw)) return [];
     const seen = new Set();
@@ -244,6 +262,8 @@ function parseOptions(raw) {
  * back. `current` is the form as it is now (revise: names are kept from it;
  * both modes: the theme and `collect` are carried over, the model never sees
  * or sets them).
+ * @param {Record<string, any> | null | undefined} structured
+ * @param {{ mode?: string, current?: FormDeclaration | null }} [opts]
  */
 function parseFormDraft(structured, { mode = 'create', current = null } = {}) {
     if (!structured || typeof structured !== 'object') return null;
@@ -279,6 +299,7 @@ function parseFormDraft(structured, { mode = 'create', current = null } = {}) {
         // check below — which would throw away the whole draft over one field.
         const source = type === 'app_pick' && PICK_SOURCE_IDS.includes(raw.source) ? raw.source : '';
         if (type === 'app_pick' && !source) type = 'text';
+        /** @type {FormField} */
         const field = {
             name,
             type,
@@ -296,9 +317,15 @@ function parseFormDraft(structured, { mode = 'create', current = null } = {}) {
     }
     if (!fields.length) return null;
 
+    /**
+     * @param {string} key
+     * @param {number} max
+     */
     const keep = (key, max) => (typeof structured[key] === 'string' && structured[key].trim() ? clean(structured[key], max) : null);
     const cur = current && typeof current === 'object' ? current : {};
+    /** @param {FormField[]} list */
     const assemble = (list) => {
+        /** @type {FormDeclaration} */
         const form = {
             title: keep('title', MAX_LABEL_CHARS) || (typeof cur.title === 'string' && cur.title) || 'Untitled form',
             description: keep('description', MAX_TEXT_CHARS) ?? (mode === 'revise' && typeof cur.description === 'string' ? cur.description : ''),
@@ -315,7 +342,9 @@ function parseFormDraft(structured, { mode = 'create', current = null } = {}) {
     // The contract's own verdict, last: an issue list, empty when the form
     // is acceptable as it stands. A text block is allowed (it asks nothing);
     // download/notebook are not.
-    const verdict = (form) => validateFormDeclaration(form, { requireFields: true, allowDisplayFields: false, allowInfo: true });
+    /** @param {FormDeclaration} form */
+    const verdict = (form) => validateFormDeclaration(
+form, { requireFields: true, allowDisplayFields: false, allowInfo: true });
     let form;
     if (mode === 'revise') {
         // Carry what the model was not taught; when the merged form no longer

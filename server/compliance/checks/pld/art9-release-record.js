@@ -339,3 +339,5 @@ module.exports = {
 };
 
 Object.assign(module.exports, { _test: { _recordBuild, _orgSubject, _evaluateOrgSubject, GRACE_DAYS, PLATFORM_SUBJECT_ID } });
+
+/** @typedef {{ id: string, label?: string, name?: string, kind?: string, entity_id?: string, release_count?: number, last_release_at?: string | null, last_version?: string | null, updated_at?: string | null, published_version_id?: string | null, org_subjects?: number, not_provisioned?: string[] }} ReleaseSubject */

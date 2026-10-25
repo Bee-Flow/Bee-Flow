@@ -199,3 +199,5 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
 });
 
 module.exports = router;
+
+/** @typedef {{ actionItems: object[], decisions: object[], questions: object[], tags: string[] }} UsableArtifacts  what `artifactsUsable` lets through */

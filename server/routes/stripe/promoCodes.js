@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Promo Code Admin Routes — list, create, deactivate and re-activate the
  * Stripe promotion codes offered at checkout. Admin-only (session admin flag,

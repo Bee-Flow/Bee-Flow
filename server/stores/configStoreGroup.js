@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Several config reads/writes as ONE transaction (see withConfigGroup). Split out
 // of configStore.js; the store injects its own init, transaction and cache hooks.
 
@@ -27,11 +27,17 @@ function createWithConfigGroup({ initDB, withTransaction, onWritten }) {
         const result = await withTransaction(async (client) => {
             await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [lockKey]);
             return work({
+                /**
+                 * @param {string} key
+                 */
                 async get(key) {
                     const row = await client.query('SELECT value FROM config WHERE key = $1', [key]);
                     if (!row.rows.length) return null;
                     try { return JSON.parse(row.rows[0].value); } catch (_) { return row.rows[0].value; }
                 },
+                /**
+                 * @param {string} key
+                 */
                 async set(key, value) {
                     const stringValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
                     await client.query(
@@ -41,9 +47,12 @@ function createWithConfigGroup({ initDB, withTransaction, onWritten }) {
                     );
                     written.push(key);
                 },
+                /**
+                 * @param {string} pattern
+                 */
                 async keysLike(pattern) {
                     const rows = await client.query('SELECT key FROM config WHERE key LIKE $1', [pattern]);
-                    return rows.rows.map((r) => r.key);
+                    return rows.rows.map((/** @type {{ key: string }} */ r) => r.key);
                 },
             });
         });

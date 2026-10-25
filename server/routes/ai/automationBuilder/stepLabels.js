@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — POST /label-steps: fast-tier auto-label and auto-icon
  * for the steps in a flow.
@@ -62,7 +63,7 @@ const ICONS_TEXT = 'allowedIcons is the list of icon names the client can draw.'
 
 const LabelStepsBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     definition: z.unknown().superRefine((def, ctx) => {
-        if (!def || typeof def !== 'object' || Array.isArray(def) || !Array.isArray(def.steps)) {
+        if (!def || typeof def !== 'object' || Array.isArray(def) || !Array.isArray(/** @type {{ steps?: unknown }} */ (def).steps)) {
             ctx.addIssue({ code: 'custom', message: DEFINITION_TEXT });
         }
     }),
@@ -71,6 +72,9 @@ const LabelStepsBody = z.preprocess((v) => (v === undefined || v === null ? {} :
 }).strict());
 
 // Compact, deterministic one-liner describing a step's purpose for the namer.
+/**
+ * @param {Record<string, unknown> & { appEvent?: { provider?: string, event?: string } }} s  one stored step (loose JSON)
+ */
 function describeStepForLabel(s) {
     const bits = [`type=${s.type}`];
     if (s.tool) bits.push(`tool=${s.tool}`);
@@ -114,6 +118,7 @@ router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ bod
 
     // Collect non-output steps with at least one unlocked field.
     const { walkSteps } = require('../../../automation/stepContract');
+    /** @type {Array<{ id: string, needLabel: boolean, needIcon: boolean, desc: string }>} */
     const targets = [];
     walkSteps(def.steps, (s) => {
         if (!s.id || s.type === 'layer_output') return;
@@ -146,10 +151,12 @@ router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ bod
     }
 
     const targetById = new Map(bounded.map(t => [t.id, t]));
+    /** @type {Record<string, { label?: string, icon?: string }>} */
     const labels = {};
     for (const row of (structured?.steps || [])) {
         const t = row && row.id && targetById.get(row.id);
         if (!t) continue;
+        /** @type {{ label?: string, icon?: string }} */
         const entry = {};
         if (t.needLabel && typeof row.label === 'string' && row.label.trim()) {
             entry.label = row.label.trim().slice(0, 60);

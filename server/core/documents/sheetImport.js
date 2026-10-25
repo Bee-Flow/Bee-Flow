@@ -59,7 +59,10 @@ function formatOf(fileName, mimeType) {
     return /** @type {Record<string, string>} */ (MIME_FORMATS)[mime] || null;
 }
 
-/** The file name without its extension, as the document's name. */
+/**
+ * The file name without its extension, as the document's name.
+ * @param {string} fileName
+ */
 function documentNameOf(fileName) {
     const base = String(fileName || '').replace(/^.*[\\/]/, '').replace(/\.[a-z0-9]+$/i, '').trim();
     return (base || 'Imported spreadsheet').slice(0, 200);

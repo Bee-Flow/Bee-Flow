@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.24 — Cryptography: the envelope-encryption architecture is
  * intact and its platform keys are configured.
@@ -66,11 +66,12 @@ module.exports = {
     remediationLink: null,
     async evaluate() {
         let encryption = null;
+        /** @type {string | null} */
         let loadError = null;
         try {
             encryption = require(ENCRYPTION_PATH);
         } catch (e) {
-            loadError = e.message;
+            loadError = /** @type {Error} */ (e).message;
         }
         const missingExports = encryption
             ? REQUIRED_EXPORTS.filter(fn => typeof encryption[fn] !== 'function')
@@ -78,6 +79,7 @@ module.exports = {
 
         const primitives = _readPrimitives();
 
+        /** @type {Record<string, unknown>} */
         const evidence = {
             module_loaded: !!encryption,
             missing_exports: missingExports,

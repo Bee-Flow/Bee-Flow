@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: per-version change summary.
  *

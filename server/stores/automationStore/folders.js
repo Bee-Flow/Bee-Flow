@@ -123,3 +123,15 @@ module.exports = {
     deleteFolder,
     MAX_FOLDER_NAME_LEN: MAX_NAME_LEN,
 };
+
+/**
+ * @typedef {object} FolderRow
+ * @property {string} id
+ * @property {string | null} [organization_id]
+ * @property {string} name
+ * @property {string | null} [icon]
+ * @property {string | null} [color]
+ * @property {string | Date} created_at
+ * @property {string | Date} updated_at
+ * @property {number | string} [automation_count]
+ */

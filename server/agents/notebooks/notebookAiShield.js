@@ -39,7 +39,7 @@
 const telemetryLog = require('../../telemetry/log');
 
 async function shieldNotebookPrompt({ orgId, userId, notebookId, sourceText, otherUnits = [] }, deps = {}) {
-    const getConfig = deps.getConfig || ((key) => require('../../stores/configStore').getConfig(key));
+    const getConfig = deps.getConfig || ((/** @type {string} */ key) => require('../../stores/configStore').getConfig(key));
     const resolveShieldFor = deps.resolveShieldFor || require('../../core/privacy/orgShield').resolveShieldFor;
     const stripInjectedText = deps.stripInjectedText || require('../../core/privacy/toolPiiGate').stripInjectedText;
     const composeScan = deps.composeScan || require('../../core/dlp/composeScan').composeScan;

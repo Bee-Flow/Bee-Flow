@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * automation_notification_events — every notification an automation sent, or
  * held back (Studio → Automations handoff 5). The table comes from
@@ -27,16 +27,33 @@
 
 const crypto = require('crypto');
 
+/**
+ * @typedef {object} EventRow
+ * @property {string} id
+ * @property {string} automation_id
+ * @property {string | null} [run_id]
+ * @property {string} event
+ * @property {string} recipient_user_id
+ * @property {string} channel
+ * @property {string} urgency
+ * @property {string | Date} created_at
+ * @property {string | Date | null} [delivered_at]
+ * @property {boolean | null} [bundled]
+ * @property {string | Date | null} [digest_sent_at]
+ */
+
 function newEventId() {
     return 'ane_' + crypto.randomBytes(12).toString('hex');
 }
 
+/** @param {Date | string | number | null} v */
 function iso(v) {
     if (!v) return null;
     const d = v instanceof Date ? v : new Date(v);
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/** @param {EventRow | null} r */
 function rowToEvent(r) {
     if (!r) return null;
     return {
@@ -147,7 +164,11 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         }));
     }
 
-    /** Mark held rows as reported (bundle message or daily summary). */
+    /**
+     * Mark held rows as reported (bundle message or daily summary).
+     * @param {string[]} ids
+     * @param {Date} [at]
+     */
     async function markEventsReported(ids, at = new Date()) {
         await ready();
         const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
@@ -266,7 +287,11 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         return out;
     }
 
-    /** The automation's most recent notification attempts, newest first. */
+    /**
+     * The automation's most recent notification attempts, newest first.
+     * @param {string} automationId
+     * @param {{ limit?: number }} [opts]
+     */
     async function listRecentNotificationEvents(automationId, { limit = 20 } = {}) {
         await ready();
         const r = await db.query(
@@ -310,13 +335,18 @@ function defaultStore() {
     return makeNotificationEventsStore({ query: (sql, params) => pool.query(sql, params) }, { ready: initDB });
 }
 
+/** @type {ReturnType<typeof makeNotificationEventsStore> | null} */
 let _default = null;
 function instance() {
     if (!_default) _default = defaultStore();
     return _default;
 }
 
-const lazy = (name) => (...args) => instance()[name](...args);
+/**
+ * @template {keyof ReturnType<typeof makeNotificationEventsStore>} K
+ * @param {K} name
+ */
+const lazy = (name) => /** @param {Parameters<ReturnType<typeof makeNotificationEventsStore>[K]>} args */ (...args) => /** @type {(...a: Parameters<ReturnType<typeof makeNotificationEventsStore>[K]>) => ReturnType<ReturnType<typeof makeNotificationEventsStore>[K]>} */ (instance()[name])(...args);
 
 module.exports = {
     makeNotificationEventsStore,

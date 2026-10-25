@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * notes_append: add text to the note with this title, or create it.
@@ -9,6 +9,7 @@
  * A title the way Notes stores it. Notes derives the file name from the title
  * and strips what a file name cannot hold, so the stored title differs from
  * the one that was sent. Both sides of a comparison go through this.
+ * @param {string} title
  */
 function titleKey(title) {
     return String(title ?? '')
@@ -24,6 +25,9 @@ function titleKey(title) {
  * The note an append targets: same title as stored (see titleKey). With
  * several matches, one in the requested category wins, then the lowest id, so
  * the choice is the same on every run.
+ * @param {Array<{ id: number | string, title?: string, category?: string }> | null | undefined} all
+ * @param {string} title
+ * @param {string | undefined} category
  */
 function findAppendTarget(all, title, category) {
     if (!Array.isArray(all)) return null;

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Customer Support Routes — AI-first inbox for Bee Flow B.V. customers.
  *
@@ -33,6 +34,14 @@ const cannedResponses = require('./support/cannedResponses');
 const satisfaction = require('./support/satisfaction');
 const issueLinks = require('./support/issueLinks');
 
+/**
+ * The router plus the helpers attached to the export below (`module.exports.x = ...`).
+ * @typedef {import('express').Router & {
+ *   supportEvents: typeof supportEvents,
+ *   renderCannedBody: typeof renderCannedBody,
+ *   notifyStaff: typeof notifyStaff,
+ * }} SupportRouter
+ */
 const router = express.Router();
 
 threads.registerThreadRoutes(router);
@@ -46,7 +55,7 @@ satisfaction.register(router);
 issueLinks.register(router);
 
 // Exported so server/index.js can trigger SLA checks.
-module.exports = router;
-module.exports.supportEvents = supportEvents;
-module.exports.renderCannedBody = renderCannedBody;
-module.exports.notifyStaff = notifyStaff;
+module.exports = /** @type {SupportRouter} */ (router);
+/** @type {SupportRouter} */ (module.exports).supportEvents = supportEvents;
+/** @type {SupportRouter} */ (module.exports).renderCannedBody = renderCannedBody;
+/** @type {SupportRouter} */ (module.exports).notifyStaff = notifyStaff;

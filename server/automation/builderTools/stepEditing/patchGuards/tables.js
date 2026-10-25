@@ -53,3 +53,7 @@ function patchTableStep(graph, step, patch, next, draftWrap, patchNotes) {
 }
 
 module.exports = { patchTableStep };
+
+/** @typedef {import('../../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {import('../../draftGraph').DraftGraph} DraftGraph */

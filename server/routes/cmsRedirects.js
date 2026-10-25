@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Redirect manager routes of the CMS, mounted by routes/cms.js under
  * /sites/:siteId/redirects behind requireAdmin + attachSiteIdFromParam:
@@ -22,6 +22,10 @@ const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, typeError } = require('../core/http/schemaParts');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
+/**
+ * @param {string} field
+ * @param {number} max
+ */
 const text = (field, max) => worded(`${field} is text of at most ${max} characters.`).max(max, `${field} is at most ${max} characters.`);
 const setBody = validate({
     body: bodyOf({
@@ -36,10 +40,16 @@ const hostsBody = validate({
 });
 const writeLimiter = perUserRateLimit({ windowMs: 60_000, max: 120 });
 
-/** The host of an external target, never the whole URL. */
+/**
+ * The host of an external target, never the whole URL.
+ * @param {unknown} to
+ */
 const hostOf = (to) => { try { return new URL(String(to)).hostname; } catch { return null; } };
 
-/** A refused redirect is the caller's fault: a 400 with its sentence. */
+/**
+ * A refused redirect is the caller's fault: a 400 with its sentence.
+ * @param {Error} err
+ */
 function asHttp(err) {
     if (err instanceof RedirectError) return new HttpError(400, err.code, err.message);
     return err;
@@ -52,7 +62,12 @@ function createRedirectsRouter() {
         res.json(await cmsStore.getRedirects(req.siteId, { fresh: true }));
     });
 
-    /** Who changed what: ids, addresses and hosts, never a full target URL. */
+    /**
+     * Who changed what: ids, addresses and hosts, never a full target URL.
+     * @param {import('express').Request} req
+     * @param {string} action
+     * @param {Record<string, unknown> & { id?: string }} details
+     */
     const audit = (req, action, details) => require('../stores/userStore').logAccessAudit(
         action, 'cms_redirect', details.id || req.siteId, req.session?.user?.id || null, null, { siteId: req.siteId, ...details }, req.session?.user?.organizationId || null,
     );

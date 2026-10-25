@@ -36,3 +36,5 @@ async function resolveMarking(orgId, info) {
 }
 
 module.exports = { setMarkingResolver, hasMarkingResolver, resolveMarking };
+
+/** @typedef {(orgId: string, info: { automationId?: string, aiStepIds?: string[], provider?: string }) => Promise<object|null>} MarkingResolver */

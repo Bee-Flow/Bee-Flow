@@ -14,10 +14,16 @@ const agentStore = require('../../../stores/agentStore');
 const { encryptionOpts } = require('./shared');
 const log = require('../../../telemetry/log');
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+
+/**
+ * @param {Turn} turn
+ * @param {{ groups?: string[] }} toolArgs
+ */
 function applyLoadTools(turn, toolArgs) {
     const { send, toolDisclosure, disclosureLazyByGroup, directChatTools, activatedToolGroups } = turn;
     if (!disclosureLazyByGroup) return 'Tool groups are not available in this conversation.';
-    const loadedNames = new Set(directChatTools.map(t => t.function?.name || t.name));
+    const loadedNames = new Set(directChatTools.map(t => /** @type {string} */ (t.function?.name || t.name)));
     const res = toolDisclosure.expandGroups(toolArgs?.groups, {
         lazyByGroup: disclosureLazyByGroup,
         loadedNames,
@@ -35,15 +41,20 @@ function applyLoadTools(turn, toolArgs) {
     // persisted. Expanding a group is a deliberate one-off cache
     // rebuild; drifting order would make every turn after it one too.
     directChatTools.sort((a, b) =>
-        (a.function?.name || a.name || '').localeCompare(b.function?.name || b.name || ''));
+        /** @type {string} */ (a.function?.name || a.name || '').localeCompare(/** @type {string} */ (b.function?.name || b.name || '')));
     for (const key of res.added) activatedToolGroups.add(key);
     if (res.added.length) send('tools_loaded', { groups: res.added });
     return toolDisclosure.buildLoadResult(res);
 }
 
+/**
+ * @param {Turn} turn
+ * @param {string[]} justActivatedIds
+ */
 async function onSkillsActivated(turn, justActivatedIds) {
     const { req, userId, convId, skillApps, activatedLibrarySkillIds, directChatTools, baseDirectToolNames } = turn;
-    const result = { addedTools: [], unavailableApps: [] };
+    const result = { addedTools: /** @type {string[]} */ ([]), unavailableApps: /** @type {string[]} */ ([]) };
+    /** @type {string[]} */
     const newApps = [];
     let activationChanged = false;
     for (const sid of justActivatedIds || []) {
@@ -73,7 +84,7 @@ async function onSkillsActivated(turn, justActivatedIds) {
             isAdmin: req.session?.isAdmin,
             extraEnabledApps: skillApps.allowedApps,
         });
-        const loadedNames = new Set(directChatTools.map(t => t.function?.name || t.name));
+        const loadedNames = new Set(directChatTools.map(t => /** @type {string} */ (t.function?.name || t.name)));
         for (const def of fresh.tools) {
             const { _mcp, _n8n, ...clean } = def;
             const cname = clean.function?.name;
@@ -90,7 +101,7 @@ async function onSkillsActivated(turn, justActivatedIds) {
             result.unavailableApps = newApps;
         }
     } catch (err) {
-        log.warn('[DirectChat] Skill-app tool refresh failed:', err.message);
+        log.warn('[DirectChat] Skill-app tool refresh failed:', /** @type {Error} */ (err).message);
         result.unavailableApps = newApps;
     }
     return result;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Bases — sources (K1): the policy and the shared helpers of the
  * sources router. Which kinds may be created and which refresh modes each
@@ -49,6 +50,9 @@ const MAX_DOC_PAGE = 200;
 /** Reason parked on a row between "accepted" and "processed". */
 const QUEUED_REASON = 'Queued for processing';
 
+/** @typedef {NonNullable<Awaited<ReturnType<typeof kbSourcesStore.get>>>} KbSourceApiRow */
+/** @typedef {Awaited<ReturnType<typeof kbStore.countsBySource>>[string]} SourceCounts */
+
 /**
  * ── WHERE A TEXT SNIPPET CAME FROM (M4) ─────────────────────────────
  * The transcript tab files one line of a meeting as a `text` source, and the
@@ -67,16 +71,18 @@ const QUEUED_REASON = 'Queued for processing';
  * the source is stored without an origin at all. A half-filled origin (a
  * transcription id with no line) would make "this line is already filed" true
  * for every line of that meeting.
+ * @param {unknown} raw
  */
 function shapeTextOrigin(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-    const transcriptionId = typeof raw.transcriptionId === 'string' ? raw.transcriptionId.trim().slice(0, 100) : '';
+    const transcriptionId = typeof /** @type {{ transcriptionId?: unknown }} */ (raw).transcriptionId === 'string' ? /** @type {{ transcriptionId: string }} */ (raw).transcriptionId.trim().slice(0, 100) : '';
     if (!transcriptionId) return null;
+    /** @type {{ transcriptionId: string, segmentIndex?: number }} */
     const out = { transcriptionId };
     // Number(null) === 0 would anchor the snippet to the first line of the
     // meeting, so only a real integer counts.
-    if (typeof raw.segmentIndex === 'number' || typeof raw.segmentIndex === 'string') {
-        const seg = Number(raw.segmentIndex);
+    if (typeof /** @type {{ segmentIndex?: unknown }} */ (raw).segmentIndex === 'number' || typeof /** @type {{ segmentIndex?: unknown }} */ (raw).segmentIndex === 'string') {
+        const seg = Number(/** @type {{ segmentIndex: number | string }} */ (raw).segmentIndex);
         if (Number.isInteger(seg) && seg >= 0) out.segmentIndex = seg;
     }
     return out;
@@ -89,7 +95,9 @@ function helpers() {
 /**
  * Load the KB and apply the access policy. Sends the response and returns null
  * when the request must stop.
- * @param {boolean} manage — true for every mutating route
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ manage?: boolean }} [opts]  `manage`: true for every mutating route
  */
 async function resolveKb(req, res, { manage = false } = {}) {
     const kb = await kbStore.getKB(req.params.id);
@@ -114,9 +122,14 @@ async function resolveKb(req, res, { manage = false } = {}) {
     return kb;
 }
 
-/** Load a source and prove it belongs to this KB (never trust the URL pair). */
+/**
+ * Load a source and prove it belongs to this KB (never trust the URL pair).
+ * @param {Record<string, any>} kb
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function resolveSource(kb, req, res) {
-    const source = await kbSourcesStore.get(req.params.sid);
+    const source = await kbSourcesStore.get(/** @type {string} */ (req.params.sid));
     if (!source || String(source.knowledgeBaseId) !== String(kb.id)) {
         res.status(404).json({ error: 'Source not found', code: 'source_not_found' });
         return null;
@@ -129,6 +142,8 @@ async function resolveSource(kb, req, res) {
  * allow-list, never "the row minus a few keys": a column added next year would
  * otherwise start leaking on its own. The pasted text itself never leaves;
  * only its size does.
+ * @param {string} kind
+ * @param {Record<string, any> | null | undefined} config
  */
 function publicSourceConfig(kind, config) {
     const c = config && typeof config === 'object' ? config : {};
@@ -172,8 +187,12 @@ const ZERO_COUNTS = Object.freeze({
     errorCount: 0, duplicateCount: 0, piiFoundCount: 0, totalChunks: 0,
 });
 
-/** Resolve `created_by` ids to `{ id, name }` — best-effort, never fatal. */
+/**
+ * Resolve `created_by` ids to `{ id, name }` — best-effort, never fatal.
+ * @param {Array<string | null | undefined>} ids
+ */
 async function resolveCreators(ids) {
+    /** @type {Record<string, { id: string, name: string | null }>} */
     const out = {};
     const unique = Array.from(new Set((ids || []).filter(Boolean)));
     if (unique.length === 0) return out;
@@ -190,7 +209,12 @@ async function resolveCreators(ids) {
     return out;
 }
 
-/** camelCase + Number() wire shape, like routes/knowledgeBases/system.js. */
+/**
+ * camelCase + Number() wire shape, like routes/knowledgeBases/system.js.
+ * @param {KbSourceApiRow} source
+ * @param {SourceCounts | null | undefined} counts
+ * @param {Record<string, { id: string, name: string | null }> | null | undefined} creators
+ */
 function mapSourceForApi(source, counts, creators) {
     const c = counts || ZERO_COUNTS;
     return {
@@ -200,14 +224,14 @@ function mapSourceForApi(source, counts, creators) {
         config: publicSourceConfig(source.kind, source.config),
         refreshMode: source.refreshMode || 'manual',
         // An i18n KEY, not a sentence: the client renders it with t(key, fallback).
-        refreshLabelKey: REFRESH_LABEL_KEYS[source.refreshMode] || REFRESH_LABEL_KEYS.manual,
+        refreshLabelKey: /** @type {Readonly<Record<string, string>>} */ (REFRESH_LABEL_KEYS)[source.refreshMode] || REFRESH_LABEL_KEYS.manual,
         refreshCron: source.refreshCron || null,
         refreshTz: source.refreshTz || null,
         // The modes THIS kind actually has. Sent rather than hard-coded in
         // the client, so the schedule menu cannot offer something the PATCH
         // would 400 — a page has no "live", a table has no "after every
         // meeting", and a rejected choice teaches that the product is broken.
-        supportsModes: REFRESH_MODES_BY_KIND[source.kind] || ['manual'],
+        supportsModes: /** @type {Readonly<Record<string, string[]>>} */ (REFRESH_MODES_BY_KIND)[source.kind] || ['manual'],
         nextRefreshAt: source.nextRefreshAt || null,
         lastRefreshAt: source.lastRefreshAt || null,
         status: source.status || 'idle',
@@ -227,7 +251,11 @@ function mapSourceForApi(source, counts, creators) {
     };
 }
 
-/** One source in its wire shape, with its own counts and creator. */
+/**
+ * One source in its wire shape, with its own counts and creator.
+ * @param {KbSourceApiRow} source
+ * @param {{ withCounts?: boolean }} [opts]
+ */
 async function sourceForApi(source, { withCounts = false } = {}) {
     const counts = withCounts ? (await kbStore.countsBySource([source.id]))[source.id] : null;
     return mapSourceForApi(source, counts, await resolveCreators([source.createdBy]));
@@ -237,13 +265,15 @@ async function sourceForApi(source, { withCounts = false } = {}) {
  * The per-install cap on sources. Read from the licence tier; a failure to
  * resolve falls back to the COMMUNITY limit rather than to "unlimited", so a
  * transient licence-store error can never widen an entitlement.
+ * @param {Record<string, any>} kb
+ * @param {string | null | undefined} userId
  * @returns {Promise<number>} -1 (or any negative) = uncapped
  */
 async function maxSourcesFor(kb, userId) {
     const license = require('../../license');
     try {
         const tier = await license.resolveTier({ organizationId: kb.organization_id || null, userId: userId || null });
-        const limits = license.tiers.getLimitsForTier(tier) || {};
+        const limits = /** @type {{ max_kb_sources?: number }} */ (license.tiers.getLimitsForTier(tier) || {});
         const max = Number(limits.max_kb_sources);
         return Number.isFinite(max) ? max : -1;
     } catch (e) {
@@ -263,13 +293,16 @@ async function maxSourcesFor(kb, userId) {
  * The SHAPE is RefreshRule's answer. What is left here is the one rule a body
  * schema cannot state: which modes a KIND admits — and on PATCH that is the
  * kind of the STORED row, which the body never carries.
+ * @param {{ mode?: string, cron?: string | null, tz?: string | null } | null | undefined} refresh
+ * @param {string} kind
  */
 function refreshPatchFor(refresh, kind) {
     if (!refresh) return {};
+    /** @type {{ refreshMode?: string, refreshCron?: string | null, refreshTz?: string | null }} */
     const patch = {};
     if (refresh.mode !== undefined) {
         const allowed = Object.prototype.hasOwnProperty.call(REFRESH_MODES_BY_KIND, kind)
-            ? REFRESH_MODES_BY_KIND[kind]
+            ? /** @type {Readonly<Record<string, string[]>>} */ (REFRESH_MODES_BY_KIND)[kind]
             : ['manual'];
         if (!allowed.includes(refresh.mode)) {
             throw new HttpError(400, 'refresh_mode_not_available',

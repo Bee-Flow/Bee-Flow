@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Form scenarios: the answers somebody gave to an automation's forms in a real
  * run, saved by name so the automation can be tried again without typing them.
@@ -59,7 +59,10 @@ const DryRunBody = bodyOf({ triggerStepId: worded(TRIGGER_TEXT).trim().min(1, TR
 const maxScenarios = () => envCap('AUTOMATION_FORM_SCENARIOS_MAX', 50);
 const maxScenarioBytes = () => envCap('AUTOMATION_FORM_SCENARIO_MAX_BYTES', 262144);
 
-/** One scenario as the client sees it: an explicit allow-list, never the row. */
+/**
+ * One scenario as the client sees it: an explicit allow-list, never the row.
+ * @param {ReturnType<typeof import('../../stores/lib/automationTestingScenarios').rowToScenario>} row
+ */
 function describeScenario(row) {
     return {
         scenarioId: row.id,
@@ -80,7 +83,7 @@ function describeScenario(row) {
  * @param {any} [overrides.access]           the automation access (guard; roleFor and runGuard too when runDataAccess is not injected)
  * @param {any} [overrides.runDataAccess]    { readableRun, assertCapturable, assertTestDataAllowed }
  * @param {Function} [overrides.executeAutomation]
- * @param {Function} [overrides.limiter]     middleware for the dry-run route
+ * @param {import('express').RequestHandler} [overrides.limiter]     middleware for the dry-run route
  */
 function makeFormScenariosRouter(overrides = {}) {
     const router = express.Router();
@@ -89,12 +92,16 @@ function makeFormScenariosRouter(overrides = {}) {
     const access = overrides.access
         || makeAutomationAccess(overrides.store ? { store: overrides.store } : {});
     const runData = overrides.runDataAccess || makeRunDataAccess({ store: overrides.store, access });
-    const execute = (...args) => (overrides.executeAutomation || require('../../core/automationRunner').executeAutomation)(...args);
+    const execute = /** @param {Parameters<typeof import('../../core/automationRunner').executeAutomation>} args */ (...args) => (overrides.executeAutomation || require('../../core/automationRunner').executeAutomation)(...args);
     const rpm = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM || '', 10) || 30;
     const limiter = overrides.limiter || perUserRateLimit({ windowMs: 60_000, max: rpm });
 
     const guarded = makeGuarded({ store, access });
 
+    /**
+     * @param {{ id: string }} a
+     * @param {string} scenarioId
+     */
     async function scenarioOf(a, scenarioId) {
         const row = await testing().getFormScenario(a.id, scenarioId);
         if (!row) throw new HttpError(404, 'scenario_not_found', 'Not found');
@@ -133,7 +140,7 @@ function makeFormScenariosRouter(overrides = {}) {
 
         const definition = await store().getVersionDefinition(found.run.automationId, found.run.version) || a.definition;
         const readable = new Set(found.runIds);
-        const rows = (await store().getRunStepsForChain(found.root.id)).filter((s) => readable.has(s.runId));
+        const rows = (await store().getRunStepsForChain(found.root.id)).filter((/** @type {Awaited<ReturnType<typeof import('../../stores/automationStore').getRunStepsForChain>>[number]} */ s) => readable.has(s.runId));
         const answers = answersFromJourney({ definition, rootRun: found.root, steps: rows });
         if (!hasAnswers(answers)) {
             throw new HttpError(422, 'no_form_answers', 'This run holds no form answers to save. Pick a run where somebody filled in a form.');
@@ -164,7 +171,7 @@ function makeFormScenariosRouter(overrides = {}) {
         return res.json({ deleted: true });
     });
 
-    router.post('/:id/form-scenarios/:scenarioId/dry-run', limiter, validate({ body: DryRunBody }), async (req, res) => {
+    router.post('/:id/form-scenarios/:scenarioId/dry-run', limiter, validate({ body: DryRunBody }), async (/** @type {import('express').Request<{ id: string, scenarioId: string }>} */ req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         const row = await scenarioOf(a, req.params.scenarioId);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // §WS5 #4 — public inbound trigger surface (webhook + provider event pushes),
 // extracted verbatim from routes/automation.js. Mounted BEFORE the auth chain.
 //
@@ -35,7 +35,7 @@ const AUTOMATION_EVENTS_RPM_PER_IP = parseInt(process.env.AUTOMATION_EVENTS_RPM_
 const webhookSlugLimiter = perUserRateLimit({
     windowMs: 60_000,
     max: AUTOMATION_WEBHOOK_RPM_PER_SLUG,
-    keyFn: (req) => `whslug:${req.params.slug}`,
+    keyFn: (/** @type {import('express').Request} */ req) => `whslug:${req.params.slug}`,
 });
 const webhookIpLimiter = perUserRateLimit({
     windowMs: 60_000,
@@ -64,8 +64,10 @@ const eventsLimiter = perUserRateLimit({
  * - Total serialized size is capped (~8KB) — headers are metadata, not a data
  *   channel.
  */
+/** @param {import('express').Request} req */
 function pickWebhookHeaders(req) {
     const MAX_TOTAL = 8 * 1024;
+    /** @type {Record<string, string>} */
     const out = {};
     let total = 0;
     for (const [rawKey, rawVal] of Object.entries(req.headers || {})) {
@@ -81,7 +83,7 @@ function pickWebhookHeaders(req) {
 }
 
 // Webhook trigger — signed inbound URL.
-router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json({ limit: '256kb' }), async (req, res) => {
+router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json({ limit: '256kb' }), async (/** @type {import('express').Request<{ slug: string }>} */ req, res) => {
     const slug = req.params.slug;
     const wh = await automationStore.getWebhook(slug);
     if (!wh) return res.status(404).json({ error: 'Unknown webhook' });
@@ -362,7 +364,7 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
 // org. Scoping it per-org requires a per-org GitHub App installation→org mapping
 // (derive the org from the installation id / repo in the payload) — a separate
 // feature that also changes the webhook URL users register in GitHub.
-const captureRawJson = (limit) => express.json({
+const captureRawJson = (/** @type {string} */ limit) => express.json({
     limit,
     verify: (req, _res, buf) => { req.rawBody = buf; },
 });

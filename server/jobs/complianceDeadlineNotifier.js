@@ -484,3 +484,13 @@ function stop() {
 }
 
 module.exports = { start, stop, runOnce, DSR_TIERS, CRA_TIERS, MILESTONE_OFFSETS_DAYS };
+
+/** @typedef {{ [K in keyof typeof DEP_LOADERS]: ReturnType<typeof DEP_LOADERS[K]> }} ComplianceDeps */
+
+/**
+ * A regulatory-calendar milestone (compliance/calendar.js or frameworks.MILESTONES).
+ * @typedef {{
+ *   id?: string | number | null, label_key?: string, framework_id?: string, date?: string,
+ *   expected?: string, kind?: string, relevant?: boolean, affects?: Record<string, unknown> | null,
+ * }} Milestone
+ */

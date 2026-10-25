@@ -40,6 +40,12 @@ const { bestEffort, fallback: fallbackSwallowed } = require('../../../../utils/b
 const PG = { dialect: 'pg' };
 const EVENTS = new Set(['tables.row.added', 'tables.row.updated', 'tables.row.deleted']);
 
+/** @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Mirror */
+
+/**
+ * @param {Parameters<typeof accessFilter.compileAccessFilter>[0]} meta
+ * @param {string} action
+ */
 function ownerFilter(meta, action) {
     return accessFilter.compileAccessFilter(meta, 'owner', { id: null }, action, PG);
 }
@@ -87,12 +93,17 @@ async function onTablesEvent({ orgId, event, payload }) {
     return out;
 }
 
+/** @param {Mirror} mirror */
 async function metaOf(mirror) {
     const meta = await datatableStore.getTableMeta(mirror.scope, mirror.id);
     if (!meta) throw new Error('mirror has no columns yet');
     return { ...meta, access: synthesizeAccess(mirror) };
 }
 
+/**
+ * @param {Mirror} mirror
+ * @param {number} rowId
+ */
 async function upsertRow(mirror, rowId) {
     const { auth } = await resolveLinker(mirror.source, { orgId: mirror.organizationId || null });
     const api = ncApi.forLinker(auth);
@@ -117,6 +128,10 @@ async function upsertRow(mirror, rowId) {
     if ((res.changes || 0) > 0) await datatableStore.bumpAfterWrite(mirror.id, mirror.scope, existed ? 0 : 1);
 }
 
+/**
+ * @param {Mirror} mirror
+ * @param {number} rowId
+ */
 async function deleteRow(mirror, rowId) {
     const meta = await metaOf(mirror);
     const scopeKey = datatableDbStore.scopeKey(mirror.scope);
@@ -125,6 +140,10 @@ async function deleteRow(mirror, rowId) {
     if ((res.changes || 0) > 0) await datatableStore.bumpAfterWrite(mirror.id, mirror.scope, -res.changes);
 }
 
+/**
+ * @param {Mirror} mirror
+ * @param {string} reason
+ */
 async function fallback(mirror, reason) {
     await datatableStore.markSourceStale(mirror.id, reason);
     const fresh = await datatableStore.getDatatable(mirror.id, mirror.scope);
@@ -136,12 +155,13 @@ async function fallback(mirror, reason) {
 /**
  * Mirrors in the same scope whose relations point at `mirror` — of ANY kind:
  * a spreadsheet mirror matching a column of this table is a dependent too.
+ * @param {Mirror} mirror
  */
 async function staleDependents(mirror) {
     const siblings = await datatableStore.listSourceMirrorsInScope(mirror.scope);
     for (const s of siblings) {
         if (s.id === mirror.id) continue;
-        const points = ((s.source && s.source.relations) || []).some(r => r && r.targetDatatableId === mirror.id);
+        const points = ((s.source && s.source.relations) || []).some((/** @type {{ targetDatatableId?: string }} */ r) => r && r.targetDatatableId === mirror.id);
         if (points) await fallback(s, 'relations');
     }
 }

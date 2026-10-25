@@ -376,3 +376,20 @@ module.exports = {
     resolvePublicKeyByKid,
     verifyCompactRs256,
 };
+
+/**
+ * @typedef {object} LicensePayload  the signed claims of a license JWT
+ * @property {string} [sub]
+ * @property {string} [iss]
+ * @property {number} [iat]
+ * @property {number} [exp]
+ * @property {string} [license_id]
+ * @property {string} [tier]
+ * @property {string} [billing_interval]
+ * @property {string[]} [features]
+ * @property {object} [limits]
+ * @property {number} [max_seats]
+ * @property {object} [branding]
+ * @property {string} [refresh_required_after]
+ * @property {object} [metadata]
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Website forms: the public endpoint behind the CMS `form` block. The
  * admin side that decides which automations it may start is cmsFormsAdmin.js.
@@ -185,7 +185,7 @@ function createPublicRouter(deps) {
     const submitFormLimiter = perUserRateLimit({
         windowMs: 60_000, name: 'cms-form-submit-form',
         max: deps.rpmPerForm || parseInt(process.env.CMS_FORM_RPM_PER_FORM || '', 10) || 60,
-        keyFn: (req) => `blk:${req.params.blockId}`,
+        keyFn: (/** @type {import('express').Request} */ req) => `blk:${req.params.blockId}`,
     });
 
     /**
@@ -224,7 +224,7 @@ function createPublicRouter(deps) {
 
     router.post('/:blockId', submitIpLimiter, submitFormLimiter, jsonOnly, browserOrigin, sizeGuard, validate({ body: SubmitBody }), async (req, res) => {
         res.set('Cache-Control', 'no-store');
-        const target = await resolveTarget(req.params.blockId);
+        const target = await resolveTarget(/** @type {string} */ (req.params.blockId));
         if (!target) throw UNAVAILABLE();
         const { siteId, snapshot, found, automation, triggerStepId } = target;
         const body = req.body;

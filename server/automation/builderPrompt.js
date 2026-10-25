@@ -434,3 +434,10 @@ module.exports = {
     // get the full variant (current behaviour preserved exactly).
     buildSystemPrompt: buildFullSystemPrompt,
 };
+
+/**
+ * The catalogue the builder prompts render (see builderPrompt/catalogRender.js).
+ * @typedef {import('./builderPrompt/catalogRender').PromptCatalog & {
+ *   datatables?: import('./builderPrompt/catalogRender').DatatableList|null, datatableRequireChoice?: boolean,
+ *   documents?: import('./builderPrompt/catalogRender').DocumentList|null }} BuilderPromptCatalog
+ */

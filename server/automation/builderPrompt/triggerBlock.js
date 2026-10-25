@@ -271,3 +271,7 @@ module.exports = {
     _declaredEvents: declaredEvents,
     _usesGenericMatcher: usesGenericMatcher,
 };
+
+/** @typedef {{ group?: string, filters?: string[], fields?: string[], extraFields?: string[], note?: string }} TriggerNote */
+
+/** @typedef {{ provider: string, event: string, fields: string[] }} DeclaredEvent */

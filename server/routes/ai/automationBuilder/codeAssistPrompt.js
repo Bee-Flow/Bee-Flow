@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * What the code assistant is told (POST /api/automation/builder/code/assist).
  *
@@ -86,7 +87,11 @@ After your edits the server checks the code. When the check finds a problem you 
 
 // ── Cleaning what the person controls ───────────────────────────────
 
-/** One line, no control characters, capped: a label is never a paragraph. */
+/**
+ * One line, no control characters, capped: a label is never a paragraph.
+ * @param {unknown} value
+ * @param {number} [max]
+ */
 function oneLine(value, max = 120) {
     if (value === null || value === undefined) return '';
     const text = String(value).replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -97,7 +102,13 @@ const TOOL_NAME_RE = /^[A-Za-z0-9_.:-]{1,100}$/;
 const HOST_RE = /^(\*\.)?[a-z0-9.-]{1,253}$/i;
 const TYPE_RE = /^[A-Za-z][A-Za-z0-9_<>[\]|' .-]{0,40}$/;
 
+/**
+ * @param {unknown} list
+ * @param {RegExp} re
+ * @param {number} max
+ */
 function cleanList(list, re, max) {
+    /** @type {string[]} */
     const out = [];
     for (const raw of Array.isArray(list) ? list : []) {
         const v = typeof raw === 'string' ? raw.trim() : '';
@@ -109,6 +120,13 @@ function cleanList(list, re, max) {
 
 // ── The per-request step context ────────────────────────────────────
 
+/**
+ * @typedef {{ name?: string, description?: string,
+ *   parameters?: { properties?: Record<string, { type?: string }>, required?: string[] } | null,
+ *   output?: { shape?: Record<string, unknown> } | null }} ToolDoc
+ */
+
+/** @param {ToolDoc} doc */
 function renderToolDoc(doc) {
     const params = doc?.parameters?.properties && typeof doc.parameters.properties === 'object'
         ? doc.parameters.properties : {};
@@ -121,6 +139,7 @@ function renderToolDoc(doc) {
     return `- ctx.integrations.${doc.name}({ ${args.join(', ')} })${shape.length ? ` → { ${shape.join(', ')} }` : ''}${desc ? `\n  ${desc}` : ''}`;
 }
 
+/** @param {CodeAnalysis | null} analysis */
 function renderFindings(analysis) {
     if (!analysis || typeof analysis !== 'object') return 'The check is not available right now.';
     const lines = [];
@@ -136,6 +155,7 @@ function renderFindings(analysis) {
     return lines.length ? lines.join('\n') : 'No problems found.';
 }
 
+/** @param {CodeAnalysis | null} analysis */
 function renderParams(analysis) {
     const params = Array.isArray(analysis?.params) ? analysis.params : [];
     if (!params.length) return null;
@@ -148,13 +168,22 @@ function renderParams(analysis) {
 }
 
 /**
+ * @typedef {{
+ *   syntaxError?: { line?: number, column?: number, message?: string },
+ *   findings?: Array<{ severity?: string, line?: number, ruleId?: string, message?: string, fix?: string }>,
+ *   params?: Array<{ name?: string, description?: string, type?: string, required?: boolean, default?: unknown }>,
+ *   capabilities?: { inputsRead?: string[] },
+ * }} CodeAnalysis
+ */
+
+/**
  * @param {object} p
  * @param {string} p.code
  * @param {string[]} [p.allowedTools]
  * @param {string[]} [p.allowedHosts]
  * @param {Array<{path: string, label?: string, type?: string}>} [p.upstreamFields]
- * @param {object|null} [p.analysis]    analyzeCode of `code`, or null
- * @param {Array<object>} [p.toolDocs]  { name, description, parameters, output } per allowed tool
+ * @param {CodeAnalysis|null} [p.analysis]    analyzeCode of `code`, or null
+ * @param {ToolDoc[]} [p.toolDocs]  per allowed tool
  */
 function renderStepContext({ code, allowedTools = [], allowedHosts = [], upstreamFields = [], analysis = null, toolDocs = [] }) {
     const tools = cleanList(allowedTools, TOOL_NAME_RE, MAX_TOOLS_LISTED);
@@ -205,11 +234,13 @@ function renderStepContext({ code, allowedTools = [], allowedHosts = [], upstrea
  *             no description: the parameters form would show it bare. Worth
  *             one round on its own.
  *
- * @param {object|null} analysis  analyzeCode's answer
+ * @param {CodeAnalysis|null} analysis  analyzeCode's answer
  * @returns {{ blocking: string[], docs: string[] }}
  */
 function repairNeeds(analysis) {
+    /** @type {string[]} */
     const blocking = [];
+    /** @type {string[]} */
     const docs = [];
     if (!analysis || typeof analysis !== 'object') return { blocking, docs };
     if (analysis.syntaxError) {
@@ -237,7 +268,10 @@ function repairNeeds(analysis) {
     return { blocking, docs };
 }
 
-/** The machine note that opens a repair round. */
+/**
+ * The machine note that opens a repair round.
+ * @param {{ blocking?: string[], docs?: string[] }} needs
+ */
 function renderRepairNote({ blocking = [], docs = [] }) {
     const items = [...blocking, ...docs].map(s => `- ${s}`).join('\n');
     const lead = blocking.length

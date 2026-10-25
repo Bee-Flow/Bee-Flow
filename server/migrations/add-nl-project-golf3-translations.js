@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the project workspace dialogs, undo and connection status (2026-10,
  * golf 3): the Undo toasts (task, message, document, notebook, meeting, knowledge
@@ -24,6 +25,7 @@ const NL_TRANSLATIONS = {
     'project_home.connection.reconnect': 'Opnieuw verbinden',
 };
 
+/** @type {string[]} */
 const SAME_AS_ENGLISH = [];
 
 async function up({ languageStore = require('../stores/languageStore') } = {}) {

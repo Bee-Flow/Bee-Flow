@@ -113,3 +113,12 @@ async function executeSearchTool(toolName, args, ctx) {
 }
 
 module.exports = { executeSearchTool };
+
+/**
+ * One hit from an OCS search provider.
+ * @typedef {{ title?: string, subline?: string, resourceUrl?: string, link?: string, icon?: string, attributes?: { path?: string, fileId?: string | number } }} NcSearchEntry
+ */
+
+/**
+ * @typedef {{ provider: string, providerName: string, title: string, subline: string, link: string | null, icon: string | null, path: string | null, fileId: string | number | null }} NcSearchResult
+ */

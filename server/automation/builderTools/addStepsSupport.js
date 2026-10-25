@@ -223,3 +223,17 @@ if (spec.nextStepIds && typeof spec.nextStepIds === 'object' && !Array.isArray(s
 }
 
 module.exports = { junkEntriesError, validateEntries, evictRemoved, buildFailure, missingRefMessage, resolveWires };
+
+/**
+ * @typedef {import('./draftGraph').DraftGraph} DraftGraph
+ * @typedef {{ afterStepId?: string, thenStepId?: string, elseStepId?: string, nextStepIds?: Record<string, unknown>,
+ *   tool?: string, [k: string]: unknown }} BatchSpec
+ * @typedef {{ tempId?: string, type?: string, spec?: BatchSpec }} BatchEntry
+ * @typedef {{ _tempIds: Record<string, string>, _rawEntryByHandle: Record<string, unknown>,
+ *   _builtThisTurn: Map<string, { id: string, tempId?: string|null, tool?: string, type?: string }>,
+ *   _mintedThisTurn: Set<string> }} TurnState
+ * @typedef {{ added: { id: string }[], idMap: Record<string, string>, lastAppliedId: string | null,
+ *   entries: BatchEntry[], rawEntries: unknown[], warnings: string[] | null }} FailureState
+ * @typedef {{ _fixHint?: string, _rejectedPath?: string, _suggestedPatch?: unknown, _needsInspect?: string,
+ *   toolSchema?: unknown, _askArgs?: unknown, code?: string }} EntryResult
+ */

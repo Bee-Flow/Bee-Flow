@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const express = require('express');
 const router = express.Router();
 const { getEffectiveUserId } = require('../../utils/routeHelpers');

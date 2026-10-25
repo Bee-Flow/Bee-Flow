@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('pg').Pool} Pool */
+// @typecheck noImplicitAny
 'use strict';
 const { exec, pool, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
@@ -9,15 +10,28 @@ const DDL = `CREATE TABLE IF NOT EXISTS project_task_boards (
     version INTEGER NOT NULL DEFAULT 0
 )`;
 const initDB = makeStoreInit('ProjectBoardStore', () => exec(DDL));
+/**
+ * @param {Pool} db
+ * @param {() => Promise<void>} [ready]
+ * @param {<T>(fn: (client: import('pg').PoolClient) => Promise<T>) => Promise<T>} tx
+ */
 function makeProjectBoardStore(db, tx, ready = async () => {}) {
     return {
+        /**
+         * @param {string} projectId
+         */
         async read(projectId) {
             await ready();
             return (await db.query('SELECT * FROM project_task_boards WHERE project_id = $1', [projectId])).rows[0] || null;
         },
+        /**
+         * @param {string} projectId
+         * @param {string} initialColumns
+         * @param {(row: Record<string, any>, client: import('pg').PoolClient) => Promise<Record<string, any>>} change
+         */
         async change(projectId, initialColumns, change) {
             await ready();
-            return tx(async client => {
+            return tx(async (/** @type {import('pg').PoolClient} */ client) => {
                 await client.query('INSERT INTO project_task_boards (project_id, columns_sealed) VALUES ($1, $2) ON CONFLICT DO NOTHING', [projectId, initialColumns]);
                 const row = (await client.query('SELECT * FROM project_task_boards WHERE project_id = $1 FOR UPDATE', [projectId])).rows[0];
                 const result = await change(row, client);

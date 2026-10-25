@@ -7,11 +7,17 @@
 const vCard = require('vcf');
 const log = require('../telemetry/log');
 
+/**
+ * The part of a parsed `vcf` card read here: one property or a list of them.
+ * @typedef {{ get(key: string): { valueOf(): unknown } | { valueOf(): unknown }[] | undefined }} ParsedVCard
+ */
+
 // ─── vCard helpers (vcf for line folding + parameter parsing, with manual
 // RFC 6350 escape/unescape since vcf does not transform text values) ───
 
 // Escape a free-text field per RFC 6350 §3.4: backslash → \\, newline → \n,
 // comma → \,, semicolon → \;.
+/** @param {unknown} s */
 function escapeText(s) {
     return String(s == null ? '' : s)
         .replace(/\\/g, '\\\\')
@@ -20,6 +26,9 @@ function escapeText(s) {
         .replace(/;/g, '\\;');
 }
 
+/**
+ * @param {string | null} s
+ */
 function unescapeText(s) {
     if (s == null) return null;
     return String(s)
@@ -30,7 +39,11 @@ function unescapeText(s) {
 }
 
 // Split a structured value (N, ORG) on unescaped semicolons.
+/**
+ * @param {string} s
+ */
 function splitStructured(s) {
+    /** @type {string[]} */
     const parts = [];
     let cur = '';
     let escaped = false;
@@ -44,6 +57,10 @@ function splitStructured(s) {
     return parts;
 }
 
+/**
+ * @param {ParsedVCard} card
+ * @param {string} key
+ */
 function valueOfFirst(card, key) {
     const v = card.get(key);
     if (!v) return null;
@@ -51,6 +68,10 @@ function valueOfFirst(card, key) {
     return p == null ? null : String(p.valueOf());
 }
 
+/**
+ * @param {ParsedVCard} card
+ * @param {string} key
+ */
 function valuesOf(card, key) {
     const v = card.get(key);
     if (!v) return [];
@@ -58,6 +79,7 @@ function valuesOf(card, key) {
     return list.map((p) => String(p.valueOf()));
 }
 
+/** @param {string} text */
 function contactFromVCard(text) {
     if (!text) return null;
     let card;
@@ -65,12 +87,14 @@ function contactFromVCard(text) {
         card = new vCard().parse(text);
     } catch (err) {
         // The message can quote a vCard line (EMAIL/TEL): log the error class only.
-        log.warn('[nextcloudContacts] vCard parse failed', err?.name);
+        log.warn('[nextcloudContacts] vCard parse failed', /** @type {Error} */ (err)?.name);
         return null;
     }
 
     const nRaw = valueOfFirst(card, 'n');
+    /** @type {string | null} */
     let firstName = null;
+    /** @type {string | null} */
     let lastName = null;
     if (nRaw) {
         const parts = splitStructured(nRaw);
@@ -93,6 +117,11 @@ function contactFromVCard(text) {
     };
 }
 
+/**
+ * @param {{ uid?: string|null, fullName?: string|null, firstName?: string|null, lastName?: string|null,
+ *   emails?: string[], phones?: string[], organization?: string|null, title?: string|null,
+ *   notes?: string|null }} c
+ */
 function buildVCard(c) {
     const card = new vCard();
     card.set('version', '3.0');
@@ -117,6 +146,7 @@ function buildVCard(c) {
     return card.toString('3.0');
 }
 
+/** @param {string} text */
 function parseVCard(text) {
     return contactFromVCard(text) || {
         uid: null, fullName: null, firstName: null, lastName: null,

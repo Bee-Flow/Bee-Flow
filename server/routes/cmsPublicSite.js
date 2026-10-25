@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The PUBLIC read of the live CMS site: GET /api/cms/site (page, blog index or
  * post, legacy or v2 shape) with the analytics envelope (Umami + Google
@@ -23,6 +23,10 @@ const {
 // be hammered by every visitor retry).
 const HEAL_BACKOFF_MS = 60000;
 const healing = new Map(); // siteId → 0 while running, else the time it may run again
+/**
+ * @param {string} siteId
+ * @param {number} [now]
+ */
 function healSnapshotInBackground(siteId, now = Date.now()) {
     const state = healing.get(siteId);
     if (state === 0 || (state && now < state)) return;
@@ -52,6 +56,10 @@ function healSnapshotInBackground(siteId, now = Date.now()) {
 // read (App.jsx fetches it on every visit), and a refusal would blank the
 // public site instead of serving the default page. Each of the three values
 // is read defensively below: an unknown `locale` or `slug` falls back.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function getPublicSite(req, res) {
     // Public site serves whatever project is marked Live. If nothing is
     // live the public URL stays dark (RootPathGate redirects to /app).

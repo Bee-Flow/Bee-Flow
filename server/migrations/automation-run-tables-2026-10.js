@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: automation_run_tables (2026-10).
  *

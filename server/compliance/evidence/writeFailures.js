@@ -131,3 +131,5 @@ module.exports = {
     MAX_ENTRIES_PER_ORG,
     MAX_ORGS,
 };
+
+/** @typedef {{ check_id: string | null, subject_type: string | null, subject_id: string | null, error_type: string, at: string }} WriteFailureEntry */

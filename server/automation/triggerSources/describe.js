@@ -35,3 +35,8 @@ function describeSourcesForPrompt({ maxEventsPerProvider = 12 } = {}) {
 }
 
 module.exports = { describeSourcesForPrompt };
+
+/**
+ * @typedef {Object} DescribeSourcesForPromptArgs
+ * @property {number} [maxEventsPerProvider]
+ */

@@ -28,6 +28,7 @@ const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
+/** @param {string} what */
 const secret = (what) => worded(`A ${what} must be text.`).max(4096, `That ${what} is too long.`).optional();
 
 const OAuthConfigBody = z.object({
@@ -49,6 +50,7 @@ const OAuthConfigBody = z.object({
  * directory in the world while the administrator read "saved" on a form where
  * they had just restricted it to their own.
  */
+/** @type {Readonly<Record<string, string[]>>} */
 const PROVIDER_KEYS = Object.freeze({
     nextcloud: ['url', 'clientId', 'clientSecret'],
     google: ['clientId', 'clientSecret'],
@@ -156,6 +158,7 @@ router.get('/providers', requireSuperAdmin, async (req, res) => {
 // module load with "Identifier 'requireSsoProvider' has already been declared",
 // which crash-looped the server). The licence middleware is required lazily +
 // memoised so this file has no load-order dependency on it.
+/** @type {import('express').RequestHandler | null} */
 let _ssoSamlGate = null;
 // Tagged (auth/gateMeta.js) so the route walk can see what this enforces.
 // paramDependent because the verdict genuinely depends on :provider — Nextcloud
@@ -163,11 +166,11 @@ let _ssoSamlGate = null;
 // The Access Map renders this as "Depends on what is opened" rather than
 // guessing one answer for every provider.
 const requireSsoProvider = tagGate((req, res, next) => {
-    const provider = (req.params.provider || '').toLowerCase();
+    const provider = (/** @type {string} */ (req.params.provider) || '').toLowerCase();
     // `ssoLogin: false` marks an OAUTH_PROVIDERS entry that only exists so an
     // integration connector can share its endpoints (Withings). It is not an
     // identity provider, so it must 404 here rather than reach an SSO handler.
-    if (provider !== 'nextcloud' && (!OAUTH_PROVIDERS[provider] || OAUTH_PROVIDERS[provider].ssoLogin === false)) {
+    if (provider !== 'nextcloud' && (!/** @type {Record<string, { ssoLogin?: boolean }>} */ (OAUTH_PROVIDERS)[provider] || /** @type {Record<string, { ssoLogin?: boolean }>} */ (OAUTH_PROVIDERS)[provider].ssoLogin === false)) {
         return res.status(404).json({ error: `Unknown SSO provider: ${provider}` });
     }
     // Nextcloud OAuth is Community — let it through. Everything else needs the
@@ -215,7 +218,7 @@ router.get('/providers/:provider', requireSuperAdmin, requireSsoProvider, async 
 });
 
 router.put('/providers/:provider', requireSuperAdmin, requireSsoProvider, validate({ body: ProviderConfigBody }), async (req, res) => {
-    const { provider } = req.params;
+    const { provider } = /** @type {Record<string, string>} */ (req.params);
     // The schema knows the union of every provider's fields; only this branch
     // knows which of them THIS provider has. See PROVIDER_KEYS above for why a
     // key the branch does not read must not be answered with "saved".

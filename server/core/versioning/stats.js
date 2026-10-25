@@ -238,3 +238,9 @@ module.exports = {
     MINOR_WORDS,
     _setBundle,
 };
+
+/**
+ * The parts of the editor bundle this module calls.
+ * @typedef {{ diffDocs: (a: unknown, b: unknown) => { stats?: unknown } | null,
+ *   markdownToAst?: (markdown: string) => unknown, htmlToAst?: (html: string, parser: unknown) => unknown }} EditorBundle
+ */

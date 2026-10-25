@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Support Classifier — decides whether an inbound email is a genuine customer
  * SUPPORT request for this inbox's organization, so non-support mail (order
@@ -26,15 +26,26 @@ const NOT_SUPPORT_CATEGORY = 'Not a support request';
 
 const CLASSIFY_TIMEOUT_MS = 10000;
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} label
+ * @returns {Promise<T>}
+ */
 function _withTimeout(promise, ms, label) {
+    /** @type {NodeJS.Timeout} */
     let timer;
-    const timeout = new Promise((_, reject) => {
+    const timeout = /** @type {Promise<never>} */ (new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
-    });
+    }));
     return Promise.race([promise.finally(() => clearTimeout(timer)), timeout]);
 }
 
-/** Best-effort organization name for grounding the classifier prompt. */
+/**
+ * Best-effort organization name for grounding the classifier prompt.
+ * @param {string|null} [organizationId]
+ */
 async function _orgName(organizationId) {
     if (!organizationId) return null;
     try {
@@ -44,7 +55,11 @@ async function _orgName(organizationId) {
     } catch { return null; }
 }
 
-/** Has staff previously vouched for this sender as genuine support? */
+/**
+ * Has staff previously vouched for this sender as genuine support?
+ * @param {Record<string, any>} inbox  support_inboxes row
+ * @param {string} fromAddress
+ */
 function isKnownGoodSender(inbox, fromAddress) {
     const list = Array.isArray(inbox?.known_good_senders) ? inbox.known_good_senders : [];
     if (!list.length || !fromAddress) return false;
@@ -56,9 +71,11 @@ function isKnownGoodSender(inbox, fromAddress) {
  * Classify a single inbound message. Returns
  *   { isSupportRequest: bool, confidence: 0..1, reason: string, suggestedCategory: string|null }
  * Never throws — on any failure returns a safe "treat as support" verdict.
+ * @param {Record<string, any>} inbox  support_inboxes row
+ * @param {{ subject?: string, body?: string, fromAddress?: string, fromName?: string }} [msg]
  */
 async function classifyInbound(inbox, { subject = '', body = '', fromAddress = '', fromName = '' } = {}) {
-    const safe = { isSupportRequest: true, confidence: 0, reason: 'classifier_unavailable', suggestedCategory: null };
+    const safe = { isSupportRequest: true, confidence: 0, reason: 'classifier_unavailable', suggestedCategory: /** @type {string|null} */ (null) };
     try {
         const llmClient = require('../core/llm/llmClient');
         const { resolveAgentModel } = require('../core/agentRuntime');
@@ -91,7 +108,7 @@ async function classifyInbound(inbox, { subject = '', body = '', fromAddress = '
             suggestedCategory: parsed.category ? String(parsed.category).slice(0, 100) : null,
         };
     } catch (e) {
-        log.warn('[SupportClassifier] classifyInbound failed:', e.message);
+        log.warn('[SupportClassifier] classifyInbound failed:', /** @type {Error} */ (e).message);
         return safe;
     }
 }
@@ -101,6 +118,9 @@ async function classifyInbound(inbox, { subject = '', body = '', fromAddress = '
  * `{ filtered: boolean, reason?: string }`. Caller (sync engine) uses `filtered`
  * (+ inbox.classify_suppress_autoreply) to decide whether to run the AI.
  * Only call for NEW threads. Never throws.
+ * @param {Record<string, any>} inbox  support_inboxes row
+ * @param {{ id: string }} thread
+ * @param {{ subject?: string, body?: string, fromAddress?: string, fromName?: string } | null} message
  */
 async function maybeFilterNonSupport(inbox, thread, message) {
     try {
@@ -123,7 +143,7 @@ async function maybeFilterNonSupport(inbox, thread, message) {
         })).catch((e) => bestEffort('services/supportClassifier:maybeFilterNonSupport', e));
         return { filtered: true, reason: verdict.reason };
     } catch (e) {
-        log.warn('[SupportClassifier] maybeFilterNonSupport failed:', e.message);
+        log.warn('[SupportClassifier] maybeFilterNonSupport failed:', /** @type {Error} */ (e).message);
         return { filtered: false };
     }
 }

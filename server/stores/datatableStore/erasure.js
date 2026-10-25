@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -23,6 +23,7 @@ const { getDatatable } = require('./datatables');
  * go with the account; shared ones are the ORGANISATION's records under its own
  * lawful basis and are transferred rather than dropped, so the caller decides.
  * A user-scoped table is always the first kind — nobody else could ever reach it.
+ * @param {string} userId
  */
 async function listOwnedBy(userId) {
     await initDB();
@@ -34,7 +35,12 @@ async function listOwnedBy(userId) {
     return (res || []).map(r => ({ ...rowToDatatable(r), grantCount: Number(r.grant_count) || 0 }));
 }
 
-/** Hand a table to a new owner (offboarding a leaver who shared it). */
+/**
+ * Hand a table to a new owner (offboarding a leaver who shared it).
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
+ * @param {string} newOwnerUserId
+ */
 async function transferOwner(id, scope, newOwnerUserId) {
     await initDB();
     assertScope(scope, 'transferOwner');
@@ -46,7 +52,10 @@ async function transferOwner(id, scope, newOwnerUserId) {
     return getDatatable(id, scope);
 }
 
-/** Drop every grant a departing user held or was given. */
+/**
+ * Drop every grant a departing user held or was given.
+ * @param {string} userId
+ */
 async function purgeGrantsForUser(userId) {
     await initDB();
     const res = await run(

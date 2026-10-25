@@ -732,3 +732,11 @@ module.exports = {
     captureDatatable, captureAgent, captureKnowledgeBase, reportForFile, sweepCapture,
     captureSkill, captureSkillShape, captureDocumentTemplate, captureDocumentShape,
 };
+
+/**
+ * @typedef {import('../../core/packaging/scrub').CaptureOpts} CaptureOpts
+ * @typedef {import('../../core/packaging/scrub').ScrubReportEntry} ScrubReportEntry
+ * @typedef {Map<string, string>} RefMap
+ * @typedef {Awaited<ReturnType<typeof loadMembers>>} Members
+ * @typedef {{ integrations: Set<string> }} Required
+ */

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * One-time migration: Dutch for the Privacy Shield round-3 layout (2026-09).
  *

@@ -1,3 +1,4 @@
+// @typecheck
 // Learning Center server routes — AI coach (grade + hint).
 //
 // Mounted at /ai/learning (see server/routes/ai.js). Authenticated, rate-limited,
@@ -39,6 +40,7 @@ const { evaluateForRequest } = require('../../learning/requireTraining');
 
 // Published org-authored courses for the caller, as completion.js extraCourses
 // + catalog-overlay entries. Empty unless the org has the custom-content beta.
+/** @param {import('express').Request} req */
 async function orgCoursesFor(req) {
     const userId = req.session.user.id;
     const orgId = req.session.user.organizationId || null;
@@ -158,7 +160,7 @@ router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), 
 
         const passScore = typeof rubric.passScore === 'number' ? rubric.passScore : 70;
         const score = Math.max(0, Math.min(100, Math.round(parsed.score)));
-        const clean = (arr) => (Array.isArray(arr) ? arr.filter((s) => typeof s === 'string' && s.trim()).slice(0, 4) : []);
+        const clean = (/** @type {unknown} */ arr) => (Array.isArray(arr) ? arr.filter((s) => typeof s === 'string' && s.trim()).slice(0, 4) : []);
         await recordExerciseAttempt(userId, exerciseId, score >= passScore, score);
         const verdict = {
             score,
@@ -276,12 +278,22 @@ const PRACTICE_KEY_CACHE_MAX = 300;
 // PRACTICE_KEY_PREFIX so any pod can grade, and the security property is
 // unchanged: the key is written and read server-side only, the client still
 // receives question + choices and never a correctChoiceIds.
+/**
+ * @typedef {NonNullable<ReturnType<typeof validatePracticeItems>>[number]['choices'][number]['id']} PracticeChoiceId
+ * @typedef {Record<string, { correctChoiceIds: PracticeChoiceId[], explanation: string }>} PracticeKeys
+ */
+/** @type {Map<string, { keys: PracticeKeys, ts: number }>} */
 const practiceKeyCache = new Map();
 const PRACTICE_KEY_PREFIX = 'learning_practice_keys_';
 // topic-set → { payload, ts } — shared across users per replica; THE cost bound.
+/** @type {Map<string, { payload: { practiceId: string, [key: string]: unknown }, ts: number }>} */
 const practiceTopicCache = new Map();
 const PRACTICE_TOPIC_CACHE_MAX = 100;
 
+/**
+ * @param {Map<string, { ts: number }>} map
+ * @param {number} max
+ */
 const practiceGenerateLimiter = perUserRateLimit({ windowMs: 60 * 60_000, max: 10 });
 const practiceGradeLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
 
@@ -291,7 +303,7 @@ router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate
     const unavailable = () => res.json({ error: 'practice_unavailable', items: [] });
 
     const requested = Array.isArray(req.body?.lessonIds) ? req.body.lessonIds.map(String).slice(0, 12) : [];
-    const lessonIds = [...new Set(requested.filter((id) => !!getPracticeTopic(id)))];
+    const lessonIds = [...new Set(requested.filter(/** @param {string} id */ (id) => !!getPracticeTopic(id)))];
     if (!lessonIds.length) return res.status(400).json({ error: 'unknown_lessons', items: [] });
     const count = Math.max(1, Math.min(MAX_ITEMS, Number(req.body?.count) || 3));
     const locale = /^[a-z]{2}(-[A-Z]{2})?$/.test(String(req.body?.locale || '')) ? req.body.locale : 'en';
@@ -334,6 +346,7 @@ router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate
         if (!items) return unavailable();
 
         const practiceId = crypto.randomUUID();
+        /** @type {PracticeKeys} */
         const keys = {};
         const publicItems = items.map((item, i) => {
             const id = `p${i + 1}`;
@@ -418,9 +431,9 @@ router.get('/catalog', requireAuth, async (req, res) => {
         desc: course.desc,
         icon: course.icon,
         level: course.level,
-        track: null,
+        track: /** @type {string | null} */ (null),
         lessonIds: course.lessonIds,
-        prereqCourseIds: [],
+        prereqCourseIds: /** @type {string[]} */ ([]),
         badge: course.badge,
         source: 'org',
         lessons: lessons.map((l) => learningContentStore.publicLessonView(l)),
@@ -445,11 +458,11 @@ router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeB
         return res.status(404).json({ error: 'Unknown quiz' });
     }
     const lesson = userOrgId ? await learningContentStore.getLesson(userOrgId, lessonId, { published: true }) : null;
-    const step = (lesson?.steps || []).find((s) => s.type === 'quiz' && s.id === stepId);
+    const step = (lesson?.steps || []).find(/** @param {{ type: string, id: string }} s */ (s) => s.type === 'quiz' && s.id === stepId);
     if (!step) return res.status(404).json({ error: 'Unknown quiz' });
-    const correctIds = (step.choices || []).filter((c) => c.correct).map((c) => c.id);
+    const correctIds = (step.choices || []).filter(/** @param {{ correct?: boolean }} c */ (c) => c.correct).map(/** @param {{ id: string }} c */ (c) => c.id);
     const picked = new Set(choiceIds);
-    const correct = correctIds.length === picked.size && correctIds.every((id) => picked.has(id));
+    const correct = correctIds.length === picked.size && correctIds.every(/** @param {string} id */ (id) => picked.has(id));
     res.json({
         correct,
         explanation: step.explanationFallback || '',
@@ -459,12 +472,16 @@ router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeB
 
 // ── Achievements + certificates ───────────────────────────────────────────────
 
+/** @typedef {{ displayName?: string, firstName?: string, lastName?: string, username?: string, organizationId?: string }} CertUser */
+
+/** @param {CertUser} user */
 function recipientName(user) {
     if (user?.displayName) return user.displayName;
     const full = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
     return full || user?.username || 'Bee Flow learner';
 }
 
+/** @param {CertUser} user */
 async function orgName(user) {
     try {
         if (!user?.organizationId) return null;
@@ -556,6 +573,11 @@ router.post('/certificate', requireAuth, validate({ body: CertificateBody }), as
 
 // Owner-only render of their own certificate (private or public) for in-app preview
 // and download. The public, token-gated render lives in routes/verifyCertificate.js.
+/**
+ * @param {import('express').Request<{ certId: string }>} req
+ * @param {import('express').Response} res
+ * @param {'png' | 'pdf'} kind
+ */
 async function ownerRender(req, res, kind) {
     const userId = req.session.user.id;
     const certId = req.params.certId;
@@ -575,8 +597,8 @@ async function ownerRender(req, res, kind) {
     return res.send(png);
 }
 
-router.get('/certificate/:certId/image.png', requireAuth, (req, res) => ownerRender(req, res, 'png'));
-router.get('/certificate/:certId/certificate.pdf', requireAuth, (req, res) => ownerRender(req, res, 'pdf'));
+router.get('/certificate/:certId/image.png', requireAuth, (/** @type {import('express').Request<{ certId: string }>} */ req, res) => ownerRender(req, res, 'png'));
+router.get('/certificate/:certId/certificate.pdf', requireAuth, (/** @type {import('express').Request<{ certId: string }>} */ req, res) => ownerRender(req, res, 'pdf'));
 
 // ── Org learning overview (admin) ─────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Golden event streams for the miner, hand-labelled.
@@ -18,14 +18,29 @@ const WEEKDAYS = [MON, TUE, WED, THU, FRI];
 
 /** @type {Array<{ name: string, label: 'positive'|'negative', now: number, events: any[], expect: any[], coldStart?: boolean }>} */
 const fixtures = [];
+/**
+ * @param {string} name
+ * @param {Array<import('../events').WorkEvent | null>} events
+ * @param {Array<{ kind?: string, verbs?: string[] }>} expect
+ * @param {{ coldStart?: boolean }} [extra]
+ */
 const pos = (name, events, expect, extra = {}) => fixtures.push({ name, label: 'positive', now: NOW, events, expect, ...extra });
+/**
+ * @param {string} name
+ * @param {Array<Record<string, unknown> | null>} events
+ * @param {{ coldStart?: boolean }} [extra]
+ */
 const neg = (name, events, extra = {}) => fixtures.push({ name, label: 'negative', now: NOW, events, expect: [], ...extra });
 
 // ── Positives ───────────────────────────────────────────────────────────────
 
-/** Invoice mail every week, then the user files it in a sheet. */
+/**
+ * Invoice mail every week, then the user files it in a sheet.
+ * @param {{ seed: number, app: string, weekday: number, subject: (n: number) => string, hour?: number, domains?: string[] }} opts
+ */
 function invoiceToSheet({ seed, app, weekday, subject, hour = 8, domains = ['d1'] }) {
     const r = rng(seed);
+    /** @type {Array<import('../events').WorkEvent | null>} */
     const out = [];
     let n = 4000 + seed;
     for (const d of daysOn([weekday])) {
@@ -50,7 +65,10 @@ pos('invoice_multi_supplier_domains', [
     ...noise(103, { mailsPerDay: 4 }),
 ], [{ verbs: ['sheets_append_rows'] }]);
 
-/** A report saved to the same folder every Monday morning. */
+/**
+ * A report saved to the same folder every Monday morning.
+ * @param {{ seed: number, app: string, name: (week: number) => string, folder: string, weekday?: number, source?: string }} opts
+ */
 function mondayUpload({ seed, app, name, folder, weekday = MON, source = 'files' }) {
     const r = rng(seed);
     let week = 30;
@@ -69,7 +87,10 @@ pos('friday_kb_upload_documents', [
     ...noise(106),
 ], [{ kind: 'file_drop' }]);
 
-/** An expense mail the user sends at the end of every month. */
+/**
+ * An expense mail the user sends at the end of every month.
+ * @param {{ app: string, subject: (i: number) => string, daysAgo: number[] }} opts
+ */
 function monthlyOut({ app, subject, daysAgo }) {
     return daysAgo.map((d, i) => mailOut(at(d, 16, 10 + i), app, subject(i), { attachment: true }));
 }
@@ -84,14 +105,19 @@ pos('monthly_expense_mail_outlook', [
     ...noise(108),
 ], [{ kind: 'mail_template', verbs: ['mail.sent'] }]);
 
-/** Ticket triage every working morning: list, update, note. */
+/**
+ * Ticket triage every working morning: list, update, note.
+ * @param {{ seed: number, days?: number, steps: string[][], weekdaysOnly?: boolean }} opts
+ */
 function triage({ seed, days = 90, steps, weekdaysOnly = true }) {
     const r = rng(seed);
+    /** @type {Array<import('../events').WorkEvent | null>} */
     const out = [];
     const ds = weekdaysOnly ? daysOn(WEEKDAYS, days) : [...Array(days).keys()];
     for (const d of ds) out.push(...session(at(d, 8, 20 + Math.floor(r() * 25)), `tri-${seed}-${d}`, steps, 2 + Math.floor(r() * 4)));
     return out;
 }
+/** @type {string[][]} */
 const TRIAGE = [['zammad_list_tickets', 'zammad'], ['zammad_update_ticket', 'zammad'], ['zammad_add_note', 'zammad']];
 pos('daily_ticket_triage', [...triage({ seed: 7, steps: TRIAGE }), ...noise(109)], [{ kind: 'sequence', verbs: ['zammad_update_ticket'] }]);
 pos('daily_mail_labelling_all_week', [
@@ -99,9 +125,13 @@ pos('daily_mail_labelling_all_week', [
     ...noise(110),
 ], [{ kind: 'sequence', verbs: ['gmail_modify_labels'] }]);
 
-/** A weekly meeting the user always follows up on. */
+/**
+ * A weekly meeting the user always follows up on.
+ * @param {{ seed: number, app: string, weekday: number, every?: number, follow: (ts: number, d: number) => Array<import('../events').WorkEvent | null> }} opts
+ */
 function meetingFollowup({ seed, app, weekday, every = 1, follow }) {
     const r = rng(seed);
+    /** @type {Array<import('../events').WorkEvent | null>} */
     const out = [];
     const ds = daysOn([weekday]).filter((_, i) => i % every === 0);
     for (const d of ds) {
@@ -210,7 +240,7 @@ neg('hourly_export_folder', [
 neg('random_one_offs', noise(209));
 neg('random_one_offs_dense', noise(210, { toolsPerDay: 3, mailsPerDay: 5, filesPerWeek: 5, pairs: 0.6 }));
 neg('heavy_random_long_sessions', heavyUse(211));
-neg('unknown_source_lookalike', daysOn(WEEKDAYS).flatMap((d) => [0, 1, 2].map((i) => ({
+neg('unknown_source_lookalike', daysOn(WEEKDAYS).flatMap((d) => [0, 1, 2].map((i) => /** @type {Record<string, unknown>} */ ({
     ts: at(d, 8, i * 3), source: 'chat', objectType: 'tool', app: 'zammad', verb: `zammad_step_${i}`,
     sessionKey: `x-${d}`, templateId: null, template: null,
 }))));

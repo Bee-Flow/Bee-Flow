@@ -27,12 +27,42 @@ const C = require('./constants');
 const log = require('../../../../telemetry/log');
 const { fallback } = require('../../../../utils/bestEffort');
 
-/** The declared (match) relations, with what the adapter needs to name their column. */
+/** @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} MirrorRow */
+/** @typedef {import('./syncPipeline').MirrorSiblings} MirrorSiblings */
+/** @typedef {Awaited<ReturnType<typeof datatableStore.getTableMeta>>} MirrorMeta */
+/** What `adapter.rowFromSource` is handed. @typedef {{ columnMap?: unknown, fieldsById?: unknown, relationIndexes?: unknown, labelIndexes?: unknown, source?: unknown }} RowCtx */
+/**
+ * What `adapter.open` answers (see ./syncPipeline.js "THE ADAPTER").
+ * @typedef {{ unchanged?: boolean, statePatch?: Record<string, unknown>, columns?: unknown,
+ *             page?: (limit: number, offset: number) => Promise<unknown[]>, warnings?: string[], truncated?: boolean }} OpenedSource
+ */
+/**
+ * What `adapter.deriveFields` answers.
+ * @typedef {{ fields: Parameters<typeof reconcileMirrorSchema>[2], columnMap?: unknown, relations?: unknown[], warnings?: string[],
+ *             changes: string[], retyped?: Parameters<typeof reconcileMirrorSchema>[3]['retyped'], sourcePatch?: Record<string, unknown> }} DerivedColumns
+ */
+/**
+ * The adapter members one pass calls (the contract is in ./syncPipeline.js).
+ * @typedef {{ resolveLinker: (source: MirrorRow['source'], opts: { orgId: string | null }) => Promise<{ auth?: unknown }>,
+ *             apiFor: (auth: unknown, source: MirrorRow['source']) => unknown,
+ *             siblingsOf: (scope: MirrorRow['scope']) => Promise<MirrorSiblings>,
+ *             open: (api: unknown, table: MirrorRow, opts: { prev: Record<string, unknown>, mustFetch: boolean, rowCap: number }) => Promise<OpenedSource>,
+ *             deriveFields: (columns: unknown, ctx: { existingFields?: unknown[], siblings?: unknown, declaredRelations?: unknown[], source?: unknown }) => DerivedColumns | Promise<DerivedColumns>,
+ *             rowFromSource: (raw: unknown, ctx: RowCtx) => { id: unknown, values: object } | null,
+ *             labelFieldFor?: Parameters<typeof buildRelationIndexes>[2]['labelFieldFor'] }} PassAdapter
+ */
+/** @typedef {{ prev: Record<string, any>, schedule: Parameters<typeof staleness.nextRunAtFor>[0], reason: string, startedAt: number, warnings: string[] }} FinishCtx */
+
+/**
+ * The declared (match) relations, with what the adapter needs to name their column.
+ * @param {{ relations?: Array<{ kind?: string, targetDatatableId?: string, [k: string]: unknown }> } | null | undefined} source
+ * @param {MirrorSiblings} siblings
+ */
 function declaredOf(source, siblings) {
     return ((source && source.relations) || [])
         .filter(r => r && r.kind === 'match')
         .map((r) => {
-            const target = siblings.byId.get(r.targetDatatableId);
+            const target = /** @type {{ id: string, key?: string, name?: string } | undefined} */ (siblings.byId.get(r.targetDatatableId));
             return { ...r, targetKey: target ? target.key : null, targetName: target ? target.name : null };
         });
 }
@@ -40,6 +70,11 @@ function declaredOf(source, siblings) {
 /**
  * ── 3. columns ── Bring the mirror's field list in step with the source's
  * columns. Returns the (possibly new) table and meta, and what changed.
+ * @param {PassAdapter} adapter
+ * @param {MirrorRow} table
+ * @param {unknown} columns
+ * @param {MirrorSiblings} siblings
+ * @param {MirrorMeta} meta
  */
 async function reconcileColumns(adapter, table, columns, siblings, meta) {
     const scope = table.scope;
@@ -66,7 +101,12 @@ async function reconcileColumns(adapter, table, columns, siblings, meta) {
     return { table: updated, meta: nextMeta, changes: derived.changes, warnings: derived.warnings || [] };
 }
 
-/** The state fields of every successful finish. */
+/**
+ * The state fields of every successful finish.
+ * @param {FinishCtx['schedule']} schedule
+ * @param {string} reason
+ * @param {number} startedAt
+ */
 function okState(schedule, reason, startedAt) {
     const now = new Date();
     return {
@@ -74,15 +114,20 @@ function okState(schedule, reason, startedAt) {
         lastSyncAt: now.toISOString(),
         lastSuccessAt: now.toISOString(),
         nextRunAt: staleness.nextRunAtFor(schedule, now.getTime(), 0),
-        lastError: null,
-        lastErrorCode: null,
+        lastError: /** @type {string | null} */ (null),
+        lastErrorCode: /** @type {string | null} */ (null),
         consecutiveErrors: 0,
         lastReason: reason,
         durationMs: Date.now() - startedAt,
     };
 }
 
-/** ── 2b. "unchanged" ── the probe found nothing: no snapshot, no batch, no counter. */
+/**
+ * ── 2b. "unchanged" ── the probe found nothing: no snapshot, no batch, no counter.
+ * @param {MirrorRow} table
+ * @param {OpenedSource} opened
+ * @param {FinishCtx} ctx
+ */
 async function finishUnchanged(table, opened, { schedule, reason, startedAt, prev, warnings }) {
     const ok = okState(schedule, reason, startedAt);
     const state = await datatableStore.finishSourceSync(table.id, {
@@ -95,7 +140,12 @@ async function finishUnchanged(table, opened, { schedule, reason, startedAt, pre
     return { ok: true, unchanged: true, syncState: state ? state.syncState : null, warnings, written: 0, deleted: 0, rowCount: Number(table.rowCount) || 0, truncated: !!prev.truncated };
 }
 
-/** ── 5. snapshot ── the ids the copy has, taken BEFORE fetching. */
+/**
+ * ── 5. snapshot ── the ids the copy has, taken BEFORE fetching.
+ * @param {Parameters<typeof ownerFilter>[0]} withAccess
+ * @param {string} scopeKey
+ * @param {string[]} warnings
+ */
 async function snapshotCopy(withAccess, scopeKey, warnings) {
     const snapQ = queryCompiler.compileIdList(withAccess, ownerFilter(withAccess, 'read'), C.PG);
     const snap = await datatableDbStore.query(scopeKey, scopeKey, snapQ.sql, snapQ.params);
@@ -107,8 +157,15 @@ async function snapshotCopy(withAccess, scopeKey, warnings) {
     return { snapshot: new Set((snap.rows || []).map(r => String(r.id))), snapTruncated: !!snap.truncated };
 }
 
-/** ── 6. fetch ── page by page, capped; a row the adapter cannot identify is skipped and counted. */
+/**
+ * ── 6. fetch ── page by page, capped; a row the adapter cannot identify is skipped and counted.
+ * @param {PassAdapter} adapter
+ * @param {OpenedSource} opened
+ * @param {RowCtx} rowCtx
+ * @param {{ rowCap: number, PAGE: number }} caps
+ */
 async function fetchRows(adapter, opened, rowCtx, { rowCap, PAGE }) {
+    /** @type {Array<{ id: unknown, values: object }>} */
     const fetched = [];
     let offset = 0;
     let truncated = opened.truncated === true;
@@ -134,7 +191,13 @@ async function fetchRows(adapter, opened, rowCtx, { rowCap, PAGE }) {
     return { fetched, truncated, skippedRows };
 }
 
-/** ── 8. upsert ── in batches; an unchanged row is a no-op. Returns the rows written. */
+/**
+ * ── 8. upsert ── in batches; an unchanged row is a no-op. Returns the rows written.
+ * @param {Parameters<typeof ownerFilter>[0]} withAccess
+ * @param {string} scopeKey
+ * @param {MirrorRow} table
+ * @param {Array<{ id: unknown, values: object }>} fetched
+ */
 async function upsertRows(withAccess, scopeKey, table, fetched) {
     const updFilter = ownerFilter(withAccess, 'update');
     let written = 0;
@@ -151,7 +214,13 @@ async function upsertRows(withAccess, scopeKey, table, fetched) {
     return written;
 }
 
-/** ── 9. delete ── snapshot − fetched. Returns the rows deleted. */
+/**
+ * ── 9. delete ── snapshot − fetched. Returns the rows deleted.
+ * @param {Parameters<typeof ownerFilter>[0]} withAccess
+ * @param {string} scopeKey
+ * @param {Set<string>} snapshot
+ * @param {Set<string>} fetchedIds
+ */
 async function deleteGone(withAccess, scopeKey, snapshot, fetchedIds) {
     const gone = [...snapshot].filter(id => !fetchedIds.has(id));
     const delFilter = ownerFilter(withAccess, 'delete');
@@ -164,7 +233,12 @@ async function deleteGone(withAccess, scopeKey, snapshot, fetchedIds) {
     return deleted;
 }
 
-/** Steps 2 to 11 for a claimed mirror (see ./syncPipeline.js). */
+/**
+ * Steps 2 to 11 for a claimed mirror (see ./syncPipeline.js).
+ * @param {PassAdapter} adapter
+ * @param {MirrorRow} claimed
+ * @param {{ reason: string, force?: boolean, PAGE: number, schedule: FinishCtx['schedule'], startedAt: number, warnings: string[] }} opts
+ */
 async function runPass(adapter, claimed, { reason, force, PAGE, schedule, startedAt, warnings }) {
     let table = claimed;
     const scope = claimed.scope;
@@ -240,7 +314,13 @@ async function runPass(adapter, claimed, { reason, force, PAGE, schedule, starte
     return { ok: true, syncState: state ? state.syncState : null, warnings, written, deleted, rowCount, truncated, skippedRows };
 }
 
-/** A failed pass: recorded on `sync_state` with its backoff, and returned. */
+/**
+ * A failed pass: recorded on `sync_state` with its backoff, and returned.
+ * @param {PassAdapter} adapter
+ * @param {MirrorRow} table
+ * @param {Error & { code?: string, status?: number }} e   whatever the pass threw
+ * @param {FinishCtx & { TAG: string }} ctx
+ */
 async function recordFailure(adapter, table, e, { prev, schedule, reason, startedAt, warnings, TAG }) {
     const consecutiveErrors = (Number(prev.consecutiveErrors) || 0) + 1;
     const now = new Date();

@@ -336,3 +336,11 @@ async function runBuildLoop(turn) {
 }
 
 module.exports = { runBuildLoop };
+
+/**
+ * This loop's own counters (see the comments on each in runBuildLoop).
+ * @typedef {{
+ *   wastedRounds: number, truncationRetries: number, emptyReplyRetries: number, invalidArgsRetries: number,
+ *   repinToolChoice: boolean, prosePinUsed: boolean, planGuardUsed: boolean, buildGuardUsed: boolean,
+ * }} BuildLoopState
+ */

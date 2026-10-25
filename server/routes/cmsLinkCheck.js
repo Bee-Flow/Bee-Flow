@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Link check of a site draft, mounted by routes/cms.js under
  * /sites/:siteId/link-check behind requireAdmin + attachSiteIdFromParam:

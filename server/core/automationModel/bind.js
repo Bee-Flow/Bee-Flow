@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Binding resolver for automation step inputs.
  *
@@ -621,3 +620,25 @@ module.exports = {
     resolveValue, resolveDeep, resolveInputs, walkPath, walkRelativePath, interpolateTemplate, cloneLiteral,
     interpolateJsonBody, withBindingLog, describeBindingMiss, noteRuleMiss, bindingLogStore, noteMiss,
 };
+
+/**
+ * One binding-log entry (see withBindingLog).
+ * @typedef {{ field?: string, kind?: string, path?: string, reason?: string, at?: string, found?: string,
+ *   missing?: string, step?: string, index?: boolean, size?: number, message?: string, count?: number,
+ *   [key: string]: unknown }} BindingMiss
+ */
+
+/**
+ * The roots a binding reads: `{ trigger, steps, loop, vars, secrets }` (see the header).
+ * @typedef {{ trigger?: unknown, steps?: Record<string, unknown>, loop?: unknown, vars?: unknown,
+ *   secrets?: unknown, _templateWarnings?: string[] }} BindRunState
+ */
+
+/**
+ * A part of a scanned template (shared/expr scanTemplate).
+ * @typedef {{ type: string, value?: string, inner?: string }} TemplatePart
+ */
+
+/**
+ * @typedef {{ part: TemplatePart, index: number, inString?: boolean, sole?: boolean }} TemplateLayoutEntry
+ */

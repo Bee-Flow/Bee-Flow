@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Find-and-replace over a text slot, for tools an LLM drives.
  *
@@ -32,16 +32,29 @@
  * document body" to another.
  */
 
-/** Replace `str[start..end)` with `insert`. */
+/**
+ * Replace `str[start..end)` with `insert`.
+ * @param {string} str
+ * @param {number} start
+ * @param {string} insert
+ * @param {number} end
+ */
 function spliceAt(str, start, end, insert) {
     return str.slice(0, start) + insert + str.slice(end);
 }
 
+/**
+ * @param {string} s
+ * @param {number} n
+ */
 function truncate(s, n) {
     if (typeof s !== 'string') return '';
     return s.length > n ? s.slice(0, n) + '…' : s;
 }
 
+/**
+ * @param {string} s
+ */
 function normalizeWhitespace(s) {
     return (s || '').replace(/\s+/g, ' ').trim();
 }
@@ -50,8 +63,11 @@ function normalizeWhitespace(s) {
  * Find every occurrence of `needle` in `haystack`. Returns an array of
  * `{ start, end, line }`. Empty needle returns []. Overlap is not supported —
  * advances by needle.length after each hit.
+ * @param {string} haystack
+ * @param {string} needle
  */
 function findAllOccurrences(haystack, needle) {
+    /** @type {{ start: number; end: number; line: number; }[]} */
     const out = [];
     if (!needle) return out;
     let i = 0;
@@ -64,6 +80,10 @@ function findAllOccurrences(haystack, needle) {
     return out;
 }
 
+/**
+ * @param {string} text
+ * @param {number} offset
+ */
 function lineNumberForOffset(text, offset) {
     let line = 1;
     for (let i = 0; i < offset && i < text.length; i++) {
@@ -79,12 +99,15 @@ function lineNumberForOffset(text, offset) {
  * Used as a fallback when the snippet exists in the file modulo whitespace
  * differences (e.g. the model passed copy-pasted text with collapsed
  * whitespace, but the file has the same characters separated by newlines).
+ * @param {string} original
+ * @param {string} needle
  */
 function locateOriginalRange(original, needle) {
     const normNeedle = normalizeWhitespace(needle);
     if (!normNeedle) return null;
 
     let normalized = '';
+    /** @type {number[]} */
     const idxMap = []; // normalized-position → original-position
     let lastWasSpace = false;
     for (let i = 0; i < original.length; i++) {

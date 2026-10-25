@@ -401,3 +401,5 @@ module.exports = {
     validateNavigateParams,
     validateInputMapping,
 };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * One-time migration: Add Dutch translations for the large-upload PII scan
  * surfacing (page-cap overflow / scan timeout / degraded → passed unredacted

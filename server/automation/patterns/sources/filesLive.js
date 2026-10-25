@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('../events').WorkEvent} WorkEvent */
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Pattern source: files the user created or changed, read live at scan time.
@@ -69,7 +70,9 @@ function classifyActivity(type, subject) {
     return null;
 }
 
-/** "/Reports/Week 41.xlsx" → { name: "Week 41.xlsx", folder: "/Reports" }; folders give null. */
+/** "/Reports/Week 41.xlsx" → { name: "Week 41.xlsx", folder: "/Reports" }; folders give null.
+ * @param {unknown} path
+ */
 function splitPath(path) {
     const p = String(path || '');
     if (!p || p.endsWith('/')) return null;
@@ -89,6 +92,7 @@ async function collectNextcloudFiles(ctx) {
     throwIfAborted(ctx.signal);
     const res = checkToolResult(
         await ctx.executeTool('nextcloud_activity_list', { filter: 'self', limit: NC_ACTIVITY_CAP }), 'nextcloud_activity_list');
+    /** @type {WorkEvent[]} */
     const out = [];
     for (const a of res.activities || []) {
         if (String(a?.objectType || '').toLowerCase() !== 'files') continue;
@@ -108,6 +112,10 @@ async function collectNextcloudFiles(ctx) {
  * Created inside the window → created then; otherwise changed at its last
  * modification.
  * @returns {{ verb: 'file.created'|'file.changed', ts: number }}
+ * @param {number} created
+ * @param {number} modified
+ * @param {number} since
+ * @param {boolean} [mayBeNew]
  */
 function createdOrChanged(created, modified, since, mayBeNew = true) {
     if (mayBeNew && Number.isFinite(created) && created >= since) return { verb: 'file.created', ts: created };
@@ -123,6 +131,7 @@ async function collectOneDrive(ctx) {
     const res = checkToolResult(await ctx.executeTool('onedrive_list_recent', {
         since: new Date(ctx.since).toISOString(), maxResults: RECENT_CAP,
     }), 'onedrive_list_recent');
+    /** @type {WorkEvent[]} */
     const out = [];
     for (const it of res.items || []) {
         // A colleague's edit in the user's drive is not the user's work. Only
@@ -144,6 +153,7 @@ async function collectGoogleDrive(ctx) {
     const res = checkToolResult(await ctx.executeTool('drive_list_recent', {
         since: new Date(ctx.since).toISOString(), maxResults: RECENT_CAP,
     }), 'drive_list_recent');
+    /** @type {WorkEvent[]} */
     const out = [];
     for (const f of res.results || []) {
         // Someone else's edit to a shared file is not the user's work.

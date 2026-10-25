@@ -21,6 +21,11 @@ const { fallback, bestEffort } = require('../utils/bestEffort');
 
 function userStore() { return require('../stores/userStore'); }
 
+/**
+ * @param {string[] | null | undefined} allowList
+ * @param {string[]} requested
+ * @returns {string[]}
+ */
 function intersect(allowList, requested) {
     if (allowList == null) return [...new Set(requested)]; // unrestricted
     const allow = new Set(allowList);
@@ -36,6 +41,9 @@ function intersect(allowList, requested) {
  *   - 'reset'   (default): replace org list with plan allow-list.
  *   - 'intersect': keep only the org's current enables that fit the cap.
  *     Used on plan *downgrade* when the admin asked not to widen the org.
+ * @param {string} orgId
+ * @param {string} planId
+ * @param {{ mode?: 'reset' | 'intersect' }} [opts]
  */
 async function applyPlanToOrg(orgId, planId, { mode = 'reset' } = {}) {
     const store = userStore();
@@ -70,6 +78,7 @@ async function applyPlanToOrg(orgId, planId, { mode = 'reset' } = {}) {
  * Compute the integration and beta-feature caps that apply to an org,
  * given its current subscription's plan. Returns `null` for either list
  * when the plan doesn't define one (= unrestricted).
+ * @param {string} orgId
  */
 async function getOrgCaps(orgId) {
     const store = userStore();
@@ -89,12 +98,18 @@ async function getOrgCaps(orgId) {
 /**
  * Filter a requested set of integration / beta-feature IDs against the
  * org's plan cap. Pass-through when the cap is null (unrestricted).
+ * @param {string[]} requested
+ * @param {string[] | null | undefined} cap
  */
 function applyCap(requested, cap) {
     if (cap == null) return [...new Set(requested)];
     return intersect(cap, requested);
 }
 
+/**
+ * @typedef {Object} AuditPlanCapDriftArgs
+ * @property {boolean} [trim]
+ */
 /**
  * Walk every active org subscription and report any beta-feature or
  * integration that the org has enabled but its current plan no longer
@@ -106,6 +121,7 @@ function applyCap(requested, cap) {
  * so compliance retains a record. Read-only by default — pass
  * `{ trim: true }` to also save the trimmed lists back via
  * setOrgEnabledBetaFeatures / setOrgEnabledIntegrations.
+ * @param {AuditPlanCapDriftArgs} [param0]
  */
 async function auditPlanCapDrift({ trim = false } = {}) {
     const store = userStore();
@@ -154,7 +170,7 @@ async function auditPlanCapDrift({ trim = false } = {}) {
                 if (lostBeta.length > 0) await store.setOrgEnabledBetaFeatures(sub.organization_id, trimmedBeta);
                 trimmed++;
             } catch (e) {
-                log.warn(`[PlanCapDrift] trim failed for org=${sub.organization_id}: ${e.message}`);
+                log.warn(`[PlanCapDrift] trim failed for org=${sub.organization_id}: ${/** @type {Error} */ (e).message}`);
             }
         }
     }

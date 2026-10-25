@@ -526,3 +526,61 @@ module.exports = {
     convergeAfterPublish,
     refusalError,
 };
+
+/**
+ * @typedef {object} GoLiveDeps  injectable collaborators; each lazily defaults to the real module
+ * @property {typeof import('./holidays')} [holidays]
+ * @property {typeof import('../core/automationRunner/runPolicy')} [runPolicy]
+ * @property {typeof import('./triggerColumns')} [triggerColumns]
+ * @property {typeof import('./toolRegistry')} [toolRegistry]
+ * @property {typeof import('../core/integrations/integrationTools').getUserPermittedApps} [permittedApps]
+ * @property {typeof import('../stores/userStore')} [userStore]
+ * @property {typeof import('../stores/integrationConnectionStore')} [connectionStore]
+ * @property {typeof import('./liveSideEffects').agentsFor} [agentsFor]
+ * @property {typeof import('./liveSideEffects').kbFindingsFor} [kbFindingsFor]
+ * @property {typeof import('./liveSideEffects').knownVarNamesFor} [knownVarNamesFor]
+ * @property {typeof import('./validate')} [validate]
+ * @property {typeof import('./deliverableEvents')} [deliverableEvents]
+ * @property {typeof import('../core/classify/classifierClient').topicClassifierFor} [topicClassifierFor]
+ * @property {typeof import('./portability')} [portability]
+ * @property {typeof import('./summarise')} [summarise]
+ * @property {typeof import('./aiActCheck')} [aiActCheck]
+ * @property {(automation: object, definition: object) => Promise<import('./aiActCheck').AiActState>} [aiActState]
+ * @property {typeof import('./triggerBus/dispatch')} [dispatch]
+ * @property {typeof import('./triggerBus')} [triggerBus]
+ * @property {typeof import('../stores/automationStore')} [store]
+ * @property {typeof import('./subscriptionSync').syncAppEventSubscription} [syncAppEventSubscription]
+ * @property {typeof import('./scheduleSync').syncSchedules} [syncSchedules]
+ * @property {typeof import('./liveSideEffects').wakeComplianceReview} [wakeComplianceReview]
+ * @property {typeof import('../core/automationRunner/definitionForRun').definitionForRun} [definitionForRun]
+ * @property {typeof import('../core/automationRunner/stageVars').isManagedAutomation} [isManagedAutomation]
+ * @property {() => number} [now]
+ * @property {typeof import('./subscriptionSync').revokeRemoteSubscriptions} [revokeRemoteSubscriptions]
+ * @property {{ appEventFingerprint: typeof import('./subscriptionSync').appEventFingerprint, hasAppEventTrigger: typeof import('./subscriptionSync').hasAppEventTrigger, scheduleFingerprint: typeof import('./scheduleSync').scheduleFingerprint }} [fingerprints]
+ * @property {typeof import('./liveSideEffects').ensureFormPages} [ensureFormPages]
+ * @property {typeof import('./liveSideEffects').ensureAnswersTable} [ensureAnswersTable]
+ * @property {typeof import('./datatableUsageSync').syncDatatableUsage} [syncDatatableUsage]
+ * @property {typeof import('../core/kb/kbSourceSync').syncKbSources} [syncKbSources]
+ */
+
+/** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object }} Refusal */
+
+/** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object|null, raise?: boolean, details?: object }} GoLiveFailure */
+
+/**
+ * @typedef {object} GoLiveAutomation  the parts of a store row the go-live cores read
+ * @property {string} [id]
+ * @property {string} [title]
+ * @property {string} [userId]
+ * @property {string|null} [organizationId]
+ * @property {boolean} [isActive]
+ * @property {string} [triggerType]
+ * @property {string} [scheduleCron]
+ * @property {string} [scheduleTz]
+ * @property {number|null} [liveVersion]
+ * @property {number} [version]
+ * @property {string} [kind]
+ * @property {object} [definition]
+ */
+
+/** @typedef {{ kind?: string, id?: string, layerKey?: string, pinnedSource?: string }} Pin  a pinned (sample-serving) node of a definition */

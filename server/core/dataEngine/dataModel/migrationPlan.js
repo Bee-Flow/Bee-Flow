@@ -325,3 +325,12 @@ function migrationPlan(oldModel, newModel, opts = {}) {
 }
 
 module.exports = { migrationPlan, retireMetaFor, retiredColumnKey, readRetireState, retainConflicts };
+
+/** @typedef {import('./migrationShape').ModelTable} ModelTable */
+
+/**
+ * The plan context every step takes (see below).
+ * @typedef {{ oldTables: Map<string, ModelTable>, newTables: Map<string, ModelTable>, newKeyById: Map<string, string>,
+ *   retain: ReturnType<typeof retainOptions>, inScope: (id: string) => boolean, alterable: (id: string) => boolean,
+ *   physical: Set<string>, materialised: Set<string>, dialect: string, plan: string[] }} PlanContext
+ */

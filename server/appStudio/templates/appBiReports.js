@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio template — BI reports.
  *
@@ -409,12 +409,18 @@ const LOADS_BINDING = {
 // validates (see the header).
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} root
+ */
 const groupByExpr = (root) => (
     `${root}.group_field == 'month' `
     + `? parseJson('[{"field":"record_date","bucket":"month","as":"label"}]') `
     + `: parseJson(concat('[{"field":"', ${root}.group_field, '","as":"label"}]'))`
 );
 
+/**
+ * @param {string} root
+ */
 const aggregatesExpr = (root) => (
     `${root}.measure_fn == 'count' `
     + `? parseJson('[{"fn":"count","field":"*","as":"value"}]') `
@@ -428,11 +434,15 @@ const aggregatesExpr = (root) => (
  * whole binding, and nothing is fetched. When it has one, the same entry
  * doubles as the optional "since" date narrow (empty string is falsy, so a
  * cleared date input degrades to the epoch instead of an invalid SQL date).
+ * @param {string} root
  */
 const sinceGateExpr = (root) => (
     `${root}.group_field ? (${root}.since ? ${root}.since : '1970-01-01') : null`
 );
 
+/**
+ * @param {string} root
+ */
 const reportChartSource = (root) => ({
     kind: 'aggregate',
     tableId: T.facts,
@@ -447,14 +457,22 @@ const reportChartSource = (root) => ({
     limit: 24,
 });
 
-/** The default descriptor a slot variable starts from (mirrors a seed row). */
+/**
+ * The default descriptor a slot variable starts from (mirrors a seed row).
+ * @param {string} name
+ * @param {string} chartType
+ * @param {string} groupField
+ * @param {string} measureFn
+ * @param {string} measureField
+ * @param {number} slot
+ */
 const slotDefault = (name, chartType, groupField, measureFn, measureField, slot) => ({
     name,
     chart_type: chartType,
     group_field: groupField,
     measure_fn: measureFn,
     measure_field: measureField,
-    since: null,
+    since: /** @type {string | null} */ (null),
     slot,
 });
 
@@ -464,6 +482,9 @@ const slotDefault = (name, chartType, groupField, measureFn, measureField, slot)
 // the header) inside a chrome-free container so chart + hint share one cell.
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {number} n
+ */
 const slotCell = (n) => ({
     id: `cmp_bislot${n}`,
     type: 'container',
@@ -501,7 +522,7 @@ const slotCell = (n) => ({
                 text: `Slot ${n} is empty. Save a report with dashboard slot ${n}, or press “Show saved reports”.`,
                 muted: true,
             },
-            style: { span: 12, align: 'start', color: null, weight: 'regular', size: 'sm' },
+            style: { span: 12, align: 'start', color: /** @type {string | null} */ (null), weight: 'regular', size: 'sm' },
             visible: { kind: 'formula', expr: `!vars.slot${n}.group_field` },
         },
     ],
@@ -530,8 +551,8 @@ const SCREEN_DASHBOARD = {
                     props: {
                         title: 'Dashboard',
                         subtitle: 'Slots 1–6 render saved reports. Build new ones in the designer; a slot updates the moment a report is saved into it.',
-                        titleFrom: { kind: 'static', value: null },
-                        subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
+                        subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'LayoutDashboard',
                         showDivider: false,
                     },
@@ -573,12 +594,12 @@ const SCREEN_DASHBOARD = {
                         },
                         caption: 'facts in the warehouse',
                         icon: 'Database',
-                        delta: { kind: 'static', value: null },
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) },
                         deltaFormat: 'number',
-                        trend: { kind: 'static', value: null },
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) },
                         positiveIsGood: true,
                     },
-                    style: { span: 3, size: 'md', align: 'start', color: null },
+                    style: { span: 3, size: 'md', align: 'start', color: /** @type {string | null} */ (null) },
                     visible: true,
                 },
                 {
@@ -618,12 +639,12 @@ const SCREEN_DASHBOARD = {
                         },
                         caption: 'rows ready to load',
                         icon: 'Inbox',
-                        delta: { kind: 'static', value: null },
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) },
                         deltaFormat: 'number',
-                        trend: { kind: 'static', value: null },
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) },
                         positiveIsGood: false,
                     },
-                    style: { span: 3, size: 'md', align: 'start', color: null },
+                    style: { span: 3, size: 'md', align: 'start', color: /** @type {string | null} */ (null) },
                     visible: true,
                 },
                 {
@@ -674,11 +695,11 @@ const SCREEN_DASHBOARD = {
                         titleKey: 'name',
                         subtitleKey: 'description',
                         metaKey: 'slot',
-                        timestampKey: null,
+                        timestampKey: /** @type {string | null} */ (null),
                         badgeKey: 'chart_type',
                         badgeToneMap: CHART_TYPE_TONES,
-                        unreadKey: null,
-                        selectedWhen: null,
+                        unreadKey: /** @type {string | null} */ (null),
+                        selectedWhen: /** @type {string | null} */ (null),
                         icon: 'BarChart3',
                         emptyText: 'No saved reports yet — build the first one in the designer.',
                     },
@@ -712,14 +733,14 @@ const SCREEN_DESIGNER = {
                     props: {
                         title: 'Report designer',
                         subtitle: 'The preview runs the exact query the saved report will run — same table, same fields, same access rules.',
-                        titleFrom: { kind: 'static', value: null },
-                        subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
+                        subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'PencilRuler',
                         showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 },
                     visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
             ],
         },
@@ -735,11 +756,11 @@ const SCREEN_DESIGNER = {
                     visible: true,
                     onSubmit: 'act_birepsave',
                     children: [
-                        { id: 'cmp_bigf1', type: 'input_text', props: { name: 'name', label: 'Report name', placeholder: 'e.g. Amount by category', required: true, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 8, size: 'md' }, visible: true },
+                        { id: 'cmp_bigf1', type: 'input_text', props: { name: 'name', label: 'Report name', placeholder: 'e.g. Amount by category', required: true, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 8, size: 'md' }, visible: true },
                         {
                             id: 'cmp_bigf2',
                             type: 'input_select',
-                            props: { name: 'slot', label: 'Dashboard slot', options: SLOT_OPTIONS, required: true, defaultValue: '0', placeholder: null, valueFrom: { kind: 'static', value: null } },
+                            props: { name: 'slot', label: 'Dashboard slot', options: SLOT_OPTIONS, required: true, defaultValue: '0', placeholder: /** @type {string | null} */ (null), valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } },
                             style: { span: 4, size: 'md' },
                             visible: true,
                         },
@@ -771,7 +792,7 @@ const SCREEN_DESIGNER = {
                             style: { span: 4, size: 'md' },
                             visible: true,
                         },
-                        { id: 'cmp_bigf7', type: 'input_date', props: { name: 'since', label: 'Only rows since (optional)', required: false, defaultValue: null, valueFrom: { kind: 'static', value: null } }, style: { span: 4, size: 'md' }, visible: true },
+                        { id: 'cmp_bigf7', type: 'input_date', props: { name: 'since', label: 'Only rows since (optional)', required: false, defaultValue: /** @type {string | null} */ (null), valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 4, size: 'md' }, visible: true },
                         { id: 'cmp_bigf8', type: 'input_text', props: { name: 'description', label: 'Description', placeholder: 'What question does this answer?', required: false, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 8, size: 'md' }, visible: true },
                     ],
                 },
@@ -810,7 +831,7 @@ const SCREEN_DESIGNER = {
                             id: 'cmp_bighint',
                             type: 'text',
                             props: { text: 'Pick a group-by on the left and the preview answers immediately.', muted: true },
-                            style: { span: 12, align: 'start', color: null, weight: 'regular', size: 'sm' },
+                            style: { span: 12, align: 'start', color: /** @type {string | null} */ (null), weight: 'regular', size: 'sm' },
                             visible: { kind: 'formula', expr: '!forms.designer.group_field' },
                         },
                     ],
@@ -875,8 +896,8 @@ const SCREEN_LOAD = {
                     props: {
                         title: 'Load data',
                         subtitle: 'Staging is the landing zone: connectors write here, and “Load staged rows” moves everything pending into the fact table.',
-                        titleFrom: { kind: 'static', value: null },
-                        subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
+                        subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'DownloadCloud',
                         showDivider: false,
                     },
@@ -954,8 +975,8 @@ const SCREEN_LOAD = {
                             { value: 'done', label: 'Done', tone: 'success' },
                             { value: 'running', label: 'Running', tone: 'warning' },
                         ],
-                        unreadKey: null,
-                        selectedWhen: null,
+                        unreadKey: /** @type {string | null} */ (null),
+                        selectedWhen: /** @type {string | null} */ (null),
                         icon: 'History',
                         emptyText: 'No loads yet — the first run appears here with its row count.',
                     },
@@ -976,12 +997,12 @@ const SCREEN_LOAD = {
                     visible: true,
                     onSubmit: 'act_bistgadd',
                     children: [
-                        { id: 'cmp_bilf1', type: 'input_date', props: { name: 'record_date', label: 'Date', required: true, defaultValue: 'today', valueFrom: { kind: 'static', value: null } }, style: { span: 2, size: 'md' }, visible: true },
-                        { id: 'cmp_bilf2', type: 'input_text', props: { name: 'label', label: 'Label', placeholder: 'What is this row?', required: true, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 4, size: 'md' }, visible: true },
+                        { id: 'cmp_bilf1', type: 'input_date', props: { name: 'record_date', label: 'Date', required: true, defaultValue: 'today', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 2, size: 'md' }, visible: true },
+                        { id: 'cmp_bilf2', type: 'input_text', props: { name: 'label', label: 'Label', placeholder: 'What is this row?', required: true, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 4, size: 'md' }, visible: true },
                         {
                             id: 'cmp_bilf3',
                             type: 'input_select',
-                            props: { name: 'category_key', label: 'Category', options: CATEGORY_KEY_OPTIONS, required: true, defaultValue: 'hardware', placeholder: null, valueFrom: { kind: 'static', value: null } },
+                            props: { name: 'category_key', label: 'Category', options: CATEGORY_KEY_OPTIONS, required: true, defaultValue: 'hardware', placeholder: /** @type {string | null} */ (null), valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } },
                             style: { span: 2, size: 'md' },
                             visible: true,
                         },
@@ -992,7 +1013,7 @@ const SCREEN_LOAD = {
                             style: { span: 2, size: 'md' },
                             visible: true,
                         },
-                        { id: 'cmp_bilf5', type: 'input_number', props: { name: 'amount', label: 'Amount', min: 0, max: 1000000, step: 0.01, required: false, defaultValue: null }, style: { span: 1, size: 'md' }, visible: true },
+                        { id: 'cmp_bilf5', type: 'input_number', props: { name: 'amount', label: 'Amount', min: 0, max: 1000000, step: 0.01, required: false, defaultValue: /** @type {string | null} */ (null) }, style: { span: 1, size: 'md' }, visible: true },
                         { id: 'cmp_bilf6', type: 'input_number', props: { name: 'quantity', label: 'Qty', min: 0, max: 100000, step: 1, required: false, defaultValue: null }, style: { span: 1, size: 'md' }, visible: true },
                     ],
                 },
@@ -1022,14 +1043,14 @@ const SCREEN_WAREHOUSE = {
                     props: {
                         title: 'Warehouse',
                         subtitle: 'One fact table, two dimensions, one load log. Amounts and labels are editable inline — click a cell.',
-                        titleFrom: { kind: 'static', value: null },
-                        subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
+                        subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'Database',
                         showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 },
                     visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_biwfilt',
@@ -1127,7 +1148,7 @@ const SCREEN_WAREHOUSE = {
                                         pageSize: 25,
                                         selectable: 'none',
                                         searchable: false,
-                                        rowActions: [],
+                                        rowActions: /** @type {string[]} */ ([]),
                                         density: 'compact',
                                         zebra: true,
                                         emptyText: 'No load runs yet.',
@@ -1165,14 +1186,14 @@ const SCREEN_SETUP = {
                     props: {
                         title: 'Setup',
                         subtitle: 'Rename the dimensions to whatever your data really splits by — the model does not care what they are called.',
-                        titleFrom: { kind: 'static', value: null },
-                        subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
+                        subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'Settings2',
                         showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 },
                     visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_bisdoc',
@@ -1191,9 +1212,9 @@ const SCREEN_SETUP = {
                             '',
                             'One seam to know about: the **dropdowns** in the staging form and the warehouse filter bar are fixed lists in the app design. A dimension row added below shows up in reports and grids immediately, but an editor has to add it to those dropdowns.',
                         ].join('\n'),
-                        contentFrom: { kind: 'static', value: null },
+                        contentFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                     },
-                    style: { span: 12, color: null },
+                    style: { span: 12, color: /** @type {string | null} */ (null) },
                     visible: true,
                 },
             ],
@@ -1275,7 +1296,7 @@ const SCREEN_SETUP = {
                 {
                     id: 'cmp_bidm1mod',
                     type: 'modal',
-                    props: { title: 'Add category', size: 'md', triggerLabel: null },
+                    props: { title: 'Add category', size: 'md', triggerLabel: /** @type {string | null} */ (null) },
                     style: { gap: 3, padding: 0 },
                     visible: true,
                     children: [
@@ -1287,7 +1308,7 @@ const SCREEN_SETUP = {
                             visible: true,
                             onSubmit: 'act_bidim1add',
                             children: [
-                                { id: 'cmp_bidm1f1', type: 'input_text', props: { name: 'key', label: 'Key (what a fact row stores, e.g. consulting)', placeholder: null, required: true, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 8, size: 'md' }, visible: true },
+                                { id: 'cmp_bidm1f1', type: 'input_text', props: { name: 'key', label: 'Key (what a fact row stores, e.g. consulting)', placeholder: /** @type {string | null} */ (null), required: true, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 8, size: 'md' }, visible: true },
                                 { id: 'cmp_bidm1f2', type: 'input_number', props: { name: 'position', label: 'Order', min: 1, max: 99, step: 1, required: false, defaultValue: 1 }, style: { span: 4, size: 'md' }, visible: true },
                                 { id: 'cmp_bidm1f3', type: 'input_text', props: { name: 'name', label: 'Name', placeholder: null, required: true, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 6, size: 'md' }, visible: true },
                                 { id: 'cmp_bidm1f4', type: 'input_text', props: { name: 'description', label: 'Description', placeholder: null, required: false, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 6, size: 'md' }, visible: true },
@@ -1338,7 +1359,10 @@ const SCREEN_SETUP = {
 // would blow the action-depth cap for no benefit.
 // ---------------------------------------------------------------------------
 
-/** The six slot conditions, shared by the sync loop and the row-apply. */
+/**
+ * The six slot conditions, shared by the sync loop and the row-apply.
+ * @param {string} rootExpr
+ */
 const slotRouteSteps = (rootExpr) => [1, 2, 3, 4, 5, 6].map((n) => ({
     kind: 'condition',
     expr: `${rootExpr}.slot == ${n}`,
@@ -1671,7 +1695,7 @@ const definition = {
         icon: 'BarChart3',
     },
     theme: { primary: '#0891B2', ...THEME_DEFAULTS },
-    design: { preset: 'custom', font: 'satoshi', surface: 'soft', motion: 'subtle', chartPalette: 'brand', accentEdge: 'bar', logoUrl: null },
+    design: { preset: 'custom', font: 'satoshi', surface: 'soft', motion: 'subtle', chartPalette: 'brand', accentEdge: 'bar', logoUrl: /** @type {string | null} */ (null) },
     nav: { style: 'sidebar' },
     roles: [
         { id: 'analyst', name: 'Analyst' },
@@ -1691,7 +1715,7 @@ const definition = {
         { name: 'slot4', label: 'Dashboard slot 4', type: 'record', default: {}, description: 'Empty until a report is saved into slot 4.' },
         { name: 'slot5', label: 'Dashboard slot 5', type: 'record', default: {}, description: 'Empty until a report is saved into slot 5.' },
         { name: 'slot6', label: 'Dashboard slot 6', type: 'record', default: {}, description: 'Empty until a report is saved into slot 6.' },
-        { name: 'staged', label: 'Pending staging rows', type: 'list', default: [], description: 'Snapshot of the pending staging rows the load action is moving — taken before the loop so mid-loop updates cannot shrink it.' },
+        { name: 'staged', label: 'Pending staging rows', type: 'list', default: /** @type {unknown} */ ([]), description: 'Snapshot of the pending staging rows the load action is moving — taken before the loop so mid-loop updates cannot shrink it.' },
         { name: 'run', label: 'Current load run', type: 'record', default: {}, description: 'The load_runs row the load action just created; its id stamps every fact row of that load.' },
     ],
     homeScreenId: 'scr_bidash',

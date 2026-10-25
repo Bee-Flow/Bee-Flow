@@ -187,3 +187,24 @@ module.exports = {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,
 };
+
+/**
+ * @typedef {import('./turnState').AgentRow} AgentRow
+ * @typedef {import('./turnState').ConversationRow} ConversationRow
+ * @typedef {import('./turnState').OnEvent} OnEvent
+ * @typedef {import('./turnState').ChatMessage} ChatMessage
+ * @typedef {import('./turnState').ToolDef} ToolDef
+ * @typedef {import('./turnState').MessageMetadata} MessageMetadata
+ * @typedef {import('./turnState').UserAuth} UserAuth
+ * @typedef {import('./roundRequest').ProviderConfig} ProviderConfig
+ * @typedef {{
+ *   withPhase: typeof import('../phaseEvents').withPhase,
+ *   buildSystemPrompt: typeof import('../contextBuilder').buildSystemPrompt,
+ *   runInputGuardrails: typeof import('../guardrailsRunner').runInputGuardrails,
+ *   resolveShieldFor: typeof import('../../privacy/orgShield').resolveShieldFor,
+ *   resolveMemoryContext: typeof import('../contextEnrichment').resolveMemoryContext,
+ *   resolveMemoryPolicy: typeof import('../../memory/memoryPolicy').resolveMemoryPolicy,
+ *   dlpRunner: () => typeof import('../../dlp/dlpRunner'),
+ *   dlpPreflight: () => typeof import('../../dlp/dlpPreflight'),
+ * }} PreflightDeps
+ */

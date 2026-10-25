@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio template — Invoice approvals (PDF in, approved and paid out).
  *
@@ -557,7 +557,7 @@ const dataModel = {
     // may see that the app exists, not who may see every invoice the company
     // has to pay. Until the owner grants a role, a viewer gets the locked
     // screen.
-    roleMapping: { default: null, byGroup: {} },
+    roleMapping: { default: /** @type {unknown} */ (null), byGroup: {} },
 };
 
 // ---------------------------------------------------------------------------
@@ -863,12 +863,20 @@ const INVOICE_SCOPE = [
     { field: 'id', op: 'eq', value: { kind: 'formula', expr: 'vars.invoice.id' }, required: true },
 ];
 
-/** The open invoice's whole row, or one column of it. */
+/**
+ * The open invoice's whole row, or one column of it.
+ * @param {string} [path]
+ */
 const openInvoice = (path) => (path
     ? { kind: 'record', tableId: 'tbl_iainv', filter: INVOICE_SCOPE, limit: 1, path }
     : { kind: 'record', tableId: 'tbl_iainv', filter: INVOICE_SCOPE, limit: 1 });
 
-/** Rows of a child table belonging to the open invoice. */
+/**
+ * Rows of a child table belonging to the open invoice.
+ * @param {string} tableId
+ * @param {{ field: string; dir: string; }[]} sort
+ * @param {number} limit
+ */
 const forOpenInvoice = (tableId, sort, limit) => ({
     kind: 'records',
     tableId,
@@ -877,7 +885,10 @@ const forOpenInvoice = (tableId, sort, limit) => ({
     limit,
 });
 
-/** A count of invoices matching one extra clause. Always limited. */
+/**
+ * A count of invoices matching one extra clause. Always limited.
+ * @param {{ field: string, op: string, value?: unknown, required?: boolean }[]} filter
+ */
 const invoiceCount = (filter) => ({
     kind: 'aggregate',
     tableId: 'tbl_iainv',
@@ -886,7 +897,10 @@ const invoiceCount = (filter) => ({
     limit: 1,
 });
 
-/** The money behind that count — the number an AP manager actually reports. */
+/**
+ * The money behind that count — the number an AP manager actually reports.
+ * @param {{ field: string; op: string; value: string; }[] | { field: string; op: string; value: string[]; }[]} filter
+ */
 const invoiceSum = (filter) => ({
     kind: 'aggregate',
     tableId: 'tbl_iainv',
@@ -919,8 +933,12 @@ const invoiceSum = (filter) => ({
  * ladder with no Finance and no Director rung on it has nowhere to put them,
  * which is precisely why this decision belongs at the flow level and not in a
  * stage condition.
+ * @param {string} scope
  */
 const isBoardBand = (scope) => `number(${scope}.amount_total) >= ${BAND_BOARD}`;
+/**
+ * @param {string} scope
+ */
 const isStandardBand = (scope) => `(number(${scope}.amount_total) >= ${BAND_STANDARD} || ${scope}.supplier_check === 'watch' || ${scope}.director_rule === 'always')`;
 
 /** Which chain the switch picks. Total: every amount, missing included, lands in a case. */
@@ -987,7 +1005,7 @@ const onDecidedHook = () => ({
             approved_pay_by: '{{answers.pay_by}}',
             // A re-submitted invoice that was rejected once must not keep the
             // old reason next to a green status.
-            rejection_reason: null,
+            rejection_reason: /** @type {string | null} */ (null),
         },
         rejected: {
             status: 'rejected',
@@ -1107,6 +1125,10 @@ const DETAILS_EXPR = "concat("
  * prompt, the details, the questions, the attachment, the context and the
  * on_decided hook are the same whichever ladder the invoice is on — a
  * decision is a decision.
+ * @param {string} routeLabel
+ * @param {number} expiresInHours
+ * @param {number} remindAfterHours
+ * @param {ReturnType<typeof STAGES_FAST>} stages
  */
 const approvalStep = (routeLabel, stages, expiresInHours, remindAfterHours) => ({
     kind: 'request_approval',
@@ -1151,6 +1173,8 @@ const approvalStep = (routeLabel, stages, expiresInHours, remindAfterHours) => (
  * loop is how they get there: `records.<tableId>` is the client-side row
  * cache, and a `loop` is a client step, so it resolves. Both screens that use
  * it put a suppliers grid on the same screen, which is what fills that cache.
+ * @param {string} formField
+ * @param {string} [recordIdExpr]
  */
 const copySupplierLevers = (formField, recordIdExpr = 'vars.invoice.id') => ({
     kind: 'loop',
@@ -1185,6 +1209,8 @@ const copySupplierLevers = (formField, recordIdExpr = 'vars.invoice.id') => ({
  * binding resolves to null. `invoice_no` is denormalised onto the trail row
  * because there is no join to follow later, and a trail whose rows can only
  * say "rec_9f3c…" is not a trail anybody reads.
+ * @param {string} kind
+ * @param {string | { kind: string; value: string; }} detailExpr
  */
 const trailStep = (kind, detailExpr, {
     recordIdExpr = 'vars.invoice.id',
@@ -1207,7 +1233,11 @@ const trailStep = (kind, detailExpr, {
 // Actions
 // ---------------------------------------------------------------------------
 
-/** One single-column inline commit for a data_grid cell edit. */
+/**
+ * One single-column inline commit for a data_grid cell edit.
+ * @param {string} tableId
+ * @param {string} column
+ */
 const cellCommit = (tableId, column, { numeric = false, bool = false } = {}) => ({
     value: column,
     steps: [{
@@ -1293,7 +1323,7 @@ const actions = {
                     { name: 'extraction_note', type: 'string', description: 'Anything you could not read or had to infer — one short sentence, empty if the invoice was clean' },
                 ],
                 modelTier: 'thinking',
-                knowledgeBaseIds: [],
+                knowledgeBaseIds: /** @type {string[]} */ ([]),
                 resultVar: 'head',
             },
             {
@@ -1341,7 +1371,7 @@ const actions = {
                     { name: 'vat_rate', type: 'number', description: 'VAT percentage for this line, as a number (21, 9, 0)' },
                 ],
                 modelTier: 'thinking',
-                knowledgeBaseIds: [],
+                knowledgeBaseIds: /** @type {string[]} */ ([]),
                 writeTo: {
                     tableId: 'tbl_ialine',
                     mapping: {
@@ -1805,8 +1835,8 @@ const SCREEN_HOME = {
                         look: 'banner',
                         title: 'Invoice approvals',
                         subtitle: 'Read the PDF, check the numbers, send it up the ladder — and keep the record of who said yes.',
-                        titleFrom: { kind: 'static', value: null },
-                        subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
+                        subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'FileCheck', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
@@ -1834,8 +1864,8 @@ const SCREEN_HOME = {
                         value: invoiceCount([{ field: 'status', op: 'eq', value: 'needs_review' }]),
                         caption: 'read by AI, not yet checked by a person',
                         icon: 'FileSearch', look: 'tile',
-                        delta: { kind: 'static', value: null }, deltaFormat: 'number',
-                        trend: { kind: 'static', value: null }, positiveIsGood: true,
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) }, deltaFormat: 'number',
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) }, positiveIsGood: true,
                     },
                     style: { span: 3 }, visible: true,
                 },
@@ -1858,8 +1888,8 @@ const SCREEN_HOME = {
                         value: invoiceSum([{ field: 'status', op: 'eq', value: 'in_approval' }]),
                         caption: 'gross, all currencies added as given',
                         icon: 'Euro', look: 'accent',
-                        delta: { kind: 'static', value: null }, deltaFormat: 'number',
-                        trend: { kind: 'static', value: null }, positiveIsGood: true,
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) }, deltaFormat: 'number',
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) }, positiveIsGood: true,
                     },
                     style: { span: 3 }, visible: true,
                 },
@@ -1876,8 +1906,8 @@ const SCREEN_HOME = {
                         ]),
                         caption: 'due date passed and still not paid',
                         icon: 'AlertTriangle', look: 'tile',
-                        delta: { kind: 'static', value: null }, deltaFormat: 'number',
-                        trend: { kind: 'static', value: null }, positiveIsGood: false,
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) }, deltaFormat: 'number',
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) }, positiveIsGood: false,
                     },
                     style: { span: 3, color: 'danger' }, visible: true,
                 },
@@ -1947,8 +1977,8 @@ const SCREEN_HOME = {
                         xKey: 'status', xType: 'category',
                         series: [{ key: 'invoices', label: 'Invoices' }],
                         stacked: false, showLegend: true, showGrid: false,
-                        valueFormat: 'number', yMin: null, yMax: null,
-                        referenceLines: [], referenceBands: [], unitLabel: null,
+                        valueFormat: 'number', yMin: /** @type {string | null} */ (null), yMax: /** @type {string | null} */ (null),
+                        referenceLines: /** @type {string[]} */ ([]), referenceBands: /** @type {string[]} */ ([]), unitLabel: /** @type {string | null} */ (null),
                     },
                     style: { span: 4, height: 'md' }, visible: true,
                 },
@@ -1962,6 +1992,7 @@ const SCREEN_HOME = {
  * on New invoice and on the invoice's Supplier tab it is ALSO what fills
  * `records.tbl_iasup`, which the copy-the-levers loop reads. Same component,
  * different id per screen (ids are unique across the app).
+ * @param {string} id
  */
 const supplierGrid = (id, { editable = false, span = 12 } = {}) => ({
     id, type: 'data_grid',
@@ -2007,7 +2038,7 @@ const SCREEN_INTAKE = {
                     props: {
                         look: 'split', title: 'New invoice',
                         subtitle: 'One PDF at a time. Pick the supplier first — that is what tells the ladder whether this one needs the director.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'FilePlus2', showDivider: true,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
@@ -2045,8 +2076,8 @@ const SCREEN_INTAKE = {
                                     id: 'cmp_iaincc', type: 'input_select',
                                     props: {
                                         name: 'cost_center', label: 'Cost centre', options: COST_CENTRE_OPTIONS,
-                                        required: false, defaultValue: null, placeholder: 'Pick one (you can change it later)',
-                                        valueFrom: { kind: 'static', value: null },
+                                        required: false, defaultValue: /** @type {string | null} */ (null), placeholder: 'Pick one (you can change it later)',
+                                        valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                                     },
                                     style: { span: 5 }, visible: true,
                                 },
@@ -2056,7 +2087,7 @@ const SCREEN_INTAKE = {
                 },
                 {
                     id: 'cmp_iainhow', type: 'card',
-                    props: { title: 'What happens next', description: null, look: 'tinted' },
+                    props: { title: 'What happens next', description: /** @type {string | null} */ (null), look: 'tinted' },
                     style: { span: 5, padding: 3, gap: 2, background: 'surface' }, visible: true,
                     children: [
                         {
@@ -2069,7 +2100,7 @@ const SCREEN_INTAKE = {
                                     '',
                                     'Anything the AI could not read is written into **What the AI could not read** rather than guessed at.',
                                 ].join('\n'),
-                                contentFrom: { kind: 'static', value: null },
+                                contentFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                             },
                             style: { span: 12 }, visible: true,
                         },
@@ -2099,7 +2130,7 @@ const SCREEN_INVOICES = {
                     props: {
                         look: 'split', title: 'Invoices',
                         subtitle: 'Click a row to open the invoice beside its PDF.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'Files', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
@@ -2216,7 +2247,7 @@ const SCREEN_DETAIL = {
                 {
                     id: 'cmp_iadhdr', type: 'page_header',
                     props: {
-                        look: 'split', title: 'Invoice', subtitle: null,
+                        look: 'split', title: 'Invoice', subtitle: /** @type {string | null} */ (null),
                         // titleFrom/subtitleFrom name the THING on screen
                         // rather than the screen: without them the header
                         // would say "Invoice" over every invoice in the app.
@@ -2289,15 +2320,15 @@ const SCREEN_DETAIL = {
                                     onSubmit: 'act_iasave',
                                     children: [
                                         { id: 'cmp_iadf01', type: 'input_text', props: { name: 'invoice_no', label: 'Invoice number', placeholder: null, required: true, defaultValue: null, inputType: 'text', valueFrom: openInvoice('invoice_no') }, style: { span: 6 }, visible: true },
-                                        { id: 'cmp_iadf02', type: 'input_text', props: { name: 'po_number', label: 'PO number', placeholder: 'If the invoice quotes one', required: false, defaultValue: null, inputType: 'text', valueFrom: openInvoice('po_number') }, style: { span: 6 }, visible: true },
-                                        { id: 'cmp_iadf03', type: 'input_date', props: { name: 'invoice_date', label: 'Invoice date', required: false, defaultValue: null, valueFrom: openInvoice('invoice_date') }, style: { span: 6 }, visible: true },
+                                        { id: 'cmp_iadf02', type: 'input_text', props: { name: 'po_number', label: 'PO number', placeholder: 'If the invoice quotes one', required: false, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: openInvoice('po_number') }, style: { span: 6 }, visible: true },
+                                        { id: 'cmp_iadf03', type: 'input_date', props: { name: 'invoice_date', label: 'Invoice date', required: false, defaultValue: /** @type {string | null} */ (null), valueFrom: openInvoice('invoice_date') }, style: { span: 6 }, visible: true },
                                         { id: 'cmp_iadf04', type: 'input_date', props: { name: 'due_date', label: 'Due date', required: false, defaultValue: null, valueFrom: openInvoice('due_date') }, style: { span: 6 }, visible: true },
-                                        { id: 'cmp_iadf05', type: 'input_select', props: { name: 'currency', label: 'Currency', options: CURRENCY_OPTIONS, required: false, defaultValue: 'EUR', placeholder: null, valueFrom: openInvoice('currency') }, style: { span: 4 }, visible: true },
-                                        { id: 'cmp_iadf06', type: 'input_number', props: { name: 'amount_excl_vat', label: 'Net', min: null, max: null, step: 0.01, required: false, defaultValue: null }, style: { span: 4 }, visible: true },
+                                        { id: 'cmp_iadf05', type: 'input_select', props: { name: 'currency', label: 'Currency', options: CURRENCY_OPTIONS, required: false, defaultValue: 'EUR', placeholder: /** @type {string | null} */ (null), valueFrom: openInvoice('currency') }, style: { span: 4 }, visible: true },
+                                        { id: 'cmp_iadf06', type: 'input_number', props: { name: 'amount_excl_vat', label: 'Net', min: /** @type {string | null} */ (null), max: /** @type {string | null} */ (null), step: 0.01, required: false, defaultValue: /** @type {string | null} */ (null) }, style: { span: 4 }, visible: true },
                                         { id: 'cmp_iadf07', type: 'input_number', props: { name: 'vat_amount', label: 'VAT', min: null, max: null, step: 0.01, required: false, defaultValue: null }, style: { span: 4 }, visible: true },
                                         { id: 'cmp_iadf08', type: 'input_number', props: { name: 'amount_total', label: 'Gross total', min: null, max: null, step: 0.01, required: true, defaultValue: null }, style: { span: 4 }, visible: true },
                                         { id: 'cmp_iadf09', type: 'input_select', props: { name: 'cost_center', label: 'Cost centre', options: COST_CENTRE_OPTIONS, required: false, defaultValue: null, placeholder: 'Not coded yet', valueFrom: openInvoice('cost_center') }, style: { span: 8 }, visible: true },
-                                        { id: 'cmp_iadf10', type: 'input_textarea', props: { name: 'extraction_note', label: 'What the AI could not read', placeholder: null, required: false, rows: 2, valueFrom: openInvoice('extraction_note'), snippets: { kind: 'static', value: null }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
+                                        { id: 'cmp_iadf10', type: 'input_textarea', props: { name: 'extraction_note', label: 'What the AI could not read', placeholder: /** @type {string | null} */ (null), required: false, rows: 2, valueFrom: openInvoice('extraction_note'), snippets: { kind: 'static', value: /** @type {unknown} */ (null) }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
                                     ],
                                 },
                                 {
@@ -2347,10 +2378,10 @@ const SCREEN_DETAIL = {
                                             },
                                             style: { span: 12 }, visible: true,
                                         },
-                                        { id: 'cmp_iadsn1', type: 'input_text', props: { name: 'invoice_no', label: 'Invoice number', placeholder: null, required: true, defaultValue: null, inputType: 'text', valueFrom: openInvoice('invoice_no') }, style: { span: 6 }, visible: true },
+                                        { id: 'cmp_iadsn1', type: 'input_text', props: { name: 'invoice_no', label: 'Invoice number', placeholder: /** @type {string | null} */ (null), required: true, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: openInvoice('invoice_no') }, style: { span: 6 }, visible: true },
                                         { id: 'cmp_iadsn2', type: 'input_text', props: { name: 'supplier_name', label: 'Supplier', placeholder: null, required: true, defaultValue: null, inputType: 'text', valueFrom: openInvoice('supplier_name') }, style: { span: 6 }, visible: true },
-                                        { id: 'cmp_iadsn3', type: 'input_select', props: { name: 'currency', label: 'Currency', options: CURRENCY_OPTIONS, required: false, defaultValue: 'EUR', placeholder: null, valueFrom: openInvoice('currency') }, style: { span: 3 }, visible: true },
-                                        { id: 'cmp_iadsn4', type: 'input_number', props: { name: 'amount_total', label: 'Gross total', min: 0, max: null, step: 0.01, required: true, defaultValue: null }, style: { span: 4 }, visible: true },
+                                        { id: 'cmp_iadsn3', type: 'input_select', props: { name: 'currency', label: 'Currency', options: CURRENCY_OPTIONS, required: false, defaultValue: 'EUR', placeholder: /** @type {string | null} */ (null), valueFrom: openInvoice('currency') }, style: { span: 3 }, visible: true },
+                                        { id: 'cmp_iadsn4', type: 'input_number', props: { name: 'amount_total', label: 'Gross total', min: 0, max: /** @type {string | null} */ (null), step: 0.01, required: true, defaultValue: /** @type {string | null} */ (null) }, style: { span: 4 }, visible: true },
                                         { id: 'cmp_iadsn5', type: 'input_select', props: { name: 'cost_center', label: 'Cost centre', options: COST_CENTRE_OPTIONS, required: true, defaultValue: null, placeholder: 'Pick the budget it comes out of', valueFrom: openInvoice('cost_center') }, style: { span: 5 }, visible: true },
                                         {
                                             id: 'cmp_iadsn6', type: 'input_select',
@@ -2370,7 +2401,7 @@ const SCREEN_DETAIL = {
                                             },
                                             style: { span: 6 }, visible: true,
                                         },
-                                        { id: 'cmp_iadsn8', type: 'input_textarea', props: { name: 'submit_note', label: 'Note for the approvers', placeholder: 'Anything they should know before they decide', required: false, rows: 3, valueFrom: { kind: 'static', value: null }, snippets: { kind: 'static', value: null }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
+                                        { id: 'cmp_iadsn8', type: 'input_textarea', props: { name: 'submit_note', label: 'Note for the approvers', placeholder: 'Anything they should know before they decide', required: false, rows: 3, valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, snippets: { kind: 'static', value: /** @type {unknown} */ (null) }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
                                     ],
                                 },
                                 {
@@ -2427,7 +2458,7 @@ const SCREEN_DETAIL = {
                                         addRowLabel: 'Add a line',
                                         addRowActionId: 'act_ialineadd',
                                         rowActions: [{ label: 'Delete', actionId: 'act_ialinedel' }],
-                                        rowTone: [], bulkActions: [], toolbarActions: [],
+                                        rowTone: /** @type {string[]} */ ([]), bulkActions: /** @type {string[]} */ ([]), toolbarActions: /** @type {string[]} */ ([]),
                                         emptyText: 'No lines yet — the AI found none, or nobody has added any.',
                                     },
                                     style: { span: 12 }, visible: true,
@@ -2458,7 +2489,7 @@ const SCREEN_DETAIL = {
                                         },
                                         {
                                             id: 'cmp_iadsupp', type: 'input_relation',
-                                            props: { name: 'supplier', label: 'Supplier', tableId: 'tbl_iasup', displayField: 'name', multiple: false, required: true, filter: null },
+                                            props: { name: 'supplier', label: 'Supplier', tableId: 'tbl_iasup', displayField: 'name', multiple: false, required: true, filter: /** @type {string | null} */ (null) },
                                             style: { span: 8 }, visible: true,
                                         },
                                     ],
@@ -2478,7 +2509,7 @@ const SCREEN_DETAIL = {
                                         source: forOpenInvoice('tbl_iaevt', [{ field: 'at', dir: 'desc' }], 100),
                                         titleKey: 'detail',
                                         dateKey: 'at',
-                                        descriptionKey: null,
+                                        descriptionKey: /** @type {string | null} */ (null),
                                         metaKey: 'actor',
                                         icon: 'Dot',
                                         rowLimit: 100,
@@ -2497,7 +2528,7 @@ const SCREEN_DETAIL = {
             children: [
                 {
                     id: 'cmp_iaholdm', type: 'modal',
-                    props: { title: 'Put this invoice on hold', size: 'md', triggerLabel: null },
+                    props: { title: 'Put this invoice on hold', size: 'md', triggerLabel: /** @type {string | null} */ (null) },
                     style: { gap: 3, padding: 4 }, visible: true,
                     children: [
                         {
@@ -2506,7 +2537,7 @@ const SCREEN_DETAIL = {
                             style: { span: 12, gap: 3, padding: 0 }, visible: true,
                             onSubmit: 'act_iaholdsave',
                             children: [
-                                { id: 'cmp_iaholdr', type: 'input_textarea', props: { name: 'hold_reason', label: 'Why is it on hold?', placeholder: 'A disputed line, unverified bank details, waiting for a credit note…', required: true, rows: 3, valueFrom: { kind: 'static', value: null }, snippets: { kind: 'static', value: null }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
+                                { id: 'cmp_iaholdr', type: 'input_textarea', props: { name: 'hold_reason', label: 'Why is it on hold?', placeholder: 'A disputed line, unverified bank details, waiting for a credit note…', required: true, rows: 3, valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, snippets: { kind: 'static', value: /** @type {unknown} */ (null) }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
                             ],
                         },
                     ],
@@ -2529,7 +2560,7 @@ const SCREEN_APPROVALS = {
                     props: {
                         look: 'split', title: 'Approvals',
                         subtitle: 'Decide here, or in the Approvals section — either way the invoice updates.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'ShieldCheck', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
@@ -2598,7 +2629,7 @@ const SCREEN_APPROVALS = {
                         ],
                         pageSize: 25, selectable: 'none', searchable: true,
                         density: 'comfortable', clamp: '1', zebra: false, look: 'default',
-                        rowTone: [], bulkActions: [], toolbarActions: [], rowActions: [],
+                        rowTone: /** @type {string[]} */ ([]), bulkActions: /** @type {string[]} */ ([]), toolbarActions: /** @type {string[]} */ ([]), rowActions: /** @type {string[]} */ ([]),
                         emptyText: 'Nothing is on the ladder right now.',
                     },
                     style: { span: 12 }, visible: true,
@@ -2621,7 +2652,7 @@ const SCREEN_PAYMENTS = {
                     props: {
                         look: 'split', title: 'Payments',
                         subtitle: 'An approved invoice is not a paid invoice. This is the gap between the two.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'Banknote', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
@@ -2636,8 +2667,8 @@ const SCREEN_PAYMENTS = {
                         value: invoiceCount([{ field: 'status', op: 'eq', value: 'approved' }]),
                         caption: 'signed off, no payment date yet',
                         icon: 'CheckCircle2', look: 'tile',
-                        delta: { kind: 'static', value: null }, deltaFormat: 'number',
-                        trend: { kind: 'static', value: null }, positiveIsGood: true,
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) }, deltaFormat: 'number',
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) }, positiveIsGood: true,
                     },
                     style: { span: 4 }, visible: true,
                 },
@@ -2648,8 +2679,8 @@ const SCREEN_PAYMENTS = {
                         value: invoiceSum([{ field: 'status', op: 'in', value: ['approved', 'scheduled'] }]),
                         caption: 'gross, approved but not yet paid',
                         icon: 'Euro', look: 'accent',
-                        delta: { kind: 'static', value: null }, deltaFormat: 'number',
-                        trend: { kind: 'static', value: null }, positiveIsGood: false,
+                        delta: { kind: 'static', value: /** @type {unknown} */ (null) }, deltaFormat: 'number',
+                        trend: { kind: 'static', value: /** @type {unknown} */ (null) }, positiveIsGood: false,
                     },
                     style: { span: 4 }, visible: true,
                 },
@@ -2697,7 +2728,7 @@ const SCREEN_PAYMENTS = {
                             { label: 'Record payment', actionId: 'act_iapayopen' },
                         ],
                         rowTone: [{ field: 'status', value: 'scheduled', tone: 'info' }],
-                        bulkActions: [], toolbarActions: [],
+                        bulkActions: /** @type {string[]} */ ([]), toolbarActions: /** @type {string[]} */ ([]),
                         emptyText: 'Nothing approved is waiting — either everything is paid or nothing has been approved yet.',
                     },
                     style: { span: 12 }, visible: true,
@@ -2728,8 +2759,8 @@ const SCREEN_PAYMENTS = {
                         timestampKey: 'paid_at',
                         badgeKey: 'status',
                         badgeToneMap: STATUS_TONES,
-                        unreadKey: null,
-                        selectedWhen: null,
+                        unreadKey: /** @type {string | null} */ (null),
+                        selectedWhen: /** @type {string | null} */ (null),
                         icon: 'Banknote',
                         emptyText: 'Nothing has been recorded as paid yet.',
                         look: 'rows',
@@ -2744,7 +2775,7 @@ const SCREEN_PAYMENTS = {
             children: [
                 {
                     id: 'cmp_iapaym', type: 'modal',
-                    props: { title: 'Record a payment', size: 'md', triggerLabel: null },
+                    props: { title: 'Record a payment', size: 'md', triggerLabel: /** @type {string | null} */ (null) },
                     style: { gap: 3, padding: 4 }, visible: true,
                     children: [
                         {
@@ -2753,8 +2784,8 @@ const SCREEN_PAYMENTS = {
                             style: { span: 12, gap: 3, padding: 0 }, visible: true,
                             onSubmit: 'act_iapaysave',
                             children: [
-                                { id: 'cmp_iapayd', type: 'input_date', props: { name: 'payment_date', label: 'Paid on', required: true, defaultValue: 'today', valueFrom: { kind: 'static', value: null } }, style: { span: 6 }, visible: true },
-                                { id: 'cmp_iapayr', type: 'input_text', props: { name: 'payment_reference', label: 'Payment reference', placeholder: 'Batch or transaction reference', required: false, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 6 }, visible: true },
+                                { id: 'cmp_iapayd', type: 'input_date', props: { name: 'payment_date', label: 'Paid on', required: true, defaultValue: 'today', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 6 }, visible: true },
+                                { id: 'cmp_iapayr', type: 'input_text', props: { name: 'payment_reference', label: 'Payment reference', placeholder: 'Batch or transaction reference', required: false, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 6 }, visible: true },
                             ],
                         },
                     ],
@@ -2776,11 +2807,11 @@ const SCREEN_REPORTING = {
                     props: {
                         look: 'banner', title: 'Reporting',
                         subtitle: 'Every number here is the invoice table grouped in SQL — nothing is copied into a second place to be reported on.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'BarChart3', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
             ],
         },
@@ -2805,8 +2836,8 @@ const SCREEN_REPORTING = {
                         xType: 'time',
                         series: [{ key: 'spend', label: 'Gross invoiced' }],
                         stacked: false, showLegend: false, showGrid: true,
-                        valueFormat: 'currency', yMin: 0, yMax: null,
-                        referenceLines: [], referenceBands: [], unitLabel: null,
+                        valueFormat: 'currency', yMin: 0, yMax: /** @type {string | null} */ (null),
+                        referenceLines: /** @type {string[]} */ ([]), referenceBands: /** @type {string[]} */ ([]), unitLabel: /** @type {string | null} */ (null),
                     },
                     style: { span: 8, height: 'md' }, visible: true,
                 },
@@ -2824,8 +2855,8 @@ const SCREEN_REPORTING = {
                         xKey: 'band', xType: 'category',
                         series: [{ key: 'invoices', label: 'Invoices' }],
                         stacked: false, showLegend: true, showGrid: false,
-                        valueFormat: 'number', yMin: null, yMax: null,
-                        referenceLines: [], referenceBands: [], unitLabel: null,
+                        valueFormat: 'number', yMin: /** @type {string | null} */ (null), yMax: /** @type {string | null} */ (null),
+                        referenceLines: /** @type {string[]} */ ([]), referenceBands: /** @type {string[]} */ ([]), unitLabel: /** @type {string | null} */ (null),
                     },
                     style: { span: 4, height: 'md' }, visible: true,
                 },
@@ -2844,8 +2875,8 @@ const SCREEN_REPORTING = {
                         xKey: 'supplier', xType: 'category',
                         series: [{ key: 'spend', label: 'Gross invoiced' }],
                         stacked: false, showLegend: false, showGrid: true,
-                        valueFormat: 'currency', yMin: 0, yMax: null,
-                        referenceLines: [], referenceBands: [], unitLabel: null,
+                        valueFormat: 'currency', yMin: 0, yMax: /** @type {string | null} */ (null),
+                        referenceLines: /** @type {string[]} */ ([]), referenceBands: /** @type {string[]} */ ([]), unitLabel: /** @type {string | null} */ (null),
                     },
                     style: { span: 6, height: 'md' }, visible: true,
                 },
@@ -2904,11 +2935,11 @@ const SCREEN_SUPPLIERS = {
                     props: {
                         look: 'split', title: 'Suppliers',
                         subtitle: 'Two of these columns are policy, not description.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'Building2', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_iasunote', type: 'callout',
@@ -2935,14 +2966,14 @@ const SCREEN_SUPPLIERS = {
                     onSubmit: 'act_iasupadd',
                     children: [
                         { id: 'cmp_iasunh', type: 'heading', props: { text: 'Add a supplier', level: 3, accent: 'none' }, style: { span: 12 }, visible: true },
-                        { id: 'cmp_iasun1', type: 'input_text', props: { name: 'name', label: 'Supplier', placeholder: null, required: true, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 5 }, visible: true },
+                        { id: 'cmp_iasun1', type: 'input_text', props: { name: 'name', label: 'Supplier', placeholder: /** @type {string | null} */ (null), required: true, defaultValue: /** @type {string | null} */ (null), inputType: 'text', valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 5 }, visible: true },
                         { id: 'cmp_iasun2', type: 'input_text', props: { name: 'supplier_no', label: 'Supplier no.', placeholder: null, required: false, defaultValue: null, inputType: 'text', valueFrom: { kind: 'static', value: null } }, style: { span: 3 }, visible: true },
-                        { id: 'cmp_iasun3', type: 'input_select', props: { name: 'category', label: 'Category', options: SUPPLIER_CATEGORY_OPTIONS, required: false, defaultValue: 'services', placeholder: null, valueFrom: { kind: 'static', value: null } }, style: { span: 4 }, visible: true },
+                        { id: 'cmp_iasun3', type: 'input_select', props: { name: 'category', label: 'Category', options: SUPPLIER_CATEGORY_OPTIONS, required: false, defaultValue: 'services', placeholder: /** @type {string | null} */ (null), valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) } }, style: { span: 4 }, visible: true },
                         { id: 'cmp_iasun4', type: 'input_text', props: { name: 'contact_email', label: 'Contact e-mail', placeholder: null, required: false, defaultValue: null, inputType: 'email', valueFrom: { kind: 'static', value: null } }, style: { span: 5 }, visible: true },
                         { id: 'cmp_iasun5', type: 'input_number', props: { name: 'payment_terms_days', label: 'Payment terms (days)', min: 0, max: 365, step: 1, required: false, defaultValue: 30 }, style: { span: 3 }, visible: true },
                         { id: 'cmp_iasun6', type: 'input_select', props: { name: 'risk', label: 'Supplier check', options: RISK_OPTIONS, required: false, defaultValue: 'standard', placeholder: null, valueFrom: { kind: 'static', value: null } }, style: { span: 4 }, visible: true },
                         { id: 'cmp_iasun7', type: 'input_checkbox', props: { name: 'always_director', label: 'Every invoice from this supplier also needs the director', defaultChecked: false }, style: { span: 12 }, visible: true },
-                        { id: 'cmp_iasun8', type: 'input_textarea', props: { name: 'notes', label: 'Notes', placeholder: 'Why this supplier is on the watch list, what the framework agreement says…', required: false, rows: 2, valueFrom: { kind: 'static', value: null }, snippets: { kind: 'static', value: null }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
+                        { id: 'cmp_iasun8', type: 'input_textarea', props: { name: 'notes', label: 'Notes', placeholder: 'Why this supplier is on the watch list, what the framework agreement says…', required: false, rows: 2, valueFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, snippets: { kind: 'static', value: /** @type {unknown} */ (null) }, snippetKey: 'shortcut', snippetBody: 'body', snippetLabel: 'title' }, style: { span: 12 }, visible: true },
                     ],
                 },
             ],
@@ -2967,11 +2998,11 @@ const SCREEN_POLICY = {
                     props: {
                         look: 'split', title: 'Approval policy',
                         subtitle: 'Who has to say yes, and when.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'Scale', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_iaplsetup', type: 'callout',
@@ -3007,7 +3038,7 @@ const SCREEN_POLICY = {
                             '',
                             '_Editing the table below changes what this screen SAYS, not what the app DOES — the chain itself lives in the action, because approver seats and stage rules are step fields rather than data. Keep the two in step; that is what the accompanying test checks._',
                         ].join('\n'),
-                        contentFrom: { kind: 'static', value: null },
+                        contentFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                     },
                     style: { span: 12 }, visible: true,
                 },
@@ -3033,7 +3064,7 @@ const SCREEN_POLICY = {
                         ],
                         pageSize: 25, selectable: 'none', searchable: false,
                         density: 'comfortable', clamp: '3', zebra: false, look: 'default',
-                        rowTone: [], rowActions: [], bulkActions: [], toolbarActions: [],
+                        rowTone: /** @type {string[]} */ ([]), rowActions: /** @type {string[]} */ ([]), bulkActions: /** @type {string[]} */ ([]), toolbarActions: /** @type {string[]} */ ([]),
                         emptyText: 'No policy rows.',
                     },
                     style: { span: 12 }, visible: true,
@@ -3067,7 +3098,7 @@ const SCREEN_POLICY = {
                         ],
                         pageSize: 25, selectable: 'none', searchable: false,
                         density: 'compact', clamp: '1', zebra: false, look: 'minimal',
-                        rowTone: [], rowActions: [], bulkActions: [], toolbarActions: [],
+                        rowTone: /** @type {string[]} */ ([]), rowActions: /** @type {string[]} */ ([]), bulkActions: /** @type {string[]} */ ([]), toolbarActions: /** @type {string[]} */ ([]),
                         emptyText: 'No cost centres.',
                     },
                     style: { span: 12 }, visible: true,
@@ -3093,11 +3124,11 @@ const SCREEN_AUDIT = {
                     props: {
                         look: 'split', title: 'Audit trail',
                         subtitle: 'Append-only by access matrix, not by convention — nobody, the controller included, can edit a row here.',
-                        titleFrom: { kind: 'static', value: null }, subtitleFrom: { kind: 'static', value: null },
+                        titleFrom: { kind: 'static', value: /** @type {unknown} */ (null) }, subtitleFrom: { kind: 'static', value: /** @type {unknown} */ (null) },
                         icon: 'History', showDivider: false,
                     },
                     style: { span: 12, gap: 3, padding: 0 }, visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_iaaufil', type: 'filter_bar',
@@ -3136,7 +3167,7 @@ const SCREEN_AUDIT = {
                         pageSize: 50, selectable: 'none', searchable: false,
                         density: 'compact', clamp: '2', zebra: true, look: 'default',
                         rowTone: [{ field: 'kind', value: 'hold', tone: 'danger' }],
-                        rowActions: [], bulkActions: [], toolbarActions: [],
+                        rowActions: /** @type {string[]} */ ([]), bulkActions: /** @type {string[]} */ ([]), toolbarActions: /** @type {string[]} */ ([]),
                         emptyText: 'Nothing recorded yet.',
                     },
                     style: { span: 12 }, visible: true,
@@ -3161,7 +3192,7 @@ const definition = {
     // Identity: "cloud" in teal — a finance tool that reads as a product
     // rather than as an admin console, with soft surfaces so the KPI tiles and
     // the document pane sit apart from the page.
-    design: { preset: 'cloud', font: 'inter', surface: 'soft', motion: 'full', chartPalette: 'brand', accentEdge: 'bar', logoUrl: null },
+    design: { preset: 'cloud', font: 'inter', surface: 'soft', motion: 'full', chartPalette: 'brand', accentEdge: 'bar', logoUrl: /** @type {string | null} */ (null) },
     nav: {
         style: 'sidebar',
         groups: [
@@ -3189,7 +3220,7 @@ const definition = {
      * a server step cannot resolve a record binding.
      */
     variables: [
-        { name: 'invoice', label: 'Open invoice', type: 'record', default: null, description: 'The invoice the detail screen is scoped to, published by every route into it.' },
+        { name: 'invoice', label: 'Open invoice', type: 'record', default: /** @type {unknown} */ (null), description: 'The invoice the detail screen is scoped to, published by every route into it.' },
         { name: 'payinv', label: 'Invoice being paid', type: 'record', default: null, description: 'The row the Record-payment dialog is about.' },
     ],
     screens: [

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The AI that decides by itself when to take part — the public face.
  *
@@ -22,6 +22,7 @@
 const { makeParticipationEngine } = require('./engine');
 const { defaultPolicy } = require('./policy');
 
+/** @type {ReturnType<typeof makeParticipationEngine> | null} */
 let engine = null;
 
 /** The process's engine, built on first use. */

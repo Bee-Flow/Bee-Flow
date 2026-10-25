@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * One cell, both ways: what Nextcloud stores ↔ what the mirror stores.
  *
@@ -25,10 +26,12 @@
 
 const { NextcloudSourceError } = require('./errors');
 
+/** @param {unknown} v */
 function isBlank(v) {
     return v === null || v === undefined || v === '';
 }
 
+/** @param {unknown} v */
 function parseJsonMaybe(v) {
     if (typeof v !== 'string') return v;
     const s = v.trim();
@@ -39,9 +42,15 @@ function parseJsonMaybe(v) {
 const DATE_RE = /^(\d{4}-\d{2}-\d{2})/;
 const NC_DATETIME_RE = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/;
 
+/**
+ * @param {number} n
+ */
 function pad(n) { return String(n).padStart(2, '0'); }
 
-/** Nextcloud's wall-clock 'Y-m-d H:i[:s]' → ISO, read as UTC. */
+/**
+ * Nextcloud's wall-clock 'Y-m-d H:i[:s]' → ISO, read as UTC.
+ * @param {string} v
+ */
 function ncDateTimeToIso(v) {
     if (typeof v !== 'string') return null;
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) {
@@ -53,18 +62,29 @@ function ncDateTimeToIso(v) {
     return `${m[1]}T${m[2]}:${m[3]}:${m[4] || '00'}.000Z`;
 }
 
-/** ISO (or anything Date parses) → 'Y-m-d H:i' in UTC — the one shape Tables keeps. */
+/**
+ * ISO (or anything Date parses) → 'Y-m-d H:i' in UTC — the one shape Tables keeps.
+ * @param {unknown} v
+ */
 function isoToNcDateTime(v) {
     const d = v instanceof Date ? v : new Date(String(v));
     if (Number.isNaN(d.getTime())) return null;
     return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
+/**
+ * @param {{ id: string | number; label: string; }[] | undefined} options
+ * @param {unknown} id
+ */
 function optionLabel(options, id) {
     const hit = (options || []).find(o => String(o.id) === String(id));
     return hit ? hit.label : null;
 }
 
+/**
+ * @param {{ id: string | number; label: string; }[] | undefined} options
+ * @param {string} label
+ */
 function optionId(options, label) {
     const hit = (options || []).find(o => o.label === label);
     return hit ? hit.id : null;
@@ -73,8 +93,8 @@ function optionId(options, label) {
 /**
  * What the mirror stores for one cell.
  * @param {*} value      the raw `value` from a Nextcloud row cell
- * @param {object} entry the columnMap entry ({ncType, ncSubtype, options?})
- * @param {object} field the mirror field ({type})
+ * @param {{ ncType?: string, ncSubtype?: string, options?: Array<{ id: string|number, label: string }>, [k: string]: unknown }} entry the columnMap entry
+ * @param {{ type?: string }} field the mirror field
  */
 function cellToLocal(value, entry, field) {
     if (isBlank(value)) return null;
@@ -116,6 +136,9 @@ function cellToLocal(value, entry, field) {
 /**
  * What goes on the wire for one cell the caller set in Bee Flow. Throws a
  * 422 NextcloudSourceError for a value Nextcloud would silently blank.
+ * @param {unknown} value
+ * @param {{ ncType?: string, ncSubtype?: string, title?: string, options?: Array<{ id: string|number, label: string }>, [k: string]: unknown }} entry the columnMap entry
+ * @param {{ type?: string, name?: string, key?: string }} field the mirror field
  */
 function localToWire(value, entry, field) {
     const ncType = entry && entry.ncType;
@@ -179,6 +202,10 @@ function localToWire(value, entry, field) {
     }
 }
 
+/**
+ * @param {string} title
+ * @param {string} why
+ */
 function reject(title, why) {
     return new NextcloudSourceError(422, 'nextcloud_rejected', `${title}: ${why}`, { detail: why });
 }

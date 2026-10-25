@@ -133,3 +133,10 @@ async function applyLinkDatatable(draftWrap, args, deps = {}) {
 }
 
 module.exports = { applyLinkDatatable, existingLinkFor };
+
+/** @typedef {Extract<Awaited<ReturnType<typeof resolveLinkableDatatable>>, { datatable: unknown }>} Resolved  The success shape of resolveLinkableDatatable. */
+
+/**
+ * A model table that may be a link to a Studio table (`source.kind === 'datatable'`).
+ * @typedef {import('./dataTools').DataTable & { source?: { kind?: string, datatableId?: string, mode?: string } }} LinkedTable
+ */

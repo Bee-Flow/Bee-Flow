@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The colours a project can give its people. The same hues as the project's
  * own colour (agent-hub's ProjectIdentityFields) plus violet: a person is

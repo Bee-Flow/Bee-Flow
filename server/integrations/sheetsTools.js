@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Sheets Tools — list, read, append, update, create.
  *
@@ -116,13 +116,40 @@ const SHEETS_TOOLS = [
 
 // ─── Sheets Client ─────────────────────────────────────────────
 
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{ query?: string, pageSize?: unknown, spreadsheetId?: string, range?: string, values?: unknown[][],
+ *   valueInputOption?: string, title?: string, tabs?: unknown[], folderId?: string }} SheetsArgs
+ */
+/**
+ * The part of a googleapis sheets v4 client these tools call.
+ * @typedef {{ spreadsheets: {
+ *   get(params: object): Promise<{ data: { properties?: { title?: string }, sheets?: Array<{ properties?: { title?: string,
+ *     sheetId?: number, index?: number, gridProperties?: { rowCount?: number, columnCount?: number } } }> } }>,
+ *   create(params: object): Promise<{ data: { spreadsheetId?: string } }>,
+ *   values: {
+ *     get(params: object): Promise<{ data: { range?: string, values?: unknown[][] } }>,
+ *     append(params: object): Promise<{ data: { updates?: { updatedRange?: string, updatedRows?: number, updatedCells?: number } } }>,
+ *     update(params: object): Promise<{ data: { updatedRange?: string, updatedRows?: number, updatedCells?: number } }>,
+ *   } } }} SheetsClient
+ */
+
+/**
+ * @param {import('./googleClient').GoogleSession} session
+ * @returns {Promise<{ sheets: SheetsClient, drive: import('./driveHelpers').DriveClient }>}
+ */
 async function createSheetsClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
-    return createGoogleApiClient(session, { api: 'sheets', version: 'v4', extraApis: [{ api: 'drive', version: 'v3' }], exposeOAuth2: true, notConnectedError: 'Not connected to Google Sheets — user must log in with Google' });
+    return /** @type {Promise<{ sheets: SheetsClient, drive: import('./driveHelpers').DriveClient }>} */ (createGoogleApiClient(session, { api: 'sheets', version: 'v4', extraApis: [{ api: 'drive', version: 'v3' }], exposeOAuth2: true, notConnectedError: 'Not connected to Google Sheets — user must log in with Google' }));
 }
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {SheetsArgs} args
+ * @param {import('./googleClient').GoogleSession} session
+ */
 async function executeSheetsTool(toolName, args, session) {
     const { sheets, drive } = await createSheetsClient(session);
 
@@ -244,7 +271,7 @@ async function executeSheetsTool(toolName, args, session) {
                         supportsAllDrives: true,
                     });
                 } catch (e) {
-                    log.warn(`[Sheets] Could not move to folder ${folderId}: ${e.message}`);
+                    log.warn(`[Sheets] Could not move to folder ${folderId}: ${/** @type {Error} */ (e).message}`);
                 }
             }
             return {
@@ -259,6 +286,9 @@ async function executeSheetsTool(toolName, args, session) {
     }
 }
 
+/**
+ * @param {unknown} toolName
+ */
 function isSheetsTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('sheets_');
 }

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: multi-trigger support — webhook + app-event only (2026-07).
  *

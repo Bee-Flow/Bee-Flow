@@ -14,6 +14,8 @@
  * turnUsage) and finalizeTurn.
  */
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+/** @typedef {(reason: string) => Promise<void>} InterruptedTurnPersister */
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
@@ -58,8 +60,13 @@ const TITLE_HOLD_MS = 15_000;
  * records what happened; otherwise the next turn's model re-runs the side
  * effect (duplicate issues, double emails, ...).
  */
+/**
+ * @param {Turn} turn
+ * @returns {InterruptedTurnPersister}
+ */
 function makeInterruptedTurnPersister(turn) {
     const { req, userId } = turn;
+    /** @param {string} reason */
     return async (reason) => {
         try {
             const { buildInterruptedTurnMessages } = require('./interruptedTurn');
@@ -82,10 +89,13 @@ function makeInterruptedTurnPersister(turn) {
 /**
  * The input gates, then the chat-signal count. Returns false when a gate
  * ended the stream.
+ * @param {Turn} turn
+ * @param {{ message: string, attachments?: unknown[] }} input
  */
 async function runGates(turn, { message, attachments }) {
     const { req, res, send, userId } = turn;
     // Chat signals: the gates fill this in with what they decided.
+    /** @type {Parameters<typeof countDirectTurn>[0]['chatSignal']} */
     const chatSignal = { pii: {}, dlp: null, allowlistedHosts: [] };
     const inputGates = await runInputGates({
         req, res, send, userId, convId: turn.convId, message, messages: turn.messages, modelId: turn.modelId,
@@ -107,6 +117,7 @@ async function runGates(turn, { message, attachments }) {
  * for the `title` event to ride along, bounded, because the title is a
  * nicety and the slot behind it may be busy. After the bound, `send` is a
  * no-op on the ended response and the title is still persisted.
+ * @param {Promise<unknown> | null | undefined} pendingTitle
  */
 async function holdForTitle(pendingTitle) {
     if (!pendingTitle) return;
@@ -116,7 +127,11 @@ async function holdForTitle(pendingTitle) {
     ]);
 }
 
-/** A failed turn: quiet on a client cancel, otherwise org-health + persist + error event. */
+/**
+ * A failed turn: quiet on a client cancel, otherwise org-health + persist + error event.
+ * @param {Partial<Error>} error
+ * @param {{ turn: Turn, clientAbort: AbortController, persistInterruptedTurn: InterruptedTurnPersister | null }} ctx
+ */
 async function handleTurnError(error, { turn, clientAbort, persistInterruptedTurn }) {
     const { req, res, send } = turn;
     // The user pressed stop: the socket is gone, there is nobody to tell, and
@@ -158,6 +173,7 @@ async function handleTurnError(error, { turn, clientAbort, persistInterruptedTur
  * release cannot free a turn someone else has since claimed. The try starts
  * at the `if`, not inside it: anything that throws here would otherwise skip
  * the res.end() and leave the client holding a stream the server never closes.
+ * @param {Turn} turn
  */
 async function releaseTurn(turn) {
     const { res, userId } = turn;
@@ -241,6 +257,7 @@ router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody 
 
     // The interrupted-turn hook (see makeInterruptedTurnPersister). Declared
     // here, outside the try, because the catch below reads it.
+    /** @type {InterruptedTurnPersister | null} */
     let _persistInterruptedTurn = null;
 
     try {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The words the Playbook ENGINE itself writes — the phase summaries the
  * handoff card shows, the descriptions of the things it creates, and the
@@ -21,38 +21,89 @@
 // Where a mirrored table's rows live, by the registry's builder kind
 // (core/dataEngine/sources.builderKindOf): the summary names the source, and
 // a kind this map does not know is still called a mirror, never Nextcloud.
+/** @type {Record<string, string>} */
 const MIRROR_WORD = { nextcloud: 'Nextcloud', spreadsheet: 'spreadsheet' };
 
 // The interface languages the product ships words for; everything else
 // reads English (`packLocale`).
 const PACK_LOCALES = Object.freeze(['nl', 'en']);
 
+/** @type {Readonly<Record<string, string>>} */
 const LANGUAGE_NAMES = Object.freeze({
     nl: 'Dutch', en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian',
     pt: 'Portuguese', pl: 'Polish', da: 'Danish', sv: 'Swedish', nb: 'Norwegian', no: 'Norwegian',
     fi: 'Finnish', tr: 'Turkish', cs: 'Czech', ro: 'Romanian', el: 'Greek', hu: 'Hungarian',
 });
 
-/** 'nl-NL' → 'nl'; anything that is not a language code → `fallback`. */
+/**
+ * 'nl-NL' → 'nl'; anything that is not a language code → `fallback`.
+ * @param {string} [fallback]
+ * @param {string} value
+ */
 function normaliseLocale(value, fallback = 'nl') {
     const raw = String(value == null ? '' : value).trim().toLowerCase().replace('_', '-');
     const code = raw.split('-')[0];
     return /^[a-z]{2}$/.test(code) ? code : fallback;
 }
 
-/** The language a model prompt asks for, by name. */
+/**
+ * The language a model prompt asks for, by name.
+ * @param {string} locale
+ */
 function languageName(locale) {
     return LANGUAGE_NAMES[normaliseLocale(locale, 'en')] || 'English';
 }
 
-/** The locale whose COPY pack is used — Dutch or English. */
+/**
+ * The locale whose COPY pack is used — Dutch or English.
+ * @param {string | null} locale
+ */
 function packLocale(locale) {
     const code = normaliseLocale(locale, 'nl');
     return PACK_LOCALES.includes(code) ? code : 'en';
 }
 
+/**
+ * @typedef {{ title: string, why: string, fix: string }} PlainFinding
+ * @typedef {{
+ *   seenValues: string, seenNames: string,
+ *   subjectApp: (n: string) => string, subjectAutomation: (n: string) => string, subjectTable: (n: string) => string,
+ *   orgWide: { title: string, why: (names: string, seen: string) => string, fix: string },
+ *   publicPage: { title: string, why: (n: number, names: string) => string, fix: string },
+ *   outbound: { title: string, why: (dests: string, names: string) => string, fix: string },
+ *   aiNoGuard: { title: string, why: (steps: string) => string, fix: string },
+ *   aiaDisclosure: PlainFinding,
+ *   aiaAnnexIii: { title: string, why: (cats: string) => string, fix: string, area: string },
+ *   mirror: PlainFinding,
+ *   ropa: { title: (missing: string) => string, why: (names: string, unsaid: string) => string, fix: string,
+ *     missingBasis: string, missingDays: string, missingField: string, unsaidBasis: string, unsaidDays: string,
+ *     unsaidField: (days: number) => string, and: string, or: string },
+ *   isoRoles: PlainFinding,
+ * }} FindingCopy
+ * @typedef {{
+ *   tableCreated: (name: string, columns: number) => string,
+ *   tableVerified: (name: string, columns: number, opts?: { isMirror?: boolean, mirrorKind?: string | null, hasStatus?: boolean }) => string,
+ *   tableDescription: (title: string) => string,
+ *   rowsAdded: (added: number | null, rowCount: number | null) => string,
+ *   designSummary: (name: string, screens: number, elements: number, preset: string) => string,
+ *   designConstrained: (screens: number) => string,
+ *   runFailed: (status: string) => string,
+ *   runNeverStarted: string, runTimedOut: string, screenFallback: string, appDescription: string,
+ *   skippedNoStatus: string, skippedNoColumn: (role: string) => string, skippedNoApp: string,
+ *   finding: Readonly<FindingCopy>,
+ *   tablePhaseLabel: string, fillPhaseLabel: string, designPhaseLabel: string, accessPhaseLabel: string, compliancePhaseLabel: string,
+ *   complianceSummary: (n: number, high: number, fw: number) => string,
+ *   accessSummary: (who: string, people: string) => string,
+ *   accessNobody: string, accessEveryone: string,
+ *   accessGroups: (n: number) => string, accessPeople: (n: number) => string,
+ *   columnFallback: (n: number) => string, phaseFallback: (n: number) => string, inputFallback: (n: number) => string,
+ *   documentsFolder: string,
+ * }} CopyPack
+ */
+
+/** @type {Readonly<Record<string, Readonly<CopyPack>>>} */
 const COPY = Object.freeze({
-    nl: Object.freeze({
+    nl: Object.freeze(/** @type {CopyPack} */ ({
         tableCreated: (name, columns) => `Tabel "${name}" aangemaakt met ${columns} kolommen.`,
         tableVerified: (name, columns, { isMirror = false, mirrorKind = null, hasStatus = true } = {}) => `Tabel "${name}" gecontroleerd: ${columns} kolommen herkend${isMirror ? ` (${MIRROR_WORD[mirrorKind] ? `${MIRROR_WORD[mirrorKind]}-spiegel` : 'spiegel van een externe bron'})` : ''}${hasStatus ? '' : ', geen statuskolom'}.`,
         tableDescription: (title) => `${title} die de Playbook-automatisering ophaalt en bijhoudt`,
@@ -151,8 +202,8 @@ const COPY = Object.freeze({
         phaseFallback: (n) => `Fase ${n}`,
         inputFallback: (n) => `Invoer ${n}`,
         documentsFolder: 'documenten',
-    }),
-    en: Object.freeze({
+    })),
+    en: Object.freeze(/** @type {CopyPack} */ ({
         tableCreated: (name, columns) => `Table "${name}" created with ${columns} columns.`,
         tableVerified: (name, columns, { isMirror = false, mirrorKind = null, hasStatus = true } = {}) => `Table "${name}" checked: ${columns} columns recognised${isMirror ? ` (${MIRROR_WORD[mirrorKind] ? `${MIRROR_WORD[mirrorKind]} mirror` : 'mirror of an external source'})` : ''}${hasStatus ? '' : ', no status column'}.`,
         tableDescription: (title) => `${title} the Playbook automation reads in and keeps up to date`,
@@ -246,10 +297,13 @@ const COPY = Object.freeze({
         phaseFallback: (n) => `Phase ${n}`,
         inputFallback: (n) => `Input ${n}`,
         documentsFolder: 'documents',
-    }),
+    })),
 });
 
-/** The copy pack for a playbook's locale (Dutch for an unset locale — those playbooks are). */
+/**
+ * The copy pack for a playbook's locale (Dutch for an unset locale — those playbooks are).
+ * @param {string | null} locale
+ */
 function copyFor(locale) {
     return COPY[packLocale(locale)];
 }

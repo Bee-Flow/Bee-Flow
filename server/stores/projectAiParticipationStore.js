@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The bookkeeping behind the AI that decides by itself when to take part
  * (projects/participation/): a queue of debounced "watches", an audit log of
@@ -63,10 +63,16 @@ const CLAIM_LOCK = 'beeflow:ai-watch-claim';
 
 const { DDL } = require('./projectAiParticipationDdl');
 
+/** @param {string | number | Date | null | undefined} v */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
+/** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
+/** @param {unknown} n */
 const secs = (n) => Math.max(0, Math.round(Number(n) || 0));
 
+/**
+ * @param {Record<string, any>} r
+ */
 function rowToWatch(r) {
     if (!r) return null;
     return {
@@ -87,6 +93,9 @@ function rowToWatch(r) {
     };
 }
 
+/**
+ * @param {Record<string, any>} r
+ */
 function rowToDecision(r) {
     if (!r) return null;
     return {
@@ -111,6 +120,7 @@ function rowToDecision(r) {
 }
 
 /** A short code, never free text: the only strings this store accepts in its code columns. */
+/** @param {unknown} v */
 const code = (v) => (typeof v === 'string' && /^[a-z0-9_]{1,64}$/.test(v) ? v : null);
 
 /**
@@ -168,6 +178,7 @@ function makeWatches(db, ready, newId) {
      * Push back a pending watch without changing its trigger: a message that
      * did not pass the rules still means people are talking.
      * @returns {Promise<boolean>} whether a pending watch was there
+     * @param {{ surface: string, containerId: string, kind?: string, delaySeconds: number, maxDelaySeconds?: number }} watch
      */
     async function postponeWatch({ surface, containerId, kind = 'quiet', delaySeconds, maxDelaySeconds }) {
         await ready();
@@ -184,7 +195,12 @@ function makeWatches(db, ready, newId) {
         return (r.rowCount || 0) > 0;
     }
 
-    /** The pending watch of a kind, if any. */
+    /**
+     * The pending watch of a kind, if any.
+     * @param {string} surface
+     * @param {string} containerId
+     * @param {string} kind
+     */
     async function getPendingWatch(surface, containerId, kind) {
         await ready();
         const r = await db.query(
@@ -197,6 +213,9 @@ function makeWatches(db, ready, newId) {
     /**
      * Cancel pending watches of a container (all kinds, or one).
      * @returns {Promise<number>}
+     * @param {string} surface
+     * @param {string} containerId
+     * @param {string | null} [kind]
      */
     async function cancelPending(surface, containerId, kind = null) {
         await ready();
@@ -230,7 +249,13 @@ function makeWatches(db, ready, newId) {
         });
     }
 
-    /** The claim itself, holding CLAIM_LOCK: nothing another replica claimed is invisible here. */
+    /**
+     * The claim itself, holding CLAIM_LOCK: nothing another replica claimed is invisible here.
+     * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+     * @param {number} n
+     * @param {string} claimId
+     * @param {string[]} served
+     */
     async function claimInTurn(q, n, claimId, served) {
         const r = await q.query(
             `UPDATE project_ai_watch w
@@ -261,7 +286,12 @@ function makeWatches(db, ready, newId) {
         return out;
     }
 
-    /** Close a claimed watch. Only the claim that holds it can. */
+    /**
+     * Close a claimed watch. Only the claim that holds it can.
+     * @param {string} id
+     * @param {string} claimId
+     * @param {string} [state]
+     */
     async function finishWatch(id, claimId, state = 'done') {
         await ready();
         const final = state === 'cancelled' ? 'cancelled' : 'done';
@@ -300,6 +330,9 @@ function makeWatches(db, ready, newId) {
 function makeDecisions(db, ready, newId) {
     // ── Decisions ──────────────────────────────────────────────────────────
 
+    /**
+     * @param {Record<string, any>} d
+     */
     function decisionParams(d) {
         return [
             d.projectId, d.orgId || null, d.surface, d.containerId, d.triggerMessageId || null,
@@ -337,6 +370,7 @@ function makeDecisions(db, ready, newId) {
      * Reserve the one gate call for (container, last seq, trigger kind).
      * Returns the reservation, or null when this exact state was gated
      * already (a re-claimed watch, a second replica).
+     * @param {Record<string, any>} d
      */
     async function reserveGate(d) {
         await ready();
@@ -354,7 +388,11 @@ function makeDecisions(db, ready, newId) {
         return rowToDecision(r.rows[0] || null);
     }
 
-    /** Fill in a reserved decision. */
+    /**
+     * Fill in a reserved decision.
+     * @param {string} id
+     * @param {{ decision: string, skipReason?: string | null, reasonCode?: string | null, confidence?: number | null, model?: string | null, replyMessageId?: string | null }} outcome
+     */
     async function completeDecision(id, { decision, skipReason = null, reasonCode = null, confidence = null, model = null, replyMessageId = null }) {
         await ready();
         if (!DECISIONS.includes(decision) || decision === 'pending') throw new Error('completeDecision: unknown decision');
@@ -379,6 +417,7 @@ function makeDecisions(db, ready, newId) {
      *   autoInProjectDay  the same over the project, last 24 hours;
      *   gatesInChatHour   gate calls in the container, last hour;
      *   gatesInOrgDay     gate calls in the organisation, last 24 hours.
+     * @param {{ surface: string, containerId: string, projectId: string, orgId?: string | null }} scope
      */
     async function capsFor({ surface, containerId, projectId, orgId = null }) {
         await ready();
@@ -410,7 +449,11 @@ function makeDecisions(db, ready, newId) {
         };
     }
 
-    /** The latest decisions of a container, newest first (for tests and support). */
+    /**
+     * The latest decisions of a container, newest first (for tests and support).
+     * @param {string} containerId
+     * @param {{ limit?: number }} [opts]
+     */
     async function listDecisions(containerId, { limit = 50 } = {}) {
         await ready();
         const r = await db.query(
@@ -423,6 +466,7 @@ function makeDecisions(db, ready, newId) {
     /**
      * Counts per decision for a project over a window: what a compliance view
      * may show about automatic participation, without any content.
+     * @param {string} projectId
      */
     async function summarizeProject(projectId, { days = 30 } = {}) {
         await ready();
@@ -474,10 +518,14 @@ function makeFeedback(db, ready) {
         });
     }
 
-    /** The caller's own feedback on some messages: Map<messageId, helpful>. */
+    /**
+     * The caller's own feedback on some messages: Map<messageId, helpful>.
+     * @param {string} userId
+     * @param {string[]} messageIds
+     */
     async function feedbackFor(userId, messageIds) {
         await ready();
-        const ids = (messageIds || []).filter((x) => typeof x === 'string' && x);
+        const ids = (messageIds || []).filter((/** @type {unknown} */ x) => typeof x === 'string' && x);
         if (!userId || ids.length === 0) return new Map();
         const r = await db.query(
             'SELECT message_id, helpful FROM project_ai_feedback WHERE user_id = $1 AND message_id = ANY($2::text[])',
@@ -503,6 +551,7 @@ function makeFeedback(db, ready) {
     /**
      * Erase what ties a deleted account to this bookkeeping: its feedback and
      * the watches it started. Decisions hold no person.
+     * @param {string} userId
      */
     async function eraseUser(userId) {
         await ready();

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Drive / Sheets vocabulary for ./googleDrive.js and
  * ./googleSheetsCells.js: the field lists, the Drive query quoting, the
@@ -11,6 +11,49 @@
 
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf } = require('./index');
+
+/** @typedef {import('./index').FileRef} FileRef */
+/** @typedef {import('./index').FileProbe} FileProbe */
+/**
+ * A Drive v3 file resource, the FILE_FIELDS of it (the googleapis typings are
+ * shimmed out of the typecheck, see types/shims/googleapis.d.ts).
+ * @typedef {{ id?: string, name?: string, mimeType?: string, size?: string|number, modifiedTime?: string,
+ *             version?: string|number, md5Checksum?: string, webViewLink?: string, parents?: string[], driveId?: string,
+ *             shortcutDetails?: { targetId?: string, targetMimeType?: string }, ownedByMe?: boolean,
+ *             capabilities?: { canEdit?: boolean }, trashed?: boolean }} DriveFile
+ */
+/**
+ * A Sheets v4 CellData, the fields sampled with includeGridData.
+ * @typedef {{ effectiveValue?: { numberValue?: number, stringValue?: string, boolValue?: boolean },
+ *             effectiveFormat?: { numberFormat?: { type?: string } }, userEnteredValue?: { formulaValue?: string } }} SheetCellData
+ */
+/**
+ * The Drive v3 + Sheets v4 calls this provider makes.
+ * @typedef {{
+ *   drive: { files: {
+ *     list: (params: object) => Promise<{ data: { files?: DriveFile[], nextPageToken?: string } }>,
+ *     get: { (params: { alt: 'media', [k: string]: unknown }, opts: { responseType: string }): Promise<{ data: unknown }>; (params: object): Promise<{ data: DriveFile }> },
+ *     update: (params: object) => Promise<{ data: DriveFile }> } },
+ *   sheets: { spreadsheets: {
+ *     get: (params: object) => Promise<{ data: { sheets?: Array<{
+ *       properties?: { sheetId?: number, title?: string, index?: number, hidden?: boolean, gridProperties?: { rowCount?: number, columnCount?: number } },
+ *       data?: Array<{ rowData?: Array<{ values?: SheetCellData[] }> }> }> } }>,
+ *     batchUpdate: (params: object) => Promise<{ data: unknown }>,
+ *     values: {
+ *       get: (params: object) => Promise<{ data: { values?: unknown[][] } }>,
+ *       append: (params: object) => Promise<{ data: { updates?: { updatedRange?: string } } }> } } }
+ * }} GoogleClients
+ */
+/** @typedef {{ version: string|null, modifiedTime: string|null, md5Checksum: string|null, size: number|null }} DriveMarker */
+/**
+ * The drive context makeApi builds and every function in ./googleDrive.js
+ * and ./googleSheetsCells.js takes.
+ * @typedef {{ clients: () => Promise<GoogleClients>, idOf: (file: FileRef) => string,
+ *             probe?: (file: FileRef) => Promise<FileProbe & { marker: DriveMarker }>,
+ *             guard?: (file: FileRef, ifMatch: DriveMarker|null) => Promise<FileProbe & { marker: DriveMarker }> }} DriveCtx
+ */
+/** A tab: its name, or a listSheets entry. @typedef {string | { id?: number, gid?: number, name?: string }} SheetArg */
+/** A googleapis failure, as much of it as translate reads. @typedef {{ code?: number, status?: number, response?: { status?: number }, errors?: Array<{ message?: string }>, message?: string }} GoogleError */
 
 const provider = 'google_drive';
 const oauthProvider = 'google';
@@ -28,17 +71,26 @@ const ERROR_STRINGS = new Set(['#N/A', '#REF!', '#VALUE!', '#DIV/0!', '#NAME?', 
 
 // ─── Small helpers ──────────────────────────────────────────────────────
 
-/** Drive query strings quote with single quotes and escape with a backslash. */
+/**
+ * Drive query strings quote with single quotes and escape with a backslash.
+ * @param {unknown} s
+ */
 function escapeQ(s) {
     return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-/** A tab name inside an A1 range: quoted, embedded quotes doubled. */
+/**
+ * A tab name inside an A1 range: quoted, embedded quotes doubled.
+ * @param {unknown} name
+ */
 function quoteTab(name) {
     return `'${String(name).replace(/'/g, "''")}'`;
 }
 
-/** 0-based column → letter(s): 0 → A, 25 → Z, 26 → AA. */
+/**
+ * 0-based column → letter(s): 0 → A, 25 → Z, 26 → AA.
+ * @param {number|string} col
+ */
 function colLetter(col) {
     let n = Number(col) + 1;
     let s = '';
@@ -50,6 +102,7 @@ function colLetter(col) {
     return s;
 }
 
+/** @param {GoogleError} err */
 function statusOf(err) {
     if (!err) return 0;
     if (Number.isInteger(err.code)) return err.code;
@@ -58,16 +111,24 @@ function statusOf(err) {
     return 0;
 }
 
+/** @param {GoogleError} err */
 function messageOf(err) {
     const first = err && err.errors && err.errors[0] && err.errors[0].message;
     return first || (err && err.message) || '';
 }
 
+/** @param {FileRef} file */
 function refOf(file) {
     return { provider, fileId: file && (file.fileId || file.id) || null };
 }
 
-/** Translate a googleapis failure into the mirror's refusal. */
+/**
+ * Translate a googleapis failure into the mirror's refusal.
+ * @param {GoogleError} err
+ * @param {string} what
+ * @param {FileRef} file
+ * @param {SheetArg} [sheet]
+ */
 function translate(err, what, file, sheet) {
     if (err instanceof SpreadsheetSourceError) return err;
     const status = statusOf(err);
@@ -80,6 +141,10 @@ function translate(err, what, file, sheet) {
     return fromHttp(provider, status, msg, what, { ref });
 }
 
+/**
+ * @param {DriveFile} f
+ * @returns {DriveMarker}
+ */
 function markerOf(f) {
     return {
         version: f.version != null ? String(f.version) : null,
@@ -89,6 +154,10 @@ function markerOf(f) {
     };
 }
 
+/**
+ * @param {{ version?: unknown }} a
+ * @param {{ version?: unknown }} b
+ */
 function markerEquals(a, b) {
     return !!a && !!b && a.version != null && String(a.version) === String(b.version);
 }
@@ -97,7 +166,9 @@ function markerEquals(a, b) {
  * A Drive file resource → FileRef. A shortcut becomes a ref to its TARGET
  * (the id the engine will probe and read); a shortcut to something that is
  * neither a folder nor a spreadsheet is dropped.
- * @returns {object|null}
+ * @param {DriveFile} f
+ * @param {{ parentId?: string|null }} [opts]
+ * @returns {FileRef|null}
  */
 function toFileRef(f, { parentId = null } = {}) {
     if (!f || !f.id) return null;
@@ -134,14 +205,20 @@ function toFileRef(f, { parentId = null } = {}) {
     };
 }
 
-/** The value Sheets shows for a cell, as UNFORMATTED_VALUE hands it over. */
+/**
+ * The value Sheets shows for a cell, as UNFORMATTED_VALUE hands it over.
+ * @param {unknown} v
+ */
 function readCell(v) {
     if (v === null || v === undefined) return null;
     if (typeof v === 'string' && ERROR_STRINGS.has(v)) return null;
     return v;
 }
 
-/** includeGridData cell → { value, numberFormatType, formula }. */
+/**
+ * includeGridData cell → { value, numberFormatType, formula }.
+ * @param {SheetCellData} c
+ */
 function gridCell(c) {
     const ev = (c && c.effectiveValue) || null;
     let value = null;
@@ -160,6 +237,9 @@ function gridCell(c) {
  * The typed value a cell is WRITTEN as. `type` is the column's declared
  * type; dates arrive as serial numbers already. Empty → `{}`, which with the
  * `userEnteredValue` field mask clears the cell and keeps its format.
+ * @param {unknown} value
+ * @param {string} type
+ * @returns {{ numberValue?: number, stringValue?: string, boolValue?: boolean }}
  */
 function extendedValue(value, type) {
     if (value === null || value === undefined || value === '') return {};
@@ -177,7 +257,11 @@ function extendedValue(value, type) {
     }
 }
 
-/** The same value for values.append under RAW (JSON keeps the type). */
+/**
+ * The same value for values.append under RAW (JSON keeps the type).
+ * @param {unknown} value
+ * @param {string} type
+ */
 function rawValue(value, type) {
     if (value === null || value === undefined || value === '') return null;
     const ev = extendedValue(value, type);
@@ -186,6 +270,7 @@ function rawValue(value, type) {
     return ev.stringValue;
 }
 
+/** @param {string|null|undefined} range */
 function rowNumberOfRange(range) {
     const m = /!\$?[A-Z]+\$?(\d+)(?::\$?[A-Z]+\$?(\d+))?$/.exec(String(range || ''));
     return m ? Number(m[1]) : null;

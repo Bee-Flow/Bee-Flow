@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The relations a link request declares, in Nextcloud-native terms (table and
  * column ids), turned into per-mirror declared relations. Extracted from
@@ -73,3 +72,7 @@ function guessFieldId(mirror, ncColumnId) {
 }
 
 module.exports = { resolveDeclared, guessFieldId };
+
+/** @typedef {import('../mirror/linking').MirrorTable & { _ncColumnTypes?: Record<string, string> }} NcMirror */
+
+/** @typedef {{ ncTableId?: number|string, ncColumnId?: number|string }} NcSide */

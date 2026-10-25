@@ -145,3 +145,5 @@ function resultFilename(title, extension) {
 }
 
 module.exports = { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resultFilename, WEBPAGE_CSS };
+
+/** @typedef {{ title?: unknown, description?: unknown } & Record<string, unknown>} FormEnding  a closing page's recorded config */

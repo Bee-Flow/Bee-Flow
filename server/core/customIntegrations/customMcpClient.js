@@ -462,3 +462,14 @@ module.exports = {
     MAX_TOOL_SCHEMA_CHARS,
     MAX_RESULT_CHARS,
 };
+
+/**
+ * @typedef {{ url: string, authStyle?: string, header?: string, valueTemplate?: string, toolAllowList?: unknown[] }} McpBlock
+ * @typedef {{ mcp?: McpBlock }} McpDefinition
+ * @typedef {{ id?: string, slug?: string, name?: string, orgId?: string | null, org_id?: string | null,
+ *   definition?: McpDefinition | null, activatedDefinition?: McpDefinition | null, activated_definition?: McpDefinition | null }} McpIntegration
+ * @typedef {Record<string, unknown> | null} SecretObject
+ * @typedef {{ name: string, description: string, inputSchema: object, annotations?: Record<string, boolean> }} NormalizedTool
+ * @typedef {import('@modelcontextprotocol/sdk/client').Client} McpClient
+ * @typedef {{ client: McpClient, transport: unknown, url: string, connectionId: string | null, lastUsed: number, timer: ReturnType<typeof setTimeout> | null }} PoolEntry
+ */

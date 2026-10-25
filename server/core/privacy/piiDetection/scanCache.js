@@ -123,3 +123,12 @@ module.exports = {
     _inflightScans,
     _cloneScanResult,
 };
+
+/**
+ * @typedef {{ category?: string, label?: string, text?: string, subCategory?: string | null, confidence?: number,
+ *   offset?: number, length?: number, alsoCategories?: string[] }} PiiEntity
+ * @typedef {{ hasPii?: boolean, entities?: PiiEntity[], redactedText?: string, degraded?: boolean,
+ *   degradedReason?: string | null, degradedCategories?: string[] | null, processedChars?: number | null,
+ *   totalChars?: number | null, tierMode?: string | null, engineFingerprint?: string | null,
+ *   customEntities?: PiiEntity[] }} PiiScanResult
+ */

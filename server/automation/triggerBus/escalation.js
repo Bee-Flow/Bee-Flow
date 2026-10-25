@@ -58,3 +58,46 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
 }
 
 module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTIFY_DEBOUNCE_MS, escalateSubscriptionFailure };
+
+/**
+ * One automation_event_subscriptions row as the store maps it.
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/automationStore').getSubscription>>>} TriggerSubscription
+ */
+
+/**
+ * The credentials a poller or renewal pass runs with (triggerBus.loadSession).
+ * @typedef {Object} TriggerSession
+ * @property {string} [accessToken]
+ * @property {string | null} [refreshToken]
+ * @property {string | null} [oauthProvider]
+ * @property {Record<string, Record<string, unknown>>} [automationProviders]
+ * @property {string} [_source]  'vault' | 'connector' | 'session'
+ * @property {string | null} [connectorOrgId]
+ * @property {string | null} [connectorNcUid]
+ * @property {{ id: string, provider: string, organizationId: string | null, ncUid: string | null }} [user]
+ */
+
+/**
+ * A googleapis client as createGoogleApiClient returns it.
+ * @typedef {Awaited<ReturnType<typeof import('../../integrations/googleClient').createGoogleApiClient>>} GoogleApiClient
+ */
+
+/**
+ * One poll of one subscription: the payloads to dispatch.
+ * @typedef {(sub: TriggerSubscription, session: TriggerSession | null) => Promise<Record<string, any>[]>} PollerFn
+ */
+
+/**
+ * What triggerBus.js hands to the extracted pollers, escalation and renewal.
+ * @typedef {Object} TriggerBusCtx
+ * @property {() => typeof import('../../stores/automationStore')} store
+ * @property {() => typeof import('../../integrations/googleClient')} googleClient
+ * @property {() => typeof import('../../integrations/gmailTools')} gmailTools
+ * @property {() => typeof import('../../integrations/nextcloudActivityTools')} nextcloudActivityTools
+ * @property {() => typeof import('../../integrations/nextcloudNotificationsTools')} nextcloudNotificationsTools
+ * @property {() => typeof import('../../integrations/nextcloudCalendarTools')} nextcloudCalendarTools
+ * @property {() => typeof import('../../core/integrations/ncScopeGuard')} ncScopeGuard
+ * @property {() => typeof import('../../stores/notificationStore')} notificationStore
+ * @property {(userId: string) => Promise<TriggerSession | null>} loadSession
+ * @property {(sub: TriggerSubscription, threshold: number, errorMsg?: string) => Promise<void>} escalate
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * "Your own data" in the Privacy Shield document: what the GET shows and
@@ -56,7 +56,7 @@ function sanitizeLegacyTerms(terms, userId) {
             try {
                 void new RegExp(term.pattern, term.caseSensitive ? '' : 'i');
             } catch (err) {
-                termErrors.push({ id: term.id || null, label: term.label, error: err.message });
+                termErrors.push({ id: term.id || null, label: term.label, error: /** @type {Error} */ (err).message });
                 continue;
             }
         }
@@ -73,7 +73,11 @@ function sanitizeLegacyTerms(terms, userId) {
     return { sanitizedTerms, termErrors };
 }
 
-const _termShape = (t) => JSON.stringify([t?.id ?? null, t?.label ?? null, t?.pattern ?? null, !!t?.caseSensitive, t?.type === 'literal' ? 'literal' : 'regex']);
+const _termShape = (/** @type {{ id?: string, label?: string, pattern?: string, caseSensitive?: boolean, type?: string } | null} */ t) => JSON.stringify([t?.id ?? null, t?.label ?? null, t?.pattern ?? null, !!t?.caseSensitive, t?.type === 'literal' ? 'literal' : 'regex']);
+/**
+ * @param {unknown} a
+ * @param {unknown} b
+ */
 function _sameTerms(a, b) {
     const x = (Array.isArray(a) ? a : []).map(_termShape);
     const y = (Array.isArray(b) ? b : []).map(_termShape);
@@ -93,8 +97,13 @@ function applyToGetResponse(config, { orgId, stored, featureEnabled }) {
     return !featureEnabled && state.types.some(t => !t.legacy) ? ['customDataTypes'] : [];
 }
 
-/** Custom ids of `list` that are in `ids`, in order, without repeats. */
+/**
+ * Custom ids of `list` that are in `ids`, in order, without repeats.
+ * @param {string[]} list
+ * @param {Set<string>} ids
+ */
 function _customPart(list, ids) {
+    /** @type {string[]} */
     const out = [];
     for (const c of Array.isArray(list) ? list : []) {
         if (isCustomTypeId(c) && ids.has(c) && !out.includes(c)) out.push(c);
@@ -106,6 +115,8 @@ function _customPart(list, ids) {
  * May a Community org make this change? Only removing migrated types: every
  * incoming type must be a stored one, unchanged, and every missing one a
  * migrated type.
+ * @param {import('./spec').CustomDataType[]} storedTypes
+ * @param {import('./spec').CustomDataType[]} incoming
  */
 function _communityAccepts(storedTypes, incoming) {
     const byId = new Map(storedTypes.map(t => [t.id, t]));
@@ -135,7 +146,7 @@ async function _idsOwnedElsewhere(orgId, ids, configStore) {
     }
     if (configStore && typeof configStore.listKeysWithPrefix === 'function' && typeof configStore.getConfigsByKeys === 'function') {
         const prefix = 'org_privacy_shield_';
-        const keys = (await configStore.listKeysWithPrefix(prefix)).filter(k => k !== `${prefix}${orgId}`);
+        const keys = (await configStore.listKeysWithPrefix(prefix)).filter((/** @type {string} */ k) => k !== `${prefix}${orgId}`);
         const rows = keys.length ? await configStore.getConfigsByKeys(keys) : {};
         for (const [key, row] of Object.entries(rows || {})) {
             for (const t of deriveCustomState(row, key.slice(prefix.length)).types) {
@@ -160,8 +171,10 @@ async function planPut({ orgId, body, storedRow, featureEnabled, userId, now = n
     const storedTypes = state.types;
     const storedIds = new Set(storedTypes.map(t => t.id));
     let typeErrors = [];
+    /** @type {string[]} */
     const clamped = [];
 
+    /** @type {ReturnType<typeof sanitizeLegacyTerms>['termErrors']} */
     let termErrors = [];
     let sanitizedTerms = null;
     if (Array.isArray(body.customSensitiveTerms)) {
@@ -184,7 +197,7 @@ async function planPut({ orgId, body, storedRow, featureEnabled, userId, now = n
         // A mirror entry of an EDITED migrated type (several words) carries
         // the type id too; it is that type, not a new term.
         storedTypes.filter(t => t.legacy).forEach(t => createdIds.add(t.id));
-        const mirrorOf = (id) => String(id || '').replace(/_\d+$/, '');
+        const mirrorOf = (/** @type {string} */ id) => String(id || '').replace(/_\d+$/, '');
         const legacyTerms = sanitizedTerms.filter(t => !createdIds.has(t.id) && !createdIds.has(mirrorOf(t.id)));
         const migrated = migrateLegacyTerms(orgId, legacyTerms).map(t => storedTypes.find(s => s.id === t.id) || t);
         legacyAdded = migrated.filter(t => !storedIds.has(t.id)).map(t => t.id);

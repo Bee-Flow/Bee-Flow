@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: Dutch translations for the new KB "usage contexts" UI keys.
  *

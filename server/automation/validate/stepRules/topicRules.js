@@ -55,3 +55,8 @@ function checkTopics(ctx, step, at) {
 }
 
 module.exports = { checkTopics };
+
+/**
+ * @typedef {import('./stepContext').StepCtx} StepCtx
+ * @typedef {import('./stepContext').StepDef} StepDef
+ */

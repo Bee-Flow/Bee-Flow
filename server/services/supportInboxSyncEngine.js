@@ -411,3 +411,12 @@ async function deliverAiReply(inbox, threadId, message) {
 }
 
 module.exports = { startSupportInboxSync, stopSupportInboxSync, tickOnce, syncOneInbox, deliverAiReply };
+
+/**
+ * Raw support_inboxes row (getInboxWithTokens adds decrypted `tokens`).
+ * @typedef {Record<string, any>} SupportInboxRow
+ * @typedef {{ filename?: string | null, mimeType?: string | null, headers?: Array<{ name?: string | null, value?: string | null }> | null, body?: { data?: string | null, attachmentId?: string | null, size?: number | null } | null, parts?: GmailPayload[] | null }} GmailPayload
+ * @typedef {{ id?: string, threadId?: string | null, labelIds?: string[] | null, payload?: GmailPayload | null }} GmailMessage
+ * @typedef {{ id?: string, conversationId?: string, internetMessageId?: string, subject?: string, bodyPreview?: string, hasAttachments?: boolean, from?: { emailAddress?: { address?: string, name?: string } }, body?: { contentType?: string, content?: string } }} GraphMessage
+ * @typedef {{ providerMessageId: string, providerThreadId: string | null, rfc822MessageId: string | null, inReplyTo: string | null, references: string[], from: string, fromName: string, subject: string, text: string, html: string, attachments: Array<Record<string, unknown>> }} NormalizedInbound
+ */

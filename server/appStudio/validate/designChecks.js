@@ -127,3 +127,5 @@ function checkPublicAccess(def, pushE, pushW) {
 }
 
 module.exports = { checkDesignAndNav, checkPublicAccess };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

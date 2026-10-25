@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: widen integration_connections.kind for HTTP credentials.
  *

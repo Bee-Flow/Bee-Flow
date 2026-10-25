@@ -347,3 +347,11 @@ module.exports = {
     isAnchor, forwardTargets, compactRow, pickRowBlock, pickChunk, applyToAnchor,
     LIMITS,
 };
+
+/** @typedef {typeof LIMITS} HopLimits */
+
+/** @typedef {{ column: string | null, table: string, rowId: string, label: string | null }} ForwardTarget */
+
+/** @typedef {{ column: string | null, table: string, title: string, tableName: string | null, chunkId: string, text: string }} ForwardRow */
+
+/** @typedef {{ counts: Array<{tableName: string | null, n: number}>, rows: Array<{chunkId: string, title: string, tableName: string | null, text: string}> }} ReverseResult */

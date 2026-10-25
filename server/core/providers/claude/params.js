@@ -295,3 +295,8 @@ module.exports = {
     buildSdkParams,
     requestOptionsFor,
 };
+
+/**
+ * `context_management` is a beta param the SDK's types do not carry yet.
+ * @typedef {import('@anthropic-ai/sdk/resources/messages.js').MessageCreateParamsNonStreaming & { context_management?: { edits: Array<Record<string, unknown>> } }} SdkParams
+ */

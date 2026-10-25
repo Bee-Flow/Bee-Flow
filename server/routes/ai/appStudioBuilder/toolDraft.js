@@ -123,3 +123,9 @@ function deriveAppDraftKey({ items, parentId } = {}) {
 }
 
 module.exports = { scanAppToolDraft, deriveAppDraftKey, MAX_ITEMS };
+
+/**
+ * @typedef {import('../../../core/llm/partialJsonScan').JsonNode} JsonNode
+ * @typedef {{ kind: string, type: string|null, label: string|null, partial: boolean }} DraftItem
+ * @typedef {{ items: DraftItem[], count: number, parentId: string|null }} ToolDraft
+ */

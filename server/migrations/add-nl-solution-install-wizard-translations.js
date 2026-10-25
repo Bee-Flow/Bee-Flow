@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * One-time migration: Dutch translations for the install wizard (O3).
  *

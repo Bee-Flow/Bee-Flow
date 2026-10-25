@@ -170,3 +170,19 @@ async function converge({ deployment, stage }, deps = {}) {
 }
 
 module.exports = { converge, tasksFor, MAX_ATTEMPTS, BACKOFF_MS };
+
+/** @typedef {import('./model').DeploymentRow} DeploymentRow */
+
+/** @typedef {import('./model').StageRow} StageRow */
+
+/**
+ * @typedef {Object} TasksForArgs
+ * @property {DeploymentRow} deployment
+ * @property {StageRow} stage
+ */
+
+/**
+ * @typedef {Object} FeedEventArgs
+ * @property {DeploymentRow} deployment
+ * @property {StageRow} stage
+ */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: automation_agent_bindings (2026-10), which agents may call an
  * `agent_call` automation.
@@ -27,6 +28,7 @@
  * Postgres.
  */
 
+/** @param {{ exec?: (sql: string) => Promise<unknown> }} [opts] */
 async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
     await exec(`
         CREATE TABLE IF NOT EXISTS automation_agent_bindings (

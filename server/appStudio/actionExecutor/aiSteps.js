@@ -746,3 +746,28 @@ module.exports = {
     resolveFileBinding,
     redeemPendingDescriptors,
 };
+
+/**
+ * @typedef {{ id: string, userId: string, organizationId?: string | null, projectId?: string | null }} AppRef
+ * @typedef {{ fileId?: string, id?: string, kind?: string, attachmentId?: string, name?: unknown }} FileDescriptor
+ * @typedef {{ name: string, required?: boolean }} SchemaField
+ * @typedef {object} AiStep  an ai_extract / ai_generate / kb_query step
+ * @property {string} [kind]
+ * @property {import('./shared').Binding} [source]  ai_extract: the file binding
+ * @property {import('./shared').Binding} [attachments]  ai_generate: the file binding
+ * @property {import('./shared').Binding} [query]  kb_query
+ * @property {number} [topK]
+ * @property {unknown} [schema]  the authored output fields
+ * @property {string} [modelTier]
+ * @property {string} [documentMode]
+ * @property {string[]} [knowledgeBaseIds]
+ * @property {import('./shared').Binding} [promptContext]  a binding that may read data
+ * @property {Array<{ source?: import('./shared').Binding, label?: unknown }>} [contextSources]
+ * @property {import('./shared').Binding} [datasets]
+ * @property {string} [prompt]
+ * @property {string} [output]
+ * @property {boolean} [markdownToHtml]
+ * @property {string} [resultDetail]
+ * @property {{ tableId?: string, mapping?: Record<string, string>, constants?: Record<string, import('./shared').Binding>,
+ *   upsertOn?: string, insertMissing?: boolean, fillOnly?: boolean }} [writeTo]
+ */

@@ -38,11 +38,13 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art33.desc',
     remediationKey: 'compliance.checks.gdpr_art33.fix',
     remediationLink: 'admin/compliance/incidents',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const recipients = Array.isArray(settings.breach_recipients) ? settings.breach_recipients : [];
         const validRecipients = recipients.filter(r => typeof r === 'string' && /@/.test(r));
 
+        /** @type {{ open: number, overdue_unnotified: number, nearing_deadline: number, gdpr_overdue_unnotified?: number, gdpr_nearing_deadline?: number }} */
         let deadlines = { open: 0, overdue_unnotified: 0, nearing_deadline: 0 };
         let registryError = null;
         try {

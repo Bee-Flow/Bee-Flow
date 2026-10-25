@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio run-bridge gates — the ONE copy of "may this viewer see this app"
  * and "may this role reach this action".
@@ -21,6 +21,10 @@ const { EVENT_NAMES } = require('../appStudio/componentSpecs');
 // app is filed into (canReadStudioAppAsync — the project half is a DB lookup,
 // which is why the gate awaits). Failures answer 404 so existence never leaks.
 // Responds itself and returns null on failure.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function loadVisibleApp(req, res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
@@ -45,6 +49,10 @@ async function loadVisibleApp(req, res) {
 // the renderer treats a null role as "no preview selected, show everything",
 // which as a server rule would wave through every viewer without a mapped role,
 // so here a null role clears open gates only.
+/**
+ * @param {{ visibleToRoles?: unknown } | null | undefined} nodeOrScreen
+ * @param {string | null | undefined} role
+ */
 function roleAllows(nodeOrScreen, role) {
     const gate = nodeOrScreen && nodeOrScreen.visibleToRoles;
     if (!Array.isArray(gate) || gate.length === 0) return true;
@@ -58,9 +66,18 @@ function roleAllows(nodeOrScreen, role) {
 // clear the gate too. referenced:false means NO node wires the action — it is
 // programmatic (an action step, an onSuccess chain), which role gating never
 // described, so the caller keeps running it.
+/**
+ * @param {{ screens?: unknown } | null | undefined} def
+ * @param {string} actionId
+ * @param {string | null | undefined} role
+ */
 function actionRoleAccess(def, actionId, role) {
     let referenced = false;
     let allowed = false;
+    /**
+     * @param {unknown} nodes
+     * @param {boolean} visible
+     */
     const walk = (nodes, visible) => {
         for (const node of (Array.isArray(nodes) ? nodes : [])) {
             if (!node || typeof node !== 'object') continue;
@@ -94,6 +111,11 @@ function actionRoleAccess(def, actionId, role) {
  * The role gate for both bridges. Answers 403 itself and returns false when the
  * viewer's role cannot reach the action; returns true otherwise. The owner and
  * any action no node wires (programmatic actions, onSuccess chains) always pass.
+ * @param {import('express').Response} res
+ * @param {{ screens?: unknown } | null | undefined} def
+ * @param {string} actionId
+ * @param {string | null | undefined} role
+ * @param {{ isOwner: boolean }} opts
  */
 function assertActionRoleAccess(res, def, actionId, role, { isOwner }) {
     if (isOwner || role === 'owner') return true;

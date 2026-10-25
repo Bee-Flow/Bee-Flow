@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Catalog and template gallery: read, delete, export, import (routes/studioApps/).
  *
@@ -36,7 +37,7 @@ router.get('/templates', requireAuth, async (req, res) => {
     res.json({ templates: await listAvailableTemplates({ userId, orgIds: orgIdArr }) });
 });
 
-router.get('/templates/:templateId', requireAuth, async (req, res) => {
+router.get('/templates/:templateId', requireAuth, async (/** @type {import('express').Request<{ templateId: string }>} */ req, res) => {
     const { userId, orgIdArr } = await audienceFor(req);
     const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
     if (!template) return res.status(404).json({ error: 'Template not found' });
@@ -50,7 +51,7 @@ router.get('/templates/:templateId', requireAuth, async (req, res) => {
 router.delete('/templates/:templateId', requireAuth, requireManageApps, async (req, res) => {
     const userId = req.session.user.id;
     const { orgIdArr } = await audienceFor(req);
-    const templateId = req.params.templateId;
+    const templateId = /** @type {string} */ (req.params.templateId);
     if (!studioAppTemplateStore.isCapturedTemplateId(templateId)) {
         return res.status(404).json({ error: 'Template not found' });
     }
@@ -89,7 +90,7 @@ router.get('/templates/:templateId/export', requireAuth, requireManageApps, vali
     require('../../compliance/dataPortability/stampExport')('app_templates'),
     async (req, res) => {
         const { userId, orgIdArr } = await audienceFor(req);
-        const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
+        const template = await resolveTemplate(/** @type {string} */ (req.params.templateId), { userId, orgIds: orgIdArr });
         if (!template) return res.status(404).json({ error: 'Template not found' });
 
         // The organisation NAME is read here rather than in buildExport for
@@ -156,7 +157,9 @@ router.post('/templates/import', requireAuth, requireManageApps, templateImportL
         const body = req.body || {};
         const envelope = (body && typeof body === 'object' && body.envelope !== undefined) ? body.envelope : body;
 
-        const { template, report, errors, warnings } = sanitizeImport(envelope);
+        // The template is the one captureTemplate builds (appStudio/templateCapture.js),
+        // which sanitizeImport declares only as a loose record.
+        const { template, report, errors, warnings } = /** @type {{ template: { title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, any>, dataModel?: Record<string, unknown>, seed?: Record<string, unknown>, seedPeople?: Record<string, unknown>, datasets?: Array<Record<string, unknown>> } | null, report: Record<string, unknown> | null, errors: string[], warnings: string[] }} */ (sanitizeImport(envelope));
         if (!template) {
             return res.status(400).json({ error: 'That file could not be imported', code: 'invalid_template', details: errors });
         }

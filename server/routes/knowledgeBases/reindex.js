@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — re-index.
  *
@@ -65,6 +65,7 @@ router.post('/:id/reindex', requireAuth, requirePermission('manage_knowledge'), 
     const { syncSource } = require('../../core/kb/sources');
     const sources = await kbSourcesStore.listByKb(kb.id);
 
+    /** @type {{ reindexed: number, failed: number, details: Record<string, unknown>[] }} */
     const results = { reindexed: 0, failed: 0, details: [] };
     for (const source of sources) {
         try {

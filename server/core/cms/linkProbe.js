@@ -1,3 +1,4 @@
+/** @typedef {import('url').URL} URL */
 // @typecheck
 /**
  * Reachability probe for external URLs of a CMS site, used only when an
@@ -31,6 +32,7 @@ const USER_AGENT = 'BeeFlow-LinkCheck/1.0';
 
 /** @param {string} raw @returns {URL | null} a URL we are willing to request, or null */
 function requestable(raw) {
+    /** @type {URL} */
     let url;
     try { url = new URL(raw); } catch { return null; }
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
@@ -47,7 +49,10 @@ function requestable(raw) {
 async function probeOne(raw, { fetchFn, timeoutMs }) {
     const url = requestable(raw);
     if (!url) return { error: 'invalid' };
-    /** One request; redirects are followed here, each hop screened like the first URL. */
+    /**
+     * One request; redirects are followed here, each hop screened like the first URL.
+     * @param {string} method
+     */
     const send = async (method) => {
         let current = url;
         for (let hop = 0; hop <= MAX_HOPS; hop++) {

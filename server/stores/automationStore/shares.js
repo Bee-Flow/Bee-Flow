@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * automation_shares — who an automation is shared with, and in which role
  * (Studio → Automations handoff 5). The table comes from
@@ -15,8 +15,10 @@ const crypto = require('crypto');
 const { AUTOMATION_SELECT, makeStageLookup } = require('./lifecycle');
 
 const ROLE_RANK_SQL = `CASE s.role WHEN 'edit' THEN 3 WHEN 'view' THEN 2 WHEN 'run' THEN 1 ELSE 0 END`;
+/** @type {Record<string, string>} */
 const RANK_ROLE = { 3: 'edit', 2: 'view', 1: 'run' };
 
+/** @param {import('pg').QueryResultRow | null} r */
 function rowToShare(r) {
     if (!r) return null;
     return {
@@ -44,6 +46,7 @@ function makeSharesStore(db, { ready = async () => {}, managedParts = null } = {
     const stageOf = makeStageLookup();
 
     /** Every share of one automation, oldest first. */
+    /** @param {string} automationId */
     async function listSharesForAutomation(automationId) {
         await ready();
         const r = await db.query(

@@ -55,3 +55,7 @@ function makeIdAllocator(push) {
 }
 
 module.exports = { makeIdAllocator };
+
+/** @typedef {(code: string, path: string, message: string) => void} Push  Records one repair hint. */
+
+/** @typedef {ReturnType<typeof makeIdAllocator>} IdAllocator */

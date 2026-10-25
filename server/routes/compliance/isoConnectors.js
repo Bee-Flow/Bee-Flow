@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Compliance — the ISO 27001 evidence connectors: catalog, the vault
  * connections a connector may link, its per-org config and a manual sweep.
@@ -29,7 +29,11 @@ const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { fallback } = require('../../utils/bestEffort');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const ConnectorConfig = bodyOf({

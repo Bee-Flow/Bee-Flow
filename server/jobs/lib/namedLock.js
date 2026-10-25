@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Re-export: the named advisory lock lives in core/scheduling/namedLock.js,
  * because the automation runner's Meet import tick (core) takes one too and

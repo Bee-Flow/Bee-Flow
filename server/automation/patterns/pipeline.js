@@ -416,3 +416,5 @@ module.exports = {
     MAX_PATTERNS,
     WINDOW_DAYS,
 };
+
+/** @typedef {import('./miner').Candidate} Candidate */

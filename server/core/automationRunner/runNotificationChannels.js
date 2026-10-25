@@ -164,3 +164,28 @@ async function deliverTalk(dep, { automation, event, ev, settings, payload, shor
 }
 
 module.exports = { sendRunEmail, deliverBell, deliverPersonal, deliverTalk };
+
+/** @typedef {import('./runNotifications').Dep} Dep */
+
+/** @typedef {import('./runNotifications').NotifyAutomation} NotifyAutomation */
+
+/** @typedef {import('./runNotifications').NotifyReport} NotifyReport */
+
+/** @typedef {import('./runNotifications').LedgerRow} LedgerRow */
+
+/** @typedef {import('./runNotifications').EventSettings} EventSettings */
+
+/** @typedef {import('./runNotifications').NotificationSettings} NotificationSettings */
+
+/** @typedef {import('./runNotifications').RunEvent} RunEvent */
+
+/** @typedef {{ get: () => Promise<{ fetch?: unknown, baseUrl?: string } | null | undefined> }} LazyNc */
+
+/** @typedef {{ text: string }} ShortMessage */
+
+/**
+ * The personal-channel delivery of one event (see runNotifications.notifyRunEvent).
+ * @typedef {{ automation: NotifyAutomation, event: RunEvent, ev: EventSettings, recipients: string[],
+ *   base: Omit<LedgerRow, 'recipient' | 'channel'>, rows: LedgerRow[], report: NotifyReport, now: number,
+ *   link: string, url: string | null, short: ShortMessage, title: string, message: string, nc: LazyNc }} PersonalDelivery
+ */

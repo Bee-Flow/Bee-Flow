@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 // Types only (no runtime exports): the shapes appStudioRender.js hands back.
 

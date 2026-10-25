@@ -581,3 +581,34 @@ module.exports = {
         resolveScreen,
     },
 };
+
+/** @typedef {import('../appStudio/actionExecutor/shared').DataModel} DataModel */
+
+/** @typedef {import('../appStudio/datasetCache').DatasetViewer} Viewer */
+
+/** @typedef {{ op?: string, value?: unknown, required?: boolean, [k: string]: unknown }} FilterEntry */
+
+/**
+ * @typedef {{ kind?: string, datasetId?: string, tableId?: string, filter?: FilterEntry[], sort?: unknown,
+ *   limit?: number, groupBy?: Array<{ field?: string, bucket?: string, as?: string }>,
+ *   aggregates?: Array<{ fn?: string, field?: string, as?: string }>, [k: string]: unknown }} DataBinding
+ */
+
+/** @typedef {{ id?: string, name?: string, [k: string]: unknown }} Screen */
+
+/** @typedef {{ screens?: Screen[], homeScreenId?: string, variables?: Parameters<typeof seedVariableDefaults>[0], design?: Record<string, unknown>, [k: string]: unknown }} AppDefinition */
+
+/** @typedef {{ id: string, userId: string }} StudioApp */
+
+/** @typedef {{ contentType: string, body: string }} RouteAsset */
+
+/** @typedef {{ width: number, height: number }} Viewport */
+
+/** @typedef {ReturnType<typeof defaultDeps>} RenderDeps */
+
+/** @typedef {{ id: string | null, name: string, email: string | null, roleKey: string }} CurrentUser */
+
+/**
+ * @typedef {{ status: string, result: unknown, error: string | null, errorCode: string | null, errorProvider: string | null,
+ *   tableId: string | null, datasetId: string | null, connectorId: string | null }} DataEntry
+ */

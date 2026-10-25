@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * How a test sentence is scored against what a matcher found in it.
@@ -20,12 +20,16 @@
  * separately because a partly hidden value is a partly leaked value.
  */
 
-/** Merge overlapping or touching spans into disjoint, sorted ones. */
+/**
+ * Merge overlapping or touching spans into disjoint, sorted ones.
+ * @param {{ start: number; end: number; }[]} spans
+ */
 function mergeSpans(spans) {
     const sorted = (Array.isArray(spans) ? spans : [])
         .filter((s) => s && Number.isFinite(s.start) && Number.isFinite(s.end) && s.end > s.start)
         .map((s) => ({ start: s.start, end: s.end }))
         .sort((a, b) => a.start - b.start || a.end - b.end);
+    /** @type {{ start: number; end: number; }[]} */
     const out = [];
     for (const s of sorted) {
         const last = out[out.length - 1];
@@ -35,8 +39,16 @@ function mergeSpans(spans) {
     return out;
 }
 
+/**
+ * @param {{ start: number; end: number; }} a
+ * @param {{ start: number; end: number; }} b
+ */
 const overlaps = (a, b) => a.start < b.end && b.start < a.end;
 
+/**
+ * @param {{ start: number; end: number; }} gold
+ * @param {{ start: number; end: number; }[]} merged
+ */
 function coveredChars(gold, merged) {
     let n = 0;
     for (const p of merged) {
@@ -68,6 +80,7 @@ function scoreSentence(sentence, predicted) {
         .filter((g) => g && Number.isFinite(g.start) && Number.isFinite(g.end) && g.end > g.start)
         .map((g) => ({ start: g.start, end: g.end }))
         .sort((a, b) => a.start - b.start || a.end - b.end);
+    /** @type {Array<{start:number,end:number,kind:string,partial?:true}>} */
     const marks = [];
     let found = 0;
     for (const g of gold) {
@@ -95,10 +108,13 @@ function scoreSentence(sentence, predicted) {
     return { marks, verdict, found, total: gold.length, falseAlarms };
 }
 
-/** Totals over scored sentences: { found, total, falseAlarms, sentences }. */
+/**
+ * Totals over scored sentences: { found, total, falseAlarms, sentences }.
+ * @param {Array<{ found?: number, total?: number, falseAlarms?: number }>} scored
+ */
 function summarize(scored) {
     const list = Array.isArray(scored) ? scored : [];
-    return list.reduce((acc, s) => ({
+    return list.reduce((/** @type {{ found: number, total: number, falseAlarms: number, sentences: number }} */ acc, s) => ({
         found: acc.found + (s.found || 0),
         total: acc.total + (s.total || 0),
         falseAlarms: acc.falseAlarms + (s.falseAlarms || 0),
@@ -110,6 +126,8 @@ function summarize(scored) {
  * F-beta over a summary, beta 2 by default: recall weighs four times as much
  * as precision, because a missed value leaks and a false alarm only hides a
  * word too many. Precision counts false-alarm spans against found golds.
+ * @param {{ found?: number, total?: number, falseAlarms?: number } | null | undefined} summary
+ * @param {number} [beta]
  */
 function fScore(summary, beta = 2) {
     const tp = summary?.found || 0;

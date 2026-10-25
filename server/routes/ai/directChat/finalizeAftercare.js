@@ -139,3 +139,9 @@ async function extractTurnMemories({ req, userId, convId, messages, tokenizedMes
 }
 
 module.exports = { scheduleTitle, extractTurnMemories };
+
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+
+/** @typedef {import('../../../core/conversation/historyMerge').HistoryMessage} HistoryMessage */
+
+/** @typedef {Pick<Turn, 'userId' | 'send' | 'tiers' | 'modelId' | 'adapter' | 'apiKey' | 'apiUrl'> & { convId: string, savedMessages: HistoryMessage[] }} TitleCtx */

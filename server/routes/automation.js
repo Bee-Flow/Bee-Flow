@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Routes — REST API for the conversational automation builder.
  *

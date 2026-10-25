@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Notebook chat: the Privacy Shield scan helpers one turn shares between the
  * knowledge-base, document and attachment scans (routes/ai/notebookChat.js).
@@ -19,6 +19,7 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
     // When the shield is on AND set to fail closed, a scan that throws must
     // abort the turn rather than silently sending raw PII to the model.
     const _failClosed = !!docShield?.enabled && (docShield?.dlpFailureMode === 'fail_closed');
+    /** @param {string} where */
     const _abortFailClosed = (where) => {
         log.warn(`[NotebookChat] 🚫 Privacy Shield scan failed (${where}); fail_closed → aborting turn`);
         send('error', { error: 'Privacy Shield could not verify this content for personal data, so the request was blocked. Please try again shortly.' });
@@ -41,6 +42,8 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
      *
      * `text: null` means "nothing to substitute" — the caller keeps what it
      * had, exactly as it did when the old scanner returned `pass`.
+     * @param {string} text
+     * @param {string} label
      */
     const _scanViaLedger = async (text, label) => {
         const { composeScan } = require('../../../core/dlp/composeScan');
@@ -61,6 +64,7 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
         return { blocked: false, text: null, tokenMap: null };
     };
 
+    /** @param {string} where */
     const _abortBlocked = (where) => {
         log.warn(`[NotebookChat] 🚫 Privacy Shield BLOCKED content (${where}) — aborting turn`);
         send('error', { error: 'Privacy Shield blocked this request because the content contains personal data that may not be sent to the AI model.' });
@@ -82,6 +86,10 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
     // question, so nothing caught it afterwards. The caller aborts the
     // turn (it cannot be thrown from here: the per-attachment
     // try/catch would turn it into a "could not be read" note).
+    /**
+     * @param {string} text
+     * @param {string} filename
+     */
     const _scanAttBody = async (text, filename) => {
         if (!text || !docShield?.enabled) return { text };
         try {
@@ -93,7 +101,7 @@ function makeTurnScans({ docShield, notebookId, send, res }) {
             // pages nobody checked.
             if (r && typeof r.text === 'string') return { text: r.text };
         } catch (e) {
-            log.warn('[NotebookChat] attachment PII scan failed:', e.message);
+            log.warn('[NotebookChat] attachment PII scan failed:', /** @type {Error} */ (e).message);
             if (_failClosed) return { scanFailed: true };
         }
         return { text };

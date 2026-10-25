@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The page database behind the session: the DB viewer (Schema / Browse / SQL) and the
  * reset. Mirrors the AI tool surface in webpageDbTools.js, but with the session as the
@@ -32,13 +32,14 @@ const DbBody = bodyOf({
     params: z.array(z.unknown(), { error: typeError({ invalid: PARAMS_TEXT }) }).optional(),
 });
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
     // ── DB reset (privileged: session-auth) ─────────────────────────────
     //
     // Drops the entire SQLite database for this webpage. The token-authenticated
     // preview endpoints can write rows but can't reset the whole DB — that's a
     // destructive admin action that lives behind the session.
-    router.delete('/:id/db', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.delete('/:id/db', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -52,7 +53,7 @@ function register(router) {
     // the AI tool surface in webpageDbTools.js but lives behind the session
     // instead of the LLM, so the auth boundary is the same as DB reset above.
 
-    router.get('/:id/db/schema', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/:id/db/schema', requireAuth, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -60,7 +61,7 @@ function register(router) {
         res.json(result);
     });
 
-    router.post('/:id/db/query', requireAuth, validate({ body: DbBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/db/query', requireAuth, validate({ body: DbBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
@@ -75,7 +76,7 @@ function register(router) {
         }
     });
 
-    router.post('/:id/db/exec', requireAuth, validate({ body: DbBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/db/exec', requireAuth, validate({ body: DbBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);

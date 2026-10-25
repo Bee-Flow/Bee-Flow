@@ -32,10 +32,12 @@ const ALLOWED_TAGS = [
 ];
 const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'loading', 'decoding', 'id', 'start', 'align', 'type', 'checked', 'disabled'];
 
+/** @type {Record<string, string>} */
 const HTML_ENTITIES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+/** @param {unknown} v */
 function esc(v) { return String(v ?? '').replace(/[&<>"']/g, c => HTML_ENTITIES[c]); }
 
-/** `cms/<key>` → `/api/cms/asset/cms/<key>` (segment-encoded), else unchanged. */
+/** `cms/<key>` → `/api/cms/asset/cms/<key>` (segment-encoded), else unchanged. @param {string} key */
 function assetPath(key) {
     return `${ASSET_PREFIX}${String(key).split('/').map(encodeURIComponent).join('/')}`;
 }
@@ -53,7 +55,7 @@ function safeUrl(raw, { kind = 'link', origin = '' } = {}) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single character-class repeat and anchored scheme/path tests, all linear; input is capped at 2048 chars right after
     const s = raw.trim().replace(/[\u0000-\u001F\u007F\s]+/g, '');
     if (!s || s.length > 2048) return '';
-    const abs = (p) => (origin ? `${origin}${p}` : p);
+    const abs = /** @param {string} p */ (p) => (origin ? `${origin}${p}` : p);
     if (s.startsWith('cms/')) return s.includes('..') ? '' : abs(assetPath(s));
     if (s.startsWith('#')) return kind === 'link' ? s : '';
     if (s.startsWith('/') && !s.startsWith('//') && !s.startsWith('/\\')) return abs(s);
@@ -68,8 +70,10 @@ function safeUrl(raw, { kind = 'link', origin = '' } = {}) {
     return '';
 }
 
+/** @param {string} href */
 function isExternal(href) { return /^https?:\/\//i.test(href); }
 
+/** @type {typeof import('dompurify') | null} */
 let purify = null;
 // The origin of the render in progress (sanitize is synchronous), read by the
 // hook below to tell this site's own absolute links from external ones.
@@ -97,6 +101,10 @@ function getPurify() {
     return purify;
 }
 
+/**
+ * @param {string} html
+ * @param {{ origin?: string }} [opts]
+ */
 function sanitizeHtml(html, { origin = '' } = {}) {
     currentOrigin = origin;
     return getPurify().sanitize(html, {
@@ -107,7 +115,11 @@ function sanitizeHtml(html, { origin = '' } = {}) {
     });
 }
 
-/** Stable heading ids so `[jump](#setup)` works and readers can link a section. */
+/**
+ * Stable heading ids so `[jump](#setup)` works and readers can link a section.
+ * @param {unknown} textValue
+ * @param {Set<string>} used
+ */
 function headingId(textValue, used) {
     const base = String(textValue || '')
         .normalize('NFKD').replace(/[̀-ͯ]/g, '')
@@ -154,7 +166,7 @@ function renderPostMarkdown(markdown, { origin = '' } = {}) {
             },
         },
     });
-    return sanitizeHtml(md.parse(src), { origin });
+    return sanitizeHtml(/** @type {string} */ (md.parse(src)), { origin });
 }
 
 module.exports = {

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * DSR API — Data Subject Request endpoints (GDPR Art. 12, 15–22).
  *
@@ -32,7 +33,7 @@
  */
 
 const express = require('express');
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { bestEffort } = require('../utils/bestEffort');
@@ -46,6 +47,9 @@ const { maskRequest, maskTimeline, maskEmail, dossierRequest, dossierTimeline } 
 const verifyToken = require('../compliance/dsr/verifyToken');
 const signedPayload = require('../auth/lib/signedPayload');
 const discovery = require('../compliance/dsr/discovery');
+
+/** @typedef {import('pg').QueryResultRow} DsrRow a raw dsr_requests row */
+/** @typedef {import('express').Request & { dsrVerified?: { id: number, row: DsrRow } }} VerifyRequest */
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, typeError } = require('../core/http/schemaParts');
 const { onEvidenceWriteFailed } = require('../compliance/evidence/writeFailures');
@@ -91,6 +95,7 @@ const MAX_NOTE = 2000;
 // The two verify routes take no schema: their gate answers every failure,
 // a malformed body included, with the same `invalid_token`, so a probe
 // cannot tell which part was wrong.
+/** @param {string} message @param {number} max */
 const dsrText = (message, max) => worded(message).max(max, message);
 const EMAIL_TEXT = 'subject_email is required';
 const PublicIntakeBody = bodyOf({
@@ -128,6 +133,8 @@ const FulfilBody = bodyOf({
  * The clock every list row and the deadline feed agree on. Prefers the shared
  * helper from compliance/deadlines.js (BE-1a) when it exists, so the register
  * and the overview never disagree on "urgent".
+ * @param {DsrRow} row
+ * @param {number} [now]
  * @returns {{days_left:number|null, state:'overdue'|'urgent'|'ok'|'none'}}
  */
 function clockFor(row, now = Date.now()) {
@@ -140,10 +147,11 @@ function clockFor(row, now = Date.now()) {
         if (typeof deadlines.clockState === 'function') {
             const started = row.started_at || row.created_at;
             const startedMs = started ? new Date(started).getTime() : null;
-            const { state } = deadlines.clockState('dsr', due, Number.isFinite(startedMs) ? startedMs : null, now);
+            const { state } = /** @type {{ state: 'overdue'|'urgent'|'ok'|'none' }} */ (deadlines.clockState('dsr', due, Number.isFinite(startedMs) ? startedMs : null, now));
             return { days_left: daysLeft, state };
         }
     } catch (err) { bestEffort('dsr:clockState', err); } // the local rule below decides
+    /** @type {'overdue'|'urgent'|'ok'|'none'} */
     let state = 'ok';
     if (due <= now) state = 'overdue';
     else if (due - now <= URGENT_BELOW_DAYS * DAY_MS) state = 'urgent';
@@ -159,10 +167,11 @@ function publicBaseUrl() {
     return appPaths.clientHost();
 }
 
+/** @param {DsrRow} row @param {number} [now] */
 function listRow(row, now) {
     const clock = clockFor(row, now);
     const masked = maskRequest(row);
-    return { ...masked, timeline: undefined, days_left: clock.days_left, state: clock.state };
+    return { ...masked, timeline: /** @type {undefined} */ (undefined), days_left: clock.days_left, state: clock.state };
 }
 
 /**
@@ -181,6 +190,7 @@ function listRow(row, now) {
  * request from a non-user data subject can sit where the responsible org never
  * sees it while the Art. 12(3) clock runs. Picking the org from something the
  * form itself carries is the fix, and it is an owner decision.
+ * @param {string} email
  */
 async function _resolveOrgIdFromSubject(email) {
     if (!email) return 'default';
@@ -192,6 +202,7 @@ async function _resolveOrgIdFromSubject(email) {
     }
 }
 
+/** @param {import('express').Request} req */
 // A failed lookup is a 503: 'default' would show this admin another tenant's requests.
 async function resolveAdminOrgId(req) {
     const userId = req.session?.user?.id;
@@ -200,8 +211,9 @@ async function resolveAdminOrgId(req) {
     return u?.organizationId || 'default';
 }
 
-/** Org name + DPO address + locale for the letters. Best-effort, never throws. */
+/** Org name + DPO address + locale for the letters. Best-effort, never throws. @param {string} orgId */
 async function letterContext(orgId) {
+    /** @type {{ orgName: string | null, dpoEmail: string | null, locale: string }} */
     const ctx = { orgName: null, dpoEmail: null, locale: 'en' };
     try {
         const org = await userStore.getOrganization?.(orgId);
@@ -216,17 +228,20 @@ async function letterContext(orgId) {
     return ctx;
 }
 
+/** @param {import('express').Request} req */
 function clientIp(req) {
     return req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
         || req.socket?.remoteAddress
         || null;
 }
 
+/** @param {import('express').Request} req */
 function parseId(req) {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(/** @type {string} */ (req.params.id), 10);
     return Number.isFinite(id) && id > 0 ? id : null;
 }
 
+/** @param {import('express').Request} req @param {import('express').Response} res */
 async function loadOrgRow(req, res) {
     const orgId = await resolveAdminOrgId(req);
     const id = parseId(req);
@@ -236,10 +251,18 @@ async function loadOrgRow(req, res) {
     return { orgId, id, row, actorId: req.session?.user?.id || null };
 }
 
-/** Evidence row for the chain — allow-listed, never the address. */
+/**
+ * Evidence row for the chain — allow-listed, never the address.
+ * @param {string} orgId
+ * @param {DsrRow} row
+ * @param {string} action
+ * @param {string | null} actorId
+ * @param {{ status?: string, identity_status?: string, summary_length?: number, reason_length?: number, extended_until?: string, discovery?: unknown }} [extra]
+ */
 async function writeEvidence(orgId, row, action, actorId, extra = {}) {
     if (!complianceStore?.addEvidence) return;
     const checkId = row.request_type === 'deletion' ? 'GDPR-Art17-dsr-deletion' : 'GDPR-Art15-dsr-access';
+    /** @type {Record<string, unknown>} */
     const payload = {
         action,
         request_id: row.id,
@@ -267,7 +290,13 @@ async function writeEvidence(orgId, row, action, actorId, extra = {}) {
     await complianceStore.addEvidence(evidenceRow).catch(onEvidenceWriteFailed(evidenceRow));
 }
 
-/** The ack letter with the identity link, fire-and-forget after intake. */
+/**
+ * The ack letter with the identity link, fire-and-forget after intake.
+ * @param {string} orgId
+ * @param {DsrRow} created
+ * @param {string} email
+ * @param {string} requestType
+ */
 async function sendAck(orgId, created, email, requestType) {
     const ctx = await letterContext(orgId);
     const base = publicBaseUrl();
@@ -382,6 +411,7 @@ const VERIFY_TOKEN_MAX = 2048;
  * identity. The token is signed over the payload, so this cannot be moved
  * inside `check` without handing it a row it has not seen yet.
  */
+/** @param {unknown} token */
 function idFromUnverifiedToken(token) {
     if (typeof token !== 'string' || !token || token.length > VERIFY_TOKEN_MAX) return null;
     const dot = token.indexOf('.');
@@ -415,6 +445,7 @@ function idFromUnverifiedToken(token) {
  * probe learns nothing about which part failed. Nothing about the row is
  * logged (BFSF-441) — `row` travels no further than `req.dsrVerified`.
  */
+/** @param {VerifyRequest} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 async function requireVerifyToken(req, res, next) {
     res.set({ 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store' });
     const invalid = () => res.status(400).json({ error: 'invalid_token' });
@@ -448,6 +479,7 @@ async function requireVerifyToken(req, res, next) {
  * same indistinguishable 400 when the stamp itself fails — the caller cannot
  * tell a spent link from a database that hiccuped.
  */
+/** @param {VerifyRequest} req @param {import('express').Response} res */
 async function stampVerifiedIdentity(req, res) {
     const { id, row } = req.dsrVerified;
     try {
@@ -506,7 +538,7 @@ router.post('/requests/manual', requireAuth, requirePermission('admin_compliance
     }
 });
 
-router.get('/requests', requireAuth, requirePermission('admin_compliance'), validate({ query: ListQuery }), async (req, res) => {
+router.get('/requests', requireAuth, requirePermission('admin_compliance'), validate({ query: ListQuery }), /** @param {import('express').Request<{}, any, any, { status?: string }>} req */ async (req, res) => {
     const orgId = await resolveAdminOrgId(req);
     const rows = await dsrStore.listRequests(orgId, { status: req.query.status });
     const now = Date.now();
@@ -564,6 +596,7 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
         if (!OPEN.has(row.status)) return res.status(409).json({ error: 'not_open' });
         if (row.extended_at) return res.status(409).json({ error: 'already_extended' });
 
+        /** @type {DsrRow | null} */
         let updated;
         try {
             updated = await dsrStore.extend(orgId, id, { reason, by: actorId });
@@ -635,7 +668,7 @@ router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_comp
     const ctx = await loadOrgRow(req, res);
     if (!ctx) return;
     const { orgId, row, actorId } = ctx;
-    const result = await discovery.run(orgId, row, { actorId, force: req.query.force === '1' });
+    const result = await discovery.run(orgId, /** @type {{ id: number, subject_email: string }} */ (row), { actorId, force: req.query.force === '1' });
     res.json(result);
 });
 
@@ -717,12 +750,12 @@ router.get('/requests/:id/export', requireAuth, requirePermission('admin_complia
     let evidence = [];
     try {
         const rows = await complianceStore?.listEvidence?.(orgId, { subjectType: 'dsr_request', subjectId: String(id), limit: 200 });
-        evidence = (rows || []).map(e => ({ seq: e.seq ?? null, hash: e.hash, captured_at: e.captured_at }));
+        evidence = (rows || []).map((/** @type {Record<string, any>} */ e) => ({ seq: e.seq ?? null, hash: e.hash, captured_at: e.captured_at }));
     } catch { evidence = []; }
 
     let discoverySummary = null;
     try {
-        discoverySummary = discovery.summarize(await discovery.run(orgId, row, { actorId }));
+        discoverySummary = discovery.summarize(await discovery.run(orgId, /** @type {{ id: number, subject_email: string }} */ (row), { actorId }));
     } catch { discoverySummary = null; }
 
     const clock = clockFor(row);
@@ -749,5 +782,5 @@ router.get('/requests/:id/export', requireAuth, requirePermission('admin_complia
 
 module.exports = router;
 // Exposed for tests / the deadline feed.
-module.exports.clockFor = clockFor;
-module.exports.URGENT_BELOW_DAYS = URGENT_BELOW_DAYS;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).clockFor = clockFor;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).URGENT_BELOW_DAYS = URGENT_BELOW_DAYS;

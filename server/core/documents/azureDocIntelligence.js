@@ -201,3 +201,5 @@ module.exports = {
     extractWithAzureWithStats,
     isAzureDocIntelligenceConfigured,
 };
+
+/** @typedef {import('@azure-rest/ai-document-intelligence').DocumentIntelligenceClient} DocumentIntelligenceClient */

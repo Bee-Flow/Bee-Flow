@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google Groups Tools — Built-in tools for AI to list, read, and reply
  * to Google Groups conversations.
@@ -98,9 +99,9 @@ const { extractTextBody, getGmailHeader: getHeader } = require('../services/emai
 /**
  * Execute a Google Groups tool call.
  * @param {string} toolName - Tool name
- * @param {object} args - Tool arguments
+ * @param {{ groupEmail?: string, query?: string, maxResults?: number, threadId?: string, replyToMessageId?: string, subject?: string, body?: string }} args - Tool arguments
  * @param {object} session - Express session with OAuth tokens
- * @returns {object} Tool result
+ * @returns {Promise<object>} Tool result
  */
 async function executeGoogleGroupsTool(toolName, args, session) {
     const gmail = await createGmailClient(session);
@@ -221,7 +222,7 @@ async function executeGoogleGroupsTool(toolName, args, session) {
             inReplyTo = getHeader(headers, 'Message-ID');
             references = getHeader(headers, 'References');
         } catch (err) {
-            log.info('[GoogleGroups] Could not fetch reply headers:', err.message);
+            log.info('[GoogleGroups] Could not fetch reply headers:', /** @type {Error} */ (err).message);
         }
 
         // Return email draft for user approval (reuses existing email_draft flow)
@@ -248,6 +249,7 @@ async function executeGoogleGroupsTool(toolName, args, session) {
 
 /**
  * Check if a tool name is a Google Groups tool.
+ * @param {string} toolName
  */
 function isGoogleGroupsTool(toolName) {
     return ['groups_list_conversations', 'groups_read_conversation', 'groups_reply'].includes(toolName);

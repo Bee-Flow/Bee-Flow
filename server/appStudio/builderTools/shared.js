@@ -170,3 +170,9 @@ module.exports = {
     capStr,
     capStrArray,
 };
+
+/** @typedef {import('../builderTools').ToolArgs} ToolArgs */
+
+/** @typedef {string | boolean | unknown[] | ToolArgs | null | undefined} LogicInput  A JSON value from tool args. */
+
+/** @typedef {{ value?: unknown, error?: string }} Normalized */

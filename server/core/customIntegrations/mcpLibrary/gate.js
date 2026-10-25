@@ -34,7 +34,7 @@ const { LIBRARY_SOURCE, runningDefinition, isLibraryRow } = require('../../../st
  */
 async function loadRunGate() {
     const [builderEnabled, policy] = await Promise.all([deps.isBuilderEnabled(), getPolicy()]);
-    const isRunnable = (row) => {
+    const isRunnable = /** @param {import('../../../stores/lib/customIntegrationSource').IntegrationRow | null | undefined} row */ (row) => {
         if (!row) return false;
         if (isLibraryRow(row)) {
             const def = runningDefinition(row);

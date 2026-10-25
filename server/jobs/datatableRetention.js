@@ -74,10 +74,13 @@ const DELETE_CHUNK = 500;
  * written by four different automations would age out a quarter of itself and
  * report success. There is no viewer here — the org set a policy about the
  * whole table.
+ * @param {TableMeta} meta
  */
 function ownerFilter(meta) {
     return accessFilter.compileAccessFilter(meta, 'owner', { id: null }, 'delete', PG);
 }
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof datatableStore.getTableMeta>>>} TableMeta */
 
 /** Is the whole sweep switched off for this process? */
 function killSwitchOn() {
@@ -93,6 +96,7 @@ function killSwitchOn() {
  * the engine cannot reach or a compile failure must not stop the pass for every
  * other org in the deployment.
  *
+ * @param {import('../core/dataEngine/sources').Datatable} table
  * @returns {Promise<{deleted:number, skipped?:string}>}
  */
 async function sweepTable(table) {
@@ -170,6 +174,9 @@ async function sweepTable(table) {
  * Best-effort on purpose: this is bookkeeping that follows a delete which has
  * already committed, and failing it must not make the caller think the rows are
  * still there.
+ * @param {import('../core/dataEngine/sources').Datatable} table
+ * @param {TableMeta} meta
+ * @param {string} scopeKey
  */
 async function reconcileRowCount(table, meta, scopeKey) {
     try {

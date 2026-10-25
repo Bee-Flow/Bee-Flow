@@ -576,3 +576,17 @@ module.exports = {
     executeTask,
     stop,
 };
+
+/**
+ * The schedule fields a run reads (coworkStore's rowToSchedule shape).
+ * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null }} CoworkTask
+ */
+
+/**
+ * The per-run state a plain-prompt run carries between its phases.
+ * @typedef {{ userOrgForTier: string | null, modelId: string | null, usageAcc: ReturnType<typeof createUsageAccumulator>, lastIter: number, usageLogged: boolean }} TaskRun
+ */
+
+/**
+ * @typedef {{ manual?: boolean, store?: typeof import('../stores/coworkStore') }} RunOpts
+ */

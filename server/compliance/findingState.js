@@ -138,3 +138,8 @@ module.exports = {
     applies,
     publicState,
 };
+
+/**
+ * @typedef {{ check_id: string, scope_key?: string, state?: string, fingerprint?: string, until?: string | null, reason?: string | null, actor_id?: string | null, updated_at?: string | Date | null }} StoredState
+ * @typedef {{ status?: string, evidence?: any, check_id?: string, scope_id?: string | null }} FindingRow
+ */

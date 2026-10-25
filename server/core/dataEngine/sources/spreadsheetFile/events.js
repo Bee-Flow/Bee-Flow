@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A push from a storage → the spreadsheet mirror(s) it is about, marked
  * stale and kicked. Never patched in place: a file event carries no row.
@@ -55,6 +55,9 @@ const { fallback } = require('../../../../utils/bestEffort');
 const PROVIDER = 'nextcloud_files';
 const FILE_EVENTS = new Set(['file.changed', 'file.new', 'file.deleted', 'file.renamed', 'file.restored', 'file.copied']);
 
+/** @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Mirror */
+/** @typedef {{ id?: unknown, path?: unknown, oldPath?: unknown, name?: string, actor?: unknown }} FilePayload */
+
 /**
  * @param {{ orgId:string, event:string, payload:object, actorUserId?:string|null }} args
  *   `actorUserId` is the Bee Flow user the route already resolved from the
@@ -88,10 +91,13 @@ async function onFileEvent({ orgId, event, payload, actorUserId = null }) {
  * file id when the payload has one, by the path when it cannot (a delete),
  * and by the OLD path for a rename whose source node carried no id. One
  * entry per mirror.
+ * @param {string} orgId
+ * @param {string} event
+ * @param {FilePayload} p
  */
 async function mirrorsOf(orgId, event, p) {
     const byId = new Map();
-    const add = (list) => { for (const m of list || []) if (m && !byId.has(m.id)) byId.set(m.id, m); };
+    const add = (/** @type {Mirror[]} */ list) => { for (const m of list || []) if (m && !byId.has(m.id)) byId.set(m.id, m); };
     const id = p.id !== null && p.id !== undefined && p.id !== '' ? String(p.id) : null;
     if (id) add(await datatableStore.listSourceMirrorsByRef(orgId, { kind: KIND, provider: PROVIDER, fileId: id }));
     if (event === 'file.deleted' && typeof p.path === 'string' && p.path) {
@@ -103,7 +109,12 @@ async function mirrorsOf(orgId, event, p) {
     return [...byId.values()];
 }
 
-/** The Bee Flow user behind the event's actor, or null when unknown. */
+/**
+ * The Bee Flow user behind the event's actor, or null when unknown.
+ * @param {string} orgId
+ * @param {FilePayload} p
+ * @param {string | null} actorUserId
+ */
 async function actorOf(orgId, p, actorUserId) {
     if (actorUserId) return String(actorUserId);
     if (!p.actor) return null;
@@ -120,6 +131,8 @@ async function actorOf(orgId, p, actorUserId) {
  * The file id and its web link do not move on a rename, so only path and
  * name change. A path the file contract refuses (no leading slash) leaves
  * the block alone — the kick still happens, and the pass says what it finds.
+ * @param {Mirror} mirror
+ * @param {FilePayload} p
  */
 async function repoint(mirror, p) {
     if (typeof p.path !== 'string' || !p.path) return false;
@@ -139,7 +152,11 @@ async function repoint(mirror, p) {
     return true;
 }
 
-/** Mark the copy stale and refresh it in the background, now. */
+/**
+ * Mark the copy stale and refresh it in the background, now.
+ * @param {Mirror} mirror
+ * @param {string} reason
+ */
 async function stale(mirror, reason) {
     await datatableStore.markSourceStale(mirror.id, reason);
     const fresh = await datatableStore.getDatatable(mirror.id, mirror.scope);

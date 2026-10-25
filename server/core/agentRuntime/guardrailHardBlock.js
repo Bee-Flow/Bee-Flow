@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Streaming agent chat — guardrail / moderation hard block.
  *
@@ -11,6 +11,9 @@
 const agentStore = require('../../stores/agentStore');
 const log = require('../../telemetry/log');
 
+/**
+ * @param {{ moderationViolation: string | null, guardrailViolation: string | null, onEvent: import('./chatStream/turnState').OnEvent, messageMetadata: import('./chatStream/turnState').MessageMetadata, durableMessages: import('./chatStream/turnState').ChatMessage[], persistDurable: () => Promise<void>, isEphemeral: boolean, conversation: import('./chatStream/turnState').ConversationRow, userAuth: import('./chatStream/turnState').UserAuth, processedUserMessage: string, userMessage: string, modelToUse: string, _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} opts
+ */
 async function respondGuardrailHardBlock({ moderationViolation, guardrailViolation, onEvent, messageMetadata, durableMessages, persistDurable, isEphemeral, conversation, userAuth, processedUserMessage, userMessage, modelToUse, _serializeConversationWrite }) {
         const violationType = moderationViolation || guardrailViolation;
 
@@ -46,7 +49,7 @@ async function respondGuardrailHardBlock({ moderationViolation, guardrailViolati
                             const redactedContent = guardrailViolation
                                 ? '[Message removed - policy violation]'
                                 : (processedUserMessage !== userMessage ? processedUserMessage : '[Message removed - policy violation]');
-                            const updatedMessages = conv.messages.map((m, idx) =>
+                            const updatedMessages = conv.messages.map((/** @type {Record<string, unknown>} */ m, /** @type {number} */ idx) =>
                                 idx === lastUserIdx ? { ...m, content: redactedContent, isRedacted: true } : m
                             );
                             await _serializeConversationWrite(conversation.id, () => agentStore.updateConversation(conversation.id, updatedMessages, userAuth.encryptionKey, userAuth.userId));
@@ -54,7 +57,7 @@ async function respondGuardrailHardBlock({ moderationViolation, guardrailViolati
                         }
                     }
                 } catch (err) {
-                    log.error('[AgentRuntime] Guardrail: server-side redaction failed:', err.message);
+                    log.error('[AgentRuntime] Guardrail: server-side redaction failed:', /** @type {Error} */ (err).message);
                 }
             });
         }
@@ -62,7 +65,7 @@ async function respondGuardrailHardBlock({ moderationViolation, guardrailViolati
         log.info(`[AgentRuntime] Guardrail hard-block — skipped AI entirely (violation: ${violationType})`);
         return {
             message: persistedResponse,
-            toolCalls: [],
+            toolCalls: /** @type {Record<string, unknown>[]} */ ([]),
             conversationLength: durableMessages.length,
             conversationId: conversation.id,
             guardrailViolation: violationType,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Organization AI Context API
  *
@@ -53,14 +53,18 @@ const { z, typeError } = require('../utils/zod');
 // has no intent to clamp towards; it used to become the default under
 // "saved", so it is refused.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
 const SWITCH_TEXT = 'Say whether compaction is on: compactionEnabled is true or false.';
-const tunable = (name) => z.number({ error: typeError({ invalid: `${name} is a number.` }) }).optional();
+const tunable = (/** @type {string} */ name) => z.number({ error: typeError({ invalid: `${name} is a number.` }) }).optional();
 
 const PolicyBody = bodyOf({
     compactionEnabled: z.boolean({ error: SWITCH_TEXT }),
@@ -70,7 +74,7 @@ const PolicyBody = bodyOf({
 });
 
 // GET /:orgId — current policy (any member of the org may read it)
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
@@ -92,7 +96,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
 });
 
 // PUT /:orgId — save (org admin or super admin only)
-router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can change AI context settings' });

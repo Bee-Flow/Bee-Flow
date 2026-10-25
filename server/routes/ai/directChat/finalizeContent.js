@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat end-of-turn: the steps that settle the assistant TEXT before it
  * is saved. Flush + display-segment join, the raw-payload transparency event,
@@ -18,7 +18,13 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 const RAW_BUFFER_MAX = 64 * 1024;
 
-/** Flush the streaming un-tokeniser, join the display segments, fill an empty tool-only reply. */
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+
+/**
+ * Flush the streaming un-tokeniser, join the display segments, fill an empty tool-only reply.
+ * @param {Pick<Turn, 'fullContent' | 'streamContentFlush' | 'displaySegments' | 'toolCallRounds' | 'send'>} p
+ * @returns {string}
+ */
 function settleStreamedContent({ fullContent, streamContentFlush, displaySegments, toolCallRounds, send }) {
     // Release any tail held by the streaming un-tokeniser. The end-of-stream
     // `restoreTokens` also fires a full `content_replace` as a final safety
@@ -46,6 +52,7 @@ function settleStreamedContent({ fullContent, streamContentFlush, displaySegment
  * Transparency: emit the raw (pre-un-tokenise) response once per turn when
  * the org has `showRawPayload` on. Captured BEFORE restoreTokens so the user
  * sees the exact string the LLM produced. Capped at 64 KB.
+ * @param {{ fullContent: string, orgShield: Turn['orgShield'], tokenisationInfo: Turn['_assistantTokenisationInfo'] & { rawResponse?: string, rawTruncated?: boolean }, send: Turn['send'] }} p
  */
 function emitRawResponse({ fullContent, orgShield, tokenisationInfo, send }) {
     if (!(orgShield?.showRawPayload && fullContent)) return;
@@ -68,6 +75,8 @@ function emitRawResponse({ fullContent, orgShield, tokenisationInfo, send }) {
  * the model) holds no real PII; otherwise a follow-up such as "spell each
  * email character by character" would let the model reformat real values it
  * should never have seen. Returns the display text.
+ * @param {{ fullContent: string, convId: string, piiTokenMap: Turn['piiTokenMap'], send: Turn['send'] }} p
+ * @returns {string}
  */
 function restoreForDisplay({ fullContent, convId, piiTokenMap, send }) {
     if (!fullContent) return fullContent;
@@ -88,6 +97,8 @@ function restoreForDisplay({ fullContent, convId, piiTokenMap, send }) {
  * the patterns are designed to match real values like emails, phone numbers
  * and IBANs. Redactions also replace `fullContent` (storage) so the next turn
  * doesn't replay leaked content.
+ * @param {{ fullContent: string, displayContent: string, regexConfig: Turn['regexConfig'], send: Turn['send'] }} p
+ * @returns {{ fullContent: string, displayContent: string }}
  */
 function applyOutputRegexGuard({ fullContent, displayContent, regexConfig, send }) {
     if (!(regexConfig?.enabled && regexConfig?.scope?.agentOutput && displayContent)) return { fullContent, displayContent };
@@ -111,7 +122,11 @@ function applyOutputRegexGuard({ fullContent, displayContent, regexConfig, send 
     return { fullContent: redacted, displayContent: redacted };
 }
 
-/** One non-streaming call without thinking; the recovered text, or null. */
+/**
+ * One non-streaming call without thinking; the recovered text, or null.
+ * @param {Pick<Turn, 'adapter' | 'apiKey' | 'apiUrl' | 'modelId' | 'convId' | 'messages' | 'chatOptions' | 'send'>} p
+ * @returns {Promise<string | null>}
+ */
 async function retryWithoutThinking({ adapter, apiKey, apiUrl, modelId, convId, messages, chatOptions, send }) {
     let autoRetryEnabled = true;
     try {
@@ -152,6 +167,8 @@ async function retryWithoutThinking({ adapter, apiKey, apiUrl, modelId, convId, 
  * spend the budget on thinking: with thinking content in hand, do ONE
  * follow-up call without thinking. Admin-disable via
  * `claude_settings.autoRetryOnEmpty`. Otherwise surface a fallback line.
+ * @param {Turn & { displayContent: string }} t
+ * @returns {Promise<{ fullContent: string, displayContent: string }>}
  */
 async function guardEmptyResponse(t) {
     const { fullContent, displayContent, modelId, config, thinkingContent, notebookWriteCommitted, collectedToolHistory, send } = t;

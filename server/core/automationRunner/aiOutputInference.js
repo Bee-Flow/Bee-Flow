@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The output schema of a schemaless AI step, read off how later steps use it.
  *
@@ -375,3 +374,25 @@ function inferAiStepOutputSchema(definition, stepId) {
 }
 
 module.exports = { collectAiStepOutputReads, inferAiStepOutputSchema };
+
+/**
+ * A path token in path.mjs's shape.
+ * @typedef {import('../../shared/expr/path.mjs').PathToken} PathToken
+ */
+
+/**
+ * An expression AST node from the shared parser (only the fields read here).
+ * @typedef {{ kind?: string, v?: any, op?: string, name?: string, key?: string, value?: string,
+ *   segments?: ExprNode[], expr?: ExprNode, a?: ExprNode, b?: ExprNode, cond?: ExprNode, args?: ExprNode[] }} ExprNode
+ */
+
+/**
+ * A step as this module reads it: any step type, its keys walked generically.
+ * @typedef {{ id?: string, type?: string, body?: unknown, branches?: unknown, forEach?: { overRef?: unknown, itemVar?: unknown }, overRef?: unknown, itemVar?: unknown, steps?: unknown, [key: string]: unknown }} AiStepLike
+ */
+
+/** @typedef {(tokens: PathToken[], list: boolean|'weak'|'') => void} Reporter */
+
+/** @typedef {{ props: Map<string, ReadNode>, items: ReadNode|null, list: boolean, weakList: boolean, whole: boolean }} ReadNode */
+
+/** @typedef {{ type: string, items?: JsonSchema, properties?: Record<string, JsonSchema> }} JsonSchema */

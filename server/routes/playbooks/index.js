@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Studio Playbooks — phased AI builds the user watches and consents to.
  *
@@ -56,6 +57,12 @@ const { summarise } = require('./phaseList');
 // requires another — layering.test.js), and a route may require both.
 checkElementWords(require('../../appStudio/componentSpecs').COMPONENT_TYPES);
 
+/**
+ * What every register(router, ctx) in this folder receives.
+ * @typedef {{ d: ReturnType<typeof makeDefaultDeps>, flow: ReturnType<typeof makeFlow>, requireManageApps: import('express').RequestHandler, runLimiter: import('express').RequestHandler }} PlaybookRouteCtx
+ */
+
+/** @param {ReturnType<typeof makeDefaultDeps> | null} [deps] */
 function createPlaybooksRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router();
@@ -77,6 +84,8 @@ function createPlaybooksRouter(deps = null) {
 }
 
 const router = createPlaybooksRouter();
+/** @typedef {import('express').Router & { createPlaybooksRouter: typeof createPlaybooksRouter, _test: { summarise: typeof summarise } }} PlaybooksRouterExports */
+
 module.exports = router;
-module.exports.createPlaybooksRouter = createPlaybooksRouter;
-module.exports._test = { summarise };
+/** @type {PlaybooksRouterExports} */ (module.exports).createPlaybooksRouter = createPlaybooksRouter;
+/** @type {PlaybooksRouterExports} */ (module.exports)._test = { summarise };

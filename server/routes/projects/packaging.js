@@ -688,3 +688,5 @@ router.delete('/package/blueprints/:blueprintId', blueprintPackaging, async (req
 
 module.exports = router;
 module.exports.INSTALLER_FEATURES = INSTALLER_FEATURES;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

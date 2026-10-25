@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * DPIA Store — Data Protection Impact Assessment per agent (GDPR Art. 35).
  *
@@ -37,6 +37,11 @@ async function _initDB() {
 
 const VALID_MODES = new Set(['attestation', 'questionnaire']);
 
+/**
+ * @param {string|null} orgId
+ * @param {string|number} agentId
+ * @param {{ mode?: string, risk_level?: string, expires_at?: string|Date|null, answers?: object, mitigations?: unknown[], approved_by?: string|null } | null} [input]
+ */
 async function upsertAssessment(orgId, agentId, input) {
     await initDB();
     const mode = VALID_MODES.has(input?.mode) ? input.mode : 'attestation';
@@ -62,6 +67,10 @@ async function upsertAssessment(orgId, agentId, input) {
     return getLatestForAgent(orgId, agentId);
 }
 
+/**
+ * @param {string|null} orgId
+ * @param {string|number} agentId
+ */
 async function getLatestForAgent(orgId, agentId) {
     await initDB();
     return getOne(`
@@ -72,6 +81,7 @@ async function getLatestForAgent(orgId, agentId) {
     `, [orgId, agentId]);
 }
 
+/** @param {string|null} orgId */
 async function listForOrg(orgId) {
     await initDB();
     return getAll(`
@@ -83,6 +93,7 @@ async function listForOrg(orgId) {
     `, [orgId]);
 }
 
+/** @param {import('pg').QueryResultRow | null | undefined} row */
 function isCurrent(row) {
     if (!row || !row.approved_at) return false;
     if (!row.expires_at) return true;

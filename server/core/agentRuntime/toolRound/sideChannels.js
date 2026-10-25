@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The side channels of one tool result, in the order the result loop emits
  * them: document_update for a Studio document a tool wrote, the email /
@@ -17,7 +17,23 @@ const log = require('../../../telemetry/log');
 // Agent tools whose result carries the `documentId` of a Studio document they wrote.
 const STUDIO_WRITE_TOOLS = new Set(['create_presentation']);
 
-/** Emit and record every side channel `finalToolResult` carries. Mutates a kb_sources result. */
+/**
+ * The fields of a tool result the side channels read (a plain-string result has none of them).
+ * @typedef {{
+ *   documentId?: string, error?: unknown, name?: string, documentUrl?: string, url?: string,
+ *   file?: { name?: string } & Record<string, unknown>, _action?: string, draft?: Record<string, unknown>,
+ *   _mapEmbed?: Record<string, unknown>, content?: string,
+ *   _sources?: Array<{ datatableId?: string, rowId?: string, title?: string, section?: string, content?: string } & Record<string, unknown>>,
+ *   results?: Array<{ chunk_id?: string } & Record<string, unknown>>, audioUrl?: string,
+ * }} SideChannelResult
+ */
+
+/**
+ * Emit and record every side channel `finalToolResult` carries. Mutates a kb_sources result.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolName: string, finalToolResult: SideChannelResult }} opts
+ */
 function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
     const {
         onEvent, conversation, _emailDrafts, _calendarDrafts, _linkedInDrafts, _mapEmbeds,
@@ -52,7 +68,7 @@ function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
     // Key on the real draft fields, not the never-present
     // summary/start/end which made dedup a no-op (BFSF-123).
     if (finalToolResult?._action === 'calendar_draft') {
-        const calKey = (d) => _stableStringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
+        const calKey = (/** @type {Record<string, unknown>} */ d) => _stableStringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
         const draftKey = calKey(finalToolResult.draft);
         const alreadySent = _calendarDrafts.some(d => calKey(d) === draftKey);
         if (!alreadySent) {
@@ -90,6 +106,7 @@ function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
     // kb_search this turn, drop it from every surface (UI, persistence,
     // AND the tool response the LLM will see).
     if (finalToolResult?._action === 'kb_sources' && finalToolResult._sources?.length > 0) {
+        /** @type {number[]} */
         const keepIdx = [];
         const resultsArr = Array.isArray(finalToolResult.results) ? finalToolResult.results : [];
         finalToolResult._sources.forEach((src, i) => {

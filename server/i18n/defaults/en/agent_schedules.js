@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 // English GUI defaults — namespace "agent_schedules": every key whose part before the first "." is "agent_schedules".
 // The schedules panel of the agent builder: Cowork items that run as this agent.
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)

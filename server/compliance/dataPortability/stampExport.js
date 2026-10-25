@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * stampExport(kind) — Express middleware that records "an export of <kind>
  * was performed" in the compliance evidence chain after a 2xx response.
@@ -25,6 +26,7 @@ const CHECK_ID = 'DATA_ACT-Art25-exit-procedure';
 const ACTION = 'data_export_performed';
 const SUBJECT_TYPE = 'export';
 
+/** @param {import('express').Response} res */
 function _formatFromResponse(res) {
     let ct = '';
     try { ct = String(res.getHeader('content-type') || '').toLowerCase(); } catch (err) { fallback('compliance/dataPortability/stampExport:_formatFromResponse', err); /* headers gone */ }
@@ -40,6 +42,7 @@ function _formatFromResponse(res) {
     return null;
 }
 
+/** @param {import('express').Request} req */
 async function _resolveOrgId(req) {
     const sessionUser = req.session?.user;
     const direct = sessionUser?.organizationId || req.user?.organizationId || null;
@@ -57,6 +60,10 @@ async function _resolveOrgId(req) {
 /**
  * Write the evidence row for one finished response. Exported for tests;
  * resolves to the payload written, or null when nothing was recorded.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} kind
+ * @param {string | null} [format]
  */
 async function record(req, res, kind, format) {
     const status = Number(res.statusCode) || 0;
@@ -104,11 +111,18 @@ function stampExport(kind, { format = null } = {}) {
     };
 }
 
+/**
+ * @typedef {typeof stampExport & {
+ *   stampExport: typeof stampExport, record: typeof record, CHECK_ID: typeof CHECK_ID,
+ *   ACTION: typeof ACTION, SUBJECT_TYPE: typeof SUBJECT_TYPE,
+ *   _formatFromResponse: typeof _formatFromResponse, _resolveOrgId: typeof _resolveOrgId
+ * }} StampExportExports
+ */
 module.exports = stampExport;
-module.exports.stampExport = stampExport;
-module.exports.record = record;
-module.exports.CHECK_ID = CHECK_ID;
-module.exports.ACTION = ACTION;
-module.exports.SUBJECT_TYPE = SUBJECT_TYPE;
-module.exports._formatFromResponse = _formatFromResponse;
-module.exports._resolveOrgId = _resolveOrgId;
+/** @type {StampExportExports} */ (module.exports).stampExport = stampExport;
+/** @type {StampExportExports} */ (module.exports).record = record;
+/** @type {StampExportExports} */ (module.exports).CHECK_ID = CHECK_ID;
+/** @type {StampExportExports} */ (module.exports).ACTION = ACTION;
+/** @type {StampExportExports} */ (module.exports).SUBJECT_TYPE = SUBJECT_TYPE;
+/** @type {StampExportExports} */ (module.exports)._formatFromResponse = _formatFromResponse;
+/** @type {StampExportExports} */ (module.exports)._resolveOrgId = _resolveOrgId;

@@ -152,3 +152,5 @@ module.exports = {
     credentialsPath,
     _internals: { readCreds, refresh, writeBack, CLIENT_ID, TOKEN_URL },
 };
+
+/** @typedef {{ accessToken?: string, refreshToken?: string, expiresAt?: number }} OAuth */

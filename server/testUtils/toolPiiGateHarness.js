@@ -203,3 +203,17 @@ module.exports = {
     injectEmailDetector, streamingToolCallProvider, serveRouter, postJson,
     assertStripped, assertRefusalAudited, kbChatGateTests,
 };
+
+/**
+ * @typedef {{ name: string, args: Record<string, unknown> }} GateToolCall
+ * @typedef {{
+ *   shield: unknown,
+ *   toolCall: GateToolCall | null,
+ *   guardrailRows: Array<Record<string, unknown>>,
+ *   toolMessages: Array<{ role: string, content: string }>,
+ *   systemPrompts?: string[],
+ *   kbSearches?: unknown[],
+ *   webSearches?: unknown[],
+ *   [key: string]: unknown,
+ * }} GateFixture
+ */

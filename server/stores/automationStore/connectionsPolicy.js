@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Whose connections a shared or agent-called run uses (definition.runPolicy.
  * connections) is the OWNER's call. The routes refuse an editor that tries to

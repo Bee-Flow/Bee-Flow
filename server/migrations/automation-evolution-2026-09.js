@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: routine evolution proposals (2026-09).
  *

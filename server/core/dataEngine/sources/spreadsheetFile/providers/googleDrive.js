@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Google Drive (+ native Google Sheets) as a spreadsheet-mirror storage.
  *
@@ -40,6 +41,10 @@ const { integrationClient } = require('../../../../integrations/integrationClien
 const format = require('./googleDriveFormat');
 const { makeSheetCells } = require('./googleSheetsCells');
 
+/** @typedef {import('./googleDriveFormat').DriveCtx} DriveCtx */
+/** @typedef {import('./googleDriveFormat').DriveMarker} DriveMarker */
+/** @typedef {import('./index').FileRef} FileRef */
+
 const {
     provider, oauthProvider, integrationAppIds,
     FOLDER_MIME, SHORTCUT_MIME, PAGE_SIZE, FILE_FIELDS, LIST_FIELDS,
@@ -51,8 +56,13 @@ const {
 // Every function below takes the drive context `d` makeApi builds:
 //   { clients(), idOf(file), probe(file), guard(file, ifMatch) }
 
-/** The Drive + Sheets clients for one credential, built once on first use. */
+/**
+ * The Drive + Sheets clients for one credential, built once on first use.
+ * @param {{ save?: () => unknown }} cred
+ * @returns {() => Promise<import('./googleDriveFormat').GoogleClients>}
+ */
 function makeClients(cred) {
+    /** @type {Promise<import('./googleDriveFormat').GoogleClients>|null} */
     let clientsPromise = null;
     return () => {
         if (!clientsPromise) {
@@ -63,7 +73,7 @@ function makeClients(cred) {
                 // Rotated tokens go back into the vault through the shim.
                 onSaved: typeof cred.save === 'function' ? () => cred.save() : undefined,
                 notConnectedError: 'provider_not_connected',
-            }).catch((e) => {
+            }).catch((/** @type {Error} */ e) => {
                 clientsPromise = null;
                 if (e && e.message === 'provider_not_connected') {
                     throw new SpreadsheetSourceError(403, 'provider_not_connected',
@@ -78,13 +88,17 @@ function makeClients(cred) {
     };
 }
 
+/** @param {FileRef} file */
 function idOf(file) {
     const id = file && (file.fileId || file.id);
     if (!id) throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', 'A Google Drive file needs an id.');
     return id;
 }
 
-/** The Drive query and ordering a listing view asks for; null for a search without a term. */
+/**
+ * The Drive query and ordering a listing view asks for; null for a search without a term.
+ * @param {{ view: string, parentId: string|null, q: string|null }} opts
+ */
 function listQuery({ view, parentId, q }) {
     const FOLDER = `mimeType='${FOLDER_MIME}'`;
     const SPREAD = `(${[...Object.keys(SPREADSHEET_MIMES), SHORTCUT_MIME].map((m) => `mimeType='${m}'`).join(' or ')})`;
@@ -100,6 +114,10 @@ function listQuery({ view, parentId, q }) {
     return { query: `'${escapeQ(parentId || 'root')}' in parents and trashed=false and (${FOLDER} or ${SPREAD})`, orderBy: 'folder,name' };
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {{ view?: string, parentId?: string|null, q?: string|null, pageToken?: string|null }} [opts]
+ */
 async function list(d, { view = 'mine', parentId = null, q = null, pageToken = null } = {}) {
     const { drive } = await d.clients();
     const asked = listQuery({ view, parentId, q });
@@ -122,6 +140,10 @@ async function list(d, { view = 'mine', parentId = null, q = null, pageToken = n
     return { items, nextPageToken: res.data.nextPageToken || null };
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ */
 async function probe(d, file) {
     const fileId = d.idOf(file);
     const { drive } = await d.clients();
@@ -134,7 +156,7 @@ async function probe(d, file) {
     if (!f || f.trashed) {
         throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', 'Google Drive no longer has this file (it is in the bin or gone).', { ref: refOf(file) });
     }
-    const ref = toFileRef(f);
+    const ref = /** @type {import('./index').FileRef} */ (toFileRef(f));
     if (!ref) {
         throw new SpreadsheetSourceError(415, 'format_unsupported', `"${f.name}" is not a spreadsheet Bee Flow can read.`, { ref: refOf(file) });
     }
@@ -144,7 +166,7 @@ async function probe(d, file) {
         size: ref.size,
         mimeType: ref.mimeType,
         format: ref.format,
-        path: null,
+        path: /** @type {string|null} */ (null),
         webUrl: ref.webUrl,
         owned: ref.owned,
         writable: ref.writable,
@@ -152,7 +174,10 @@ async function probe(d, file) {
     };
 }
 
-/** What a stubbed or real gaxios client hands back for responseType 'arraybuffer', as a Buffer. */
+/**
+ * What a stubbed or real gaxios client hands back for responseType 'arraybuffer', as a Buffer.
+ * @param {unknown} data
+ */
 function toBuffer(data) {
     return Buffer.isBuffer(data) ? data
         : data instanceof ArrayBuffer ? Buffer.from(data)
@@ -160,6 +185,11 @@ function toBuffer(data) {
                 : Buffer.from(String(data ?? ''));
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {{ maxBytes?: number|null }} [opts]
+ */
 async function download(d, file, { maxBytes = null } = {}) {
     const p = await d.probe(file);
     if (p.format === 'gsheet') {
@@ -187,7 +217,12 @@ async function download(d, file, { maxBytes = null } = {}) {
     return { buffer, marker: p.marker };
 }
 
-/** The emulated guard: refuse when the file moved past `ifMatch`. */
+/**
+ * The emulated guard: refuse when the file moved past `ifMatch`.
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {DriveMarker|null} ifMatch
+ */
 async function guard(d, file, ifMatch) {
     const p = await d.probe(file);
     if (ifMatch && !markerEquals(p.marker, ifMatch)) {
@@ -197,6 +232,12 @@ async function guard(d, file, ifMatch) {
     return p;
 }
 
+/**
+ * @param {DriveCtx} d
+ * @param {FileRef} file
+ * @param {Buffer} buffer
+ * @param {{ ifMatch?: DriveMarker|null, contentType?: string|null }} [opts]
+ */
 async function upload(d, file, buffer, { ifMatch = null, contentType = null } = {}) {
     const p = await d.guard(file, ifMatch);
     const { drive } = await d.clients();
@@ -214,23 +255,34 @@ async function upload(d, file, buffer, { ifMatch = null, contentType = null } = 
     return { marker: markerOf(res.data) };
 }
 
+/**
+ * @param {{ save?: () => unknown }} cred
+ * @param {object} [ctx]
+ */
 function makeApi(cred, ctx = {}) {
     void ctx;
+    /** @type {DriveCtx} */
     const d = { clients: makeClients(cred), idOf };
     d.probe = (file) => probe(d, file);
     d.guard = (file, ifMatch) => guard(d, file, ifMatch);
     return {
         provider,
+        /** @param {Parameters<typeof list>[1]} [opts] */
         list: (opts) => list(d, opts),
         probe: d.probe,
+        /** @param {FileRef} file @param {Parameters<typeof download>[2]} [opts] */
         download: (file, opts) => download(d, file, opts),
+        /** @param {FileRef} file @param {Buffer} buffer @param {Parameters<typeof upload>[3]} [opts] */
         upload: (file, buffer, opts) => upload(d, file, buffer, opts),
         markerEquals,
         cells: makeSheetCells(d),
     };
 }
 
-/** Cheap: a vault row or session tokens for Google — no provider call. */
+/**
+ * Cheap: a vault row or session tokens for Google — no provider call.
+ * @param {{ userId?: string, session?: object|null }} [opts]
+ */
 async function isConnected({ userId, session = null } = {}) {
     return require('../credentials').cheapStatus(userId, oauthProvider, { session });
 }

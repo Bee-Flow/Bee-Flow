@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Studio-app listing for the Nextcloud connector.
  *
@@ -43,14 +43,14 @@ const router = express.Router();
 const { verifyConnectorSig } = require('../auth/connectorSig');
 
 // GET /api/nextcloud/studio-apps
-router.get('/', async (req, res) => {
+router.get('/', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const org = await verifyConnectorSig(req);
     if (!org) return res.status(401).json({ error: 'unauthorized' });
 
     const studioAppStore = require('../stores/studioAppStore');
     const apps = await studioAppStore.listNextcloudMenuApps(org.id);
     res.json({
-        apps: apps.map(a => ({
+        apps: apps.map((/** @type {Record<string, any>} */ a) => ({
             id: a.id,
             name: a.name,
             description: a.description || '',

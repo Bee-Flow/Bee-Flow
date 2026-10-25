@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — self-service password reset: the emailed one-time link and
  * the token-checked new-password write. Split out of auth/loginRoutes.js.

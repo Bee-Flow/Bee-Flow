@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Per-call site plumbing for the CMS-over-MCP tools (./dispatch.js): which
@@ -34,9 +34,17 @@ function scopeValidation(v, touched) {
     };
 }
 
+/**
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ */
+
 /** @param {{ cmsStore: any, live: any, builder: any, validateDraft: Function }} deps */
 function createSiteContext({ cmsStore, live, builder, validateDraft }) {
-    /** The siteId to act on and its project, or an error result. */
+    /**
+     * The siteId to act on and its project, or an error result.
+     * @param {ToolArgs} args
+     */
     async function resolveSite(args) {
         let siteId = args.siteId;
         if (siteId === undefined || siteId === null || siteId === '') {
@@ -51,7 +59,11 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         return { siteId, project };
     }
 
-    /** The draftWrap the builder tools mutate; the same shape routes/ai/cmsBuilder.js builds. */
+    /**
+     * The draftWrap the builder tools mutate; the same shape routes/ai/cmsBuilder.js builds.
+     * @param {string} siteId
+     * @param {{ userId: string, orgId?: string | null }} ctx
+     */
     async function loadDraft(siteId, ctx) {
         const payload = await cmsStore.getAdminPayload(siteId);
         const locales = new Set(Object.keys(payload.localeOverrides?.siteByLocale || {}));
@@ -65,10 +77,10 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
             // Distinct prefix: a session driven from an editor is recognisable in logs.
             builderSessionId: `mcp_${siteId}`,
             site: payload.site,
-            pages: new Map((payload.pages || []).map((p) => [p.id, p])),
+            pages: new Map((payload.pages || []).map((/** @type {Record<string, any>} */ p) => [p.id, p])),
             defaultLocale: payload.defaultLocale || 'en',
             locales: [...locales].sort(),
-            createdPageIds: [],
+            createdPageIds: /** @type {string[]} */ ([]),
             touchedPageIds: new Set(),
         };
     }
@@ -80,6 +92,11 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         return (v.errors.length || v.warnings.length) ? { errors: v.errors, warnings: v.warnings } : null;
     };
 
+    /**
+     * @param {string} name
+     * @param {ToolArgs} args
+     * @param {{ userId: string, orgId?: string | null }} ctx
+     */
     async function runBuilderTool(name, args, ctx) {
         const rest = { ...args };
         delete rest.siteId; // our envelope, not a builder argument

@@ -284,3 +284,39 @@ module.exports = {
     hydrateSessionFromVault, addOAuthProviderTools, addKeyedServiceTools, makeLentProviderCheck,
     addUserCredentialTools, addPersonalServiceTools, addTranscriptionTools,
 };
+
+/**
+ * @typedef {import('../agentRuntime/chatStream/turnState').ToolDef} ToolDef
+ * @typedef {{
+ *   configStore: typeof import('../../stores/configStore'),
+ *   buildN8nTools: typeof import('../../integrations/n8nTools').buildN8nTools,
+ *   N8N_WORKFLOW_TOOLS: typeof import('../../integrations/n8nWorkflowTools').N8N_WORKFLOW_TOOLS,
+ *   getN8nToolPermission: typeof import('../../integrations/n8nWorkflowTools').getN8nToolPermission,
+ *   hasPermission: typeof import('../../auth/permissions').hasPermission,
+ *   googleSessionHydration: () => typeof import('../../auth/googleSessionHydration'),
+ *   microsoftSessionHydration: () => typeof import('../../auth/microsoftSessionHydration'),
+ *   pwtRunner: () => typeof import('../../services/pwtRunner'),
+ *   webSearchAvailability: () => typeof import('../../integrations/webSearchAvailability'),
+ *   connectionResolution: () => typeof import('./connectionResolution'),
+ *   integrationConnectionStore: () => typeof import('../../stores/integrationConnectionStore'),
+ *   automationCredentialStore: () => typeof import('../../stores/automationCredentialStore'),
+ *   entitlements: () => typeof import('../entitlements/entitlements'),
+ *   officeFileDelivery: () => typeof import('../../integrations/officeFileDelivery'),
+ *   memoryTools: () => typeof import('../../integrations/memoryTools'),
+ *   automationEvolutionTools: () => typeof import('../../integrations/automationEvolutionToolDefs'),
+ *   datatableTools: () => typeof import('../tools/datatableTools'),
+ *   nextcloudClient: () => typeof import('../../integrations/nextcloudClient'),
+ *   userStore: () => typeof import('../../stores/userStore'),
+ *   ncScope: () => typeof import('./ncScope'),
+ *   toolPolicy: () => typeof import('../agentRuntime/toolPolicy'),
+ *   agentCallableTools: () => typeof import('../../automation/agentCallableTools'),
+ * }} GroupDeps  the collaborators integrationTools.js hands in (GROUP_DEPS)
+ * @typedef {{ isAppOn: (appId: string) => boolean, addTools: (tools: ToolDef[]) => void, T: Record<string, ToolDef[]>, D: GroupDeps }} GroupCtx
+ */
+
+/**
+ * @typedef {(provider: string) => Promise<boolean>} LentProviderCheck
+ *   Is this provider's connection lent to the running user? Set on the run
+ *   context only AFTER the OAuth and keyed-service groups ran, so it is absent
+ *   when the context is first built.
+ */

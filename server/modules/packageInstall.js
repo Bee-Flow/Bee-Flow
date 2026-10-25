@@ -377,3 +377,5 @@ module.exports = {
     listVersions,
     rollbackTo,
 };
+
+/** @typedef {import('crypto').BinaryLike} BinaryLike */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Compare two runs of one automation, step by step:
  *
@@ -55,14 +55,14 @@ const CompareQuery = queryOf({
  * @param {any} [overrides.access]         the automation access guard
  * @param {any} [overrides.runDataAccess]  { readableRun }
  * @param {Function} [overrides.compareRuns]
- * @param {Function} [overrides.limiter]       middleware for the compare route
+ * @param {import('express').RequestHandler} [overrides.limiter]       middleware for the compare route
  */
 function makeRunCompareRouter(overrides = {}) {
     const router = express.Router();
     const access = overrides.access
         || makeAutomationAccess(overrides.store ? { store: overrides.store } : {});
     const runData = overrides.runDataAccess || makeRunDataAccess({ store: overrides.store, access });
-    const compare = (...args) => (overrides.compareRuns || require('../../automation/testing/runCompare').compareRuns)(...args);
+    const compare = /** @param {Parameters<typeof import('../../automation/testing/runCompare').compareRuns>} args */ (...args) => (overrides.compareRuns || require('../../automation/testing/runCompare').compareRuns)(...args);
 
     const rpm = compareRpm();
     const limiter = overrides.limiter
@@ -78,7 +78,7 @@ function makeRunCompareRouter(overrides = {}) {
         }
         const result = await compare({
             runA: first.root, runB: second.root, legsA: first.legs, legsB: second.legs,
-            viewerId: req.session.user.id, ignorePaths: [], stepId: req.query.stepId || null,
+            viewerId: req.session.user.id, ignorePaths: [], stepId: /** @type {string | undefined} */ (req.query.stepId) || null,
         }, { store: overrides.store, storage: overrides.storage });
         res.setHeader('Cache-Control', 'private, no-store');
         return res.json(result);

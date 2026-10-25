@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 
 const express = require('express');
@@ -15,6 +16,9 @@ const SharingBody = bodyOf({
     access: choice(['view', 'edit'], 'access is view or edit.').prefault('view'),
 }, 'Sharing a document');
 
+/**
+ * @param {{ store?: typeof sharing, auth?: import('express').RequestHandler, notebookGate?: import('express').RequestHandler }} [deps]
+ */
 function makeDocumentSharingRouter({ store = sharing, auth = requireAuth, notebookGate } = {}) {
     const router = express.Router();
     const gate = notebookGate || require('../projects/notebookGate').makeNotebookGate();
@@ -27,7 +31,7 @@ function makeDocumentSharingRouter({ store = sharing, auth = requireAuth, notebo
             res.json(await store.sharingDirectory(type, req.params.id, req.session.user.id));
         });
         router.put(`${prefix}/:id/sharing`, ...middleware, validate({ body: SharingBody }), async (req, res) => {
-            res.json({ sharing: await store.setSharing(type, req.params.id, req.session.user.id, req.body) });
+            res.json({ sharing: await store.setSharing(type, /** @type {string} */ (req.params.id), req.session.user.id, req.body) });
         });
     }
     return router;

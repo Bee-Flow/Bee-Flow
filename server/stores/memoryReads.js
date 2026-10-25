@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/memoryReads.js — reading memories: the lists (personal, project pool,
  * agent bucket), the paginated search (in SQL, or in JS over decrypted rows
@@ -16,6 +16,10 @@ const initDB = () => dep('initDB')();
 // (see searchUserMemories). The org's maxPerUser, when the caller passes it.
 const DEFAULT_SCAN_LIMIT = 1000;
 
+/**
+ * @param {string} userId
+ * @param {number} [limit]
+ */
 async function getMemories(userId, limit = 50) {
     await initDB();
     return hydrateRows(await getAll(`
@@ -36,10 +40,14 @@ async function getMemories(userId, limit = 50) {
  * most important first, at most `scanLimit`, which the caller takes from the
  * org's maxPerUser) are decrypted and filtered here. `truncated` is true when
  * the scan hit the limit, i.e. older rows were not searched.
+ *
+ * @param {string} userId
+ * @param {{ limit?: number|string, offset?: number|string, search?: string|null, type?: string|null, scanLimit?: number }} [opts]
  */
 async function searchUserMemories(userId, { limit = 50, offset = 0, search = null, type = null, scanLimit = DEFAULT_SCAN_LIMIT } = {}) {
     await initDB();
     const where = [`user_id = $1`, `status = 'active'`, `project_id IS NULL`];
+    /** @type {unknown[]} */
     const params = [userId];
     if (type) {
         params.push(type);
@@ -56,8 +64,8 @@ async function searchUserMemories(userId, { limit = 50, offset = 0, search = nul
             ORDER BY importance DESC, updated_at DESC LIMIT ${cap}
         `, params);
         const q = needle.toLowerCase();
-        const hits = (await hydrateRows(rows)).filter(m =>
-            [m.content, m.subject, m.attribute, m.value].some(v => typeof v === 'string' && v.toLowerCase().includes(q)));
+        const hits = (await hydrateRows(rows)).filter((/** @type {Record<string, any>} */ m) =>
+            [m.content, m.subject, m.attribute, m.value].some((/** @type {unknown} */ v) => typeof v === 'string' && v.toLowerCase().includes(q)));
         return {
             items: hits.slice(safeOffset, safeOffset + safeLimit),
             total: hits.length, limit: safeLimit, offset: safeOffset, truncated: rows.length >= cap,
@@ -81,7 +89,10 @@ async function searchUserMemories(userId, { limit = 50, offset = 0, search = nul
     return { items: await hydrateRows(items), total: countRow?.total || 0, limit: safeLimit, offset: safeOffset };
 }
 
-/** Does a text search over this person's memory have to happen after decryption? */
+/**
+ * Does a text search over this person's memory have to happen after decryption?
+ * @param {string} userId
+ */
 async function _searchMustRunInJs(userId) {
     const sealed = await getOne(
         `SELECT 1 AS present FROM user_memories
@@ -91,6 +102,11 @@ async function _searchMustRunInJs(userId) {
     return (await resolveWriteContext({ userId })).encrypt;
 }
 
+/**
+ * @param {string} userId
+ * @param {string} projectId
+ * @param {number} [limit]
+ */
 async function getMemoriesForProject(userId, projectId, limit = 50) {
     await initDB();
     return hydrateRows(await getAll(`
@@ -102,6 +118,12 @@ async function getMemoriesForProject(userId, projectId, limit = 50) {
     `, [projectId, limit]));
 }
 
+/**
+ * @param {string} userId
+ * @param {string} agentId
+ * @param {number} [limit]
+ * @param {{ includeGeneral?: boolean }} [opts]
+ */
 async function getMemoriesForAgent(userId, agentId, limit = 20, { includeGeneral = true } = {}) {
     await initDB();
     // includeGeneral=true (default): return agent-specific + user-global memories.
@@ -124,13 +146,19 @@ async function getMemoriesForAgent(userId, agentId, limit = 20, { includeGeneral
 // By-id reads keep a row they cannot open (`unreadable: true`, sealed text
 // blanked): the route still has to authorise it and the owner has to be able to
 // delete it. List reads drop such a row instead.
+/**
+ * @param {string} id
+ */
 async function getMemoryById(id) {
     await initDB();
     const row = await getOne('SELECT * FROM user_memories WHERE id = $1', [id]);
     return row ? (await hydrateRows([row], { keepUnreadable: true }))[0] : null;
 }
 
-/** Many rows by id in one query, for authorising a bulk action. */
+/**
+ * Many rows by id in one query, for authorising a bulk action.
+ * @param {string[]} ids
+ */
 async function getMemoriesByIds(ids) {
     if (!Array.isArray(ids) || ids.length === 0) return [];
     await initDB();

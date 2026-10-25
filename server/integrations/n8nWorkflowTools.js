@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * n8n Workflow Management Tools — Static AI tools for managing n8n workflows
  *
@@ -13,6 +14,22 @@ const log = require('../telemetry/log');
 
 // ─── n8n API Helper ────────────────────────────────────────────
 
+/**
+ * @typedef {import('./n8nWorkflowHelpers').N8nNodeShape} N8nNode
+ * @typedef {import('./n8nWorkflowHelpers').N8nExecution} N8nExecution
+ * @typedef {{ id?: string, name?: string, active?: boolean, tags?: Array<string | { name?: string }>, createdAt?: string,
+ *   updatedAt?: string, settings?: Record<string, unknown>, nodes?: N8nNode[], connections?: import('./n8nWorkflowHelpers').N8nConnections, executionId?: string,
+ *   finished?: boolean, status?: string, mode?: string, startedAt?: string, stoppedAt?: string, workflowId?: string, retryOf?: string | null,
+ *   data?: N8nJson & { executionId?: string, resultData?: N8nExecution['data']['resultData'] } }} N8nJsonObject
+ * @typedef {N8nJsonObject & Array<N8nJsonObject>} N8nJson  an object, or the array the list endpoints answer with
+ */
+
+/**
+ * @param {string} orgId
+ * @param {string} path
+ * @param {{ method?: string, headers?: Record<string, string>, body?: string, timeoutMs?: number }} [options]
+ * @returns {Promise<N8nJson>}
+ */
 async function n8nApiFetch(orgId, path, options = {}) {
     const n8nUrl = await configStore.getConfig(`n8n_url_org_${orgId}`);
     const apiKey = await configStore.getSecret(`n8n_api_key_org_${orgId}`);
@@ -42,8 +59,8 @@ async function n8nApiFetch(orgId, path, options = {}) {
     }
 
     // Some endpoints (activate/deactivate) return 204 No Content
-    if (res.status === 204) return {};
-    return res.json();
+    if (res.status === 204) return /** @type {N8nJson} */ ({});
+    return /** @type {Promise<N8nJson>} */ (res.json());
 }
 
 // ─── Tool Definitions ──────────────────────────────────────────
@@ -66,7 +83,7 @@ const N8N_WORKFLOW_TOOLS = [
                     limit: { type: 'integer', description: 'Max workflows to return (default 50, max 250).' },
                     tags: { type: 'string', description: 'Comma-separated tag names to filter by.' },
                 },
-                required: [],
+                required: /** @type {string[]} */ ([]),
             },
         },
     },
@@ -245,7 +262,7 @@ const N8N_WORKFLOW_TOOLS = [
                     status: { type: 'string', enum: ['success', 'error', 'waiting', 'running'], description: 'Filter by status.' },
                     limit: { type: 'integer', description: 'Max to return (default 20, max 100).' },
                 },
-                required: [],
+                required: /** @type {string[]} */ ([]),
             },
         },
     },
@@ -316,6 +333,19 @@ const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * Tool arguments of every n8n workflow tool (each reads its own subset).
+ * @typedef {{ workflow_id?: string, full?: boolean, active?: boolean, limit?: number, tags?: string,
+ *   node_type_pattern?: string, node_names?: string[] | string, has_param?: string, name?: string,
+ *   nodes?: unknown, connections?: unknown, settings?: unknown, node_operations?: unknown, confirm?: boolean,
+ *   timeout_seconds?: number, execution_id?: string, status?: string }} N8nArgs
+ * @typedef {{ orgId: string, toolName?: string }} N8nCtx
+ */
+
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowList(args, { orgId }) {
     const { active, limit = 50, tags } = args;
     const cap = Math.min(Math.max(limit || 50, 1), 250);
@@ -331,6 +361,10 @@ async function workflowList(args, { orgId }) {
 }
 
 // ── Get Workflow ────────────────────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowGet(args, { orgId }) {
     const { workflow_id, full = false } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -368,6 +402,10 @@ async function workflowGet(args, { orgId }) {
 }
 
 // ── Find Nodes (filtered subset) ────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowNodesFind(args, { orgId, toolName }) {
     const { workflow_id, node_type_pattern, node_names, has_param } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -396,6 +434,10 @@ async function workflowNodesFind(args, { orgId, toolName }) {
 }
 
 // ── Create Workflow ─────────────────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowCreate(args, { orgId, toolName }) {
     const { name, active = false } = args;
     if (!name) return { error: 'name is required' };
@@ -441,6 +483,10 @@ async function workflowCreate(args, { orgId, toolName }) {
 }
 
 // ── Full Update (PUT) ───────────────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowUpdate(args, { orgId, toolName }) {
     const { workflow_id, name, active } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -453,6 +499,7 @@ async function workflowUpdate(args, { orgId, toolName }) {
         return { error: 'connections must be a JSON object' };
     }
     assertConnectionsIntegrity(nodes, connections);
+    /** @type {{ name: string, nodes: N8nNode[], connections: import('./n8nWorkflowHelpers').N8nConnections, settings?: unknown, active?: boolean }} */
     const body = { name, nodes, connections };
     if (settings) body.settings = settings;
     if (active !== undefined) body.active = !!active;
@@ -464,6 +511,10 @@ async function workflowUpdate(args, { orgId, toolName }) {
 }
 
 // ── Patch (Partial, with node_operations) ───────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowPatch(args, { orgId, toolName }) {
     const { workflow_id, name, active } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -472,6 +523,7 @@ async function workflowPatch(args, { orgId, toolName }) {
     const current = await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(workflow_id)}`);
 
     let mergedNodes = Array.isArray(current.nodes) ? [...current.nodes] : [];
+    /** @type {import('./n8nWorkflowHelpers').N8nConnections} */
     let mergedConnections = current.connections && typeof current.connections === 'object'
         ? current.connections
         : {};
@@ -514,6 +566,7 @@ async function workflowPatch(args, { orgId, toolName }) {
     // Post-condition: refuse to save an internally inconsistent workflow.
     assertConnectionsIntegrity(mergedNodes, mergedConnections);
 
+    /** @type {{ name: string, nodes: N8nNode[], connections: import('./n8nWorkflowHelpers').N8nConnections, settings: Record<string, unknown>, active?: boolean }} */
     const body = {
         name: mergedName,
         nodes: mergedNodes,
@@ -534,6 +587,10 @@ async function workflowPatch(args, { orgId, toolName }) {
 }
 
 // ── Delete (permanent) ──────────────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowDelete(args, { orgId }) {
     const { workflow_id, confirm } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -545,6 +602,10 @@ async function workflowDelete(args, { orgId }) {
 }
 
 // ── Activate / Deactivate ───────────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowActivate(args, { orgId }) {
     const { workflow_id } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -552,6 +613,10 @@ async function workflowActivate(args, { orgId }) {
     return { success: true, message: `Workflow "${result.name || workflow_id}" activated.`, id: result.id || workflow_id, name: result.name, active: true };
 }
 
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowDeactivate(args, { orgId }) {
     const { workflow_id } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -560,6 +625,10 @@ async function workflowDeactivate(args, { orgId }) {
 }
 
 // ── Execute (async-poll) ────────────────────────────
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function workflowExecute(args, { orgId }) {
     const { workflow_id, timeout_seconds = 120 } = args;
     if (!workflow_id) return { error: 'workflow_id is required' };
@@ -587,6 +656,7 @@ async function workflowExecute(args, { orgId }) {
 
     // Poll /executions/:id
     const deadline = Date.now() + timeoutMs;
+    /** @type {N8nJson | null} */
     let lastExec = null;
     while (Date.now() < deadline) {
         try {
@@ -609,6 +679,10 @@ async function workflowExecute(args, { orgId }) {
 }
 
 // ── Execution: list / get / detail / retry / stop ───
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function executionList(args, { orgId }) {
     const { workflow_id, status, limit = 20 } = args;
     const cap = Math.min(Math.max(limit || 20, 1), 100);
@@ -623,6 +697,10 @@ async function executionList(args, { orgId }) {
     };
 }
 
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function executionGet(args, { orgId }) {
     const { execution_id } = args;
     if (!execution_id) return { error: 'execution_id is required' };
@@ -630,6 +708,10 @@ async function executionGet(args, { orgId }) {
     return summarizeExecution(exec);
 }
 
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function executionGetDetail(args, { orgId }) {
     const { execution_id } = args;
     if (!execution_id) return { error: 'execution_id is required' };
@@ -637,6 +719,10 @@ async function executionGetDetail(args, { orgId }) {
     return buildExecutionDetail(exec);
 }
 
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function executionRetry(args, { orgId }) {
     const { execution_id } = args;
     if (!execution_id) return { error: 'execution_id is required' };
@@ -644,6 +730,10 @@ async function executionRetry(args, { orgId }) {
     return { success: true, message: `Retry started for execution ${execution_id}.`, ...summarizeExecution(result) };
 }
 
+/**
+ * @param {N8nArgs} args
+ * @param {N8nCtx} ctx
+ */
 async function executionStop(args, { orgId }) {
     const { execution_id } = args;
     if (!execution_id) return { error: 'execution_id is required' };
@@ -651,6 +741,7 @@ async function executionStop(args, { orgId }) {
     return { success: true, message: `Stop signal sent to execution ${execution_id}.`, ...summarizeExecution(result) };
 }
 
+/** @type {Record<string, (args: N8nArgs, ctx: N8nCtx) => Promise<unknown>>} */
 const HANDLERS = {
     n8n_workflow_list: workflowList,
     n8n_workflow_get: workflowGet,
@@ -669,6 +760,11 @@ const HANDLERS = {
     n8n_execution_stop: executionStop,
 };
 
+/**
+ * @param {string} toolName
+ * @param {N8nArgs} args
+ * @param {string} orgId
+ */
 async function executeN8nWorkflowTool(toolName, args, orgId) {
     if (!orgId) {
         return { error: 'No organization found. n8n workflow management requires an organization with n8n configured.' };
@@ -686,6 +782,7 @@ async function executeN8nWorkflowTool(toolName, args, orgId) {
 
 // ─── Identification ────────────────────────────────────────────
 
+/** @param {string} toolName */
 function isN8nWorkflowTool(toolName) {
     return toolName && (toolName.startsWith('n8n_workflow_') || toolName.startsWith('n8n_execution_'));
 }
@@ -695,6 +792,7 @@ function isN8nWorkflowTool(toolName) {
 //   - 'use_n8n_tools'         → read-only: list, get, nodes_find, execution reads
 //   - 'modify_n8n_workflows'  → write / execute / delete / activate
 // Tools NOT in this map are treated as write (safe default).
+/** @type {Record<string, string>} */
 const N8N_TOOL_PERMISSIONS = {
     // read-only
     n8n_workflow_list: 'use_n8n_tools',
@@ -715,6 +813,7 @@ const N8N_TOOL_PERMISSIONS = {
     n8n_execution_stop: 'modify_n8n_workflows',
 };
 
+/** @param {string} toolName */
 function getN8nToolPermission(toolName) {
     return (Object.hasOwn(N8N_TOOL_PERMISSIONS, toolName) && N8N_TOOL_PERMISSIONS[toolName]) || 'modify_n8n_workflows';
 }

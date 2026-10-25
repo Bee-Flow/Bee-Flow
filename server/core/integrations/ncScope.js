@@ -339,3 +339,8 @@ module.exports = {
     _userKey: userKey,
     _orgKey: orgKey,
 };
+
+/**
+ * @typedef {{ mode: string, selected?: string[] }} ScopeEntry  one integration's stored scope
+ * @typedef {Record<string, ScopeEntry>} ScopeMap  integration id → its scope
+ */

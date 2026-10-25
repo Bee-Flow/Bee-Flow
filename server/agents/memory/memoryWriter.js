@@ -383,3 +383,10 @@ module.exports = {
     DUPLICATE_AT,
     JUDGE_FROM,
 };
+
+/**
+ * @typedef {Awaited<ReturnType<typeof import('../../stores/memoryStore').findSimilarMemories>>[number]} Neighbour
+ * @typedef {{ userId: string, agentId?: string | null, projectId?: string | null, orgId?: string | null,
+ *   origin?: 'explicit' | 'imported' | 'inferred' | 'tool', conversationId?: string | null }} WriteCtx
+ * @typedef {ReturnType<typeof normaliseCandidate>} Candidate
+ */

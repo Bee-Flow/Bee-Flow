@@ -194,3 +194,7 @@ function dispatchApprovalDecided(approval, { votes = null } = {}) {
 }
 
 module.exports = { dispatchApprovalRequested, dispatchApprovalDecided };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+
+/** @typedef {{ by?: string, voterId?: string, name?: string|null, voterName?: string|null, decision?: string, reason?: string|null, stage?: string }} EventVote */

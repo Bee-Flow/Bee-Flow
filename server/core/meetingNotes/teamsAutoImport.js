@@ -309,3 +309,13 @@ async function processDue({ limit = 2 } = {}) {
 }
 
 module.exports = { init, discover, processDue, processJobInline, findArtifact, NO_RECORDING_DEADLINE_MS };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/teamsImportStore').getJob>>>} TeamsImportJob
+ * @typedef {Awaited<ReturnType<typeof import('../../auth/microsoftSessionHydration').resolveMicrosoftSession>>} MicrosoftSession
+ */
+
+/**
+ * @typedef {Object} ProcessDueArgs
+ * @property {number} [limit]
+ */

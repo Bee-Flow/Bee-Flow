@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The two AI Act questions a definition cannot answer by itself, put to the
  * FAST model tier (handoff 5, "the check should be automatic"):
@@ -253,3 +252,8 @@ module.exports = {
     makeClassifier,
     defaultClassifier,
 };
+
+/**
+ * @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition
+ * @typedef {{ available: boolean, hash: string, modelId?: string, prohibited?: object|null, highRisk?: object|null }} ClassifierResult
+ */

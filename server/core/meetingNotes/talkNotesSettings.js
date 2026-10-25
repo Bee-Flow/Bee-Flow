@@ -180,3 +180,23 @@ module.exports = {
     saveOrgSettings,
     saveUserSettings,
 };
+
+/**
+ * @typedef {{ autoTranscribe: boolean, postSummaryBack: boolean, recordingFolder: string, language: string,
+ *   autoRecord: boolean, autoRecordScope: string, recordingMode: string, excludedEventUids: string[],
+ *   excludedRoomTokens: string[], defaultOwnerUserId: string | null, insightsPerPersonStats: boolean }} TalkNotesDefaults
+ */
+
+/**
+ * A settings patch from the API body; every field may be absent or an explicit null ("inherit").
+ * @typedef {{ autoTranscribe?: boolean | null, postSummaryBack?: boolean | null, recordingFolder?: string | null,
+ *   language?: string | null, autoRecord?: boolean | null, autoRecordScope?: string | null, recordingMode?: string | null,
+ *   excludedEventUids?: unknown, excludedRoomTokens?: unknown, defaultOwnerUserId?: string | null,
+ *   insightsPerPersonStats?: boolean | null }} TalkNotesPatch
+ */
+
+/**
+ * @typedef {Object} ResolveTalkNotesSettingsArgs
+ * @property {string | null} [orgId]
+ * @property {string | null} [userId]
+ */

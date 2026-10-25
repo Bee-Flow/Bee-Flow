@@ -494,3 +494,13 @@ module.exports = {
     gate, authMw, passes, deploymentView, releaseView, listParts, activeOf, logOn, notifyOwnerOfAdmin, mapLimited,
     pipelineStageView, lastDeploymentOf, roleName, BUSY_STATUSES, STAGE_LABEL, isObject,
 };
+
+/** @typedef {ReturnType<typeof resolveDeps>} StageDeps */
+
+/** @typedef {import('./deploymentRoutes').StageCtx} StageCtx */
+
+/** @typedef {import('./deploymentRoutes').StageReq} StageReq */
+
+/** @typedef {ReturnType<typeof import('../../../stores/solutionStage/deploymentModel').mapDeployment>} DeploymentRow */
+
+/** @typedef {ReturnType<typeof import('../../../stores/solutionStage/stages').mapStage>} StageRow */

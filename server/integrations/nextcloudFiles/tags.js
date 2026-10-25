@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * System tags — list and create tags, attach or detach them from a file, and
  * find every file carrying one.
@@ -8,6 +8,11 @@ const { parseMultistatus, parsePropfind } = require('./webdav');
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
+/**
+ * @param {string} toolName
+ * @param {{ fileId?: string | number, tagId?: string | number, name?: string, limit?: number, userVisible?: boolean, userAssignable?: boolean }} args
+ * @param {import('./webdav').FilesToolCtx} ctx
+ */
 async function executeTagTool(toolName, args, ctx) {
     const { baseUrl, ncFetch, authError, uid, root } = ctx;
 
@@ -32,7 +37,7 @@ async function executeTagTool(toolName, args, ctx) {
             if (!res.ok) return { error: `Tags list failed (${res.status})` };
             const xml = await res.text();
             const tags = [];
-            const isTrue = (v) => v === 'true' || v === '1' || v === true || v === 1;
+            const isTrue = (/** @type {string | number | boolean} */ v) => v === 'true' || v === '1' || v === true || v === 1;
             for (const { props } of parseMultistatus(xml)) {
                 if (props.id === undefined || props.id === null || props.id === '') continue;
                 tags.push({

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: root_run_id on automation_runs — the JOURNEY identity (2026-08).
  *
@@ -44,6 +45,9 @@ const BACKFILL_WINDOW = '90 days';
 
 // Did `child` continue the run it names as its parent? `p` is the joined parent
 // row, LEFT-joined in the base branch (so a parentless run answers FALSE).
+/**
+ * @param {string} child
+ */
 const CONTINUES_PARENT = (child) => `(
     p.id IS NOT NULL
     AND p.summary IS NOT NULL

@@ -211,3 +211,8 @@ module.exports = {
     executeNextcloudNotificationsTool,
     isNextcloudNotificationsTool,
 };
+
+/**
+ * One entry of the Notifications OCS v2 answer.
+ * @typedef {{ notification_id: number, app?: string, user?: string, datetime?: string, object_type?: string, object_id?: string, subject?: string, message?: string, link?: string, icon?: string, actions?: Array<{ label?: string, link?: string, type?: string, primary?: boolean }> }} NcNotification
+ */

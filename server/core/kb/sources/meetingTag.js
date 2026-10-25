@@ -51,6 +51,10 @@ const DEFAULT_FIELDS = Object.freeze(['summary', 'decisions']);
 /** One pass will not enumerate more meetings than this, whatever the tag matches. */
 const MAX_MEETINGS = 500;
 
+/** @typedef {Awaited<ReturnType<typeof import('../../../stores/transcriptionStore').listByTag>>[number]} TaggedMeeting */
+/** @typedef {{ externalId: string, meeting: TaggedMeeting, title: string, sourceModifiedAt: string | Date | null }} MeetingItem */
+
+/** @param {import('./index').KbSource | null | undefined} source */
 function fieldsOf(source) {
     const raw = source?.config?.fields;
     const list = Array.isArray(raw) ? raw.filter(f => FIELDS.includes(f)) : [];
@@ -64,6 +68,10 @@ function fieldsOf(source) {
  * The meetings this source currently offers.
  *
  * Keyed off the KB owner's reach, not the caller's — see the header.
+ * @param {import('./index').KbSource} source
+ * @param {import('./index').SyncCtx} ctx
+ * @param {import('./index').SyncDeps} deps
+ * @returns {Promise<MeetingItem[]>}
  */
 async function enumerate(source, ctx, deps) {
     const tag = String(source?.config?.tag || '').trim();
@@ -95,11 +103,13 @@ async function enumerate(source, ctx, deps) {
 
 /**
  * Unchanged when the note has not been touched since we last read it.
- *
+ * 
  * `updated_at` moves when a summary is regenerated, a decision is edited, or a
  * tag changes — every reason the document would differ. Comparing the built
  * text instead would mean building it for every meeting on every pass, which
  * is the work this check exists to avoid.
+ * @param {MeetingItem} item
+ * @param {Record<string, any> | null} stored
  */
 function isUnchanged(item, stored) {
     if (!stored || !item?.sourceModifiedAt || !stored.source_modified_at) return false;
@@ -112,12 +122,17 @@ function isUnchanged(item, stored) {
  * Returns null when there is nothing worth storing — a meeting whose summary
  * never generated is a row with a title and no content, and an empty document
  * in a knowledge base is a search result that wastes somebody's click.
+ * @param {MeetingItem} item
+ * @param {Record<string, any> | null} stored
+ * @param {import('./index').SyncCtx} ctx
+ * @param {import('./index').SyncDeps} _deps
  */
 async function fetch(item, stored, ctx, _deps) {
     const m = item.meeting;
     if (!m) return null;
     const fields = fieldsOf(ctx.source);
 
+    /** @type {string[]} */
     const parts = [];
     if (fields.includes('summary') && m.summary?.trim()) parts.push(m.summary.trim());
 
@@ -158,6 +173,7 @@ async function fetch(item, stored, ctx, _deps) {
  * A decision is `{ text }` in some rows and a bare string in others (the
  * shape changed and old notes were never rewritten). Both read the same to a
  * person, so both are accepted here rather than only the current one.
+ * @param {unknown} list
  */
 function textsOf(list) {
     if (!Array.isArray(list)) return [];

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The end and the branch of a page: cloning and deleting.
  *
@@ -32,8 +32,9 @@ const CloneBody = bodyOf({
 const CONFIRM_TEXT = 'confirm is true of false.';
 const DeleteQuery = z.object({ confirm: flag(CONFIRM_TEXT) }).strict();
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
-    router.post('/:id/clone', requireAuth, validate({ body: CloneBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/clone', requireAuth, validate({ body: CloneBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const sourceId = req.params.id;
         const { name } = req.body;
         const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
@@ -62,9 +63,9 @@ function register(router) {
         res.json({ success: true, webpage: cloned });
     });
 
-    router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), async (req, res) => {
+    router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
-        const confirmed = req.query.confirm === true;
+        const confirmed = /** @type {{ confirm?: boolean }} */ (req.query).confirm === true;
 
         // Owner-scoped, just like the deletion itself: a non-owner gets the same 404 as always and
         // learns nothing about the page.

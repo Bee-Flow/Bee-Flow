@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Slides Tools — read + edit existing presentations.
  *
@@ -100,15 +100,38 @@ const SLIDES_TOOLS = [
     },
 ];
 
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{ query?: string, pageSize?: unknown, presentationId?: string, title?: string, folderId?: string,
+ *   replacements?: Array<{ from?: string, to?: string, matchCase?: boolean }> }} SlidesArgs
+ */
+/**
+ * One slide as the Slides API returns it (the fields read here).
+ * @typedef {{ objectId?: string, pageElements?: Array<{ shape?: { text?: { textElements?: Array<{ textRun?: { content?: string } }> } } }> }} SlidePage
+ */
+/**
+ * The part of a googleapis slides v1 client these tools call.
+ * @typedef {{ presentations: {
+ *   get(params: object): Promise<{ data: { title?: string, slides?: SlidePage[] } }>,
+ *   create(params: object): Promise<{ data: { presentationId?: string } }>,
+ *   batchUpdate(params: object): Promise<{ data: { replies?: Array<{ replaceAllText?: { occurrencesChanged?: number } }> } }>,
+ * } }} SlidesClient
+ */
+
+/**
+ * @param {import('./googleClient').GoogleSession} session
+ * @returns {Promise<{ slides: SlidesClient, drive: import('./driveHelpers').DriveClient }>}
+ */
 async function createSlidesClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
-    return createGoogleApiClient(session, { api: 'slides', version: 'v1', extraApis: [{ api: 'drive', version: 'v3' }], exposeOAuth2: true, notConnectedError: 'Not connected to Google Slides — user must log in with Google' });
+    return /** @type {Promise<{ slides: SlidesClient, drive: import('./driveHelpers').DriveClient }>} */ (createGoogleApiClient(session, { api: 'slides', version: 'v1', extraApis: [{ api: 'drive', version: 'v3' }], exposeOAuth2: true, notConnectedError: 'Not connected to Google Slides — user must log in with Google' }));
 }
 
 /**
  * Pull plain text out of a single slide. Slides API nests text inside
  * pageElements → shape → text → textElements, each with a textRun whose
  * `content` is the actual string. We concatenate everything per slide.
+ * @param {SlidePage} slide
  */
 function extractSlideText(slide) {
     const parts = [];
@@ -123,6 +146,11 @@ function extractSlideText(slide) {
     return parts.join('').trim();
 }
 
+/**
+ * @param {string} toolName
+ * @param {SlidesArgs} args
+ * @param {import('./googleClient').GoogleSession} session
+ */
 async function executeSlidesTool(toolName, args, session) {
     const { slides, drive } = await createSlidesClient(session);
 
@@ -204,7 +232,7 @@ async function executeSlidesTool(toolName, args, session) {
                         supportsAllDrives: true,
                     });
                 } catch (e) {
-                    log.warn(`[Slides] Could not move to folder ${folderId}: ${e.message}`);
+                    log.warn(`[Slides] Could not move to folder ${folderId}: ${/** @type {Error} */ (e).message}`);
                 }
             }
             return {
@@ -237,6 +265,9 @@ async function executeSlidesTool(toolName, args, session) {
     }
 }
 
+/**
+ * @param {unknown} toolName
+ */
 function isSlidesTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('slides_');
 }

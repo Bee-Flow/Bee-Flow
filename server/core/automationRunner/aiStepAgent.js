@@ -481,3 +481,17 @@ module.exports = {
     withholdConfirmTools,
     agentToolsForStep,
 };
+
+/**
+ * @typedef {import('./aiStepToolWithhold').WithholdTool} AgentTool
+ * @typedef {import('./aiStepSkills').StepAgentConfig} StepAgentConfig
+ * @typedef {{ userId?: string|null, orgId?: string|null, userHomeOrgId?: string|null, identityError?: string|null,
+ *             userGroupIds?: string[] }} StepAgentCtx  the run context, as far as the agent gate reads it
+ * @typedef {{ id?: string, owner_id?: string|null, is_published?: boolean, organization_id?: string|null,
+ *             shared_groups?: unknown, runtimeSource?: string, published_version?: unknown,
+ *             name?: string, config?: StepAgentConfig, system_prompt?: unknown }} StepAgentRow  an agent as getForRuntime serves it
+ * @typedef {{ agentId?: unknown, agentPermissions?: unknown, knowledgeBaseIds?: string[], skillIds?: unknown[],
+ *             disabledAgentSkillIds?: unknown[], [k: string]: unknown }} AgentAiStep  the agent fields of an ai_step
+ * @typedef {{ tools: AgentTool[], withheld: string[], reasons: Record<string, string>, degraded: boolean,
+ *             catalogError: string|null, toolDefs?: AgentTool[] }} AgentToolsResult
+ */

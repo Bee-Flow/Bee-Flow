@@ -743,3 +743,20 @@ module.exports = {
     summariseApp,
     renderCatalogText,
 };
+
+/**
+ * @typedef {{ id: string, title?: string, isActive?: boolean, trigger?: string, params?: string[], description?: string }} AutomationRow
+ * @typedef {{ id?: string, documentId?: string, name?: string, docType?: string, placeholders?: Array<{ key: string, kind?: string, fields?: string[] }> }} DocumentRow
+ * @typedef {import('./builderTools').AppDef} AppDef
+ * @typedef {import('./builderTools').AppNode} AppNode
+ * @typedef {import('./builderTools/dataTools').DataModel} DataModel
+ * @typedef {import('./builderTools/dataTools').DataField} DataField
+ */
+
+/**
+ * @typedef {{ kind?: string, tableId?: string, screenId?: string, automationId?: string|null }} StepLike
+ * @typedef {{ kind?: string, name?: string }} MappingLike
+ * @typedef {{ toast?: unknown, navigateTo?: string }} EffectsLike
+ * @typedef {{ kind?: string, automationId?: string|null, inputMapping?: Record<string, MappingLike>, onSuccess?: EffectsLike, onError?: EffectsLike,
+ *   screenId?: string, message?: string, tone?: string, url?: string, modalId?: string, steps?: StepLike[] }} ActionLike
+ */

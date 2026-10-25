@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Per-inbox access control for the tenant Support studio.
  *
@@ -20,9 +21,13 @@ const userStore = require('../stores/userStore');
 const { resolveUserOrgIds, isOrgAdminRole } = require('../auth/permissions');
 const { bestEffort } = require('../utils/bestEffort');
 
+/** @param {import('express').Request} req */
 function getUserId(req) { return req.session?.user?.id || null; }
 
-/** Resolve the caller's group ids (user.groups is a JSON string or array). */
+/**
+ * Resolve the caller's group ids (user.groups is a JSON string or array).
+ * @param {import('express').Request} req
+ */
 async function resolveUserGroups(req) {
     const userId = getUserId(req);
     if (!userId) return [];
@@ -37,7 +42,10 @@ async function resolveUserGroups(req) {
     return [];
 }
 
-/** True when the caller is an organisation admin (org_admin / legacy admin). */
+/**
+ * True when the caller is an organisation admin (org_admin / legacy admin).
+ * @param {import('express').Request} req
+ */
 async function resolveIsOrgAdmin(req) {
     const userId = getUserId(req);
     if (!userId) return false;
@@ -51,7 +59,8 @@ async function resolveIsOrgAdmin(req) {
  * Org ids the caller may act within. Mirrors supportInbox route's resolveOrgScope:
  * super admins (resolveUserOrgIds === null) fall back to their own org so they
  * see their own org's inboxes (not every tenant's).
- * @returns {{ orgIds: Set|null, scope: string[] }}
+ * @param {import('express').Request} req
+ * @returns {Promise<{ orgIds: Set<string>|null, scope: string[] }>}
  */
 async function resolveOrgScope(req) {
     const ids = await resolveUserOrgIds(req);
@@ -64,10 +73,10 @@ async function resolveOrgScope(req) {
 
 /**
  * Single source of truth: "may this user work this inbox?".
- * @param {object} inbox - support_inboxes row (must include organization_id,
+ * @param {{ organization_id?: string, created_by?: string, shared_groups?: string|string[] }} inbox - support_inboxes row (must include organization_id,
  *   created_by, shared_groups)
  * @param {string} userId
- * @param {Set|null|undefined} orgIds - null = super admin; a Set = the user's
+ * @param {Set<string>|null|undefined} orgIds - null = super admin; a Set = the user's
  *   org ids; undefined = skip org check (list-path callers already scoped by org)
  * @param {string[]} userGroups
  * @param {{isOrgAdmin?: boolean}} opts
@@ -99,6 +108,7 @@ function canUserAccessInbox(inbox, userId, orgIds = undefined, userGroups = [], 
  * All inboxes (full public rows) the caller may work, across their in-scope
  * orgs. The list/threads/insights/stream routes build their inbox set from this
  * so a group-restricted inbox is never surfaced to a non-member.
+ * @param {import('express').Request} req
  */
 async function accessibleInboxes(req) {
     const userId = getUserId(req);
@@ -116,12 +126,18 @@ async function accessibleInboxes(req) {
     return out;
 }
 
-/** Convenience: just the ids. */
+/**
+ * Convenience: just the ids.
+ * @param {import('express').Request} req
+ */
 async function accessibleInboxIds(req) {
     return (await accessibleInboxes(req)).map(i => i.id);
 }
 
-/** Resolve a specific user's group ids (for operator-in-group validation). */
+/**
+ * Resolve a specific user's group ids (for operator-in-group validation).
+ * @param {string} userId
+ */
 async function userGroupsFor(userId) {
     if (!userId) return [];
     try {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Website forms: the pure half of the CMS `form` block (routes/cmsForms.js is
  * the HTTP half).
@@ -109,7 +109,7 @@ function findFormBlock(snapshot, blockId) {
     const pages = isPlainObject(snapshot?.pages) ? snapshot.pages : {};
     for (const [pageId, page] of Object.entries(pages)) {
         const blocks = Array.isArray(page?.blocks) ? page.blocks : [];
-        const block = blocks.find((b) => isPlainObject(b) && b.type === 'form' && b.id === blockId);
+        const block = blocks.find(/** @param {import('../../stores/cms/shared').CmsBlock} b */ (b) => isPlainObject(b) && b.type === 'form' && b.id === blockId);
         if (block && block.enabled !== false) return { block, pageId };
     }
     return null;

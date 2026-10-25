@@ -241,3 +241,5 @@ module.exports = {
     canonNavShape,
     resolveNavScreens,
 };
+
+/** @typedef {{ id: string, label: string, icon: string | null, screens: string[] }} NavGroup */

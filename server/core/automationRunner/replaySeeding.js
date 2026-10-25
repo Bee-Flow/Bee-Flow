@@ -273,3 +273,11 @@ function withReplayStale(runRow, staleFrom) {
 }
 
 module.exports = { replayEntryFromRow, seedReplayState, seedReplayStateFromRun, withReplayStale, withFullOutput };
+
+/**
+ * @typedef {NonNullable<ReturnType<typeof import('../../stores/automationStore/rowMappers').rowToRun>>} RunRow
+ * @typedef {NonNullable<ReturnType<typeof import('../../stores/automationStore/rowMappers').rowToRunStep>>} RunStepRow
+ * @typedef {{ output: unknown, status: string, error?: { message: string, errorClass: string | null, stepId: string } }} ReplayEntry
+ * @typedef {(row: RunStepRow) => string | null | undefined} StepIdFor
+ * @typedef {{ seedRunId?: string | null, viewerUserId?: string | null, acceptSynthetic?: boolean }} SeedOpts
+ */

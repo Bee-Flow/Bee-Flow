@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * What the sprint routes accept (routes/projects/sprints.js). Closed bodies,

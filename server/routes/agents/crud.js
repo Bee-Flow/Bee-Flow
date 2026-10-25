@@ -557,3 +557,43 @@ module.exports.validateAgentConfigReferences = validateAgentConfigReferences;
 module.exports.applyConfigValidation = applyConfigValidation;
 module.exports.resolvePersonaWrite = resolvePersonaWrite;
 module.exports.verifyHandoffAutomation = verifyHandoffAutomation;
+
+/**
+ * @typedef {object} AgentRow  the agents concept row (`agentStore.getAgent` / `getAgentViews().draft`)
+ * @property {string} id
+ * @property {string} [owner_id]
+ * @property {string} [organization_id]
+ * @property {string} [name]
+ * @property {string} [description]
+ * @property {unknown} [persona]
+ * @property {string} [system_prompt]
+ * @property {object} [config]
+ * @property {number} [published_version]
+ * @property {number} [rev]
+ * @property {number} [published_rev]
+ * @property {boolean} [is_published]
+ * @property {string|null} [project_id]
+ * @property {string|null} [category_id]
+ * @property {string} [model]
+ * @property {string|null} [avatar]
+ * @property {unknown} [starter_prompts]
+ * @property {string[]|string|null} [shared_groups]  an array off getAgent, a JSON string in the raw column
+ * @property {boolean|number|null} [threads_enabled]
+ * @property {boolean|number|null} [copy_enabled]
+ * @property {boolean|number|null} [workspace_enabled]
+ * @property {boolean|number|null} [embed_enabled]
+ * @property {unknown[]} [tools]
+ * @property {Record<string, unknown>} [tool_params]
+ */
+
+/**
+ * @typedef {import('express').Router & {
+ *   canModifyAgent: typeof canModifyAgent,
+ *   buildCanModifyContext: typeof buildCanModifyContext,
+ *   canReadAgent: typeof canReadAgent,
+ *   validateAgentConfigReferences: typeof validateAgentConfigReferences,
+ *   applyConfigValidation: typeof applyConfigValidation,
+ *   resolvePersonaWrite: typeof resolvePersonaWrite,
+ *   verifyHandoffAutomation: typeof verifyHandoffAutomation,
+ * }} CrudRouter  the router, with the helpers other route files import off it
+ */

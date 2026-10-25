@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat input gates, part three: the regex guardrails. The org shield's
  * rules merged with the direct-chat-specific collection, checked against the
@@ -16,7 +16,7 @@ async function directChatRegexConfig() {
     const dcRegexConfig = await configStore.getConfig('direct_chat_regex_guardrails');
     if (!dcRegexConfig?.enabled) return null;
     const globalConfig = await getAIConfig();
-    const globalRegexConfig = globalConfig.regexGuardrails || {};
+    const globalRegexConfig = /** @type {{ rules?: { id: string, name: string, pattern: string }[], collections?: { id: string, ruleIds?: string[] }[] }} */ (globalConfig.regexGuardrails || {});
     const globalRules = globalRegexConfig.rules || [];
     const globalCollections = globalRegexConfig.collections || [];
 
@@ -34,7 +34,11 @@ async function directChatRegexConfig() {
     return rulesWithNames.length > 0 ? { enabled: true, rulesWithNames, scope, action } : null;
 }
 
-/** The merged regex config for the turn: the turn's shield plus the direct-chat guardrails. */
+/**
+ * The merged regex config for the turn: the turn's shield plus the direct-chat guardrails.
+ * @param {Parameters<typeof import('../../../core/privacy/orgShield').mergeWithOrgShield>[0]} orgShield
+ * @param {string} shieldSource
+ */
 async function resolveRegexConfig(orgShield, shieldSource) {
     // Reuse the shield resolved at the top of the turn (org shield for
     // org-bound users, personal user shield for consumer accounts).
@@ -52,6 +56,8 @@ async function resolveRegexConfig(orgShield, shieldSource) {
  * raw `message` would write the original values back over those tokens (the
  * agent path does the same with redactBase: processedUserMessage). Returns
  * false when the input was blocked (the caller ends the stream).
+ * @param {{ messages: import('../../../core/agentRuntime/chatStream/turnState').ChatMessage[], message: string,
+ *   regexConfig: Parameters<typeof applyRegexGuardrails>[0]['regexConfig'], send: Parameters<typeof applyRegexGuardrails>[0]['emit'] }} params
  */
 function applyInputRegex({ messages, message, regexConfig, send }) {
     const lastMsg = messages[messages.length - 1];

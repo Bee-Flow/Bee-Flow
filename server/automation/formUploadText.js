@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The TEXT of a file a visitor attached to an automation's form.
  *
@@ -75,8 +75,13 @@ const MAX_PARSE_BYTES = 12 * 1024 * 1024;
  */
 const MAX_TEXT_CHARS = 60_000;
 
-/** Collect a stream into one Buffer, refusing to grow past `limit`. */
+/**
+ * Collect a stream into one Buffer, refusing to grow past `limit`.
+ * @param {AsyncIterable<Buffer>} stream
+ * @param {number} limit
+ */
 async function collect(stream, limit) {
+    /** @type {Buffer[]} */
     const chunks = [];
     let total = 0;
     for await (const chunk of stream) {
@@ -85,7 +90,7 @@ async function collect(stream, limit) {
         // only number that has actually been counted here — trust it over the
         // row when deciding whether to keep going.
         if (total > limit) {
-            const err = new Error('too large');
+            const err = /** @type {Error & { code?: string }} */ (new Error('too large'));
             err.code = 'FORM_UPLOAD_TOO_LARGE';
             throw err;
         }
@@ -131,13 +136,14 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
         return { textError: `The content of ${filename} could not be read.` };
     }
 
+    /** @type {string | { text?: string }} */
     let parsed;
     try {
         // No `returnHtml`: a run wants the text a model reads, not markup. A
         // workbook comes back as one markdown table per sheet, which is exactly
         // the shape an ai_step can map columns out of.
         const { parseDocument } = require('../core/documents/documentParser');
-        parsed = await parseDocument(buffer, mimeType, filename);
+        parsed = /** @type {string | { text?: string }} */ (await parseDocument(buffer, mimeType, filename));
     } catch (err) {
         // parseDocument already swallows its own per-format failures and returns
         // a "[Document: … — failed to parse]" marker, so reaching here means
@@ -166,6 +172,9 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
  * The complete value a `file` field contributes to a run: the receipt plus its
  * text. Both claim sites (the trigger's page and a later form_page) call THIS,
  * so the two can never drift.
+ *
+ * @param {{id?: string, filename?: string, mimeType?: string, size?: number, storageKey?: string}} claimed
+ * @param {{storageStore?: typeof import('../stores/storageStore')|null}} [deps]  injectable for tests.
  */
 async function describeClaimedUpload(claimed, deps = {}) {
     const base = {

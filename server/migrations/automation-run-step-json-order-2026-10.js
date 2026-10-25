@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: automation_run_steps.input_json / output_json and
  * automation_runs.trigger_payload from JSONB to JSON.
@@ -28,6 +29,7 @@
  */
 
 /** `exec` is injectable so a test can run the real SQL against an in-process Postgres. */
+/** @param {{ exec?: (sql: string) => Promise<unknown> }} [opts] */
 async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
     await exec(`
         DO $$

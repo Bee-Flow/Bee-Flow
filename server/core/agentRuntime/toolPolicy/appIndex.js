@@ -251,3 +251,8 @@ module.exports = {
     appRequiresExplicitGrant, appDefersGrants,
     _index, _decidingApps, _warnDegraded, _resetAppIndex,
 };
+
+/**
+ * A tool definition as far as attribution reads it.
+ * @typedef {{ function?: { name?: string }, _mcp?: { serverId?: string }, _custom?: { integrationId?: string, id?: string } }} ToolDef
+ */

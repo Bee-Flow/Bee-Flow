@@ -128,12 +128,16 @@ module.exports = async function isoGovernance() {
     const { linkHash } = require('../../evidence/chain');
     const { hashPayload } = require('../../evidence/canonical');
 
-    /** Build a valid chain of `n` linked rows, newest last (seq 1..n). */
+    /**
+     * Build a valid chain of `n` linked rows, newest last (seq 1..n).
+     * @param {number} n
+     */
     function chainRows(n) {
         const rows = [];
+        /** @type {string | null} */
         let prev = null;
         for (let i = 1; i <= n; i++) {
-            const payload = { status: 'pass', evidence: { ok: true }, details: `row ${i}`, run_type: 'scheduled', subject: null };
+            const payload = { status: 'pass', evidence: { ok: true }, details: `row ${i}`, run_type: 'scheduled', subject: /** @type {string | null} */ (null) };
             const payload_hash = hashPayload(payload);
             const hash = linkHash(prev, payload_hash);
             rows.push({ seq: i, hash, prev_hash: prev, payload_hash, payload });
@@ -141,7 +145,11 @@ module.exports = async function isoGovernance() {
         }
         return rows;
     }
-    /** The aggregate row verifyChain's first query returns. */
+    /**
+     * The aggregate row verifyChain's first query returns.
+     * @param {unknown[]} rows
+     * @param {{ latest?: string, preChain?: number, preChainInvalid?: number }} [opts]
+     */
     function aggregate(rows, { latest = new Date(Date.now() - 3600 * 1000).toISOString(), preChain = 0, preChainInvalid = 0 } = {}) {
         return {
             rows_total: rows.length + preChain,
@@ -151,6 +159,10 @@ module.exports = async function isoGovernance() {
             latest_captured_at: latest,
         };
     }
+    /**
+     * @param {unknown[]} rows
+     * @param {{ latest: string; }} [aggOpts]
+     */
     function stubChain(rows, aggOpts) {
         _state.dbOne = [{ query: /FROM compliance_evidence/, row: aggregate(rows, aggOpts) }];
         _state.dbRows = [{ query: /FROM compliance_evidence/, rows }];

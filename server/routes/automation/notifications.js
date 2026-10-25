@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * An automation's notifications, as the Settings page shows them
  * (Studio → Automations handoff 5):
@@ -27,10 +28,10 @@ const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {object} [overrides]
- * @param {object}   [overrides.store]         automationStore surface (getAutomation)
- * @param {object}   [overrides.events]        notificationEvents store (listRecentNotificationEvents)
- * @param {Function} [overrides.getUser]       (id) => user row
- * @param {Function} [overrides.hasPermission] (userId, perm, session) => bool
+ * @param {typeof import('../../stores/automationStore')} [overrides.store]         automationStore surface (getAutomation)
+ * @param {typeof import('../../stores/automationStore/notificationEvents')} [overrides.events]        notificationEvents store (listRecentNotificationEvents)
+ * @param {(id: string) => Promise<any>} [overrides.getUser]       (id) => user row
+ * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission] (userId, perm, session) => bool
  * @param {Function} [overrides.emailConfigured] async () => bool
  * @param {Function} [overrides.talkStatus]    async ({ orgId, settings }) => { room, bot }
  */
@@ -48,7 +49,7 @@ function makeNotificationsRouter(overrides = {}) {
         const cfg = await require('../../utils/emailService').getServiceEmailConfig().catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter', e, null));
         return !!cfg?.configured;
     });
-    const talkStatus = overrides.talkStatus || (async ({ orgId, settings }) => {
+    const talkStatus = overrides.talkStatus || (/** @param {{ orgId: string | null, settings: ReturnType<typeof normalizeNotificationSettings> }} opts */ async ({ orgId, settings }) => {
         const delivery = require('../../automation/approvalDelivery');
         const room = settings.onApproval.talkRoom || settings.onError.talkRoom || settings.onSuccess.talkRoom
             || await delivery.resolveTalkRoom({ orgId }).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#2', e, null));
@@ -68,8 +69,8 @@ function makeNotificationsRouter(overrides = {}) {
 
         const [mail, talk, recent] = await Promise.all([
             Promise.resolve(emailConfigured()).catch(() => false),
-            Promise.resolve(talkStatus({ orgId, settings })).catch(() => ({ room: null, bot: false })),
-            Promise.resolve(events().listRecentNotificationEvents(a.id, { limit: 20 })).catch((e) => {
+            Promise.resolve(talkStatus({ orgId, settings })).catch(() => /** @type {{ room: string | null, bot: boolean }} */ ({ room: null, bot: false })),
+            Promise.resolve(events().listRecentNotificationEvents(a.id, { limit: 20 })).catch(/** @param {Error} e @returns {never[]} */ (e) => {
                 log.warn(`[automation notifications] recent events for ${a.id}: ${e.message}`);
                 return [];
             }),

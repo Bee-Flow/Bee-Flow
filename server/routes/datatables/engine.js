@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The row engine this surface writes to, and the sizes it will move at once.
  *
@@ -43,7 +43,10 @@ const MIRROR_BULK_MAX_ROWS = 500;
 // fat-fingered 36500 is a refusal rather than "never".
 const MAX_RETENTION_DAYS = 3650;
 
-/** The engine's tenant handle for a table's scope. */
+/**
+ * The engine's tenant handle for a table's scope.
+ * @param {{ kind: string, id: string }} scope
+ */
 function keyOf(scope) {
     return datatableDbStore.scopeKey(scope);
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Tasks Tools — VTODO over CalDAV.
  *
@@ -12,6 +12,7 @@ const ICAL = require('ical.js');
 const ncClient = require('./nextcloudClient');
 const { parseMultistatusResponses, fetchLists, taskWriteError } = require('./nextcloudTasksDav');
 
+/** @param {string} [filterStatus] */
 function todoQueryReport(filterStatus) {
     let statusFilter = '';
     if (filterStatus === 'open') {
@@ -163,23 +164,31 @@ const NEXTCLOUD_TASKS_TOOLS = [
 
 // ─── iCal helpers (ical.js-backed) ────────────────────────────────
 
+/** @param {InstanceType<typeof ICAL.Time>} time */
 function icsTimeToISO(time) {
     if (!time) return null;
     if (time.isDate) {
-        const pad = (n) => String(n).padStart(2, '0');
+        const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
         return `${time.year}-${pad(time.month)}-${pad(time.day)}`;
     }
     return time.toJSDate().toISOString();
 }
 
+/**
+ * @param {InstanceType<typeof ICAL.Component>} vtodo
+ * @returns {Todo}
+ */
 function todoFromIcal(vtodo) {
-    const get = (n) => {
+    const get = (/** @type {string} */ n) => {
         const p = vtodo.getFirstProperty(n);
-        return p ? p.getFirstValue() : null;
+        // TEXT properties come back as strings; PRIORITY and PERCENT-COMPLETE as
+        // numbers, which the parseInt below accepts as well.
+        return p ? /** @type {string} */ (p.getFirstValue()) : null;
     };
-    const dueProp = vtodo.getFirstPropertyValue('due');
-    const completedProp = vtodo.getFirstPropertyValue('completed');
+    const dueProp = /** @type {InstanceType<typeof ICAL.Time>} */ (vtodo.getFirstPropertyValue('due'));
+    const completedProp = /** @type {InstanceType<typeof ICAL.Time>} */ (vtodo.getFirstPropertyValue('completed'));
     const categoriesProp = vtodo.getFirstProperty('categories');
+    /** @type {string[]} */
     let categories = [];
     if (categoriesProp) {
         const vals = categoriesProp.getValues();
@@ -212,7 +221,7 @@ function todoFromIcal(vtodo) {
  * @property {string[]} categories
  */
 
-/** @returns {Todo[]} */
+/** @param {string} text @returns {Todo[]} */
 function parseICalTodos(text) {
     if (!text) return [];
     let jcal;
@@ -260,18 +269,21 @@ function buildVCalendarTodo({ uid, summary, description, due, priority, status, 
 
 // ─── DAV helpers ──────────────────────────────────────────────────
 
+/** @param {string} baseUrl @param {string} uid */
 function calendarsRoot(baseUrl, uid) {
     return `${baseUrl}/remote.php/dav/calendars/${encodeURIComponent(uid)}`;
 }
 
+/** @param {string} baseUrl @param {string} uid @param {string} list @param {string} todoUid */
 function todoHref(baseUrl, uid, list, todoUid) {
     return `${calendarsRoot(baseUrl, uid)}/${encodeURIComponent(list)}/${encodeURIComponent(todoUid)}.ics`;
 }
 
+/** @param {string} xml */
 function parseTodoMultiStatus(xml) {
     return parseMultistatusResponses(xml)
-        .filter(({ href, props }) => href && props['calendar-data'] !== undefined)
-        .map(({ href, props }) => ({
+        .filter((/** @type {ReturnType<typeof parseMultistatusResponses>[number]} */ { href, props }) => href && props['calendar-data'] !== undefined)
+        .map((/** @type {ReturnType<typeof parseMultistatusResponses>[number]} */ { href, props }) => ({
             href: decodeURIComponent(href),
             etag: props.getetag || null,
             calendarData: props['calendar-data'] || '',
@@ -280,6 +292,12 @@ function parseTodoMultiStatus(xml) {
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {Record<string, any>} args tool arguments as the model sent them
+ * @param {string} userId
+ * @param {Partial<Express.Session> | null | undefined} session
+ */
 async function executeNextcloudTasksTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError, uid } = ctx;
@@ -475,6 +493,7 @@ async function executeNextcloudTasksTool(toolName, args, userId, session) {
     }
 }
 
+/** @param {unknown} toolName */
 function isNextcloudTasksTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_tasks_');
 }

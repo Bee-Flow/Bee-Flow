@@ -595,3 +595,19 @@ module.exports = {
     planUpgrade, applyUpgrade, isNewer, currentPayload, REPLACEABLE_KINDS,
     applyRenameMap, wiringFromBindings,
 };
+
+/**
+ * @typedef {import('./install/context').ManifestEntity} ManifestEntity
+ * @typedef {import('./install/context').InstallCtx} InstallCtx
+ * @typedef {import('./install/context').InstallReport} InstallReport
+ * @typedef {import('./install/context').InstalledEntry} InstalledEntry
+ * @typedef {{ ref: string, kind: string, entityId?: string }} PlanRow
+ * @typedef {PlanRow & { why: string }} PlanSkipRow
+ * @typedef {{ root?: Record<string, unknown>, layers?: Record<string, Record<string, unknown>> }} StepIdMap
+ * @typedef {{
+ *   replaced: PlanRow[], skipped: PlanSkipRow[], missing: PlanRow[],
+ *   added: Record<string, InstalledEntry[]>,
+ *   failed: Array<{ ref: string|null, kind: string, why: string, permanent?: boolean }>,
+ *   warnings: string[], resolved: object[],
+ * }} UpgradeReport
+ */

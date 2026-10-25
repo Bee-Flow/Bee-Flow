@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Microsoft Entra ID (Azure AD) directory connector — identity-population
  * evidence for the access-management controls (A.5.16/A.5.18/A.8.2) via
@@ -32,6 +32,10 @@ const DORMANT_MS = 90 * 86400000;
 // Well-known role template id of "Global Administrator".
 const GLOBAL_ADMIN_TEMPLATE_ID = '62e90394-69f5-4237-9190-012177145e10';
 
+/**
+ * @param {Record<string, any> | null | undefined} secret
+ * @param {import('./index').SafeFetch} safeFetch
+ */
 async function _token(secret, safeFetch) {
     const tenantId = secret?.tenantId || secret?.tenant_id;
     const clientId = secret?.clientId || secret?.client_id;
@@ -53,11 +57,17 @@ async function _token(secret, safeFetch) {
         const body = await res.text().catch(() => '');
         throw new Error(`Entra token acquisition failed (${res.status}): ${body.slice(0, 200)}`);
     }
-    const data = await res.json();
+    const data = /** @type {{ access_token?: string }} */ (await res.json());
     if (!data.access_token) throw new Error('Entra token acquisition returned no access_token');
     return data.access_token;
 }
 
+/**
+ * @param {string} path
+ * @param {string} token
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {Record<string, string>} [extraHeaders]
+ */
 async function _graphJson(path, token, safeFetch, extraHeaders = {}) {
     const res = await safeFetch(`${GRAPH_BASE}${path}`, {
         headers: { 'Authorization': `Bearer ${token}`, ...extraHeaders },
@@ -66,7 +76,7 @@ async function _graphJson(path, token, safeFetch, extraHeaders = {}) {
         const body = await res.text().catch(() => '');
         throw new Error(`Graph ${path.split('?')[0]} failed (${res.status}): ${body.slice(0, 150)}`);
     }
-    return res.json();
+    return /** @type {Promise<{ value?: Record<string, any>[], '@odata.nextLink'?: string }>} */ (res.json());
 }
 
 module.exports = {
@@ -78,6 +88,7 @@ module.exports = {
     credential: { provider: 'microsoft-entra', kinds: ['oauth2_cc'] },
     settingsHint: 'no settings — tenant comes from the linked credential',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, safeFetch }) {
         const token = await _token(secret, safeFetch);
 
@@ -119,10 +130,11 @@ module.exports = {
 
         // Global Administrator member count — needs RoleManagement.Read.Directory
         // or Directory.Read.All; null when not granted.
+        /** @type {number | null} */
         let admins = null;
         try {
             const roles = await _graphJson('/directoryRoles?$select=id,displayName,roleTemplateId', token, safeFetch);
-            const globalAdmin = (roles?.value || []).find(r => r.roleTemplateId === GLOBAL_ADMIN_TEMPLATE_ID);
+            const globalAdmin = (roles?.value || []).find((/** @type {{ roleTemplateId: string; }} */ r) => r.roleTemplateId === GLOBAL_ADMIN_TEMPLATE_ID);
             if (globalAdmin) {
                 const members = await _graphJson(`/directoryRoles/${globalAdmin.id}/members?$select=id&$top=100`, token, safeFetch);
                 admins = Array.isArray(members?.value) ? members.value.length : null;
@@ -137,7 +149,7 @@ module.exports = {
         try {
             const reg = await _graphJson('/reports/authenticationMethods/userRegistrationDetails?$top=500&$select=isMfaCapable', token, safeFetch);
             if (Array.isArray(reg?.value)) {
-                mfaCapable = reg.value.filter(r => r.isMfaCapable).length;
+                mfaCapable = reg.value.filter((/** @type {{ isMfaCapable?: boolean }} */ r) => r.isMfaCapable).length;
             }
         } catch (err) { fallback('compliance/connectors/microsoft-entra:collect#2', err); /* licence or permission missing — stay null */ }
 

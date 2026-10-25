@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — who uses them.
  *
@@ -37,6 +38,8 @@ const { usageForKb, usageSummary } = require('../../core/kb/kbUsage');
  * outside their reach is COUNTED but not named — `UsedByTab` already renders
  * an anonymous "someone else's agent" row for exactly this, so the count
  * stays honest without turning the tab into a directory.
+ * @param {Awaited<ReturnType<typeof usageForKb>>['rows']} rows
+ * @param {string | null} userId
  */
 function redactForeign(rows, userId) {
     return rows.map((r) => {
@@ -45,7 +48,7 @@ function redactForeign(rows, userId) {
         // Not this person's, and this route cannot cheaply prove they may see
         // it. Keep the kind and the role — which is what "what would break"
         // needs — and drop the name.
-        return { ...r, title: null, foreign: true };
+        return { ...r, title: /** @type {string | null} */ (null), foreign: true };
     });
 }
 
@@ -74,7 +77,7 @@ router.get('/usage-summary', requireAuth, async (req, res) => {
     // Only bases this person can already see. Asking for a summary must
     // not be a way to probe for ids.
     const kbs = await kbStore.listKBs(userId, orgIds, {});
-    const ids = (kbs || []).map(k => k.id);
+    const ids = (kbs || []).map(/** @param {Record<string, any>} k */ k => k.id);
     res.json({ summary: await usageSummary(ids) });
 });
 
@@ -97,10 +100,10 @@ router.get('/suggestions', requireAuth, async (req, res) => {
     const kbs = await kbStore.listKBs(userId, orgIds, {});
     if (!kbs || kbs.length === 0) return res.json({ suggestions: [] });
 
-    const summary = await usageSummary(kbs.map(k => k.id));
+    const summary = await usageSummary(kbs.map(/** @param {Record<string, any>} k */ k => k.id));
     // Only bases NOTHING uses: suggesting one that three agents already
     // read is noise, and the pill beside it already says so.
-    const unused = kbs.filter(k => Object.keys(summary[k.id]?.counts || {}).length === 0);
+    const unused = kbs.filter(/** @param {Record<string, any>} k */ k => Object.keys(summary[k.id]?.counts || {}).length === 0);
     if (unused.length === 0) return res.json({ suggestions: [] });
 
     const { pool } = require('../../db');
@@ -145,6 +148,7 @@ router.get('/suggestions', requireAuth, async (req, res) => {
 /**
  * Words worth matching on. Short ones are dropped: "de", "the", "AI" and "en"
  * match everything and would pair every base with every agent.
+ * @param {unknown} text
  */
 function wordsOf(text) {
     return new Set(
@@ -152,13 +156,16 @@ function wordsOf(text) {
     );
 }
 
+/** @param {Set<string>} a @param {Set<string>} b */
 function overlap(a, b) {
     let n = 0;
     for (const w of a) if (b.has(w)) n += 1;
     return n;
 }
 
+/** @typedef {import('express').Router & { redactForeign: typeof redactForeign, wordsOf: typeof wordsOf, overlap: typeof overlap }} UsageRouterExports */
+
 module.exports = router;
-module.exports.redactForeign = redactForeign;
-module.exports.wordsOf = wordsOf;
-module.exports.overlap = overlap;
+/** @type {UsageRouterExports} */ (module.exports).redactForeign = redactForeign;
+/** @type {UsageRouterExports} */ (module.exports).wordsOf = wordsOf;
+/** @type {UsageRouterExports} */ (module.exports).overlap = overlap;

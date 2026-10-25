@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: integration_response_cache — the durable "ask this app only once"
  * store's table (2026-09).

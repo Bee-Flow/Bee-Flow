@@ -267,3 +267,30 @@ module.exports = {
     emailSkipOf,
     EMAIL_SKIP_MESSAGES,
 };
+
+/**
+ * The automation as the notifier reads it (a run's view of it is fine).
+ * @typedef {{ id?: string, userId?: string, organizationId?: string, title?: string, runsLiveVersion?: boolean,
+ *   definition?: { notificationSettings?: unknown, [key: string]: unknown } }} NotifyAutomation
+ */
+
+/** @typedef {import('../automationModel/notificationDefaults').EventSettings} EventSettings */
+
+/** @typedef {ReturnType<typeof normalizeNotificationSettings>} NotificationSettings */
+
+/** @typedef {'onError'|'onApproval'|'onSuccess'} RunEvent */
+
+/**
+ * One ledger row (automation_notification_events).
+ * @typedef {Parameters<typeof import('../../stores/automationStore/notificationEvents').recordNotificationEvents>[0][number]} LedgerRow
+ */
+
+/**
+ * What notifyRunEvent reports.
+ * @typedef {{ skipped?: string, recipients: string[], delivered: Array<{ recipient: string, channel: string, ok: boolean, via: string }>,
+ *   bundled: number, digest: number }} NotifyReport
+ */
+
+/** @typedef {ReturnType<typeof defaultDeps>} RunNotifierDeps */
+
+/** @typedef {<K extends keyof RunNotifierDeps>(name: K) => RunNotifierDeps[K]} Dep */

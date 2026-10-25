@@ -68,9 +68,10 @@ function createFormQueue(overrides = {}) {
     const runner = () => overrides.runner || require('../core/automationRunner');
     const formAnswers = () => overrides.formAnswers || require('./formAnswers').write;
     const automationForRun = overrides.automationForRun
-        || ((stored, opts) => require('../core/automationRunner/definitionForRun').automationForRun(stored, opts));
+        || ((/** @type {any} */ stored, /** @type {any} */ opts) => require('../core/automationRunner/definitionForRun').automationForRun(stored, opts));
 
     /** automationId → { running: bool, items: [], reserved: number, current: item|null } */
+    /** @type {Map<string, { running: boolean, items: import('./formQueueShared').FormQueueItem[], reserved: number, current: import('./formQueueShared').FormQueueItem | null }>} */
     const queues = new Map();
     let stopping = false;
 
@@ -80,12 +81,14 @@ function createFormQueue(overrides = {}) {
 
     // ── The FIFO ──────────────────────────────────────────
 
+    /** @param {string} automationId */
     function queueFor(automationId) {
         let q = queues.get(automationId);
         if (!q) { q = { running: false, items: [], reserved: 0, current: null }; queues.set(automationId, q); }
         return q;
     }
 
+    /** @param {import('./formQueueShared').FormQueueItem} item */
     function push(item) {
         const q = queueFor(item.automationId);
         q.items.push(item);
@@ -103,6 +106,7 @@ function createFormQueue(overrides = {}) {
      * @param {{ automation: { id: string }, session: { id: string }, work: object }} unit
      * @param {*} res
      * @param {object} [extra] merged into the 202 body
+     * @returns {Promise<undefined>}
      */
     async function accept({ automation, session, work }, res, extra = {}) {
         const q = queueFor(automation.id);
@@ -134,6 +138,7 @@ function createFormQueue(overrides = {}) {
         return undefined;
     }
 
+    /** @param {import('./formQueueShared').FormQueueItem} item */
     async function runQueued(item) {
         const { sessionId, thunk } = item;
         for (let attempt = 0; ; attempt++) {
@@ -162,6 +167,7 @@ function createFormQueue(overrides = {}) {
         }
     }
 
+    /** @param {string} automationId */
     async function drainQueue(automationId) {
         const q = queues.get(automationId);
         if (!q || q.running) return;
@@ -173,7 +179,7 @@ function createFormQueue(overrides = {}) {
                 try {
                     await runQueued(item);
                 } catch (e) {
-                    log.error('[automation/form] run error:', e.message);
+                    log.error('[automation/form] run error:', /** @type {Error} */ (e).message);
                 } finally {
                     q.current = null;
                 }
@@ -205,6 +211,7 @@ function createFormQueue(overrides = {}) {
     async function stop() {
         stopping = true;
         stopRenewal();
+        /** @type {string[]} */
         const waiting = [];
         for (const q of queues.values()) {
             for (const it of q.items) waiting.push(it.sessionId);
@@ -212,7 +219,7 @@ function createFormQueue(overrides = {}) {
         }
         if (waiting.length) {
             await automationStore.releaseFormSessionLeases(waiting, 0)
-                .catch(e => log.warn('[automation/form] could not hand queued form work back:', e.message));
+                .catch(/** @param {Error} e */ e => log.warn('[automation/form] could not hand queued form work back:', e.message));
             log.info(`[automation/form] handed ${waiting.length} queued form submission(s) back for another instance`);
         }
         return waiting.length;

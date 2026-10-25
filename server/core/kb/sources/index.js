@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The refresh engine: one `syncSource` for every kind of knowledge source.
  *
@@ -50,6 +50,35 @@ const kbSourcesStore = require('../../../stores/kbSources');
 const kbStore = require('../../../stores/knowledgeBases');
 const { nextRunFor } = require('../../scheduling/nextRun');
 
+/**
+ * A mapped kb_sources row; `config` is the parsed jsonb column, whose keys depend on the kind.
+ * @typedef {Omit<NonNullable<ReturnType<typeof kbSourcesStore.mapRow>>, 'config'> & { config: Record<string, any> }} KbSource
+ */
+/**
+ * @typedef {{ kbStore: typeof kbStore, kbSourcesStore: typeof kbSourcesStore,
+ *   helpers: typeof import('../kbIngestionHelpers'), datatableStore?: typeof import('../../../stores/datatableStore'),
+ *   extractSummary?: typeof import('../extractSummary'),
+ *   transcriptionStore?: typeof import('../../../stores/transcriptionStore') }} SyncDeps
+ */
+/**
+ * @typedef {{ source: KbSource, kb: Record<string, any>, tenantId: string, kbId: string, reason: string,
+ *   maxItems: number, deadline: number, now: () => number, log: (...a: unknown[]) => void,
+ *   relatedTables?: Record<string, number> }} SyncCtx
+ */
+/** @typedef {{ externalId: string }} SourceItem */
+/**
+ * @typedef {{ content: string, title?: string, sourceType?: string, sourceUri?: string | null,
+ *   metadata?: Record<string, unknown> | null, sourceModifiedAt?: string | Date | null, sizeBytes?: number | null,
+ *   mime?: string | null, pageCount?: number | null, sheetCount?: number | null }} FetchedDoc
+ */
+/**
+ * @typedef {{ enumerate: (source: KbSource, ctx: SyncCtx, deps: SyncDeps) => Promise<SourceItem[]>,
+ *   isUnchanged: (item: SourceItem, stored: Record<string, any>) => boolean,
+ *   fetch: (item: SourceItem, stored: Record<string, any> | null, ctx: SyncCtx, deps: SyncDeps) => Promise<FetchedDoc | null>,
+ *   dedupe?: boolean }} SourceAdapter
+ */
+
+/** @type {Record<string, SourceAdapter>} */
 const ADAPTERS = {
     webpage: require('./webpage'),
     upload: require('./upload'),
@@ -64,6 +93,7 @@ function supportedKinds() {
     return Object.keys(ADAPTERS);
 }
 
+/** @param {string} kind */
 function adapterFor(kind) {
     return ADAPTERS[kind] || null;
 }
@@ -84,6 +114,8 @@ const DEFAULT_MAX_ITEMS = 500;
  * so, and a live one is answered from the table at query time rather than
  * polled. Writing a timestamp for either would put them in `claimDue`'s way
  * forever.
+ * @param {Pick<KbSource, 'refreshMode' | 'refreshCron' | 'refreshTz'>} source
+ * @param {{ fromTs?: number, consecutiveErrors?: number, retryAfterMs?: number }} [opts]
  */
 function nextRefreshFor(source, { fromTs = Date.now(), consecutiveErrors = 0, retryAfterMs = 0 } = {}) {
     const mode = source?.refreshMode || 'manual';
@@ -104,6 +136,10 @@ function nextRefreshFor(source, { fromTs = Date.now(), consecutiveErrors = 0, re
  * Everything the engine and its adapters share for one pass. Passed rather
  * than imported so a test can hand in a fake clock and fake stores without
  * reaching into module state.
+ * @param {KbSource} source
+ * @param {Record<string, any>} kb
+ * @param {{ now?: number, reason?: string, maxItems?: number, timeBudgetMs?: number, log?: (...a: unknown[]) => void }} [opts]
+ * @returns {SyncCtx}
  */
 function makeCtx(source, kb, opts = {}) {
     const startedAt = opts.now || Date.now();
@@ -116,7 +152,7 @@ function makeCtx(source, kb, opts = {}) {
         maxItems: Number(opts.maxItems) > 0 ? Number(opts.maxItems) : DEFAULT_MAX_ITEMS,
         deadline: startedAt + (Number(opts.timeBudgetMs) > 0 ? Number(opts.timeBudgetMs) : DEFAULT_TIME_BUDGET_MS),
         now: () => Date.now(),
-        log: opts.log || ((...a) => log.info('[KBRefresh]', ...a)),
+        log: opts.log || ((/** @type {unknown[]} */ ...a) => log.info('[KBRefresh]', ...a)),
     };
 }
 
@@ -128,6 +164,9 @@ function makeCtx(source, kb, opts = {}) {
  * so it is deliberately NOT in the index and therefore never counted as
  * "gone". Deleting rows we simply cannot recognise would turn one upgrade
  * into silent data loss.
+ * @param {string} kbId
+ * @param {string} sourceId
+ * @param {SyncDeps} deps
  */
 async function indexStoredDocuments(kbId, sourceId, deps) {
     const store = deps.kbStore;
@@ -366,6 +405,9 @@ const SUMMARY_CONCURRENCY = 3;
  * the documents are already stored and searchable without one. A refresh that
  * failed because a summariser was rate-limited would be a refresh that failed
  * for no reason the person would accept.
+ * @param {Array<{ docId: string, text: string, title: string }>} items
+ * @param {SyncCtx} ctx
+ * @param {SyncDeps} deps
  */
 async function labelDocuments(items, ctx, deps) {
     if (!items.length) return;

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — the check-registry endpoint: every check definition the UI
  * needs to label and link a row, plus the static framework catalogue and the
@@ -23,6 +24,7 @@ const frameworks = require('../../compliance/frameworks');
 const { THEMES, CONTROLS } = require('../../compliance/iso/controls');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 
+/** @param {import('../../compliance/registry').CheckDef} c */
 function serializeCheck(c) {
     return {
         id: c.id, regulation: c.regulation, article: c.article,
@@ -39,6 +41,7 @@ function serializeCheck(c) {
 
 // The catalogue entry without the RegExp (not JSON) — the client only needs
 // identifiers, dates, phases, registers and the i18n keys.
+/** @param {ReturnType<typeof frameworks.listBuiltin>[number]} f */
 function serializeFramework(f) {
     return {
         id: f.id,
@@ -68,11 +71,12 @@ function buildRegistry() {
 
 // ───────────────── Meta ─────────────────
 
-router.get('/registry', requireAuth, requirePermission('admin_compliance'), async (_req, res) => {
+router.get('/registry', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     res.json(buildRegistry());
 });
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = router;
-module.exports.buildRegistry = buildRegistry;
-module.exports.serializeCheck = serializeCheck;
-module.exports.serializeFramework = serializeFramework;
+/** @type {RouterExports} */ (module.exports).buildRegistry = buildRegistry;
+/** @type {RouterExports} */ (module.exports).serializeCheck = serializeCheck;
+/** @type {RouterExports} */ (module.exports).serializeFramework = serializeFramework;

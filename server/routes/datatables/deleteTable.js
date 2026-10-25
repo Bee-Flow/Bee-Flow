@@ -20,18 +20,21 @@ const { z, typeError } = require('../../utils/zod');
 const { bodyOf, ConfirmBreakingQuery, CONFIRM_TEXT } = require('./schemas');
 const log = require('../../telemetry/log');
 
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+
 // The confirmation is the only thing this route takes, and it is taken from
 // BOTH places because a DELETE is routinely sent without a body. Strict on
 // both: `?confirmbreaking=true` used to be dropped, which reads as "no" on the
 // one request where "no" costs the person a second trip through the dialog.
 const DeleteBody = bodyOf({ confirmBreaking: z.boolean({ error: typeError({ invalid: CONFIRM_TEXT }) }).optional() });
 
+/** @param {import('express').Router} router */
 function register(router) {
     router.delete('/:id',
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         validate({ body: DeleteBody, query: ConfirmBreakingQuery }),
-        async (req, res) => {
+        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
             try {
                 // Same question as a column drop, one level up: the automations in the
                 // usage index stop working the moment this table is gone. Ask once.
@@ -56,7 +59,7 @@ function register(router) {
                 const adapter = sources.sourceOf(req.datatable);
                 if (adapter) {
                     try {
-                        const link = adapter.link;
+                        const link = /** @type {{ unlinked?: (datatable: typeof req.datatable) => Promise<unknown> }} */ (adapter.link);
                         if (link && typeof link.unlinked === 'function') await link.unlinked(req.datatable);
                     } catch (e) {
                         log.warn('[datatables] unlink hook failed:', e && e.message);

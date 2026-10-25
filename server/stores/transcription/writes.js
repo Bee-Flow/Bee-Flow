@@ -298,3 +298,14 @@ function createWrites({ transcriptCrypto }) {
 }
 
 module.exports = { createWrites };
+
+/**
+ * @typedef {{
+ *   title?: unknown, tags?: unknown, summary?: unknown, speakers?: unknown, segments?: unknown,
+ *   transcript?: unknown, chapters?: unknown, attendees?: unknown, status?: unknown, fullText?: unknown,
+ *   audioPath?: unknown, audioStorageKey?: unknown, durationSeconds?: unknown, provider?: unknown,
+ *   voiceprintMatches?: unknown, summaryTemplateId?: unknown, summaryTemplateVersion?: unknown,
+ *   titleIfUnchanged?: { title: unknown, expected: unknown }, actionItems?: unknown, decisions?: unknown,
+ *   questions?: unknown, artifactsSince?: unknown, tagsIfEmpty?: unknown, audioStorageKeyIfMissing?: unknown,
+ * }} TranscriptionUpdates
+ */

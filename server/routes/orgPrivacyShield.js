@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Organization Privacy Shield API
  *
@@ -61,13 +62,18 @@ const customTypeRegistry = require('../core/privacy/customTypes/registry');
 // (core/privacy/customTypes/shieldDoc.js); their test sets
 // (`customDataTests`) are stored encrypted and apart, never in this row.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T @param {T} shape
+ */
 const documentOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the Privacy Shield settings as a JSON object.' }) }).passthrough(),
 );
-const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
+const flag = (/** @type {string} */ name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
+/** @template {readonly string[]} T @param {T} values @param {string} message */
 const choice = (values, message) => z.enum(values, { error: () => message }).optional();
+/** @param {string} name @param {number} [max] */
 const textList = (name, max) => {
     const message = `${name} is a list of text.`;
     const list = z.array(z.string({ error: typeError({ invalid: message }) }), { error: typeError({ invalid: message }) });
@@ -76,7 +82,7 @@ const textList = (name, max) => {
 
 const SWITCH_TEXT = 'Say whether the Privacy Shield is on: enabled is true or false.';
 const THRESHOLD_TEXT = 'piiDetectionConfidenceThreshold is a number between 0.1 and 1 (0.7 is the tested setting).';
-const FAIL_TEXT = (name) => `${name} is fail_closed or fail_open.`;
+const FAIL_TEXT = (/** @type {string} */ name) => `${name} is fail_closed or fail_open.`;
 const masterSwitch = z.boolean({ error: SWITCH_TEXT });
 const threshold = z.number({ error: typeError({ invalid: THRESHOLD_TEXT }) })
     .min(0.1, THRESHOLD_TEXT).max(1, THRESHOLD_TEXT).optional();
@@ -157,6 +163,7 @@ const ECHOED = new Set(['stalenessWarnings', 'clamped_fields', 'clamped_tier', '
 // The test sets of the "Your own data" types: an encrypted row of their own
 // (core/privacy/customData/testsStore.js), read and written through THIS
 // file's configStore.
+/** @type {(ReturnType<typeof import('../core/privacy/customData/testsStore').createTestsStore> & { sanitizeTests: typeof import('../core/privacy/customData/testsStore').sanitizeTests }) | null} */
 let _testsStore = null;
 function _customTests() {
     if (!_testsStore) {
@@ -170,6 +177,8 @@ function _customTests() {
  * The org's test sets for a response, or undefined when they cannot be read.
  * Undefined, not `{}`: a page that got `{}` would save `{}` back and wipe
  * sets that only failed to load this once.
+ * @param {string} orgId
+ * @param {unknown[]} types
  */
 async function _readTestsForResponse(orgId, types) {
     if (!types.length) return {};
@@ -181,7 +190,11 @@ async function _readTestsForResponse(orgId, types) {
     }
 }
 
-/** Built-in part of a category list: every string that is not a custom type id. */
+/**
+ * Built-in part of a category list: every string that is not a custom type id.
+ * @param {unknown} list
+ * @param {number} [max]
+ */
 const _builtInPart = (list, max = Infinity) => (Array.isArray(list)
     ? list.filter(c => typeof c === 'string' && !isCustomTypeId(c)).slice(0, max)
     : []);
@@ -189,12 +202,16 @@ const _builtInPart = (list, max = Infinity) => (Array.isArray(list)
 /**
  * Refuse a key nobody reads, unless it is an echo of the stored row.
  * Throws the same 400 `validate` answers with, naming every stranger.
+ * @param {object | undefined} body
+ * @param {unknown} stored
+ * @param {object} shape
+ * @param {string} [where]
  */
 function refuseStrangers(body, stored, shape, where = 'body') {
-    const has = (obj, k) => !!obj && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, k);
+    const has = (/** @type {unknown} */ obj, /** @type {string} */ k) => !!obj && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, k);
     const strangers = Object.keys(body || {}).filter((k) => !has(shape, k) && !ECHOED.has(k) && !has(stored, k));
     if (!strangers.length) return;
-    const name = (k) => (where === 'body' ? k : `${where.slice('body.'.length)}.${k}`);
+    const name = (/** @type {string} */ k) => (where === 'body' ? k : `${where.slice('body.'.length)}.${k}`);
     const details = strangers.map((k) => ({ path: `${where}.${k}`, message: `${name(k)} is not a Privacy Shield setting.` }));
     throw badRequest('invalid_request', details[0].message, details);
 }
@@ -202,6 +219,7 @@ function refuseStrangers(body, stored, shape, where = 'body') {
 // Lazy-required to avoid pulling the licence module into the route's
 // import chain at boot. Licence module depends on stores/userStore which
 // some test fixtures stub — keeping this lazy preserves backward compat.
+/** @type {typeof import('../license') | null} */
 let _license = null;
 function _licenseModule() {
     if (!_license) _license = require('../license');
@@ -219,6 +237,7 @@ function _licenseModule() {
  *                                  webSearchGuardPiiCategories = []
  *
  * Returns { tier, hasPiiTokenize, hasWebSearchGuard }.
+ * @param {{ organizationId: string, userId?: string }} scope
  */
 async function _tierClamps({ organizationId, userId }) {
     try {
@@ -243,6 +262,8 @@ async function _tierClamps({ organizationId, userId }) {
  * In-place clamp of a stored config blob to the tier's allowed values.
  * Returns the list of fields that had to be clamped so the caller can
  * surface a `clamped_fields` marker in the response.
+ * @param {{ webSearchGuardEnabled?: boolean, webSearchGuardPiiCategories?: string[], toolPiiPolicy?: { external?: { blockCategories?: string[] }, internal?: { blockCategories?: string[] } } }} config
+ * @param {{ hasWebSearchGuard: boolean }} clamps
  */
 function _applyTierClamps(config, { hasWebSearchGuard }) {
     const clamped = [];
@@ -289,7 +310,7 @@ router.use('/:orgId/custom-data', require('./orgCustomData'));
 const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 
 // GET /:orgId — get shield config
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     // Must be member of org or super admin
     const orgIds = await resolveUserOrgIds(req);
@@ -379,7 +400,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
 });
 
 // PUT /:orgId — save shield config (org admin or super admin only)
-router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof OrgShieldBody>>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can manage the privacy shield' });
@@ -565,11 +586,13 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
     // valid ones are still persisted. The client shows per-term errors from
     // `termErrors`, per-type errors from `typeErrors`, and keeps the user's
     // other edits in place.
+    /** @type {typeof config & { customDataTests?: object }} */
     const responseConfig = { ...config };
     if (customFeature) {
         const tests = customTestsOut || await _readTestsForResponse(orgId, custom.customDataTypes);
         if (tests !== undefined) responseConfig.customDataTests = tests;
     }
+    /** @type {{ ok: boolean, config: typeof responseConfig, termErrors: typeof termErrors, typeErrors: typeof typeErrors, clamped_fields?: string[], clamped_tier?: string }} */
     const response = { ok: true, config: responseConfig, termErrors, typeErrors };
     if (clampedFields.length > 0) {
         response.clamped_fields = clampedFields;
@@ -584,7 +607,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req
 // deploys aren't stuck on a legacy config shape, or that PII/DLP is
 // really enabled (not just toggled in the UI). Mirrors what
 // `resolveOrgShield` returns — same fields, same defaults, same warnings.
-router.get('/:orgId/effective', requireAuth, async (req, res) => {
+router.get('/:orgId/effective', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     const isMember = orgIds === null || (orgIds && orgIds.has(orgId));

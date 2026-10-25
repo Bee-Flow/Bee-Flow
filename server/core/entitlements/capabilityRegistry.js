@@ -531,3 +531,11 @@ module.exports = {
     // definition before growing it.
     USER_FACING_CORE,
 };
+
+/**
+ * @typedef {{ id: string, kind: string, name: string, description: string, category: string, licenseFeature: string|null,
+ *   lifecycle: string, defaultState: string, userFacing: boolean, groupTogglable: boolean, groupScoped?: boolean,
+ *   aliasOf?: string|null, deprecated?: boolean, moduleId?: string|null, _mcpServer?: boolean, _ncFamily?: boolean,
+ *   _custom?: boolean, _customOrgId?: string|null, _customSlug?: string, _customKind?: string, _customSource?: string,
+ *   _remoteModule?: boolean }} Capability
+ */

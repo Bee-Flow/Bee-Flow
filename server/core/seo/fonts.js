@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Font tags for the server-rendered <head>.
  *
@@ -33,6 +33,7 @@
 
 const { esc } = require('./html');
 
+/** @type {Record<string, { file: string; fallbackFace: string; }>} */
 const SELF_HOSTED = {
     fraunces: { file: '/fonts/fraunces/Fraunces-Variable.woff2', fallbackFace: 'Fraunces Fallback' },
     inter: { file: '/fonts/inter/Inter-Variable.woff2', fallbackFace: 'Inter Fallback' },
@@ -41,6 +42,9 @@ const SELF_HOSTED = {
     'ibm plex mono': { file: '/fonts/ibm-plex-mono/IBMPlexMono-400.woff2', fallbackFace: 'IBM Plex Mono Fallback' },
 };
 
+/**
+ * @param {string} name
+ */
 function entryFor(name) {
     return SELF_HOSTED[String(name || '').trim().toLowerCase()] || null;
 }
@@ -55,16 +59,24 @@ function entryFor(name) {
 // reason to trust the bytes (see the doctrine in ./html.js).
 const FAMILY_RE = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,48}$/;
 
+/** @param {unknown} name */
 function family(name) {
     const trimmed = String(name || '').trim();
     return FAMILY_RE.test(trimmed) ? trimmed : '';
 }
 
+/**
+ * @param {string} name
+ */
 function quoted(name) {
     const safe = String(name || '').replace(/"/g, '');
     return /\s/.test(safe) ? `"${safe}"` : safe;
 }
 
+/**
+ * @param {string} name
+ * @param {string} generic
+ */
 function stack(name, generic) {
     const entry = entryFor(name);
     const fb = entry ? `, "${entry.fallbackFace}"` : '';
@@ -86,6 +98,7 @@ function buildFontsHead(fonts = {}) {
     const mono = family(src.mono);
     if (!heading && !body && !mono) return '';
 
+    /** @type {string[]} */
     const out = [];
 
     // Preload the HEADING family only. It is the one that carries the LCP
@@ -113,6 +126,7 @@ function buildFontsHead(fonts = {}) {
         out.push(`<link rel="preload" as="font" type="font/woff2" href="${esc(entry.file)}" crossorigin>`);
     }
 
+    /** @type {string[]} */
     const vars = [];
     if (heading) vars.push(`--font-heading: ${stack(heading, SANS_TAIL)};`);
     if (body) vars.push(`--font-body: ${stack(body, SANS_TAIL)};`);

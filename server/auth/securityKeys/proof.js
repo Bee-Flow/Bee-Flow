@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Proof of a second factor the account ALREADY has, asked before any change
  * to its second factors while two-factor authentication is on: adding a
@@ -30,7 +30,7 @@ const PROOF_FIELD = 'securityKeyProof';
 
 /**
  * @param {{
- *   userStore: { listSecurityKeys: Function, recordSecurityKeyUse: Function },
+ *   userStore: { listSecurityKeys: (userId: string) => Promise<import('../../stores/user/securityKeys').SecurityKey[]>, recordSecurityKeyUse: Function },
  *   mfa: { decryptSecret: Function, verifyTotp: Function, consumeRecoveryCode: Function },
  *   ceremony: typeof import('./ceremony'),
  * }} deps
@@ -38,6 +38,9 @@ const PROOF_FIELD = 'securityKeyProof';
 function createSecondFactorProof({ userStore, mfa, ceremony }) {
     /**
      * Challenge a key may answer as proof. Stored in the session, single use.
+     * @param {Record<string, any>} session
+     * @param {string} userId
+     * @param {import('./ceremony').RelyingParty} rp
      * @returns {Promise<any|null>} the options, or null when no key of this
      *   account works on this relying party
      */

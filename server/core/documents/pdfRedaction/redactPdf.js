@@ -298,3 +298,13 @@ async function redactPdf(buffer, { terms: userTerms = [], aiMarks = [] } = {}) {
 }
 
 module.exports = { redactPdf, listTextRuns, PdfRedactionError, cutRanges, collectGarbage };
+
+/** @typedef {import('pdf-lib').PDFPageLeaf} PDFPageLeaf */
+
+/** @typedef {import('pdf-lib').PDFObject} PDFObject */
+
+/** @typedef {import('pdf-lib').PDFContext} PDFContext */
+
+/** @typedef {import('./pageModel').PageObject} PageObject */
+
+/** @typedef {ReturnType<typeof analyzeDocument>} AnalyzedPages */

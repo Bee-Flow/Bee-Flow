@@ -257,3 +257,35 @@ module.exports = {
     writeViewer,
     coerceText,
 };
+
+/**
+ * @typedef {{ kind?: string, value?: unknown, name?: string, expr?: string }} Binding
+ *   an authored binding object; a bare scalar is also accepted as a literal
+ * @typedef {{ id?: string|null, role?: string|null, name?: string|null, email?: string|null, organizationId?: string|null }} Viewer
+ * @typedef {object} ExecCtx  the per-call context of an action step
+ * @property {Record<string, unknown>} [vars]  live user state posted back by the client
+ * @property {Array<{ name?: string, type?: string, default?: unknown }> | null} [variables]  declared app variables (their defaults seed `vars`)
+ * @property {Record<string, unknown>} [formValues]
+ * @property {unknown} [item]
+ * @property {unknown} [index]
+ * @property {unknown} [value]
+ * @property {string|null} [viewerId]
+ * @property {string|null} [viewerName]
+ * @property {string|null} [viewerEmail]
+ * @property {string|null} [role]
+ * @property {Viewer} [viewer]
+ * @property {string|null} [orgId]
+ * @property {{ send?: (event: string, data: object) => void, isCancelled?: () => boolean }} [browse]  streaming sink of an ai_browse step
+ * @property {string|null} [actionId]  the action being run
+ * @property {object | null} [def]  the app definition (ai_browse only)
+ * @typedef {object} StepDef  one authored action step; the per-kind fields live with the step module
+ * @property {string} kind
+ * @property {StepDef[]} [steps]  loop body
+ * @property {StepDef[]} [then]  condition branch
+ * @property {StepDef[]} [else]  condition branch
+ * @property {Array<{ steps?: StepDef[] }>} [cases]  switch cases
+ * @property {StepDef[]} [default]  switch default branch
+ * @typedef {ReturnType<typeof buildServerScope>} ServerScope
+ * @typedef {import('../builderTools/dataTools').DataModel} DataModel
+ * @typedef {import('../builderTools/dataTools').DataTable} DataTable
+ */

@@ -288,3 +288,5 @@ module.exports = {
         return _verdict(report, subject, { ...extra, html_sha256: _sha256(html), html_bytes: Buffer.byteLength(html, 'utf8') });
     },
 };
+
+/** @typedef {{ id: string, label?: string, name?: string, kind?: string, webpage_id?: string, owner_id?: string, published_version_id?: string | null, framework?: string | null, site_id?: string, page_id?: string, slug?: string, capped?: boolean, total_published?: number }} Subject */

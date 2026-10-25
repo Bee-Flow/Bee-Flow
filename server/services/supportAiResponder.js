@@ -606,3 +606,9 @@ async function runAiAutoResponder(threadId, opts = {}) {
     }
 }
 module.exports = { runAiAutoResponder };
+
+/**
+ * @typedef {{ agentId?: string|null, kbIds?: string[], replyMode?: string, autoresolveThreshold?: number, v2Enabled?: boolean, toolsEnabled?: boolean, enabledToolIds?: string[], operatorUserId?: string|null, operatorOrgId?: string|null, orgId?: string|null }} SupportAiConfig
+ * @typedef {NonNullable<Awaited<ReturnType<typeof supportStore.getThread>>>} SupportThread
+ * @typedef {Awaited<ReturnType<typeof supportStore.getThreadMessages>>} SupportMessages
+ */

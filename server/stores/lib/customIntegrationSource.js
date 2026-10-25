@@ -26,3 +26,9 @@ function isLibraryRow(row) {
 }
 
 module.exports = { LIBRARY_SOURCE, runningDefinition, isLibraryRow };
+
+/**
+ * @typedef {{ meta?: { source?: string }, mcp?: { url?: string, [key: string]: unknown }, [key: string]: unknown }} IntegrationDefinition
+ * @typedef {{ kind?: string, activatedDefinition?: IntegrationDefinition | null, activated_definition?: IntegrationDefinition | null,
+ *   definition?: IntegrationDefinition | null }} IntegrationRow
+ */

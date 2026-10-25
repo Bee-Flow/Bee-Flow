@@ -127,3 +127,13 @@ module.exports = {
     reSnapshotWebpageSharesDetached,
     onDatatableChanged,
 };
+
+/**
+ * Injecteerbare afhankelijkheden (tests geven nepversies mee).
+ * @typedef {{
+ *   publicShareStore?: Pick<typeof import('../../stores/webpagePublicShareStore'), 'listSharesForWebpage'>,
+ *   webpageSnapshot?: Pick<typeof import('../../services/webpageSnapshot'), 'writeSnapshot'>,
+ *   bridgeGrants?: Pick<typeof bridgeGrants, 'listPublicWebpagesBoundToDatatable'>,
+ *   log?: Pick<Console, 'warn' | 'log'>,
+ * }} ReconcilerDeps
+ */

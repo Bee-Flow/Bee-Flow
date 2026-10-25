@@ -302,3 +302,5 @@ async function getOrCreateAgentConversation(agent, conversationId, userId, encry
 }
 
 module.exports = { SSE_HEADERS, setupSSE, openSse, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };
+
+/** @typedef {{ role?: string, content?: string | Array<{ type?: string, text?: unknown }> | null }} TitleMessage */

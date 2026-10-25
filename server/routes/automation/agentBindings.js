@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Which agents may call an agent_call automation (automation/agentBinding.js).
  *
@@ -38,13 +39,13 @@ const BindingsBody = closedObject({
 
 /**
  * @param {object} [overrides]
- * @param {object} [overrides.store]        automationStore surface
- * @param {object} [overrides.binding]      the automation/agentBinding.js surface
- * @param {object} [overrides.agentStore]   agent store surface (getForRuntime, getAgents, ...)
- * @param {object} [overrides.userStore]    { getUser }
- * @param {object} [overrides.agentAccess]  { buildCanModifyContext, canModifyAgent }
- * @param {Function} [overrides.getUser]    (id) => user row
- * @param {Function} [overrides.hasPermission] (userId, perm, session) => bool
+ * @param {typeof import('../../stores/automationStore')} [overrides.store]        automationStore surface
+ * @param {typeof import('../../automation/agentBinding')} [overrides.binding]      the automation/agentBinding.js surface
+ * @param {typeof import('../../stores/agentStore')} [overrides.agentStore]   agent store surface (getForRuntime, getAgents, ...)
+ * @param {typeof import('../../stores/userStore')} [overrides.userStore]    { getUser }
+ * @param {ReturnType<typeof import('../../agents/agentAccess').defaultAgentAccess>} [overrides.agentAccess]  { buildCanModifyContext, canModifyAgent }
+ * @param {(id: string) => Promise<any>} [overrides.getUser]    (id) => user row
+ * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission] (userId, perm, session) => bool
  */
 function makeAgentBindingsRouter(overrides = {}) {
     const router = express.Router();
@@ -65,6 +66,11 @@ function makeAgentBindingsRouter(overrides = {}) {
         ...(overrides.agentAccess ? { agentAccess: overrides.agentAccess } : {}),
     });
 
+    /**
+     * @param {import('express').Request<{ id: string }>} req
+     * @param {import('express').Response} res
+     * @param {string} need
+     */
     async function loadAutomation(req, res, need) {
         const a = await store().getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
@@ -90,7 +96,7 @@ function makeAgentBindingsRouter(overrides = {}) {
         res.json({ automationIds });
     });
 
-    router.put('/:id/agent-bindings', validate({ body: BindingsBody }), async (req, res) => {
+    router.put('/:id/agent-bindings', validate({ body: BindingsBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const a = await store().getAutomation(req.params.id);
         if (!a) throw new HttpError(404, 'not_found', 'Not found');
         // The gate decides edit rights on the automation and on each agent; a

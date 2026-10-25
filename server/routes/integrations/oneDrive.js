@@ -65,14 +65,14 @@ const ExportParams = z.object({
 }).strict();
 
 // ── Status ──────────────────────────────────────────────────────────────────
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const isConnected = isMicrosoftConnected(req.session);
     log.info('[OneDrive] Status check — hasAccessToken:', !!req.session?.accessToken, 'oauthProvider:', req.session?.oauthProvider, 'connected:', isConnected);
     res.json({ connected: isConnected });
 });
 
 // ── List / Browse Files ─────────────────────────────────────────────────────
-router.get('/files', requireAuth, validate({ query: FilesQuery }), async (req, res, next) => {
+router.get('/files', requireAuth, validate({ query: FilesQuery }), /** @param {import('express').Request<{}, any, any, { folderId?: string, search?: string, top?: number }>} req */ async (req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     if (!isMicrosoftConnected(req.session)) {
         return res.status(401).json({ error: 'Not connected to OneDrive' });
     }
@@ -81,6 +81,7 @@ router.get('/files', requireAuth, validate({ query: FilesQuery }), async (req, r
         const { folderId, search, top = 25 } = req.query;
         const limit = Math.min(top, 50);
 
+        /** @type {string} */
         let path;
         if (search) {
             path = `/me/drive/root/search(q='${encodeURIComponent(search)}')?$top=${limit}&$select=id,name,file,folder,size,lastModifiedDateTime,createdBy,webUrl`;
@@ -92,7 +93,7 @@ router.get('/files', requireAuth, validate({ query: FilesQuery }), async (req, r
 
         const data = await graphFetch(path, req.session);
 
-        const items = (data.value || []).map(item => ({
+        const items = (data.value || []).map((/** @type {{ id: string, name: string, folder?: { childCount?: number }, file?: { mimeType?: string }, size?: number, lastModifiedDateTime?: string, createdBy?: { user?: { displayName?: string } }, webUrl?: string }} */ item) => ({
             id: item.id,
             name: item.name,
             type: item.folder ? 'folder' : (item.file?.mimeType || 'file'),
@@ -107,8 +108,8 @@ router.get('/files', requireAuth, validate({ query: FilesQuery }), async (req, r
         res.json({ items, total: items.length });
 
     } catch (err) {
-        log.error('[OneDrive] Error listing files:', err.message);
-        if (err.message === 'NOT_CONNECTED') {
+        log.error('[OneDrive] Error listing files:', /** @type {Error} */ (err).message);
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Microsoft session expired' });
         }
         next(err);
@@ -116,7 +117,7 @@ router.get('/files', requireAuth, validate({ query: FilesQuery }), async (req, r
 });
 
 // ── Get File Content / Download ─────────────────────────────────────────────
-router.get('/export/:fileId', requireAuth, validate({ params: ExportParams }), async (req, res) => {
+router.get('/export/:fileId', requireAuth, validate({ params: ExportParams }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     if (!isMicrosoftConnected(req.session)) {
         return res.status(401).json({ error: 'Not connected to OneDrive' });
     }

@@ -220,3 +220,7 @@ function toDraft(c) {
 }
 
 module.exports = { toDraft, normaliseApp, resolveAppTrigger, humaniseTool, APP_TRIGGERS, DECLARED_EVENTS };
+
+/** @typedef {import('./miner').Candidate} Candidate */
+
+/** @typedef {{ id: string, events?: Array<{ id: string }> }} DeclaredSource */

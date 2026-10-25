@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * A stand-in for llmClient.chatForcedTool in tests that already fake an
@@ -12,6 +12,12 @@
  * @param {(apiKey: any, url: any, modelId: string, messages: any[], options: any) => Promise<any>} chat
  */
 function forcedToolViaChat(chat) {
+    /**
+     * @param {string} modelId
+     * @param {any[]} messages
+     * @param {Record<string, unknown>} toolDef
+     * @param {{ rateLimit?: unknown, [key: string]: unknown }} [options]
+     */
     return async function chatForcedTool(modelId, messages, toolDef, options = {}) {
         const { rateLimit: _rateLimit, ...rest } = options; // the real client never forwards it either
         const r = await chat(null, null, modelId, messages, { ...rest, tools: [toolDef], forcedTool: toolDef });

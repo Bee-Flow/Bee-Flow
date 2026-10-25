@@ -310,3 +310,8 @@ module.exports = {
     readManyMessages,
     bulkModifyMessages,
 };
+
+/**
+ * @typedef {import('./gmail/messageShape').GmailClient} GmailClient
+ * @typedef {import('./gmail/toolHandlers').GmailSession} GmailSession
+ */

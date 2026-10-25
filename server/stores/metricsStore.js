@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -28,9 +28,14 @@ const { LOC_STATE } = require('./integrationLocationSql');
 const { INTERACTIVE_SOURCES } = require('../telemetry/requestClient');
 const log = require('../telemetry/log');
 
+/**
+ * @template T
+ * @param {() => Promise<T[]>} fn
+ * @returns {Promise<T[]>}
+ */
 async function safe(fn) {
     try { return (await fn()) || []; }
-    catch (e) { log.warn('[metricsStore] collector failed:', e && e.message); return []; }
+    catch (e) { log.warn('[metricsStore] collector failed:', e && /** @type {Error} */ (e).message); return []; }
 }
 
 // ── Reliability / ops ────────────────────────────────────────────────────────

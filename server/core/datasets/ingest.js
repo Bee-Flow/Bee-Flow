@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * core/datasets — streaming VCF ingest: raw upload → data.bgz + block index
  * entries + rsID records. Constant memory regardless of file size; a 30 GB
@@ -35,6 +36,10 @@ const MAX_LINE_BYTES = 4 * 1024 * 1024;
 const PROGRESS_INTERVAL_MS = 2_000;
 
 class IngestError extends Error {
+    /**
+     * @param {string} message
+     * @param {number | null} [lineNumber]
+     */
     constructor(message, lineNumber = null) {
         super(lineNumber ? `${message} (line ${lineNumber})` : message);
         this.name = 'IngestError';
@@ -44,14 +49,14 @@ class IngestError extends Error {
 
 /**
  * @param {object} opts
- * @param {import('stream').Readable} opts.input — the raw upload bytes
- * @param {boolean} opts.gzip — input is gzip-compressed (.vcf.gz; bgzf included)
- * @param {object} opts.sink — see module header
- * @param {number} [opts.totalBytes] — declared raw size, for progress pct
- * @param {function} [opts.onProgress] — ({pct, variantCount, bytesRead}), ≤1/2 s
+ * @param {import('stream').Readable} opts.input the raw upload bytes
+ * @param {boolean} opts.gzip input is gzip-compressed (.vcf.gz; bgzf included)
+ * @param {{ write: (buf: Buffer) => Promise<number>, writeRsid: (shard: number, record: { rsNum: number, contigIdx: number, pos: number }) => void|Promise<void> }} opts.sink see module header
+ * @param {number} [opts.totalBytes] declared raw size, for progress pct
+ * @param {(p: { pct: number, variantCount: number, bytesRead: number }) => void} [opts.onProgress] at most once per 2 s
  * @returns {Promise<{ stats: {variantCount:number, blockCount:number, samples:string[],
  *   build:string|null, contigs:Array<{name:string,count:number,minPos:number,maxPos:number}>},
- *   headerText: string, perContig: Array, contentEnd: number }>}
+ *   headerText: string, perContig: Parameters<typeof import('./blockIndex').serialize>[0], contentEnd: number }>}
  */
 async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = null }) {
     let bytesRead = 0;
@@ -60,24 +65,35 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
     });
 
     let lineNumber = 0;
+    /** @type {ReturnType<typeof parseHeader> | null} */
     let header = null;
+    /** @type {string[]} */
     const headerLines = [];
 
     // Block assembly state (invariants 1–3).
+    /** @type {Buffer<ArrayBuffer>[]} */
     const pending = [];          // line buffers waiting to be flushed as one block
     let pendingBytes = 0;
+    /** @type {number | null} */
     let pendingFirstPos = null;  // POS of the first row in `pending`
     let blockCount = 0;
 
     // Per-contig accumulation (invariant 2 & 4).
+    /** @typedef {Parameters<typeof import('./blockIndex').serialize>[0][number]} ContigAcc */
+    /** @type {ContigAcc[]} */
     const perContig = [];        // [{name, minPos, maxPos, count, entries:[…]}]
+    /** @type {Map<string, number>} */
     const contigIdxByName = new Map();
+    /** @type {ContigAcc | null} */
     let current = null;          // the contig being written
     let lastPos = -1;
 
     let variantCount = 0;
     let lastProgressAt = 0;
 
+    /**
+     * @param {boolean} [force]
+     */
     const emitProgress = (force = false) => {
         if (!onProgress) return;
         const now = Date.now();
@@ -103,6 +119,10 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
 
     // A header chunk or an oversized line: written as blocks WITHOUT entries
     // (header) or with an entry on the FIRST chunk only (long row — invariant 3).
+    /**
+     * @param {Buffer<ArrayBuffer>} buf
+     * @param {number | null} [firstPos]
+     */
     async function writeSpanning(buf, firstPos = null) {
         await flushPending();
         for (let o = 0; o < buf.length; o += bgzf.MAX_BLOCK_INPUT) {
@@ -116,6 +136,9 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         }
     }
 
+    /**
+     * @param {Buffer<ArrayBuffer>} lineBuf
+     */
     async function handleDataLine(lineBuf) {
         if (!header) {
             if (headerLines.length === 0) throw new IngestError('not a VCF: the file starts with a data line', lineNumber);
@@ -125,7 +148,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         try {
             parsed = parseDataLine(lineBuf.toString('utf8'));
         } catch (e) {
-            throw new IngestError(`malformed VCF row: ${e.message}`, lineNumber);
+            throw new IngestError(`malformed VCF row: ${/** @type {Error} */ (e).message}`, lineNumber);
         }
 
         // Contig transitions (invariants 2 & 4).
@@ -165,6 +188,9 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         emitProgress();
     }
 
+    /**
+     * @param {Buffer<ArrayBuffer>} lineBuf
+     */
     async function handleLine(lineBuf) {
         lineNumber++;
         if (lineBuf.length === 0) return; // tolerate blank lines (trailing newline etc.)
@@ -175,7 +201,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
                 try {
                     header = parseHeader(headerLines.join('\n'));
                 } catch (e) {
-                    throw new IngestError(e.message, lineNumber);
+                    throw new IngestError(/** @type {Error} */ (e).message, lineNumber);
                 }
                 // The artifact stays a complete, tool-readable VCF: the header
                 // is written as its own (unindexed) blocks before any data.
@@ -193,7 +219,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         stages.push(zlib.createGunzip());
     }
     let carry = Buffer.alloc(0);
-    const source = stages.reduce((up, down) => up.pipe(down));
+    const source = stages.reduce((up, down) => up.pipe(/** @type {import('stream').Transform} */ (down)));
 
     try {
         for await (const chunk of source) {
@@ -215,7 +241,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
     } catch (e) {
         if (e instanceof IngestError) throw e;
         // zlib errors on truncated/corrupt gzip land here with a useful code.
-        throw new IngestError(`could not read the file: ${e.message}`);
+        throw new IngestError(`could not read the file: ${/** @type {Error} */ (e).message}`);
     }
     if (carry.length > 0) {
         let end = carry.length;

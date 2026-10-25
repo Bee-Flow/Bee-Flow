@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * GET /learn-media/* — the Learning Center's video pack, served from disk.
@@ -42,7 +42,10 @@ const TYPES = Object.freeze({
 const SEGMENT = /^[A-Za-z0-9_-][A-Za-z0-9._-]*$/;
 const HASHED = /\.[0-9a-f]{8,64}\.[a-z0-9]+$/i;
 
-/** The directory packs live in: LEARN_MEDIA_DIR when set, else server/data/learn-media. */
+/**
+ * The directory packs live in: LEARN_MEDIA_DIR when set, else server/data/learn-media.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function learnMediaDir(env = process.env) {
     const configured = typeof env.LEARN_MEDIA_DIR === 'string' ? env.LEARN_MEDIA_DIR.trim() : '';
     return configured ? path.resolve(configured) : DEFAULT_DIR;
@@ -52,6 +55,7 @@ function learnMediaDir(env = process.env) {
  * Is this request path (relative to the mount, still URL-encoded) one we are
  * willing to hand to serve-static? Rejects rather than normalises: a request
  * that needs normalising is not one a real client makes.
+ * @param {string} urlPath
  */
 function isServablePath(urlPath) {
     if (typeof urlPath !== 'string' || urlPath.length < 2 || urlPath.length > 256) return false;
@@ -64,7 +68,10 @@ function isServablePath(urlPath) {
     return Object.prototype.hasOwnProperty.call(TYPES, path.extname(urlPath).toLowerCase());
 }
 
-/** Cache-Control for a served file name. */
+/**
+ * Cache-Control for a served file name.
+ * @param {string} fileName
+ */
 function cacheControlFor(fileName) {
     const base = path.basename(fileName);
     if (base === 'manifest.json') return 'no-cache';
@@ -73,9 +80,14 @@ function cacheControlFor(fileName) {
 }
 
 /**
+ * @typedef {Object} CreateLearnMediaRouterArgs
+ * @property {string} [dir]
+ */
+/**
  * The router mounted at /learn-media. `dir` is resolved per app start; a pack
  * installed while the server runs is picked up without a restart because
  * serve-static reads from disk on each request.
+ * @param {CreateLearnMediaRouterArgs} [param0]
  */
 function createLearnMediaRouter({ dir = learnMediaDir() } = {}) {
     const router = express.Router();
@@ -89,8 +101,11 @@ function createLearnMediaRouter({ dir = learnMediaDir() } = {}) {
         lastModified: true,
         // Cache-Control is ours, per file — see cacheControlFor().
         cacheControl: false,
+        /**
+         * @param {string} filePath
+         */
         setHeaders(res, filePath) {
-            res.setHeader('Content-Type', TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream');
+            res.setHeader('Content-Type', /** @type {Record<string, string>} */ (TYPES)[path.extname(filePath).toLowerCase()] || 'application/octet-stream');
             res.setHeader('Cache-Control', cacheControlFor(filePath));
             res.setHeader('X-Content-Type-Options', 'nosniff');
             // A CDN or another origin may front this mount; the files are
@@ -100,7 +115,7 @@ function createLearnMediaRouter({ dir = learnMediaDir() } = {}) {
         },
     });
 
-    router.use((req, res, next) => {
+    router.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (req.method !== 'GET' && req.method !== 'HEAD') {
             res.setHeader('Allow', 'GET, HEAD');
             return res.status(405).end();
@@ -109,7 +124,7 @@ function createLearnMediaRouter({ dir = learnMediaDir() } = {}) {
         return serve(req, res, next);
     });
     // Anything serve-static did not find: a bare 404, never the SPA shell.
-    router.use((req, res) => res.status(404).end());
+    router.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => res.status(404).end());
     return router;
 }
 

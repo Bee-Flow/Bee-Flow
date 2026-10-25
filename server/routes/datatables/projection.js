@@ -85,3 +85,5 @@ function scopeDescriptor(scope) {
 }
 
 module.exports = { publicTable, publicSource, scopeDescriptor };
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/datatableStore/rowMappers').rowToDatatable>>} DatatableView */

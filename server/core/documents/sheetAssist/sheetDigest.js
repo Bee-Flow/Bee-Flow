@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What the spreadsheet assistant SEES of a sheet, in as few tokens as the job
  * allows.

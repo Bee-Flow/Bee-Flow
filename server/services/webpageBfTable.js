@@ -655,3 +655,17 @@ module.exports = {
     _aggregate: aggregate,
     _assertHandlingIsWorkable: assertHandlingIsWorkable,
 };
+
+/**
+ * Het deel van de DOM (jsdom) dat deze module aanraakt; de server kent geen DOM-lib.
+ * @typedef {{ firstChild: DomNode | null, textContent: string | null, tagName?: string, content?: DomNode,
+ *   setAttribute(name: string, value: string): void, getAttribute(name: string): string | null,
+ *   appendChild(node: DomNode): DomNode, replaceWith(node: DomNode): void,
+ *   querySelectorAll(selector: string): Iterable<DomNode> }} DomNode
+ * @typedef {{ createElement(tag: string): DomNode }} DomDocument
+ * @typedef {{ webpageId?: string, ownerId?: string, loaded: boolean,
+ *   bindings: import('../stores/webpage/bridgeGrants').TableGrant[],
+ *   principal: import('../auth/datatableAccess').DatatablePrincipal | null,
+ *   grantsUnreadable: boolean, principalUnreadable: boolean }} DataContext
+ * @typedef {(document: DomDocument, box: DomNode, el: DomNode, attrs: Record<string, string>) => void} InertBody
+ */

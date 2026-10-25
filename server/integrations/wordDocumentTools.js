@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Word Document Tools — the chat's way to hand the user a real, editable .docx.
  *
@@ -52,6 +52,9 @@ const WORD_DOCUMENT_TOOLS = [
 
 const WORD_DOCUMENT_TOOL_NAMES = new Set(WORD_DOCUMENT_TOOLS.map((t) => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isWordDocumentTool(toolName) {
     return WORD_DOCUMENT_TOOL_NAMES.has(toolName);
 }
@@ -59,6 +62,8 @@ function isWordDocumentTool(toolName) {
 /**
  * A file name that is safe on disk, in a storage key and in a
  * Content-Disposition header. ASCII only, like safePresentationFileName.
+ * @param {unknown} raw
+ * @param {string} [fallback]
  */
 function safeWordFileName(raw, fallback = 'document') {
     const base = String(raw || '')
@@ -76,9 +81,15 @@ function safeWordFileName(raw, fallback = 'document') {
     return `${base || fallback}.docx`;
 }
 
+/** A resolved house style (never NO_SUCH_STYLE).
+ * @typedef {Exclude<Awaited<ReturnType<typeof import('../core/documents/docxHouseStyle').resolveHouseStyle>>, symbol>} WordHouseStyle
+ */
+
 /**
  * Render the .docx. Returns { buffer, contentType, filename, title, note, extra }
  * or { error } for anything the model can fix (no content, too large).
+ * @param {{ markdown?: unknown, title?: unknown, houseStyle?: unknown, fileName?: string }} [args]
+ * @param {{ orgId?: string | null, provider?: string }} [ctx]
  */
 async function buildWordDocument(args = {}, ctx = {}) {
     const markdown = typeof args.markdown === 'string' ? args.markdown : '';
@@ -88,14 +99,15 @@ async function buildWordDocument(args = {}, ctx = {}) {
     const title = typeof args.title === 'string' ? args.title.trim().slice(0, 200) : '';
     const orgId = ctx.orgId || null;
 
+    /** @type {WordHouseStyle | null} */
     let style = null;
     if (args.houseStyle !== false && orgId) {
         try {
             const { resolveHouseStyle, NO_SUCH_STYLE } = require('../core/documents/docxHouseStyle');
             const resolved = await resolveHouseStyle(orgId, null);
-            style = resolved === NO_SUCH_STYLE ? null : resolved;
+            style = resolved === NO_SUCH_STYLE ? null : /** @type {WordHouseStyle} */ (resolved);
         } catch (e) {
-            log.warn(`[WordDocumentTools] house style unavailable, rendering neutral: ${e.message}`);
+            log.warn(`[WordDocumentTools] house style unavailable, rendering neutral: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -104,7 +116,7 @@ async function buildWordDocument(args = {}, ctx = {}) {
         const { resolveMarking } = require('../core/automationRunner/documentMarking');
         marking = await resolveMarking(orgId, { automationId: null, aiStepIds: [], provider: ctx.provider || 'chat' });
     } catch (e) {
-        log.warn(`[WordDocumentTools] marking unavailable, rendering unmarked: ${e.message}`);
+        log.warn(`[WordDocumentTools] marking unavailable, rendering unmarked: ${/** @type {Error} */ (e).message}`);
     }
 
     const { renderDocument } = require('../core/documents/render/documentRenderer');
@@ -121,7 +133,7 @@ async function buildWordDocument(args = {}, ctx = {}) {
             docxStyle: style ? require('../core/documents/docxHouseStyle').buildDocxStylingFromHouseStyle(style) : null,
         });
     } catch (e) {
-        if (e && e.errorClass) return { error: e.message };
+        if (e && e.errorClass) return { error: /** @type {Error} */ (e).message };
         throw e;
     }
 

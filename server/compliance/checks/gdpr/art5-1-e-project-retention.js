@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -43,9 +43,16 @@ const LAST_ACTIVITY_SQL = Object.freeze({
 
 const defaultDeps = signals.recordCheckDeps;
 
+/**
+ * @param {string} orgId
+ * @param {string} projectId
+ * @param {ReturnType<typeof defaultDeps>} deps
+ */
 async function lastActivity(orgId, projectId, deps) {
+    /** @type {number | null} */
     let newest = null;
     let found = false;
+    /** @type {string[]} */
     const unreadable = [];
     for (const [name, sql] of Object.entries(LAST_ACTIVITY_SQL)) {
         let rows;
@@ -115,6 +122,9 @@ module.exports = {
 
     // Growing idle time is the same finding; crossing into "twice the window"
     // is a new status and so a new fingerprint anyway.
+    /**
+     * @param {Record<string, any> | null | undefined} evidence
+     */
     fingerprintOf(evidence) {
         return [evidence?.retention_days ?? null, evidence?.retention_source ?? null];
     },
@@ -122,6 +132,11 @@ module.exports = {
     // The same population as GDPR-Art30-project-personal-data, read the same way.
     ...signals.personalDataPopulation(defaultDeps),
 
+    /**
+     * @param {string} orgId
+     * @param {{ id?: string } | null} subject
+     * @param {ReturnType<typeof defaultDeps> | undefined} deps
+     */
     async evaluate(orgId, subject, deps = defaultDeps()) {
         const projectId = pd.projectIdOf(subject?.id);
         if (!projectId) return { status: 'not_applicable', evidence: {}, details: 'No project to judge.' };
@@ -129,18 +144,19 @@ module.exports = {
         // against the 365-day default, a project with a 90-day record idle for
         // 200 days passed. It goes into `unreadable`, which verdict() never
         // lets pass; only a store that is not provisioned yet stays silent.
+        /** @type {string[]} */
         const unreadable = [];
         const [settings, registrations] = await Promise.all([
-            deps.complianceStore.getSettings(orgId).catch((e) => {
+            deps.complianceStore.getSettings(orgId).catch(/** @returns {Record<string, any>} */ (e) => {
                 if (!pd.isNotProvisioned(e)) unreadable.push('retention settings');
                 return {};
             }),
-            deps.complianceStore.listSubjectRegistrations(orgId, 'project').catch((e) => {
+            deps.complianceStore.listSubjectRegistrations(orgId, 'project').catch(/** @returns {Record<string, any>[]} */ (e) => {
                 if (!pd.isNotProvisioned(e)) unreadable.push('processing records');
                 return [];
             }),
         ]);
-        const own = (registrations || []).find(r => String(r.subject_id) === projectId);
+        const own = (registrations || []).find((/** @type {Record<string, any>} */ r) => String(r.subject_id) === projectId);
         let retentionDays = DEFAULT_RETENTION_DAYS;
         /** @type {'project'|'org'|'default'} */
         let source = 'default';

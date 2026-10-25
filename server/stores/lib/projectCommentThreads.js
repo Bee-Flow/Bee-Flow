@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The thread-level half of the project comment store (../projectCommentStore.js):
@@ -52,7 +52,11 @@ async function insertComment(q, thread, c) {
  * @param {{ maxCommentsListed: number }} opts
  */
 function makeThreadReads(db, ready, { maxCommentsListed }) {
-    /** One thread, only when it belongs to this project. */
+    /**
+     * One thread, only when it belongs to this project.
+     * @param {string} projectId
+     * @param {string} threadId
+     */
     async function getThread(projectId, threadId) {
         await ready();
         const r = await db.query('SELECT * FROM project_comment_threads WHERE id = $1 AND project_id = $2', [threadId, projectId]);
@@ -63,6 +67,7 @@ function makeThreadReads(db, ready, { maxCommentsListed }) {
      * One thread by id alone, for a background job that holds only the id
      * (the participation surface). Routes use getThread, which also checks the
      * project.
+     * @param {string} threadId
      */
     async function getThreadById(threadId) {
         await ready();
@@ -184,6 +189,9 @@ function makeThreadState(db, ready, getThread) {
     /**
      * Change the thread's AI mode. Returns the thread, or null when it does
      * not exist in this project.
+     * @param {string} aiMode
+     * @param {string} projectId
+     * @param {string} threadId
      */
     async function setAiMode(projectId, threadId, aiMode) {
         await ready();
@@ -251,7 +259,11 @@ function makeThreadState(db, ready, getThread) {
  * @param {() => Promise<void>} ready
  */
 function makeThreadRemoval(db, ready) {
-    /** Delete a thread; its comments cascade. */
+    /**
+     * Delete a thread; its comments cascade.
+     * @param {string} projectId
+     * @param {string} threadId
+     */
     async function deleteThread(projectId, threadId) {
         await ready();
         const r = await db.query('DELETE FROM project_comment_threads WHERE id = $1 AND project_id = $2 RETURNING id', [threadId, projectId]);
@@ -261,6 +273,8 @@ function makeThreadRemoval(db, ready) {
     /**
      * Every thread on an item, in every project: for the item's own delete
      * path. Returns how many threads went.
+     * @param {string} targetType
+     * @param {string} targetId
      */
     async function deleteForTarget(targetType, targetId) {
         await ready();
@@ -271,7 +285,12 @@ function makeThreadRemoval(db, ready) {
         return r.rows.length;
     }
 
-    /** The threads one project holds on an item: for taking the item out of the project. */
+    /**
+     * The threads one project holds on an item: for taking the item out of the project.
+     * @param {string} projectId
+     * @param {string} targetType
+     * @param {string} targetId
+     */
     async function deleteForTargetInProject(projectId, targetType, targetId) {
         await ready();
         const r = await db.query(
@@ -292,6 +311,7 @@ function makeThreadRemoval(db, ready) {
      */
     async function lookupTarget(targetType, targetId) {
         await ready();
+        /** @type {string} */
         let sql;
         if (targetType === 'notebook') sql = 'SELECT id, project_id, name FROM notebooks WHERE id = $1';
         else if (targetType === 'document') sql = `SELECT id, project_id, name FROM studio_documents WHERE id = $1 AND kind = 'document' AND archived = false`;

@@ -198,3 +198,20 @@ module.exports = {
     normalizeApprovalConfig,
     applyAddApproval,
 };
+
+/**
+ * @typedef {import('./draftGraph').DraftGraph} DraftGraph
+ * @typedef {{ userId?: string, groupId?: string }} Seat
+ * @typedef {{ key?: string, approvers?: Seat[], rule?: string, name?: string, description?: string,
+ *   quorum?: number | string, when?: string }} StageInput
+ * @typedef {{ key: string, approvers: Seat[], rule: string, name?: string, description?: string,
+ *   quorum?: number, when?: string }} Stage
+ * @typedef {{ expiresInHours?: string | number | null, assignee?: Seat, details?: string, approvers?: Seat[],
+ *   rule?: string, quorum?: number | string, stages?: StageInput[], finalApprover?: Seat,
+ *   remindAfterHours?: number | string, escalateTo?: Seat, escalateAfterHours?: number | string,
+ *   attachments?: { binding?: string, label?: string }[], fields?: { type?: string }[] }} ApprovalInput
+ * @typedef {{ expiresInHours: number, assignee?: Seat, details?: string, approvers?: Seat[], rule?: string,
+ *   quorum?: number, stages?: Stage[], finalApprover?: Seat, remindAfterHours?: number, escalateTo?: Seat,
+ *   escalateAfterHours?: number, attachments?: { binding: string, label?: string }[],
+ *   fields?: { type?: string }[] }} ApprovalConfig
+ */

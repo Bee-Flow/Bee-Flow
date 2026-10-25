@@ -312,3 +312,9 @@ function _sameEntry(a, b) {
 }
 
 module.exports = { normaliseToolsConfig };
+
+/**
+ * The running state of one normalisation: the warnings so far and whether
+ * anything changed. `note`/`touch` are attached right after creation.
+ * @typedef {{ warnings: string[], changed: boolean, note?: (msg: string) => void, touch?: () => void }} NormState
+ */

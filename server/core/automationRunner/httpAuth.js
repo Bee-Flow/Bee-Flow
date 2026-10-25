@@ -291,3 +291,8 @@ module.exports = {
     hostAllowed,
     _internals: { tokenCache, inflight, cacheKey, getOAuth2Token },
 };
+
+/**
+ * @typedef {import('../../stores/integrationConnectionStore').Connection} HttpConn
+ * @typedef {{ fetchImpl?: typeof fetch, now?: () => number, store?: typeof import('../../stores/integrationConnectionStore') }} HttpAuthDeps
+ */

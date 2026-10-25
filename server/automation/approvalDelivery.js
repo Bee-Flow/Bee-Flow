@@ -370,3 +370,11 @@ module.exports = {
     resolveNcContext,
     _deliveryTest: { stageContext, resolveNcContext },
 };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+
+/** @typedef {{ baseUrl: string, fetch: (url: string, init?: RequestInit) => Promise<Response> }} NcContext  an auth context for acting on Nextcloud */
+
+/** @typedef {{ ok: boolean, apiVersion?: string|null, status?: number, error?: string }} BellResult */
+
+/** @typedef {{ ok: boolean, via?: string|null, roomToken?: string, messageId?: string|null, referenceId?: string, error?: string }} TalkCardResult */

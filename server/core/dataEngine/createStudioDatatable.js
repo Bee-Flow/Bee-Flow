@@ -98,3 +98,7 @@ async function createStudioDatatable({ ownerUserId, principal, name, key = null,
 }
 
 module.exports = { createStudioDatatable };
+
+/** @typedef {{ id:string, key:string, name?:string, type?:string, options?:object }} DtField */
+
+/** @typedef {{ id:string, key:string, fields?:DtField[] }} DtTable */

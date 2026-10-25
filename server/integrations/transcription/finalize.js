@@ -128,3 +128,9 @@ module.exports = {
     buildResult,
     finalizeTranscript,
 };
+
+/** A provider segment. @typedef {{ speakerId?: string, start?: number, end?: number, text?: string }} RawSegment */
+
+/** @typedef {{ speakerId: string, start: number, end: number, text: string }} MergedSegment */
+
+/** @typedef {Record<string, { duration: number, segments: number }>} SpeakerMap */

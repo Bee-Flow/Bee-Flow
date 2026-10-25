@@ -83,3 +83,10 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
 const shared = createSlots();
 
 module.exports = { acquireSlot: shared.acquireSlot, stats: shared.stats, createSlots, MAX_TOTAL, MAX_PER_KEY };
+
+/**
+ * @typedef {Object} AcquireSlotArgs
+ * @property {string} [key]
+ */
+
+/** @typedef {{ key: string, resolve: (release: () => void) => void, timer: ReturnType<typeof setTimeout> | null }} SlotWaiter */

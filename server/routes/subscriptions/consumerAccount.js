@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Consumer (individual) accounts — the signed-in user's own limits, usage and
  * subscription status, plus starting their one-time trial.
@@ -116,7 +116,7 @@ router.get('/consumer/usage', async (req, res) => {
 // POST /api/subscriptions/consumer/:userId/start-trial — one-time consumer trial via Stripe
 router.post('/consumer/:userId/start-trial', validate({ body: StartTrialBody }), async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = /** @type {string} */ (req.params.userId);
         const { plan_id } = req.body;
 
         const trialService = require('../../services/trialService');

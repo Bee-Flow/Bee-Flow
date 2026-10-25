@@ -757,3 +757,5 @@ module.exports = {
     adminIssuance,
     COMMUNITY_FALLBACK,
 };
+
+/** @typedef {string | { organizationId?: string | null, userId?: string | null } | null | undefined} LicenseScope */

@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * suppressSessionPersistence — header-authenticated requests must not write
  * session rows.

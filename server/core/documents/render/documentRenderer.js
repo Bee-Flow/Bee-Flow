@@ -258,3 +258,14 @@ module.exports = {
         deckToSlidesHtml, deckToPlainText, deckThemeCss, slidesCss,
     },
 };
+
+/**
+ * An AI content marking as compliance/marking.js resolveMarking returns it.
+ * @typedef {{ enabled?: boolean, footer_text?: string, provider?: string, generated_at?: string, automation_id?: string, org_name?: string }} AiMarking
+ */
+
+/** @typedef {import('../office/officegen').DeckThemeInput} DeckThemeInput */
+
+/** @typedef {import('../office/officegen').DeckSlide} DeckSlide */
+
+/** @typedef {ReturnType<typeof deckThemeCss>} DeckThemeCss */

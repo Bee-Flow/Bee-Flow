@@ -719,3 +719,15 @@ module.exports = {
     _buildSeed: buildSeed,
     _toSeedRow: toSeedRow,
 };
+
+/** @typedef {{ id?: string, title?: string, description?: string, category?: string, icon?: string, tags?: unknown, version?: number }} CaptureMeta */
+
+/** @typedef {{ id?: string, name?: string, tableId?: string|null, source?: object, descriptor?: object, cacheTtlSeconds?: number }} CaptureDataset */
+
+/** @typedef {{ id?: string, key?: string, fields?: Array<{ key?: string, type?: string }> }} SeedTable */
+
+/** @typedef {Record<string, Array<Record<string, unknown>>>} SeedBlock  { [tableId]: seedRow[] } */
+
+/** @typedef {{ tables: string[], fields: string[], rows: number, refs: number, files: number, duplicateAliases: number }} SeedDropped */
+
+/** @typedef {{ screens: number, actions: number, tables: number, seededTables: Record<string, number>, seededRows: number, bytes: number, requires: Array<Record<string, unknown>>, warnings: string[] }} CaptureReport */

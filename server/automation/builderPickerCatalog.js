@@ -252,3 +252,5 @@ module.exports = {
     buildAppEventProvidersFor,
     buildPickerCatalogsForUser,
 };
+
+/** @typedef {Partial<ReturnType<typeof defaultDeps>>} PickerDeps */

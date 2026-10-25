@@ -12,18 +12,37 @@
 const { OP_LABELS } = require('./constants');
 const { resolveColumn, uniqueKey, makeColumn } = require('./columns');
 
+/** @typedef {typeof import('./normalize').byOp} ByOp */
+/**
+ * A normalised operation: its `op` name plus the fields its normaliser fills.
+ * @typedef {{ [K in keyof ByOp]: { op: K } & ReturnType<ByOp[K]> }[keyof ByOp]} NormalizedOp
+ */
+/**
+ * Looks a column up (recording a finding when it is missing).
+ * @typedef {(name: string, sub: string, alternatives?: string[]) => { label: string; key: string; type?: string } | null} NeedColumn
+ */
+
 const GROUPS_COLUMNS = Object.freeze([
     makeColumn('segment', 'text'), makeColumn('label', 'text'), makeColumn('column', 'text'),
     makeColumn('value', 'text'), makeColumn('n', 'number'), makeColumn('suppressed', 'boolean'),
 ]);
 
-/** Put `col` in place of a column with the same key, or at the end. */
+/**
+ * Put `col` in place of a column with the same key, or at the end.
+ * @param {{ label: string; key: string; type?: string; }[]} cols
+ * @param {{ key: string; label: string; type: string; }} col
+ */
 function upsert(cols, col) {
     const at = cols.findIndex((c) => c.key === col.key);
     if (at >= 0) { const next = cols.slice(); next[at] = col; return next; }
     return [...cols, col];
 }
 
+/**
+ * @param {NormalizedOp} op
+ * @param {{ label: string; key: string; type?: string; }[]} cols
+ * @param {NeedColumn} need
+ */
 function planOp(op, cols, need) {
     switch (op.op) {
         case 'join': {
@@ -78,6 +97,11 @@ function planOp(op, cols, need) {
     }
 }
 
+/**
+ * @param {Extract<NormalizedOp, { op: 'select' }>} op
+ * @param {{ label: string; key: string; type?: string; }[]} cols
+ * @param {NeedColumn} need
+ */
 function planSelect(op, cols, need) {
     let out = cols;
     if (op.keep) {
@@ -99,13 +123,19 @@ function planSelect(op, cols, need) {
  * @returns {{ columns: { key: string, label: string, type?: string }[] | null, findings: any[] }}
  */
 function planColumns(columns, ops) {
+    /** @type {({ hint?: string | undefined; code: string; severity: string; path: string; message: string; })[]} */
     const findings = [];
     let cols = Array.isArray(columns) ? columns.map((c) => ({ ...c, label: c.label ?? c.key })) : null;
     (Array.isArray(ops) ? ops : []).forEach((op, i) => {
         if (!cols || !op || op.unknown || op.enabled === false) return;
-        const label = `Step ${i + 1} (${OP_LABELS[op.op] || op.op})`;
+        const label = `Step ${i + 1} (${/** @type {Record<string, string>} */ (OP_LABELS)[op.op] || op.op})`;
+        /**
+         * @param {string} name
+         * @param {string} sub
+         * @param {string[]} [alternatives]
+         */
         const need = (name, sub, alternatives) => {
-            const hit = resolveColumn(cols, name, alternatives);
+            const hit = /** @type {{ label: string; key: string; type?: string } | null} */ (resolveColumn(cols, name, alternatives));
             if (!hit) {
                 const names = cols.slice(0, 12).map((c) => c.key).join(', ');
                 findings.push({

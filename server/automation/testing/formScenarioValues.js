@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Saved answers for ONE form page, turned into the values the run carries on.
  *
@@ -31,6 +31,7 @@ const UNSAVED_TYPES = new Set(['file', 'app_pick']);
  */
 function scenarioPageValues(renderedForm, answers) {
     const fields = normalizeFields(renderedForm).map((f) => (UNSAVED_TYPES.has(f.type) ? { ...f, required: false } : f));
+    /** @type {Record<string, unknown>} */
     const body = {};
     if (answers && typeof answers === 'object') {
         const unsaved = new Set(fields.filter((f) => UNSAVED_TYPES.has(f.type)).map((f) => f.name));
@@ -38,6 +39,7 @@ function scenarioPageValues(renderedForm, answers) {
     }
     const { values, errors } = coerceSubmission(fields, body);
     const labelOf = new Map(fields.filter((f) => !isDisplayField(f)).map((f) => [f.name, f.label || f.name]));
+    /** @type {string[]} */
     const labels = [];
     for (const e of errors) {
         const label = labelOf.get(e.field) || e.field;

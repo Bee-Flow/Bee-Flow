@@ -22,6 +22,9 @@ const cache = new Map(); // orgId → { value, ts }
 
 // The org's human members: direct organizationId match or membership of one of
 // the org's groups. Excludes the system admin row and pending invites.
+/**
+ * @param {string | undefined} orgId
+ */
 async function orgMembers(orgId) {
     const [users, allGroups] = await Promise.all([
         userStore.getAllUsers(),
@@ -34,12 +37,14 @@ async function orgMembers(orgId) {
         if (!u || u.isSystem || isPlatformOperator(u)) return false;
         if (u.status === 'pending') return false;
         if (u.organizationId === orgId) return true;
+        /** @type {string[]} */
         let groups = [];
         try { groups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (err) { fallback('learning/orgOverview:orgMembers', err); /* ignore */ }
         return groups.some((gid) => orgGroupIds.has(gid));
     });
 }
 
+/** @param {import('./completion').ProgressMap | null | undefined} progress */
 function lastActivity(progress) {
     let latest = null;
     for (const entry of Object.values(progress || {})) {
@@ -49,6 +54,9 @@ function lastActivity(progress) {
     return latest;
 }
 
+/**
+ * @param {string | undefined} orgId
+ */
 async function buildOrgOverview(orgId) {
     const members = await orgMembers(orgId);
     const ids = members.map((u) => u.id);
@@ -126,6 +134,9 @@ async function buildOrgOverview(orgId) {
 
 // 60s TTL cache — the panel polls/re-mounts freely and the underlying data
 // changes at human learning speed. No invalidation needed at this staleness.
+/**
+ * @param {string | undefined} orgId
+ */
 async function getOrgOverview(orgId) {
     const hit = cache.get(orgId);
     if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.value;

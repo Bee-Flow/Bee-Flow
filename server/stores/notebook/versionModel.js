@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/notebook/versionModel.js — the notebook version model: sources,
  * limits, normalisers and row mappers (no database access).
@@ -39,6 +39,7 @@ const MAX_CONTRIBUTORS = 50;
 const MAX_STATS_JSON = 4000;
 
 // The labels the old routes wrote into `summary`, read as a source.
+/** @type {Record<string, string>} */
 const LEGACY_SUMMARY_SOURCES = {
     'Auto-save': 'autosave',
     'Before AI edit': 'checkpoint',
@@ -46,7 +47,10 @@ const LEGACY_SUMMARY_SOURCES = {
     'Manual snapshot': 'named',
 };
 
-/** sha256 of the stored HTML: identical snapshots are recognised by it. */
+/**
+ * sha256 of the stored HTML: identical snapshots are recognised by it.
+ * @param {unknown} html
+ */
 function contentHash(html) {
     return crypto.createHash('sha256').update(String(html || ''), 'utf8').digest('hex');
 }
@@ -54,6 +58,7 @@ function contentHash(html) {
 /**
  * Contributors as stored: `[{userId|null, kind:'user'|'ai', agentId?}]`, ids
  * only, deduplicated, capped. Anything else in an entry is dropped.
+ * @param {{ userId: string | null; kind: 'user' | 'ai'; agentId?: string; }[] | undefined} list
  */
 function normalizeContributors(list) {
     const out = [];
@@ -73,9 +78,13 @@ function normalizeContributors(list) {
     return out;
 }
 
-/** Counts only (words added/removed, blocks changed); oversized or odd input is dropped. */
+/**
+ * Counts only (words added/removed, blocks changed); oversized or odd input is dropped.
+ * @param {unknown} stats
+ */
 function normalizeStats(stats) {
     if (!stats || typeof stats !== 'object' || Array.isArray(stats)) return null;
+    /** @type {Record<string, number | boolean>} */
     const out = {};
     for (const [k, v] of Object.entries(stats)) {
         if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
@@ -85,7 +94,10 @@ function normalizeStats(stats) {
     return json.length > MAX_STATS_JSON || json === '{}' ? null : out;
 }
 
-/** A version name: trimmed, one line, at most 80 characters; empty is none. */
+/**
+ * A version name: trimmed, one line, at most 80 characters; empty is none.
+ * @param {string | null | undefined} name
+ */
 function normalizeVersionName(name) {
     if (name == null) return null;
     const clean = String(name).replace(/\s+/g, ' ').trim().slice(0, VERSION_NAME_MAX);
@@ -95,6 +107,9 @@ function normalizeVersionName(name) {
 const VERSION_META_COLUMNS = `id, notebook_id, seq, source, name, summary, created_by, contributors, stats,
     pinned, restored_from, content_hash, content_length, created_at`;
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapVersionMeta(r) {
     return {
         id: r.id,
@@ -114,6 +129,9 @@ function mapVersionMeta(r) {
     };
 }
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapVersionRow(r) {
     return {
         ...mapVersionMeta(r),
@@ -124,7 +142,11 @@ function mapVersionRow(r) {
     };
 }
 
-/** JSONB arrives parsed from pg and as text from some drivers. */
+/**
+ * JSONB arrives parsed from pg and as text from some drivers.
+ * @param {any} v
+ * @param {any} fallback
+ */
 function parseJSONValue(v, fallback) {
     if (v == null) return fallback;
     if (typeof v === 'object') return v;

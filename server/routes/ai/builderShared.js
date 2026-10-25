@@ -282,3 +282,29 @@ module.exports = {
     applyBuilderTierFloor,
     streamWithRetry,
 };
+
+/**
+ * @typedef {(event: string, data?: { content?: string, [key: string]: unknown }) => void} BuilderSend
+ * @typedef {{
+ *   start: (send: BuilderSend, part: { partId?: string|null, redacted?: boolean }) => void,
+ *   delta: (send: BuilderSend, part: { partId?: string|null, text: string }) => void,
+ *   stop: (send: BuilderSend, part: { partId?: string|null, redacted?: boolean }) => void,
+ * }} BuilderThinkingEmitter
+ * @typedef {{
+ *   send?: BuilderSend,
+ *   emitThinking?: BuilderThinkingEmitter,
+ *   signal?: AbortSignal,
+ *   onToolArgsDelta?: (data: object) => void,
+ *   onPromptProgress?: (data: object) => void,
+ *   retries?: number,
+ *   baseDelayMs?: number,
+ *   logPrefix?: string,
+ * }} BuilderStreamOptions
+ * @typedef {{ text?: string, partId?: string, redacted?: boolean, signature?: string, redactedData?: string,
+ *   id?: string, name?: string, input?: unknown, thought_signature?: string, _repaired?: boolean,
+ *   error?: string, message?: string, stop_reason?: string, finish_reason?: string, [key: string]: unknown }} BuilderStreamEvent
+ * @typedef {{ id: string, text: string, signature: string | null, redacted: boolean, startedAt: number,
+ *   endedAt: number | null, redactedData?: string }} BuilderThinkingPart
+ * @typedef {{ id: string, type: string, function: { name: string, arguments: string },
+ *   _thought_signature?: string, _repaired?: boolean, _raw_content_parts?: unknown }} BuilderToolCall
+ */

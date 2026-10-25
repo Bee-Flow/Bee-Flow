@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Who allows the AI to take part in a conversation on its own, and how much.
  *
@@ -107,6 +107,10 @@ function clampInt(v, fallback, range) {
  */
 function normalizeOrgPolicy(stored, { env = process.env } = {}) {
     const src = stored && typeof stored === 'object' ? stored : {};
+    /**
+     * @param {unknown} v
+     * @param {boolean} fallback
+     */
     const bool = (v, fallback) => (typeof v === 'boolean' ? v : fallback);
     /** @type {Record<string, any>} */
     const out = {
@@ -115,7 +119,7 @@ function normalizeOrgPolicy(stored, { env = process.env } = {}) {
         commentsAutoAllowed: bool(src.commentsAutoAllowed, DEFAULT_ORG_POLICY.commentsAutoAllowed),
         sensitivity: SENSITIVITIES.includes(src.sensitivity) ? src.sensitivity : DEFAULT_ORG_POLICY.sensitivity,
     };
-    for (const [key, range] of Object.entries(RANGES)) out[key] = clampInt(src[key], DEFAULT_ORG_POLICY[key], range);
+    for (const [key, range] of Object.entries(RANGES)) out[key] = clampInt(src[key], DEFAULT_ORG_POLICY[/** @type {keyof typeof RANGES} */ (key)], range);
     // The debounce ceiling can never be shorter than one quiet period.
     if (out.maxDebounceSeconds < out.quietSeconds) out.maxDebounceSeconds = out.quietSeconds;
     return /** @type {typeof DEFAULT_ORG_POLICY} */ (out);
@@ -131,9 +135,12 @@ function normalizeUserPreference(stored) {
     };
 }
 
-/** The gate's confidence threshold for a policy. */
+/**
+ * The gate's confidence threshold for a policy.
+ * @param {{ sensitivity?: string } | null | undefined} policy
+ */
 function thresholdFor(policy) {
-    return THRESHOLDS[policy?.sensitivity] ?? THRESHOLDS.balanced;
+    return /** @type {Record<string, number>} */ (THRESHOLDS)[policy?.sensitivity] ?? THRESHOLDS.balanced;
 }
 
 /**
@@ -163,6 +170,12 @@ function makePolicy(deps = {}) {
     /** @type {Map<string, { at: number, value: any }>} */
     const userCache = new Map();
 
+    /**
+     * @template T
+     * @param {Map<string, { at: number, value: T }>} cache
+     * @param {string} key
+     * @returns {T | undefined}
+     */
     const fresh = (cache, key) => {
         const hit = cache.get(key);
         return hit && now() - hit.at < CACHE_TTL_MS ? hit.value : undefined;
@@ -183,7 +196,7 @@ function makePolicy(deps = {}) {
             try {
                 stored = await getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
             } catch (err) {
-                log.warn(`[AiParticipation] policy of org ${orgId} unreadable, the AI does not join on its own: ${err && err.message}`);
+                log.warn(`[AiParticipation] policy of org ${orgId} unreadable, the AI does not join on its own: ${err && /** @type {Error} */ (err).message}`);
                 return { ...normalizeOrgPolicy(null, { env }), autoAllowed: false, commentsAutoAllowed: false, unavailable: true };
             }
         }
@@ -192,7 +205,10 @@ function makePolicy(deps = {}) {
         return policy;
     }
 
-    /** Whether the org ever saved a policy (for the settings screen). */
+    /**
+     * Whether the org ever saved a policy (for the settings screen).
+     * @param {string|null|undefined} orgId
+     */
     async function isOrgPolicyConfigured(orgId) {
         if (!orgId) return false;
         return !!(await getConfig(`${CONFIG_KEY_PREFIX}${orgId}`));
@@ -223,7 +239,7 @@ function makePolicy(deps = {}) {
         try {
             stored = await getConfig(`${USER_KEY_PREFIX}${userId}`);
         } catch (err) {
-            log.warn(`[AiParticipation] preference of user ${userId} unreadable, treated as an opt-out: ${err && err.message}`);
+            log.warn(`[AiParticipation] preference of user ${userId} unreadable, treated as an opt-out: ${err && /** @type {Error} */ (err).message}`);
             return { autoJoinOnMyMessages: false, unavailable: true };
         }
         const pref = normalizeUserPreference(stored);
@@ -243,13 +259,14 @@ function makePolicy(deps = {}) {
         resolveOrgPolicy,
         isOrgPolicyConfigured,
         saveOrgPolicy,
-        invalidateOrgPolicy: (orgId) => orgCache.delete(orgId || ''),
+        invalidateOrgPolicy: (/** @type {string|null|undefined} */ orgId) => orgCache.delete(orgId || ''),
         resolveUserPreference,
         saveUserPreference,
-        invalidateUserPreference: (userId) => userCache.delete(userId),
+        invalidateUserPreference: (/** @type {string} */ userId) => userCache.delete(userId),
     };
 }
 
+/** @type {ReturnType<typeof makePolicy> | null} */
 let shared = null;
 /** One instance per process, so the settings routes and the engine share one cache. */
 function defaultPolicy() {

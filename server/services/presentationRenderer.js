@@ -312,3 +312,27 @@ module.exports = {
     DEFAULT_DECK_THEME,
     _test: { resolveDeckImages, prepareTheme, flattenMarking },
 };
+
+/** @typedef {import('../core/documents/deckModel').Deck} Deck */
+
+/** @typedef {import('../core/documents/deckModel').ImageRef} ImageRef */
+
+/** @typedef {import('../core/documents/office/officegen').DeckSlide} DeckSlide */
+
+/** @typedef {(ref: ImageRef) => Promise<string | null>} ImageResolver */
+
+/** @typedef {Awaited<ReturnType<typeof deckThemeFor>>} DeckTheme */
+
+/** @typedef {ImageRef & { aspect?: number | null }} ResolvedImage */
+
+/**
+ * A slide while resolveDeckImages turns its image references into measured data: URLs.
+ * @typedef {{ layout: string | null, bullets: unknown[], body: unknown, image: ResolvedImage | null,
+ *   cards: Array<{ icon?: string, iconDataUrl?: string, image?: ResolvedImage | null }> | null,
+ *   stats: Array<{ icon?: string, iconDataUrl?: string, image?: ResolvedImage | null }> | null }} ResolvingSlide
+ */
+
+/**
+ * A deck after resolveDeckImages: the shape the pptx / PDF / HTML builders take.
+ * @typedef {{ slides: DeckSlide[], title?: string, subtitle?: string, author?: string, date?: string, coverNotes?: string }} RenderableDeck
+ */

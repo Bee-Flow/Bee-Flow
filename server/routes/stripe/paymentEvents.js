@@ -429,3 +429,21 @@ module.exports = {
     _sendFinalDunningEmailOnce,
     _sendPaymentFailedEmailOnce,
 };
+
+/**
+ * The fields of the (unexpanded) Stripe webhook objects these handlers read.
+ * @typedef {{ id: string, invoice?: string | null, subscription?: string | null, customer?: string | null, amount_refunded?: number }} WebhookCharge
+ * @typedef {{ id: string, charge?: string | null, customer?: string | null, reason?: string, amount?: number }} WebhookDispute
+ * @typedef {{
+ *   id: string,
+ *   subscription?: string | null,
+ *   customer?: string | null,
+ *   billing_reason?: string | null,
+ *   amount_paid?: number,
+ *   currency?: string,
+ *   hosted_invoice_url?: string | null,
+ *   subscription_details?: { metadata?: Record<string, string> | null } | null,
+ *   lines?: { data?: Array<{ description?: string | null, period?: { end?: number }, price?: { id?: string, nickname?: string | null, recurring?: { interval?: string } | null } | null }> },
+ * }} WebhookInvoice
+ * @typedef {{ scope: string, id: string }} SubscriptionTarget
+ */

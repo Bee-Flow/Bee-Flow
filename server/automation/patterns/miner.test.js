@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Miner tests, including the golden gate over __fixtures__/streams.js:
@@ -16,7 +16,10 @@ const { scoreCandidate } = require('./score');
 const { fixtures } = require('./__fixtures__/streams');
 const B = require('./__fixtures__/builders');
 
-/** The pure chain the pipeline runs: mine → effort → score → rank. */
+/**
+ * The pure chain the pipeline runs: mine → effort → score → rank.
+ * @param {typeof fixtures[number]} f
+ */
 function rank(f) {
     const res = minePatterns(f.events, { now: f.now });
     const ranked = res.candidates
@@ -28,6 +31,10 @@ function rank(f) {
     return { ...res, ranked };
 }
 
+/**
+ * @param {import('./miner').Candidate} c
+ * @param {{ kind?: string, verbs?: string[] }} e
+ */
 const matches = (c, e) => (!e.kind || c.kind === e.kind) && (e.verbs || []).every((v) => c.verbs.includes(v));
 
 test('there are about thirty labelled streams of both kinds', () => {
@@ -68,6 +75,7 @@ test('golden: cold-start streams are early, the rest are not', () => {
 });
 
 test('rejections are named: bulk mail, bare meetings, auto-sync, unknown sources', () => {
+    /** @param {string} n */
     const byName = (n) => fixtures.find((f) => f.name === n);
     assert.ok(minePatterns(byName('newsletter_weekly_bulk').events, { now: B.NOW }).rejected.bulk_no_action >= 1);
     assert.ok(minePatterns(byName('bare_daily_standup').events, { now: B.NOW }).rejected.bare_meeting >= 1);
@@ -117,7 +125,8 @@ test('candidates never carry raw text: templates are masked, domains pseudonymou
 
 test('gateFailure: weekly needs 3 of the last 6 weeks, monthly needs 3 months', () => {
     const now = B.NOW;
-    const cad = (o) => ({ kind: 'weekly', distinctDays: 5, recentWeeks: 3, weeksPresent: 5, weeksWindow: 13, monthsPresent: 2, lastTs: now, ...o });
+    /** @param {Partial<import('./periodicity').Cadence>} o */
+    const cad = (o) => /** @type {import('./periodicity').Cadence} */ ({ kind: 'weekly', distinctDays: 5, recentWeeks: 3, weeksPresent: 5, weeksWindow: 13, monthsPresent: 2, lastTs: now, ...o });
     assert.strictEqual(gateFailure(cad({}), 5, false, now), null);
     assert.strictEqual(gateFailure(cad({ recentWeeks: 2 }), 5, false, now), 'recent');
     assert.strictEqual(gateFailure(cad({}), 3, false, now), 'support');

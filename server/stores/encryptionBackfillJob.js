@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * In-memory job state for "encrypt existing data" (stores/encryptionBackfill.js).
@@ -16,21 +16,33 @@
 const log = require('../telemetry/log');
 
 const MAX_JOBS = 200;
-/** @type {Map<string, any>} */
+/**
+ * @typedef {import('./encryptionBackfill').BackfillStats} BackfillStats
+ * @typedef {{ status: string, dryRun: boolean | null, startedAt: string | null, finishedAt: string | null,
+ *   surfaces: Record<string, BackfillStats>, error: string | null }} BackfillJob
+ */
+
+/** @type {Map<string, BackfillJob>} */
 const jobs = new Map();
 /** @type {Function|null} test seam: replaces the real engine when set */
 let defaultBackfillOrg = null;
 
 const GENERIC_ERROR = 'The encryption run failed. See the server log for details.';
 
+/** @returns {BackfillJob} */
 function idle() {
     return { status: 'idle', dryRun: null, startedAt: null, finishedAt: null, surfaces: {}, error: null };
 }
 
+/**
+ * @param {BackfillJob} job
+ * @returns {BackfillJob}
+ */
 function snapshot(job) {
     return { ...job, surfaces: JSON.parse(JSON.stringify(job.surfaces)) };
 }
 
+/** @param {string|number} orgId */
 function get(orgId) {
     const job = jobs.get(String(orgId));
     return job ? snapshot(job) : idle();
@@ -45,7 +57,10 @@ function evictIfFull() {
 
 /**
  * Start a job in the background.
- * @returns {{started: boolean, job: object}} started=false when one already runs.
+ * @returns {{started: boolean, job: BackfillJob}} started=false when one already runs.
+ * @param {string | string[]} orgId
+ * @param {boolean} [dryRun]
+ * @param {{ backfillOrg?: typeof import('./encryptionBackfill').backfillOrg }} [deps]
  */
 function start(orgId, dryRun, deps = {}) {
     const key = String(orgId);
@@ -53,6 +68,7 @@ function start(orgId, dryRun, deps = {}) {
     if (existing && existing.status === 'running') return { started: false, job: snapshot(existing) };
 
     const backfillOrg = deps.backfillOrg || defaultBackfillOrg || require('./encryptionBackfill').backfillOrg;
+    /** @type {BackfillJob} */
     const job = {
         status: 'running', dryRun: !!dryRun,
         startedAt: new Date().toISOString(), finishedAt: null, surfaces: {}, error: null,
@@ -64,7 +80,7 @@ function start(orgId, dryRun, deps = {}) {
     Promise.resolve()
         .then(() => backfillOrg(key, {
             dryRun: !!dryRun,
-            onProgress: (surface, stats) => { job.surfaces[surface] = { ...stats }; },
+            onProgress: (/** @type {string} */ surface, /** @type {BackfillStats} */ stats) => { job.surfaces[surface] = { ...stats }; },
         }))
         .then((result) => {
             if (result && result.surfaces) {
@@ -84,6 +100,7 @@ function start(orgId, dryRun, deps = {}) {
 
 /** Test helpers. */
 function _reset() { jobs.clear(); defaultBackfillOrg = null; }
+/** @param {Function | null} fn */
 function _setDefaultBackfillOrg(fn) { defaultBackfillOrg = fn; }
 
 module.exports = { start, get, _reset, _setDefaultBackfillOrg, GENERIC_ERROR };

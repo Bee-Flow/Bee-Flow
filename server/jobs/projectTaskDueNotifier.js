@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project task due-date notifier — a daily tick that rings the bell of the
  * people a task is given to: the day before it is due, on the day, and every
@@ -22,10 +22,11 @@ const { bestEffort } = require('../utils/bestEffort');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LOCK_KEY = 0xBEEF7A5; // unique among jobs/* advisory locks
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 /** `YYYY-MM-DD` of a moment, in UTC. */
-const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
+const dayOf = (/** @type {number} */ ms) => new Date(ms).toISOString().slice(0, 10);
 
 /**
  * Which reminder a task is due for today, if any, given the last one sent.
@@ -37,6 +38,7 @@ const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
  * @returns {{ tier: 'due_1d'|'due_today'|'overdue', marker: string }|null}
  */
 function reminderFor(dueDate, today, tomorrow, sent) {
+    /** @type {'due_1d'|'due_today'|'overdue'|null} */
     let tier = null;
     let marker = null;
     if (dueDate === tomorrow) { tier = 'due_1d'; marker = 'due_1d'; }
@@ -53,7 +55,7 @@ function reminderFor(dueDate, today, tomorrow, sent) {
  * @param {{ due: Function }} [deps.notifier]   projects/taskNotify surface
  */
 async function run(deps = {}) {
-    const query = deps.query || ((sql, params) => pool.query(sql, params));
+    const query = deps.query || ((/** @type {string} */ sql, /** @type {unknown[]} */ params) => pool.query(sql, params));
     const nowMs = (deps.now || Date.now)();
     const today = dayOf(nowMs);
     const tomorrow = dayOf(nowMs + DAY_MS);

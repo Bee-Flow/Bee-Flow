@@ -252,3 +252,25 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
 }
 
 module.exports = { datasetQueryStep, resolveReadyDataset, datasetAdapter, _internals: { datasetIdOf, outputsFor, indexCache } };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof datasetFileStore.getDataset>>>} DatasetManifest  one ready manifest row
+ * @typedef {Awaited<ReturnType<typeof queryRegion>>} RegionResult
+ * @typedef {RegionResult['rows'][number]} VariantRow
+ * @typedef {import('./actionExecutor/shared').Binding} Binding
+ * @typedef {import('./actionExecutor/shared').ExecCtx} ExecCtx
+ * @typedef {import('./actionExecutor/shared').DataModel} DataModel
+ * @typedef {import('./actionExecutor/shared').DataTable} DataTable
+ * @typedef {object} DatasetQueryStepDef  the authored dataset_query step
+ * @property {string} [kind]
+ * @property {Binding} [dataset]
+ * @property {Binding} [gene]
+ * @property {Binding} [region]
+ * @property {Binding} [rsid]
+ * @property {boolean} [filterPass]
+ * @property {number} [minQual]
+ * @property {number} [limit]
+ * @property {boolean} [includeGenotypes]
+ * @property {string} [resultDetail]
+ * @property {{ tableId?: string, mapping?: Record<string, unknown>, constants?: Record<string, Binding>, upsertOn?: string }} [writeTo]
+ */

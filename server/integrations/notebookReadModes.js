@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The read side of the chat's notebook tools (integrations/workspaceTools.js
  * notebook_read): a Markdown notebook read as an outline, one section, the
@@ -11,6 +11,7 @@
 
 /**
  * Count words in text.
+ * @param {string | undefined} text
  */
 function wordCount(text) {
     return text.split(/\s+/).filter(Boolean).length;
@@ -19,10 +20,13 @@ function wordCount(text) {
 /**
  * Parse a Markdown document into sections based on headings.
  * Returns an array of { heading, level, startLine, endLine, content, words }.
+ * @param {string} content
  */
 function parseSections(content) {
     const lines = content.split('\n');
+    /** @type {{ heading: string; level: number; startLine: number; endLine: number; content: string; words: number; }[]} */
     const sections = [];
+    /** @type {{ heading: string; level: number; startLine: number; endLine: number; content: string; words: number; } | null} */
     let currentSection = null;
 
     for (let i = 0; i < lines.length; i++) {
@@ -70,6 +74,8 @@ function parseSections(content) {
 
 /**
  * Build an outline string from sections.
+ * @param {string} content
+ * @param {{ heading: string; level: number; startLine: number; endLine: number; content: string; words: number; }[]} sections
  */
 function buildOutline(content, sections) {
     const totalWords = wordCount(content);
@@ -165,6 +171,7 @@ function readNotebookContent(content, args) {
         const queryLower = query.toLowerCase();
         const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 2);
         const lines = content.split('\n');
+        /** @type {{ line: number; context: string; _start: number; _end: number; }[]} */
         const matches = [];
         const CONTEXT_LINES = 2;
 

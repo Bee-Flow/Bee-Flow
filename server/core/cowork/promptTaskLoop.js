@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The tool-calling loop of a plain-prompt Cowork run (executeTask in
  * core/aiTaskRunner.js): model round, tool calls through the shield gate and
@@ -18,7 +18,17 @@ const log = require('../../telemetry/log');
 // after Opus 4.7 agent runs were hitting the cap at ~15 rounds.
 const MAX_TOOL_ITERATIONS = 20;
 
-/** The assistant message that carries a round's tool calls. */
+/**
+ * @typedef {{ id?: string, function?: { name?: string, arguments?: unknown }, _thought_signature?: string, _raw_content_parts?: unknown }} LoopToolCall
+ * @typedef {{ content?: string | null, toolCalls?: LoopToolCall[] | null, usage?: unknown, stop_reason?: string, stopReason?: string, finish_reason?: string }} LoopReply
+ * @typedef {ReturnType<typeof import('../privacy/toolPiiGate').toolLoopGate>} ShieldGate
+ * @typedef {(toolName: string, toolArgs: Record<string, unknown>) => Promise<unknown>} DispatchTool
+ */
+
+/**
+ * The assistant message that carries a round's tool calls.
+ * @param {LoopReply} response
+ */
 function toolCallMessage(response) {
     // Preserve _thought_signature — required by Gemini 3.x for multi-turn tool calls
     return {
@@ -42,6 +52,8 @@ function toolCallMessage(response) {
 /**
  * Execute one round's tool calls in order, pushing a `tool` message for each.
  * A call the shield refuses is never dispatched.
+ * @param {LoopToolCall[]} toolCalls
+ * @param {{ messages: object[], shieldGate: ShieldGate, dispatchTool: DispatchTool }} opts
  */
 async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
     for (const tc of toolCalls) {
@@ -85,6 +97,19 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
  * Run the loop. `run.lastIter` is kept current (the caller's usage and
  * termination rows read it); `logTermination(type)` writes a termination row.
  * Resolves to `{ finalResponse, lastAssistantContent, hitIterationCap }`.
+ * @param {{
+ *   adapter: { chat: (apiKey: string, baseUrl: string, model: string, messages: object[], options: object) => Promise<LoopReply> },
+ *   config: { apiKey?: string, url: string },
+ *   modelId: string,
+ *   messages: object[],
+ *   tools: unknown[],
+ *   tierDefaults: { maxTokens?: number, temperature?: number },
+ *   usageAcc: ReturnType<typeof import('../providers/usageNormalizer').createUsageAccumulator>,
+ *   shieldGate: ShieldGate,
+ *   dispatchTool: DispatchTool,
+ *   logTermination: (type: string) => unknown,
+ *   run: { lastIter?: number },
+ * }} opts
  */
 async function runPromptToolLoop({ adapter, config, modelId, messages, tools, tierDefaults, usageAcc, shieldGate, dispatchTool, logTermination, run }) {
     let finalResponse = '';

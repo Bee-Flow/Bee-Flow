@@ -627,3 +627,9 @@ module.exports = {
     getCustomTierById,
     isReasoningModel,
 };
+
+/**
+ * @typedef {{ id?: string, label?: string, icon?: string, description?: string, modelId?: string, euModelId?: string, custom?: boolean, maxTokens?: number, temperature?: number, reasoningEffort?: string, reasoningSummary?: boolean, verbosity?: string, budgetTokens?: number, bootstrapModelId?: string, model?: string }} TierConfig
+ * @typedef {Record<string, TierConfig>} TierMap
+ * @typedef {{ userOrgId?: string|null, userId?: string|null }} TierScope
+ */

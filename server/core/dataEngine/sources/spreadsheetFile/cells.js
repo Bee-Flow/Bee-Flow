@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One cell, both ways: what the sheet holds ↔ what the mirror stores.
  *
@@ -55,13 +55,17 @@ const NO = new Set(['no', 'n', 'false', '0', 'nee', 'onwaar', 'niet', 'off']);
 const FORMULA_TRIGGER_RE = /^[=+\-@\t\r]/;
 const TYPED_AS_NUMBERISH = ['number', 'date', 'datetime', 'bool'];
 
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
 
+/** @param {unknown} v */
 function isBlank(v) {
     return v === null || v === undefined || v === '' || (typeof v === 'number' && Number.isNaN(v));
 }
 
-/** The wall-clock parts of a UTC Date. */
+/**
+ * The wall-clock parts of a UTC Date.
+ * @param {Date} d
+ */
 function partsOf(d) {
     return {
         y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(),
@@ -69,15 +73,18 @@ function partsOf(d) {
     };
 }
 
+/** @param {Date} d */
 function hasTime(d) {
     return d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0 || d.getUTCSeconds() !== 0 || d.getUTCMilliseconds() !== 0;
 }
 
+/** @param {Date} d */
 function isoDate(d) {
     const p = partsOf(d);
     return `${p.y}-${pad(p.m)}-${pad(p.d)}`;
 }
 
+/** @param {Date} d */
 function isoDateTime(d) {
     const p = partsOf(d);
     return `${p.y}-${pad(p.m)}-${pad(p.d)}T${pad(p.H)}:${pad(p.M)}:${pad(p.S)}.000Z`;
@@ -86,6 +93,7 @@ function isoDateTime(d) {
 /**
  * An Excel/Sheets serial → UTC wall-clock Date, rounded to the second (a
  * serial is a double; 13:45:30 comes back as 13:45:29.9999… otherwise).
+ * @param {unknown} serial
  */
 function serialToDate(serial) {
     const n = Number(serial);
@@ -99,6 +107,8 @@ function serialToDate(serial) {
 /**
  * Serial → ISO. A whole day gives 'YYYY-MM-DD'; a fractional serial gives the
  * wall clock as a UTC ISO string. `{ time: true }` forces the long form.
+ * @param {unknown} serial
+ * @param {{ time?: boolean }} [opts]
  */
 function serialToIso(serial, { time = false } = {}) {
     const d = serialToDate(serial);
@@ -106,7 +116,10 @@ function serialToIso(serial, { time = false } = {}) {
     return (time || hasTime(d)) ? isoDateTime(d) : isoDate(d);
 }
 
-/** ISO date/datetime (or a UTC Date) → serial, the exact inverse. */
+/**
+ * ISO date/datetime (or a UTC Date) → serial, the exact inverse.
+ * @param {unknown} value
+ */
 function isoToSerial(value) {
     const d = value instanceof Date ? value : parseIsoUtc(value);
     if (!d) return null;
@@ -114,7 +127,10 @@ function isoToSerial(value) {
     return serial < LEAP_BUG_SERIAL ? serial - 1 : serial;
 }
 
-/** 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:mm[:ss[.sss]][Z|±hh:mm]' → UTC Date (wall clock when no zone). */
+/**
+ * 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:mm[:ss[.sss]][Z|±hh:mm]' → UTC Date (wall clock when no zone).
+ * @param {unknown} value
+ */
 function parseIsoUtc(value) {
     if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
     const s = String(value ?? '').trim();
@@ -137,6 +153,11 @@ function parseIsoUtc(value) {
     return new Date(t);
 }
 
+/**
+ * @param {number} y
+ * @param {number} m
+ * @param {number} d
+ */
 function calendarDate(y, m, d) {
     if (!Number.isInteger(y) || m < 1 || m > 12 || d < 1) return null;
     const probe = new Date(Date.UTC(y, m - 1, d));
@@ -151,6 +172,7 @@ function calendarDate(y, m, d) {
  * "1,234.56" are the same amount); a lone comma is a decimal point unless it
  * groups three digits at a time. A leading zero ("0123") is an identifier,
  * not a number, and stays text — so is anything with mixed grouping.
+ * @param {unknown} text
  */
 function parseNumberish(text) {
     if (typeof text === 'number') return text;
@@ -185,12 +207,17 @@ function parseNumberish(text) {
  * in a text-shaped column: a number column's -5 is a number, a date's
  * serial is a serial. A value that came in typed (a number, a Date) can
  * never be parsed as one.
+ * @param {unknown} value
+ * @param {string} type
  */
 function formulaShaped(value, type) {
     return !TYPED_AS_NUMBERISH.includes(type) && typeof value === 'string' && FORMULA_TRIGGER_RE.test(value);
 }
 
-/** yes/no/true/false/ja/nee/waar/onwaar/wel/niet (and x, 1, 0) → boolean, else null. */
+/**
+ * yes/no/true/false/ja/nee/waar/onwaar/wel/niet (and x, 1, 0) → boolean, else null.
+ * @param {unknown} text
+ */
 function parseBoolish(text) {
     if (typeof text === 'boolean') return text;
     if (typeof text === 'number') return text === 1 ? true : text === 0 ? false : null;
@@ -214,6 +241,8 @@ function parseBoolish(text) {
  * csv writer which spelling the column used, and `ambiguous` says the
  * spelling was a GUESS (both numbers could be the month) — infer.js lets
  * only the cells that were not decide a column's spelling.
+ * @param {unknown} text
+ * @param {string|null} [dateFormat]
  */
 function parseDateishDetailed(text, dateFormat = null) {
     const s = String(text ?? '').trim();
@@ -243,12 +272,20 @@ function parseDateishDetailed(text, dateFormat = null) {
     return null;
 }
 
+/**
+ * @param {unknown} text
+ * @param {string|null} [dateFormat]
+ */
 function parseDateish(text, dateFormat = null) {
     const r = parseDateishDetailed(text, dateFormat);
     return r ? r.date : null;
 }
 
-/** A date + 'HH:mm[:ss]' cell → UTC wall-clock ISO, or null. `dateFormat` as for parseDateish. */
+/**
+ * A date + 'HH:mm[:ss]' cell → UTC wall-clock ISO, or null. `dateFormat` as for parseDateish.
+ * @param {unknown} text
+ * @param {string|null} [dateFormat]
+ */
 function parseDatetimeish(text, dateFormat = null) {
     if (text instanceof Date) return Number.isNaN(text.getTime()) ? null : isoDateTime(text);
     const s = String(text ?? '').trim();
@@ -266,7 +303,10 @@ function parseDatetimeish(text, dateFormat = null) {
     return `${date}T${pad(hh)}:${pad(mm)}:${pad(ss)}.000Z`;
 }
 
-/** Excel's `z` number format → the coarse format the columnMap remembers. */
+/**
+ * Excel's `z` number format → the coarse format the columnMap remembers.
+ * @param {unknown} numFmt
+ */
 function formatOfNumFmt(numFmt) {
     const z = String(numFmt || '');
     if (!z || z === 'General') return null;
@@ -333,12 +373,19 @@ function readCell(raw, entry) {
 // The write codec
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {{ header?: string, key?: string } | null | undefined} entry
+ * @param {string} why
+ */
 function reject(entry, why) {
     const title = (entry && (entry.header || entry.key)) || 'column';
     return new SpreadsheetSourceError(422, 'spreadsheet_rejected', `${title}: ${why}`, { detail: why });
 }
 
-/** Is this Date at 00:00:00.000 on the SERVER's own clock (what postgres-date makes of a DATE)? */
+/**
+ * Is this Date at 00:00:00.000 on the SERVER's own clock (what postgres-date makes of a DATE)?
+ * @param {Date} d
+ */
 function isLocalMidnight(d) {
     return d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
 }
@@ -352,6 +399,7 @@ function isLocalMidnight(d) {
  * of the day BEFORE). The pg shape is read on the local clock — the same
  * rule writeThrough.dateKeys applies when it compares — and only that
  * shape: a genuine instant with a clock keeps its UTC day, as before.
+ * @param {Date} d
  */
 function calendarDayOf(d) {
     const pgShape = !hasTime(d) ? false : isLocalMidnight(d);
@@ -364,6 +412,8 @@ function calendarDayOf(d) {
  * What goes into the sheet for one value set in Bee Flow: a primitive, a UTC
  * wall-clock Date, or null (clears the cell). Throws a 422 for a value the
  * column's declared type cannot hold.
+ * @param {unknown} value
+ * @param {{ type?: string, dateFormat?: string, header?: string, key?: string } | null | undefined} entry
  */
 function writeCell(value, entry) {
     if (isBlank(value)) return null;

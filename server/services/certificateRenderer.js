@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Render a Bee Flow certificate to PNG (LinkedIn og:image, 1200×630) or a print
 // PDF (A4 landscape), reusing the shared Playwright pool (browserProvider) and the
 // inline HTML template. Mirrors the webpageExport.js / webpageRender.js patterns.
@@ -6,6 +6,10 @@
 const browserProvider = require('./browserProvider');
 const { buildCertificateHtml } = require('./certificateTemplate');
 
+/**
+ * @param {{ [key: string]: unknown; recipientName?: string; orgName?: string; title?: string; level?: string; courses?: { title?: string; [key: string]: unknown; }[]; serial?: string; issuedAt?: string | number | Date; }} record
+ * @param {{ verifyUrl?: string | null }} [opts]
+ */
 async function renderCertificatePng(record, { verifyUrl = null } = {}) {
     const html = buildCertificateHtml(record, { verifyUrl, variant: 'share' });
     return browserProvider.withContext(
@@ -18,6 +22,10 @@ async function renderCertificatePng(record, { verifyUrl = null } = {}) {
     );
 }
 
+/**
+ * @param {{ [key: string]: unknown; recipientName?: string; orgName?: string; title?: string; level?: string; courses?: { title?: string; [key: string]: unknown; }[]; serial?: string; issuedAt?: string | number | Date; }} record
+ * @param {{ verifyUrl?: string | null }} [opts]
+ */
 async function renderCertificatePdf(record, { verifyUrl = null } = {}) {
     const html = buildCertificateHtml(record, { verifyUrl, variant: 'print' });
     return browserProvider.withContext({}, async (context) => {

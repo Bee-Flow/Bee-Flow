@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the machine notes folded into the single user message
  * each turn: the live draft state, the approved plan, the planMode directive,
@@ -16,18 +16,28 @@ const {
     APPROVED_PLAN_PREFIX, PLAN_POLICY_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX,
 } = require('./turnLoop');
 
-/** The approved plan, re-rendered as a machine message every turn until finalize. */
+/**
+ * The approved plan, re-rendered as a machine message every turn until finalize.
+ * @param {unknown} plan
+ */
 function renderApprovedPlanNote(plan) {
     return `${APPROVED_PLAN_PREFIX}\nThe user approved this plan — build exactly it (do not re-propose). Announce each phase with app_mark_phase as you start it.\n${JSON.stringify(plan)}`;
 }
 
-/** planMode directive (only when non-'auto'); null for 'auto' (system-prompt policy applies). */
+/**
+ * planMode directive (only when non-'auto'); null for 'auto' (system-prompt policy applies).
+ * @param {string|null|undefined} mode
+ */
 function renderPlanPolicyNote(mode) {
     if (mode === 'always') return `${PLAN_POLICY_PREFIX}\nPropose a build plan with app_propose_plan before building anything this turn.`;
     if (mode === 'never') return `${PLAN_POLICY_PREFIX}\nDo NOT propose a plan — build the app directly with the tools.`;
     return null;
 }
 
+/**
+ * @param {import('../../../appStudio/builderTools').AppDef} def
+ * @param {Partial<import('../../../appStudio/builderTools').BuilderDraft>} [draftWrap]
+ */
 function renderDraftStateNote(def, draftWrap = {}) {
     return `${DRAFT_STATE_PREFIX}\n${renderDraftState(def, {
         dataModel: draftWrap.dataModel,
@@ -39,13 +49,23 @@ function renderDraftStateNote(def, draftWrap = {}) {
 
 // ── Editor context — whitelisted, bounded projection of body.context ──
 
+/**
+ * @typedef {{ screenId?: string, nodeId?: string, boundTableId?: string, templateId?: string, selectedNodeIds?: string[] }} EditorContext
+ */
+
+/** @type {Array<'screenId'|'nodeId'|'boundTableId'|'templateId'>} */
 const CONTEXT_STRING_KEYS = ['screenId', 'nodeId', 'boundTableId', 'templateId'];
 const MAX_SELECTED_NODE_IDS = 20;
 const MAX_CONTEXT_ID_LEN = 64;
 
-/** Whitelist + bound the client's editor context; null when nothing usable. */
+/**
+ * Whitelist + bound the client's editor context; null when nothing usable.
+ * @param {Record<string, unknown>|null|undefined} raw
+ * @returns {EditorContext|null}
+ */
 function sanitizeEditorContext(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    /** @type {EditorContext} */
     const out = {};
     for (const key of CONTEXT_STRING_KEYS) {
         const v = raw[key];
@@ -60,6 +80,9 @@ function sanitizeEditorContext(raw) {
     return Object.keys(out).length ? out : null;
 }
 
+/**
+ * @param {EditorContext|null|undefined} context
+ */
 function renderEditorContextNote(context) {
     if (!context) return null;
     const lines = [EDITOR_CONTEXT_PREFIX];

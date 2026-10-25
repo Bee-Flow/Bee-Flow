@@ -1,10 +1,11 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createProviderLimiter, limiterKeyFor, estimateRequestTokens, rateLimitInfo } = require('./providerLimiter');
 
 /** A limiter on a fake clock: sleep advances time and records the waits. */
 function fakeLimiter(env = {}) {
+    /** @type {{ t: number, waits: number[] }} */
     const clock = { t: 1_000_000, waits: [] };
     const limiter = createProviderLimiter({
         now: () => clock.t,
@@ -14,6 +15,10 @@ function fakeLimiter(env = {}) {
     return { limiter, clock };
 }
 
+/**
+ * @param {number} status
+ * @param {Record<string, unknown> | Headers} [headers]
+ */
 function rateErr(status, headers) {
     const e = /** @type {any} */ (new Error(`API error ${status}`));
     e.status = status;
@@ -61,7 +66,9 @@ test('0 means unlimited for requests and tokens', async () => {
 
 test('waiters on one key are served first come, first served', async () => {
     const { limiter } = fakeLimiter({ LLM_PROVIDER_RPM: '1', LLM_PROVIDER_TPM: '0' });
+    /** @type {number[]} */
     const order = [];
+    /** @param {number} n */
     const run = (n) => limiter.acquire('k', { tokens: 1 }).then(() => order.push(n));
     await Promise.all([run(1), run(2), run(3), run(4)]);
     assert.deepEqual(order, [1, 2, 3, 4]);
@@ -217,10 +224,11 @@ test('limiterKeyFor: same connection, same bucket; other key, other bucket; neve
 
 test('limitedChat calls adapter.chat with the plain arguments and settles from usage', async () => {
     const { limiter } = fakeLimiter({});
+    /** @type {unknown[][]} */
     const seen = [];
     const adapter = {
         name: 'stub',
-        chat: async (...args) => { seen.push(args); return { content: 'hi', usage: { input_tokens: 1, output_tokens: 2 } }; },
+        chat: async (/** @type {unknown[]} */ ...args) => { seen.push(args); return { content: 'hi', usage: { input_tokens: 1, output_tokens: 2 } }; },
     };
     const out = await limiter.limitedChat({
         adapter, cfg: { apiKey: 'k', url: 'u' }, modelId: 'm', messages: [{ role: 'user', content: 'x' }], options: { temperature: 0 },

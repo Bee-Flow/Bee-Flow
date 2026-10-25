@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -19,18 +19,26 @@ const { preloadStubs } = require('./stubRequire');
 
 const SERVER = path.join(__dirname, '..');
 
+/**
+ * @param {{
+ *   groups?: Record<string, string[]>,
+ *   connected?: Set<string> | null,
+ *   session?: ((userId: string) => unknown) | null,
+ *   providers?: (...args: unknown[]) => unknown[],
+ * }} [opts]
+ */
 function installRunnerIdentityStubs({ groups = {}, connected = null, session = null, providers = () => [] } = {}) {
     preloadStubs(require, {
         [path.join(SERVER, 'auth/automationAuth')]: {
             providersForIntegrations: providers,
-            async buildUserAuth(userId) {
+            async buildUserAuth(/** @type {string} */ userId) {
                 if (session) return session(userId);
                 if (connected && !connected.has(userId)) return null;
                 return { userId, accessToken: null, refreshToken: null, oauthProvider: null, automationProviders: {} };
             },
         },
-        [path.join(SERVER, 'core/integrations/enabledIntegrations')]: { resolveEnabledIntegrations: async () => [], mergeEnabled: (a) => a },
-        [path.join(SERVER, 'auth/audience')]: { resolveUserGroups: async (id) => groups[id] || [] },
+        [path.join(SERVER, 'core/integrations/enabledIntegrations')]: { resolveEnabledIntegrations: async () => /** @type {unknown[]} */ ([]), mergeEnabled: (/** @type {unknown[]} */ a) => a },
+        [path.join(SERVER, 'auth/audience')]: { resolveUserGroups: async (/** @type {string} */ id) => groups[id] || [] },
     });
 }
 

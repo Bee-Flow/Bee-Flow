@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Connector — auto-provisioning bootstrap.
  *
@@ -114,6 +114,7 @@ const verificationResendLimiter = rateLimit({
     validate: { trustProxy: false },
 });
 
+/** @param {import('express').Request} req */
 function readBootstrapHeaders(req) {
     return {
         ncInstanceId: String(req.headers['x-beeflow-nc-instance-id'] || '').trim(),
@@ -306,6 +307,7 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
 
 // A pending row's code-send/attempt budget is spent (ncBindings.js caps it per
 // pendingId, independent of the per-IP limiter): no new code until it expires.
+/** @param {import('express').Response} res */
 const tooManyCodeRequests = (res) => res.status(429).json({
     error: 'Too many code requests for this connection; try again later.',
     code: 'too_many_code_requests',
@@ -416,6 +418,7 @@ router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
         });
     }
 
+    /** @type {{ ncInstanceId: string, ncBaseUrl: string, org: { id: string, name: string, ncOnboardingCompletedAt: string | null } | null, tenantKey: { exists: boolean, decryptOk?: boolean, decryptError?: string, fingerprint?: string, updatedAt?: string | Date, testVerify?: Record<string, unknown> } }} */
     const out = {
         ncInstanceId: h.ncInstanceId,
         ncBaseUrl: h.ncBaseUrl,
@@ -531,6 +534,10 @@ router.post('/connector/status', statusReportLimiter, express.json({ limit: '4kb
     // Strict whitelist; everything is length-capped strings or dropped.
     const body = req.body || {};
     const state = body.state === 'ok' ? 'ok' : (body.state === 'error' ? 'error' : null);
+    /**
+     * @param {unknown} v
+     * @param {number} max
+     */
     const str = (v, max) => (typeof v === 'string' && v ? v.slice(0, max) : null);
     const connectorVersion = str(body.connectorVersion, 64);
     const category = str(body.category, 64);

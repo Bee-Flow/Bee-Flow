@@ -313,3 +313,7 @@ module.exports = {
     normaliseStyle,
     _test: { sanitizeHex, sanitizeText, sanitizeLogo },
 };
+
+/**
+ * @typedef {ReturnType<typeof normaliseStyle> | typeof DEFAULT_STYLE} HouseStyle
+ */

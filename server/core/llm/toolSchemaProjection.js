@@ -148,3 +148,7 @@ module.exports = {
     stripUnrenderableKeys,
     projectToolsForTemplate,
 };
+
+/**
+ * @typedef {{ function?: { parameters?: unknown, [k: string]: unknown }, [k: string]: unknown }} ToolDef
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Server-side resolution of WHICH lessons a user can actually access, so badge
 // and certificate eligibility is computed against the same lesson set the client
 // shows (the client filters gated lessons out of courses; the server must not
@@ -17,6 +17,11 @@ const { getUserPermissions, isPermissionLookupDegraded } = require('../auth/perm
 const { resolveCapabilitySet } = require('../core/entitlements/entitlements');
 const { buildVisibleByCourse } = require('./courseCatalog');
 
+/**
+ * @param {{ userId: string, orgId?: string | null,
+ *   session?: (NonNullable<import("../core/entitlements/entitlements").ResolveInput['session']> & { isAdmin?: boolean }) | null,
+ *   req?: import("../core/entitlements/entitlements").ResolveInput['req'] }} opts
+ */
 async function resolveVisibleByCourse({ userId, orgId = null, session = null, req = null }) {
     let perms = null;
     let capSet = null;
@@ -31,6 +36,7 @@ async function resolveVisibleByCourse({ userId, orgId = null, session = null, re
     if (!Array.isArray(perms) || !capSet || capSet.degraded || isPermissionLookupDegraded()) {
         return { visibleByCourse: undefined, degraded: true };
     }
+    /** @param {string} featureId */
     const hasFeature = (featureId) => capSet.has(featureId);
     return { visibleByCourse: buildVisibleByCourse(perms, hasFeature), degraded: false };
 }

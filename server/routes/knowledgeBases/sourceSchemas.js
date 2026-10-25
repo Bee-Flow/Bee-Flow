@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — sources (K1): what a caller may send to create or change
  * a source. Split out of sources.js (the documents query stays there, next
@@ -22,6 +22,9 @@ const REFRESH_MODES = Object.freeze([...new Set(Object.values(REFRESH_MODES_BY_K
 const MODE_TEXT = `A refresh mode is one of: ${REFRESH_MODES.join(', ')}.`;
 const CRON_TEXT = 'A refresh schedule is a cron expression of 5 or 6 fields, like "0 7 * * *".';
 
+/**
+ * @param {string} tz
+ */
 const knownTimeZone = (tz) => {
     if (!tz) return true;
     try { new Intl.DateTimeFormat('en', { timeZone: tz }); return true; }
@@ -87,10 +90,13 @@ const CONFIG_BY_KIND = Object.freeze({
  * A kind with no schema is handed on untouched: "that kind is not available
  * yet" is a feature-flag answer carrying the list a client may offer
  * (`kind_not_available`, which the Studio renders), not a malformed request.
+ * @template {{ kind: string, config?: unknown }} T
+ * @param {T} body
+ * @param {import('zod').RefinementCtx} ctx
  */
 function withKindConfig(body, ctx) {
     if (!Object.prototype.hasOwnProperty.call(CONFIG_BY_KIND, body.kind)) return body;
-    const parsed = CONFIG_BY_KIND[body.kind].safeParse(body.config === undefined ? {} : body.config);
+    const parsed = CONFIG_BY_KIND[/** @type {keyof typeof CONFIG_BY_KIND} */ (body.kind)].safeParse(body.config === undefined ? {} : body.config);
     if (!parsed.success) {
         for (const issue of parsed.error.issues) ctx.addIssue({ ...issue, path: ['config', ...issue.path] });
         return z.NEVER;

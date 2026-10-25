@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The pieces that every /api/studio aggregate shares.
  *
@@ -47,6 +47,9 @@
  * every caller today treats it the same as any other throw, and that is exactly right.
  */
 class GateUndecidable extends Error {
+    /**
+     * @param {string} what
+     */
     constructor(what) {
         super(`gate undecidable: ${what}`);
         this.name = 'GateUndecidable';
@@ -57,9 +60,12 @@ class GateUndecidable extends Error {
 /**
  * A dependency object whose modules are required on first touch.
  *
- * @param {Record<string, () => any>} loaders  name → require thunk
+ * @template {Record<string, () => any>} L
+ * @param {L} loaders  name → require thunk
+ * @returns {{ [K in keyof L]: ReturnType<L[K]> }}
  */
 function makeLazyDeps(loaders) {
+    /** @type {Record<string, any>} */
     const memo = {};
     const deps = {};
     for (const [name, load] of Object.entries(loaders)) {
@@ -68,20 +74,44 @@ function makeLazyDeps(loaders) {
             get() { if (!(name in memo)) memo[name] = load(); return memo[name]; },
         });
     }
-    return deps;
+    return /** @type {{ [K in keyof L]: ReturnType<L[K]> }} */ (deps);
 }
 
+/**
+ * The gate and scoping dependencies (see the DEFAULT_LOADERS of counts.js).
+ * @typedef {{
+ *   modules: typeof import('../../modules'),
+ *   license: typeof import('../../license/middleware'),
+ *   entitlements: typeof import('../../core/entitlements/entitlements'),
+ *   permissions: typeof import('../../auth/permissions'),
+ *   auth: typeof import('../../auth'),
+ *   configStore: typeof import('../../stores/configStore'),
+ *   projectStore: typeof import('../../stores/projectStore'),
+ *   kbStore: typeof import('../../stores/knowledgeBases'),
+ *   kbShared: typeof import('../knowledgeBases/shared'),
+ * }} GateDeps
+ */
+
+/** @param {import('express').Request} req */
 const userIdOf = (req) => req.session?.user?.id || null;
-const orgIdOf = (req) => req.session?.user?.organizationId || req.session?.user?.orgId || null;
+/** @param {import('express').Request} req */
+const orgIdOf = (req) => req.session?.user?.organizationId || /** @type {string | undefined} */ (req.session?.user?.orgId) || null;
 
 // ── Gate helpers — the non-middleware twins of the mount gates ─────────────
 
-/** Modules: isModuleActive gooit zelf als de statuslezing omvalt. */
+/**
+ * Modules: isModuleActive gooit zelf als de statuslezing omvalt.
+ * @param {Pick<GateDeps, 'modules'>} d
+ * @param {string} id
+ */
 const moduleActive = (d, id) => d.modules.isModuleActive(id);
 
 /**
  * Licence. `tier_unavailable` is the tier resolution that could NOT read — not
  * "this org does not have it".
+ * @param {Pick<GateDeps, 'license'>} d
+ * @param {import('express').Request} req
+ * @param {string} feature
  */
 const licenceAllows = async (d, req, feature) => {
     const { allowed, resolution } = (await d.license.featureAllowedForRequest(req, feature)) || {};
@@ -97,6 +127,9 @@ const licenceAllows = async (d, req, feature) => {
  * `degraded` instead of selling it as a "no". A deps object that the batch
  * helper does not supply falls back to hasCapability — then nothing is lost except
  * the distinction that this helper exists to carry.
+ * @param {Pick<GateDeps, 'entitlements'>} d
+ * @param {import('express').Request} req
+ * @param {string} capId
  */
 const capability = async (d, req, capId) => {
     const ctx = { userId: userIdOf(req), orgId: orgIdOf(req), session: req.session, req };
@@ -111,6 +144,9 @@ const capability = async (d, req, capId) => {
 /**
  * Rechten. `hasPermission` false is dubbelzinnig zolang de rechtenlezing
  * degraded is; permissions.js exporteert de vlag daar zelf voor.
+ * @param {Pick<GateDeps, 'permissions'>} d
+ * @param {import('express').Request} req
+ * @param {string} perm
  */
 const permission = async (d, req, perm) => {
     const ok = await d.permissions.hasPermission(userIdOf(req), perm, req.session);
@@ -128,6 +164,8 @@ const permission = async (d, req, perm) => {
  * (feature_projects_enabled). counts.js, search.js, attentionChecks.js and
  * aiRoute.js each carried this body word for word; one copy keeps the four
  * from answering "may this caller see Solutions" differently.
+ * @param {import('express').Request} req
+ * @param {Pick<GateDeps, 'modules' | 'entitlements' | 'configStore'>} d
  */
 const solutionsGate = async (req, d) => {
     if (!(await moduleActive(d, 'projects'))) return false;
@@ -144,6 +182,8 @@ const solutionsGate = async (req, d) => {
  * the legacy projects nobody has classified yet, never a collaborative
  * project. listUserProjects (owner + shares) IS the authorisation; nothing
  * here widens it and no id comes out of the request.
+ * @param {import('express').Request} req
+ * @param {Pick<GateDeps, 'projectStore' | 'auth'>} d
  */
 async function visibleSolutionsFor(req, d) {
     const userId = userIdOf(req);
@@ -163,6 +203,8 @@ async function visibleSolutionsFor(req, d) {
  * empty Set, which cannot be told apart from "member of no
  * organisation at all" (permissions.js:832-866 says so in its own header).
  * Here it throws, and every caller already has a place for a throw.
+ * @param {import('express').Request} req
+ * @param {Pick<GateDeps, 'auth' | 'kbShared' | 'kbStore'>} d
  */
 async function visibleKnowledgeBasesFor(req, d) {
     const userId = userIdOf(req);

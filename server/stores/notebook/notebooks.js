@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/notebook/notebooks.js — notebook CRUD: create, read (owner or
  * project member), the single content-write choke point with its Markdown
@@ -30,6 +30,9 @@ const { resolveNotebookRole, notebookRoleForProjectRole } = require('./membershi
  * caller's role on that project first). `organizationId` stamps the owner's
  * organisation; without it the row is stamped by the boot-time backfill, as
  * standalone notebooks always were.
+ * @param {{ userId: string, name?: string, description?: string, instructions?: string,
+ *   knowledgeBaseIds?: string[], settings?: object, type?: string, projectId?: string|null,
+ *   organizationId?: string|null }} input  every member but userId is optional (defaults in the body)
  */
 async function createNotebook({ userId, name, description, instructions, knowledgeBaseIds, settings, type, projectId = null, organizationId = null }) {
     await initDB();
@@ -59,6 +62,7 @@ async function createNotebook({ userId, name, description, instructions, knowled
 /**
  * @param userId
  * @param {{ limit?: number, offset?: number, type?: string }} [opts]
+ * @param {string} userId
  */
 async function getNotebooks(userId, { limit = 50, offset = 0, type } = {}) {
     await initDB();
@@ -69,6 +73,7 @@ async function getNotebooks(userId, { limit = 50, offset = 0, type } = {}) {
                 (SELECT COUNT(*) FROM notebook_sources ns WHERE ns.notebook_id = n.id) AS source_count
          FROM notebooks n
          WHERE n.user_id = $1`;
+    /** @type {unknown[]} */
     const params = [userId];
     if (type) {
         query += ` AND n.type = $${params.length + 1}`;
@@ -80,6 +85,9 @@ async function getNotebooks(userId, { limit = 50, offset = 0, type } = {}) {
     return rows.map(mapNotebookRow);
 }
 
+/**
+ * @param {string} userId
+ */
 async function listNotebookCards(userId, opts = {}) {
     await initDB();
     const { sql, params } = buildListCardsQuery(userId, opts);
@@ -97,6 +105,8 @@ async function listNotebookCards(userId, opts = {}) {
  *
  * Every answer carries `role` ('owner' | 'editor' | 'viewer', what the caller
  * may do with THIS notebook); a shared one also carries the raw `projectRole`.
+ * @param {string} id
+ * @param {string} userId
  */
 async function getNotebook(id, userId) {
     await initDB();
@@ -134,8 +144,8 @@ const NOTEBOOK_COLUMNS = {
     name: 'name',
     description: 'description',
     instructions: 'instructions',
-    knowledgeBaseIds: { col: 'knowledge_base_ids', transform: v => JSON.stringify(v) },
-    settings: { col: 'settings', transform: v => JSON.stringify(v) },
+    knowledgeBaseIds: { col: 'knowledge_base_ids', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
+    settings: { col: 'settings', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
     documentContent: 'document_content',
     documentMd: 'document_md',
     documentFormat: 'document_format',
@@ -144,17 +154,30 @@ const NOTEBOOK_COLUMNS = {
     lastEditedBy: 'last_edited_by',
 };
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ * @param {Record<string, any>} updates
+ */
 async function _updateNotebook(id, userId, updates) {
     await initDB();
-    return withTransaction(async (client) => {
+    return withTransaction(async (/** @type {import('pg').PoolClient} */ client) => {
         const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [id]);
         if (!rows[0]) return { ok: false, conflict: false };
         return updateNotebookLocked(id, userId, updates, client, rows[0]);
     });
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ * @param {Record<string, any>} updates
+ * @param {import('pg').PoolClient} client
+ * @param {Record<string, any>} lockedRow
+ */
 async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
     await initDB();
+    /** @type {Record<string, any>} */
     const write = {
         name: updates.name,
         description: updates.description,
@@ -186,6 +209,7 @@ async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
         //     itself is still saved either way; losing the user's edit would be
         //     far worse than a stale mirror.
         let md = updates.documentMd;
+        /** @type {string} */
         let derivedFormat;
         if (md === undefined) {
             const body = docContent;
@@ -200,7 +224,7 @@ async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
                 if (r.ok) { md = r.md; derivedFormat = 'html'; }
                 else {
                     md = undefined;
-                    log.warn(`[NotebookStore] document_md derivation failed for ${id} — content saved, mirror left unchanged: ${r.error && r.error.message}`);
+                    log.warn(`[NotebookStore] document_md derivation failed for ${id} — content saved, mirror left unchanged: ${r.error && /** @type {Error} */ (r.error).message}`);
                 }
             }
         }
@@ -228,6 +252,7 @@ async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
     const params = built ? built.params : [];
     // The clauses the builder cannot express: activity stamps, the version
     // bump and the pin, all of them verbatim SQL over the stored row.
+    /** @type {string[]} */
     const setClauses = [];
     let idx = params.length + 1;
     if (contentChanged) setClauses.push(`last_activity_at = NOW()`, `last_activity_kind = 'edit'`, `last_edited_at = NOW()`);
@@ -294,6 +319,8 @@ async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
  * OBJECT, which is truthy, so every caller written as `if (!ok)` read a
  * rejected write as a success. Callers that need to tell a conflict from a
  * missing notebook use updateNotebookCas() below instead.
+ * @param {string} id
+ * @param {string} userId
  */
 async function updateNotebook(id, userId, updates = {}) {
     const r = await _updateNotebook(id, userId, updates);
@@ -309,6 +336,8 @@ async function updateNotebook(id, userId, updates = {}) {
  *   written, CAS or not); `noop` marks a 0-clause call (nothing to
  *   write, so a route can 400 instead of 404); `version` is the row's version
  *   after a successful write (the CAS counter clients resync on).
+ * @param {string} id
+ * @param {string} userId
  */
 async function updateNotebookCas(id, userId, updates = {}) {
     return _updateNotebook(id, userId, updates);
@@ -330,6 +359,9 @@ async function updateNotebookCas(id, userId, updates = {}) {
  * @returns {Promise<string>} the kb id that is actually attached — the caller's
  *   own id if it won, otherwise the winner's (the caller should then discard
  *   the KB it created).
+ * @param {string | PromiseLike<string>} kbId
+ * @param {string} id
+ * @param {string} userId
  */
 async function attachKnowledgeBaseIfAbsent(id, userId, kbId) {
     await initDB();
@@ -356,6 +388,8 @@ async function attachKnowledgeBaseIfAbsent(id, userId, kbId) {
  * notebook gone can ask, or remove it from the project. This mirrors the same
  * choice made for shared conversations — members post into them, only the owner
  * renames or deletes.
+ * @param {string} id
+ * @param {string} userId
  */
 async function deleteNotebook(id, userId) {
     await initDB();

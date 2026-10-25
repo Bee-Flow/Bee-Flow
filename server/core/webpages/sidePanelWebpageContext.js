@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Side-panel webpage context — builds the system-prompt block describing the
  * webpage the user has open in their right-side chat panel.
@@ -22,12 +22,20 @@ const log = require('../../telemetry/log');
 // context window. The model can still call follow-up tools / ask the user to
 // open the editor if it needs the full source.
 const MAX_SLOT_CHARS = 6000;
+/**
+ * @param {unknown} s
+ * @param {number} [max]
+ */
 function truncate(s, max = MAX_SLOT_CHARS) {
     if (typeof s !== 'string') return '';
     if (s.length <= max) return s;
     return s.slice(0, max) + `\n…[truncated, full file is ${s.length} chars]`;
 }
 
+/**
+ * @param {{ id?: string } | null | undefined} sidePanel
+ * @param {string} userId
+ */
 async function buildSidePanelWebpageContext(sidePanel, userId) {
     const id = sidePanel?.id;
     if (!id) return '';

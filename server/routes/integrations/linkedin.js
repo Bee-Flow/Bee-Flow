@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * LinkedIn Integration Routes
  *
@@ -70,7 +71,7 @@ router.get('/auth-url', async (req, res) => {
 });
 
 // ─── OAuth Callback (GET — LinkedIn redirects here) ──────────────
-router.get('/callback', async (req, res) => {
+router.get('/callback', /** @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string }>} req */ async (req, res) => {
     const { code, state, error } = req.query;
     const userId = req.session?.user?.id;
 
@@ -110,7 +111,7 @@ router.get('/callback', async (req, res) => {
             throw new Error(`Token exchange failed: ${tokenRes.status} ${errText}`);
         }
 
-        const tokenData = await tokenRes.json();
+        const tokenData = /** @type {{ access_token?: string }} */ (await tokenRes.json());
         const accessToken = tokenData.access_token;
 
         // Fetch person ID (sub) from userinfo
@@ -122,7 +123,7 @@ router.get('/callback', async (req, res) => {
             throw new Error(`Profile fetch failed: ${profileRes.status}`);
         }
 
-        const profileData = await profileRes.json();
+        const profileData = /** @type {{ sub?: string, name?: string, given_name?: string }} */ (await profileRes.json());
         const personId = profileData.sub;
         const name = profileData.name || profileData.given_name || '';
 
@@ -160,6 +161,11 @@ const PostBody = z.object({
 
 // The session gate stays AHEAD of the schema: an unauthenticated caller must
 // still read 401, not a 400 about its body.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireSessionUser = (req, res, next) => {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
     next();
@@ -245,6 +251,10 @@ router.post('/disconnect', async (req, res) => {
 });
 
 // ─── Callback HTML (self-closing popup) ──────────────────────────
+/**
+ * @param {string} message
+ * @param {boolean} success
+ */
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>LinkedIn</title>

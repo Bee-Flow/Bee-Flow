@@ -114,3 +114,13 @@ function canonAction(raw, path, push) {
 }
 
 module.exports = { canonAction };
+
+/**
+ * @typedef {object} ActionFieldSpec  One entry of an ACTION_SPECS `fields` table.
+ * @property {string} type
+ * @property {boolean} [required]
+ * @property {boolean} [nullable]
+ * @property {number} [maxLen]
+ * @property {unknown[]} [values]
+ * @property {unknown} [default]
+ */

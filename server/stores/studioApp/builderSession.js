@@ -140,3 +140,5 @@ module.exports = {
     setBuilderSession,
     clearBuilderSession,
 };
+
+/** @typedef {{ messages?: unknown[], summary?: string, version?: number, [key: string]: unknown }} BuilderSnapshot */

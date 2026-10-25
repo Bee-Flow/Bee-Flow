@@ -1,3 +1,5 @@
+/** @typedef {import('zod').ZodString} ZodString */
+// @typecheck noImplicitAny
 /**
  * The Stripe Customer Portal hand-off, plus the eligibility rule that decides
  * who may reach it.
@@ -28,7 +30,10 @@ const router = express.Router();
 // non-http scheme cannot be smuggled into the return URL.
 const ORIGIN_TEXT = 'origin must be a URL like https://app.example.com.';
 const ORIGIN_RE = /^https?:\/\/[^\s/?#]+$/;
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {{ origin: import('zod').ZodOptional<ZodString>; }} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 const PortalBody = bodyOf({
     origin: z.string({ error: typeError({ invalid: ORIGIN_TEXT }) }).trim().regex(ORIGIN_RE, ORIGIN_TEXT).optional(),
@@ -54,7 +59,7 @@ const PortalBody = bodyOf({
 // (agent-hub/src/utils/billing.js).
 const PORTAL_ELIGIBLE_PAYMENT_STATUSES = ['paid', 'past_due', 'paused', 'disputed', 'failed', 'refunded'];
 
-router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLimiter, validate({ body: PortalBody }), async (req, res) => {
+router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLimiter, validate({ body: PortalBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.status(400).json({ error: 'Stripe payments are not enabled' });
 
@@ -81,7 +86,7 @@ router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLim
         // the query form returned the customer to Preferences (as BFSF-244
         // found for the checkout return).
         const returnUrl = `${origin}${accountLicenseSettingsPath()}`;
-        const session = await stripeService.createPortalSession(stripeCustomerId, returnUrl);
+        const session = /** @type {{ url: string }} */ (await stripeService.createPortalSession(stripeCustomerId, returnUrl));
         return res.json({ url: session.url });
     } else {
         const sub = await userStore.getOrgSubscription(orgId);
@@ -91,7 +96,7 @@ router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLim
         }
         if (!PORTAL_ELIGIBLE_PAYMENT_STATUSES.includes(sub?.payment_status)) return portalDenied();
         const returnUrl = `${origin}${orgLicenseSettingsPath()}`;
-        const session = await stripeService.createPortalSession(stripeCustomerId, returnUrl);
+        const session = /** @type {{ url: string }} */ (await stripeService.createPortalSession(stripeCustomerId, returnUrl));
         return res.json({ url: session.url });
     }
 });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct-chat notebook-write gate.
  *
@@ -25,6 +25,9 @@ const WRITE_INTENT_RE = /(write|save|note|memo|draft|brief|report)/i;
 /** Words that name the notebook itself, in EN and NL. */
 const NOTEBOOK_WORD_RE = /(notebook|notitie|noteer|kladblok)/i;
 
+/**
+ * @param {string} toolName
+ */
 function isNotebookWriteTool(toolName) {
     return NOTEBOOK_WRITE_TOOLS.has(toolName);
 }

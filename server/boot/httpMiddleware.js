@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').Express} Express */
 // @typecheck
 'use strict';
 /**
@@ -22,7 +23,10 @@ const { parseAllowedOrigins, isAllowedOrigin: matchesAllowedOrigin } = require('
 const defaultLog = require('../telemetry/log');
 const { safeForLog } = require('../utils/safeForLog');
 
-/** The first two layers of the chain. */
+/**
+ * The first two layers of the chain.
+ * @param {Express} app
+ */
 function applyRequestIdAndSecurityHeaders(app) {
     // One id per request: on the X-Request-Id response header, on every log line
     // the request writes, and echoed as correlationId by the error handler below.
@@ -58,7 +62,10 @@ const CORS_WARN_MAX_PER_WINDOW = 20;
 function applyCors(app, { log = defaultLog } = {}) {
     const ALLOWED_ORIGINS = parseAllowedOrigins(process.env.CORS_ORIGIN);
 
-    /** Trailing-slash-insensitive membership test against the allow-list. */
+    /**
+     * Trailing-slash-insensitive membership test against the allow-list.
+     * @param {string} origin
+     */
     const isAllowedOrigin = (origin) => matchesAllowedOrigin(origin, ALLOWED_ORIGINS);
 
     // The counters behind the ceilings above, one set per dispatcher.
@@ -66,6 +73,7 @@ function applyCors(app, { log = defaultLog } = {}) {
     let _corsWarnWindowStart = 0;
     let _corsWarnCount = 0;
     let _corsSuppressed = 0;
+    /** @param {string} origin */
     function warnRejectedOrigin(origin) {
         const now = Date.now();
 
@@ -102,7 +110,7 @@ function applyCors(app, { log = defaultLog } = {}) {
     }
 
     const globalCors = cors({
-        origin: (origin, cb) => {
+        origin: (/** @type {string | undefined} */ origin, /** @type {(err: Error | null, allow?: boolean) => void} */ cb) => {
             // Same-origin / curl / server-to-server (no Origin header)
             if (!origin) return cb(null, true);
             if (isAllowedOrigin(origin)) return cb(null, true);
@@ -142,7 +150,7 @@ function applyCors(app, { log = defaultLog } = {}) {
         allowedHeaders: ['Content-Type', 'Authorization'],
     });
 
-    app.use((req, res, next) => {
+    app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (req.path.startsWith('/api/webpages-preview/')) return previewCors(req, res, next);
         // Anonymous public-share AI bridge — same opaque-origin/bearer-token model
         // as the preview bridge, so the same permissive CORS applies.
@@ -193,7 +201,7 @@ function applyCors(app, { log = defaultLog } = {}) {
  *   - auth/connectorSig.js verifies the HMAC of a request carrying X-Beeflow-Sig
  *   - routes/cmsForms.js sizeGuard measures the public website-form body
  * (the GitHub / Nextcloud webhook routes capture their own, route-level.)
- * @param {import('express').Request} req
+ * @param {import('http').IncomingMessage & { originalUrl?: string }} req
  */
 function needsRawBody(req) {
     if (req.headers && req.headers['x-beeflow-sig']) return true;
@@ -201,7 +209,10 @@ function needsRawBody(req) {
     return url.includes('/forms/');
 }
 
-/** The raw Stripe-webhook body, then the global JSON parser. */
+/**
+ * The raw Stripe-webhook body, then the global JSON parser.
+ * @param {Express} app
+ */
 function applyBodyParsers(app) {
     // Stripe webhook needs raw body for signature verification — must be BEFORE express.json
     app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));

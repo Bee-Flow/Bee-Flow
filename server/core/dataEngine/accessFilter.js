@@ -335,3 +335,11 @@ module.exports = {
     validateRowFilter,
     AccessError,
 };
+
+/**
+ * The parts of a table descriptor this module reads.
+ * @typedef {{ default?: string, roles?: Record<string, Record<string, string | boolean>>, rowFilters?: Record<string, string | RowFilterNode> }} TableAccess
+ * @typedef {{ access?: TableAccess, fields?: { key?: string, type?: string, computed?: { stored?: boolean } }[] }} AccessTableMeta
+ * A shared-expr AST node, as far as the row-filter subset reads it.
+ * @typedef {{ kind: string, op?: string, v?: unknown, a?: RowFilterNode, b?: RowFilterNode, segments?: { kind: string, v?: string }[] }} RowFilterNode
+ */

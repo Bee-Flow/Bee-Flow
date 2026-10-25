@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Mirror Nextcloud users + groups into Bee Flow.
  *
@@ -36,6 +37,15 @@ const { fallback } = require('../utils/bestEffort');
 // resolves it.
 const NC_SYNC_FAILED = 'connector.nc_sync_failed';
 
+/**
+ * The organisation fields this module reads (an organizations row).
+ * @typedef {{ id?: string, connector_callback_url?: string, nc_admin_uid?: string, ncAdminUid?: string,
+ *   nc_sync_mode?: string, ncSyncExcludedGroups?: string[], ncSyncGroups?: string[],
+ *   nc_new_user_default_status?: string, [key: string]: unknown }} NcOrg
+ */
+/** @typedef {{ email?: string, displayname?: string, displayName?: string }} NcUserData */
+
+/** @param {string} s */
 function slugifyId(s) {
     return String(s || '').replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40) || 'user';
 }
@@ -43,6 +53,12 @@ function slugifyId(s) {
 // Service-level call to the connector's NC reverse proxy. Used to fetch
 // NC user / group metadata when mirroring. Mirrors the HMAC scheme in
 // nextcloudClient.resolveConnectorAuth.
+/**
+ * @param {{ id?: string, connector_callback_url?: string, nc_admin_uid?: string, ncAdminUid?: string, [key: string]: unknown }} org
+ * @param {string} ncPath
+ * @param {string} [ncUid]
+ * @returns {Promise<{ ocs?: { data?: { groups?: string[], [key: string]: unknown } } }>}
+ */
 async function ncProxyFetch(org, ncPath, ncUid = '') {
     const callbackUrl = org?.connector_callback_url;
     if (!callbackUrl) throw new Error(`Org ${org?.id} has no connector_callback_url`);
@@ -72,13 +88,15 @@ async function ncProxyFetch(org, ncPath, ncUid = '') {
         // without parsing the message.
         throw Object.assign(new Error(`NC proxy ${path} HTTP ${res.status}`), { status: res.status });
     }
-    return res.json();
+    return /** @type {Promise<{ ocs?: { data?: { groups?: string[], [key: string]: unknown } } }>} */ (res.json());
 }
 
 /**
  * Impersonation allow-list for service-level NC reads: the org's stored NC
  * admin (group/user enumeration) or the uid currently being mirrored.
  * `''` is the anonymous/public context and always allowed.
+ * @param {NcOrg} org
+ * @param {string} ncUid
  */
 function _assertImpersonatable(org, ncUid) {
     const uid = String(ncUid || '');
@@ -102,10 +120,21 @@ function _assertImpersonatable(org, ncUid) {
 // in-flight sync briefly widened what another tenant's could ask for.
 const _syncingUids = new Map(); // `${orgId}|${uid}` -> depth
 
+/**
+ * @param {NcOrg} org
+ * @param {string} uid
+ */
 function _syncKey(org, uid) {
     return `${org?.id || ''}|${uid}`;
 }
 
+/**
+ * @template T
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
 async function _withSyncingUid(org, ncUid, fn) {
     const uid = String(ncUid || '');
     if (!uid) return await fn();
@@ -120,16 +149,28 @@ async function _withSyncingUid(org, ncUid, fn) {
     }
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function fetchNcUser(org, ncUid) {
     const body = await ncProxyFetch(org, `/ocs/v2.php/cloud/users/${encodeURIComponent(ncUid)}?format=json`, ncUid);
-    return body?.ocs?.data || null;
+    return /** @type {NcUserData | null} */ (body?.ocs?.data || null);
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function fetchNcUserGroups(org, ncUid) {
     const body = await ncProxyFetch(org, `/ocs/v2.php/cloud/users/${encodeURIComponent(ncUid)}/groups?format=json`, ncUid);
     return body?.ocs?.data?.groups || [];
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string[]} userGroups
+ */
 function shouldMirrorUser(org, userGroups) {
     const mode = org.nc_sync_mode || 'mirror_all';
     if (mode === 'manual') return false;
@@ -143,13 +184,22 @@ function shouldMirrorUser(org, userGroups) {
     return true; // mirror_all
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function applyUserCreated(org, ncUid) {
     return await _withSyncingUid(org, ncUid, () => _applyUserCreated(org, ncUid));
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function _applyUserCreated(org, ncUid) {
     const existing = await userStore.getUserByNcUid(org.id, ncUid);
     if (existing) {
+        /** @type {{ email?: string, displayName?: string, groups?: string[], status?: string }} */
         const updates = {};
         // Refresh metadata from NC on every sync so admin-side changes (rename,
         // email, group membership) propagate without manual user-edit. Each
@@ -242,6 +292,10 @@ async function _applyUserCreated(org, ncUid) {
     return { action: 'create', userId, status, groups: bfGroupIds };
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function applyUserDeleted(org, ncUid) {
     const user = await userStore.getUserByNcUid(org.id, ncUid);
     if (!user) return { action: 'noop' };
@@ -252,10 +306,18 @@ async function applyUserDeleted(org, ncUid) {
     return { action: 'deactivate', userId: user.id };
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function applyGroupMemberChange(org, ncUid /* , groupId */) {
     return await _withSyncingUid(org, ncUid, () => _applyGroupMemberChange(org, ncUid));
 }
 
+/**
+ * @param {NcOrg} org
+ * @param {string} ncUid
+ */
 async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     // Re-evaluate membership: user may have entered/left a group that
     // changes their inclusion under selective_groups / excluded_groups.
@@ -288,10 +350,15 @@ async function _applyGroupMemberChange(org, ncUid /* , groupId */) {
     return { action: 'noop' };
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} ncGroupName
+ */
 function ncGroupToBfId(orgId, ncGroupName) {
     return `nc_${orgId}_${String(ncGroupName).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
 }
 
+/** @param {NcOrg} org */
 async function mirrorGroups(org) {
     const userStore = require('../stores/userStore');
     let ncGroupNames = [];
@@ -337,6 +404,7 @@ async function mirrorGroups(org) {
  * @returns {{ stage: string, reason: string, httpStatus?: number, errorCode?: string }}
  */
 function summarizeSyncError(err) {
+    /** @type {{ stage: string, reason: string, httpStatus?: number, errorCode?: string }} */
     const summary = { stage: 'list_users', reason: 'error' };
     const status = Number(err && err.status);
     const message = String((err && err.message) || '');
@@ -366,9 +434,11 @@ function summarizeSyncError(err) {
 // record the outcome on the org's health, though — a failure opens
 // NC_SYNC_FAILED (which is what the backstop backs off on) and a success
 // resolves it.
+/** @param {NcOrg} org */
 async function runFullSync(org) {
     if (!org?.id) return { error: 'no_org' };
     if ((org.nc_sync_mode || 'mirror_all') === 'manual') return { skipped: 'manual_mode' };
+    /** @type {{ created: number, deactivated: number, groupsCreated: number, errors: Array<Record<string, string>> }} */
     const result = { created: 0, deactivated: 0, groupsCreated: 0, errors: [] };
 
     // 1. Mirror groups first so user-membership sync below can resolve names.
@@ -416,6 +486,7 @@ async function runFullSync(org) {
     return result;
 }
 
+/** @param {NcOrg} org */
 async function listNcGroups(org) {
     // /cloud/groups requires NC admin context; impersonate the org's stored
     // nc_admin_uid (captured during bootstrap) so the call resolves.

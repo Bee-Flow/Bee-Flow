@@ -196,3 +196,9 @@ async function setRelations(datatable, relations, { siblingsOf, matchFieldIdFor,
 }
 
 module.exports = { createEmptyMirrors, storeDerived, orderParentsFirst, kickFirstSyncs, setRelations };
+
+/** @typedef {{ kind: 'org'|'user', id: string }} MirrorScope */
+
+/** @typedef {{ fields: Parameters<typeof reconcileMirrorSchema>[2], columnMap?: unknown, relations?: unknown[], warnings?: string[] } | null} DerivedColumns */
+
+/** @typedef {{ key: string, name: string, description?: string, [k: string]: unknown }} MirrorPlan */

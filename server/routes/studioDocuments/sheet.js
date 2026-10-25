@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Spreadsheet documents (docType 'spreadsheet'). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.
@@ -338,3 +337,5 @@ module.exports = Object.assign(makeSheetRouter(), {
     makeSheetRouter,
     sheetCsv,
 });
+
+/** @typedef {import('express').Request<{ id: string, tabId?: string }>} SheetReq */

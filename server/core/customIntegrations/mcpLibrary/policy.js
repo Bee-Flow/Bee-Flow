@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('url').URL} URL */
+// @typecheck noImplicitAny
 /**
  * The server-wide rule for what ORGANISATION admins may install in their MCP
  * library. Set by the server administrator (super-admin), read on every
@@ -36,7 +37,14 @@ const MAX_ALLOWED_HOSTS = 200;
 // name-based reasoning below and the SSRF guard owns addresses anyway.
 const HOST_PATTERN_RE = /^(\*\.)?(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
 
-/** Lower-case, trim, drop a trailing dot. Returns null for anything that is not a host pattern. */
+/**
+ * @typedef {{ remote?: string, allowedHosts?: unknown[] }} PolicyInput
+ */
+
+/**
+ * Lower-case, trim, drop a trailing dot. Returns null for anything that is not a host pattern.
+ * @param {unknown} raw
+ */
 function normalizeHostPattern(raw) {
     if (typeof raw !== 'string') return null;
     const s = raw.trim().toLowerCase().replace(/\.$/, '');
@@ -46,6 +54,7 @@ function normalizeHostPattern(raw) {
 /**
  * Coerce whatever is stored into a valid policy. Unknown or broken values
  * fall back to the DEFAULT, never to something more permissive.
+ * @param {string | PolicyInput | null | undefined} raw
  */
 function normalizePolicy(raw) {
     let value = raw;
@@ -59,6 +68,10 @@ function normalizePolicy(raw) {
     return { remote, allowedHosts };
 }
 
+/**
+ * @param {string} pattern
+ * @param {string} host
+ */
 function hostMatches(pattern, host) {
     if (pattern.startsWith('*.')) {
         const base = pattern.slice(2);
@@ -74,10 +87,13 @@ function hostMatches(pattern, host) {
  * reason is one of: 'policy_off', 'invalid_url', 'not_https', 'not_official',
  * 'host_not_allowed'. Name-level only: whether the name resolves to a public
  * address is the SSRF guard's job, at connect time.
+ * @param {string | PolicyInput | null | undefined} policy
+ * @param {string} rawUrl
  */
 function checkUrl(policy, rawUrl) {
     const p = normalizePolicy(policy);
     if (p.remote === 'off') return { allowed: false, reason: 'policy_off' };
+    /** @type {URL} */
     let u;
     try { u = new URL(String(rawUrl || '')); } catch (_) { return { allowed: false, reason: 'invalid_url' }; }
     if (u.protocol !== 'https:') return { allowed: false, reason: 'not_https' };
@@ -94,7 +110,10 @@ function checkUrl(policy, rawUrl) {
     return { allowed: true, official: false }; // 'any'
 }
 
-/** Can an org admin type in an endpoint of their own (not just pick from the catalogue)? */
+/**
+ * Can an org admin type in an endpoint of their own (not just pick from the catalogue)?
+ * @param {string | PolicyInput | null | undefined} policy
+ */
 function allowsCustomUrls(policy) {
     const p = normalizePolicy(policy);
     return p.remote === 'allowlist' || p.remote === 'any';
@@ -110,6 +129,7 @@ async function getPolicy() {
     }
 }
 
+/** @param {string | PolicyInput | null | undefined} next */
 async function setPolicy(next) {
     const clean = normalizePolicy(next);
     await deps.configStore().setConfig(POLICY_KEY, clean);

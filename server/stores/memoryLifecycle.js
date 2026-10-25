@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -24,15 +24,27 @@ const SCHEDULE_COVERAGE_TYPE = 'schedule_coverage';
 /** Same decay as the rest of memory scoring: a month halves the recency term. */
 const RECENCY_SQL = `1.0 / (1.0 + EXTRACT(EPOCH FROM (NOW() - COALESCE(last_used_at, last_confirmed_at, created_at))) / 2592000.0)`;
 
+/**
+ * @param {{ run: (sql: string, params?: unknown[]) => Promise<{ rowCount?: number | null } | undefined> }} db
+ */
 function createLifecycle(db) {
+    /**
+     * @param {unknown[]} params
+     * @param {string | null | undefined} userId
+     */
     const owner = (params, userId) => {
         if (!userId) return '';
         params.push(userId);
         return ` AND user_id = $${params.length}`;
     };
+    /** @param {string | string[]} ids */
     const idList = (ids) => (Array.isArray(ids) ? ids : [ids]).filter((i) => typeof i === 'string' && i);
 
-    /** old → superseded by new, valid until now. Only an active/pending row moves. */
+    /**
+     * old → superseded by new, valid until now. Only an active/pending row moves.
+     * @param {string} oldId
+     * @param {string} newId
+     */
     async function supersede(oldId, newId) {
         if (!oldId || !newId || oldId === newId) return 0;
         const r = await db.run(
@@ -54,6 +66,8 @@ function createLifecycle(db) {
      *  - any other status (archived, pending_review) or a row that is gone: nothing.
      *
      * Returns the number of predecessors reactivated.
+     * @param {string} memoryId
+     * @param {string | null} [userId]
      */
     async function restorePredecessorOf(memoryId, userId = null) {
         if (!memoryId) return 0;
@@ -80,6 +94,10 @@ function createLifecycle(db) {
         return r?.rowCount || 0;
     }
 
+    /**
+     * @param {string | string[]} ids
+     * @param {string | null} [userId]
+     */
     async function archive(ids, userId = null) {
         const list = idList(ids);
         if (list.length === 0) return 0;
@@ -90,6 +108,10 @@ function createLifecycle(db) {
         return r?.rowCount || 0;
     }
 
+    /**
+     * @param {string} id
+     * @param {string | null} [userId]
+     */
     async function restore(id, userId = null) {
         if (!id) return 0;
         const params = [id];
@@ -105,6 +127,8 @@ function createLifecycle(db) {
      * Two guarded statements: the approval first (it decides whether we are
      * the one who activates), then the predecessor, which excludes the row
      * itself and only moves an active row.
+     * @param {string} id
+     * @param {string | null} [userId]
      */
     async function approve(id, userId = null) {
         if (!id) return 0;
@@ -133,7 +157,11 @@ function createLifecycle(db) {
         return n;
     }
 
-    /** Seen again: a little more confidence, and the clock for retention restarts. */
+    /**
+     * Seen again: a little more confidence, and the clock for retention restarts.
+     * @param {string} id
+     * @param {string | null} [userId]
+     */
     async function confirm(id, userId = null) {
         if (!id) return 0;
         const params = [id];
@@ -148,6 +176,8 @@ function createLifecycle(db) {
      * the lowest-value ones beyond it (score = importance + recency). Explicit
      * memories and instructions are never touched, so a user who wrote more
      * than the cap keeps all of it. Returns the number archived.
+     * @param {string} userId
+     * @param {number} maxPerUser
      */
     async function enforceCap(userId, maxPerUser) {
         const cap = Math.floor(Number(maxPerUser));
@@ -168,16 +198,17 @@ function createLifecycle(db) {
     return { supersede, restorePredecessorOf, archive, restore, approve, confirm, enforceCap };
 }
 
+/** @type {ReturnType<typeof createLifecycle> | null} */
 let _real = null;
 const real = () => (_real ||= createLifecycle(require('../db')));
 
 module.exports = {
     createLifecycle,
-    supersede: (...a) => real().supersede(...a),
-    restorePredecessorOf: (...a) => real().restorePredecessorOf(...a),
-    archive: (...a) => real().archive(...a),
-    restore: (...a) => real().restore(...a),
-    approve: (...a) => real().approve(...a),
-    confirm: (...a) => real().confirm(...a),
-    enforceCap: (...a) => real().enforceCap(...a),
+    supersede: (/** @type {Parameters<ReturnType<typeof createLifecycle>['supersede']>} */ ...a) => real().supersede(...a),
+    restorePredecessorOf: (/** @type {Parameters<ReturnType<typeof createLifecycle>['restorePredecessorOf']>} */ ...a) => real().restorePredecessorOf(...a),
+    archive: (/** @type {Parameters<ReturnType<typeof createLifecycle>['archive']>} */ ...a) => real().archive(...a),
+    restore: (/** @type {Parameters<ReturnType<typeof createLifecycle>['restore']>} */ ...a) => real().restore(...a),
+    approve: (/** @type {Parameters<ReturnType<typeof createLifecycle>['approve']>} */ ...a) => real().approve(...a),
+    confirm: (/** @type {Parameters<ReturnType<typeof createLifecycle>['confirm']>} */ ...a) => real().confirm(...a),
+    enforceCap: (/** @type {Parameters<ReturnType<typeof createLifecycle>['enforceCap']>} */ ...a) => real().enforceCap(...a),
 };

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Subscriber resolution shared by every Stripe webhook handler: reading the
  * subscriber type out of Stripe metadata, mapping a Stripe subscription or
@@ -18,6 +18,7 @@ const userStore = require('../../stores/userStore');
 /**
  * Determine if a Stripe subscription/session is consumer or organization
  * by reading metadata.beeflow_subscriber_type.
+ * @param {{ beeflow_subscriber_type?: string } | null | undefined} metadata
  */
 function getSubscriberType(metadata) {
     return metadata?.beeflow_subscriber_type === 'consumer' ? 'consumer' : 'organization';
@@ -33,6 +34,9 @@ function getSubscriberType(metadata) {
  * Returns `{ ok: true }` when the IDs match or no local row exists yet
  * (first-touch insert is fine). Returns `{ ok: false, reason, localTarget }`
  * when there is a divergence — caller should audit and bail.
+ * @param {{ id?: string } | null | undefined} subscription
+ * @param {string} claimedSubscriberType
+ * @param {string} claimedSubscriberId
  */
 async function verifyMetadataMatchesLocal(subscription, claimedSubscriberType, claimedSubscriberId) {
     if (!subscription?.id) return { ok: true };
@@ -48,6 +52,11 @@ async function verifyMetadataMatchesLocal(subscription, claimedSubscriberType, c
 // metadata (subscription_id, trial_end_date) but **must not** touch the
 // admin-controlled fields. Returns a shallow copy with status/plan_id/
 // payment_status stripped.
+/**
+ * @template {Record<string, unknown>} T
+ * @param {T} updateData
+ * @returns {Partial<T>}
+ */
 function stripOverriddenFields(updateData) {
     const out = { ...updateData };
     delete out.status;
@@ -56,6 +65,7 @@ function stripOverriddenFields(updateData) {
     return out;
 }
 
+/** @param {string | null | undefined} stripeSubscriptionId */
 async function findSubscriptionTargetBySubId(stripeSubscriptionId) {
     if (!stripeSubscriptionId) return null;
     const orgs = await userStore.getAllOrgSubscriptions();
@@ -67,6 +77,7 @@ async function findSubscriptionTargetBySubId(stripeSubscriptionId) {
     return null;
 }
 
+/** @param {string | null | undefined} stripeCustomerId */
 async function findSubscriptionTargetByCustomerId(stripeCustomerId) {
     if (!stripeCustomerId) return null;
     const orgs = await userStore.getAllOrgSubscriptions();

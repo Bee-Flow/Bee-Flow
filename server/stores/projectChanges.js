@@ -422,3 +422,5 @@ module.exports = {
     FILING_ACTIONS,
     CHANGE_ITEM_TYPES,
 };
+
+/** @typedef {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} TxClient */

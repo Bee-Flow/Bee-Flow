@@ -339,3 +339,29 @@ module.exports = {
     declaredColumnsOf, grantedColumnsFor, readDescriptor, projectRow, rowLabel,
     resolveAsker, resolveForAsker, describeGrantedTable, toolDefinitionFor, clampRowLimit,
 };
+
+/**
+ * @typedef {{
+ *   agentStore: typeof import('../../stores/agentStore'),
+ *   datatableDbStore: typeof import('../../stores/datatableDbStore'),
+ *   resolveDatatableForStep: typeof import('../automationRunner/datatableResolve').resolveDatatableForStep,
+ *   queryCompiler: typeof import('../dataEngine/queryCompiler'),
+ *   accessFilter: typeof import('../dataEngine/accessFilter'),
+ *   askerContext: typeof import('../kb/askerContext').askerContext,
+ *   applyShield: typeof import('../kb/ingestPrivacy').applyShield,
+ *   SHIELD_OUTCOME: typeof import('../kb/ingestPrivacy').OUTCOME,
+ *   userStore: typeof import('../../stores/userStore'),
+ *   toolPolicy: typeof import('../agentRuntime/toolPolicy'),
+ *   renderRow: typeof import('../kb/sources/datatable').renderRow,
+ * }} DatatableDeps
+ */
+
+/** @typedef {ReturnType<typeof import('../agentRuntime/toolPolicy').datatableGrantsOf>[string]} DatatableGrant */
+
+/** @typedef {import('../automationRunner/datatableResolve').ResolvedDatatable['tableMeta']} TableMeta */
+
+/** One declared column of a table descriptor. @typedef {{ key?: string, type?: string, computed?: { stored?: boolean } }} DatatableField */
+
+/** @typedef {Awaited<ReturnType<typeof resolveAsker>>} Asker */
+
+/** A data-table row as the database returns it (user-defined columns). @typedef {Record<string, any>} DatatableRecord */

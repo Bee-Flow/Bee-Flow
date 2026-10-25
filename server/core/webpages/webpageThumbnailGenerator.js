@@ -29,6 +29,11 @@ const THUMB_DIMS = { width: 640, height: 400 };
 // the pending timer so only one render fires per debounce window.
 const pending = new Map();
 
+/**
+ * @param {unknown} html
+ * @param {unknown} css
+ * @param {unknown} js
+ */
 function composeDoc(html, css, js) {
     const safeHtml = typeof html === 'string' ? html : '';
     const safeCss = typeof css === 'string' ? css : '';
@@ -65,6 +70,7 @@ ${scriptTag}
 </body></html>`;
 }
 
+/** @param {{ userId: string, webpageId: string }} args */
 async function renderThumbnail({ userId, webpageId }) {
     const wp = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('core/webpages/webpageThumbnailGenerator:renderThumbnail', e, null));
     if (!wp) return; // page was deleted before the render fired
@@ -128,6 +134,7 @@ async function renderThumbnail({ userId, webpageId }) {
  * Debounced fire-and-forget — caller doesn't await. Subsequent calls within
  * the debounce window replace the pending timer so only one render runs per
  * burst.
+ * @param {{ userId: string, webpageId: string, delayMs?: number }} args
  */
 function scheduleThumbnail({ userId, webpageId, delayMs = DEBOUNCE_MS }) {
     if (!userId || !webpageId) return;

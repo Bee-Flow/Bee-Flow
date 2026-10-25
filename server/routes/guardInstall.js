@@ -1,4 +1,6 @@
-// @typecheck
+/** @typedef {import('zod').ZodString} ZodString */
+/** @typedef {import('zod').ZodBoolean} ZodBoolean */
+// @typecheck noImplicitAny
 /**
  * Admin routes for installing / uninstalling the optional PII guard service.
  * Mounted at /api/admin/guard.
@@ -28,7 +30,10 @@ const { worded } = require('../core/http/schemaParts');
 //   - a model or key with whitespace in it went into the container's env and
 //     the X-API-Key header as-is, where it can only fail later.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @param {{ apiKey: import('zod').ZodOptional<ZodString>; model: import('zod').ZodOptional<ZodString>; } | { removeVolume: import('zod').ZodOptional<ZodBoolean>; }} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the request as a JSON object.' }) }).strict(),
@@ -46,32 +51,32 @@ const UninstallBody = bodyOf({
 
 router.use(requirePermission('admin_security'));
 
-router.get('/status', async (_req, res) => {
+router.get('/status', async (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     const status = await installer.getStatus();
     res.json(status);
 });
 
-router.post('/install', express.json(), validate({ body: InstallBody }), async (req, res, next) => {
+router.post('/install', express.json(), validate({ body: InstallBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const { apiKey, model } = req.body;
     try {
         installer.install({ apiKey, model });
         res.status(202).json({ status: 'installing' });
     } catch (err) {
-        if (err.code === 'UNSUPPORTED_ENV') return res.status(409).json({ error: err.message, code: err.code });
-        if (err.code === 'IN_PROGRESS') return res.status(409).json({ error: err.message, code: err.code });
+        if (err.code === 'UNSUPPORTED_ENV') return res.status(409).json({ error: /** @type {Error} */ (err).message, code: err.code });
+        if (err.code === 'IN_PROGRESS') return res.status(409).json({ error: /** @type {Error} */ (err).message, code: err.code });
         log.error('[guardInstall] install error:', err);
         next(err);
     }
 });
 
-router.post('/uninstall', express.json(), validate({ body: UninstallBody }), async (req, res, next) => {
+router.post('/uninstall', express.json(), validate({ body: UninstallBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const { removeVolume = false } = req.body;
     try {
         installer.uninstall({ removeVolume });
         res.status(202).json({ status: 'uninstalling' });
     } catch (err) {
-        if (err.code === 'UNSUPPORTED_ENV') return res.status(409).json({ error: err.message, code: err.code });
-        if (err.code === 'IN_PROGRESS') return res.status(409).json({ error: err.message, code: err.code });
+        if (err.code === 'UNSUPPORTED_ENV') return res.status(409).json({ error: /** @type {Error} */ (err).message, code: err.code });
+        if (err.code === 'IN_PROGRESS') return res.status(409).json({ error: /** @type {Error} */ (err).message, code: err.code });
         log.error('[guardInstall] uninstall error:', err);
         next(err);
     }

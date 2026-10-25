@@ -252,3 +252,9 @@ module.exports = {
     collectParticipants,
     _stagesTest: { cleanSeat, cleanSeats, cleanStage, seatKey },
 };
+
+/**
+ * @typedef {{ userId?: string, groupId?: string }} ApprovalSeat
+ * @typedef {{ key: string, name: string, description: string | null, approvers: ApprovalSeat[], rule: string, quorum: number | null, skipped?: boolean }} ApprovalStage
+ * @typedef {{ key?: unknown, name?: string, description?: string, approvers?: unknown, rule?: string, quorum?: unknown, skipped?: unknown, when?: unknown }} AuthoredStage
+ */

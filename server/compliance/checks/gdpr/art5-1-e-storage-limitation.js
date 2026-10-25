@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 5(1)(e) — Storage limitation.
  *
@@ -32,6 +32,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art5_1_e.desc',
     remediationKey: 'compliance.checks.gdpr_art5_1_e.fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const retentionDays = settings.default_retention_days || 365;

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: Dutch translations for the Condition node's "is about" rules
  * (routines.builder.topics.*): the topic box, its sensitivity, why the rule

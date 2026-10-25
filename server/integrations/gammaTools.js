@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Gamma Tools - Built-in tools for AI to create Gamma presentations,
  * documents, webpages, and social posts via the Gamma API v1.0.
@@ -18,6 +19,34 @@ const DEFAULT_POLL_INTERVAL_MS = 5000;
 const DEFAULT_TIMEOUT_SECONDS = 180;
 const MAX_TIMEOUT_SECONDS = 300;
 
+/**
+ * Model-provided arguments of the gamma_* tools.
+ * @typedef {{ inputText?: string, additionalInstructions?: string, textMode?: string, format?: string,
+ *   numCards?: number, cardSplit?: string, themeId?: string, language?: string, audience?: string, tone?: string,
+ *   textAmount?: string, imageSource?: string, imageModel?: string, imageStyle?: string, imageStylePreset?: string,
+ *   dimensions?: string, headerFooter?: unknown, sharingOptions?: unknown, enablePublicEmbed?: boolean,
+ *   folderIds?: string[], exportAs?: string, prompt?: string, gammaId?: string, templateUrl?: string,
+ *   gammaUrl?: string, originalContent?: string, editInstructions?: string, sourceGammaId?: string,
+ *   sourceGammaUrl?: string, generationId?: string, query?: string, limit?: number, after?: string,
+ *   waitForCompletion?: boolean, timeoutSeconds?: number }} GammaArgs
+ */
+
+/**
+ * @typedef {string | { error?: string | { message?: string }, message?: string }} GammaErrorBody
+ */
+
+/**
+ * A generation object as the Gamma API returns it.
+ * @typedef {{ generationId?: string, status?: string, gammaId?: string, gammaUrl?: string, exportUrl?: string,
+ *   credits?: unknown, warnings?: unknown, error?: GammaErrorBody, timedOut?: boolean }} GammaGeneration
+ */
+
+/**
+ * @typedef {{ generationId?: string, note?: string, sourceGammaId?: string | null, sourceGammaUrl?: string | null,
+ *   templateGammaId?: string, templateUrl?: string | null }} GammaGenerationMeta
+ */
+
+/** @type {Record<string, string>} */
 const TEXT_MODE_ALIASES = {
     cards: 'preserve',
 };
@@ -341,31 +370,45 @@ function normalizeTextMode(textMode = 'generate') {
     return TEXT_MODE_ALIASES[textMode] || textMode;
 }
 
+/**
+ * @param {number | string | undefined} limit
+ * @param {number} [fallback]
+ */
 function clampLimit(limit, fallback = 20) {
     const n = Number(limit || fallback);
     if (!Number.isFinite(n)) return fallback;
     return Math.max(1, Math.min(50, Math.floor(n)));
 }
 
+/** @param {number | string | undefined} timeoutSeconds */
 function clampTimeoutSeconds(timeoutSeconds) {
     const n = Number(timeoutSeconds || DEFAULT_TIMEOUT_SECONDS);
     if (!Number.isFinite(n)) return DEFAULT_TIMEOUT_SECONDS;
     return Math.max(10, Math.min(MAX_TIMEOUT_SECONDS, Math.floor(n)));
 }
 
+/** @param {number} ms */
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Drops undefined, null and empty-string members (recursively); an empty result becomes undefined.
+ * @template T
+ * @param {T} value
+ * @returns {T | undefined}
+ */
 function compactObject(value) {
     if (!value || typeof value !== 'object') return value;
     if (Array.isArray(value)) {
+        /** @type {unknown[]} */
         const items = value
             .map(compactObject)
             .filter(item => item !== undefined && item !== null && item !== '');
-        return items.length > 0 ? items : undefined;
+        return items.length > 0 ? /** @type {T} */ (items) : undefined;
     }
 
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const [key, item] of Object.entries(value)) {
         const compacted = compactObject(item);
@@ -373,7 +416,7 @@ function compactObject(value) {
             out[key] = compacted;
         }
     }
-    return Object.keys(out).length > 0 ? out : undefined;
+    return Object.keys(out).length > 0 ? /** @type {T} */ (out) : undefined;
 }
 
 function buildQuery(params = {}) {
@@ -387,6 +430,7 @@ function buildQuery(params = {}) {
     return query ? `?${query}` : '';
 }
 
+/** @param {GammaErrorBody | null} errorBody */
 function extractErrorMessage(errorBody) {
     if (!errorBody) return 'Unknown error';
     if (typeof errorBody === 'string') return errorBody;
@@ -396,6 +440,7 @@ function extractErrorMessage(errorBody) {
     return JSON.stringify(errorBody);
 }
 
+/** @param {string | undefined} value */
 function extractGammaIdFromUrl(value) {
     if (!value || typeof value !== 'string') return null;
     const input = value.trim();
@@ -425,6 +470,7 @@ function extractGammaIdFromUrl(value) {
     return null;
 }
 
+/** @param {GammaArgs} args */
 function resolveTemplateGammaId(args) {
     if (args.gammaId) {
         return {
@@ -443,6 +489,7 @@ function resolveTemplateGammaId(args) {
     };
 }
 
+/** @param {GammaArgs} args */
 function buildImageOptions(args) {
     const imageOptions = compactObject({
         source: args.imageSource,
@@ -453,6 +500,7 @@ function buildImageOptions(args) {
     return imageOptions;
 }
 
+/** @param {GammaArgs} args */
 function buildTextOptions(args) {
     return compactObject({
         language: args.language || 'en',
@@ -462,6 +510,7 @@ function buildTextOptions(args) {
     });
 }
 
+/** @param {GammaArgs} args */
 function buildCardOptions(args) {
     return compactObject({
         dimensions: args.dimensions,
@@ -469,12 +518,14 @@ function buildCardOptions(args) {
     });
 }
 
+/** @param {GammaArgs} args */
 function buildSharingOptions(args) {
     if (args.sharingOptions) return args.sharingOptions;
     if (args.enablePublicEmbed === false) return undefined;
     return { externalAccess: 'view' };
 }
 
+/** @param {GammaArgs} args */
 function buildCreateBody(args) {
     const body = compactObject({
         inputText: args.inputText,
@@ -494,6 +545,7 @@ function buildCreateBody(args) {
     return body;
 }
 
+/** @param {GammaArgs} args */
 function buildTemplateBody(args) {
     return compactObject({
         prompt: args.prompt,
@@ -506,6 +558,7 @@ function buildTemplateBody(args) {
     });
 }
 
+/** @param {GammaArgs} args */
 function buildRevisionBody(args) {
     const trace = [
         args.sourceGammaId ? `Source Gamma ID: ${args.sourceGammaId}` : null,
@@ -533,7 +586,12 @@ function buildRevisionBody(args) {
     });
 }
 
+/**
+ * @param {GammaGeneration} result
+ * @param {GammaGenerationMeta} [meta]
+ */
 function formatGenerationResult(result, meta = {}) {
+    /** @type {GammaGeneration & GammaGenerationMeta} */
     const response = {
         generationId: result.generationId || meta.generationId || null,
         status: result.status || 'pending',
@@ -555,6 +613,11 @@ function formatGenerationResult(result, meta = {}) {
 
 // API Client
 
+/**
+ * @param {string} apiKey
+ * @param {string} path
+ * @param {{ method?: string, body?: object, query?: Record<string, unknown> }} [options]
+ */
 async function gammaApiRequest(apiKey, path, { method = 'GET', body, query } = {}) {
     const url = `${GAMMA_API_BASE_URL}${path}${buildQuery(query)}`;
     const controller = new AbortController();
@@ -598,6 +661,12 @@ async function gammaApiRequest(apiKey, path, { method = 'GET', body, query } = {
     return data || {};
 }
 
+/**
+ * @param {string} apiKey
+ * @param {string} generationId
+ * @param {number} timeoutSeconds
+ * @returns {Promise<GammaGeneration>}
+ */
 async function pollGeneration(apiKey, generationId, timeoutSeconds) {
     const started = Date.now();
     const timeoutMs = timeoutSeconds * 1000;
@@ -620,6 +689,13 @@ async function pollGeneration(apiKey, generationId, timeoutSeconds) {
     };
 }
 
+/**
+ * @param {string} apiKey
+ * @param {string} path
+ * @param {object} body
+ * @param {GammaArgs} args
+ * @param {GammaGenerationMeta} [meta]
+ */
 async function createAndMaybePoll(apiKey, path, body, args, meta = {}) {
     const waitForCompletion = args.waitForCompletion === true;
     const timeoutSeconds = clampTimeoutSeconds(args.timeoutSeconds);
@@ -653,6 +729,11 @@ async function createAndMaybePoll(apiKey, path, body, args, meta = {}) {
 
 // Tool Execution
 
+/**
+ * @param {string} toolName
+ * @param {GammaArgs} args
+ * @param {string | number} userId
+ */
 async function executeGammaTool(toolName, args = {}, userId) {
     const apiKey = await configStore.getSecret(`gamma_api_key_user_${userId}`);
     if (!apiKey) {
@@ -742,6 +823,7 @@ async function executeGammaTool(toolName, args = {}, userId) {
     }
 }
 
+/** @param {unknown} toolName */
 function isGammaTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('gamma_');
 }

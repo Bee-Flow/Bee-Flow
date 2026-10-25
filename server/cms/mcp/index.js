@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CMS over MCP — the feature's entry point.
  *

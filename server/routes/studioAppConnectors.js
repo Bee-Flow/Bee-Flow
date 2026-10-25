@@ -508,8 +508,8 @@ async function probeConnected(app, connector, viewerId) {
             orgId: app.organizationId || null,
             deps: {
                 buildUserSession: (...a) => require('../appStudio/connectors')._defaultBuildUserSession(...a),
-                getIntegrationTools: (...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
-                resolveIntegration: (...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
+                getIntegrationTools: /** @param {Parameters<typeof import('../core/integrations/integrationTools').getIntegrationTools>} a */ (...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
+                resolveIntegration: /** @param {Parameters<typeof import('../core/integrations/integrationToolMap').resolveIntegration>} a */ (...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
             },
         });
         return await Promise.race([probe, timeout]);

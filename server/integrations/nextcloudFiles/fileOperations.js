@@ -8,7 +8,17 @@
 const { MAX_TEXT_BYTES, PROPFIND_BODY, joinDavPath, parsePropfind, ensureParentFolders } = require('./webdav');
 const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../../core/http/httpResponseLimits');
 
-/** Compose each node's absolute path from its parent's and write it onto the node. */
+/**
+ * A node of the folder-tree OCS answer (bare JSON, keys vary by version).
+ * @typedef {{ basename?: string, name?: string, displayName?: string, path?: string, href?: string, children?: FolderTreeNode[], entries?: FolderTreeNode[] }} FolderTreeNode
+ */
+
+/**
+ * Compose each node's absolute path from its parent's and write it onto the node.
+ * @param {unknown} nodes
+ * @param {string} parentPath
+ * @returns {FolderTreeNode[]}
+ */
 function withFullPaths(nodes, parentPath) {
     if (!Array.isArray(nodes)) return [];
     return nodes.map((node) => {
@@ -26,6 +36,11 @@ function withFullPaths(nodes, parentPath) {
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
+/**
+ * @param {string} toolName
+ * @param {{ path?: string, fileId?: string | number, targetMimeType?: string, destination?: string, depth?: number, withParents?: boolean, sourceHandle?: { kind: string, messageId?: string, attachmentId?: string, fileId?: string, mimeType?: string }, content?: string, isBase64?: boolean, contentType?: string, source?: string, overwrite?: boolean }} args
+ * @param {import('./webdav').FilesToolCtx} ctx
+ */
 async function executeFileOperationTool(toolName, args, ctx) {
     const { baseUrl, ncFetch, authError, uid, root, session } = ctx;
 
@@ -61,6 +76,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
 
         case 'nextcloud_convert_file': {
             if (!args.fileId) return { error: 'fileId is required' };
+            /** @type {{ fileId: number, targetMimeType: string, destination?: string }} */
             const payload = {
                 fileId: Number(args.fileId),
                 targetMimeType: args.targetMimeType || 'application/pdf',
@@ -81,7 +97,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 const text = await res.text().catch(() => '');
                 return { error: `Nextcloud file conversion failed (${res.status}): ${text.slice(0, 200)}` };
             }
-            const data = await res.json().catch(() => null);
+            const data = await res.json().catch(/** @returns {null} */ () => null);
             const out = data?.ocs?.data || {};
             return {
                 success: true,
@@ -117,7 +133,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 return { error: 'The folder-tree endpoint is unavailable on this Nextcloud (needs 31+). Use nextcloud_list_files instead.' };
             }
             if (!res.ok) return { error: `Nextcloud folder tree failed (${res.status})` };
-            const data = await res.json().catch(() => null);
+            const data = await res.json().catch(/** @returns {null} */ () => null);
             const raw = Array.isArray(data) ? data : (data?.ocs?.data ?? []);
             // Nodes are relative to the requested start folder (unless the
             // parents came along). Write the FULL path on every node so the
@@ -139,7 +155,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
                 const text = await res.text().catch(() => '');
                 return { error: `Could not mint a direct link (${res.status}): ${text.slice(0, 200)}` };
             }
-            const data = await res.json().catch(() => null);
+            const data = await res.json().catch(/** @returns {null} */ () => null);
             const url = data?.ocs?.data?.url || null;
             if (!url) return { error: 'Nextcloud did not return a direct link URL' };
             // Nextcloud expires these after 24h. Say so, so an automation does not
@@ -248,6 +264,7 @@ async function executeFileOperationTool(toolName, args, ctx) {
             // why binding base64 into `content` was never a real option: the
             // PUT below is byte-exact, so a base64 string would land as a
             // base64 *text file* rather than the document.
+            /** @type {Buffer<ArrayBuffer> | Buffer<ArrayBufferLike> | string} */
             let body;
             let handleMime = null;
             if (hasHandle) {
@@ -264,11 +281,12 @@ async function executeFileOperationTool(toolName, args, ctx) {
                     // A file a document/presentation step kept for THIS run —
                     // resolved against the journey's run ids, never by id alone.
                     const { readGeneratedFile } = require('../../core/automationRunner/generatedFileHandle');
+                    /** @type {{ buffer: Buffer; filename: string; mimeType: string; size: number; } | null} */
                     let file;
                     try {
-                        file = await readGeneratedFile(args.sourceHandle, ctx.runScope || null);
+                        file = await readGeneratedFile(/** @type {{ kind: 'generated_file', fileId: string }} */ (args.sourceHandle), ctx.runScope || null);
                     } catch (e) {
-                        return { error: e.message };
+                        return { error: /** @type {Error} */ (e).message };
                     }
                     if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
                     body = file.buffer;

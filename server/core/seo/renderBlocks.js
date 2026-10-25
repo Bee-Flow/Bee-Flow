@@ -351,3 +351,5 @@ const PREHYDRATE_CSS = `
 `.trim();
 
 module.exports = { renderBlocks, renderBlocksWithHints, PREHYDRATE_CSS };
+
+/** @typedef {import('../../stores/cms/shared').CmsDoc} CmsDoc */

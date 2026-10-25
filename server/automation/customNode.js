@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Custom-node contract helpers.
  *
@@ -332,3 +331,7 @@ module.exports = {
     customNodeContract,
     validateCustomNode,
 };
+
+/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+
+/** @typedef {{ kind: string, tool: string | null }} Capability */

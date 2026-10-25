@@ -31,6 +31,9 @@ function createFormWork({ automationStore, runner, formAnswers }) {
      * `session.runId`, and a parent flipped to 'success' while the session still
      * pointed at it would answer `state: 'done'` — ending the visitor's journey
      * before the child had a chance to serve the next page.
+     * @param {import('./formQueueShared').FormSession} session
+     * @param {string} parentRunId
+     * @param {import('./formQueueShared').FormRun} child
      */
     async function finaliseResumedParent(session, parentRunId, child) {
         if (session?.id) await automationStore.attachFormSessionRun(session.id, child.id).catch((e) => bestEffort('automation/formQueueWork:finaliseResumedParent', e));
@@ -51,7 +54,12 @@ function createFormWork({ automationStore, runner, formAnswers }) {
     //   { kind: 'submit', payload, submitterId, publicForm }
     //   { kind: 'resume', parentRunId, stepId, values, submitterId }
 
-    /** A first submission: start the automation with the visitor's answers. */
+    /**
+     * A first submission: start the automation with the visitor's answers.
+     * @param {import('./formQueueShared').FormAutomation} automation
+     * @param {import('./formQueueShared').FormSession} session
+     * @param {import('./formQueueShared').FormWork} work
+     */
     function submitThunk(automation, session, work) {
         const answers = answersRefOf(session);
         const submitterId = work.submitterId || null;
@@ -68,7 +76,7 @@ function createFormWork({ automationStore, runner, formAnswers }) {
             // paused or finished, so waiting for it left session.runId null for
             // the whole first stretch — and the poll has nothing to report
             // progress from without a run to read.
-            onRunCreated: async (r) => {
+            onRunCreated: async (/** @type {import('./formQueueShared').FormRun} */ r) => {
                 await automationStore.attachFormSessionRun(session.id, r.id);
                 // FRM-08: who submitted, on the run — and the run, on the row.
                 if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch((e) => bestEffort('automation/formQueueWork:onRunCreated', e));
@@ -77,19 +85,27 @@ function createFormWork({ automationStore, runner, formAnswers }) {
             // No more pages to answer: the journey is complete (an error is
             // "complete" too — nothing further will be asked).
             onRunFinished: answers
-                ? (r, { status }) => ((status === 'success' || status === 'error')
+                ? (/** @type {import('./formQueueShared').FormRun} */ r, /** @type {{ status: string }} */ { status }) => ((status === 'success' || status === 'error')
                     ? formAnswers().markCompleted({ automation, datatableId: answers.datatableId, rowId: answers.rowId })
                     : null)
                 : null,
         });
     }
 
-    /** Stop handing the answered page back while its resume is in flight (see formPublic.js). */
+    /**
+     * Stop handing the answered page back while its resume is in flight (see formPublic.js).
+     * @param {string} parentRunId
+     */
     function stopServingPage(parentRunId) {
         return automationStore.updateRun(parentRunId, { awaitingStepId: null }).catch((e) => fallback('automation/formQueueWork:stopServingPage', e));
     }
 
-    /** A later page: resume the paused run with this page's answers. */
+    /**
+     * A later page: resume the paused run with this page's answers.
+     * @param {import('./formQueueShared').FormAutomation} automation
+     * @param {import('./formQueueShared').FormSession} session
+     * @param {import('./formQueueShared').FormWork} work
+     */
     function resumeThunk(automation, session, work) {
         const answersRef = answersRefOf(session);
         const submitterId = work.submitterId || null;
@@ -113,12 +129,12 @@ function createFormWork({ automationStore, runner, formAnswers }) {
                     // the work happens, and it must be readable while it
                     // happens. finaliseResumedParent only runs once the child
                     // is DONE, which is far too late to show progress.
-                    onRunCreated: async (r) => {
+                    onRunCreated: async (/** @type {import('./formQueueShared').FormRun} */ r) => {
                         await automationStore.attachFormSessionRun(session.id, r.id);
                         if (submitterId) await automationStore.updateRun(r.id, { submittedByUserId: submitterId }).catch((e) => bestEffort('automation/formQueueWork:onRunCreated#2', e));
                     },
                     onRunFinished: answersRef
-                        ? (r, { status }) => ((status === 'success' || status === 'error')
+                        ? (/** @type {import('./formQueueShared').FormRun} */ r, /** @type {{ status: string }} */ { status }) => ((status === 'success' || status === 'error')
                             ? formAnswers().markCompleted({ automation, ...answersRef })
                             : null)
                         : null,
@@ -140,6 +156,12 @@ function createFormWork({ automationStore, runner, formAnswers }) {
         };
     }
 
+    /**
+     * @param {import('./formQueueShared').FormAutomation} automation
+     * @param {import('./formQueueShared').FormSession} session
+     * @param {import('./formQueueShared').FormWork} work
+     * @returns {import('./formQueueShared').FormQueueItem}
+     */
     function makeItem(automation, session, work) {
         const thunk = work.kind === 'resume' ? resumeThunk(automation, session, work) : submitThunk(automation, session, work);
         return { automationId: automation.id, sessionId: session.id, kind: work.kind, thunk };

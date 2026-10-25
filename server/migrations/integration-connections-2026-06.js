@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: integration_connections + connection_grants.
  *

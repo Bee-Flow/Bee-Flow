@@ -34,7 +34,11 @@ const { deps, init } = lazyDeps({
     graphRequest: () => require('../integrations/integrationClients').integrationClient('msGraph').graphRequest,
 });
 
-/** ffmpeg audio extraction, shared with the Meet path (loaded on first use). */
+/**
+ * ffmpeg audio extraction, shared with the Meet path (loaded on first use).
+ * @param {string} videoPath
+ * @param {string} audioPath
+ */
 function extractAudioTrack(videoPath, audioPath) {
     return require('./gmeetArtifacts').extractAudioTrack(videoPath, audioPath);
 }
@@ -53,6 +57,11 @@ const DEFAULT_MAX_VIDEO_BYTES = Number(process.env.TEAMS_MAX_RECORDING_BYTES) ||
 // becoming a path separator; this only refuses obvious garbage.
 const MEETING_ID_RE = /^[A-Za-z0-9+/_=-]{1,1024}$/;
 
+/**
+ * @param {string} message
+ * @param {string} code
+ * @param {number | null} [status]
+ */
 function codedError(message, code, status = null) {
     const e = /** @type {Error & {code?: string, status?: number|null}} */ (new Error(message));
     e.code = code;
@@ -60,6 +69,10 @@ function codedError(message, code, status = null) {
     return e;
 }
 
+/**
+ * @param {string} value
+ * @param {string} what
+ */
 function assertId(value, what) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- MEETING_ID_RE is a constant anchored class with a bounded {1,1024} repeat: linear
     if (typeof value !== 'string' || !MEETING_ID_RE.test(value)) {
@@ -68,6 +81,7 @@ function assertId(value, what) {
     return encodeURIComponent(value);
 }
 
+/** @param {Response} response */
 async function readGraphError(response) {
     const body = await response.text().catch(() => '');
     try {
@@ -85,6 +99,8 @@ async function readGraphError(response) {
  *   403 mentioning scope / consent          → needs_teams_scopes
  *   403 otherwise                            → not_organizer
  *   404                                      → not_found
+ * @param {Response} response
+ * @param {string} context
  */
 async function classifyGraphFailure(response, context) {
     const { code, message } = await readGraphError(response);
@@ -105,7 +121,13 @@ async function classifyGraphFailure(response, context) {
     return codedError(`${context}: Microsoft Graph returned ${response.status}${message ? ` (${message})` : ''}`, 'failed', 502);
 }
 
-/** @returns {Promise<any>} */
+/**
+ * @param {string} path
+ * @param {object} session
+ * @param {string} context
+ * @param {{ method?: string, body?: string, headers?: Record<string, string> }} [options]
+ * @returns {Promise<any>}
+ */
 async function graphJson(path, session, context, options = {}) {
     const response = await deps.graphRequest(path, session, {
         ...options,
@@ -120,6 +142,8 @@ async function graphJson(path, session, context, options = {}) {
  * The onlineMeeting behind a calendar join URL, or null when this account
  * cannot see one (Graph returns an empty list for meetings the user does not
  * organize).
+ * @param {object} session
+ * @param {string | null | undefined} joinUrl
  */
 async function getOnlineMeetingByJoinUrl(session, joinUrl) {
     if (!joinUrl) return null;
@@ -129,6 +153,11 @@ async function getOnlineMeetingByJoinUrl(session, joinUrl) {
     return meeting && meeting.id ? meeting : null;
 }
 
+/**
+ * @param {object} session
+ * @param {string} meetingId
+ * @param {string} collection
+ */
 async function listCollection(session, meetingId, collection) {
     const id = assertId(meetingId, 'meeting');
     const items = [];
@@ -141,10 +170,18 @@ async function listCollection(session, meetingId, collection) {
     return items;
 }
 
-/** All recordings of an onlineMeeting (every occurrence of a series). */
+/**
+ * All recordings of an onlineMeeting (every occurrence of a series).
+ * @param {object} session
+ * @param {string} meetingId
+ */
 function listRecordings(session, meetingId) { return listCollection(session, meetingId, 'recordings'); }
 
-/** All transcripts of an onlineMeeting (every occurrence of a series). */
+/**
+ * All transcripts of an onlineMeeting (every occurrence of a series).
+ * @param {object} session
+ * @param {string} meetingId
+ */
 function listTranscripts(session, meetingId) { return listCollection(session, meetingId, 'transcripts'); }
 
 /**
@@ -162,6 +199,7 @@ function pickArtifactForSlot(items, { meetingStart, meetingEnd } = {}) {
     const windowStart = startMs - MATCH_PRE_MS;
     const windowEnd = endMs + MATCH_POST_MS;
 
+    /** @type {{ id?: string; createdDateTime?: string; endDateTime?: string; } | null} */
     let best = null;
     let bestOverlap = -1;
     let bestDistance = Infinity;
@@ -208,12 +246,16 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
     } catch (err) {
         try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
         if (err?.code === 'recording_too_large') throw err;
-        throw codedError(`Recording download failed: ${err.message}`, 'download_failed', 502);
+        throw codedError(`Recording download failed: ${/** @type {Error} */ (err).message}`, 'download_failed', 502);
     }
     return { size: seen };
 }
 
-/** The transcript of one occurrence as WebVTT text (with `<v Name>` voice tags). */
+/**
+ * The transcript of one occurrence as WebVTT text (with `<v Name>` voice tags).
+ * @param {object} session
+ * @param {{ meetingId: string, transcriptId: string }} opts
+ */
 async function fetchTranscriptVtt(session, { meetingId, transcriptId }) {
     const path = `/me/onlineMeetings/${assertId(meetingId, 'meeting')}/transcripts/${assertId(transcriptId, 'transcript')}/content?$format=text/vtt`;
     const response = await deps.graphRequest(path, session, { headers: { Accept: 'text/vtt' } });
@@ -225,6 +267,8 @@ async function fetchTranscriptVtt(session, { meetingId, transcriptId }) {
  * Turn Teams' own "record automatically" on or off for a meeting the user
  * organizes (needs OnlineMeetings.ReadWrite). Never throws.
  * → { ok: true } | { error: 'not_organizer'|'needs_teams_scopes'|'not_found'|'error' }
+ * @param {object} session
+ * @param {{ joinUrl: string, enabled: boolean }} opts
  */
 async function setRecordAutomatically(session, { joinUrl, enabled }) {
     try {

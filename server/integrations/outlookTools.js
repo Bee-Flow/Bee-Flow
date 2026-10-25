@@ -603,3 +603,17 @@ module.exports = {
     readManyOutlookMessages,
     listRecentMessages,
 };
+
+/**
+ * A Graph message (only the fields read here).
+ * @typedef {{ emailAddress?: { name?: string, address?: string } }} GraphRecipient
+ * @typedef {{ id?: string, subject?: string, from?: GraphRecipient, toRecipients?: GraphRecipient[],
+ *   ccRecipients?: GraphRecipient[], receivedDateTime?: string, sentDateTime?: string, bodyPreview?: string,
+ *   body?: { contentType?: string, content?: string }, hasAttachments?: boolean, isRead?: boolean,
+ *   conversationId?: string }} GraphMessage
+ * @typedef {{ id?: string, name?: string, contentType?: string, size?: number }} GraphAttachment
+ * @typedef {ReturnType<typeof shapeOutlookMessage> & { attachments?: ReturnType<typeof shapeOutlookAttachments> }} ShapedMessage
+ * @typedef {{ to?: string, cc?: string|null, bcc?: string|null, subject?: string, body?: string,
+ *   replyToMessageId?: string|null }} OutlookDraft
+ * @typedef {{ emailAddress: { address: string } }} RecipientOut
+ */

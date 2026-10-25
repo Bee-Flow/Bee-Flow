@@ -225,3 +225,31 @@ async function resolveRunIdentity(deps, automation) {
 }
 
 module.exports = { runOrgFor, resolveEnteredTrigger, selectRunCopy, buildRunState, createRunVault, resolveRunIdentity };
+
+/**
+ * The automation a run executes: a store row, or a caller-built spread of one
+ * (execution.js types it the same way).
+ * @typedef {Record<string, any>} RunAutomation
+ * @typedef {NonNullable<ReturnType<typeof import('../../stores/automationStore/rowMappers').rowToRun>>} RunRow
+ * @typedef {{ id?: string, type?: string, kind?: string, label?: string, appEvent?: { provider?: string, event?: string },
+ *   schedule?: object, form?: { theme?: unknown }, [key: string]: unknown }} TriggerNode
+ * @typedef {{ trigger?: TriggerNode, triggers?: TriggerNode[] }} TriggerDefinition
+ */
+
+/**
+ * What execution.js hands the run modules instead of their requiring it (its RUN_DEPS).
+ * @typedef {{
+ *   automationStore: typeof import('../../stores/automationStore'),
+ *   safety: typeof import('./safety'),
+ *   engine: typeof import('./engine'),
+ *   createTokenVault: typeof import('./tokenVault').createTokenVault,
+ *   defaultPersist: typeof import('./tokenVault').defaultPersist,
+ *   notifyRunEvent: typeof import('./runNotifications').notifyRunEvent,
+ *   clearRunCancellation: typeof import('./cancellation').clearRunCancellation,
+ *   isCancelRequested: typeof import('./cancellation').isCancelRequested,
+ *   loadApprovalLifecycle: () => typeof import('./approvalLifecycle'),
+ *   loadRunOutcome: () => ReturnType<typeof import('./featurePorts').runnerPort>,
+ *   loadAudience: () => typeof import('../../auth/audience'),
+ *   loadUserStore: () => typeof import('../../stores/userStore'),
+ * }} RunDeps
+ */

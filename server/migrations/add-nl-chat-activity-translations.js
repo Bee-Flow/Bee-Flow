@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the chat's activity card (2026-09-19): the numbered timeline
  * above an answer that shows what the assistant did — the same shape the

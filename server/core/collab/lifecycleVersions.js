@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The writes of the document lifecycle (./lifecycle.js) that keep a
  * co-edited document's surroundings current: the mirror (materialise), the
@@ -74,7 +74,7 @@ function makeLifecycleVersions(ctx, base, kinds) {
             // The person the item's card shows as its last editor: the most
             // recent human author since the mirror was last written.
             const authors = await store.authorsBetween(doc.id, claim.materializedSeq, seq);
-            const human = authors.filter((a) => a.userId && a.origin !== 'import').pop();
+            const human = authors.filter(/** @param {{ userId: string|null, origin: string }} a */ (a) => a.userId && a.origin !== 'import').pop();
             const written = await resources.writeMirror(doc.resourceKind, doc.resourceId, {
                 html: render.html, markdown: render.markdown, text: render.text, wordCount: render.wordCount,
                 editedBy: human ? human.userId : null,

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Trial Service — orchestrates one-time Stripe trial creation for orgs
  * and consumers. Exposes the imperative "start trial" path used by admin
@@ -24,12 +25,20 @@ function trialAlreadyUsed() {
     return err;
 }
 
+/**
+ * @param {{ trial_days?: number, stripe_price_id?: string } | null} plan
+ */
 async function assertPlanTrialReady(plan) {
     if (!plan) throw new Error('Plan not found');
     if (!plan.trial_days || plan.trial_days <= 0) throw new Error('Plan has no trial_days configured');
     if (!plan.stripe_price_id) throw new Error('Plan is not synced to Stripe yet');
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} planId
+ * @param {{ changedBy?: string|null }} [opts]
+ */
 async function startOrgTrial(orgId, planId, { changedBy } = {}) {
     const store = userStore();
     const stripe = stripeService();
@@ -90,6 +99,11 @@ async function startOrgTrial(orgId, planId, { changedBy } = {}) {
     return await store.getOrgSubscription(orgId);
 }
 
+/**
+ * @param {string} userId
+ * @param {string} planId
+ * @param {{ changedBy?: string|null }} [opts]
+ */
 async function startConsumerTrial(userId, planId, { changedBy } = {}) {
     const store = userStore();
     const stripe = stripeService();
@@ -154,6 +168,7 @@ async function getTrialConfig() {
     };
 }
 
+/** @param {{ default_org_trial_plan_id?: string|null, default_consumer_trial_plan_id?: string|null }} [config] */
 async function setTrialConfig({ default_org_trial_plan_id, default_consumer_trial_plan_id } = {}) {
     if (default_org_trial_plan_id !== undefined) {
         await configStore.setConfig(ORG_TRIAL_PLAN_KEY, default_org_trial_plan_id || '');
@@ -167,6 +182,7 @@ async function setTrialConfig({ default_org_trial_plan_id, default_consumer_tria
 // Fire-and-forget auto-grant from create-org / create-consumer entry points.
 // Never throws — signup must succeed even if Stripe is down or the configured
 // plan is missing. Logged warnings let the admin notice misconfiguration.
+/** @param {string} orgId */
 async function maybeAutoGrantOrgTrial(orgId) {
     // Trials are a Stripe/subscription concept — cloud only. Self-hosted (incl.
     // the retired 'private-cloud' value) uses licence keys, never trials.
@@ -183,6 +199,7 @@ async function maybeAutoGrantOrgTrial(orgId) {
     }
 }
 
+/** @param {string} userId */
 async function maybeAutoGrantConsumerTrial(userId) {
     // Trials are a Stripe/subscription concept — cloud only. Self-hosted (incl.
     // the retired 'private-cloud' value) uses licence keys, never trials.

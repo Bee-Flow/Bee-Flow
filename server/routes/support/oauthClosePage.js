@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -16,12 +16,26 @@ const { esc } = require('../../core/seo/html');
 
 const SCRIPT_UNSAFE = /[<>&\u2028\u2029]/g;
 
-/** A JS string literal of `value` that is safe inside an inline <script>. */
+/**
+ * A JS string literal of `value` that is safe inside an inline <script>.
+ * @param {string} value
+ */
 function scriptString(value) {
     return JSON.stringify(value)
         .replace(SCRIPT_UNSAFE, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 }
 
+/**
+ * @typedef {Object} ClosePageArgs
+ * @property {string} type
+ * @property {string} title
+ * @property {string} okText
+ */
+/**
+ * @param {ClosePageArgs} param0
+ * @param {boolean} ok
+ * @param {string | undefined} message
+ */
 function closePage({ type, title, okText }, ok, message) {
     const payload = JSON.stringify({ type, ok, message: message || '' });
     const text = ok ? okText : `Connection failed: ${String(message || '').slice(0, 200)}`;
@@ -35,7 +49,15 @@ function closePage({ type, title, okText }, ok, message) {
 const SUPPORT_MAILBOX = { type: 'support-mailbox-oauth', title: 'Mailbox connected', okText: 'Mailbox connected. You can close this window.' };
 const SERVICE_EMAIL = { type: 'service-email-oauth', title: 'Service email connected', okText: 'Service email connected. You can close this window.' };
 
+/**
+ * @param {boolean} ok
+ * @param {string} [message]
+ */
 const oauthClosePage = (ok, message) => closePage(SUPPORT_MAILBOX, ok, message);
+/**
+ * @param {boolean} ok
+ * @param {string} message
+ */
 const serviceEmailClosePage = (ok, message) => closePage(SERVICE_EMAIL, ok, message);
 
 module.exports = { oauthClosePage, serviceEmailClosePage };

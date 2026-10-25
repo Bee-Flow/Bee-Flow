@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NC onboarding-incomplete reminder (daily tick).
  *
@@ -34,6 +34,10 @@ const MARKER_PREFIX = 'nc_onboarding_reminder_last_';
 // members kept for orgs that pre-date the rename.
 const ADMIN_SQL = `SELECT id FROM users WHERE "organizationId" = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin'))`;
 
+/**
+ * @param {Record<string, any>} org  an organizations row
+ * @param {number} now
+ */
 function _isEligible(org, now) {
     if (!org || !org.nc_instance_id) return false;
     if (org.nc_onboarding_completed_at) return false;
@@ -49,7 +53,7 @@ async function run({ now = Date.now() } = {}) {
     try {
         orgs = await require('../stores/userStore').getAllOrganizations();
     } catch (err) {
-        log.warn(`[ncOnboardingReminder] Could not list orgs: ${err.message}`);
+        log.warn(`[ncOnboardingReminder] Could not list orgs: ${/** @type {Error} */ (err).message}`);
         return result;
     }
 
@@ -96,7 +100,7 @@ async function run({ now = Date.now() } = {}) {
                     });
                     sent++;
                 } catch (e) {
-                    log.warn(`[ncOnboardingReminder] notify failed org=${org.id} user=${admin.id}: ${e.message}`);
+                    log.warn(`[ncOnboardingReminder] notify failed org=${org.id} user=${admin.id}: ${/** @type {Error} */ (e).message}`);
                 }
             }
 
@@ -113,7 +117,7 @@ async function run({ now = Date.now() } = {}) {
             }
         } catch (err) {
             result.errors++;
-            log.warn(`[ncOnboardingReminder] org=${org.id} error: ${err.message}`);
+            log.warn(`[ncOnboardingReminder] org=${org.id} error: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -123,6 +127,7 @@ async function run({ now = Date.now() } = {}) {
     return result;
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _interval = null;
 
 function start() {

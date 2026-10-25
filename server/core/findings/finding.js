@@ -196,3 +196,13 @@ module.exports = {
     FINDING_KINDS,
     SEVERITY_RANK,
 };
+
+/**
+ * @typedef {{ kind?: string, id?: string|number|null } & Record<string, unknown>} TargetRefInput
+ * @typedef {{ code?: string, severity?: string, blockedAt?: string, kind?: string, targetRef?: TargetRefInput,
+ *   message?: string, remediation?: string }} FindingInput
+ * @typedef {{ code: string, severity: string, blockedAt?: string, kind: string, targetRef: Record<string, string|null>,
+ *   message: string, remediation?: string }} Finding
+ * @typedef {{ code?: string, severity?: string, blockedAt?: string, path?: string, nodeId?: string, stepId?: string,
+ *   message?: string, hint?: string, remediation?: string, kind?: string, targetRef?: TargetRefInput }} LegacyRecord
+ */

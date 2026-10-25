@@ -262,3 +262,7 @@ module.exports.validateMapJsonRequest = validateMapJsonRequest;
 module.exports.verifyMappedFields = verifyMappedFields;
 module.exports.verifyMapJsonItemsRef = verifyMapJsonItemsRef;
 module.exports.MAP_JSON_FIELDS_TOOL = MAP_JSON_FIELDS_TOOL;
+
+/**
+ * @typedef {import('express').Router & { validateMapJsonRequest: typeof validateMapJsonRequest; verifyMappedFields: typeof verifyMappedFields; verifyMapJsonItemsRef: typeof verifyMapJsonItemsRef; MAP_JSON_FIELDS_TOOL: typeof MAP_JSON_FIELDS_TOOL }} RouterExports
+ */

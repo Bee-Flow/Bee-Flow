@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: drop the plaintext copy of chat messages from memory_sources.
  *
@@ -12,6 +13,7 @@
  */
 
 /** `deps.run` is the injection seam for tests; the boot ladder calls `up()`. */
+/** @param {{ run?: typeof import("../db").run }} [deps] */
 async function up(deps = {}) {
     const run = deps.run || require('../db').run;
     let res;

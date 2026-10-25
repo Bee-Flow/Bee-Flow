@@ -148,3 +148,9 @@ function findRange(index, chrom, start, end, { maxBlocks = 256 } = {}) {
 }
 
 module.exports = { serialize, deserialize, findRange, ENTRY_BYTES };
+
+/**
+ * @typedef {{ name: string, entryStart: number, entryCount: number, minPos: number, maxPos: number, count: number }} IndexContig
+ * @typedef {{ contentEnd: number, contigs: IndexContig[], byName: Map<string, IndexContig>, entryCount: number,
+ *   firstPosAt: (i: number) => number, blockOffsetAt: (i: number) => number, uncompSizeAt: (i: number) => number }} BlockIndex
+ */

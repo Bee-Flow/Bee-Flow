@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * "Describe it" → a recipe document. One forced tool call on the Fast tier
  * (the same model that builds the phases), then the deterministic repairs
@@ -106,6 +107,10 @@ const RECIPE_TOOL = {
     },
 };
 
+/**
+ * @param {string} locale
+ * @param {{ approvalsAllowed?: boolean }} [opts]
+ */
 function systemPrompt(locale, { approvalsAllowed = true } = {}) {
     const lang = languageName(locale);
     return [
@@ -152,7 +157,8 @@ function systemPrompt(locale, { approvalsAllowed = true } = {}) {
 
 function defaultDeps() {
     return {
-        resolveModel: (opts) => require('../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
+        resolveModel: /** @param {{ tier?: string, userOrgId?: string | null, userId?: string | null }} opts */ (opts) => require('../core/llm/modelResolver').resolveModelForTierName(opts.tier || 'fast', opts),
+        /** @param {Parameters<typeof import('../core/llm/llmClient').chatForcedTool>} args */
         chatForcedTool: (...args) => require('../core/llm/llmClient').chatForcedTool(...args),
     };
 }
@@ -194,7 +200,10 @@ function composeOptions() {
     };
 }
 
-/** Complete JSON, as it arrived — not a loosely-closed or provider-parsed shape. */
+/**
+ * Complete JSON, as it arrived — not a loosely-closed or provider-parsed shape.
+ * @param {unknown} s
+ */
 function isJsonText(s) {
     if (typeof s !== 'string' || !s.trim()) return false;
     try { JSON.parse(s); return true; } catch { return false; }
@@ -212,6 +221,8 @@ function isJsonText(s) {
  * repair round would re-emit the same over-long playbook, be cut the same
  * way, and its findings ("no builder phase") would send the person fixing
  * the wrong thing.
+ * @param {string | null} stopReason
+ * @param {string | null} rawArguments
  */
 function cutShort(stopReason, rawArguments) {
     return isTruncatedStop(stopReason) && !isJsonText(rawArguments);
@@ -225,6 +236,7 @@ const TRUNCATED_ERROR = 'The playbook came out longer than the model can write i
  * (which is what the person read when a 4000-token cap truncated a good
  * answer). Logged with what did arrive, so the live gate can count these
  * apart from the invalid ones.
+ * @param {{ round: number, stopReason: string | null, raw: { [k: string]: unknown, phases?: unknown } | null }} opts
  */
 function refuseTruncated({ round, stopReason, raw }) {
     const r = raw && typeof raw === 'object' ? raw : {};
@@ -232,7 +244,10 @@ function refuseTruncated({ round, stopReason, raw }) {
     return { ok: false, code: 'compose_truncated', status: 422, error: TRUNCATED_ERROR };
 }
 
-/** A forced call that produced no document at all. */
+/**
+ * A forced call that produced no document at all.
+ * @param {{ round: number, stopReason: string | null }} opts
+ */
 function refuseWithout({ round, stopReason }) {
     if (isTruncatedStop(stopReason)) return refuseTruncated({ round, stopReason, raw: null });
     return { ok: false, code: 'compose_empty', status: 422, error: 'The AI could not make a playbook out of that description — say what should be read, where it is stored, and what the app should show.' };
@@ -244,6 +259,8 @@ function refuseWithout({ round, stopReason }) {
  * else the parsed object — llama.cpp parses an assistant tool call's
  * `arguments` for the template and 400s the round on a string that is not
  * JSON, which is exactly what a loosely-repaired Gemma answer would be.
+ * @param {string | null} rawArguments
+ * @param {unknown} parsed
  */
 function echoArguments(rawArguments, parsed) {
     return isJsonText(rawArguments) ? rawArguments : JSON.stringify(parsed);
@@ -257,6 +274,7 @@ function echoArguments(rawArguments, parsed) {
  * label the model wrote, a finding on a column by its key, and the locator
  * is left out when the message already quotes it ("Phase \"App\" needs a
  * brief."). Only findings on the document itself keep their path.
+ * @param {ReturnType<typeof validateRecipeDoc>['errors'][number]} e
  */
 function findingLine(e) {
     const subject = e.phase ? ['phase', e.phase.label] : e.column ? ['column', e.column] : null;
@@ -265,7 +283,10 @@ function findingLine(e) {
     return e.message.includes(`"${name}"`) ? `- ${e.message}` : `- ${what} "${name}": ${e.message}`;
 }
 
-/** The shape of a raw value, for the failure log: `array(5)`, `{fields, name}`, `undefined`. */
+/**
+ * The shape of a raw value, for the failure log: `array(5)`, `{fields, name}`, `undefined`.
+ * @param {unknown} v
+ */
 function shapeOf(v) {
     if (Array.isArray(v)) return `array(${v.length})`;
     if (v && typeof v === 'object') return `{${Object.keys(v).join(', ')}}`;
@@ -273,7 +294,9 @@ function shapeOf(v) {
 }
 
 /**
- * @returns {Promise<{ ok:true, recipe, warnings:string[] } | { ok:false, code, error, status?, errors?, recipe?, correlationId? }>}
+ * @param {{ description: string, locale?: string, userId?: string | null, userOrgId?: string | null, tier?: string, approvalsAllowed?: boolean }} input
+ * @param {ReturnType<typeof defaultDeps>} [deps]
+ * @returns {Promise<{ ok: boolean, recipe?: any, warnings?: string[], code?: string, error?: string, status?: number, errors?: any, correlationId?: string }>}
  */
 async function composeRecipe({ description, locale = 'nl', userId = null, userOrgId = null, tier = 'fast', approvalsAllowed = true }, deps = defaultDeps()) {
     const modelId = await deps.resolveModel({ userOrgId, userId, tier });
@@ -302,7 +325,7 @@ async function composeRecipe({ description, locale = 'nl', userId = null, userOr
     // draft), `empty` (no document), `failed` (the request itself threw).
     let repair = 'none';
     try {
-        const first = (await deps.chatForcedTool(modelId, messages, tool, opts)) || {};
+        const first = /** @type {{ structured?: any, stopReason?: string | null, rawArguments?: string | null }} */ ((await deps.chatForcedTool(modelId, messages, tool, opts)) || {});
         structured = first.structured || null;
         lastRaw = structured;
         lastStop = first.stopReason ?? null;
@@ -390,12 +413,12 @@ async function composeRecipe({ description, locale = 'nl', userId = null, userOr
         // first draft — and `repair` says what became of the second call.
         const raw = lastRaw && typeof lastRaw === 'object' ? lastRaw : {};
         const rawPhases = Array.isArray(raw.phases) ? raw.phases : null;
-        const rawTablePhase = rawPhases ? rawPhases.find((p) => p && typeof p === 'object' && /^(table|datatable|data)$/i.test(String(p.kind || ''))) : null;
+        const rawTablePhase = rawPhases ? rawPhases.find(/** @param {Record<string, unknown>} p */ (p) => p && typeof p === 'object' && /^(table|datatable|data)$/i.test(String(p.kind || ''))) : null;
         log.warn(`[Playbooks] compose invalid: ${check.errors.map((e) => e.code).join(', ')} — document keys [${Object.keys(raw).join(', ')}], columns=${shapeOf(raw.columns)}, table=${shapeOf(raw.table)}, phases=${rawPhases ? rawPhases.length : '?'}, tablePhase=${rawTablePhase ? `{${Object.keys(rawTablePhase).join(', ')}}` : 'none'}, round=${lastRound}, stop=${lastStop}, repair=${repair}, garbled=${looksGarbled(lastRaw)}`);
         return { ok: false, code: 'recipe_invalid', status: 422, error: 'The model\'s playbook is not runnable.', errors: check.errors, recipe: doc };
     }
     if (!doc.table) warnings.push('no_table');
-    if (!doc.phases.some((p) => p.kind === 'app')) warnings.push('no_app');
+    if (!doc.phases.some(/** @param {{ kind?: string }} p */ (p) => p.kind === 'app')) warnings.push('no_app');
     return { ok: true, recipe: doc, warnings };
 }
 

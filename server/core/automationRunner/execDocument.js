@@ -329,3 +329,13 @@ module.exports = {
     resolveDocumentMarking, markingOutcome, orgOf,
     _marking: { resolveAiUpstream, definitionFor, providerHint, orgOf, markingOutcome },
 };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/**
+ * The run context fields the document steps read.
+ * @typedef {{ definition?: object, _markingDefinition?: object, automationId?: string, orgId?: string|null,
+ *   userHomeOrgId?: string|null, userId?: string, runId?: string, [key: string]: unknown }} DocumentCtx
+ */
+
+/** @typedef {{ status?: string, output?: { provider?: string, providerType?: string, model?: string } }} RecordedStep */

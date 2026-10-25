@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The resources a co-edited document belongs to, and the hooks co-editing
  * calls on their owners.
@@ -52,7 +52,8 @@ const SCAN_SUBJECT = Object.freeze({ notebook: 'notebook_document', document: 's
  *           notebookStore?: any, documentStore?: any, log?: any }} [deps]
  */
 function makeResources(deps = {}) {
-    const getOne = async (/** @type {string} */ sql, /** @type {any[]} */ params) => require('../../stores/lib/documentCrypto').openRow(await (deps.getOne || require('../../db').getOne)(sql, params));
+    // A raw notebooks / studio_documents row, its encrypted fields opened.
+    const getOne = async (/** @type {string} */ sql, /** @type {any[]} */ params) => /** @type {Promise<Record<string, any> | null | undefined>} */ (require('../../stores/lib/documentCrypto').openRow(await (deps.getOne || require('../../db').getOne)(sql, params)));
     const notebookStore = () => deps.notebookStore || require('../../stores/notebookStore');
     const documentStore = () => deps.documentStore || require('../../stores/documentStore');
     const logger = deps.log || log;

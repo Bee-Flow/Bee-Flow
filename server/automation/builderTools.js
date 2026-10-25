@@ -630,3 +630,25 @@ module.exports = {
     // The repeat ladder's signature (exported for tests)
     rejectionSignature, isRepeat,
 };
+
+/**
+ * @typedef {object} ToolSchemaProp  one property of a tool's parameter schema (the parts patched here)
+ * @property {string} [type]
+ * @property {string} [description]
+ * @property {string[]} [enum]
+ * @property {Record<string, ToolSchemaProp>} [properties]
+ * @property {string[]} [required]
+ */
+
+/**
+ * @typedef {object} ToolSchema
+ * @property {string} type
+ * @property {{ name: string, description?: string, parameters?: { type?: string, properties?: Record<string, ToolSchemaProp>, required?: string[] } }} function
+ */
+
+/**
+ * The JSON report of one tool call (the `tool` message back to the model). `error` is set when the call
+ * was refused; the other keys depend on the tool. `added` is the step an add made, or (builder_add_steps) the list of them.
+ * @typedef {{ error?: string, layerKey?: string, added?: { id?: string }, _warnings?: string[],
+ *   [key: string]: unknown }} ToolCallResult
+ */

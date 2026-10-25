@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Re-export shim — the implementation moved to ../core/dataEngine/engineFlag.
  *

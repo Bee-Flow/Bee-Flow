@@ -308,3 +308,12 @@ module.exports = {
     executeGitHubTool,
     isGitHubTool,
 };
+
+/**
+ * @typedef {{ full_name?: string, description?: string, language?: string, stargazers_count?: number,
+ *   forks_count?: number, open_issues_count?: number, private?: boolean, default_branch?: string,
+ *   created_at?: string, updated_at?: string, topics?: string[], html_url?: string, clone_url?: string }} GhRepo
+ * @typedef {{ name?: string, protected?: boolean, commit?: { sha?: string } }} GhBranch
+ * @typedef {{ name?: string, type?: string, size?: number, path?: string, encoding?: string, content?: string,
+ *   sha?: string, html_url?: string }} GhContent
+ */

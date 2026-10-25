@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -21,6 +21,7 @@
 const pd = require('../projects/projectData');
 const { fallback } = require('../../utils/bestEffort');
 
+/** @type {Readonly<Record<string, string>>} */
 const KIND_LABEL = Object.freeze({
     name: 'Names',
     email: 'E-mail addresses',
@@ -43,17 +44,22 @@ function defaultDeps() {
     };
 }
 
+/** @param {string[]} kinds */
 function kindLabels(kinds) {
     return (kinds || []).map(k => KIND_LABEL[k] || k);
 }
 
-/** One activity per registered project of this organisation. */
+/**
+ * One activity per registered project of this organisation.
+ * @param {string} orgId
+ */
 async function projectActivities(orgId, deps = defaultDeps()) {
     if (!orgId) return [];
+    /** @type {Record<string, any>[]} */
     let registrations = [];
     try {
         registrations = (await deps.complianceStore.listSubjectRegistrations(orgId, 'project'))
-            .filter(r => r.lawful_basis || Number(r.retention_days) > 0);
+            .filter((/** @type {Record<string, any>} */ r) => r.lawful_basis || Number(r.retention_days) > 0);
     } catch {
         return [];   // a register that cannot read is short, never wrong
     }
@@ -88,7 +94,7 @@ async function projectActivities(orgId, deps = defaultDeps()) {
             data_categories: kinds.length ? kindLabels(kinds) : ['Whatever members keep in the project'],
             data_subjects: ['People named in the project’s chats, documents, notebooks and files', 'The project’s members'],
             recipients: 'The project’s members (owner, editors, viewers)',
-            transfers: [],
+            transfers: /** @type {string[]} */ ([]),
             retention: Number.isFinite(days) && days > 0
                 ? `${days} days of inactivity, checked by GDPR-Art5-1-e-project-retention.`
                 : 'No retention recorded for this project.',
@@ -97,7 +103,7 @@ async function projectActivities(orgId, deps = defaultDeps()) {
                 'Team chats encrypted with the project key',
                 'Privacy Shield on every AI call made in the project',
             ],
-            ai_act: null,
+            ai_act: /** @type {Record<string, unknown> | null} */ (null),
             legal_basis: r.lawful_basis || null,
             source: { kind: 'project', id },
             confirmed_at: r.confirmed_at || null,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — one-shot image generation (POST /chat/generate-image).
  *

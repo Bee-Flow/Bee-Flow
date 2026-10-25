@@ -343,3 +343,27 @@ module.exports = {
     // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
     initDB,
 };
+
+/**
+ * @typedef {object} AiTaskRow
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} title
+ * @property {string} prompt
+ * @property {string | null} repeat_interval
+ * @property {string | Date | null} next_run_at
+ * @property {string | Date | null} last_run_at
+ * @property {string | null} last_result
+ * @property {string} last_status
+ * @property {boolean} is_active
+ * @property {string} model_tier
+ * @property {string} tools_enabled
+ * @property {number} max_result_length
+ * @property {number} run_count
+ * @property {string} timezone
+ * @property {string | Date | null} created_at
+ * @property {string | null} agent_id
+ * @property {string | null} conversation_id
+ * @property {string | null} days_of_week
+ * @property {string | null} time_of_day
+ */

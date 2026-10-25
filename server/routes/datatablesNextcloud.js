@@ -197,3 +197,5 @@ function makeNextcloudRouter({ publicTable }) {
 }
 
 module.exports = makeNextcloudRouter;
+
+/** @typedef {import('qs').ParsedQs} ParsedQs */

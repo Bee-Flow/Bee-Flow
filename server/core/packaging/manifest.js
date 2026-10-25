@@ -394,3 +394,5 @@ module.exports = {
     assignRefs, rewriteToRefs, rewriteRefs, collectRefs, buildManifest, sanitizeManifest,
     stripNeverInstallable, readSource, withSource,
 };
+
+/** @typedef {import('./walkers').DefinitionNode} DefinitionNode */

@@ -260,3 +260,49 @@ async function compareRuns(input, deps = {}) {
 }
 
 module.exports = { compareRuns, isSimulated };
+
+/** @typedef {Record<string, any>} RunRow  an automation_runs row as the store maps it */
+
+/** @typedef {Record<string, any>} StepRow  a run-step row as the store maps it */
+
+/** @typedef {{ row: StepRow, hidden: boolean }} StepEntry */
+
+/**
+ * @typedef {Object} Side
+ * @property {RunRow} run
+ * @property {string[]} runIds
+ * @property {Map<string, StepEntry>} byKey
+ * @property {Record<string, unknown>} header
+ * @property {Set<string>} aiIds
+ * @property {Map<string, Promise<any>>} files
+ */
+
+/**
+ * @typedef {Object} CompareEnv
+ * @property {any} store
+ * @property {any} differs
+ * @property {Side} sideA
+ * @property {Side} sideB
+ * @property {ReturnType<typeof caps>} caps
+ * @property {string[]} ignorePaths
+ * @property {object} ctx
+ * @property {(file: any) => Promise<any>} loadA
+ * @property {(file: any) => Promise<any>} loadB
+ */
+
+/**
+ * @typedef {Object} StepCompare
+ * @property {string} key
+ * @property {string} stepId
+ * @property {string | null} stepType
+ * @property {string | null} parentStepId
+ * @property {number | null} branchIndex
+ * @property {{ present: boolean, status: string | null }} a
+ * @property {{ present: boolean, status: string | null }} b
+ * @property {string} verdict
+ * @property {string | null} softReason
+ * @property {string} kind
+ * @property {import('./outputDiffers').Change[]} changes
+ * @property {boolean} changesTruncated
+ * @property {any[]} [files]
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Stream retry helpers — extracted from chatStream.js so they can be unit
  * tested without dragging in the full agent-runtime require graph (stores,
@@ -10,6 +10,7 @@
  * Returns an object with { retryable, errorType, userMessage }.
  */
 const log = require('../../telemetry/log');
+/** @param {Error & { status?: number, error?: { type?: string } }} error */
 function classifyStreamError(error) {
     const msg = error.message || '';
     const isNetworkError = error instanceof TypeError && /network|fetch|ECONNRESET|ETIMEDOUT/i.test(msg);
@@ -52,10 +53,11 @@ function classifyStreamError(error) {
  * MUST be reset at the top of `fn`, or a stream that emitted events before
  * dropping leaves duplicates behind — see the chatStream call site.
  *
- * @param {Function} fn - Async function to execute
+ * @template T
+ * @param {() => Promise<T>} fn - Async function to execute
  * @param {number} maxRetries - Maximum retry attempts (default 3)
  * @param {AbortSignal} [signal] - client-disconnect signal; aborts the loop
- * @returns {Promise} Result of fn()
+ * @returns {Promise<T>} Result of fn()
  */
 async function retryStreamCall(fn, maxRetries = 3, signal = null) {
     let lastError;
@@ -83,7 +85,7 @@ async function retryStreamCall(fn, maxRetries = 3, signal = null) {
             const baseDelay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
             const jitter = Math.random() * baseDelay * 0.5; // 0-50% jitter
             const delayMs = Math.min(Math.round(baseDelay + jitter), 10000); // cap at 10s
-            log.info(`[AgentRuntime] Retry attempt ${attempt + 1}/${maxRetries} after ${classified.errorType} error (waiting ${delayMs}ms): ${error.message}`);
+            log.info(`[AgentRuntime] Retry attempt ${attempt + 1}/${maxRetries} after ${classified.errorType} error (waiting ${delayMs}ms): ${/** @type {Error} */ (error).message}`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
         }
     }

@@ -155,3 +155,8 @@ function normaliseAddComponentsArgs(rawArgs) {
 }
 
 module.exports = { normaliseAddComponentsArgs, normaliseEntry, ROOT_PARENT_ALIASES, ROOT_LIST_ALIASES, COMPONENT_TYPE_ALIASES };
+
+/**
+ * One model-authored component entry (or the call's root), read defensively.
+ * @typedef {{ [k: string]: unknown, type?: string, props?: Record<string, unknown>, children?: unknown[] }} EntryObject
+ */

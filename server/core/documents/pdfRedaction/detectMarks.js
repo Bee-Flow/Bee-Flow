@@ -36,20 +36,43 @@ const OTHER_LABEL = /^(date|datum|scale|schaal|format|page|sheet|blad|rev\.?|rev
 const EMPTY_VALUE = /^[-–—_./\s]*$/;
 const GENERIC_DOMAINS = new Set(['gmail', 'hotmail', 'outlook', 'yahoo', 'live', 'icloud', 'example', 'mail', 'info', 'online', 'www']);
 
+/**
+ * @param {string} s
+ */
 const norm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+/**
+ * @param {number[]} b
+ */
 const width = (b) => b[2] - b[0];
+/**
+ * @param {number[]} b
+ */
 const height = (b) => b[3] - b[1];
+/**
+ * @param {number[]} b
+ */
 const area = (b) => Math.max(0, width(b)) * Math.max(0, height(b));
-const union = (a, b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])];
+const union = (/** @type {number[]} */ a, /** @type {number[]} */ b) => [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])];
+/**
+ * @param {number[]} a
+ * @param {number[]} b
+ */
 const intersect = (a, b) => [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
+/**
+ * @param {number[]} b
+ * @param {number[]} zone
+ */
 const insideShare = (b, zone) => {
     const i = intersect(b, zone);
     if (i[2] <= i[0] || i[3] <= i[1]) return 0;
     return area(i) / Math.max(area(b), 1e-6);
 };
-const chroma = (c) => (c ? Math.max(...c) - Math.min(...c) : 0);
+const chroma = (/** @type {number[]|null|undefined} */ c) => (c ? Math.max(...c) - Math.min(...c) : 0);
 
-/** Terms a document gives away about its owner: the name in its own web and mail domains. */
+/**
+ * Terms a document gives away about its owner: the name in its own web and mail domains.
+ * @param {Iterable<unknown>} texts
+ */
 function deriveTerms(texts) {
     const out = new Set();
     for (const t of texts) {
@@ -61,11 +84,18 @@ function deriveTerms(texts) {
     return [...out];
 }
 
-/** Why a text run identifies someone, or null. `terms` are normalised. */
+/**
+ * Why a text run identifies someone, or null. `terms` are normalised.
+ * @param {string} text
+ * @param {string[]} terms
+ */
 function textReason(text, terms) {
     if (!text || !text.trim()) return null;
     // Every pattern above repeats a bounded number of times, so each test is linear in the
     // length of the run (the hostile-input test in detectMarks.test.js holds it to that).
+    /**
+     * @param {RegExp} re
+     */
     const is = (re) => re.test(text); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos
     if (is(EMAIL) || is(URL)) return 'contact';
     if (is(PHONE_LABEL) || (!is(DATE) && (is(PHONE_INTL) || is(PHONE_LOCAL)))) return 'contact';
@@ -82,13 +112,17 @@ function textReason(text, terms) {
  * @param {object} [opts]
  * @param {string[]} [opts.terms]       normalised customer terms (user-given + derived)
  * @param {Map<number,string>} [opts.aiMarks]  object id → category the AI assigned
- * @returns {{ marks: Array<{id, category, text?}>, blocked: Array<{id, category, text?}> }}
+ * @returns {{ marks: Array<{id: number, category: string, text?: string}>, blocked: Array<{id: number, category: string, text?: string}> }}
  */
 function detectMarks(page, { terms = [], aiMarks = new Map() } = {}) {
     const objs = page.objects;
     const pageArea = area(page.box);
     const texts = objs.filter((o) => o.kind === 'text' && o.text && o.text.trim());
     const marks = new Map();
+    /**
+     * @param {{ id: number, kind: string, text?: string }} o
+     * @param {string} category
+     */
     const mark = (o, category) => { if (!marks.has(o.id)) marks.set(o.id, { id: o.id, category, text: o.kind === 'text' ? o.text.trim() : undefined }); };
 
     // 1. Text that names the customer or a way to reach them.
@@ -139,6 +173,7 @@ function detectMarks(page, { terms = [], aiMarks = new Map() } = {}) {
 
     // 4. Logos: artwork right next to the company's text. Cluster the company text first so a
     //    footer and a header each get their own zone instead of one page-wide box.
+    /** @type {Array<{ box: number[], size: number }>} */
     const clusters = [];
     for (const o of company) {
         const s = Math.max(o.size, 1);

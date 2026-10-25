@@ -579,3 +579,10 @@ module.exports = {
     SPEAKER_SUMMARY_MAX_CHARS,
     generateSpeakerSummaries,
 };
+
+/**
+ * @typedef {{ id: string, source: string, text: string, aiText: string, assignee: string, timestamp: ReturnType<typeof sanitizeTimestamp>, done: boolean, due?: string }} MeetingActionItem
+ * @typedef {{ id: string, text: string, timestamp: ReturnType<typeof sanitizeTimestamp> }} MeetingDecision
+ * @typedef {{ id: string, text: string, timestamp: ReturnType<typeof sanitizeTimestamp>, open: boolean }} MeetingQuestion
+ * @typedef {{ title?: unknown, start?: unknown, summary?: unknown }} RawChapter one chapter as the model wrote it
+ */

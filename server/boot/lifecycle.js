@@ -133,3 +133,5 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
 }
 
 module.exports = { installProcessErrorHandlers, startServer, installGracefulShutdown };
+
+/** @typedef {typeof defaultLog} Log */

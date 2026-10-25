@@ -25,6 +25,8 @@ const { mediaWarningFor } = require('../stores/cms/localeMedia');
  * small window with its revision check (a deleted page is refused there), the
  * locale route has none, so a delete landing in between can still leave one
  * override row for the gone page.
+ * @param {string} siteId
+ * @param {string} pageId
  */
 async function requirePageInSite(siteId, pageId) {
     const site = await cmsStore.getProject(siteId, { fresh: true });
@@ -33,6 +35,10 @@ async function requirePageInSite(siteId, pageId) {
     }
 }
 
+/**
+ * @param {import('express').Request<{ id: string, locale: string }>} req
+ * @param {import('express').Response} res
+ */
 async function postPageAiTranslate(req, res) {
     const locale = String(req.params.locale || '').toLowerCase();
     const defaultLocale = await cmsStore.getDefaultLocale();
@@ -67,6 +73,10 @@ async function postPageAiTranslate(req, res) {
             : `Translated ${result.translated} fields`,
     });
 }
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function postPage(req, res) {
     try {
         const { slug, title, copyFromId, templateId } = req.body || {};
@@ -75,6 +85,10 @@ async function postPage(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function putPagesOrder(req, res) {
     try {
         const { orderedIds } = req.body || {};
@@ -84,6 +98,10 @@ async function putPagesOrder(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putPageMeta(req, res) {
     try {
         const updated = await cmsStore.updatePageMeta(req.siteId, req.params.id, req.body || {});
@@ -94,6 +112,10 @@ async function putPageMeta(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putPageHomepage(req, res) {
     try {
         await cmsStore.setHomepage(req.siteId, req.params.id);
@@ -101,6 +123,10 @@ async function putPageHomepage(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deletePageHandler(req, res) {
     try {
         // Optional ?redirectTo=/path: the deleted address should lead there (301).
@@ -119,6 +145,10 @@ async function deletePageHandler(req, res) {
 // The "apply" path doesn't need its own endpoint — callers pass
 // templateId on POST /pages and the store walks the template's blocks
 // into the new page with fresh block ids.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function listTemplates(req, res) {
     const templates = await cmsStore.getTemplates();
     // Strip block payloads from the list response — they can be large
@@ -132,11 +162,15 @@ async function listTemplates(req, res) {
         createdAt:   t.createdAt,
         blockCount:  Array.isArray(t.blocks) ? t.blocks.length : 0,
         // Shipped with the product: listed, applicable, not deletable.
-        ...(t.builtin ? { builtin: true } : {}),
+        ...(/** @type {{ builtin?: boolean }} */ (t).builtin ?{ builtin: true } : {}),
     }));
     res.json({ templates: summary });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function postTemplate(req, res) {
     try {
         const { name, description, blocks } = req.body || {};
@@ -154,6 +188,10 @@ async function postTemplate(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deleteTemplateHandler(req, res) {
     try {
         await cmsStore.deleteTemplate(req.params.id);
@@ -161,6 +199,10 @@ async function deleteTemplateHandler(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function getPageById(req, res) {
     // Admin/editor read — bypass the per-replica config cache so it never
     // serves a stale page right after a save (see getAdminPayload).
@@ -169,6 +211,10 @@ async function getPageById(req, res) {
     res.json(page);
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putPage(req, res) {
     try {
         const incoming = req.body?.page;
@@ -190,6 +236,10 @@ async function putPage(req, res) {
     }
 }
 
+/**
+ * @param {import('express').Request<{ id: string, locale: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putPageLocale(req, res) {
     try {
         const { override } = req.body || {};
@@ -206,6 +256,10 @@ async function putPageLocale(req, res) {
     }
 }
 
+/**
+ * @param {import('express').Request<{ id: string, locale: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deletePageLocale(req, res) {
     await cmsStore.deletePageLocaleOverride(req.siteId, req.params.id, req.params.locale.toLowerCase());
     res.json({ success: true });

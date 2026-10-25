@@ -150,3 +150,8 @@ function resolveSpanOverlaps(spans, source = null, options = null) {
 }
 
 module.exports = { resolveSpanOverlaps, defaultSpanBetter: _better };
+
+/**
+ * @typedef {{ offset: number, length: number, text?: string, category?: string, alsoCategories?: string[],
+ *   severity?: string, confidence?: number }} Span
+ */

@@ -277,3 +277,12 @@ module.exports = Object.assign(AzureProvider, {
     isResponsesUnsupported,
     isCacheRetentionRejected,
 });
+
+/**
+ * @typedef {import('./openai').OpenAIOptions} OpenAIOptions
+ * @typedef {import('./openai').OpenAIMessage} OpenAIMessage
+ * @typedef {import('./openai').OpenAIOnEvent} OpenAIOnEvent
+ * @typedef {import('./openai').OpenAIRawUsage} OpenAIRawUsage
+ * @typedef {import('./openai').OpenAIUsageMeta} OpenAIUsageMeta
+ * @typedef {{ status?: number, param?: string, code?: string, message?: string, error?: { message?: string, code?: string } }} AzureError
+ */

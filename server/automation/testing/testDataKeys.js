@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 // The implementation lives in core/automationModel/testDataKeys.js (so the

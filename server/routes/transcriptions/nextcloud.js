@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Transcriptions — Nextcloud ingest & Talk meetings.
  *
@@ -35,6 +36,8 @@ const ncClient = require('../../integrations/nextcloudClient');
 /**
  * Resolve the configured Talk recordings folder (org+user scoped, default
  * /Talk/Recording).
+ * @param {string | null} orgId
+ * @param {string} userId
  */
 async function resolveRecordingFolder(orgId, userId) {
     try {
@@ -52,6 +55,9 @@ async function resolveRecordingFolder(orgId, userId) {
  * `Recording` subfolder — so ask the server rather than assume. Falls back to
  * the Bee Flow setting when Talk doesn't answer (older Talk, no session, an
  * admin who pointed the `recording_folder` preference somewhere custom).
+ * @param {import('express').Request['session']} session
+ * @param {string} userId
+ * @param {string} configuredFolder
  */
 async function resolveEffectiveRecordingFolder(session, userId, configuredFolder) {
     try {
@@ -98,7 +104,7 @@ const TalkPrefBody = bodyOf({
 
 router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery }), async (req, res, next) => {
     const userId = req.session.user.id;
-    const folder = req.query.folder || '/Recordings';
+    const folder = /** @type {{folder?: string}} */ (/** @type {unknown} */ (req.query)).folder || '/Recordings';
     try {
         const ctx = await ncClient.resolveAuth(req.session, userId);
         const root = ncClient.webdavRoot(ctx.baseUrl, ctx.uid);
@@ -187,6 +193,8 @@ const TALK_PROPFIND_CONCURRENCY = 6;
  * folder's immediate children — all of which are per-room FOLDERS — so it
  * matched zero files and the Talk import panel was always empty.
  *
+ * @param {Awaited<ReturnType<typeof ncClient.resolveAuth>>} ctx
+ * @param {string} folderPath
  * @returns {Promise<{status:number, entries:Array<{path:string,name:string,isCollection:boolean,size:number|null,lastModified:string|null}>}>}
  */
 async function propfindChildren(ctx, folderPath) {
@@ -231,14 +239,26 @@ async function propfindChildren(ctx, folderPath) {
  * WebDAV `getlastmodified` is an RFC 1123 HTTP-date ("Thu, 13 Aug 2026 …"), so
  * comparing the strings sorts by weekday NAME — "Thu" before "Wed" — not by
  * time. Sort on the parsed instant instead; unparseable values sink to the end.
+ * @param {string | null | undefined} v
  */
 function davTime(v) {
     const t = Date.parse(v || '');
     return Number.isFinite(t) ? t : -Infinity;
 }
+/**
+ * @param {{ lastModified?: string | null }} a
+ * @param {{ lastModified?: string | null }} b
+ */
 function byNewestFirst(a, b) { return davTime(b.lastModified) - davTime(a.lastModified); }
 
-/** Run `fn` over `items` with a small concurrency cap, preserving order. */
+/**
+ * Run `fn` over `items` with a small concurrency cap, preserving order.
+ * @template T, R
+ * @param {T[]} items
+ * @param {number} limit
+ * @param {(item: T, i: number) => Promise<R>} fn
+ * @returns {Promise<R[]>}
+ */
 async function mapCapped(items, limit, fn) {
     const out = new Array(items.length);
     let next = 0;
@@ -315,7 +335,7 @@ router.get('/nextcloud-talk-recordings', requireAuth, validate({ query: FolderQu
         const listings = await mapCapped(
             roomFolders.slice(0, TALK_MAX_ROOM_FOLDERS),
             TALK_PROPFIND_CONCURRENCY,
-            async (rf) => ({ rf, ...(await propfindChildren(ctx, rf.path).catch(() => ({ status: 0, entries: [] }))) }),
+            async (rf) => ({ rf, ...(await propfindChildren(ctx, rf.path).catch(/** @returns {Awaited<ReturnType<typeof propfindChildren>>} */ () => ({ status: 0, entries: [] }))) }),
         );
         for (const { rf, entries } of listings) {
             for (const e of entries) {
@@ -364,6 +384,9 @@ router.get('/nextcloud-talk-recordings', requireAuth, validate({ query: FolderQu
  * Best-effort: attach the Talk conversation display name to each room. One
  * room-list call covers every token; a room the user has since left simply
  * keeps its token. Never throws — a missing name must not fail the listing.
+ * @param {{ token: string, name?: string }[]} rooms
+ * @param {import('express').Request['session']} session
+ * @param {string} userId
  */
 async function decorateRoomNames(rooms, session, userId) {
     if (!rooms.length) return;
@@ -373,7 +396,7 @@ async function decorateRoomNames(rooms, session, userId) {
         const res = await guardedNcCall('nextcloud_talk_list_rooms', {}, { userId, session },
             () => talk.executeNextcloudTalkTool('nextcloud_talk_list_rooms', {}, userId, session));
         if (!res || res.error || !Array.isArray(res.rooms)) return;
-        const nameByToken = new Map(res.rooms.map(r => [r.token, r.name]));
+        const nameByToken = new Map(res.rooms.map(/** @param {{ token: string, name?: string }} r */ r => [r.token, r.name]));
         for (const room of rooms) {
             const name = nameByToken.get(room.token);
             if (name) room.name = name;
@@ -446,6 +469,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
         const meetings = await listUpcomingTalkMeetings({ session: req.session, userId, windowHours: 48 });
 
         // One room list to enrich moderator + call/recording state by token.
+        /** @type {Record<string, { token: string, participantType?: number, callRecording?: number }>} */
         const roomsByToken = {};
         try {
             const { guardedNcCall } = require('../../core/integrations/ncScopeGuard');
@@ -540,7 +564,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
 });
 
 // Toggle a single meeting's auto-record on/off (writes the user's exclusions).
-router.patch('/talk-meetings/:token', requireAuth, validate({ body: TalkPrefBody, query: NO_QUERY }), async (req, res) => {
+router.patch('/talk-meetings/:token', requireAuth, validate({ body: TalkPrefBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ token: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
     const token = req.params.token;
     const { record, eventUid } = req.body;

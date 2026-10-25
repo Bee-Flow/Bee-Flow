@@ -179,3 +179,7 @@ async function releaseChecks(input = {}, deps = {}) {
 }
 
 module.exports = { releaseChecks, stageOnlyFindings, crossStageFindings, referenceWriteFindings };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {{ code: string, severity: string, message?: string, [key: string]: unknown }} Finding */

@@ -332,3 +332,14 @@ module.exports = {
     specDigest,
     typesDigest,
 };
+
+/**
+ * @typedef {{ found: number, total: number, falseAlarms: number, sentences: number, at?: string, stale?: boolean }} CustomTypeQuality
+ * @typedef {{ id: string, name: string, description: string, method: string, tokenKey: string,
+ *   words?: { values: string[], caseSensitive: boolean, wholeWord: boolean },
+ *   pattern?: { source: string, caseSensitive: boolean, engine: string, error?: string },
+ *   ai?: { prompt: string, floor: number, groupSignature?: string },
+ *   quality?: CustomTypeQuality, status?: string, origin?: string, legacy?: boolean, legacyTermId?: string,
+ *   createdAt?: string, createdBy?: string | null, updatedAt?: string }} CustomDataType
+ * @typedef {{ id: string | null, field: string, code: string, message: string }} CustomTypeError
+ */

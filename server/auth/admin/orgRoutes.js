@@ -38,6 +38,7 @@ const ORG_UPDATE_FIELDS = Object.freeze([
 const ORG_UPDATE_ALLOWED_KEYS = new Set(ORG_UPDATE_FIELDS);
 
 const ORG_NAME_TEXT = 'Organization name required';
+/** @param {number} max */
 const text = (max) => worded('That field must be text.').max(max, `That field is at most ${max} characters.`);
 
 /**
@@ -99,6 +100,7 @@ const ORG_TEXT_FIELDS = Object.freeze([
 /** Longer than a name needs, short enough that a column is not an upload slot. */
 const ORG_TEXT_MAX = 2000;
 
+/** @param {Record<string, unknown>} orgUpdates */
 function sanitizeOrgText(orgUpdates) {
     return sanitizePlainTextFields(orgUpdates, ORG_TEXT_FIELDS, { maxLen: ORG_TEXT_MAX });
 }
@@ -160,7 +162,7 @@ router.post('/organizations', requireSuperAdmin, validate({ body: CreateOrgBody 
     }
 });
 
-router.get('/organizations/:id', requireOrgAdmin('id'), async (req, res) => {
+router.get('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const org = await userStore.getOrganization(req.params.id);
     if (!org) return res.status(404).json({ error: 'Organization not found' });
     res.json(org);
@@ -180,6 +182,10 @@ router.get('/organizations/:id', requireOrgAdmin('id'), async (req, res) => {
 // would pass for org B. Every other org-scoped config route (orgPrivacyShield,
 // orgAzureConfig, houseStyles, talkNotesSettings) uses the strict decider;
 // choosing an org's encryption posture belongs in that company.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function requireStrictOrgAdmin(req, res) {
     const { isOrgAdminForOrg } = require('../permissions');
     if (await isOrgAdminForOrg(req, req.params.id)) return true;
@@ -190,11 +196,12 @@ async function requireStrictOrgAdmin(req, res) {
 // Canonical super-admin predicate (permissions.js), not another inline copy of
 // the `session.isAdmin || user.role === 'admin'` expression — its docstring
 // notes that spelling drifted across ~20 handlers before it was centralised.
+/** @param {import('express').Request} req */
 function isSuperAdminReq(req) {
     return require('../permissions').isSuperAdmin(req);
 }
 
-router.get('/organizations/:id/encryption', async (req, res) => {
+router.get('/organizations/:id/encryption', async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     if (!(await requireStrictOrgAdmin(req, res))) return;
     const { ALL_SURFACES, IMPLEMENTED_SURFACES, policyFromRow } = require('../../stores/encryptionPolicy');
     const { getEncryptionAvailability } = require('../../stores/encryptionAvailability');
@@ -207,6 +214,7 @@ router.get('/organizations/:id/encryption', async (req, res) => {
     // `effective` is what is actually enforced. A surface can be switched on in
     // `scope` while its store is not wired yet, and reporting only `scope`
     // would tell an admin data is protected when it is not.
+    /** @type {Record<string, boolean>} */
     const effective = {};
     for (const s of ALL_SURFACES) effective[s] = policy.scope[s] && IMPLEMENTED_SURFACES.includes(s);
 
@@ -238,7 +246,7 @@ router.get('/organizations/:id/encryption', async (req, res) => {
 // Starts / reports the background job that encrypts rows stored before the tier
 // was switched on. Same strict org-admin gate as the settings routes above.
 // Job state is per process, see stores/encryptionBackfillJob.js.
-router.post('/organizations/:id/encryption/backfill', validate({ body: EncryptionBackfillBody }), async (req, res) => {
+router.post('/organizations/:id/encryption/backfill', validate({ body: EncryptionBackfillBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     if (!(await requireStrictOrgAdmin(req, res))) return;
     const { policyFromRow } = require('../../stores/encryptionPolicy');
     const backfillJob = require('../../stores/encryptionBackfillJob');
@@ -269,12 +277,12 @@ router.post('/organizations/:id/encryption/backfill', validate({ body: Encryptio
     res.status(202).json(job);
 });
 
-router.get('/organizations/:id/encryption/backfill', async (req, res) => {
+router.get('/organizations/:id/encryption/backfill', async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     if (!(await requireStrictOrgAdmin(req, res))) return;
     res.json(require('../../stores/encryptionBackfillJob').get(req.params.id));
 });
 
-router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), async (req, res) => {
+router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     if (!(await requireStrictOrgAdmin(req, res))) return;
     const { TIERS, ALL_SURFACES, invalidatePolicyCache, policyFromRow } = require('../../stores/encryptionPolicy');
     const { getEncryptionAvailability } = require('../../stores/encryptionAvailability');
@@ -350,6 +358,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
                     error: `unknown surface(s): ${unknown.join(', ')}. Valid: ${ALL_SURFACES.join(', ')}`,
                 });
             }
+            /** @type {Record<string, boolean>} */
             const clean = {};
             for (const [k, v] of Object.entries(scope)) {
                 if (typeof v !== 'boolean') {
@@ -416,7 +425,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
     });
 });
 
-router.put('/organizations/:id', requireOrgAdmin('id'), async (req, res) => {
+router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
 
     // Unknown keys are refused here for the same reason they are on
@@ -491,7 +500,9 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (req, res) => {
         // Record only the access-relevant deltas. existing was loaded above
         // for the authMethod check; reuse it.
         const AUDIT_FIELDS = ['name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode', 'billingCity', 'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat', 'authMethod', 'enabledIntegrations', 'allowSignup', 'autoApproveSSO', 'allowedDomains', 'defaultGroups', 'usagePooled'];
+        /** @type {Record<string, unknown>} */
         const oldVals = {};
+        /** @type {Record<string, unknown>} */
         const newVals = {};
         for (const f of AUDIT_FIELDS) {
             if (orgUpdates[f] === undefined) continue;
@@ -528,7 +539,7 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (req, res) => {
     }
 });
 
-router.delete('/organizations/:id', requireSuperAdmin, async (req, res) => {
+router.delete('/organizations/:id', requireSuperAdmin, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
     // Snapshot the org row before the cascade so the audit trail captures
     // what was destroyed (the row is gone after deleteOrganization).
@@ -554,20 +565,20 @@ router.delete('/organizations/:id', requireSuperAdmin, async (req, res) => {
 // Upload organization logo
 const orgLogoUpload = multer({
     storage: multer.diskStorage({
-        destination: (req, file, cb) => {
+        destination: (/** @type {import('express').Request} */ req, /** @type {{ originalname: string, mimetype: string }} */ file, /** @type {(err: Error | null, dir: string) => void} */ cb) => {
             const uploadDir = path.join(__dirname, '..', '..', 'data', 'uploads');
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
             cb(null, uploadDir);
         },
-        filename: (req, file, cb) => {
+        filename: (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {{ originalname: string, mimetype: string }} */ file, /** @type {(err: Error | null, name: string) => void} */ cb) => {
             const ext = path.extname(file.originalname);
             cb(null, `org-logo-${req.params.id}-${Date.now()}${ext}`);
         }
     }),
     limits: { fileSize: 2 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ originalname: string, mimetype: string }} */ file, /** @type {(err: Error | null, accept?: boolean) => void} */ cb) => {
         if (/^image\/(png|jpeg|jpg|svg\+xml|webp)$/.test(file.mimetype)) {
             cb(null, true);
         } else {
@@ -576,14 +587,14 @@ const orgLogoUpload = multer({
     }
 });
 
-router.post('/organizations/:id/logo', requireOrgAdmin('id'), orgLogoUpload.single('logo'), async (req, res) => {
+router.post('/organizations/:id/logo', requireOrgAdmin('id'), orgLogoUpload.single('logo'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const logoPath = `/uploads/${req.file.filename}`;
     await userStore.updateOrganization(req.params.id, { logo: logoPath });
     res.json({ success: true, logo: logoPath });
 });
 
-router.delete('/organizations/:id/logo', requireOrgAdmin('id'), async (req, res) => {
+router.delete('/organizations/:id/logo', requireOrgAdmin('id'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     // The logo path below is reduced to a basename under data/uploads.
     const org = await userStore.getOrganization(req.params.id); // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal
     if (org && org.logo) {

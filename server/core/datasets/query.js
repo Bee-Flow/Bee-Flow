@@ -254,3 +254,5 @@ async function queryRegion(dataset, params = {}) {
 }
 
 module.exports = { queryRegion, parseRegionString, normalizeContig, DatasetQueryError, MAX_REGION_BP, MAX_BLOCKS_PER_QUERY, MAX_LIMIT };
+
+/** @typedef {import('./blockIndex').BlockIndex} BlockIndex */

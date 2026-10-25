@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Preview Tokens — short-lived HMAC-signed bearer tokens that let
  * the sandboxed preview iframe call back to the host API across origins.
@@ -63,10 +63,13 @@ const secret = createSigningSecret({
  * The claim is optional on the wire (a token from before W3 does not have it), but its absence
  * NARROWS: verifyPreviewToken then gives `viewerUserId: null` and the table routes refuse. Never
  * fall back to `userId` — that would give every reader the table rights of the author.
+ *
+ * @param {{ userId: string, webpageId: string, viewerUserId?: string | null, ttlMs?: number }} args
  */
 function issuePreviewToken({ userId, webpageId, viewerUserId = null, ttlMs = DEFAULT_TTL_MS }) {
     if (!userId || !webpageId) throw new Error('userId and webpageId are required');
     const expiresAt = Date.now() + Math.max(60_000, ttlMs);
+    /** @type {{ u: string, w: string, e: number, v?: string }} */
     const payload = { u: userId, w: webpageId, e: expiresAt };
     // Trimmed: a claim of spaces alone is not a visitor, and would otherwise enter the scope lookup as a
     // user id.
@@ -82,6 +85,7 @@ function issuePreviewToken({ userId, webpageId, viewerUserId = null, ttlMs = DEF
  * Verify a token. Returns `{ userId, webpageId, expiresAt }` on success or
  * `null` on any failure (bad shape, bad signature, expired). Use `null`
  * uniformly so the route just does `if (!claims) return 401`.
+ * @param {string} token
  */
 function verifyPreviewToken(token) {
     const payload = signedPayload.verify(secret.get(), token);
@@ -104,6 +108,9 @@ function verifyPreviewToken(token) {
  * `req.previewClaims`.
  * Also enforces that the token's webpageId matches the URL's `:id` so a
  * token issued for one webpage can't be used to query another.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function requirePreviewToken(req, res, next) {
     const auth = req.headers['authorization'] || req.headers['Authorization'];

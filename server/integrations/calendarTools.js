@@ -453,3 +453,5 @@ module.exports = {
     isCalendarTool,
     createCalendarClient,
 };
+
+/** @typedef {{ dateTime?: string, date?: string, timeZone?: string }} CalendarTime */

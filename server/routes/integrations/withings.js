@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Withings connector routes — mounted at /api/integrations/withings.
  *
@@ -43,6 +44,7 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 const PROVIDER = 'withings';
 const TOKEN_TIMEOUT_MS = 20000;
 
+/** @param {import('express').Request} req */
 function buildRedirectUri(req) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -53,10 +55,12 @@ function buildRedirectUri(req) {
 // per-user scope so the connection outlives the session (upsertCredential needs
 // a non-empty orgId to derive a key). Same rule as the Google connector — the
 // two must agree or a user's vault rows would land under two different keys.
+/** @param {{ organizationId?: string | null, id?: string } | null | undefined} user */
 function resolveVaultOrgId(user) {
     return user?.organizationId || `user:${user?.id}`;
 }
 
+/** @param {unknown} received @param {unknown} expected */
 function statesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
     if (!received || !expected || received.length !== expected.length) return false;
@@ -151,7 +155,7 @@ router.get('/callback', async (req, res) => {
             const errText = await tokenRes.text().catch(() => '');
             throw new Error(`Token exchange failed: ${tokenRes.status} ${errText.slice(0, 300)}`);
         }
-        const payload = await tokenRes.json().catch(() => null);
+        const payload = await tokenRes.json().catch(/** @returns {null} */ () => null);
         if (!payload) throw new Error('Withings returned a non-JSON token response');
         // Shared unwrapper: status must be 0 and the tokens live under `body`.
         const tokenData = automationAuth.readWithingsBody(payload, 'token exchange');
@@ -254,6 +258,7 @@ function openerTargetOrigin() {
     return /^https?:\/\//i.test(host) ? host.replace(/\/+$/, '') : `https://${host}`;
 }
 
+/** @param {string} message @param {boolean} success */
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Withings</title>

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The Privacy Shield gate over extracted attachment text, for
  * ./attachmentProcessor: scan, ask the person when the policy says so, block,
@@ -10,7 +10,20 @@
  * in the server's large import cycle, which this module stays out of.
  */
 
-/** The summary row fields every outcome shares. */
+/**
+ * @typedef {{ overflow?: boolean, timeout?: boolean, scannedPages?: number, totalPages?: number, truncated?: boolean, sentChars?: number, totalChars?: number, count?: number, mentions?: number, byCategory?: Record<string, number>, pages?: Record<string, Record<string, unknown>>, reason?: string | null }} ScanSummary
+ * @typedef {{ action: string, text?: string | null, findings?: import('../dlp/attachmentScanner').AttachmentFinding[], summary?: import('../dlp/attachmentScanner').AttachmentScanSummary, tokenMap?: unknown, reason?: string }} ScanResult
+ * @typedef {NonNullable<ReturnType<typeof scanSummaryRow>>} ScanSummaryRow
+ * @typedef {Parameters<typeof import('../dlp/attachmentAskFlow').resolveAttachmentAsk>[0]} AskFlowParams
+ * @typedef {(args: { text: string, pages?: { pageNumber: number, text: string }[], filename: string }) => Promise<ScanResult>} MaybeScan
+ * @typedef {{ attachmentScanner: () => typeof import('../dlp/attachmentScanner'), attachmentAskFlow: () => typeof import('../dlp/attachmentAskFlow') }} ScanGateDlp
+ */
+
+/**
+ * The summary row fields every outcome shares.
+ * @param {ScanSummary} summary
+ * @param {string | null} reason
+ */
 function summaryTail(summary, reason) {
     return {
         overflow: !!summary.overflow,
@@ -27,6 +40,8 @@ function summaryTail(summary, reason) {
 /**
  * The per-file summary row for a scan result, or null when the outcome needs
  * none (a clean, complete pass).
+ * @param {string} filename
+ * @param {ScanResult} r
  */
 function scanSummaryRow(filename, r) {
     if (r.action === 'tokenize') {
@@ -81,17 +96,22 @@ function scanSummaryRow(filename, r) {
  * resolves to the scan result (`{ action: 'pass', text }` when there is no
  * shield) and pushes a row onto `summaries` when the outcome needs one; a
  * block throws AttachmentPrivacyBlock.
+ * @param {{ orgShield: unknown, conversationId: string | null, provider: AskFlowParams['provider'] | null, userId: string | null, emit: AskFlowParams['emit'] | null, registerDecision: AskFlowParams['registerDecision'] | null }} ctx
+ * @param {ScanGateDlp} dlp
  */
 function createAttachmentScanGate({ orgShield, conversationId, provider, userId, emit, registerDecision }, dlp) {
     // Per-file scan summaries (one row per attachment that produced findings).
     // Returned to the caller so the chat UI badge can show per-file detail
     // and the audit logger can emit per-page rows.
+    /** @type {ScanSummaryRow[]} */
     const summaries = [];
     const { scanAttachmentText, AttachmentPrivacyBlock } = dlp.attachmentScanner();
     const { resolveAttachmentAsk } = dlp.attachmentAskFlow();
 
+    /** @type {MaybeScan} */
     async function maybeScan({ text, pages, filename }) {
         if (!orgShield) return { action: 'pass', text };
+        /** @type {ScanResult} */
         let r = await scanAttachmentText({ text, pages, filename, orgShield, conversationId, allowAsk: true });
         if (r.action === 'ask') {
             // Pauses the turn until the person answers — see attachmentAskFlow.js
@@ -125,6 +145,8 @@ function createAttachmentScanGate({ orgShield, conversationId, provider, userId,
  * to the original put the unchecked pages straight back into the prompt.
  * Prefer whatever the scanner handed back; only fall back when it produced
  * nothing at all (shield disabled, empty input).
+ * @param {{ text?: string | null } | null | undefined} scanned
+ * @param {string} original
  */
 function safeTextOf(scanned, original) {
     return typeof scanned?.text === 'string' ? scanned.text : original;

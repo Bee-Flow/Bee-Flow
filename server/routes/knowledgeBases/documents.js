@@ -44,6 +44,8 @@ const NoBody = orEmpty(z.object({}, { error: typeError({ invalid: 'This request 
  * A page size or offset. Out of range is clamped — a page size of 1000 is
  * still a page, and the response says which limit it applied — but a value
  * that is not a whole number is refused rather than read as the default.
+ * @param {string} name
+ * @param {{ min: number, max: number, fallback: number }} bounds
  */
 function pageNumber(name, { min, max, fallback }) {
     const text = `${name} is a whole number.`;
@@ -52,7 +54,10 @@ function pageNumber(name, { min, max, fallback }) {
         .prefault(String(fallback));
 }
 
-/** What `(metadata->>'date')::timestamptz` will take: an ISO date, optionally with a time. */
+/**
+ * What `(metadata->>'date')::timestamptz` will take: an ISO date, optionally with a time.
+ * @param {string} name
+ */
 function isoDate(name) {
     const text = `${name} is a date, written as YYYY-MM-DD.`;
     return worded(text).trim()

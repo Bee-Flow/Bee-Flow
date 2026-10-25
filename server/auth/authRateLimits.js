@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Rate limiters for the anonymous authentication surface.
  *
@@ -40,7 +40,10 @@ const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (
 const { clientIp, isPrivateIp } = require('./signupGuards');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
-/** true when req.ip cannot be trusted to identify a distinct client. */
+/**
+ * true when req.ip cannot be trusted to identify a distinct client.
+ * @param {import('express').Request} req
+ */
 function skipUntrustedIp(req) {
     try {
         const ip = clientIp(req);
@@ -50,6 +53,10 @@ function skipUntrustedIp(req) {
     }
 }
 
+/**
+ * @param {string | undefined} v
+ * @param {number} d
+ */
 const num = (v, d) => {
     const n = parseInt(v, 10);
     return Number.isFinite(n) && n > 0 ? n : d;
@@ -138,7 +145,11 @@ const resetPasswordIpLimiter = make({
 // Empty input gets its own bucket rather than falling through to the shared
 // per-IP default, which would let malformed requests exhaust everyone's budget.
 
-const bodyKey = (prefix, ...fields) => (req) => {
+/**
+ * @param {string} prefix
+ * @param {string[]} fields
+ */
+const bodyKey = (prefix, ...fields) => (/** @type {import('express').Request} */ req) => {
     for (const f of fields) {
         const v = String(req.body?.[f] ?? '').trim().toLowerCase();
         if (v) return `${prefix}:${v.slice(0, 254)}`;

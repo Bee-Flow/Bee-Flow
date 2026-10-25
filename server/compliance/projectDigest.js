@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -45,14 +45,18 @@ function _defaults() {
 }
 
 /**
- * @param {object} [overrides] complianceStore, registry, frameworkPolicy,
+ * @param {Partial<ReturnType<typeof _defaults>>} [overrides] complianceStore, registry, frameworkPolicy,
  *   notices ({notify}), now
  */
 function makeProjectDigest(overrides = {}) {
+    /** @type {ReturnType<typeof _defaults> | null} */
     let _d = null;
     const d = () => (_d || (_d = { ..._defaults(), ...overrides }));
 
-    /** The open, undecided project findings of an org, with their fingerprints. */
+    /**
+     * The open, undecided project findings of an org, with their fingerprints.
+     * @param {string} orgId
+     */
     async function openFindings(orgId) {
         const { complianceStore, registry, frameworkPolicy } = d();
         const [latest, active, states] = await Promise.all([
@@ -79,6 +83,7 @@ function makeProjectDigest(overrides = {}) {
 
     /**
      * Send today's digest for one org if there is anything new. Never throws.
+     * @param {string} orgId
      * @returns {Promise<{sent: boolean, count?: number, reason?: string}>}
      */
     async function sendDigest(orgId) {
@@ -111,7 +116,7 @@ function makeProjectDigest(overrides = {}) {
             }
             return { sent: true, count: fresh.length };
         } catch (e) {
-            log.warn(`[ComplianceProjectDigest] org="${orgId}" digest skipped:`, e?.message || e);
+            log.warn(`[ComplianceProjectDigest] org="${orgId}" digest skipped:`, /** @type {Error} */ (e)?.message || e);
             return { sent: false, reason: 'error' };
         }
     }

@@ -419,3 +419,39 @@ module.exports = {
     gateRefusal,
     defaultAiActState,
 };
+
+/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+
+/**
+ * @typedef {object} AutomationRef  the parts of an automation row this check reads
+ * @property {string} id
+ * @property {string} [userId]
+ * @property {string|null} [organizationId]
+ * @property {AutomationDefinition} [definition]
+ */
+
+/**
+ * @typedef {object} AiActState  what `aiActState(automation, definition)` answers
+ * @property {boolean} required
+ * @property {string} status
+ * @property {string|null} [expiresAt]
+ * @property {string|null} [outcome]
+ * @property {string|null} [attestedAt]
+ * @property {string|null} [attestedBy]
+ * @property {string|null} [source]  'auto' (Bee alone), 'mixed', 'manual', or null for a hub attestation or an older row
+ * @property {string|null} [orgId]
+ * @property {AiActRow|null} [row]
+ * @property {unknown[]} [pendingQuestions]  the questions Bee could not answer itself (aiActAuto.gateState)
+ */
+
+/**
+ * @typedef {object} AiActRow  a latest-assessment register row (compliance/aiAct/attest)
+ * @property {string|Date|null} [expires_at]
+ * @property {string|null} [outcome]
+ * @property {string|Date|null} [attested_at]
+ * @property {string|null} [attested_by]
+ * @property {string|null} [source]
+ * @property {unknown} [answers]
+ * @property {Record<string, unknown>} [signals]
+ * @property {{ questions?: Record<string, import('./aiActAuto').AnswerRecord>, classification?: import('./aiActDetect').Verdict & { hash?: string, modelId?: string|null } }} [evidence]
+ */

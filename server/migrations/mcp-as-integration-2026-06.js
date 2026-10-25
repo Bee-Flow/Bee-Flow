@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Migration: MCP servers ARE integrations.
  *
@@ -24,6 +25,9 @@
 
 const { getAll, run } = require('../db');
 
+/**
+ * @param {string} v
+ */
 function parseList(v) {
     if (v == null) return null;
     if (Array.isArray(v)) return v;
@@ -63,7 +67,7 @@ async function up() {
         }
     } catch (e) {
         // Column may not exist on very old installs — that just means nothing to fold.
-        console.warn('[mcp-as-integration] plan fold skipped:', e.message);
+        console.warn('[mcp-as-integration] plan fold skipped:', /** @type {Error} */ (e).message);
     }
 
     // ── B. Orgs: org_granted_capabilities mcp:<id> → org_enabled_integrations ──
@@ -83,7 +87,7 @@ async function up() {
             console.log(`[mcp-as-integration] org ${o.id}: moved ${mcpIds.length} MCP grant(s) to org_enabled_integrations`);
         }
     } catch (e) {
-        console.warn('[mcp-as-integration] org grant move skipped:', e.message);
+        console.warn('[mcp-as-integration] org grant move skipped:', /** @type {Error} */ (e).message);
     }
 }
 

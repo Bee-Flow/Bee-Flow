@@ -188,3 +188,5 @@ module.exports = {
 };
 
 Object.assign(module.exports, { _test: { _dateOnly, _daysUntil, _httpUrl, RENEWAL_HORIZON_DAYS } });
+
+/** @typedef {import('url').URL} URL */

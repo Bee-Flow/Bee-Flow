@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * `.bfmod` package verifier — PURE, in-memory, NO fs writes.
  *
@@ -55,11 +56,17 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z-.]+)?(?:\+[0-9A-Za-z-.]+)?$/;
 // (hostApi is not required here to keep this module dependency-light and pure).
 const PERMISSION_RE = /^(db|ai|usage:write|limits:read|storage:read|webpages:write|email:send|license:read|config|env:docker|env:files|http:(\*|(\*\.)?[a-z0-9]([a-z0-9.-]*[a-z0-9])?))$/i;
 
+/**
+ * @param {crypto.BinaryLike} buf
+ */
 function sha256hex(buf) {
     return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-/** Reject entry names that could escape the extraction root. */
+/**
+ * Reject entry names that could escape the extraction root.
+ * @param {string} name
+ */
 function isBadPath(name) {
     if (typeof name !== 'string' || name.length === 0) return true;
     if (name.length > MAX_PATH_LEN) return true;
@@ -74,7 +81,8 @@ function isBadPath(name) {
  * Validate the shape of a parsed manifest object. This is the runtime subset
  * of MANIFEST.schema.json that the loader hard-depends on — the full schema is
  * enforced at authoring/pack time in hub-module-sdk.
- * @returns {{ ok:true } | { ok:false, error:string }}
+ * @param {{ [field: string]: any }} obj the parsed manifest, shape unknown until checked
+ * @returns {{ ok: boolean, error?: string }} `error` is set when `ok` is false
  */
 function validateManifest(obj) {
     if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
@@ -159,28 +167,38 @@ function validateManifest(obj) {
     return { ok: true };
 }
 
+/**
+ * @param {string} error
+ * @returns {{ ok: false, error: string }}
+ */
 function fail(error) {
     return { ok: false, error };
 }
 
 /**
+ * The parsed manifest.json; its remaining fields are the package author's.
+ * @typedef {{ id: string, version: string, [field: string]: any }} PackageManifest
+ */
+
+/**
  * Verify a `.bfmod` ZIP buffer in memory.
  *
  * @param {Buffer} buf
- * @param {object} opts
- * @param {(kid:(string|undefined)) => (Promise<any>|any)} opts.publicKeyResolver
+ * @param {object} [opts]
+ * @param {(kid:(string|undefined)) => (Promise<any>|any)} [opts.publicKeyResolver]
  *        Resolve the package trust-root public key (PEM or KeyObject) for the
  *        JWS `kid`. Return null/undefined for an unknown kid.
  * @param {number} [opts.now]  Reserved for future iat sanity checks (unused;
  *        the package-signature contract carries no exp/nbf).
- * @returns {Promise<{ ok:true, manifest:object, files:Map<string,Buffer>,
- *                     signature:{ payload:object, kid:(string|null) } }
- *                  | { ok:false, error:string }>}
+ * @returns {Promise<{ ok: boolean, error?: string, manifest?: PackageManifest, files?: Map<string,Buffer>,
+ *                     signature?: { payload: { [claim: string]: any }, kid: (string|null) } }>}
+ *          `error` is set when `ok` is false; the rest when it is true
  */
 async function verifyPackage(buf, opts = {}) {
     const publicKeyResolver = opts && opts.publicKeyResolver;
     if (typeof publicKeyResolver !== 'function') return fail('no_resolver');
 
+    /** @type {JSZip} */
     let zip;
     try {
         zip = await JSZip.loadAsync(buf);
@@ -199,6 +217,7 @@ async function verifyPackage(buf, opts = {}) {
     for (const entry of fileEntries) {
         const name = entry.name;
         if (isBadPath(name)) return fail('bad_path');
+        /** @type {Buffer<ArrayBufferLike>} */
         let data;
         try {
             data = await entry.async('nodebuffer');

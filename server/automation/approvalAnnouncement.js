@@ -115,3 +115,7 @@ module.exports = {
     renderTalkCard,
     renderBell,
 };
+
+/** @typedef {import('./approvalRulebook').Approval} ApprovalRow  an approval row (the parts the Nextcloud channels read are named in approvalAnnouncement)  */
+
+/** @typedef {ReturnType<typeof approvalAnnouncement>} Announcement */

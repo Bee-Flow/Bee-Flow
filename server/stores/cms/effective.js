@@ -216,3 +216,5 @@ async function resolveEffective(siteId, slug, locale, ctx) {
 module.exports = {
     resolveLink, resolveLinksInTree, getEffective, getEffectivePublished, resolveEffective,
 };
+
+/** @typedef {{ getSite: () => Promise<import('./shared').SiteDoc | null>, getPage: (pageId: string) => Promise<import('./shared').PageDoc | null>, getSiteLocaleOverride: (loc: string) => Promise<import('./shared').CmsDoc | null>, getPageLocaleOverride: (pageId: string, loc: string) => Promise<import('./shared').CmsDoc | null> }} ResolveCtx */

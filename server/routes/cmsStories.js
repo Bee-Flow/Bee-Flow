@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Customer stories of the CMS: the public read behind the "Customer stories"
  * grid block.

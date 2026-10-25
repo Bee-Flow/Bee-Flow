@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: runs that use the caller's own connections (runPolicy.connections
  * = 'caller', Refs #201).
@@ -19,6 +20,7 @@
  * `exec` is injectable for the in-process Postgres test.
  */
 
+/** @param {{ exec?: (sql: string) => Promise<unknown> }} [opts] */
 async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
     await exec(`
         ALTER TABLE automation_runs ADD COLUMN IF NOT EXISTS connections_mode TEXT NULL;

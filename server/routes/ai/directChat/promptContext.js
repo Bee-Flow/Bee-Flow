@@ -290,3 +290,7 @@ module.exports = {
     makeKbPassagesText, projectContextFor, attachedKbContext, retrieveMemories, houseStyleContextFor,
     notebookContextFor, sidePanelContext, skillsContextFor, capabilityContextFor,
 };
+
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ToolDef} ToolDef */
+
+/** @typedef {ReturnType<typeof makeKbPassagesText>} KbPassagesText */

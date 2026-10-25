@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Free/public email providers.
  *
@@ -74,6 +74,7 @@ const EXTRA_CONFIG_KEY = 'free_email_domains_extra';
  * Normalise a value to a bare, lowercase email domain, or null if it can't be
  * one. Accepts either a bare domain ("gmail.com") or a full address
  * ("x@gmail.com").
+ * @param {string} value
  */
 function normalizeDomain(value) {
     if (typeof value !== 'string') return null;

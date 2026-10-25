@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * MCP access: named tokens, scopes, the org policy and the one gate every
  * Bee Flow MCP endpoint goes through. See gate.js for the order of checks.

@@ -201,3 +201,13 @@ async function compensate({ deployment, stage }, deps = {}) {
 }
 
 module.exports = { compensate, UNDO, DELETERS };
+
+/** @typedef {ReturnType<typeof storesOf>} Stores */
+
+/** @typedef {Awaited<ReturnType<Stores['stageStore']['listSteps']>>[number]} JournalStep */
+
+/**
+ * What every undo gets besides the stores and the step.
+ * @typedef {{ stage: import('./model').StageRow, deps: Record<string, unknown>, runAs: string,
+ *   managedWrite: { deploymentId: string } }} UndoCtx
+ */

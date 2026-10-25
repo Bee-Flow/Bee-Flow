@@ -179,3 +179,9 @@ function ensureDraftTitle(draftWrap, /** @type {{brief?: any}} */ { brief } = {}
 }
 
 module.exports = { deriveTitle, ensureDraftTitle, TITLE_IN_BRIEF_RE, UNTITLED_AUTOMATION, MAX_TITLE };
+
+/**
+ * @typedef {{ label?: string, tool?: string, type?: string }} NamedStep
+ * @typedef {{ trigger?: { kind?: string, appEvent?: { provider?: string, event?: string } },
+ *   steps?: NamedStep[] }} TitleDef
+ */

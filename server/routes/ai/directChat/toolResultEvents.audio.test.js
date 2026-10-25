@@ -4,7 +4,7 @@
  *
  * The chat picks a clip's title from its `source`: a tool name containing
  * 'tts' is speech, 'sfx' is a sound effect, anything else is music
- * (agent-hub/src/components/chat/MessageItem/GeneratedMedia.jsx). So a
+ * (agent-hub/src/components/chat/MessageItem/GeneratedMedia.tsx). So a
  * missing source does not show as "unknown" — it shows as "AI Generated
  * Music", confidently and wrongly. It was missing on every non-streamed tool
  * round, because only the streamed return carried the tool's name.

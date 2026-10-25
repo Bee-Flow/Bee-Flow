@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The Nextcloud agent task type (`core:contextagent:interaction`).
  *

@@ -469,3 +469,5 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
 module.exports = router;
 module.exports.CRA_CHECK_ID = CRA_CHECK_ID;
 module.exports.CRA_EVENT = CRA_EVENT;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

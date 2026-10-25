@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — deployment-wide configuration (super-admin only): default
  * org integrations, connector provisioning mode and the free-email-domain
@@ -52,11 +52,12 @@ const { fallback } = require('../../utils/bestEffort');
 router.get('/default-integrations', requireSuperAdmin, async (req, res) => {
     const defaults = await configStore.getConfig('default_org_integrations') || null;
     // Include installed MCP servers
+    /** @type {{ id: string, label: string, category: string, icon: string }[]} */
     let mcpIntegrations = [];
     try {
         const mcpStore = require('../../stores/mcpStore');
         const mcpServers = await mcpStore.listServers();
-        mcpIntegrations = mcpServers.map(s => ({
+        mcpIntegrations = mcpServers.map((/** @type {Record<string, any>} */ s) => ({
             id: `mcp:${s.id}`,
             label: s.name,
             category: 'MCP servers',

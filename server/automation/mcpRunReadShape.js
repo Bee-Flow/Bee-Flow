@@ -162,3 +162,7 @@ function placeholderize(value, depth = 1) {
 }
 
 module.exports = { safeKey, typeOf, newCounts, mergeShapes, shapeOf, describePayload, placeholderize };
+
+/**
+ * @typedef {{ type: string, keys?: Record<string, Shape>, keyCount?: number, length?: number, items?: Shape | null, of?: string[], cutOff?: boolean, moreKeys?: number }} Shape   the structure of a JSON value, without its leaves
+ */

@@ -694,3 +694,19 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
 module.exports = router;
 module.exports.personaFromPlan = personaFromPlan;
 module.exports.planPersonaFields = planPersonaFields;
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+
+/** @typedef {import('express').Router & { personaFromPlan: typeof personaFromPlan, planPersonaFields: typeof planPersonaFields }} WizardRouter */
+
+/**
+ * The model's plan document as parsed from its JSON answer, before and after normalizePlan.
+ * @typedef {{
+ *   name?: string, description?: string, avatar?: string, capabilities?: string[], model?: string|null,
+ *   enabledIntegrations?: string[],
+ *   skills?: Array<{ id?: string|null, name?: string, description?: string, instructions?: string }>,
+ *   knowledge_base_ids?: string[], persona?: unknown, systemPrompt?: string,
+ *   schedule?: { title?: string, prompt?: string, repeatInterval?: string, daysOfWeek?: string[]|null, timeOfDay?: string|null, timezone?: string|null },
+ *   channels?: unknown, suggestedSkills?: unknown, automation?: unknown,
+ * }} WizardPlan
+ */

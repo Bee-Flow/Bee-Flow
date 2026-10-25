@@ -432,3 +432,19 @@ module.exports = {
     createObjective,
     updateObjective,
 };
+
+/** @typedef {string | Date | null} Timestamp */
+
+/** @typedef {{ title?: string, scope_note?: string | null, auditor_user_id?: string | null, planned_at?: Timestamp, status?: string }} AuditInput */
+
+/** @typedef {{ severity?: string, description?: string, control_ref?: string | null, clause?: string | null, evidence_ref?: string | null, nonconformity_id?: number | null }} FindingInput */
+
+/** @typedef {{ held_at?: Timestamp, attendees?: unknown[], inputs?: Record<string, unknown>, decisions?: string | null, minutes_evidence_ref?: string | null }} ReviewInput */
+
+/**
+ * @typedef {{ title?: string, description?: string | null, source?: string, severity?: string, status?: string,
+ *   corrective_action?: string | null, due_at?: Timestamp, effectiveness_review_due_at?: Timestamp,
+ *   owner_user_id?: string | null, confirm_effectiveness?: boolean }} NonconformityInput
+ */
+
+/** @typedef {{ title?: string, measure?: string | null, target?: string | null, status?: string, review_due_at?: Timestamp, owner_user_id?: string | null }} ObjectiveInput */

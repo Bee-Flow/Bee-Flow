@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: which draft version is actually live.
  *

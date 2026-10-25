@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -27,7 +27,12 @@ const { getDatatable } = require('./datatables');
 const DEFINITION_KINDS = Object.freeze(['form_answers']);
 const DEFINITION_KIND_LIST = DEFINITION_KINDS.map(k => `'${k}'`).join(', ');
 
-/** Replace a definition-owned table's `source` block whole. Scoped. */
+/**
+ * Replace a definition-owned table's `source` block whole. Scoped.
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
+ * @param {Record<string, unknown> | null} source
+ */
 async function setDefinitionSource(id, scope, source) {
     await initDB();
     assertScope(scope, 'setDefinitionSource');
@@ -43,6 +48,7 @@ async function setDefinitionSource(id, scope, source) {
  * Every answers table that says it belongs to this automation — unscoped on
  * purpose (the row is the authority on its tenant; the caller checks the
  * scope), oldest first so "the" table is stable across calls.
+ * @param {string} automationId
  */
 async function listAnswersTablesForAutomation(automationId) {
     await initDB();
@@ -56,7 +62,10 @@ async function listAnswersTablesForAutomation(automationId) {
     return (res || []).map(rowToDatatable);
 }
 
-/** The same for a whole directory of automations, in one round trip. */
+/**
+ * The same for a whole directory of automations, in one round trip.
+ * @param {string[]} automationIds
+ */
 async function listAnswersTablesForAutomations(automationIds) {
     await initDB();
     const ids = (Array.isArray(automationIds) ? automationIds : []).filter(Boolean).map(String);
@@ -74,6 +83,8 @@ async function listAnswersTablesForAutomations(automationIds) {
  * Turn a definition-owned table into an ORDINARY one: the rows, the columns
  * and the sharing stay; only the contract goes. What "delete the form, keep
  * the answers" means.
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
  */
 async function releaseDefinitionSource(id, scope) {
     await initDB();

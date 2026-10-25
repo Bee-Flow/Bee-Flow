@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What a READER of a published page gets, and how that snapshot comes about (W2).
  *
@@ -27,6 +27,10 @@ const log = require('../../telemetry/log');
  */
 const EMPTY_SLOTS = Object.freeze({ html: '', css: '', js: '' });
 
+/**
+ * @param {Record<string, any>} webpage
+ * @param {string} userId
+ */
 async function readSlotsForReader(webpage, userId) {
     const ownerId = webpage.userId;
     const { versionId, fellBackToLive } = webpageStore.resolveReadVersion(webpage, userId);
@@ -42,12 +46,12 @@ async function readSlotsForReader(webpage, userId) {
         if (fellBackToLive && webpage.isPublished) {
             log.warn(`[Webpages] ${webpage.id}: published with no pinned version — serving LIVE content to non-owner ${userId}`);
         }
-        return { files: await webpageStore.readAllSlots(ownerId, webpage.id), servedVersionId: null };
+        return { files: await webpageStore.readAllSlots(ownerId, webpage.id), servedVersionId: /** @type {string | null} */ (null) };
     }
     const meta = await webpageStore.getVersionMeta(versionId);
     if (!meta || meta.webpageId !== webpage.id) {
         log.warn(`[Webpages] ${webpage.id}: published_version_id ${versionId} is missing — serving nothing`);
-        return { files: { ...EMPTY_SLOTS }, servedVersionId: null, pinBroken: true };
+        return { files: { ...EMPTY_SLOTS }, servedVersionId: /** @type {string | null} */ (null), pinBroken: true };
     }
     return {
         files: await webpageStore.readAllSlots(ownerId, webpage.id, versionId),
@@ -60,6 +64,8 @@ async function readSlotsForReader(webpage, userId) {
  * route, which has no per-version image to serve: the stored thumbnail is a
  * screenshot of the LIVE page, so it may only be shown to a non-owner while
  * live and published are the same three files. Unknown → false → no image.
+ * @param {{ htmlSha?: string, cssSha?: string, jsSha?: string }} webpage
+ * @param {{ htmlSha?: string, cssSha?: string, jsSha?: string } | null | undefined} meta
  */
 function liveMatchesPin(webpage, meta) {
     if (!meta) return false;
@@ -79,6 +85,8 @@ function liveMatchesPin(webpage, meta) {
  * Returns the pinned version id, or null when nothing could be pinned — and
  * the caller must then NOT report a successful publish. On a managed page it
  * pins nothing and answers the pointer the deploy set.
+ * @param {string} webpageId
+ * @param {string} ownerId
  */
 async function pinPublishedVersion(webpageId, ownerId) {
     try { await webpageDbStore.flush(ownerId, webpageId); } catch (e) {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the ONE usage row a turn writes (Wave 6c).
  *
@@ -17,9 +17,12 @@ const usageStore = require('../../../stores/usageStore');
 const log = require('../../../telemetry/log');
 const { usageTotalsLogFields } = require('../../../core/providers/usageNormalizer');
 
+/**
+ * @param {{ userId: string, draftWrap: import('../../../appStudio/builderTools').BuilderDraft, modelId: string, resolvedTier: string, usageTotals: Parameters<typeof usageTotalsLogFields>[0], turnStartedAt: number, turn: { iter?: number, toolCallCount?: number, mutatingToolCalls?: number, validationErrorCount?: number, lastFinalized?: boolean } }} opts
+ */
 function makeTurnUsageLogger({ userId, draftWrap, modelId, resolvedTier, usageTotals, turnStartedAt, turn }) {
     let usageLogged = false;
-    return (outcome) => {
+    return (/** @type {string} */ outcome) => {
         if (usageLogged) return; // one row per turn, even if both paths fire
         usageLogged = true;
         const durationMs = Date.now() - turnStartedAt;

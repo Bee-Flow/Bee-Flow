@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * approvalHooks — the on_decided record-write hook.
  *
@@ -32,6 +32,24 @@ const log = require('../telemetry/log');
 const { scanTemplate, parsePath, walkTokens } = require('./expr');
 const { bestEffort } = require('../utils/bestEffort');
 
+/**
+ * @typedef {object} HookApproval  the parts of an approval row the on_decided hook reads
+ * @property {string} id
+ * @property {string} [status]
+ * @property {string|null} [ownerId]
+ * @property {string|null} [studioAppId]
+ * @property {import('./approvalRulebook').OnDecidedHook|null} [onDecided]
+ * @property {string|null} [decisionReason]
+ * @property {string|null} [prompt]
+ * @property {string|null} [decidedBy]
+ * @property {string|null} [decidedByName]
+ * @property {string|Date|null} [decidedAt]
+ * @property {string|null} [requestedBy]
+ * @property {Record<string, unknown>|null} [answers]
+ * @property {Record<string, unknown>|null} [context]
+ */
+
+/** @param {HookApproval} approval */
 function hookScope(approval) {
     return {
         decision: approval.status,
@@ -47,9 +65,14 @@ function hookScope(approval) {
     };
 }
 
+/**
+ * @param {unknown} value
+ * @param {ReturnType<typeof hookScope>} scope
+ */
 function resolveTemplate(value, scope) {
     if (typeof value !== 'string') return value;           // literal number/bool/null
     const parts = scanTemplate(value);
+    /** @param {{ type: string, inner?: string }} p */
     const tokensOf = (p) => (p.type === 'ref' ? parsePath(p.inner) : null);
     if (parts.length === 1 && tokensOf(parts[0])) {
         const v = walkTokens(tokensOf(parts[0]), scope);
@@ -68,6 +91,8 @@ function resolveTemplate(value, scope) {
  * Run the hook for a row that just reached a final status. Never throws.
  * Returns { ran, error? } for callers that surface it (tests, the decide
  * response's audit trail).
+ *
+ * @param {HookApproval} approval
  */
 async function runOnDecidedHook(approval) {
     const hook = approval?.onDecided;
@@ -89,6 +114,7 @@ async function runOnDecidedHook(approval) {
         if (!recordId) throw new Error('the hook has no record to update');
 
         const scope = hookScope(approval);
+        /** @type {Record<string, unknown>} */
         const values = {};
         for (const [col, tmpl] of Object.entries(set)) values[col] = resolveTemplate(tmpl, scope);
 

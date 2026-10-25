@@ -563,3 +563,23 @@ module.exports = {
     buildParseJsonAiTool, buildParseJsonAiMessages, applyParseJsonAiResult,
     applyParseJsonAiItems, resolveParseJsonItems, buildParseJsonRow,
 };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/** @typedef {{ kind?: string, value?: unknown } | string | number | boolean | null | unknown[]} SetBinding */
+
+/** @typedef {{ op?: string, target?: string, start?: number, keys?: string[], from?: string, to?: string, key?: string, direction?: string }} SetOperation */
+
+/** @typedef {{ name: string, path?: string, description?: string, fallback?: unknown }} ParseJsonField */
+
+/**
+ * The config fields the set step reads.
+ * @typedef {{ id?: string, arrayRef?: string, fields?: Record<string, SetBinding>, operations?: SetOperation[], [key: string]: unknown }} SetStep
+ */
+
+/**
+ * The config fields the parse_json step reads.
+ * @typedef {{ id?: string, fields?: ParseJsonField[], sourceRef?: string, mode?: string, itemsRef?: string }} ParseJsonStep
+ */
+
+/** @typedef {Record<string, unknown>} SetRow */

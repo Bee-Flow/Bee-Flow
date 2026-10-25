@@ -544,3 +544,9 @@ module.exports = {
     CREATE_RECIPE,
     _test: { repairBinding, effectSteps, getAt, RECORD_KINDS },
 };
+
+/**
+ * One model-authored object — an action, a step, a binding, a stage — read
+ * defensively: only the string fields the rules branch on are typed.
+ * @typedef {{ [k: string]: unknown, kind?: string, name?: string, expr?: string, tableId?: string, resultVar?: string, actionId?: string, recordId?: string | ActionNode, approverUserIds?: string[], approverGroupIds?: string[], steps?: ActionNode[] }} ActionNode
+ */

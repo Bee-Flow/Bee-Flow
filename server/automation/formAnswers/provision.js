@@ -252,3 +252,11 @@ module.exports = {
     releaseAnswersTable,
     deleteRetiredColumn,
 };
+
+/**
+ * @typedef {{ kind: 'org' | 'user', id: string }} Scope  a datatable scope
+ * @typedef {{ id?: string, userId?: string | null, organizationId?: string | null, title?: string }} AutomationRef  the parts of an automation this module reads
+ * @typedef {Record<string, any>} Def  an automation definition, as stored
+ * @typedef {Awaited<ReturnType<typeof datatableStore.listAnswersTablesForAutomation>>[number]} AnswersTable
+ * @typedef {ReturnType<typeof derive.deriveAnswerColumns>} Derived
+ */

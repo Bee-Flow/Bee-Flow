@@ -351,3 +351,13 @@ module.exports = {
     compactDryRunForModel,
     truncateToolResultJson,
 };
+
+/**
+ * @typedef {import('./draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('./draftGraph').GraphStep} GraphStep
+ * @typedef {{ status?: unknown, index?: number, error?: unknown, output?: unknown }} ForEachResult
+ * @typedef {{ iterations?: number, succeeded?: number, failed?: number, results?: ForEachResult[] }} ForEachOutput
+ * @typedef {{ stepId?: string, stepType?: string, status?: string, parentStepId?: string, _hint?: unknown,
+ *   error?: string, errorClass?: string, input?: unknown, output?: Record<string, unknown> | null }} DryRunStep
+ * @typedef {{ id?: string, status?: string, error?: string, startedAt?: string, finishedAt?: string }} DryRunRow
+ */

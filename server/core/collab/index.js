@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Real-time co-editing — the one module every other part of the server talks
  * to about co-edited content.

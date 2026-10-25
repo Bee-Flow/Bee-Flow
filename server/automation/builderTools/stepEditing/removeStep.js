@@ -142,3 +142,7 @@ function applyRemoveStep(graph, args) {
 }
 
 module.exports = { findDanglingRefs, applyRemoveStep };
+
+/** @typedef {import('../draftGraph').DraftGraph & { triggers?: Array<{ id?: string }> }} RemovableGraph */
+
+/** @typedef {import('../draftGraph').GraphEdge} GraphEdge */

@@ -273,3 +273,15 @@ module.exports = {
     // exposed for tests
     _test: { resolveDryRunFilters, syntheticScope, collectDataSteps, checkDataStep, runActionPass, findModelTable },
 };
+
+/**
+ * @typedef {import('./builderTools/dataTools').DataModel} DataModel
+ * @typedef {import('./builderTools/dataTools').DataTable} DataTable
+ * @typedef {import('./builderTools').AppDef} AppDef
+ * @typedef {import('./appDryRunReads').DryRunApp} DryRunApp
+ * @typedef {import('./appDryRunReads').DryRunDeps} DryRunDeps
+ * @typedef {import('./appDryRunReads').DryRunViewer} DryRunViewer
+ * @typedef {import('./appDryRunReads').DryRunBinding} DryRunBinding
+ * @typedef {{ nodeId: string|null, prop: string, binding: DryRunBinding }} CollectedBinding
+ * @typedef {{ [k: string]: unknown, kind?: string, tableId?: string, values?: unknown, steps?: DataStep[] }} DataStep  one step of a sequence action
+ */

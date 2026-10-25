@@ -640,3 +640,8 @@ module.exports = {
     validateAction,
     DATASET_QUERY_OUTPUTS,
 };
+
+/**
+ * @typedef {{ type: string, required?: boolean, nullable?: boolean, maxLen?: number, min?: number, max?: number, values?: unknown[] }} FieldSpec  One field of an ACTION_SPECS / STEP_SPECS entry.
+ * @typedef {{ mutatesData?: boolean, fields: Record<string, FieldSpec> }} KindSpec
+ */

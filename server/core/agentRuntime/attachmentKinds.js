@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One attachment of each kind put onto the user message, for
  * ./attachmentProcessor: PDFs (through the unified extractor), images
@@ -18,10 +18,32 @@ const { persistExtractedText } = require('../documents/extractedTextStore');
 const { safeTextOf } = require('./attachmentScanGate');
 const log = require('../../telemetry/log');
 
+/**
+ * @typedef {{ name?: string, type?: string, content?: string, source?: string }} Attachment
+ * @typedef {{ name?: string, type?: string, storageKey?: string | null, url: string | null, extractedText?: string, extractionKey?: string }} PersistedAttachment
+ * @typedef {Map<Attachment, PersistedAttachment> | null} PersistedByLive
+ * @typedef {{ type: string, text?: string, image_url?: { url: string, detail?: string } }} MessagePart
+ * @typedef {{ content: MessagePart[] }} LastMsg
+ * @typedef {{ kind: string, source?: string, text?: string, pages?: { pageNumber: number, text: string }[], images?: { mimeType: string, base64: string }[] }} ExtractedAttachment
+ * @typedef {{
+ *   modelSupportsVision?: boolean,
+ *   maybeScan: import('./attachmentScanGate').MaybeScan,
+ *   persistedByLive: PersistedByLive,
+ *   userId: string | null,
+ *   attachmentExtractor: () => typeof import('../documents/attachmentExtractor'),
+ * }} AttachmentCtx
+ */
+
 // Writes the extracted text onto the matching persisted attachment sidecar
 // so that historyHydrator can replay the file on future turns. Without this,
 // XLSX/DOCX/CSV uploads only existed in the current turn's context and the
 // model would lose access to them after ~4 messages once compaction kicked in.
+/**
+ * @param {Attachment} att
+ * @param {string} fullText
+ * @param {PersistedByLive} persistedByLive
+ * @param {string} userId
+ */
 async function persistExtractionOntoSidecar(att, fullText, persistedByLive, userId) {
     if (!fullText || !persistedByLive) return;
     const record = persistedByLive.get(att);
@@ -31,7 +53,7 @@ async function persistExtractionOntoSidecar(att, fullText, persistedByLive, user
         record.extractedText = tiered.extractedText;
         if (tiered.extractionKey) record.extractionKey = tiered.extractionKey;
     } catch (err) {
-        log.warn(`[AttachmentProcessor] Failed to persist extracted text for ${att.name}: ${err.message}`);
+        log.warn(`[AttachmentProcessor] Failed to persist extracted text for ${att.name}: ${/** @type {Error} */ (err).message}`);
     }
 }
 
@@ -73,14 +95,18 @@ async function uploadImageForInference(base64DataUrl, mimeType, userId, filename
         log.info(`[AttachmentProcessor] SERVER_PUBLIC_HOST=${process.env.SERVER_PUBLIC_HOST || '(unset)'}, SERVER_PROTOCOL=${process.env.SERVER_PROTOCOL || '(unset)'}`);
         return url;
     } catch (err) {
-        log.warn('[AttachmentProcessor] Could not upload image to RustFS:', err.message);
+        log.warn('[AttachmentProcessor] Could not upload image to RustFS:', /** @type {Error} */ (err).message);
         return null;
     }
 }
 
-/** Append text to the message's first text block, or add one. */
+/**
+ * Append text to the message's first text block, or add one.
+ * @param {string} text
+ * @param {LastMsg} lastMsg
+ */
 function appendTextPart(lastMsg, text) {
-    const textBlock = lastMsg.content.find(c => c.type === 'text');
+    const textBlock = lastMsg.content.find((/** @type {{ type: string; }} */ c) => c.type === 'text');
     if (textBlock) textBlock.text += text;
     else lastMsg.content.push({ type: 'text', text });
 }
@@ -89,13 +115,16 @@ function appendTextPart(lastMsg, text) {
  * PDF — unified extractor, same pipeline as direct chat: pdfjs → Azure
  * Document Intelligence → Mistral OCR → vision fallback. Behaviour change
  * from the old agent path: Azure now fires here too.
+ * @param {Attachment} att
+ * @param {LastMsg} lastMsg
+ * @param {AttachmentCtx} ctx
  */
 async function appendPdf(att, lastMsg, { modelSupportsVision, maybeScan, persistedByLive, userId, attachmentExtractor }) {
     const { extractAttachment, formatTextHeader, formatImagesHeader, formatFailureNote } = attachmentExtractor();
-    const result = await extractAttachment(att, { modelSupportsVision });
+    const result = /** @type {ExtractedAttachment} */ (await extractAttachment(/** @type {import('../documents/attachmentExtractor').Attachment} */ (att), { modelSupportsVision }));
     log.info(`[AttachmentProcessor] PDF ${att.name} extraction → kind=${result.kind}, source=${result.source || 'n/a'}`);
 
-    const textBlock = lastMsg.content.find(c => c.type === 'text');
+    const textBlock = lastMsg.content.find((/** @type {{ type: string; }} */ c) => c.type === 'text');
     if (result.kind === 'text') {
         // Privacy Shield: scan extracted PDF text before it touches the
         // model. On `block`, the thrown AttachmentPrivacyBlock bubbles
@@ -131,11 +160,15 @@ async function appendPdf(att, lastMsg, { modelSupportsVision, maybeScan, persist
  * storage URLs back for bytes at send-time (core/imageInline.js), because
  * Anthropic's fetcher honours our robots.txt and self-hosted origins aren't
  * reachable at all.
+ * @param {Attachment} att
+ * @param {LastMsg} lastMsg
+ * @param {AttachmentCtx} ctx
  */
 async function appendImage(att, lastMsg, { userId }) {
     const sizeKB = Math.round((att.content?.length || 0) / 1024);
     log.info(`[AttachmentProcessor] Processing image ${att.name || 'unnamed'} (${sizeKB} KB base64)`);
 
+    /** @type {string | null} */
     let imageUrl = null;
     if (userId) {
         imageUrl = await uploadImageForInference(att.content, att.type, userId, att.name);
@@ -161,6 +194,9 @@ async function appendImage(att, lastMsg, { userId }) {
  * Gmail email / plain-text attachment — content is already text. Inline it
  * directly instead of base64-decoding the plaintext into garbage in the
  * generic document branch (BFSF-87).
+ * @param {Attachment} att
+ * @param {LastMsg} lastMsg
+ * @param {AttachmentCtx} ctx
  */
 async function appendInlineText(att, lastMsg, { maybeScan, persistedByLive, userId }) {
     const scanned = await maybeScan({ text: att.content, pages: undefined, filename: att.name });
@@ -172,6 +208,9 @@ async function appendInlineText(att, lastMsg, { maybeScan, persistedByLive, user
 /**
  * Every other document (docx/xlsx/pptx/csv, …) through the parser. A parse
  * failure is logged and the file skipped; a privacy block still throws.
+ * @param {Attachment} att
+ * @param {LastMsg} lastMsg
+ * @param {AttachmentCtx} ctx
  */
 async function appendParsedDocument(att, lastMsg, { maybeScan, persistedByLive, userId }) {
     try {

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * CSP violation report sink.
  *
@@ -32,7 +33,7 @@
  */
 
 const express = require('express');
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const log = require('../telemetry/log');
 
 const router = express.Router();
@@ -54,6 +55,10 @@ const reportLimiter = rateLimit({
     message: { error: 'Too many CSP reports.' },
 });
 
+/**
+ * @param {string} s
+ * @param {number} max
+ */
 function truncate(s, max) {
     if (typeof s !== 'string') return '';
     return s.length > max ? s.slice(0, max) + '…[truncated]' : s;
@@ -67,7 +72,7 @@ const cspBody = express.json({
     limit: '32kb',
 });
 
-router.post('/', reportLimiter, cspBody, (req, res) => {
+router.post('/', reportLimiter, cspBody, (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const body = req.body || {};
         // Legacy shape: { "csp-report": {...} }

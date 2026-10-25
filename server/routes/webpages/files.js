@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * De extra bestanden van een multi-file project, en de binaire assets ernaast.
  *
@@ -43,11 +43,15 @@ const MoveBody = bodyOf({
 // only field the editor sends along.
 const AssetBody = bodyOf({ path: pathText() });
 
+/**
+ * @param {import('express').Router} router
+ * @param {import('./index').WebpageRouteDeps} deps shared multipart gate (`upload`)
+ */
 function register(router, { upload }) {
     // ── Extra files (multi-file projects) ────────────────────────────────
     // Read content of one extra file. Used by the frontend to fetch the bytes
     // for the live preview and the file-explorer detail view.
-    router.get('/:id/files', requireAuth, validate({ query: FileQuery }), async (req, res) => {
+    router.get('/:id/files', requireAuth, validate({ query: FileQuery }), /** @param {import('express').Request<{ id: string }, unknown, unknown, { path?: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         // Owner OR org/group-published reader — same visibility as GET /:id, so
         // shared-page viewers can load the React src/ files their preview needs.
@@ -80,7 +84,7 @@ function register(router, { upload }) {
 
     // Upsert content of one extra text file. Owner-only — read-only viewers
     // must keep using the AI tools to mutate files.
-    router.put('/:id/files', requireAuth, validate({ body: PutFileBody, query: NO_QUERY }), async (req, res) => {
+    router.put('/:id/files', requireAuth, validate({ body: PutFileBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
@@ -111,7 +115,7 @@ function register(router, { upload }) {
     });
 
     // Delete one extra file. Owner-only.
-    router.delete('/:id/files', requireAuth, validate({ query: PathQuery }), async (req, res) => {
+    router.delete('/:id/files', requireAuth, validate({ query: PathQuery }), /** @param {import('express').Request<{ id: string }, unknown, unknown, { path: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -134,7 +138,7 @@ function register(router, { upload }) {
     // then fills `req.body` (the file goes to `req.file`). A validate() in front of
     // it would see an empty body.
     router.post('/:id/assets', requireAuth, validate({ query: NO_QUERY }), upload.single('file'),
-        validate({ body: AssetBody }), async (req, res) => {
+        validate({ body: AssetBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
@@ -164,7 +168,7 @@ function register(router, { upload }) {
     // Move/rename an extra file server-side (text OR binary) without round-tripping
     // bytes through the client. Owner-only. Reads the source, writes it at the new
     // path, then deletes the source.
-    router.post('/:id/assets/move', requireAuth, validate({ body: MoveBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/assets/move', requireAuth, validate({ body: MoveBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
             const userId = req.session.user.id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);

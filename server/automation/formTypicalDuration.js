@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * formTypicalDuration.js — "this usually takes about N seconds".
  *
@@ -22,12 +22,20 @@ const MAX_ENTRIES = 1000;
 /** @type {Map<string, { value: number|null, at: number }>} */
 const cache = new Map();
 
+/**
+ * @param {number[]} values
+ */
 function median(values) {
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/**
+ * @param {string} id
+ * @param {number | null} value
+ * @param {number} now
+ */
 function remember(id, value, now) {
     // Re-insert so the Map's insertion order is also the age order.
     cache.delete(id);
@@ -64,7 +72,7 @@ async function typicalSeconds(automationId, { read = defaultRead } = {}) {
         remember(id, value, now);
         return value;
     } catch (e) {
-        log.debug(`[automation/form] typical duration unavailable: ${e.message}`);
+        log.debug(`[automation/form] typical duration unavailable: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }

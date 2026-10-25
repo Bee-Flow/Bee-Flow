@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Curated catalogue of vendor-hosted (remote) MCP servers an ORGANISATION
  * admin may install from Settings → Organisation → MCP library.
@@ -237,6 +237,9 @@ const REMOTE_CATALOG = Object.freeze([
 
 const BY_ID = new Map(REMOTE_CATALOG.map(e => [e.id, e]));
 
+/**
+ * @param {string} id
+ */
 function getCatalogEntry(id) {
     return (typeof id === 'string' && BY_ID.get(id)) || null;
 }

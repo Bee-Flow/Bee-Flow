@@ -336,3 +336,5 @@ module.exports = {
     samePayloadSet,
     asJsonb,
 };
+
+/** @typedef {{ solution?: { key?: string, name?: string, description?: string, icon?: string, version?: number, entities?: Record<string, Array<Record<string, unknown>>> } } & Record<string, unknown>} BlueprintManifest */

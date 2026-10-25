@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The schema reconciliation is not Nextcloud's: it writes a derived field
  * list into the scope model with the DDL that follows, whoever derived it.

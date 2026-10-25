@@ -393,3 +393,5 @@ function makeDocumentHistory(deps) {
 }
 
 module.exports = { makeDocumentHistory };
+
+/** @typedef {Parameters<typeof makeDocumentHistory>[0]} HistoryDeps */

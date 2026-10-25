@@ -20,6 +20,11 @@ const { mirrorCtx } = require('./source');
 const { answering } = require('./rowHandlers');
 const log = require('../../telemetry/log');
 
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+/** @typedef {Awaited<ReturnType<typeof metaFor>>} TableMeta */
+/** @typedef {{ line: number, error: string, code?: string }} LineError */
+
+/** @param {number} line @param {Error & { code?: unknown }} e @returns {LineError} */
 const lineError = (line, e) => ({ line, error: e.message, ...(typeof e.code === 'string' ? { code: e.code } : {}) });
 
 /**
@@ -27,9 +32,14 @@ const lineError = (line, e) => ({ line, error: e.message, ...(typeof e.code === 
  * reported with its line and simply not written; nothing is written at all
  * until every row has been looked at, so the error list is complete rather
  * than "everything up to the first bad line".
+ * @param {DatatableRequest} req
+ * @param {TableMeta} meta
+ * @param {Record<string, unknown>[]} rows
  */
 function compileImport(req, meta, rows) {
+    /** @type {({ sql: string; params: unknown[]; id: string; createdAt: string; })[]} */
     const statements = [];
+    /** @type {LineError[]} */
     const errors = [];
     rows.forEach((values, i) => {
         try {
@@ -48,7 +58,7 @@ function compileImport(req, meta, rows) {
             if (e && e.code === 'managed_part') throw e;
             // +1 because a person counts the first row as row 1, and a header
             // line is the caller's to account for.
-            errors.push({ line: i + 1, error: e.message });
+            errors.push({ line: i + 1, error: /** @type {Error} */ (e).message });
         }
     });
     return { statements, errors };
@@ -60,6 +70,11 @@ function compileImport(req, meta, rows) {
  * a local import, at the source's pace. The engine's batch form does it in
  * ONE source write where the source has one (a file rewritten once), row by
  * row where it has not.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
+ * @param {TableMeta} meta
+ * @param {Record<string, unknown>[]} rows
+ * @param {LineError[]} errors
  */
 async function importAtSource(req, res, meta, rows, errors) {
     if (rows.length > MIRROR_BULK_MAX_ROWS) {
@@ -75,7 +90,7 @@ async function importAtSource(req, res, meta, rows, errors) {
     if (typeof wt.insertRows === 'function') {
         const out = await wt.insertRows(ctx, pending.map(p => p.values), { collect: true });
         done = out.inserted.length;
-        for (const { index, error: e } of out.errors) errors.push(lineError(pending[index].line, e));
+        for (const { index, error: e } of out.errors) errors.push(lineError(pending[index].line, /** @type {Error} */ (e)));
     } else {
         for (const p of pending) {
             try {
@@ -95,6 +110,10 @@ async function importAtSource(req, res, meta, rows, errors) {
  * Writes go through datatableDbStore.batch in chunks: one transaction per
  * chunk, so a failure part-way leaves the chunk unapplied instead of half of
  * it, and row_count is bumped by what actually landed.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
+ * @param {{ sql: string; params: unknown[]; id: string; createdAt: string; }[]} statements
+ * @param {LineError[]} errors
  */
 async function importLocally(req, res, statements, errors) {
     let inserted = 0;
@@ -113,7 +132,7 @@ async function importLocally(req, res, statements, errors) {
         // did, and why the rest did not.
         return res.status(422).json({
             inserted,
-            errors: [...errors, { line: inserted + errors.length + 1, error: e.message }],
+            errors: [...errors, { line: inserted + errors.length + 1, error: /** @type {Error} */ (e).message }],
             code: e.code || 'import_failed',
         });
     }
@@ -125,6 +144,8 @@ async function importLocally(req, res, statements, errors) {
  * against the declared columns BEFORE anything is written, and the answer is
  * per-row errors WITH THEIR LINE NUMBERS rather than one refusal for the
  * whole file.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
  */
 async function bulkImport(req, res) {
     const meta = await metaFor(req);
@@ -148,7 +169,7 @@ async function bulkImport(req, res) {
     return importLocally(req, res, statements, errors);
 }
 
-/** One CSV cell. */
+/** One CSV cell. @param {unknown} v */
 function csvCell(v) {
     if (v === null || v === undefined) return '';
     let text = typeof v === 'object' ? JSON.stringify(v) : String(v);
@@ -160,8 +181,16 @@ function csvCell(v) {
     return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-/** Write every visible row, page by keyset page, up to EXPORT_MAX_ROWS. */
+/**
+ * Write every visible row, page by keyset page, up to EXPORT_MAX_ROWS.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
+ * @param {TableMeta} meta
+ * @param {Awaited<ReturnType<typeof metaAndFilter>>['filter']} filter
+ * @param {string[]} columns
+ */
 async function writeCsvRows(req, res, meta, filter, columns) {
+    /** @type {string | null} */
     let cursor = null;
     let written = 0;
     for (;;) {
@@ -172,7 +201,7 @@ async function writeCsvRows(req, res, meta, filter, columns) {
             req.datatableScopeKey, req.datatableScopeKey, compiled.sql, compiled.params);
         const all = out.rows || [];
         const page = all.slice(0, compiled.limit);
-        for (const row of page) res.write(columns.map(c => csvCell(row[c])).join(',') + '\n');
+        for (const row of page) res.write(columns.map((/** @type {string | number} */ c) => csvCell(row[c])).join(',') + '\n');
         written += page.length;
         const last = page[page.length - 1];
         if (all.length <= compiled.limit || !last || written >= EXPORT_MAX_ROWS) break;
@@ -188,13 +217,15 @@ async function writeCsvRows(req, res, meta, filter, columns) {
  * rather than buffered. The access filter is compiled exactly as it is for a
  * read, so an export can never contain a row the caller could not already
  * see on screen.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
  */
 async function exportCsv(req, res) {
     try {
         const { meta, filter } = await metaAndFilter(req, 'read');
         const columns = [
             ...dataModel.SYSTEM_COLUMNS,
-            ...(meta.fields || []).map(f => f && f.key).filter(Boolean),
+            ...(meta.fields || []).map((/** @type {{ key?: string }} */ f) => f && f.key).filter(Boolean),
         ];
         const safeName = String(req.datatable.key || 'datatable').replace(/[^a-z0-9_-]/gi, '') || 'datatable';
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');

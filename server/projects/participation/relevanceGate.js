@@ -106,7 +106,11 @@ const SYSTEM_PROMPT = [
     'The conversation may be in any language. Call record_participation_decision once.',
 ].join('\n');
 
+/** @param {unknown} v */
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+/**
+ * @param {string} iso
+ */
 const timeOf = (iso) => {
     const t = Date.parse(String(iso || ''));
     return Number.isFinite(t) ? t : 0;
@@ -147,6 +151,7 @@ function gateLinesFrom(messages, now) {
         };
     });
     // Newest kept when the whole is too long.
+    /** @type {({ label: string; minutesAgo: number; repliesTo: 'person' | 'ai' | null; mentions: 'person' | 'ai' | 'both' | null; text: string; })[]} */
     const kept = [];
     let total = 0;
     for (let i = lines.length - 1; i >= 0; i--) {
@@ -158,7 +163,17 @@ function gateLinesFrom(messages, now) {
     return kept;
 }
 
-/** The user message: the header facts, then the conversation as data. */
+/**
+ * @typedef {Object} BuildGateInputArgs
+ * @property {string} triggerKind
+ * @property {{ label: string; minutesAgo: number; repliesTo: 'person' | 'ai' | null; mentions: 'person' | 'ai' | 'both' | null; text: string; }[]} lines
+ * @property {number | null} [memberCount]
+ * @property {number | null} [readByOthers]
+ */
+/**
+ * The user message: the header facts, then the conversation as data.
+ * @param {BuildGateInputArgs} param0
+ */
 function buildGateInput({ triggerKind, lines, memberCount = null, readByOthers = null }) {
     const facts = [`trigger=${triggerKind === 'unanswered' ? 'unanswered' : 'quiet'}`];
     if (Number.isFinite(memberCount)) facts.push(`members=${memberCount}`);
@@ -211,7 +226,13 @@ function decideOutcome(verdict, { threshold, triggerKind }) {
     return 'reply';
 }
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number | undefined} ms
+ */
 function withTimeout(promise, ms) {
+    /** @type {NodeJS.Timeout} */
     let timer;
     const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => reject(Object.assign(new Error(`The gate did not answer within ${ms} ms`), { code: 'GATE_TIMEOUT' })), ms);
@@ -221,7 +242,7 @@ function withTimeout(promise, ms) {
 
 /**
  * @param {object} deps
- * @param {(modelId: string, messages: object[], tool: object, options: object) => Promise<{ structured: any, usage?: any }>} [deps.chat]
+ * @param {typeof import('../../core/llm/llmClient').chatForcedTool} [deps.chat]
  * @param {(who: { orgId: string|null, userId: string }) => Promise<{ modelId: string, providerConfig?: object }|null>} [deps.resolveModel]
  * @param {{ resolve: Function, protect: Function, release: Function }} [deps.shield]  makeChatShield() surface
  * @param {(entry: object) => any} [deps.logUsage]
@@ -245,6 +266,9 @@ function makeRelevanceGate(deps = {}) {
         return { modelId, providerConfig };
     });
     const shields = new Map();
+    /**
+     * @param {string} surface
+     */
     const shieldFor = (surface) => {
         if (deps.shield) return deps.shield;
         if (!shields.has(surface)) {
@@ -275,11 +299,12 @@ function makeRelevanceGate(deps = {}) {
     async function gate({ surface = 'chat', containerId, orgId = null, userId, triggerKind, lines, memberCount = null, readByOthers = null, threshold }) {
         if (!userId) return { available: false, skipReason: 'no_user' };
         if (!Array.isArray(lines) || lines.length === 0) return { available: false, skipReason: 'nothing_to_read' };
+        /** @type {{ modelId: string; providerConfig?: object; } | { modelId: string; providerConfig: {}; } | null} */
         let model;
         try {
             model = await resolveModel({ orgId, userId });
         } catch (err) {
-            log.warn(`[AiParticipation] gate model lookup failed for ${surface} ${containerId}: ${err && err.message}`);
+            log.warn(`[AiParticipation] gate model lookup failed for ${surface} ${containerId}: ${err && /** @type {Error} */ (err).message}`);
             return { available: false, skipReason: 'model_unavailable' };
         }
         if (!model || !model.modelId) return { available: false, skipReason: 'no_model' };
@@ -307,7 +332,7 @@ function makeRelevanceGate(deps = {}) {
         } catch (err) {
             const skipReason = err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : (err?.code === 'GATE_TIMEOUT' ? 'timeout' : 'error');
             // The reason is a code; the message may quote a provider error, never the conversation.
-            log.warn(`[AiParticipation] gate for ${surface} ${containerId} unavailable (${skipReason}): ${err?.code || err?.name || 'error'}`);
+            log.warn(`[AiParticipation] gate for ${surface} ${containerId} unavailable (${skipReason}): ${err?.code || /** @type {Error} */ (err)?.name || 'error'}`);
             return { available: false, skipReason, model: model.modelId };
         } finally {
             try { shield.release(conversationId); } catch (err) { bestEffort('projects/participation/relevanceGate:gate', err); /* nothing held */ }
@@ -340,7 +365,7 @@ function makeRelevanceGate(deps = {}) {
                 conversation_id: containerId,
             });
         } catch (err) {
-            log.warn(`[AiParticipation] gate usage not logged: ${err && err.message}`);
+            log.warn(`[AiParticipation] gate usage not logged: ${err && /** @type {Error} */ (err).message}`);
         }
 
         const verdict = parseParticipation(result?.structured);

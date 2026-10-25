@@ -218,3 +218,8 @@ module.exports = {
     makeDraftThrottle,
     makeProgressThrottle,
 };
+
+/**
+ * @typedef {{ value: string, terminated: boolean }} JsonString
+ * @typedef {{ kind: 'object'|'array', key: string|null, closed: boolean, strings: Map<string, JsonString>, children: JsonNode[], elements: JsonString[], expectKey: boolean, pendingKey: string|null }} JsonNode
+ */

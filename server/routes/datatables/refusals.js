@@ -147,3 +147,11 @@ module.exports = {
     quota, assertQuota, answerDatatableError, bad,
     confirmedBreaking, breakingColumnUsage, rejectSqlKeys,
 };
+
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+
+/**
+ * An error a store or engine threw, with the fields this file reads.
+ * @typedef {Error & { status?: number, code?: string, constraint?: string, limit?: number, used?: number,
+ *   reason?: string, detail?: string, header?: string, key?: string, ref?: object, datatableId?: string, retryAfter?: number }} RefusalError
+ */

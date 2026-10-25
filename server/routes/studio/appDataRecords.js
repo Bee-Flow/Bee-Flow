@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data routes: the tables and their records (list, read, create,
  * update, delete), every statement through the viewer's access filter.
@@ -14,6 +15,10 @@ const {
 const { fallback } = require('../../utils/bestEffort');
 
 // GET /:id/data/tables — tables the viewer may READ (fields only).
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function listTables(req, res) {
     try {
         const ctx = await resolveDataContext(req, res);
@@ -23,13 +28,17 @@ async function listTables(req, res) {
             if (!rlsGateway.canRead(t, ctx.role)) continue;
             const flags = await linkedTableFlags(ctx, t);
             if (flags === LINK_REFUSED) continue;
-            tables.push({ ...publicTable(t), ...flags });
+            tables.push({ ...publicTable(t), .../** @type {{ linked: boolean, readOnly: boolean } | null} */ (flags) });
         }
         res.json({ tables });
     } catch (err) { handleErr(res, err, 'tables'); }
 }
 
 // GET /:id/data/tables/:tableId/records — list.
+/**
+ * @param {import('express').Request<{ id: string, tableId: string }, any, any, import('qs').ParsedQs & { cursor?: string, limit?: number }>} req  query as validated by RecordsQuery
+ * @param {import('express').Response} res
+ */
 async function listRecords(req, res) {
     try {
         const ctx = await resolveDataContext(req, res, { tableId: req.params.tableId });
@@ -51,6 +60,10 @@ async function listRecords(req, res) {
 }
 
 // POST /:id/data/tables/:tableId/records — create.
+/**
+ * @param {import('express').Request<{ id: string, tableId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function createRecord(req, res) {
     try {
         const ctx = await resolveDataContext(req, res, { tableId: req.params.tableId });
@@ -71,6 +84,10 @@ async function createRecord(req, res) {
 }
 
 // GET /:id/data/tables/:tableId/records/:recordId — read one.
+/**
+ * @param {import('express').Request<{ id: string, tableId: string, recordId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function getRecord(req, res) {
     try {
         const ctx = await resolveDataContext(req, res, { tableId: req.params.tableId });
@@ -83,6 +100,10 @@ async function getRecord(req, res) {
 }
 
 // PATCH /:id/data/tables/:tableId/records/:recordId — update.
+/**
+ * @param {import('express').Request<{ id: string, tableId: string, recordId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function updateRecord(req, res) {
     try {
         const ctx = await resolveDataContext(req, res, { tableId: req.params.tableId });
@@ -136,6 +157,10 @@ async function updateRecord(req, res) {
 }
 
 // DELETE /:id/data/tables/:tableId/records/:recordId — delete.
+/**
+ * @param {import('express').Request<{ id: string, tableId: string, recordId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deleteRecord(req, res) {
     try {
         const ctx = await resolveDataContext(req, res, { tableId: req.params.tableId });

@@ -1,10 +1,11 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
 const { checkStoredLiveSite } = require('./cmsShared');
 
+/** @param {(id: string) => Promise<{ id: string } | null>} getProject */
 function deps(getProject) {
     const calls = { cleared: 0, warned: 0 };
     return {

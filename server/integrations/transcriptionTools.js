@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Transcription Tools — Multi-provider meeting transcription with diarization
  *
@@ -733,3 +732,17 @@ module.exports = {
     computeWhisperBatchTimeouts,
     azureDiarizationSpeakers,
 };
+
+/**
+ * A chat attachment as the dispatcher hands it on.
+ * @typedef {{ name?: string, filename?: string, type?: string, path?: string, url?: string,
+ *   data?: string | Buffer, content?: string | Buffer }} AudioAttachment
+ */
+
+/** @typedef {{ userId?: string, session?: unknown, attachments?: AudioAttachment[], req?: unknown }} TranscriptionContext */
+
+/**
+ * The tool arguments: the model's, plus the upload routes' file and provider.
+ * @typedef {{ language?: string, context_terms?: string, contextTerms?: string, timestamp_granularity?: 'segment' | 'word',
+ *   filePath?: string, fileName?: string, userName?: string, provider?: string }} TranscriptionArgs
+ */

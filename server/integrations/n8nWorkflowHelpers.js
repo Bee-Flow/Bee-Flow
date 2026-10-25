@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Pure helpers of the n8n workflow tools (n8nWorkflowTools.js): JSON parameter
  * parsing, node operations, integrity checks and the summaries sent back to the
@@ -7,10 +7,26 @@
 
 const log = require('../telemetry/log');
 
+/**
+ * @typedef {{ name?: string, type?: string, parameters?: Record<string, unknown>, [key: string]: unknown }} N8nNodeShape
+ * @typedef {{ node?: string, type?: string, index?: number }} N8nConnectionTarget
+ * @typedef {Record<string, Record<string, Array<N8nConnectionTarget[] | null>>>} N8nConnections
+ * @typedef {{ message?: string, name?: string, stack?: unknown, description?: string }} N8nError
+ * @typedef {{ executionTime?: number, startTime?: number, error?: N8nError, data?: { main?: unknown } }} N8nNodeRun
+ * @typedef {{ id?: string, workflowId?: string, workflow_id?: string, status?: string, finished?: boolean, mode?: string,
+ *   startedAt?: string, stoppedAt?: string, retryOf?: string | null,
+ *   data?: { resultData?: { error?: N8nError & { node?: { name?: string } }, runData?: Record<string, N8nNodeRun[]> } } }} N8nExecution
+ */
+
 // ─── JSON Parse Helper ─────────────────────────────────────────
 // Dual-accept shim: accepts real arrays/objects (the new contract), falls back
 // to parsing stringified JSON with a one-off deprecation warning per process.
 const _deprecationWarned = new Set();
+/**
+ * @param {unknown} value
+ * @param {string} paramName
+ * @param {string} [toolName]
+ */
 function parseJsonParam(value, paramName, toolName = '') {
     if (value === undefined || value === null || value === '') return undefined;
     if (typeof value === 'object') return value; // already real JSON
@@ -30,12 +46,22 @@ function parseJsonParam(value, paramName, toolName = '') {
 }
 
 // ─── Deep-merge helper (objects merge recursively; arrays replace; primitives overwrite) ──
+/**
+ * @param {unknown} x
+ * @returns {x is Record<string, unknown>}
+ */
 function isPlainObject(x) {
     return x !== null && typeof x === 'object' && !Array.isArray(x);
 }
+/**
+ * @param {{}} target  any value; a non-object is replaced by {}
+ * @param {unknown} source
+ * @returns {unknown}
+ */
 function deepMerge(target, source) {
     if (!isPlainObject(source)) return source; // arrays/primitives replace
     if (!isPlainObject(target)) target = {};
+    /** @type {Record<string, unknown>} */
     const out = { ...target };
     for (const [k, v] of Object.entries(source)) {
         if (isPlainObject(v) && isPlainObject(out[k])) {
@@ -50,6 +76,11 @@ function deepMerge(target, source) {
 // ─── node_operations applier ───────────────────────────────────
 // Applies add/update/remove ops to a nodes+connections snapshot and returns a new one.
 // On remove, also prunes every connection reference to the removed node (source and target).
+/**
+ * @param {{ nodes?: N8nNodeShape[], connections?: N8nConnections }} current
+ * @param {Array<{ action?: string, node_name?: string, node_data?: unknown }>} ops
+ * @param {string} toolName
+ */
 function applyNodeOperations(current, ops, toolName) {
     let nodes = Array.isArray(current.nodes) ? [...current.nodes] : [];
     let connections = current.connections && typeof current.connections === 'object'
@@ -88,7 +119,7 @@ function applyNodeOperations(current, ops, toolName) {
             if (nodeData.name && nodeData.name !== name) {
                 throw new Error(`node_operations: cannot rename "${name}" via update — connections key on node name. Remove and re-add instead.`);
             }
-            nodes[idx] = deepMerge(nodes[idx], nodeData);
+            nodes[idx] = /** @type {N8nNodeShape} */ (deepMerge(nodes[idx], nodeData));
             continue;
         }
 
@@ -106,8 +137,8 @@ function applyNodeOperations(current, ops, toolName) {
                 const outputsByType = connections[src];
                 for (const outputType of Object.keys(outputsByType)) {
                     const sockets = outputsByType[outputType]; // array of arrays
-                    outputsByType[outputType] = sockets.map(socket =>
-                        (socket || []).filter(target => target && target.node !== name)
+                    outputsByType[outputType] = sockets.map((/** @type {N8nConnectionTarget[] | null} */ socket) =>
+                        (socket || []).filter((/** @type {N8nConnectionTarget} */ target) => target && target.node !== name)
                     );
                 }
             }
@@ -123,9 +154,14 @@ function applyNodeOperations(current, ops, toolName) {
 // ─── Connection integrity check ────────────────────────────────
 // Post-condition: every source key and target reference in `connections` must
 // exist in `nodes[]`. Catches drift from partial updates or renames.
+/**
+ * @param {N8nNodeShape[]} nodes
+ * @param {N8nConnections | null | undefined} connections
+ */
 function assertConnectionsIntegrity(nodes, connections) {
     if (!connections || typeof connections !== 'object') return;
     const names = new Set(nodes.map(n => n.name));
+    /** @type {string[]} */
     const orphans = [];
     for (const src of Object.keys(connections)) {
         if (!names.has(src)) { orphans.push(`source "${src}"`); continue; }
@@ -151,6 +187,9 @@ function assertConnectionsIntegrity(nodes, connections) {
 
 // ─── Workflow Summary Helper ───────────────────────────────────
 
+/**
+ * @param {{ id?: string, name?: string, active?: boolean, nodes?: N8nNodeShape[], tags?: Array<string | { name?: string }>, createdAt?: string, updatedAt?: string }} wf
+ */
 function summarizeWorkflow(wf) {
     const nodes = (wf.nodes || []).filter(n => n.type !== 'n8n-nodes-base.stickyNote');
     return {
@@ -167,17 +206,26 @@ function summarizeWorkflow(wf) {
 
 // ─── Node filter helpers ───────────────────────────────────────
 
+/**
+ * @param {unknown} obj
+ * @param {string} path
+ * @returns {unknown}
+ */
 function getByPath(obj, path) {
     if (!obj || !path) return undefined;
     const parts = path.split('.');
     let cur = obj;
     for (const p of parts) {
         if (cur === null || cur === undefined) return undefined;
-        cur = cur[p];
+        cur = /** @type {Record<string, unknown>} */ (cur)[p];
     }
     return cur;
 }
 
+/**
+ * @param {{ nodes?: N8nNodeShape[] }} workflow
+ * @param {{ node_type_pattern?: string, node_names?: string[], has_param?: string }} filters
+ */
 function filterNodes(workflow, { node_type_pattern, node_names, has_param }) {
     const nodes = workflow.nodes || [];
     const hasAny = !!(node_type_pattern || (node_names && node_names.length) || has_param);
@@ -199,6 +247,7 @@ function filterNodes(workflow, { node_type_pattern, node_names, has_param }) {
 
 // ─── Execution summary helpers ─────────────────────────────────
 
+/** @param {N8nExecution | null | undefined} exec */
 function summarizeExecution(exec) {
     if (!exec) return null;
     return {
@@ -213,13 +262,16 @@ function summarizeExecution(exec) {
     };
 }
 
+/** @param {N8nExecution | null | undefined} exec */
 function buildExecutionDetail(exec) {
     const nodes = exec?.data?.resultData?.runData || {};
+    /** @type {Record<string, { executionTime?: number, startTime?: number, output: unknown[], error: { message?: string, name?: string, stack?: string, description?: string } | null }>} */
     const nodeDetails = {};
     for (const [nodeName, runs] of Object.entries(nodes)) {
         // runs is an array of per-run results; we take the last run for each node
         const last = runs[runs.length - 1];
         if (!last) continue;
+        /** @type {{ executionTime?: number, startTime?: number, output: unknown[], error: { message?: string, name?: string, stack?: string, description?: string } | null }} */
         const entry = {
             executionTime: last.executionTime,
             startTime: last.startTime,
@@ -284,8 +336,13 @@ const SETTINGS_WHITELIST = new Set([
     'executionTimeout',
     'maxExecutionTimeout',
 ]);
+/**
+ * @param {unknown} settings
+ * @returns {Record<string, unknown>}
+ */
 function sanitiseSettings(settings) {
     if (!settings || typeof settings !== 'object') return {};
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const [k, v] of Object.entries(settings)) {
         if (SETTINGS_WHITELIST.has(k) && v !== null && v !== undefined) out[k] = v;
@@ -293,6 +350,7 @@ function sanitiseSettings(settings) {
     return out;
 }
 
+/** @param {Record<string, unknown>} wf */
 function stripReadOnly(wf) {
     const out = { ...wf };
     for (const k of READ_ONLY_WORKFLOW_FIELDS) delete out[k];

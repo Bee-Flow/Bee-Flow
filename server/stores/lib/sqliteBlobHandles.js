@@ -149,3 +149,32 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
 }
 
 module.exports = { createHandleLoader };
+
+/**
+ * The minimal better-sqlite3 surface the engine's flusher uses.
+ * @typedef {{ pragma: (sql: string, opts?: { simple?: boolean }) => unknown, close: () => void }} BlobDb
+ *
+ * One open database of the engine's handle Map.
+ * @typedef {{
+ *   db: BlobDb,
+ *   ownerId: string,
+ *   localPath: string,
+ *   lastAccess: number,
+ *   dirty: boolean,
+ *   flushTimer: NodeJS.Timeout | null,
+ *   flushing: Promise<void> | null,
+ *   lastPersistedSha: string,
+ *   poisoned: boolean,
+ * }} BlobHandle
+ *
+ * The storageStore-shaped object the wrapper injects.
+ * @typedef {{
+ *   isAvailable: () => boolean,
+ *   streamFile: (key: string) => Promise<{ stream: AsyncIterable<Buffer> }>,
+ *   uploadFile: (key: string, buf: Buffer, contentType: string) => Promise<unknown>,
+ *   deleteFile: (key: string) => Promise<unknown>,
+ * }} BlobStorage
+ *
+ * The injected query runner (db.run).
+ * @typedef {(sql: string, params?: unknown[]) => Promise<{ rowCount?: number | null, changes?: number, rows?: import('pg').QueryResultRow[] } | undefined>} BlobRunQuery
+ */

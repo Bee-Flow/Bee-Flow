@@ -50,3 +50,10 @@ function createTtlCache({ ttlMs = 5 * 60 * 1000, max = 500, now = Date.now } = {
 }
 
 module.exports = { createTtlCache };
+
+/**
+ * @typedef {Object} CreateTtlCacheArgs
+ * @property {number} [ttlMs]
+ * @property {number} [max]
+ * @property {() => number} [now]
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * subscriptions.js — automationStore aggregate (§WS5, extracted verbatim).
  */
@@ -10,6 +10,11 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 
 // ── Event subscriptions ───────────────────────────────
 
+/**
+ * @param {{ automationId: string, userId: string, provider: string, eventType: string, mode?: string,
+ * externalRef?: string | null, expiresAt?: Date | string | null, lastCursor?: string | null,
+ * filter?: Record<string, unknown> | null, clientState?: string | null, triggerStepId?: string | null }} opts
+ */
 async function createSubscription({ automationId, userId, provider, eventType, mode = 'webhook', externalRef = null, expiresAt = null, lastCursor = null, filter = null, clientState = null, triggerStepId = null }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -22,6 +27,7 @@ async function createSubscription({ automationId, userId, provider, eventType, m
     return getSubscription(id);
 }
 
+/** @param {import('pg').QueryResultRow | null} r */
 function rowToSubscription(r) {
     if (!r) return null;
     return {
@@ -47,6 +53,7 @@ function rowToSubscription(r) {
     };
 }
 
+/** @param {string} id */
 async function getSubscription(id) {
     await initDB();
     const r = await getOne('SELECT * FROM automation_event_subscriptions WHERE id = $1', [id]);
@@ -58,6 +65,8 @@ async function getSubscription(id) {
  * notification handler to validate clientState against the row that owns
  * this subscriptionId — without it, anyone who learns the notificationUrl
  * can forge events on behalf of another tenant.
+ * @param {string} provider
+ * @param {string} externalRef
  */
 async function getSubscriptionByExternalRef(provider, externalRef) {
     await initDB();
@@ -69,6 +78,10 @@ async function getSubscriptionByExternalRef(provider, externalRef) {
     return rowToSubscription(r);
 }
 
+/**
+ * @param {string} provider
+ * @param {string} eventType
+ */
 async function getSubscriptionsForProvider(provider, eventType) {
     await initDB();
     const rows = await getAll(
@@ -87,6 +100,9 @@ async function getSubscriptionsForProvider(provider, eventType) {
  * Subscriptions for one user + provider + event. Used by the push-event
  * webhook handler to find every automation listening for this NC event
  * for this user, so it can dispatch and stamp last_push_at on each row.
+ * @param {string} userId
+ * @param {string} provider
+ * @param {string} eventType
  */
 async function getSubscriptionsForUserAndEvent(userId, provider, eventType) {
     await initDB();
@@ -97,6 +113,7 @@ async function getSubscriptionsForUserAndEvent(userId, provider, eventType) {
     return rows.map(rowToSubscription);
 }
 
+/** @param {string} automationId */
 async function getSubscriptionsForAutomation(automationId) {
     await initDB();
     const rows = await getAll(
@@ -110,6 +127,7 @@ async function getSubscriptionsForAutomation(automationId) {
  * Delete every subscription for an automation. Called from /deactivate
  * (and /delete) so the poller stops firing for paused / removed
  * automations the moment the user toggles them off.
+ * @param {string} automationId
  */
 async function deleteSubscriptionsForAutomation(automationId) {
     await initDB();
@@ -171,6 +189,10 @@ const SUBSCRIPTION_COLUMNS = {
     lastPushAt: 'last_push_at',
 };
 
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} updates
+ */
 async function updateSubscription(id, updates) {
     await initDB();
     const built = buildUpdate({
@@ -190,6 +212,7 @@ async function updateSubscription(id, updates) {
  * Used by the polling/renewal paths to drive the failure-escalation
  * notification: callers compare the returned count to the threshold
  * (5 for polling, 2 for renewal) and notify once when it crosses.
+ * @param {string} id
  */
 async function incrementSubscriptionFailures(id) {
     await initDB();
@@ -207,6 +230,7 @@ async function incrementSubscriptionFailures(id) {
     };
 }
 
+/** @param {string} id */
 async function resetSubscriptionFailures(id) {
     await initDB();
     await run(
@@ -219,6 +243,7 @@ async function resetSubscriptionFailures(id) {
     );
 }
 
+/** @param {string} id */
 async function deleteSubscription(id) {
     await initDB();
     const { rowCount } = await run('DELETE FROM automation_event_subscriptions WHERE id = $1', [id]);

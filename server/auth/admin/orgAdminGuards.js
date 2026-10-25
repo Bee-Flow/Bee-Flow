@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — shared org-admin authorization guards.
  *
@@ -19,6 +19,12 @@ const { tagGate } = require('../gateMeta');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
+/**
+ * @typedef {import('express').Request} Request
+ * @typedef {import('express').Response} Response
+ * @typedef {import('express').NextFunction} NextFunction
+ */
+
 // A row with no status predates the column and is active; 'active' is the only
 // other value that can sign in. Anything else cannot administer anything, so it
 // must never be counted as an organisation's remaining admin.
@@ -28,6 +34,7 @@ const { fallback } = require('../../utils/bestEffort');
 // is why nobody went looking for it. The gate is real now and lives in one
 // place (auth/accountStatusGate.js), used by all four login-completion paths;
 // auth/accountStatusGate.paths.test.js fails if a fifth one appears without it.
+/** @param {unknown} status */
 function isActiveUserStatus(status) {
     return !status || status === 'active';
 }
@@ -48,6 +55,8 @@ function isActiveUserStatus(status) {
  * deliberately NOT counted — they are platform operators, not a tenant's
  * administrator, and on a self-hosted install the tenant may be the only party
  * with any access at all.
+ * @param {string | null | undefined} orgId
+ * @param {string} excludeUserId
  */
 async function countOrgMembers(orgId, excludeUserId) {
     if (!orgId) return { admins: 0, members: 0 };
@@ -60,6 +69,7 @@ async function countOrgMembers(orgId, excludeUserId) {
         if (!isActiveUserStatus(u.status)) continue;
         let inOrg = u.organizationId === orgId;
         if (!inOrg) {
+            /** @type {string[]} */
             let gids = [];
             try { gids = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (_) { gids = []; }
             inOrg = gids.some(gid => orgGroupIds.has(gid));
@@ -71,6 +81,10 @@ async function countOrgMembers(orgId, excludeUserId) {
     return { admins, members };
 }
 
+/**
+ * @param {string | null | undefined} orgId
+ * @param {string} excludeUserId
+ */
 async function countOtherOrgAdmins(orgId, excludeUserId) {
     return (await countOrgMembers(orgId, excludeUserId)).admins;
 }
@@ -92,6 +106,8 @@ async function countOtherOrgAdmins(orgId, excludeUserId) {
  *
  * Nobody is stranded when there is nobody left to strand, so the guard only
  * fires when the organisation still has OTHER active members.
+ * @param {string | null | undefined} orgId
+ * @param {string} excludeUserId
  */
 async function wouldOrphanOrg(orgId, excludeUserId) {
     if (!orgId) return false;
@@ -110,11 +126,14 @@ async function wouldOrphanOrg(orgId, excludeUserId) {
  * administers orgA through a group could be demoted with only orgB's admin count
  * consulted, silently orphaning orgA; and an admin with no primary org at all
  * skipped the guard entirely. Ask the same question the counter answers.
+ * @param {Record<string, any> | null | undefined} user
+ * @returns {Promise<string[]>}
  */
 async function orgsAdministeredBy(user) {
     if (!user || !isOrgAdminRole(user.orgRole)) return [];
     const orgIds = new Set();
     if (user.organizationId) orgIds.add(user.organizationId);
+    /** @type {string[]} */
     let gids = [];
     try { gids = Array.isArray(user.groups) ? user.groups : JSON.parse(user.groups || '[]'); } catch (_) { gids = []; }
     if (gids.length) {
@@ -123,7 +142,7 @@ async function orgsAdministeredBy(user) {
             for (const g of groups || []) {
                 if (g?.organizationId && gids.includes(g.id)) orgIds.add(g.organizationId);
             }
-        } catch (e) { log.warn('[adminRoutes] group lookup for org-admin guard failed:', e.message); }
+        } catch (e) { log.warn('[adminRoutes] group lookup for org-admin guard failed:', /** @type {Error} */ (e).message); }
     }
     return [...orgIds];
 }
@@ -142,6 +161,8 @@ async function orgsAdministeredBy(user) {
  * races in the SAFE direction — the worst interleaving leaves one administrator
  * too many, never none. Only runs for changes that actually could orphan, so
  * ordinary edits pay nothing.
+ * @param {string[]} orgIds
+ * @param {Record<string, any>} prevUser
  */
 async function repairIfOrphaned(orgIds, prevUser) {
     for (const orgId of orgIds) {
@@ -162,7 +183,7 @@ async function repairIfOrphaned(orgIds, prevUser) {
             });
             await invalidatePermissionCache(prevUser.id);
         } catch (e) {
-            log.error(`[adminRoutes] SECURITY: org '${orgId}' was left without an administrator and the rollback failed:`, e.message);
+            log.error(`[adminRoutes] SECURITY: org '${orgId}' was left without an administrator and the rollback failed:`, /** @type {Error} */ (e).message);
         }
         log.warn(`[adminRoutes] concurrent admin changes would have left org '${orgId}' without an administrator — reverted ${prevUser.id}`);
         return orgId;
@@ -172,6 +193,10 @@ async function repairIfOrphaned(orgIds, prevUser) {
 
 // One refusal for every path that could strip an organisation's last admin, so
 // the SPA can recognise it by `code` wherever it happens.
+/**
+ * @param {Response} res
+ * @param {string} what
+ */
 function refuseLastOrgAdmin(res, what) {
     return res.status(409).json({
         error: `${what} would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.`,
@@ -182,6 +207,8 @@ function refuseLastOrgAdmin(res, what) {
 /**
  * Check if the current user is an org admin for a given organization.
  * Super admins always pass. Org admins must have orgRole='org_admin' and belong to the target org.
+ * @param {Request} req
+ * @param {string | string[]} orgId
  */
 async function isOrgAdminForOrg(req, orgId) {
     // Super admin — always allowed
@@ -200,6 +227,7 @@ async function isOrgAdminForOrg(req, orgId) {
     if (user.organizationId === orgId) return true;
 
     // Check group-based membership as fallback
+    /** @type {string[]} */
     let groupIds = [];
     if (Array.isArray(user.groups)) groupIds = user.groups;
     else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (e) { fallback('orgAdminGuards:groups-json', e); } }
@@ -214,9 +242,10 @@ async function isOrgAdminForOrg(req, orgId) {
 /**
  * Middleware factory: require org admin access for the org specified by req.params[paramName].
  * Falls back to requireAuth first, then checks org admin status.
+ * @param {string} [paramName]
  */
 function requireOrgAdmin(paramName = 'id') {
-    return async (req, res, next) => {
+    return async (/** @type {Request} */ req, /** @type {Response} */ res, /** @type {NextFunction} */ next) => {
         if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
         const orgId = req.params[paramName];
         if (!orgId) return res.status(400).json({ error: 'Organization ID required' });
@@ -231,6 +260,7 @@ function requireOrgAdmin(paramName = 'id') {
  * Tenant ids are compared, not just read, so `''`, `null` and `undefined` have to
  * collapse to one value first — otherwise "no organisation" spelled two ways
  * reads as a change and a plain profile edit starts 403ing.
+ * @param {unknown} v
  */
 function normaliseOrgId(v) {
     if (v === undefined || v === null) return null;
@@ -243,6 +273,9 @@ function normaliseOrgId(v) {
  * Looks up the target user's org and checks if the requestor is an org admin for it.
  * For POST (create user), uses req.body.organizationId since no user exists yet.
  * Also blocks org admins from setting role='admin' (super admin escalation).
+ * @param {import('express').Request<{ id?: string }>} req
+ * @param {Response} res
+ * @param {NextFunction} next
  */
 async function _requireOrgAdminForUser(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
@@ -307,6 +340,7 @@ async function _requireOrgAdminForUser(req, res, next) {
         // that default carry null — so absent, empty and 'user' are one value.
         // Treating them as distinct would 403 the panel's ordinary round-trip
         // on any such row.
+        /** @param {unknown} v */
         const asRole = (v) => String(v ?? '').trim() || 'user';
         if (asRole(req.body.role) !== asRole(targetUser.role)) {
             return res.status(403).json({
@@ -343,6 +377,9 @@ async function _requireOrgAdminForUser(req, res, next) {
  * Unknown ids are reported as denied rather than ignored: a group that does not
  * exist cannot be one of the caller's, and silently dropping it would let a
  * probe distinguish "no such group" from "not yours".
+ * @param {Request} req
+ * @param {unknown[]} groupIds
+ * @returns {Promise<string[]>}
  */
 async function groupsOutsideCallerOrg(req, groupIds) {
     const wanted = groupIds.map(g => String(g ?? '').trim()).filter(Boolean);
@@ -356,6 +393,7 @@ async function groupsOutsideCallerOrg(req, groupIds) {
     const myOrgIds = new Set(await orgsAdministeredBy(me));
     const allGroups = await userStore.getAllGroups();
 
+    /** @type {string[]} */
     const denied = [];
     for (const gid of wanted) {
         const group = (allGroups || []).find(g => g?.id === gid);

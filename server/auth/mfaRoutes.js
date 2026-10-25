@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * MFA (TOTP) management endpoints — mounted at /auth/mfa.
  *
@@ -38,6 +38,7 @@ const SETUP_SECRET_TTL_MS = 10 * 60_000;
 
 // Ensure a users-table row exists for the caller (the config admin may not
 // have one yet if encryption was never initialised). Returns the row or null.
+/** @param {string} userId */
 async function ensureUserRow(userId) {
     let row = await userStore.getUser(userId);
     if (!row && isPlatformOperator(userId)) {
@@ -93,6 +94,10 @@ const proofShape = {
     code: codeField.optional(),
     securityKey: credentialJson.optional(),
 };
+/**
+ * @param {{ code?: string, securityKey?: unknown }} b
+ * @param {{ addIssue: (issue: { code: 'custom', path: string[], message: string }) => void }} ctx
+ */
 const requireOneProof = (b, ctx) => {
     if (!b.code && !b.securityKey) ctx.addIssue({ code: 'custom', path: ['code'], message: CODE_TEXT });
 };
@@ -138,6 +143,7 @@ router.get('/status', requireAuth, async (req, res) => {
 // The pending setup secret lives in the session as { secret, mintedAt }.
 // Older sessions may still hold a bare string from before BFSF-274 — read
 // both shapes so an in-flight enrollment survives a deploy.
+/** @param {import('express').Request['session']} session */
 function readSetupSecret(session) {
     const v = session.mfaSetupSecret;
     if (!v) return null;
@@ -159,7 +165,7 @@ router.post('/setup', requireAuth, validate({ body: SetupBody }), async (req, re
         && (Date.now() - existing.mintedAt) < SETUP_SECRET_TTL_MS;
     const secret = fresh ? existing.secret : mfa.generateSecret();
     req.session.mfaSetupSecret = { secret, mintedAt: fresh ? existing.mintedAt : Date.now() };
-    const label = req.session.user.displayName || req.session.user.id;
+    const label = /** @type {string} */ (req.session.user.displayName || req.session.user.id);
     const otpauthUrl = mfa.otpauthUrl(secret, label);
     const qr = await mfa.qrDataUrl(otpauthUrl);
     req.session.save((err) => {
@@ -208,6 +214,10 @@ router.post('/enable', requireAuth, mfaCodeLimiter, validate({ body: EnableBody 
 // told to use a recovery code / contact their admin — a generic "Invalid code"
 // sends them into a hopeless retry loop that burns their recovery codes
 // (BFSF-274). Specifics go to the server log only.
+/**
+ * @param {import('express').Response} res
+ * @param {string} userId
+ */
 function unreadableSecret(res, userId) {
     log.error(`[MFA] mfa_secret for user ${userId} is undecryptable — MASTER_ENCRYPTION_KEY mismatch or corrupted row. Run scripts/rotate-master-key.js (now covers users.mfa_secret) or reset the user's 2FA via the admin panel.`);
     return res.status(400).json({
@@ -217,12 +227,18 @@ function unreadableSecret(res, userId) {
 }
 
 // Every way proof.verify can say no, as the client sees it.
+/** @type {Record<string, string>} */
 const PROOF_REFUSALS = {
     proof_required: 'Confirm with a code from your authenticator app, a recovery code or one of your security keys.',
     invalid_code: 'Invalid code',
     security_key_rejected: 'The security key could not be verified.',
     challenge_expired: 'That took too long. Try your security key again.',
 };
+/**
+ * @param {import('express').Response} res
+ * @param {string | undefined} code
+ * @param {string} userId
+ */
 function refuseProof(res, code, userId) {
     if (code === 'mfa_secret_unreadable') return unreadableSecret(res, userId);
     return res.status(400).json({ error: PROOF_REFUSALS[code] || PROOF_REFUSALS.invalid_code, code: code || 'invalid_code' });
@@ -294,6 +310,7 @@ const MFA_ASSIST_SYSTEM_PROMPT = [
     'Stay on the topic of 2FA/account security; politely decline unrelated requests.',
 ].join('\n');
 
+/** @param {unknown} text */
 function redactMfaMaterial(text) {
     return String(text || '')
         .replace(/otpauth:\/\/\S+/gi, '[redacted]')
@@ -314,6 +331,7 @@ function redactMfaMaterial(text) {
 // 2FA screen must never be able to invoke. Lazy requires: don't pull the LLM stack into every auth
 // boot. Returns the answer, or null when no model is configured, the model
 // returned nothing or the call failed; the route then answers 503.
+/** @param {Array<{ role: string, content: string }>} conversationHistory */
 async function askAssistant(conversationHistory) {
     try {
         const { getAIConfig } = require('../core/aiAgent');
@@ -339,8 +357,8 @@ router.post('/assist', requireAuth, MFA_ASSIST_LIMITER, validate({ body: AssistB
     // input — same redaction, hard caps on turns and length.
     const history = (req.body.history || []).slice(-6);
     const conversationHistory = history
-        .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-        .map(m => ({ role: m.role, content: redactMfaMaterial(m.content) }));
+        .filter(/** @param {{ role?: string, content?: unknown }} m */ m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .map(/** @param {{ role?: string, content?: unknown }} m */ m => ({ role: m.role, content: redactMfaMaterial(m.content) }));
     conversationHistory.push({ role: 'user', content: question });
 
     const answer = await askAssistant(conversationHistory);

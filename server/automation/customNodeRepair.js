@@ -352,3 +352,9 @@ module.exports = {
     MAX_REPAIR_ATTEMPTS,
     ATTEMPT_CEILING,
 };
+
+/**
+ * @typedef {object} RepairDeps
+ * @property {(p: { code: string, inputs: object, limits: object, allowedTools: string[] }) => Promise<{ result?: unknown, logs?: unknown[], calls?: unknown[] }|undefined>} runTest
+ * @property {((ctx: object) => Promise<string|{ code?: string }|null>)|null} [proposeFix]
+ */

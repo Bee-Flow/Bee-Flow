@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * `generated_file` handles — how a file a document step KEPT gets pushed on.
  *
@@ -23,11 +23,17 @@ const automationStore = require('../../stores/automationStore');
 const { MAX_DOCUMENT_BYTES } = require('./execDocument');
 const log = require('../../telemetry/log');
 
+/**
+ * @param {{ kind: 'generated_file'; fileId: string; }} handle
+ */
 function isGeneratedFileHandle(handle) {
     return !!handle && typeof handle === 'object' && handle.kind === 'generated_file' && typeof handle.fileId === 'string' && handle.fileId.length > 0;
 }
 
-/** Every run id of the journey `runScope` belongs to — the ledger's visibility set. */
+/**
+ * Every run id of the journey `runScope` belongs to — the ledger's visibility set.
+ * @param {{ runId: string; rootRunId?: string; }} runScope
+ */
 async function journeyRunIds(runScope) {
     const rootRunId = runScope.rootRunId || runScope.runId;
     const ids = new Set([runScope.runId, rootRunId].filter(Boolean));
@@ -35,7 +41,7 @@ async function journeyRunIds(runScope) {
         const chain = await automationStore.getRunsInChain(rootRunId);
         for (const r of chain) if (r && r.id) ids.add(r.id);
     } catch (e) {
-        log.warn(`[generatedFileHandle] could not read the run chain for ${rootRunId}: ${e.message}`);
+        log.warn(`[generatedFileHandle] could not read the run chain for ${rootRunId}: ${/** @type {Error} */ (e).message}`);
     }
     return [...ids];
 }

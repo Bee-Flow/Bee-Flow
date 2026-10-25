@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * checkout.session.completed — turning a finished Stripe Checkout into a local
  * subscription row (org or consumer) and minting the matching Bee Flow licence.
@@ -14,11 +15,13 @@ const log = require('../../telemetry/log');
 /**
  * checkout.session.completed — User finished paying
  * Routes to either org or consumer subscription storage.
+ * @param {{ id: string, metadata?: Record<string, string> | null, customer?: string, subscription?: string, client_reference_id?: string | null }} session the unexpanded Checkout Session
  */
 async function handleCheckoutCompleted(session) {
     const subscriberType = getSubscriberType(session.metadata);
     const planId = session.metadata?.beeflow_plan_id;
 
+    /** @type {{ plan_id: string | null, status: string, stripe_customer_id: string, stripe_subscription_id: string, payment_status: string, billing_cycle_start: string, trial_end_date?: string }} */
     const subData = {
         plan_id: planId || null,
         status: 'active',
@@ -40,7 +43,7 @@ async function handleCheckoutCompleted(session) {
                 }
             }
         } catch (err) {
-            log.warn('[Stripe Webhook] Could not retrieve subscription details:', err.message);
+            log.warn('[Stripe Webhook] Could not retrieve subscription details:', /** @type {Error} */ (err).message);
         }
     }
 
@@ -95,11 +98,15 @@ async function handleCheckoutCompleted(session) {
  * path writes `license_issuance_succeeded`. Both rows target the org/user
  * so the audit log naturally groups them with the subscription.
  */
+/**
+ * @param {{ scope: 'consumer'|'organization', organizationId?: string, userId?: string, planId: string, session: { customer?: string, subscription?: string } }} p
+ */
 async function issueLicenseFromPlan({ scope, organizationId, userId, planId, session }) {
     const targetType = scope === 'organization' ? 'organization' : 'consumer';
     const targetId = scope === 'organization' ? organizationId : userId;
     try {
         const { issueLicenseFromCheckout, resolveTierForPlan } = require('../../license/issuance');
+        /** @type {string | null} */
         let tier = null;
         if (planId) {
             const plan = await userStore.getPlan(planId);
@@ -127,14 +134,14 @@ async function issueLicenseFromPlan({ scope, organizationId, userId, planId, ses
             { plan_id: planId, tier, stripe_subscription_id: session?.subscription, license_id: result?.licenseId || null }
         );
     } catch (e) {
-        log.error('[Stripe Webhook] license issuance error:', e.message);
+        log.error('[Stripe Webhook] license issuance error:', /** @type {Error} */ (e).message);
         try {
             await userStore.logSubscriptionAudit(
                 'license_issuance_failed', targetType, targetId, 'stripe_webhook', null,
-                { plan_id: planId, error_code: e.code || null, error: String(e.message || e).slice(0, 500), stripe_subscription_id: session?.subscription }
+                { plan_id: planId, error_code: e.code || null, error: String(/** @type {Error} */ (e).message || e).slice(0, 500), stripe_subscription_id: session?.subscription }
             );
         } catch (auditErr) {
-            log.error('[Stripe Webhook] failed to audit license issuance failure:', auditErr.message);
+            log.error('[Stripe Webhook] failed to audit license issuance failure:', /** @type {Error} */ (auditErr).message);
         }
     }
 }

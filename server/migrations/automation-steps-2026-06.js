@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: Steps (reusable, standalone building blocks).
  *

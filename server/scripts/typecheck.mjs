@@ -20,9 +20,17 @@
  * (TS 6 needed an in-memory `@ts-check` rewrite because checking the whole
  * require graph ran out of a 2 GB heap; the native compiler does not).
  *
+ * Two levels. `// @typecheck` checks a file under the options of jsconfig.json.
+ * `// @typecheck noImplicitAny` (same header window) additionally checks it in
+ * a second tsc run with `noImplicitAny: true`, with its own generated config
+ * (`.typecheck.noimplicitany.tsconfig.json`); only that level's files have
+ * their diagnostics reported from that run. A folder moves up one file at a
+ * time, and scripts/checkjs-ratchet.mjs keeps both counts from falling.
+ *
  * Usage: node scripts/typecheck.mjs [--list] [--file <path>]
- *   --list         print the marked files
+ *   --list         print the marked files, with `noImplicitAny` after the strict ones
  *   --file <path>  check one file (marked or not) and report only its errors
+ *                  (also at the strict level when it carries that marker)
  */
 
 import { spawnSync } from 'node:child_process';
@@ -33,18 +41,36 @@ import { fileURLToPath } from 'node:url';
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SKIP = new Set(['node_modules', 'coverage']);
 export const MARKER = /^\s*\/\/\s*@typecheck\b/m;
+/** `// @typecheck noImplicitAny`: also checked with noImplicitAny on. */
+export const STRICT_MARKER = /^\s*\/\/\s*@typecheck[ \t]+noImplicitAny\b/m;
+const HEADER_LINES = 30;
 const TSC = path.join(SERVER_DIR, 'node_modules', 'typescript', 'bin', 'tsc');
 
-/** The opted-in files: `// @typecheck` within the first lines. */
-export function checkedFiles(dir = SERVER_DIR, prefix = '') {
+/** The level of a file's header: 'noImplicitAny', 'base' (`// @typecheck`) or null. */
+export function levelOfText(text) {
+    const head = text.split('\n').slice(0, HEADER_LINES).join('\n');
+    if (STRICT_MARKER.test(head)) return 'noImplicitAny';
+    return MARKER.test(head) ? 'base' : null;
+}
+
+/** The files that also opted in to the noImplicitAny level. */
+export function strictFiles(dir = SERVER_DIR) {
+    return checkedFiles(dir, '', 'noImplicitAny');
+}
+
+/**
+ * The opted-in files: `// @typecheck` within the first lines (every level),
+ * or with `only` set just those at that level.
+ */
+export function checkedFiles(dir = SERVER_DIR, prefix = '', only = null) {
     const out = [];
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
         const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
         if (entry.isDirectory()) {
-            if (!SKIP.has(entry.name)) out.push(...checkedFiles(path.join(dir, entry.name), rel));
+            if (!SKIP.has(entry.name)) out.push(...checkedFiles(path.join(dir, entry.name), rel, only));
         } else if (entry.isFile() && /\.[cm]?js$/.test(entry.name)) {
-            const head = readFileSync(path.join(dir, entry.name), 'utf8').split('\n').slice(0, 30).join('\n');
-            if (MARKER.test(head)) out.push(rel);
+            const level = levelOfText(readFileSync(path.join(dir, entry.name), 'utf8'));
+            if (level && (!only || level === only)) out.push(rel);
         }
     }
     return out.sort();
@@ -79,12 +105,13 @@ export function parseDiagnostics(output) {
  * With `single` the generated config gets a per-process name, so parallel
  * `--file` runs never overwrite each other's.
  */
-export function runTypecheck(files, { dir = SERVER_DIR, single = false, tsc = TSC } = {}) {
+export function runTypecheck(files, { dir = SERVER_DIR, single = false, tsc = TSC, noImplicitAny = false } = {}) {
     const ambient = readdirSafe(path.join(dir, 'types')).filter((f) => f.endsWith('.d.ts')).map((f) => `types/${f}`);
-    const configPath = path.join(dir, single ? `.typecheck.${process.pid}.tsconfig.json` : '.typecheck.tsconfig.json');
+    const tag = noImplicitAny ? 'noimplicitany.' : '';
+    const configPath = path.join(dir, single ? `.typecheck.${tag}${process.pid}.tsconfig.json` : `.typecheck.${tag}tsconfig.json`);
     const config = {
         extends: './jsconfig.json',
-        compilerOptions: { checkJs: true, noEmit: true },
+        compilerOptions: { checkJs: true, noEmit: true, ...(noImplicitAny ? { noImplicitAny: true } : {}) },
         files: [...files, ...ambient],
     };
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
@@ -116,6 +143,7 @@ export function formatDiagnostic(d) {
 if (import.meta.url === `file://${process.argv[1]}`) {
     const fileArg = process.argv.indexOf('--file');
     let files;
+    let strict;
     if (fileArg !== -1) {
         const target = process.argv[fileArg + 1];
         if (!target) {
@@ -123,30 +151,47 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             process.exit(2);
         }
         files = [path.relative(SERVER_DIR, path.resolve(process.cwd(), target))];
+        strict = levelOfText(readFileSync(path.join(SERVER_DIR, files[0]), 'utf8')) === 'noImplicitAny' ? files : [];
     } else {
         files = checkedFiles();
+        strict = new Set(strictFiles());
         if (process.argv.includes('--list')) {
-            for (const f of files) console.log(f);
+            for (const f of files) console.log(strict.has(f) ? `${f} noImplicitAny` : f);
             process.exit(0);
         }
+        strict = [...strict];
         if (files.length === 0) {
             console.log('typecheck: no server file carries // @typecheck yet');
             process.exit(0);
         }
     }
 
-    const { diagnostics, crashed, output } = runTypecheck(files, { single: fileArg !== -1 });
+    const single = fileArg !== -1;
+    const runs = [{ label: 'base', result: runTypecheck(files, { single }) }];
+    if (strict.length > 0) runs.push({ label: 'noImplicitAny', result: runTypecheck(strict, { single, noImplicitAny: true }) });
+    const crashed = runs.find((r) => r.result.crashed);
     if (crashed) {
-        process.stderr.write(output);
-        console.error('\ntypecheck: tsc stopped before checking (output above)');
+        process.stderr.write(crashed.result.output);
+        console.error(`\ntypecheck: tsc stopped before checking (${crashed.label} level, output above)`);
         process.exit(2);
     }
+    // The strict run re-reports nothing the base run already said: same file, line, code and text.
+    const seen = new Set();
+    const diagnostics = [];
+    for (const { label, result } of runs) {
+        for (const d of result.diagnostics) {
+            const key = `${d.file}|${d.line}|${d.col}|${d.code}|${d.text}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            diagnostics.push({ ...d, label });
+        }
+    }
     if (diagnostics.length > 0) {
-        for (const d of diagnostics) console.log(formatDiagnostic(d));
-        console.error(`\ntypecheck: ${diagnostics.length} error(s) in ${fileArg !== -1 ? files[0] : 'files marked // @typecheck'}`);
+        for (const d of diagnostics) console.log(`${formatDiagnostic(d)}${d.label === 'noImplicitAny' ? '  [noImplicitAny level]' : ''}`);
+        console.error(`\ntypecheck: ${diagnostics.length} error(s) in ${single ? files[0] : 'files marked // @typecheck'}`);
         process.exit(1);
     }
-    console.log(fileArg !== -1 ? `typecheck: ${files[0]}, no errors` : `typecheck: ${files.length} file(s) with // @typecheck, no errors`);
+    console.log(single ? `typecheck: ${files[0]}, no errors` : `typecheck: ${files.length} file(s) with // @typecheck (${strict.length} also with noImplicitAny), no errors`);
 }
 
 function readdirSafe(dir) {

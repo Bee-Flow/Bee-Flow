@@ -132,3 +132,14 @@ function stop() {
 }
 
 module.exports = { start, stop, runOnce, FAILURE_BACKOFF_MS, _setDeps };
+
+/**
+ * @typedef {{
+ *   userStore: Pick<typeof import('../stores/userStore'), 'getAllOrganizations'>,
+ *   ncUserGroupSync: Pick<typeof import('../services/ncUserGroupSync'), 'runFullSync' | 'NC_SYNC_FAILED'>,
+ *   orgHealth: Pick<typeof import('../services/orgHealth'), 'openProblemLastSeen'>,
+ *   recordJobRun: typeof import('../telemetry/metrics').recordJobRun,
+ *   log: typeof import('../telemetry/log'),
+ *   now: () => number,
+ * }} BackstopDeps
+ */

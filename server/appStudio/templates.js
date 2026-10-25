@@ -166,3 +166,7 @@ function getTemplate(id) {
 }
 
 module.exports = { TEMPLATES, listTemplates, getTemplate, templateVersion };
+
+/**
+ * @typedef {{ id: string, version?: number, title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, unknown>, dataModel?: Record<string, unknown>, seed?: Record<string, Record<string, unknown>[]>, datasets?: Record<string, unknown>[] }} Template
+ */

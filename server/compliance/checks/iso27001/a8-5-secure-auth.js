@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.5 — Secure authentication mechanisms are in place.
  *
@@ -33,6 +33,10 @@ const { fallback } = require('../../../utils/bestEffort');
 
 const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');
 
+/**
+ * @param {string} file
+ * @param {string[]} patterns
+ */
 function _sourceHas(file, patterns) {
     try {
         const src = fs.readFileSync(path.join(AUTH_DIR, file), 'utf-8');
@@ -57,11 +61,12 @@ module.exports = {
     remediationLink: 'admin/security/sso',
     async evaluate() {
         let encryption = null;
+        /** @type {string | null} */
         let encryptionError = null;
         try {
             encryption = require(path.join(AUTH_DIR, 'encryption'));
         } catch (e) {
-            encryptionError = e.message;
+            encryptionError = /** @type {Error} */ (e).message;
         }
 
         // The password-unlock lockout lives behind the auth/encryption.js barrel.
@@ -83,6 +88,7 @@ module.exports = {
             await configStore.getConfig('oauth'),
         );
 
+        /** @type {Record<string, unknown>} */
         const evidence = {
             lockout_mechanism: lockoutActive,
             session_user_revalidation: sessionRevalidation === true,
@@ -96,6 +102,7 @@ module.exports = {
         if (encryptionError) evidence.encryption_load_error = encryptionError;
 
         if (!lockoutActive || sessionRevalidation === false) {
+            /** @type {string[]} */
             const missing = [];
             if (!lockoutActive) missing.push('brute-force lockout (auth/encryption.js)');
             if (sessionRevalidation === false) missing.push('per-request account revalidation (auth/permissions.js)');

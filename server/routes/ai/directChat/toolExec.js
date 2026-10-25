@@ -511,3 +511,34 @@ module.exports = {
     makeTierToolParamsGetter,
     compactToolResultForLLM,
 };
+
+/** @typedef {ReturnType<ReturnType<typeof import('./toolContext').createToolContextFactory>>} ToolCtx */
+
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ToolCall} ToolCall */
+
+/**
+ * What a tool hands back, as far as this file reads it.
+ * @typedef {{ error?: string, _action?: string, message?: string, planId?: string, plan?: unknown, suggested?: number,
+ *   batchId?: string, documentId?: string, name?: string, url?: string, activatedSkillIds?: string[],
+ *   _nbWriteFailed?: boolean, _revertContent?: string, success?: boolean, completedSessionSkillIds?: string[],
+ *   skill_id?: string, summary?: string, [key: string]: unknown }} ToolResult
+ *   (the code below also copes with a tool that hands back a plain string)
+ */
+
+/**
+ * One adapter stream event's payload, as far as makeStreamCallback reads it.
+ * @typedef {{ text?: string, partId?: string, redacted?: boolean, signature?: string, redactedData?: string,
+ *   name?: string, partial?: string, id?: string, input?: unknown, thought_signature?: string, responseId?: string,
+ *   [key: string]: unknown }} StreamEventData
+ */
+
+/**
+ * @typedef {{ send: (event: string, data: unknown) => void, streamContent: (text: string) => void,
+ *   getThinkingPart: (partId: string) => import('../../../core/agentRuntime/assistantMessageExtras').ThinkingPart,
+ *   maybeStreamNotebook: (name: string, partial: string) => void, streamUntok: { restore(text: string): string },
+ *   isMuted: () => boolean, appendContent: (text: string) => void, appendThinking: (text: string) => void,
+ *   getThinkingParts: () => import('../../../core/agentRuntime/assistantMessageExtras').ThinkingPart[],
+ *   pushToolCall: (toolCall: Record<string, unknown>) => void, acceptToolCallEvents?: boolean,
+ *   onImage?: ((data: StreamEventData) => void) | null, onUsage?: ((data: StreamEventData) => void) | null,
+ *   setLastResponseId: (id: string) => void, responseIdLog: string }} StreamCallbackOpts
+ */

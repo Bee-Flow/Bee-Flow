@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * auth/permissions.requireSuperAdmin — the platform-operator gate itself.
  *

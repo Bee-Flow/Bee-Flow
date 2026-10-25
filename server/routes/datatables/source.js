@@ -39,6 +39,8 @@ const { z } = require('../../utils/zod');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+
 /** The reading routes take nothing but the table in the path. */
 const NO_QUERY = validate({ query: z.object({}).strict() });
 
@@ -47,6 +49,8 @@ const NO_QUERY = validate({ query: z.object({}).strict() });
  * middleware already resolved. Only ever built for a mirror
  * (sources.isSourceMirror); the write-through module is the kind's own,
  * found through the registry by the table in the context.
+ * @param {DatatableRequest} req
+ * @param {Awaited<ReturnType<typeof import('./grade').metaFor>>} meta
  */
 function mirrorCtx(req, meta) {
     return sources.writeThrough(req.datatable).contextOf({
@@ -62,20 +66,23 @@ function mirrorWrites() {
 }
 
 /** 404 for a table that is not a mirror, so `/source` never leaks on an ordinary one. */
+/** @param {DatatableRequest} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 function requireMirror(req, res, next) {
     if (!sources.isSourceMirror(req.datatable)) return res.status(404).json({ error: 'Not found' });
     next();
 }
 
-/** The kind's adapter for the table the grade middleware resolved. */
+/** The kind's adapter for the table the grade middleware resolved. @param {DatatableRequest} req */
 function adapterOf(req) {
     return sources.adapterFor(req.datatable.managedKind);
 }
 
+/** @param {DatatableRequest} req @param {import('express').Response} res */
 function sendSource(req, res) {
     res.json({ source: publicSource(req.datatable.source, req.datatable.managedKind), sync: req.datatable.syncState || null });
 }
 
+/** @param {DatatableRequest} req @param {import('express').Response} res */
 async function refreshNow(req, res) {
     try {
         const result = await sources.syncRows(req.datatable, { reason: 'manual' });
@@ -100,6 +107,8 @@ async function refreshNow(req, res) {
  * block plus whether the change leaves the copy behind (a re-mapped column
  * does; refresh-on-open does not) — in which case the copy is marked and a
  * pass kicked behind the answer.
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
  */
 async function saveSettings(req, res) {
     try {
@@ -122,6 +131,7 @@ async function saveSettings(req, res) {
     }
 }
 
+/** @param {DatatableRequest} req @param {import('express').Response} res */
 async function saveRelations(req, res) {
     try {
         const t = await adapterOf(req).link.setRelations(req.datatable, req.body && req.body.relations);
@@ -134,7 +144,11 @@ async function saveRelations(req, res) {
     }
 }
 
-/** Make the caller the mirror's linker; a body may re-point the source (a moved file). */
+/**
+ * Make the caller the mirror's linker; a body may re-point the source (a moved file).
+ * @param {DatatableRequest} req
+ * @param {import('express').Response} res
+ */
 async function relinkNow(req, res) {
     try {
         const t = await adapterOf(req).link.relink(req.datatable, req.datatablePrincipal, req.session, req.body || {});
@@ -147,6 +161,7 @@ async function relinkNow(req, res) {
     }
 }
 
+/** @param {import('express').Router} router */
 function register(router) {
     router.get('/:id/source', requireDatatableGrade('viewer'), requireMirror, NO_QUERY, sendSource);
 
@@ -157,7 +172,7 @@ function register(router) {
     // somebody is looking at it. Viewer grade: looking is all it takes. Written
     // out twice rather than shared, so the answer-then-kick order stays readable
     // as text at both paths.
-    router.get('/:id/source/pulse', requireDatatableGrade('viewer'), requireMirror, NO_QUERY, (req, res) => {
+    router.get('/:id/source/pulse', requireDatatableGrade('viewer'), requireMirror, NO_QUERY, (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
         res.json({ dataVersion: req.datatable.dataVersion, rowCount: req.datatable.rowCount, sync: req.datatable.syncState || null });
         sources.kickStale(req.datatable, { reason: 'live', delayMs: 0 });
     });
@@ -181,7 +196,7 @@ function register(router) {
     // The Nextcloud-era twins, what the shipped client calls. Same handlers.
     router.get('/:id/nextcloud', requireDatatableGrade('viewer'), requireMirror, NO_QUERY, sendSource);
 
-    router.get('/:id/nextcloud/pulse', requireDatatableGrade('viewer'), requireMirror, NO_QUERY, (req, res) => {
+    router.get('/:id/nextcloud/pulse', requireDatatableGrade('viewer'), requireMirror, NO_QUERY, (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
         res.json({ dataVersion: req.datatable.dataVersion, rowCount: req.datatable.rowCount, sync: req.datatable.syncState || null });
         sources.kickStale(req.datatable, { reason: 'live', delayMs: 0 });
     });

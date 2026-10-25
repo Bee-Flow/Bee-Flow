@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Transcriptions — Microsoft Teams meetings & imports.
  *
@@ -39,10 +39,13 @@ const { deps: d, init } = lazyDeps({
 
 /** @type {import('express').RequestHandler} */
 const requireAuth = (req, res, next) => d.permissions.requireAuth(req, res, next);
+/** @param {import('express').Request} req */
 const resolveUserOrgFromReq = (req) => d.shared.resolveUserOrgFromReq(req);
+/** @param {import('express').Request} req */
 const resolveAccessContext = (req) => d.shared.resolveAccessContext(req);
 
 // Stable failure codes shared with the UI → HTTP status for /from-teams.
+/** @type {Record<string, number>} */
 const TEAMS_ERROR_STATUS = {
     not_connected: 400,
     needs_reauth: 401,
@@ -60,6 +63,7 @@ const TEAMS_ERROR_STATUS = {
 /**
  * The caller's Microsoft session (live SSO session or vault shim) plus the
  * connection block the UI renders its connect/reconnect prompts from.
+ * @param {import('express').Request} req
  */
 async function resolveTeamsSession(req) {
     const userId = req.session.user.id;
@@ -123,7 +127,7 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
             recordReason: decision.reason,
             recordDecided: true,
             recordingControlledByHost: !m.organizerSelf,
-            importedNoteId: null,
+            importedNoteId: /** @type {string | null} */ (null),
             status,
         };
     });
@@ -140,7 +144,7 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
 // Per-meeting choice. Turning it ON for a meeting the user organizes also
 // switches on Teams' own "record automatically" when the settings ask for it;
 // that outcome is reported in `autoRecordingConfig` and never fails the PATCH.
-router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPrefBody, query: NO_QUERY }), async (req, res) => {
+router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPrefBody, query: NO_QUERY }), /** @param {import('express').Request<{ eventId: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const userId = req.session.user.id;
     const { eventId } = req.params;
     const { record, seriesMasterId, applyToSeries } = req.body;

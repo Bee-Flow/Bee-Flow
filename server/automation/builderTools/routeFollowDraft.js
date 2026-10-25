@@ -153,3 +153,11 @@ function followReplacedRoute(graph, previous, id) {
 }
 
 module.exports = { followAddedSteps, followPatchedRoute, followReplacedRoute };
+
+/**
+ * @typedef {{ id?: string, type?: string, forEach?: { overRef?: string }, arrayRef?: string, overRef?: string,
+ *   sourceRef?: string, cases?: Array<{ name?: string }> }} RouteStep
+ * @typedef {{ steps?: RouteStep[], edges?: import('./draftGraph').GraphEdge[] }} RouteGraph
+ * @typedef {{ stepId: string, from: string, to: string }} Rebound
+ * @typedef {import('./shapeTree').PathToken} PathToken
+ */

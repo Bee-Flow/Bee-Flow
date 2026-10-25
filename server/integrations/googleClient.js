@@ -296,3 +296,15 @@ module.exports = {
     GOOGLE_TOKEN_URL,
     GOOGLE_REVOKE_URL,
 };
+
+/**
+ * The session fields the Google clients read and write: an Express session, or an
+ * automation's vault session (which has no save()).
+ * @typedef {{ accessToken?: string, refreshToken?: string, oauthProvider?: string, save?: () => void }} GoogleSession
+ */
+
+/**
+ * A googleapis client. The typecheck maps googleapis to an untyped shim
+ * (types/shims/googleapis.d.ts), so the client carries the shim's type.
+ * @typedef {typeof import('googleapis').google} GoogleApiClient
+ */

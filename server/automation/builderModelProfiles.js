@@ -459,3 +459,21 @@ module.exports = {
     effortForIteration,
     CORE_TOOL_NAMES,
 };
+
+/**
+ * @typedef {object} Profile  how the builder treats one capability band
+ * @property {string} promptVariant
+ * @property {string} toolset
+ * @property {number} temperature
+ * @property {number} maxIterations
+ * @property {boolean} forceFirstToolCall
+ * @property {string} catalogMode
+ * @property {boolean} [batchTools]
+ * @property {number} fewShots
+ * @property {string} fewShotPolicy
+ * @property {number} historyBudgetTokens
+ * @property {{ first: string, rest: string, repair: string }} effortSchedule
+ * @property {boolean} schemaInjection
+ * @property {string} schemaVariant
+ * @property {string} catalogPlacement
+ */

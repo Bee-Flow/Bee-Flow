@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Google Workspace connector routes (BFSF-255) — mounted at
  * /api/integrations/google.
@@ -50,6 +51,7 @@ async function getGoogleClientConfig() {
     };
 }
 
+/** @param {import('express').Request} req */
 function buildRedirectUri(req) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -60,6 +62,7 @@ function buildRedirectUri(req) {
 // auth/automationAuth.vaultOrgIdFor (org key, else a per-user scope) so every
 // writer of automation_credentials derives it identically. Lazily required: the
 // route's own test stubs the store this module loads at boot.
+/** @param {Parameters<typeof import('../../auth/automationAuth').vaultOrgIdFor>[0]} user */
 function resolveVaultOrgId(user) {
     return require('../../auth/automationAuth').vaultOrgIdFor(user);
 }
@@ -67,6 +70,7 @@ function resolveVaultOrgId(user) {
 // Constant-time CSRF-state comparison, matching the legacy SSO callback in
 // auth/oauthRoutes.js. Length is checked first because timingSafeEqual throws
 // on a length mismatch.
+/** @param {unknown} received @param {unknown} expected */
 function statesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
     if (!received || !expected || received.length !== expected.length) return false;
@@ -118,7 +122,7 @@ router.get('/auth-url', requireAuth, async (req, res) => {
 });
 
 // ─── OAuth Callback (GET — Google redirects here) ────────────────
-router.get('/callback', async (req, res) => {
+router.get('/callback', /** @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string }>} req */ async (req, res) => {
     const { code, state, error } = req.query;
     const userId = req.session?.user?.id;
 
@@ -170,7 +174,7 @@ router.get('/callback', async (req, res) => {
             const errText = await tokenRes.text();
             throw new Error(`Token exchange failed: ${tokenRes.status} ${errText.slice(0, 300)}`);
         }
-        const tokenData = await tokenRes.json();
+        const tokenData = /** @type {{ access_token?: string, refresh_token?: string, expires_in?: number | string, scope?: string }} */ (await tokenRes.json());
 
         // Identify the connected Google account for the status display. Only
         // record a VERIFIED address: an unverified one would be shown as the
@@ -182,7 +186,7 @@ router.get('/callback', async (req, res) => {
                 headers: { Authorization: `Bearer ${tokenData.access_token}` },
             });
             if (infoRes.ok) {
-                const info = await infoRes.json();
+                const info = /** @type {{ email?: string, email_verified?: boolean }} */ (await infoRes.json());
                 if (info.email_verified !== false) email = info.email || '';
             }
         } catch (err) { fallback('routes/integrations/googleWorkspace:userinfo', err); /* status just shows no email */ }
@@ -309,6 +313,7 @@ function openerTargetOrigin() {
     return /^https?:\/\//i.test(host) ? host.replace(/\/+$/, '') : `https://${host}`;
 }
 
+/** @param {string} message @param {boolean} success */
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Google Workspace</title>

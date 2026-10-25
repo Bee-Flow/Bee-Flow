@@ -33,6 +33,9 @@ const { composeTurnMessages } = require('./turnMessages');
 // Relevance now orders the catalogue and never removes from it, so none of
 // those failure modes has anywhere to live.
 
+/**
+ * @param {import('./turnSetup').BuilderTurn} turn
+ */
 async function assembleTurnPrompt(turn) {
     const {
         req, send, userId, message, history, attachments, webSearchEnabled, disabledMedia, timezone, canvasScope,

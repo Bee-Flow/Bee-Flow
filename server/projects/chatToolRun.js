@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The team chat answer when the AI may use its project tools
  * (projects/chatTools.js): the bounded tool loop around the model call, with
@@ -19,7 +19,10 @@ const MAKE_PROMPT = 'You can create documents and notebooks in this project with
 const SEARCH_PROMPT = 'You can search the web with agent_search when a member asks you to look something up or research it, or the answer needs current facts: search with a short, specific query, and never put names, e-mail addresses or other personal data in a query. '
     + 'Answer from what the results say, name the sources with their links, and say so when the results do not answer the question. ';
 
-/** What the system prompt says about the tools, for the ones that were offered. */
+/**
+ * What the system prompt says about the tools, for the ones that were offered.
+ * @param {any[]} definitions
+ */
 function toolsPrompt(definitions) {
     const names = new Set((definitions || []).map((d) => d?.function?.name || d?.name));
     const make = names.has('create_document') || names.has('create_notebook');
@@ -48,6 +51,10 @@ async function answerWithTools({ tools, definitions, runToolLoop, shield, shield
     const run = tools.forAnswer({ project, userId, orgId, session });
     const gate = shield.toolGate({ shield: shieldConfig, orgId, userId, auditBase });
     const guardSearch = shield.searchGuard({ shield: shieldConfig, orgId, userId, auditBase });
+    /**
+     * @param {string} name
+     * @param {Record<string, any>} args
+     */
     const executeTool = async (name, args) => {
         // What the model wrote may carry placeholders; an item is made with the real values, but a search query
         // keeps its placeholders, so no real personal data goes to a search provider.

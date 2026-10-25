@@ -475,3 +475,7 @@ module.exports.routeRulesSystemPrompt = routeRulesSystemPrompt;
 module.exports.ROUTE_RULES_TOOL = ROUTE_RULES_TOOL;
 module.exports.MAX_ROUTE_RULES = MAX_ROUTE_RULES;
 module.exports.requireAutomationsBeta = requireAutomationsBeta;
+
+/**
+ * @typedef {import('express').Router & { validateRouteRulesRequest: typeof validateRouteRulesRequest; verifyRouteRules: typeof verifyRouteRules; collectFieldPaths: typeof collectFieldPaths; routeRulesProblem: typeof routeRulesProblem; routeRulesSystemPrompt: typeof routeRulesSystemPrompt; ROUTE_RULES_TOOL: typeof ROUTE_RULES_TOOL; MAX_ROUTE_RULES: typeof MAX_ROUTE_RULES; requireAutomationsBeta: typeof requireAutomationsBeta }} RouterExports
+ */

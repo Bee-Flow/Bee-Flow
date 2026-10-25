@@ -386,3 +386,5 @@ module.exports = {
     resolveForRows,
     ctxForRow,
 };
+
+/** @typedef {{ transcriptionKey?: typeof import('../auth/transcriptEscrow').transcriptionKey }} TranscriptKeyDeps */

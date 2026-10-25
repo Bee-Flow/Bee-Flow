@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Which public URLs are marketing pages, and what locale + slug they mean.
  *
@@ -37,6 +37,7 @@ const {
  * @param {string[]} knownLocales locales the site actually publishes; a
  *   two-letter segment is only treated as a locale prefix if it is in here,
  *   so a future page at /it/ is a page and not a broken Italian homepage.
+ * @returns {{ locale: string | null, slug: string, blog?: { view: 'index' | 'post', postSlug?: string } } | null}
  */
 function parsePublicPath(pathname, knownLocales = []) {
     if (typeof pathname !== 'string' || pathname === '') return null;
@@ -48,6 +49,7 @@ function parsePublicPath(pathname, knownLocales = []) {
     // One optional locale prefix, then: nothing (that locale's homepage),
     // one page slug, or the blog (`blog`, `blog/<post-slug>`).
     let rest = trimmed.slice(1).split('/');
+    /** @type {string | null} */
     let locale = null;
     if (locales.has(rest[0].toLowerCase())) {
         locale = rest[0].toLowerCase();
@@ -75,6 +77,9 @@ function parsePublicPath(pathname, knownLocales = []) {
  * The default locale is served WITHOUT a prefix. Prefixing it too would mean
  * `/pricing` and `/en/pricing` both resolve, which is the duplicate problem
  * this module exists to end.
+ * @param {string | null} locale
+ * @param {string} slug
+ * @param {string} defaultLocale
  */
 function buildPublicPath(locale, slug, defaultLocale) {
     const prefix = (locale && locale !== defaultLocale) ? `/${locale}` : '';

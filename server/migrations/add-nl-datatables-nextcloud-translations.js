@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Dutch for the Nextcloud-mirror half of the Datatables section (2026-09).
  *

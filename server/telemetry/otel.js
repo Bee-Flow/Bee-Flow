@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 const log = require('./log');
 
@@ -24,6 +24,7 @@ const ENABLED = (() => {
     return Boolean(process.env.OTEL_EXPORTER_OTLP_ENDPOINT);
 })();
 
+/** @type {NodeSDK | null} */
 let _sdk = null;
 let _started = false;
 
@@ -41,7 +42,7 @@ async function shutdown() {
             new Promise((resolve) => setTimeout(resolve, budget)),
         ]);
     } catch (e) {
-        log.warn('[otel] shutdown error (ignored):', e && e.message);
+        log.warn('[otel] shutdown error (ignored):', e && /** @type {Error} */ (e).message);
     }
 }
 
@@ -170,7 +171,7 @@ if (!ENABLED) {
             + `service=${process.env.OTEL_SERVICE_NAME || 'beeflow-server'}`);
     } catch (err) {
         // Wiring failure must be non-fatal.
-        log.error('[otel] init failed (telemetry disabled, app continues):', err && err.message);
+        log.error('[otel] init failed (telemetry disabled, app continues):', err && /** @type {Error} */ (err).message);
         _sdk = null;
         _started = false;
     }

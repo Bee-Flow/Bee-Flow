@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A webpage's current draft as ONE ready-to-run HTML document — what the web
  * editor's preview iframe shows, built on the server so a client that cannot
@@ -38,13 +38,24 @@ const {
     defangScriptClose, inlineStylesheet, inlineScript, inlineExtras,
 } = require('../shared/webpage/previewInline.mjs');
 
+/**
+ * One project file in the web preview's shape.
+ * @typedef {{ path: string, isText: boolean, mimeType: string, content?: string, dataUrl?: string }} ExtraFile
+ * @typedef {Record<string, { isText: boolean, content?: string, dataUrl?: string }>} ProjectFiles
+ * @typedef {{ status: 'ready'|'empty'|'stranded'|'build_error', html?: string, buildError?: string }} DraftOutcome
+ */
+
 const EMPTY_DOC = '<!DOCTYPE html><html><head></head><body></body></html>';
 
 // ── Vanilla composition (composeWebpageDocument.js, same shared inliners) ───
 
-const toBase64 = (text) => Buffer.from(text, 'utf8').toString('base64');
+const toBase64 = /** @param {string} text */ (text) => Buffer.from(text, 'utf8').toString('base64');
 
-/** composeWebpageDocument with the live bridges as `headScripts`. */
+/**
+ * composeWebpageDocument with the live bridges as `headScripts`.
+ * @param {{ html?: string, css?: string, js?: string }} slots
+ * @param {{ extras?: ExtraFile[], headScripts?: string }} [opts]
+ */
 function composeVanillaDocument({ html, css, js }, { extras = [], headScripts = '' } = {}) {
     const safeHtml = html && html.trim() ? html : EMPTY_DOC;
     const styleTag = css ? `<style>\n${css}\n</style>` : '';
@@ -66,7 +77,7 @@ function composeVanillaDocument({ html, css, js }, { extras = [], headScripts = 
     const headStyleTag = cssInlined ? '' : styleTag;
     const bodyScriptTag = jsInlined ? '' : scriptTag;
     if (/<head[^>]*>/i.test(working)) {
-        let out = working.replace(/<head([^>]*)>/i, (_m, attrs) => `<head${attrs}>\n${headScripts}\n${headStyleTag}`);
+        let out = working.replace(/<head([^>]*)>/i, (/** @type {string} */ _m, /** @type {string} */ attrs) => `<head${attrs}>\n${headScripts}\n${headStyleTag}`);
         if (/<\/body>/i.test(out)) out = out.replace(/<\/body>/i, () => `${bodyScriptTag}\n</body>`);
         else out += bodyScriptTag;
         return out;
@@ -80,9 +91,12 @@ function composeVanillaDocument({ html, css, js }, { extras = [], headScripts = 
  * Every extra file, in the shape the web preview composes from:
  * { path, isText, mimeType, content? | dataUrl? }. Bytes live under the
  * OWNER's prefix, whoever is asking (same rule as webpageReactFiles.js).
+ * @param {string} webpageId
+ * @param {string} ownerId
  */
 async function loadExtras(webpageId, ownerId) {
     const metas = await webpageStore.listExtraFiles(webpageId);
+    /** @type {ExtraFile[]} */
     const out = [];
     for (const meta of metas) {
         if (!meta || !meta.path) continue;
@@ -98,16 +112,21 @@ async function loadExtras(webpageId, ownerId) {
     return out;
 }
 
-/** The web's "React source in a plain-HTML project" test (WebpagePreview.jsx). */
+/**
+ * The web's "React source in a plain-HTML project" test (WebpagePreview.jsx).
+ * @param {ExtraFile[]} extras
+ */
 function hasReactSource(extras) {
-    return extras.some((f) => f.path === REACT_ENTRY || /^src\/.+\.(jsx|tsx)$/.test(f.path || ''));
+    return extras.some(/** @param {ExtraFile} f */ (f) => f.path === REACT_ENTRY || /^src\/.+\.(jsx|tsx)$/.test(f.path || ''));
 }
 
 // ── React bundle cache ──────────────────────────────────────────────────────
 
 const BUNDLE_CACHE_MAX = 32;
+/** @type {Map<string, { result?: Awaited<ReturnType<typeof buildReactBundle>>, error?: unknown }>} */
 const bundleCache = new Map();
 
+/** @param {ProjectFiles} files */
 function hashFiles(files) {
     const h = crypto.createHash('sha256');
     for (const path of Object.keys(files).sort()) {
@@ -120,10 +139,12 @@ function hashFiles(files) {
 /**
  * buildReactBundle, remembered per (webpage, draft hash). A failed build is
  * remembered too: the same bytes fail the same way. Oldest entry out first.
+ * @param {string} webpageId
+ * @param {string} hash
  */
 function cachedBuilder(webpageId, hash) {
     const key = `${webpageId}:${hash}`;
-    return async (opts) => {
+    return async (/** @type {Parameters<typeof buildReactBundle>[0]} */ opts) => {
         if (bundleCache.has(key)) {
             const hit = bundleCache.get(key);
             bundleCache.delete(key);
@@ -131,6 +152,7 @@ function cachedBuilder(webpageId, hash) {
             if (hit.error) throw hit.error;
             return hit.result;
         }
+        /** @type {{ result?: Awaited<ReturnType<typeof buildReactBundle>>, error?: unknown }} */
         let entry;
         try {
             entry = { result: await buildReactBundle(opts) };
@@ -144,8 +166,16 @@ function cachedBuilder(webpageId, hash) {
     };
 }
 
+/**
+ * @param {string} webpageId
+ * @param {ExtraFile[]} extras
+ * @param {string} headScripts
+ * @returns {Promise<DraftOutcome>}
+ */
 async function composeReactDraft(webpageId, extras, headScripts) {
+    /** @type {ProjectFiles} */
     const files = {};
+    /** @type {Record<string, string>} */
     const assetMap = {};
     for (const f of extras) {
         if (f.isText) files[f.path] = { isText: true, content: f.content };
@@ -173,6 +203,7 @@ async function buildDraftDocument({ webpage, slots, headScripts }) {
     const framework = resolveFramework(webpage);
     const runtime = resolveRuntime(webpage);
     const extras = await loadExtras(webpage.id, webpage.userId);
+    /** @type {DraftOutcome} */
     let out;
     if (framework === 'react-mui') out = await composeReactDraft(webpage.id, extras, headScripts);
     else if (hasReactSource(extras)) out = { status: 'stranded' };

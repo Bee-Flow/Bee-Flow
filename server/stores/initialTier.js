@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Which encryption tier a BRAND-NEW organisation starts on.
  *
@@ -52,6 +52,9 @@ const { bestEffort } = require('../utils/bestEffort');
  * @returns {Promise<{tier: string, applied: boolean, reason: string}>}
  */
 async function applyDefaultEncryptionTier(orgId, deps = {}) {
+    /**
+     * @param {string} reason
+     */
     const NONE = (reason) => ({ tier: 'none', applied: false, reason });
 
     if (!orgId || typeof orgId !== 'string') return NONE('no_org_id');
@@ -67,13 +70,14 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
     // happen, on every single org creation.
     if (!wanted || wanted === 'none') return NONE('default_is_none');
 
+    /** @type {Awaited<ReturnType<typeof import('./encryptionAvailability').getEncryptionAvailability>> | undefined} */
     let availability;
     try {
         const getAvailability = deps.getEncryptionAvailability
             || require('./encryptionAvailability').getEncryptionAvailability;
         availability = await getAvailability(orgId);
     } catch (e) {
-        log.error(`[Encryption] Availability check failed for new org '${orgId}' — starting on 'none' rather than a tier this server may not honour: ${e.message}`);
+        log.error(`[Encryption] Availability check failed for new org '${orgId}' — starting on 'none' rather than a tier this server may not honour: ${/** @type {Error} */ (e).message}`);
         return NONE('availability_threw');
     }
 
@@ -99,7 +103,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
             return NONE('update_returned_false');
         }
     } catch (e) {
-        log.error(`[Encryption] Could not store tier '${wanted}' on new org '${orgId}' — it remains on 'none': ${e.message}`);
+        log.error(`[Encryption] Could not store tier '${wanted}' on new org '${orgId}' — it remains on 'none': ${/** @type {Error} */ (e).message}`);
         return NONE('update_threw');
     }
 

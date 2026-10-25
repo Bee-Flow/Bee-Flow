@@ -389,3 +389,5 @@ _bus.on(EVENTS.CHAT_MONITORING_CHANGED, async ({ orgId }) => {
 
 module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };
 Object.assign(module.exports, { CHAT_SIGNAL_CHECKS });
+
+/** @typedef {{ emit: typeof emit, EVENTS: typeof EVENTS, _bus: typeof _bus, PROJECT_RERUN_CHECKS: typeof PROJECT_RERUN_CHECKS, _resetProjectReruns: typeof _resetProjectReruns, _projectRerunCount: () => number, CHAT_SIGNAL_CHECKS: typeof CHAT_SIGNAL_CHECKS }} EventsExports */

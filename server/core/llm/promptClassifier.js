@@ -500,3 +500,5 @@ module.exports = {
     normaliseTierKey,
     extractTierWord,
 };
+
+/** @typedef {import('./modelResolver').TierMap} TierMap */

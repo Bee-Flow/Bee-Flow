@@ -304,3 +304,5 @@ module.exports = {
     assertUrlIsPublic,
     friendlyError,
 };
+
+/** @typedef {{ pageNumber: number, text: string }} ExtractedPage  one page of extracted text */

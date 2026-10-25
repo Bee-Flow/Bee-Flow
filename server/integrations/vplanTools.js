@@ -337,3 +337,24 @@ module.exports = {
     WITH_OPTIONS,
     MAX_LIMIT,
 };
+
+/** @typedef {{ apiKey: string, apiEnv: string }} VplanCreds */
+
+/** A parsed vPlan JSON response body. @typedef {{ data?: unknown[], count?: number, [key: string]: unknown }} VplanPayload */
+
+/**
+ * @typedef {{ data: unknown[], count: number, offset: number, limit: number, total?: number,
+ *   hasMore?: boolean, truncated?: boolean, message?: string, type?: string }} VplanListResult
+ */
+
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{
+ *   boardId?: string, resourceId?: string, activityId?: string, collectionId?: string, cardId?: string,
+ *   orderId?: string, stageId?: string, id?: string, type?: string, scope?: string, groupBy?: string,
+ *   timeFrame?: string, start?: string, end?: string, dateRangeStart?: string, dateRangeEnd?: string,
+ *   limit?: unknown, offset?: unknown, filters?: unknown, sort?: unknown, with?: unknown, include?: unknown,
+ *   archived?: boolean, includeAbsences?: boolean, enrichCustomFields?: boolean,
+ *   includeChecklists?: boolean, includeRelations?: boolean,
+ * }} VplanArgs
+ */

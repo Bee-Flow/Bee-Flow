@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('../events').WorkEvent} WorkEvent */
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Pattern source: the tool calls the user made by hand in chat, from the
@@ -18,7 +19,10 @@ const { toMs, inWindow } = require('./common');
 
 const DEFAULT_LIMIT = 5000;
 
-/** The ledger's integration id, or the tool name's prefix when it has none. */
+/**
+ * The ledger's integration id, or the tool name's prefix when it has none.
+ * @param {Record<string, any>} row raw database row
+ */
 function appOf(row) {
     const integ = typeof row.integration_type === 'string' ? row.integration_type.trim().toLowerCase() : '';
     if (integ) return integ;
@@ -42,6 +46,7 @@ async function collectToolLedger(ctx) {
     if (!ctx?.userId) return [];
     const read = ctx.deps?.getManualToolEvents || defaultReader();
     const rows = await read({ userId: ctx.userId, since: new Date(ctx.since), limit: ctx.limit || DEFAULT_LIMIT });
+    /** @type {WorkEvent[]} */
     const out = [];
     for (const row of rows || []) {
         const ts = toMs(row?.timestamp);

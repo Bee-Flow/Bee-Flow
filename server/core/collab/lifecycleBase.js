@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The shared plumbing of the document lifecycle (./lifecycle.js): soft calls
  * to optional collaborators, the per-state rendering cache, the mirror lease,

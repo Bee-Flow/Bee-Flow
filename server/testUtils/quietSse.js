@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The real core/http/sseHelpers for a route test, minus the keep-alive timer.
  *
@@ -16,7 +16,7 @@ function quietSse(over = {}) {
     return {
         ...real,
         startSseHeartbeat: () => () => {},
-        openSse: (res, opts = {}) => real.openSse(res, { ...opts, heartbeat: false }),
+        openSse: (/** @type {Parameters<typeof real.openSse>[0]} */ res, opts = {}) => real.openSse(res, { ...opts, heartbeat: false }),
         ...over,
     };
 }

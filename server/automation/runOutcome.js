@@ -482,3 +482,9 @@ module.exports = {
     joinNames,
     QUIET_TYPES,
 };
+
+/** @typedef {Record<string, any>} JsonObject  a JSON object read off a recorded database row (step output, step input, outcome params) */
+
+/** @typedef {{ stepId?: string, parentStepId?: string|null, stepType?: string, status?: string, attempts?: number, output?: unknown, input?: unknown, errorClass?: string|null, errorInfo?: unknown }} StepRow  a recorded step row (rowToRunStep shape) */
+
+/** @typedef {{ approvers?: Array<{ userId?: string, groupId?: string }>, assigneeUserId?: string, assigneeGroupId?: string }} ApprovalSeats */

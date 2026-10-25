@@ -400,3 +400,24 @@ module.exports = {
     // exported for tests
     _internal: { rowToLicense, parseJSON },
 };
+
+/**
+ * @typedef {object} LicenseRecord
+ * @property {string} id
+ * @property {string | null} organizationId
+ * @property {string | null} userId
+ * @property {string} scope
+ * @property {string} rawToken
+ * @property {string} tier
+ * @property {string | null} issuer
+ * @property {string | Date | null} issuedAt
+ * @property {string | Date | null} expiresAt
+ * @property {string | null} billingInterval
+ * @property {string | Date | null} lastRefreshAt
+ * @property {string} refreshStatus
+ * @property {string | Date | null} revokedAt
+ * @property {string | null} activatedBy
+ * @property {Record<string, unknown>} metadata
+ * @property {string | Date} createdAt
+ * @property {string | Date} updatedAt
+ */

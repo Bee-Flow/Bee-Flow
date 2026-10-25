@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Voxtral STT — Speech-to-Text via Mistral's audio transcription endpoint.
  *
@@ -40,7 +41,8 @@ async function transcribe(apiKey, audioBuffer, opts = {}) {
     const model = opts.model || DEFAULT_STT_MODEL;
 
     const form = new FormData();
-    form.append('file', new Blob([audioBuffer], { type: mime }), filename);
+    // A Node Buffer is backed by a plain (not shared) ArrayBuffer.
+    form.append('file', new Blob([/** @type {Uint8Array<ArrayBuffer>} */ (audioBuffer)], { type: mime }), filename);
     form.append('model', model);
     if (opts.language) form.append('language', opts.language);
 
@@ -58,7 +60,7 @@ async function transcribe(apiKey, audioBuffer, opts = {}) {
         throw new Error(`Voxtral STT failed (${resp.status}): ${body.slice(0, 400)}`);
     }
 
-    const json = await resp.json();
+    const json = /** @type {{ text?: string, language?: string, duration?: number }} */ (await resp.json());
     log.info(`[Voxtral STT] ${model} transcribed ${audioBuffer.length}B in ${Date.now() - started}ms`);
 
     return {

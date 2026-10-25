@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Build an org Privacy-Shield config object from a signup-wizard payload.
  *
@@ -21,13 +21,22 @@ const { ALL_PII_CATEGORY_IDS } = require('./piiDetection');
 
 const VALID_PII_ACTIONS = ['block', 'tokenize', 'warn'];
 
+/**
+ * @param {{ privacyShield?: { enabled?: boolean, piiDetectionCategories?: string[], piiDetectionAction?: string,
+ *   euModeEnabled?: boolean }, privacyLevel?: string, euModeEnabled?: boolean }} [orgDetails]
+ * @param {{ updatedBy?: string }} [opts]
+ */
 function buildSignupShieldConfig(orgDetails = {}, { updatedBy = 'system-signup' } = {}) {
     const valid = new Set(ALL_PII_CATEGORY_IDS);
     const ps = orgDetails.privacyShield;
 
+    /** @type {boolean} */
     let enabled;
+    /** @type {string[]} */
     let categories;
+    /** @type {string} */
     let action;
+    /** @type {boolean} */
     let euMode;
 
     if (ps && typeof ps === 'object') {
@@ -50,7 +59,7 @@ function buildSignupShieldConfig(orgDetails = {}, { updatedBy = 'system-signup' 
 
     return {
         enabled: true,
-        collectionIds: [],
+        collectionIds: /** @type {string[]} */ ([]),
         scope: { userInput: true, agentOutput: true },
         action: 'delete',
         euModeEnabled: euMode,

@@ -546,3 +546,7 @@ module.exports = {
     ACTIVATE_SKILL_TOOL_NAME,
     SKILL_CAP,
 };
+
+/** @typedef {Awaited<ReturnType<typeof skillStore.getSkillsByIds>>[number]} SkillRow */
+
+/** @typedef {ReturnType<typeof skillGrantsOf>} SkillGrants */

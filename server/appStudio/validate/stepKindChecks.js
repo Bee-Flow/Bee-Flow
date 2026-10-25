@@ -297,3 +297,5 @@ const KIND_CHECKS = {
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

@@ -483,3 +483,9 @@ module.exports = {
     GROUP_NOTIFY_CAP,
     _approvalLifecycleTest: { resolveOrgId, validateAssignee, snapshotAttachments, groupMemberIds, reminderBellMessage },
 };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof automationStore.markDueApprovalReminders>>[number]>} ApprovalRecord */
+
+/** @typedef {import('./runSetup').RunAutomation} RunAutomation */
+
+/** @typedef {import('./runSetup').RunRow} RunRow */

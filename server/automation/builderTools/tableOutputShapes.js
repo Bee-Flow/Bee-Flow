@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What the two table steps output, as shapes for the builder's reference
  * check (refCheck.js): `steps.<id>.output.<key>` is checked against these, so a
@@ -14,7 +14,12 @@
 const str = () => ({ t: 'str' });
 const num = () => ({ t: 'num' });
 const bool = () => ({ t: 'bool' });
+/** @param {unknown} item */
 const arr = (item) => ({ t: 'arr', item, sure: true });
+/**
+ * @param {Iterable<readonly [unknown, unknown]>} entries
+ * @param {{ open?: boolean }} [opts]
+ */
 const obj = (entries, { open = false } = {}) => ({ t: 'obj', keys: new Map(entries), open, sure: true });
 
 const openRecord = () => obj([], { open: true });

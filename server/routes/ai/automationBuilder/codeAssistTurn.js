@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * One turn of the code assistant: the model loop behind
  * POST /api/automation/builder/code/assist.
@@ -48,7 +49,10 @@ const HISTORY_BUDGET_TOKENS = 4000;
 
 const CUT_OFF_HINT = 'The arguments of this call were cut off (usually the length limit), so nothing was applied. Send a smaller edit: change one part at a time with code_replace or code_patch.';
 
-/** The conversation the client sent, as the model may read it. */
+/**
+ * The conversation the client sent, as the model may read it.
+ * @param {{ role: string; content: string; }[]} messages
+ */
 function sanitizeConversation(messages) {
     return (Array.isArray(messages) ? messages : [])
         .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
@@ -59,9 +63,15 @@ function sanitizeConversation(messages) {
 }
 
 /**
+ * @typedef {Object} ComposeMessagesArgs
+ * @property {{ role: string; content: string; }[]} messages
+ * @property {string} context
+ */
+/**
  * The model's messages: the constant system prompt, the earlier turns, the
  * step context as a late system message (after the cacheable prefix, the
  * same placement as the builder's draft state), and the person's message.
+ * @param {ComposeMessagesArgs} param0
  */
 function composeMessages({ messages, context }) {
     const convo = sanitizeConversation(messages);
@@ -79,6 +89,7 @@ function composeMessages({ messages, context }) {
  * What the person reads when the model call itself failed. A 4xx other than
  * 408/429 is the provider refusing the request: sending it again cannot help,
  * and saying "try again" would send the person round in a loop.
+ * @param {{ status?: number, statusCode?: number, message?: string }} err
  */
 function describeProviderError(err) {
     const status = Number(err?.status || err?.statusCode) || toolLoop.providerErrorStatus(err);
@@ -95,13 +106,18 @@ function describeProviderError(err) {
     };
 }
 
-/** Signed thinking (and, on a raw-reasoning runtime, plain) to replay before tool calls. */
+/**
+ * Signed thinking (and, on a raw-reasoning runtime, plain) to replay before tool calls.
+ * @param {{ thinkingParts?: Array<{ text?: string, redacted?: boolean, signature?: string | null }> }} response
+ * @param {boolean} surfacesRawReasoning
+ */
 function thinkingToReplay(response, surfacesRawReasoning) {
     return (response.thinkingParts || [])
         .filter(p => p.text && !p.redacted && (p.signature || surfacesRawReasoning))
         .map(p => (p.signature ? { text: p.text, signature: p.signature } : { text: p.text }));
 }
 
+/** @type {{ refuse: (name?: string, args?: unknown) => Promise<{ modelError: string } | null>, forModel: (content: string, name?: string) => Promise<string> }} */
 const PASS_GATE = { refuse: async () => null, forModel: async (content) => content };
 
 /**
@@ -110,9 +126,9 @@ const PASS_GATE = { refuse: async () => null, forModel: async (content) => conte
  * @param {string} p.code
  * @param {string[]} [p.allowedTools]
  * @param {string[]} [p.allowedHosts]
- * @param {Array<object>} [p.upstreamFields]
- * @param {Array<object>} [p.toolDocs]
- * @param {(messages: Array, opts: { tools: Array, onText: (text: string) => void }) => Promise<object>} p.streamRound
+ * @param {Array<{ path: string, label?: string, type?: string }>} [p.upstreamFields]
+ * @param {Array<{ name?: string, description?: string, parameters?: object, output?: object }>} [p.toolDocs]
+ * @param {(messages: import('../../../utils/messageUtils').WireMessage[], opts: { tools: typeof CODE_TOOLS, onText: (text: string) => void }) => ReturnType<typeof import('../builderShared').streamWithRetry>} p.streamRound
  *   one model call; resolves to builderShared.streamWithRetry's shape
  *   ({ content, toolCalls, invalidToolCalls, thinkingParts, usage, finishReason })
  * @param {((code: string, opts: object) => object)|null} [p.analyse]  analyzeCode, or null when unavailable
@@ -121,7 +137,7 @@ const PASS_GATE = { refuse: async () => null, forModel: async (content) => conte
  * @param {() => boolean} [p.isGone]   true once the client closed the stream
  * @param {boolean} [p.surfacesRawReasoning]
  * @param {{ warn: Function }} [p.log]
- * @returns {Promise<{ code: string, analysis: object|null, changed: boolean, repairRounds: number, usage: object, error: object|null }>}
+ * @returns {Promise<{ code: string, analysis: object|null, changed: boolean, repairRounds: number, usage: ReturnType<typeof toolLoop.emptyUsageTotals>, error: object|null }>}
  */
 async function runCodeAssistTurn({
     messages, code, allowedTools = [], allowedHosts = [], upstreamFields = [], toolDocs = [],
@@ -132,24 +148,31 @@ async function runCodeAssistTurn({
     let current = startCode;
     const analyseOpts = { allowedTools, allowedHosts };
     const checked = new Map();
+    /**
+     * @param {string} text
+     */
     const check = (text) => {
         if (checked.has(text)) return checked.get(text);
         let analysis = null;
         if (typeof analyse === 'function') {
             try { analysis = analyse(text, analyseOpts) || null; }
-            catch (e) { log.warn(`[CodeAssist] analysis failed: ${e.message}`); analysis = null; }
+            catch (e) { log.warn(`[CodeAssist] analysis failed: ${/** @type {Error} */ (e).message}`); analysis = null; }
         }
         checked.set(text, analysis);
         return analysis;
     };
 
     const context = renderStepContext({ code: startCode, allowedTools, allowedHosts, upstreamFields, analysis: check(startCode), toolDocs });
+    /** @type {import('../../../utils/messageUtils').WireMessage[]} */
     const msgs = composeMessages({ messages, context });
 
     // Text of a later round starts on its own paragraph, so "I'll add it."
     // and "Done." never run together in the bubble.
     let wroteText = false;
     let roundHasText = false;
+    /**
+     * @param {string} text
+     */
     const onText = (text) => {
         if (!text) return;
         if (!roundHasText && wroteText) send('delta', { text: '\n\n' });
@@ -164,8 +187,10 @@ async function runCodeAssistTurn({
     let docsRepairUsed = false;
     let truncationRetryUsed = false;
     let emptyRetryUsed = false;
+    /** @type {{ message: string; messageKey: string; } | null} */
     let error = null;
 
+    /** @param {import('../builderShared').BuilderToolCall & { _recovered?: boolean }} tc */
     async function runToolCall(tc) {
         const name = tc.function && tc.function.name;
         const { args, truncated } = toolLoop.parseToolArgs(tc.function && tc.function.arguments, name);
@@ -206,7 +231,7 @@ async function runCodeAssistTurn({
                 response = await streamRound(msgs, { tools: CODE_TOOLS, onText });
             } catch (e) {
                 if (isGone()) return false;
-                log.warn(`[CodeAssist] model call failed: ${e.message}`);
+                log.warn(`[CodeAssist] model call failed: ${/** @type {Error} */ (e).message}`);
                 error = describeProviderError(e);
                 send('error', error);
                 return false;

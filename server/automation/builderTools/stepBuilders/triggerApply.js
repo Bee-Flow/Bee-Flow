@@ -213,3 +213,5 @@ function triggerHints(trigger) {
 }
 
 module.exports = { applyTrigger, triggerHints, buildForm, buildFormFields, buildAppParams, agentCallIssueLines, NO_ARGS_WARNING };
+
+/** @typedef {Record<string, any>} TriggerJson  a trigger as stored: the kind decides which other keys it carries */

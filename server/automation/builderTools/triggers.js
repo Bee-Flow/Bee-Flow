@@ -204,3 +204,7 @@ function applyRemoveTrigger(draft, id) {
 }
 
 module.exports = { buildTriggerNode, applyAddTrigger, applyUpdateTrigger, applyRemoveTrigger, allTriggers, defaultLabel };
+
+/** @typedef {Record<string, any>} TriggerNode  a trigger as stored: the kind decides which other keys it carries */
+
+/** @typedef {Omit<import('./draftGraph').DraftGraph, 'trigger' | 'triggers'> & { trigger?: TriggerNode, triggers?: TriggerNode[] }} TriggerDraft */

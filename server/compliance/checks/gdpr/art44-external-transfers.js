@@ -47,6 +47,9 @@ const EXTERNAL_PROVIDER_PREFIXES = new Set([
     'fireworks', 'perplexity',
 ]);
 
+/**
+ * @param {string} orgId
+ */
 async function _queryTransfers(orgId) {
     try {
         return await getAll(`
@@ -84,6 +87,9 @@ async function _queryTransfers(orgId) {
 // another tenant. Counting it for every organisation put tenant A's legacy
 // agent by name into tenant B's external_agents. The JS filter mirrors the SQL
 // predicate. Same rule as art35-dpia-high-risk._highRiskAgents.
+/**
+ * @param {string} orgId
+ */
 async function _scanAgents(orgId) {
     const scope = orgId || pd.NO_ORG_ORG_ID;
     try {
@@ -117,6 +123,7 @@ module.exports = {
     remediationKey: 'compliance.checks.gdpr_art44.fix',
     // The SCC toggle lives on the processing register (RoPA), not on Settings.
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const transfers = await _queryTransfers(orgId);
         const settings = await complianceStore.getSettings(orgId);

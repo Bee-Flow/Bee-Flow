@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Shared helpers for the AI config routers in this directory: the admin gate
  * every admin-only route checks.
@@ -10,6 +10,7 @@
 
 const { hasPermission } = require('../../../auth/permissions');
 
+/** @param {import('express').Request} req */
 async function isAdminUser(req) {
     if (req.session.isAdmin || req.session.user?.role === 'admin') return true;
     const userId = req.session.user?.id;

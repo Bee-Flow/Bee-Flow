@@ -209,3 +209,5 @@ async function analyseTranscript({ req, transcriptionId, transcription, userId, 
 }
 
 module.exports = { transcribeStoredAudio, analyseTranscript };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/transcriptionStore').getTranscription>>>} TranscriptionNote */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Saved-audio backfill — give every meeting note a durable object-storage copy.
  *
@@ -38,12 +38,14 @@ const INTERVAL_MS = Number(process.env.SAVED_AUDIO_BACKFILL_INTERVAL_MS) || 6 * 
 const BOOT_DELAY_MS = Number(process.env.SAVED_AUDIO_BACKFILL_BOOT_DELAY_MS) || 3 * 60 * 1000;
 const BATCH = Number(process.env.SAVED_AUDIO_BACKFILL_BATCH) || 25;
 
+/** @type {NodeJS.Timeout | null} */
 let timer = null;
+/** @type {NodeJS.Timeout | null} */
 let bootTimer = null;
 
 /**
  * One sweep of this pod's saved-recordings directory.
- * @returns {Promise<{scanned, repaired, alreadyDurable, orphans, skipped}>}
+ * @returns {Promise<{scanned: number, repaired: number, alreadyDurable: number, orphans: number, skipped: number}>}
  */
 async function runOnce({ batch = BATCH, dryRun = false } = {}) {
     const storageStore = require('../stores/storageStore');
@@ -115,6 +117,10 @@ async function tick() {
     }
 }
 
+/**
+ * @param {string} status
+ * @param {number} durationMs
+ */
 function recordRun(status, durationMs) {
     try {
         require('../telemetry/metrics').recordJobRun({ job: 'saved_audio_backfill', status, durationMs });

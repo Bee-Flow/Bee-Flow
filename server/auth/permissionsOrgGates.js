@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Permissions — the organisation gates: the org-lifecycle gate
  * (requireActiveOrg, requireActiveOrgForMutations), org-admin checks
@@ -337,3 +336,5 @@ module.exports = {
     resolvePrimaryOrgId,
     requirePrimaryOrgAdmin,
 };
+
+/** @typedef {import('./orgScope').OrgScopeRequest} OrgScopeRequest */

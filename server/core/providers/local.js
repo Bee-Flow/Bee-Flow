@@ -936,3 +936,42 @@ LocalProvider.foldLateSystemMessages = foldLateSystemMessages;
 LocalProvider.LATE_SYSTEM_FRAME = LATE_SYSTEM_FRAME;
 
 module.exports = LocalProvider;
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {ReturnType<typeof describeLocalModel>} LocalModel
+ * @typedef {{ type?: string, function?: { name?: string, description?: string, parameters?: unknown } }} LocalTool
+ * @typedef {{
+ *   tools?: LocalTool[],
+ *   topK?: number,
+ *   topP?: number,
+ *   forcedTool?: LocalTool,
+ *   reasoningEffort?: string | false | null,
+ *   reasoningSummary?: boolean,
+ *   budgetTokens?: number,
+ *   keepAlive?: unknown,
+ *   extraBody?: Record<string, unknown>,
+ *   _runtime?: string,
+ * }} LocalOptions
+ * @typedef {{
+ *   model: string,
+ *   messages: WireMessage[],
+ *   tools?: LocalTool[],
+ *   tool_choice?: string | { type?: string, function?: { name?: string }, name?: string },
+ *   top_k?: number,
+ *   top_p?: number,
+ *   reasoning_effort?: string,
+ *   reasoning_budget_tokens?: number,
+ *   keep_alive?: unknown,
+ *   chat_template_kwargs?: Record<string, unknown>,
+ *   temperature?: number,
+ *   stream?: boolean,
+ *   stream_options?: Record<string, unknown>,
+ *   cache_prompt?: boolean,
+ *   return_progress?: boolean,
+ *   max_tokens?: number,
+ *   response_format?: object,
+ * }} LocalBody
+ * @typedef {{ id: string, meta?: { n_ctx?: unknown }, architecture?: { input_modalities?: unknown } }} LocalModelCard
+ * @typedef {(type: string, data: Record<string, unknown>) => void} LocalOnEvent
+ */

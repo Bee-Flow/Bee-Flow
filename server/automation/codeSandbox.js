@@ -551,3 +551,11 @@ module.exports = {
     runCode, isAvailable, loadError, defaultFetchHttp, describeCodeError, testBridges,
     SECRETS_NOT_CONFIGURED_NAME, SECRETS_NOT_CONFIGURED_MESSAGE,
 };
+
+/**
+ * @typedef {object} SandboxBridges  the host-side callbacks a code step may reach
+ * @property {(toolName: string, args: object) => Promise<object>} [executeTool]
+ * @property {Set<string>} [allowedTools]
+ * @property {(url: string, opts: object, limits?: { responseCap?: number, timeoutMs?: number }) => Promise<object>} [fetchHttp]
+ * @property {(op: string, args: object) => Promise<object>} [db]
+ */

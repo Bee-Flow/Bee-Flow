@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — action-run bridge.
  *
@@ -51,11 +52,12 @@ const { resolveInputs, deriveRunOutcome } = actionExecutor;
  * the instructions in there would change what those bindings resolve to. It is
  * omitted entirely when the automation left none, so a run that ends without a
  * return_to_app step answers byte-identically to before.
+ * @param {{ id?: string, status?: string, output?: unknown, error?: string, awaitingStepId?: string } | null} run
  */
 async function runBody(run) {
     // Final output only — never the step list (intermediate steps can carry
     // the owner's integration payloads).
-    const { output, appEffects, effectsUnknown, outputTooLarge } = await deriveRunOutcome(run);
+    const { output, appEffects, effectsUnknown, outputTooLarge } = /** @type {{ output?: unknown, appEffects?: unknown, effectsUnknown?: boolean, outputTooLarge?: boolean }} */ (await deriveRunOutcome(run));
     return {
         runId: run.id,
         status: run.status,
@@ -93,6 +95,11 @@ const { requireAuth } = require('../auth/permissions');
 const MAX_BODY_BYTES = 64 * 1024;
 const jsonBody = express.json({ limit: MAX_BODY_BYTES });
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function bodySizeGuard(req, res, next) {
     if (req.body && typeof req.body === 'object') {
         let bytes = 0;
@@ -138,6 +145,10 @@ const { fallback, bestEffort } = require('../utils/bestEffort');
 // moment the row exists; candidates collected during THIS request are then
 // verified against the audit keys this bridge stamps, so a concurrent run of
 // the same automation is never handed to the wrong viewer.
+/**
+ * @param {string[]} runIds
+ * @param {{ appId: string, viewerId: string, actionId: string }} ids
+ */
 async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
     for (const runId of runIds) {
         const run = await automationStore.getRun(runId).catch((e) => fallback('routes/studioAppsRun:resolveStartedRunId', e, null));
@@ -174,7 +185,7 @@ const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
 // DEFINITION by index (never trusted from the body), must be a data-mutating
 // kind (client steps run in the browser and never reach here), and executes
 // acts-as-owner. Uniform 404 on an invisible app; generic errors otherwise.
-router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.StepBody }), async (req, res) => {
+router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.StepBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const actionId = req.params.actionId;
     const app = await loadVisibleApp(req, res);
@@ -281,7 +292,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     const value = req.body?.value;
 
     const t0 = Date.now();
-    const result = await actionExecutor.executeDataStep(app, dataModel, step, {
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
         viewerId: userId,
         // Audit stamp for steps that create durable records (request_approval).
         actionId,
@@ -306,7 +317,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
         viewer: { id: userId, role: role || null, organizationId: req.session.user.organizationId || null },
-    });
+    }));
 
     // Real work happened under the OWNER (record write or owner-scoped run)
     // regardless of the viewer — attribute usage to the owner (as /run does).
@@ -338,7 +349,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
 });
 
 // ── POST /:id/actions/:actionId/run ─────────────────────────────────
-router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunBody }), async (req, res) => {
+router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const actionId = req.params.actionId;
     const app = await loadVisibleApp(req, res);
@@ -413,6 +424,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     let guardTimer;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, waitMs); });
     // Collected so a timeout can still answer with a pollable run id.
+    /** @type {string[]} */
     const startedRunIds = [];
     const offRunStarted = runEventBus.onRunEvent('run.started', (ev) => {
         if (ev && ev.runId && ev.automationId === automation.id) startedRunIds.push(ev.runId);
@@ -421,7 +433,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
         triggerKind: 'studio_app',
         triggerPayload, mode: 'live',
         startedByUserId: userId,
-    }).catch(e => { log.error('[StudioAppsRun] execute error:', e.message); return null; });
+    }).catch(/** @returns {null} */ e => { log.error('[StudioAppsRun] execute error:', e.message); return null; });
 
     // Logged when the run settles regardless of client wait/disconnect —
     // real work happened under the OWNER either way (same rationale as the
@@ -468,7 +480,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
 // ── GET /:id/actions/runs/:runId ────────────────────────────────────
 // Poll fallback after a 202. Same app-visibility gate; the run must belong to
 // the app owner (this bridge only ever starts owner-scoped runs).
-router.get('/:id/actions/runs/:runId', requireAuth, async (req, res) => {
+router.get('/:id/actions/runs/:runId', requireAuth, /** @param {import('express').Request<{ id: string, runId: string }>} req */ async (req, res) => {
     const app = await loadVisibleApp(req, res);
     if (!app) return;
     const run = await automationStore.getRun(req.params.runId);
@@ -487,6 +499,7 @@ router.get('/:id/actions/runs/:runId', requireAuth, async (req, res) => {
  * A run paused on an approval hands the app its durable handle. Spread into
  * the run body only when it applies — existing consumers see no new field on
  * finished runs.
+ * @param {{ id?: string, status?: string, output?: unknown, error?: string, awaitingStepId?: string } | null} run
  */
 async function approvalIdField(run) {
     if (run?.status !== 'awaiting_approval' || !run.awaitingStepId) return {};
@@ -506,6 +519,7 @@ async function approvalIdField(run) {
 const MAX_CHAT_MESSAGES = 30;
 const MAX_CHAT_CHARS = 8000;
 
+/** @param {unknown} raw */
 function sanitizeChatMessages(raw) {
     if (!Array.isArray(raw)) return [];
     const out = [];
@@ -518,9 +532,17 @@ function sanitizeChatMessages(raw) {
     return out;
 }
 
-/** Find a component node by id anywhere in the definition tree. */
+/** @typedef {{ id?: string, type?: string, props?: { modelTier?: string, knowledgeBaseIds?: string[], systemPrompt?: unknown }, children?: unknown }} ComponentNode  an ai_chat component's configuration, as the definition stores it */
+
+/**
+ * Find a component node by id anywhere in the definition tree.
+ * @param {{ screens?: unknown } | null | undefined} def
+ * @param {unknown} nodeId
+ * @returns {ComponentNode | null}
+ */
 function findNodeById(def, nodeId) {
     if (!def || typeof nodeId !== 'string' || !nodeId) return null;
+    /** @param {unknown} children @returns {ComponentNode | null} */
     const walk = (children) => {
         for (const c of (Array.isArray(children) ? children : [])) {
             if (!c || typeof c !== 'object') continue;
@@ -539,7 +561,7 @@ function findNodeById(def, nodeId) {
     return null;
 }
 
-router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.ChatBody }), async (req, res) => {
+router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.ChatBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await loadVisibleApp(req, res);
     if (!app) return;
@@ -580,7 +602,7 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
     ].join(' ').trim();
 
     const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
-    const send = (obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
+    const send = (/** @type {Record<string, unknown>} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
     try {
         await aiRuntime.streamChat(app, model, { system, messages }, (type, data) => {
             if (type === 'text' && data && data.text) send({ type: 'text', text: data.text });
@@ -595,7 +617,7 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
 });
 
 // Map body-parser failures to JSON (default handler answers HTML).
-router.use((err, req, res, next) => {
+router.use(/** @param {{ type?: string, status?: number, statusCode?: number }} err @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */ (err, req, res, next) => {
     if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
         return res.status(413).json({ error: 'Request body too large (max 64KB)' });
     }

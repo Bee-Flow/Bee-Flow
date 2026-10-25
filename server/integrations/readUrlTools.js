@@ -51,26 +51,31 @@ Limits: no JavaScript rendering, no logins or clicks, no PDF. For interactive or
     },
 ];
 
+/** @param {unknown} toolName */
 function isReadUrlTool(toolName) {
     return toolName === 'read_url';
 }
 
+/** @param {string} message */
 function err(message) {
     return JSON.stringify({ error: message });
 }
 
+/** @param {string} t */
 function decodeEntitiesMore(t) {
     return t
-        .replace(/&#(\d+);/g, (m, n) => { try { return String.fromCodePoint(Number(n)); } catch (_) { return ' '; } })
-        .replace(/&#x([0-9a-f]+);/gi, (m, n) => { try { return String.fromCodePoint(parseInt(n, 16)); } catch (_) { return ' '; } });
+        .replace(/&#(\d+);/g, (/** @type {string} */ m, /** @type {string} */ n) => { try { return String.fromCodePoint(Number(n)); } catch (_) { return ' '; } })
+        .replace(/&#x([0-9a-f]+);/gi, (/** @type {string} */ m, /** @type {string} */ n) => { try { return String.fromCodePoint(parseInt(n, 16)); } catch (_) { return ' '; } });
 }
 
+/** @param {string} html */
 function extractTitle(html) {
     const m = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(html);
     if (!m) return '';
     return decodeEntitiesMore(stripHtml(m[1])).replace(/\s+/g, ' ').trim().slice(0, 300);
 }
 
+/** @param {string} html */
 function htmlToText(html) {
     // Keep block structure as line breaks: stripHtml turns every tag into a space.
     const withBreaks = html
@@ -82,7 +87,11 @@ function htmlToText(html) {
         .trim();
 }
 
-/** Passages (~2*PASSAGE_RADIUS chars) around each case-insensitive hit, overlapping ones merged. */
+/**
+ * Passages (~2*PASSAGE_RADIUS chars) around each case-insensitive hit, overlapping ones merged.
+ * @param {string} text
+ * @param {string} find
+ */
 function findPassages(text, find) {
     const hay = text.toLowerCase();
     const needle = find.toLowerCase();
@@ -117,6 +126,7 @@ function findPassages(text, find) {
     };
 }
 
+/** @param {Response} res */
 async function readBody(res) {
     const reader = res.body?.getReader();
     if (!reader) return { html: '', capped: false };
@@ -189,6 +199,9 @@ async function executeReadUrlTool(toolName, args = {}, opts = {}) {
     const text = isHtml ? htmlToText(html) : html.trim();
     const totalChars = text.length;
 
+    /** @type {{ url: string, title: string, totalChars: number, find?: string, totalMatches?: number,
+     *   matches?: ReturnType<typeof findPassages>['passages'], passagesOmitted?: number, truncated?: boolean,
+     *   note?: string, text?: string }} */
     const out = { url: res.url || parsed.href, title, totalChars };
     if (find) {
         const { totalMatches, passages, passagesOmitted } = findPassages(text, find);

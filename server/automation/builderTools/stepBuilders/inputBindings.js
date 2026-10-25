@@ -318,3 +318,19 @@ module.exports = {
     fileLocationField,
     bindingToTemplate,
 };
+
+/**
+ * @typedef {{ overRef?: string, itemVar?: string, parents?: Array<{ itemVar: string, overRef: string }>,
+ *   maxIterations?: number, concurrency?: number }} ForEachSpec
+ * @typedef {{ kind?: string, value?: unknown, path?: string }} Binding
+ * @typedef {Binding | string | number | boolean | null | undefined} BindingValue
+ * @typedef {Record<string, import('../bindings').BVal>} Inputs
+ * @typedef {{ afterStepId?: string, branch?: string, caseName?: string, splice?: boolean, label?: string }} Placement
+ * @typedef {{ key: string, path: string, from: string }} BoundInput
+ * @typedef {{ key: string, path: string | null, why: string, from?: string, paths?: string[], stepId?: string,
+ *   tool?: string | null, overRef?: string, itemVar?: string, fanout?: boolean }} InputCandidate
+ * @typedef {import('./../refCheck').RefStep} RefStep
+ * @typedef {import('./../refCheck').RefGraph} RefGraph
+ * @typedef {import('./../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('../outputFields').FieldsResult} FieldsResult
+ */

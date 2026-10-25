@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Monitoring-ledger retention.
  *
@@ -107,6 +107,10 @@ const ACCESS_AUDIT_RETENTION_DAYS = (() => {
     return env;
 })();
 
+/**
+ * @param {string} table
+ * @param {string | null} cutoff
+ */
 async function _deleteBatches(table, cutoff, timeCol = 'timestamp', runSql = run) {
     let deleted = 0;
     for (let i = 0; i < MAX_BATCHES; i++) {
@@ -145,6 +149,7 @@ function makeMonitoringRetentionPass(deps) {
         let acquired = false;
         let client;
         let ok = true;
+        /** @type {Record<string, number>} */
         const deleted = {};
         try {
             client = await deps.pool.connect();

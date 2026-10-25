@@ -434,3 +434,13 @@ module.exports = {
     checkLoopRef,
     describeItem,
 };
+
+/**
+ * @typedef {import('./pendingDatatables').DraftWrap} DraftWrap
+ * @typedef {import('./draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('./draftGraph').GraphStep} GraphStep
+ * @typedef {{ shape?: Record<string, unknown>, sample?: unknown }} SchemaEntry
+ * @typedef {{ stepId?: string, tool: string | null, type?: string }} FieldsUpstream
+ * @typedef {{ fields: string[] | null, source: string | null, upstream: FieldsUpstream | null,
+ *   arrayField: string | null, outputFields: string[] | null, itemFields: string[] | null }} FieldsResult
+ */

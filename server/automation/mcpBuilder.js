@@ -527,3 +527,13 @@ module.exports = {
     AUTOMATIONLESS_TOOLS,
     _test: { toMcpTool, AUTOMATION_TOOLS },
 };
+
+/**
+ * @typedef {{ type?: string, properties?: Record<string, unknown>, required?: string[] }} McpJsonSchema
+ * @typedef {{ name: string, description?: string, parameters?: McpJsonSchema }} McpToolFn   an OpenAI-shaped function definition
+ * @typedef {import('./builderTools/pendingDatatables').DraftWrap & {
+ *   automationId?: string | null, builderSessionId?: string, description?: string,
+ *   _documents?: Awaited<ReturnType<typeof import('./builderDocumentCatalog').buildDocumentCatalogForUser>> | null, _documentContracts?: Record<string, any>, _inspectGate?: boolean,
+ *   _inputSchemasByTool?: Record<string, unknown>, _availableToolNames?: Set<string> | null,
+ * }} McpDraftWrap   the draft wrapper one MCP call builds from the stored row
+ */

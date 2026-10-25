@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook Routes — CRUD for notebooks, the in-notebook chat history, editor
  * images and file import.
@@ -34,6 +35,11 @@ const multer = require('multer');
 const crypto = require('crypto');
 
 const notebookStore = require('../stores/notebookStore');
+
+/**
+ * Request after requireNotebookRole: the loaded notebook and the caller's role on it.
+ * @typedef {import('express').Request<{ id: string, sid: string }> & { notebook: NonNullable<Awaited<ReturnType<typeof notebookStore.getNotebook>>>, notebookRole: string }} NotebookReq
+ */
 const notebookConversationStore = require('../stores/notebookConversationStore');
 const storageStore = require('../stores/storageStore');
 require('../stores/knowledgeBases');
@@ -54,6 +60,8 @@ const { asViewer, asEditor, asOwner, seams, upload, text, ids } = require('./not
  * The project a notebook is filed in, as its page shows it ("In project X"),
  * for a caller who is a member of that project; null otherwise. Never fails
  * the notebook read.
+ * @param {NotebookReq['notebook']} nb
+ * @param {string} userId
  */
 async function projectSummaryFor(nb, userId) {
     if (!nb.projectId) return null;
@@ -69,7 +77,10 @@ async function projectSummaryFor(nb, userId) {
     }
 }
 
-/** Co-editing applies to notebooks in a collaborative workspace (or a legacy, unclassified project). */
+/**
+ * Co-editing applies to notebooks in a collaborative workspace (or a legacy, unclassified project).
+ * @param {Awaited<ReturnType<typeof projectSummaryFor>>} project
+ */
 function collabEligible(project) {
     return !!project && (project.kind === 'workspace' || project.kind === null);
 }
@@ -92,6 +103,7 @@ const ListQuery = queryOf({
     sort: choice(['activity', 'name', 'created', 'words'], 'sort is activity, name, created or words.').optional(),
     filter: choice(['all', 'pinned', 'sources', 'chat', 'empty', 'processing'], 'filter is all, pinned, sources, chat, empty or processing.').optional(),
 }, 'The notebook list');
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} NotebookListReq */
 
 const CreateBody = bodyOf({
     name: text('name is text of at most 500 characters.', 500).optional(),
@@ -131,7 +143,7 @@ router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) =
     res.json({ success: true, notebook });
 });
 
-router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {NotebookListReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     // Paginate. This called getNotebooks(userId) with no options, which fell
     // back to the store's default LIMIT 50 — so a user with more than 50
@@ -151,7 +163,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
     res.json({ notebooks, limit, offset, hasMore: notebooks.length === limit });
 });
 
-router.get('/:id', requireAuth, asViewer, async (req, res) => {
+router.get('/:id', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     const notebook = req.notebook;
 
@@ -174,7 +186,7 @@ router.get('/:id', requireAuth, asViewer, async (req, res) => {
 // Returns the durable conversation for this notebook
 // so the chat panel can rehydrate on page load / notebook switch instead of
 // starting from an empty React state. Ownership is enforced via getNotebook.
-router.get('/:id/conversation', requireAuth, asViewer, async (req, res) => {
+router.get('/:id/conversation', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     const encryptionKey = req.session.encryptionKey || null;
     // `locked` = encrypted history we can't decode with this session's DEK —
@@ -201,7 +213,7 @@ router.get('/:id/conversation', requireAuth, asViewer, async (req, res) => {
 });
 
 // Clear the persisted in-notebook conversation ("new chat" in the panel).
-router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
+router.delete('/:id/conversation', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     await notebookConversationStore.deleteForNotebook(req.params.id, userId);
     // Drop the accumulated PII token map too, so a fresh chat doesn't inherit
@@ -219,6 +231,9 @@ router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
  * Keep a whole-document save that could not be applied as a 'conflict'
  * version. Returns its id, or null when there was nothing to keep or it could
  * not be written (logged, ids only).
+ * @param {string} notebookId
+ * @param {string} userId
+ * @param {unknown} documentContent
  */
 async function keepConflictCopy(notebookId, userId, documentContent) {
     if (typeof documentContent !== 'string' || !documentContent.trim()) return null;
@@ -234,7 +249,7 @@ async function keepConflictCopy(notebookId, userId, documentContent) {
     }
 }
 
-router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async (req, res) => {
+router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     const nb = req.notebook;
     const { name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned, expectedVersion } = req.body;
@@ -278,10 +293,10 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async 
 
     // CAS write: `expectedVersion` (when the client sends one) turns
     // last-writer-wins into an explicit 409 the editor can react to.
-    const r = await notebookStore.updateNotebookCas(req.params.id, userId, {
+    const r = /** @type {Awaited<ReturnType<typeof notebookStore.updateNotebookCas>> & { currentVersion?: number }} */ (await notebookStore.updateNotebookCas(req.params.id, userId, {
         name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned,
         ...(Number.isFinite(expectedVersion) ? { expectedVersion } : {}),
-    });
+    }));
     if (r.conflict) {
         // Nobody's text is thrown away: the copy that lost the race is kept
         // as a 'conflict' version the page offers to compare and choose from.
@@ -324,7 +339,7 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async 
     res.json({ success: true, version: r.version });
 });
 
-router.delete('/:id', requireAuth, asOwner, async (req, res) => {
+router.delete('/:id', requireAuth, asOwner, /** @param {NotebookReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     // Full cascade: per-source storage blobs and derived chunks/embeddings,
     // then the row (sources + versions cascade via FK), then the KBs this
@@ -362,7 +377,7 @@ router.use('/', require('./notebooksGenerate'));
 const imageUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-    fileFilter: (_req, file, cb) => {
+    fileFilter: /** @param {import('express').Request} _req @param {NonNullable<import('express').Request['file']>} file @param {(err: Error | null, accept?: boolean) => void} cb */ (_req, file, cb) => {
         if (/^image\//.test(file.mimetype)) cb(null, true);
         else cb(new Error('Only image files are allowed'));
     },
@@ -370,9 +385,9 @@ const imageUpload = multer({
 
 // 'workspace' is a virtual notebook id for the chat's workspace pane: the
 // image belongs to the caller alone. Every real notebook needs an editor.
-const asEditorUnlessWorkspace = (req, res, next) => (req.params.id === 'workspace' ? next() : asEditor(req, res, next));
+const asEditorUnlessWorkspace = /** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */ (req, res, next) => (req.params.id === 'workspace' ? next() : asEditor(req, res, next));
 
-router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.single('image'), async (req, res) => {
+router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.single('image'), /** @param {NotebookReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
@@ -397,7 +412,7 @@ router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.sin
 
 // ── Import File to Editor (PDF, DOCX, TXT...) ────────────────────
 
-router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
+router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), /** @param {NotebookReq} req */ async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const { parseDocument } = require('../core/documents/documentParser');
@@ -412,4 +427,4 @@ router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), as
 router.use('/', require('./notebooksVersions'));
 
 module.exports = router;
-module.exports.seams = seams;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).seams = seams;

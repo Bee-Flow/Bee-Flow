@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What the CMS accepts as an uploaded asset, in one place.
  *

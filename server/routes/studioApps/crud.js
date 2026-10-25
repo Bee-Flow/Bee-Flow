@@ -331,3 +331,5 @@ router.delete('/:id', requireAuth, requireManageApps, async (req, res) => {
 });
 
 module.exports = router;
+
+/** @typedef {ReturnType<typeof import('../../stores/studioApp/rowMappers').mapAppMetaRow>} AppMeta */

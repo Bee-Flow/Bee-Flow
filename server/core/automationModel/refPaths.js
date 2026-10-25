@@ -277,3 +277,7 @@ module.exports = {
     tryParseExpr,
     exprStepIds,
 };
+
+/** @typedef {NonNullable<ReturnType<typeof readPath>>['tokens']} PathTokens */
+
+/** @typedef {Parameters<typeof parseExpr>[1]} ExprOpts */

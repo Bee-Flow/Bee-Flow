@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — the tool calls the route answers itself, before the
  * builder dispatch: a call behind a stop, unparseable arguments, the pause
@@ -23,6 +23,12 @@ const { rejectedCallLabel } = require('./turnStop');
  * Answer one tool call the route handles itself. True when it did (the call
  * is done: its event is sent and its tool message pushed), false when the
  * call goes on to the builder dispatch.
+ * @param {import('./turnSetup').BuilderTurn} turn
+ * @param {import('./turnSetup').BuilderRound} round
+ * @param {import('./turnSetup').BuilderToolCall} tc
+ * @param {string} name
+ * @param {ReturnType<typeof import('./chatTurnLoop').parseToolArgs>['args']} args
+ * @param {boolean} truncated
  */
 async function handleRouteTool(turn, round, tc, name, args, truncated) {
     const {
@@ -30,6 +36,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
         permissionMode, isolated, planAllowsRemoval, pauseAfterStep, baseDraft, questionsClosed,
         catalog, modelId, thinkingModelId, webResearch, webpageToolGate,
     } = turn;
+    /** @type {{ error?: string, _fixHint?: string, _draftSteps?: unknown, steps?: unknown[], failedIndex?: number, [k: string]: unknown }} */
     let toolResult;
     if (round.stopHit) {
         // The turn is over. The calls after the stop are not
@@ -101,7 +108,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
     if (req.body.workMode && name === 'builder_ask_questions') {
         // A table choice is consent, not clarification: it is allowed
         // after the round is spent. Everything else is refused.
-        const asksTable = Array.isArray(args?.questions) && args.questions.some(q => q && Array.isArray(q.datatableIds) && q.datatableIds.length);
+        const asksTable = Array.isArray(args?.questions) && args.questions.some((/** @type {{ datatableIds?: unknown }} */ q) => q && Array.isArray(q.datatableIds) && q.datatableIds.length);
         if (questionsClosed && !asksTable) {
             toolResult = { error: 'You already asked your questions for this plan and the user answered. Do not ask again: call builder_write_plan now and list what is still open under assumptions.' };
             send('tool_call', { name, arguments: args, result: toolResult });
@@ -128,7 +135,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
     }
     if (req.body.workMode && INSPECTION_NAMES.has(name)) {
         try { toolResult = await inspect(name, args, draftWrap, { store: automationStore, pii: require('../../../core/privacy/piiDetection') }); }
-        catch (e) { toolResult = { error: e.message }; }
+        catch (e) { toolResult = { error: /** @type {Error} */ (e).message }; }
         markStagedView(toolResult, isolated && JSON.stringify(baseDraft) !== JSON.stringify(draftWrap.def));
         send('tool_call', { name, arguments: args, result: toolResult });
         messages.push({ role: 'tool', tool_call_id: tc.id, content: truncateToolResultJson(toolResult) });
@@ -140,7 +147,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
             research: webResearch, gate: webpageToolGate,
             ids: { userId, orgId: userOrgForTiers, automationId: draftWrap.automationId || null, modelId: modelId || null },
         });
-        toolResult = out.result;
+        toolResult = /** @type {typeof toolResult} */ (out.result);
         send('tool_call', { name, arguments: args, result: toolResult });
         messages.push({
             role: 'tool',
@@ -212,7 +219,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
                 userOrgId: userOrgForTiers, session: req.session,
                 catalog, send,
             });
-        } catch (e) { toolResult = { error: e.message }; }
+        } catch (e) { toolResult = { error: /** @type {Error} */ (e).message }; }
         send('tool_call', { name, arguments: args, result: toolResult });
         if (!isolated) {
             await persistDraftWrap(draftWrap);

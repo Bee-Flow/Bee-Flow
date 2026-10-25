@@ -300,3 +300,19 @@ module.exports = {
     runBatch,
     BATCH_READ_KINDS,
 };
+
+/**
+ * @typedef {import('./actionExecutor/shared').DataModel} DataModel
+ * @typedef {import('./actionExecutor/shared').DataTable} DataTable
+ * @typedef {{ rows: Array<Record<string, any>>, columns?: unknown[], truncated?: boolean }} QueryResult  raw database rows
+ * @typedef {{ tableMeta: DataTable, role: string | null | undefined, viewer: Record<string, unknown> | undefined, dialect: string | undefined, query: (sql: string, params: unknown[]) => Promise<QueryResult> }} ReadPlan  where a table's rows live and under which rights
+ * @typedef {object} ReadCtx  the per-request context of a read
+ * @property {DataModel} model
+ * @property {string | null} [role]
+ * @property {Record<string, unknown>} [viewer]
+ * @property {string | null} [viewerId]
+ * @property {{ id: string, userId: string, organizationId?: string | null }} app
+ * @property {string} ownerScope
+ * @property {Map<string, Promise<ReadPlan>>} [_datatablePlans]
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ */

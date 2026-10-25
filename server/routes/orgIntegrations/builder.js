@@ -591,3 +591,11 @@ module.exports.safeToolName = safeToolName;
 module.exports.dedupeToolName = dedupeToolName;
 module.exports.buildMcpToolsCache = buildMcpToolsCache;
 module.exports._internals = { KINDS, TOOL_NAME_RE, MAX_TOOL_NAME_CHARS, MAX_CREDENTIAL_VALUE_CHARS };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/orgCustomIntegrationStore').getById>>>} IntegrationRow */
+
+/** @typedef {import('express').Request<{ orgId: string, id: string }> & { customIntegration?: IntegrationRow }} IntegrationReq */
+
+/** @typedef {{ mcp?: { url?: string, credentials?: unknown }, api?: { baseUrl?: string }, auth?: { type?: string, credentials?: unknown } }} DraftDefinition */
+
+/** @typedef {import('express').Router & { credentialSpecFor: typeof credentialSpecFor, checkCredentialValues: typeof checkCredentialValues, safeToolName: typeof safeToolName, dedupeToolName: typeof dedupeToolName, buildMcpToolsCache: typeof buildMcpToolsCache, _internals: { KINDS: typeof KINDS, TOOL_NAME_RE: typeof TOOL_NAME_RE, MAX_TOOL_NAME_CHARS: number, MAX_CREDENTIAL_VALUE_CHARS: number } }} RouterExports */

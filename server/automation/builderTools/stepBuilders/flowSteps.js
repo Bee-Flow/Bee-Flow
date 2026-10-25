@@ -344,3 +344,19 @@ module.exports = {
     applyAddStopError,
     sanitizeSwitchCases,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Placement} Placement
+ * @typedef {import('./inputBindings').Inputs} Inputs
+ * @typedef {Placement & { expr?: string, thenStepId?: string, elseStepId?: string }} ConditionArgs
+ * @typedef {Placement & { sourceRef?: string, categories?: string[], confidence?: number, stopOnFound?: boolean,
+ *   maskOnFound?: boolean, hideOnFound?: boolean, thenStepId?: string, elseStepId?: string }} GuardArgs
+ * @typedef {Placement & { sourceRef?: string, categories?: string[], confidence?: number }} TokenizeArgs
+ * @typedef {{ id?: string, tempId?: string, type?: string, tool?: string, prompt?: string, spec?: Record<string, unknown>, inputs?: Inputs }} LoopChild
+ * @typedef {Placement & { body?: LoopChild[], overRef?: string, itemVar?: string, maxIterations?: number }} LoopArgs
+ * @typedef {{ name?: string, expr?: string, value?: unknown }} SwitchCase
+ * @typedef {Placement & { expr?: string, arrayRef?: string, maxItems?: number, cases?: SwitchCase[], matchMode?: string,
+ *   defaultBranch?: string, nextStepIds?: Record<string, string> }} SwitchArgs
+ */

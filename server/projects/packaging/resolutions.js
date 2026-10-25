@@ -362,3 +362,11 @@ module.exports = {
     bindingsToResolutions,
     isEmptyResolutions,
 };
+
+/**
+ * @typedef {{ userId: string } | { groupId: string }} Seat
+ * @typedef {{ key: string, datatableId?: string, create?: boolean }} TableResolution
+ * @typedef {{ ref: string, stepId: string, layerKey: string | null, connectionId: string }} ConnectionResolution
+ * @typedef {{ ref: string, stepId: string, layerKey: string | null, seat: Seat, connectionId?: undefined }} ApproverResolution
+ * @typedef {{ tables: TableResolution[], connections: ConnectionResolution[], approvers: ApproverResolution[] }} Resolutions
+ */

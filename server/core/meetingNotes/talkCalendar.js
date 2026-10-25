@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Talk calendar helper — find the user's upcoming Nextcloud Talk MEETINGS
  * (calendar events linked to a Talk conversation) so auto-record can scope to
@@ -19,6 +19,7 @@ const TALK_CALL_URL_RE = /\/call\/([A-Za-z0-9]+)/;
 /**
  * Pull a Talk room token out of an event-like object (prefers the precomputed
  * `talkToken`, else parses description/location).
+ * @param {{ talkToken?: string, description?: string, location?: string } | null | undefined} event
  */
 function extractTalkToken(event) {
     if (!event) return null;

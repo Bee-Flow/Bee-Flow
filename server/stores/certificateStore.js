@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Issued-certificate storage over configStore (no new DB table).
 //
 //   learning_certificate_user_${userId}        → { [certId]: IssuedCertRecord }
@@ -12,20 +12,38 @@
 const configStore = require('./configStore');
 const { bestEffort } = require('../utils/bestEffort');
 
+/**
+ * @param {string} userId
+ */
 const userKey = (userId) => `learning_certificate_user_${userId}`;
+/**
+ * @param {string} hash
+ */
 const lookupKey = (hash) => `learning_cert_lookup_${hash}`;
 
+/**
+ * @param {string} userId
+ */
 async function getUserCertificates(userId) {
     const blob = await configStore.getConfig(userKey(userId));
     return (blob && typeof blob === 'object') ? blob : {};
 }
 
+/**
+ * @param {string} userId
+ * @param {string} certId
+ */
 async function getCertificate(userId, certId) {
     const all = await getUserCertificates(userId);
     return all[certId] || null;
 }
 
 // Idempotent upsert — preserves the original issuedAt when a record already exists.
+/**
+ * @param {string} userId
+ * @param {string} certId
+ * @param {Record<string, unknown>} record
+ */
 async function saveCertificate(userId, certId, record) {
     const all = await getUserCertificates(userId);
     all[certId] = record;
@@ -33,14 +51,25 @@ async function saveCertificate(userId, certId, record) {
     return record;
 }
 
+/**
+ * @param {string} tokenHash
+ * @param {string} userId
+ * @param {string} certId
+ */
 async function setLookup(tokenHash, userId, certId) {
     await configStore.setConfig(lookupKey(tokenHash), { userId, certId });
 }
 
+/**
+ * @param {string} tokenHash
+ */
 async function clearLookup(tokenHash) {
     try { await configStore.setConfig(lookupKey(tokenHash), null); } catch (err) { bestEffort('stores/certificateStore:clearLookup', err); /* best-effort */ }
 }
 
+/**
+ * @param {string} tokenHash
+ */
 async function resolveByTokenHash(tokenHash) {
     const ref = await configStore.getConfig(lookupKey(tokenHash));
     if (!ref || !ref.userId || !ref.certId) return null;

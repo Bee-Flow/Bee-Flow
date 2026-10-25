@@ -159,3 +159,9 @@ module.exports = {
     MAX_STEPS,
     MAX_LABEL,
 };
+
+/** @typedef {import('../../../core/llm/partialJsonScan').JsonNode} JsonNode */
+
+/** @typedef {import('../../../core/llm/partialJsonScan').JsonString} JsonString */
+
+/** @typedef {{ type: string | null, tool: string | null, label: string | null, partial: boolean }} DraftStep */

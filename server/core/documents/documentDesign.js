@@ -1,15 +1,20 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
+/** @type {Record<string, { accent: string, ink: string, font: string, fontSize: number, lineHeight: number, margin: number }>} */
 const PRESETS = {
     neutral: { accent: '#334155', ink: '#172033', font: 'sans', fontSize: 11, lineHeight: 1.5, margin: 18 },
     branded: { accent: '#d97706', ink: '#172033', font: 'sans', fontSize: 11, lineHeight: 1.6, margin: 18 },
     formal: { accent: '#1e3a5f', ink: '#172033', font: 'serif', fontSize: 12, lineHeight: 1.6, margin: 22 },
 };
+/**
+ * @param {{ preset?: string, accent?: string, ink?: string, font?: string, pageSize?: string, margin?: number, fontSize?: number,
+ *   lineHeight?: number, logoWidth?: number, logoPosition?: string, showHeader?: boolean, showFooter?: boolean }} [design]
+ */
 function designCss(design = {}) {
     const d = { ...PRESETS.neutral, ...PRESETS[design.preset], ...design };
-    const color = (v, fallback) => /^#[\da-f]{6}$/i.test(v) ? v : fallback;
-    const num = (v, min, max, fallback) => Number.isFinite(Number(v)) ? Math.min(max, Math.max(min, Number(v))) : fallback;
+    const color = (/** @type {string} */ v, /** @type {string} */ fallback) => /^#[\da-f]{6}$/i.test(v) ? v : fallback;
+    const num = (/** @type {unknown} */ v, /** @type {number} */ min, /** @type {number} */ max, /** @type {number} */ fallback) => Number.isFinite(Number(v)) ? Math.min(max, Math.max(min, Number(v))) : fallback;
     const font = d.font === 'serif' ? 'Georgia, serif' : d.font === 'mono' ? 'monospace' : 'Arial, sans-serif';
     return `:root { --doc-accent:${color(d.accent, '#334155')}; --doc-ink:${color(d.ink, '#172033')}; --doc-font:${font}; }
 @page { size:${d.pageSize === 'Letter' ? 'Letter' : 'A4'}; margin:${num(d.margin, 0, 40, 18)}mm; }

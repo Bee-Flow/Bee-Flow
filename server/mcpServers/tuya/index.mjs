@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Tuya MCP server (first-party, bundled).
  *
@@ -207,10 +208,18 @@ const TOOLS = [
 ];
 
 // ─── Tuya Cloud transport ───────────────────────────────────────────
+/** @type {{ accessToken: string, expiresAt: number } | null} */
 let token = null;          // { accessToken, expiresAt }
+/** @type {{ devices: TuyaDevice[], truncated: boolean, fetchedAt: number } | null} */
 let deviceCache = null;    // { devices, fetchedAt }
 
-/** One signed request. `auth: false` is the token endpoint, which signs without a token. */
+/**
+ * One signed request. `auth: false` is the token endpoint, which signs without a token.
+ *
+ * @param {string} method
+ * @param {string} path
+ * @param {{ query?: Record<string, unknown>, body?: unknown, auth?: boolean }} [opts]
+ */
 async function request(method, path, { query, body, auth = true } = {}) {
     requireCredentials(config);
 
@@ -245,7 +254,7 @@ async function request(method, path, { query, body, auth = true } = {}) {
         throw new Error(`Tuya returned HTTP ${response.status} for ${method} ${path}`);
     }
 
-    const json = await response.json();
+    const json = /** @type {{ success?: boolean, code?: number, msg?: string, result?: unknown }} */ (await response.json());
     if (json.success === false) {
         // 1010/1011 = token expired or invalid. Drop it so the next call re-mints.
         if (json.code === 1010 || json.code === 1011) token = null;
@@ -257,7 +266,7 @@ async function request(method, path, { query, body, auth = true } = {}) {
 async function getAccessToken() {
     if (token && token.expiresAt > Date.now() + 60000) return token.accessToken;
 
-    const result = await request('GET', '/v1.0/token', { query: { grant_type: 1 }, auth: false });
+    const result = /** @type {{ access_token?: string, expire_time?: number } | null} */ (await request('GET', '/v1.0/token', { query: { grant_type: 1 }, auth: false }));
     if (!result || !result.access_token) throw new Error('Tuya did not return an access token');
 
     token = {
@@ -277,18 +286,19 @@ async function getAccessToken() {
  */
 async function fetchDevices() {
     if (config.uid) {
-        const result = await request('GET', `/v1.0/users/${encodeURIComponent(config.uid)}/devices`);
+        const result = /** @type {TuyaDevice[] | null} */ (await request('GET', `/v1.0/users/${encodeURIComponent(config.uid)}/devices`));
         return { devices: Array.isArray(result) ? result : [], truncated: false };
     }
 
+    /** @type {TuyaDevice[]} */
     const devices = [];
     let lastRowKey = '';
     let truncated = false;
 
     for (;;) {
-        const result = await request('GET', '/v1.0/iot-01/associated-users/devices', {
+        const result = /** @type {{ devices?: TuyaDevice[], has_more?: boolean, last_row_key?: string } | null} */ (await request('GET', '/v1.0/iot-01/associated-users/devices', {
             query: { page_size: 100, last_row_key: lastRowKey },
-        });
+        }));
         devices.push(...(result?.devices || []));
 
         if (devices.length >= MAX_PROJECT_DEVICES) {
@@ -303,6 +313,7 @@ async function fetchDevices() {
     return { devices, truncated };
 }
 
+/** @param {{ refresh?: boolean }} [opts] */
 async function getDevices({ refresh = false } = {}) {
     if (!refresh && deviceCache && Date.now() - deviceCache.fetchedAt < DEVICE_CACHE_MS) {
         return deviceCache;
@@ -312,7 +323,11 @@ async function getDevices({ refresh = false } = {}) {
     return deviceCache;
 }
 
-/** Resolve a device reference to the raw device object, or explain why we cannot. */
+/**
+ * Resolve a device reference to the raw device object, or explain why we cannot.
+ * @param {unknown} reference
+ * @returns {Promise<TuyaDevice>}
+ */
 async function resolveDevice(reference) {
     const ref = String(reference ?? '').trim();
     if (!ref) throw new Error('A device id or name is required');
@@ -328,18 +343,24 @@ async function resolveDevice(reference) {
 
     // Not in the list — it may still be a valid id in the project, so ask Tuya.
     if (/^[a-z0-9]{12,}$/i.test(ref)) {
-        const detail = await request('GET', `/v1.0/devices/${encodeURIComponent(ref)}`);
+        const detail = /** @type {TuyaDevice | null} */ (await request('GET', `/v1.0/devices/${encodeURIComponent(ref)}`));
         if (detail && (detail.id || detail.name)) return detail;
     }
     throw new Error(`No device matches "${ref}". Call list_devices to see what is available.`);
 }
 
+/** @type {Map<string, TuyaSpecification>} */
 const specCache = new Map();
+/**
+ * @param {string} deviceId
+ * @returns {Promise<TuyaSpecification>}
+ */
 async function getSpecification(deviceId) {
     if (specCache.has(deviceId)) return specCache.get(deviceId);
+    /** @type {TuyaSpecification} */
     let spec = {};
     try {
-        spec = (await request('GET', `/v1.0/iot-03/devices/${encodeURIComponent(deviceId)}/specification`)) || {};
+        spec = /** @type {TuyaSpecification | null} */ (await request('GET', `/v1.0/iot-03/devices/${encodeURIComponent(deviceId)}/specification`)) || {};
     } catch (err) {
         // Not every product publishes a spec; that only costs us the decoration.
         process.stderr.write(`[tuya-mcp] no specification for ${deviceId}: ${err.message}\n`);
@@ -353,6 +374,7 @@ async function getSpecification(deviceId) {
  *
  * An agent acts on text it did not write. Without this guard a prompt-injected
  * e-mail or web page would be one tool call away from opening a front door.
+ * @param {TuyaDevice} device
  */
 function assertCommandable(device) {
     if (isLockDevice(device) && !config.allowLocks) {
@@ -363,6 +385,10 @@ function assertCommandable(device) {
     }
 }
 
+/**
+ * @param {TuyaDevice} device
+ * @param {{ code: string | undefined, value: unknown }[]} commands
+ */
 async function issueCommands(device, commands) {
     assertCommandable(device);
     const deviceId = device.id || device.device_id;
@@ -373,7 +399,15 @@ async function issueCommands(device, commands) {
 }
 
 // ─── Tool handlers ──────────────────────────────────────────────────
+/**
+ * @typedef {import('./tuya.js').TuyaDevice} TuyaDevice
+ * @typedef {import('./tuya.js').TuyaSpecification} TuyaSpecification
+ * @typedef {{ id?: string, scene_id?: string, name?: string, status?: unknown, enabled?: boolean }} TuyaScene
+ * @typedef {{ home_id?: string, id?: string, name?: string }} TuyaHome
+ * @typedef {{ limit?: unknown, include_status?: boolean, query?: string, online?: boolean, category?: string, device?: unknown, commands?: unknown, on?: unknown, brightness?: unknown, color_temp?: unknown, color?: { hue?: unknown, saturation?: unknown, brightness?: unknown }, home_id?: string, scene?: unknown }} TuyaArgs
+ */
 const handlers = {
+    /** @param {TuyaArgs} [args] */
     async list_devices(args = {}) {
         const { devices, truncated } = await getDevices();
         const matched = filterDevices(devices, args);
@@ -397,11 +431,12 @@ const handlers = {
         };
     },
 
+    /** @param {TuyaArgs} [args] */
     async get_device_status(args = {}) {
         const device = await resolveDevice(args.device);
         const deviceId = device.id || device.device_id;
         const [status, specification] = await Promise.all([
-            request('GET', `/v1.0/iot-03/devices/${encodeURIComponent(deviceId)}/status`),
+            /** @type {Promise<{ code: string, value: unknown }[] | null>} */ (request('GET', `/v1.0/iot-03/devices/${encodeURIComponent(deviceId)}/status`)),
             getSpecification(deviceId),
         ]);
 
@@ -411,6 +446,7 @@ const handlers = {
         };
     },
 
+    /** @param {TuyaArgs} [args] */
     async get_device_functions(args = {}) {
         const device = await resolveDevice(args.device);
         const deviceId = device.id || device.device_id;
@@ -432,6 +468,7 @@ const handlers = {
         };
     },
 
+    /** @param {TuyaArgs} [args] */
     async send_command(args = {}) {
         const device = await resolveDevice(args.device);
         const deviceId = device.id || device.device_id;
@@ -441,6 +478,7 @@ const handlers = {
         return issueCommands(device, commands);
     },
 
+    /** @param {TuyaArgs} [args] */
     async switch_device(args = {}) {
         if (typeof args.on !== 'boolean') throw new Error('"on" must be true or false');
 
@@ -457,13 +495,16 @@ const handlers = {
         return issueCommands(device, [{ code, value: args.on }]);
     },
 
+    /** @param {TuyaArgs} [args] */
     async set_light(args = {}) {
         const device = await resolveDevice(args.device);
         const deviceId = device.id || device.device_id;
         const specification = await getSpecification(deviceId);
         const functions = specification.functions || [];
+        /** @param {...string} codes */
         const find = (...codes) => functions.find((f) => codes.includes(f.code));
 
+        /** @type {{ code: string | undefined, value: unknown }[]} */
         const commands = [];
         const wantsColour = args.color && typeof args.color === 'object';
 
@@ -513,14 +554,16 @@ const handlers = {
         return issueCommands(device, commands);
     },
 
+    /** @param {TuyaArgs} [args] */
     async list_scenes(args = {}) {
         const homes = args.home_id ? [{ home_id: args.home_id, name: null }] : await fetchHomes();
+        /** @type {{ id: string | undefined, name: string, home_id: string, home_name: string | null, enabled: boolean }[]} */
         const scenes = [];
 
         for (const home of homes) {
-            const result = await request('GET', '/v2.0/cloud/scene/rule', {
+            const result = /** @type {TuyaScene[] | { list?: TuyaScene[] } | null} */ (await request('GET', '/v2.0/cloud/scene/rule', {
                 query: { space_id: home.home_id, type: 'scene' },
-            });
+            }));
             const list = Array.isArray(result) ? result : result?.list || [];
             for (const scene of list) {
                 scenes.push({
@@ -536,6 +579,7 @@ const handlers = {
         return { total: scenes.length, scenes };
     },
 
+    /** @param {TuyaArgs} [args] */
     async trigger_scene(args = {}) {
         const reference = String(args.scene ?? '').trim();
         if (!reference) throw new Error('A scene id or name is required');
@@ -566,7 +610,7 @@ async function fetchHomes() {
             'Scenes need a linked app account. Add your Smart Life app account UID (TUYA_UID) under Settings → Connections.'
         );
     }
-    const result = await request('GET', `/v1.0/users/${encodeURIComponent(config.uid)}/homes`);
+    const result = /** @type {TuyaHome[] | { list?: TuyaHome[] } | null} */ (await request('GET', `/v1.0/users/${encodeURIComponent(config.uid)}/homes`));
     const homes = Array.isArray(result) ? result : result?.list || [];
     return homes.map((home) => ({ home_id: home.home_id ?? home.id, name: home.name || '' }));
 }
@@ -593,7 +637,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request_) => {
     }
 
     try {
-        const result = await handlers[name](args || {});
+        const result = await /** @type {Record<string, (args: TuyaArgs) => Promise<unknown>>} */ (handlers)[name](args || {});
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     } catch (err) {
         // Tuya echoes request details back in some error payloads — never let the

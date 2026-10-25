@@ -337,3 +337,15 @@ module.exports = {
     containerPassesHeightDown,
     sectionHeightIsDefinite,
 };
+
+/**
+ * @typedef {{ min: number, max: number, step: number, default: number }} UnitRange
+ * @typedef {{ type: string, default: unknown, min?: number, max?: number, step?: number, values?: unknown[], roles?: string[], modeKnob?: string, units?: Record<string, UnitRange> }} StyleKnob  One entry of STYLE_KNOBS.
+ */
+
+/**
+ * @typedef {{ type: string, required?: boolean, maxLen?: number, default?: unknown, min?: number, max?: number, values?: unknown[], description?: string, maxItems?: number, itemShape?: Record<string, PropSpec>, itemMaxLen?: number, allowIsoDate?: boolean }} PropSpec  One entry of a component's `props` table.
+ * @typedef {{ label?: string, category?: string, description?: string, container?: boolean, isInput?: boolean, events?: string[], props?: Record<string, PropSpec>, styleKnobs?: string[], defaultStyle?: Record<string, unknown> }} ComponentSpec  One entry of a component spec table.
+ */
+
+/** @typedef {{ heightMode?: string, heightValue?: number, height?: string, [k: string]: unknown }} StyleLike  A node or section style block. */

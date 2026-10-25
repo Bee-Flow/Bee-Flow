@@ -558,3 +558,19 @@ module.exports = {
     LIMITS,
     _resolveScopeSchema: resolveScopeSchema,
 };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {{ id: string, values: Record<string, unknown> }} CanonicalRow */
+
+/** @typedef {{ code: string, [key: string]: unknown }} Finding */
+
+/** @typedef {{ ref: string|null, kind: string, sourceEntityId: string, payload: { rows: CanonicalRow[] }, contentHash: string }} ReferencePayload */
+
+/**
+ * @typedef {{
+ *   query: (scope: { kind: string, id: string }, q: { sql: string, params: unknown[] }) => Promise<Record<string, any>[] | { rows?: Record<string, any>[] }>,
+ *   scan?: (text: string) => Promise<{ degraded?: boolean, entities?: Array<import('../../core/privacy/personalColumns').GuardEntityLike|null> }|null>,
+ *   limits?: Partial<typeof LIMITS>,
+ * }} CaptureDeps
+ */

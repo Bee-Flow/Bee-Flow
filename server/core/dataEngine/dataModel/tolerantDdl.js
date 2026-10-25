@@ -36,15 +36,27 @@ const RENAME_TABLE_RE = /^ALTER TABLE\s+"((?:[^"]|"")+)"\s+RENAME TO\s+"((?:[^"]
 const RENAME_COLUMN_RE = /^ALTER TABLE\s+"((?:[^"]|"")+)"\s+RENAME COLUMN\s+"((?:[^"]|"")+)"\s+TO\s+"((?:[^"]|"")+)"\s*;?\s*$/i;
 const ADD_COLUMN_RE = /^ALTER TABLE\s+"(?:[^"]|"")+"\s+ADD COLUMN\s+/i;
 
+/**
+ * @param {string} s
+ */
 function unquoteIdent(s) {
     return String(s).replace(/""/g, '"');
 }
 
+/**
+ * @param {{ prepare: (sql: string) => { get: (...params: unknown[]) => unknown } }} db
+ * @param {string} name
+ */
 function tableExists(db, name) {
     const r = db.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = ?`).get(name);
     return !!r;
 }
 
+/**
+ * @param {{ prepare: (sql: string) => { all: () => Array<{ name: string }> } }} db
+ * @param {string} tableName
+ * @param {string} colName
+ */
 function columnExists(db, tableName, colName) {
     try {
         return db.prepare(`PRAGMA table_info(${qi(tableName)})`).all().some(c => c.name === colName);
@@ -59,14 +71,19 @@ function columnExists(db, tableName, colName) {
  * (studioAppDbStore.applyMigration) wraps it in ONE transaction so the
  * all-or-nothing guarantee is unchanged.
  *
- * @param {import('better-sqlite3').Database} db  open handle
+ * @param {InstanceType<typeof import('better-sqlite3')>} db  open handle
  * @param {string[]} orderedDDL                    migrationPlan output
  * @param {{ log?: { warn: Function } }} [opts]    logger (console by default)
  * @returns {{ applied: number, skipped: Array<{ sql: string, reason: string }> }}
  */
 function applyPlanTolerantly(db, orderedDDL, { log = console } = {}) {
+    /** @type {{ sql: string; reason: string; }[]} */
     const skipped = [];
     let applied = 0;
+    /**
+     * @param {string} sql
+     * @param {string} reason
+     */
     const skip = (sql, reason) => {
         skipped.push({ sql, reason });
         if (log && typeof log.warn === 'function') {
@@ -111,7 +128,7 @@ function applyPlanTolerantly(db, orderedDDL, { log = console } = {}) {
         } catch (e) {
             // Exact already-applied signature: a replayed single-statement
             // ADD COLUMN (addColumnDdl always emits the ALTER on its own).
-            if (ADD_COLUMN_RE.test(sql) && /duplicate column name/i.test((e && e.message) || '')) {
+            if (ADD_COLUMN_RE.test(sql) && /duplicate column name/i.test((e && /** @type {Error} */ (e).message) || '')) {
                 skip(sql, 'column already added');
                 continue;
             }

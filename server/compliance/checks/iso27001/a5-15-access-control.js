@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.5.15 / A.5.18 / A.8.3 — Access control is centrally defined and
  * machine-checked.
@@ -39,13 +39,14 @@ module.exports = {
         } catch (e) {
             return {
                 status: 'fail',
-                evidence: { registry_loaded: false, load_error: e.message },
+                evidence: { registry_loaded: false, load_error: /** @type {Error} */ (e).message },
                 details: 'The access-control registry (auth/accessRegistry.js) failed to load — route requirements are no longer machine-readable.',
             };
         }
 
         const routes = (registry.routes && typeof registry.routes === 'object') ? registry.routes : {};
         const declaredRoutes = Object.keys(routes);
+        /** @type {Record<string, number>} */
         const enforcement = { middleware: 0, handler: 0, scoped: 0, public: 0, other: 0 };
         for (const key of declaredRoutes) {
             const mode = routes[key] && routes[key].enforcement;
@@ -54,12 +55,14 @@ module.exports = {
         }
         const untriagedCount = Array.isArray(registry.untriaged) ? registry.untriaged.length : 0;
 
+        /** @type {Record<string, { permissions?: unknown[] }>} */
         let roles = {};
+        /** @type {string | null} */
         let rolesError = null;
         try {
             roles = JSON.parse(fs.readFileSync(ORG_ROLES_PATH, 'utf-8'));
         } catch (e) {
-            rolesError = e.message;
+            rolesError = /** @type {Error} */ (e).message;
         }
         const roleNames = Object.keys(roles);
         const emptyRoles = roleNames.filter(r =>
@@ -67,6 +70,7 @@ module.exports = {
 
         const driftTestPresent = fs.existsSync(path.join(AUTH_DIR, 'accessRegistry.drift.test.js'));
 
+        /** @type {Record<string, unknown>} */
         const evidence = {
             registry_loaded: true,
             declared_routes: declaredRoutes.length,

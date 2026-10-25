@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/memorySimilarity.js — dedupe: the memories most similar to a text
  * (lexical and vector score) and the one that says the same thing. Split out
@@ -37,10 +37,20 @@ const LEXICAL_DUPLICATE_THRESHOLD = 0.8;
  */
 const VECTOR_DUPLICATE_THRESHOLD = 0.93;
 
+/**
+ * @param {string} text
+ */
 const _normalizeText = (text) => String(text || '').toLowerCase().replace(/[^\w\s]/g, '').trim();
+/**
+ * @param {string} text
+ */
 const _wordsOf = (text) => _normalizeText(text).split(/\s+/).filter(w => w.length > 2);
 
-/** 0..1: 1 identical, 0.95 one contains the other, otherwise the word overlap of the shorter. */
+/**
+ * 0..1: 1 identical, 0.95 one contains the other, otherwise the word overlap of the shorter.
+ * @param {string} a
+ * @param {string} b
+ */
 function lexicalSimilarity(a, b) {
     const na = _normalizeText(a);
     const nb = _normalizeText(b);
@@ -57,13 +67,21 @@ function lexicalSimilarity(a, b) {
 }
 
 /** The vector of a hydrated row (JSONB may arrive as text), or null. */
+/**
+ * @param {Record<string, any> | null | undefined} memory
+ * @returns {number[] | null}
+ */
 function _rowVector(memory) {
     let v = memory?.embedding;
     if (typeof v === 'string') { try { v = JSON.parse(v); } catch { v = null; } }
     return Array.isArray(v) && v.length > 0 ? v : null;
 }
 
-/** Scope of a dedupe lookup: the project's pool or the user's personal rows, in ONE agent bucket. */
+/**
+ * Scope of a dedupe lookup: the project's pool or the user's personal rows, in ONE agent bucket.
+ * @param {(v: unknown) => string} bind
+ * @param {{ userId: string, projectId?: string | null, agentId?: string | null }} scope
+ */
 function _strictScope(bind, { userId, projectId, agentId }) {
     const owner = projectId ? `project_id = ${bind(projectId)}` : `user_id = ${bind(userId)} AND project_id IS NULL`;
     return `status = 'active' AND valid_to IS NULL AND (expires_at IS NULL OR expires_at > NOW())
@@ -88,7 +106,9 @@ async function findSimilarMemories(userId, content, { projectId = null, agentId 
     await initDB();
     if (!content) return [];
     const scope = { userId, projectId, agentId };
+    /** @type {unknown[]} */
     const params = [];
+    /** @param {unknown} v */
     const bind = (v) => { params.push(v); return `$${params.length}`; };
     // Same bounded pool as before; it is the candidate set for the lexical
     // score and for the vector score of rows without a typed vector column.
@@ -97,7 +117,7 @@ async function findSimilarMemories(userId, content, { projectId = null, agentId 
           ORDER BY importance DESC NULLS LAST, updated_at DESC LIMIT ${CANDIDATE_LIMIT}`, params));
 
     const q = await embedOne(String(content).slice(0, 2000), { kind: 'passage', timeoutMs: 5000 });
-    const byId = new Map(pool.map(m => [m.id, m]));
+    const byId = new Map(pool.map((/** @type {Record<string, any>} */ m) => [m.id, m]));
     const sqlCosine = new Map();
 
     // Rows beyond the pool that are close in vector space (plaintext rows with a
@@ -105,7 +125,9 @@ async function findSimilarMemories(userId, content, { projectId = null, agentId 
     if (q && memoryIndex.isPgvectorAvailable() && memoryIndex.hasVectorColumn(q.dim)) {
         try {
             const col = vectorColumn(q.dim);
+            /** @type {unknown[]} */
             const p2 = [];
+            /** @param {unknown} v */
             const bind2 = (v) => { p2.push(v); return `$${p2.length}`; };
             const lit = bind2(vectorLiteral(q.vector));
             const near = await getAll(
@@ -118,10 +140,11 @@ async function findSimilarMemories(userId, content, { projectId = null, agentId 
                 if (!byId.has(memory.id)) byId.set(memory.id, (await hydrateRows([memory]))[0]);
             }
         } catch (e) {
-            log.warn('[MemoryStore] vector similarity lookup failed, using lexical:', e.message);
+            log.warn('[MemoryStore] vector similarity lookup failed, using lexical:', /** @type {Error} */ (e).message);
         }
     }
 
+    /** @type {Array<Record<string, any> & { similarity: number, lexical: number, cosine: number | null }>} */
     const out = [];
     for (const memory of byId.values()) {
         if (!memory) continue;
@@ -142,6 +165,10 @@ async function findSimilarMemories(userId, content, { projectId = null, agentId 
  * The existing memory that says the same thing as `content`, or null. Used to
  * dedupe a memory that has no canonical key. The row comes back with its
  * `similarity` in [0, 1].
+ * @param {string} userId
+ * @param {string} content
+ * @param {string | null} [projectId]
+ * @param {string | null} [agentId]
  */
 async function findSimilarMemory(userId, content, projectId = null, agentId = null) {
     const hits = await findSimilarMemories(userId, content, { projectId, agentId, limit: 5 });

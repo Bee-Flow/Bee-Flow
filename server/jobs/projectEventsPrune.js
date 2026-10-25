@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project live-feed retention: drop `project_events` rows older than a week.
  *
@@ -36,6 +36,14 @@ const BOOT_DELAY_MS = 90 * 1000;
 
 let _running = false;
 
+/**
+ * @typedef {{
+ *   pool: typeof import('../db').pool,
+ *   pruneProjectEvents: typeof import('../stores/projectStore').pruneProjectEvents,
+ *   log: typeof import('../telemetry/log'),
+ * }} PruneDeps
+ */
+/** @type {PruneDeps | null} */
 let _deps = null;
 function deps() {
     if (!_deps) {
@@ -48,7 +56,10 @@ function deps() {
     return _deps;
 }
 
-/** Test hook: inject every dependency above; pass nothing to restore the real ones. */
+/**
+ * Test hook: inject every dependency above; pass nothing to restore the real ones.
+ * @param {PruneDeps | null} [d]
+ */
 function _setDeps(d) {
     _deps = d || null;
     _running = false;
@@ -70,7 +81,7 @@ async function runOnce() {
         if (deleted) d.log.info(`[projectEventsPrune] pruned ${deleted} project event(s) older than ${RETENTION_DAYS} days`);
         return deleted;
     } catch (err) {
-        d.log.warn('[projectEventsPrune] pass failed:', err.message);
+        d.log.warn('[projectEventsPrune] pass failed:', /** @type {Error} */ (err).message);
         return null;
     } finally {
         _running = false;

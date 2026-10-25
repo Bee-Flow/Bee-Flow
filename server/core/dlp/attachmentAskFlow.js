@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Resolves a single attachment's `action:'ask'` outcome from
  * scanAttachmentText — pauses the turn (one `dlp_attachment_preview` SSE
@@ -29,7 +29,7 @@ const dlpRunner = require('./dlpRunner');
  *                                   scan) text scanAttachmentText returned
  *                                   for review — findings' offsets are
  *                                   relative to exactly this string.
- * @param {Array}  p.findings
+ * @param {Array<import('./attachmentScanner').AttachmentFinding & { source?: string, confidence?: number }>}  p.findings
  * @param {any} [p.summary]       The scan summary (byCategory, pages, count, ...). Carried
  *                                   through so the audit row can name what was found.
  * @param {string} p.filename
@@ -37,9 +37,9 @@ const dlpRunner = require('./dlpRunner');
  * @param {any} p.orgShield
  * @param {string} [p.conversationId]
  * @param {string} [p.userId]
- * @param {Function} [p.emit]        (type, data) => void — the chat stream's onEvent/send.
- * @param {Function} [p.registerDecision]  decisionQueue.register (injected for tests).
- * @returns {Promise<{action:'block'|'pass'|'tokenize', text:(string|null), findings:Array, summary:any, tokenMap:(any|null), reason?:string}>}
+ * @param {(type: string, data: unknown) => void} [p.emit]        (type, data) => void — the chat stream's onEvent/send.
+ * @param {typeof register} [p.registerDecision]  decisionQueue.register (injected for tests).
+ * @returns {Promise<{action:'block'|'pass'|'tokenize', text:(string|null), findings:import('./attachmentScanner').AttachmentFinding[], summary:any, tokenMap:(any|null), reason?:string}>}
  */
 async function resolveAttachmentAsk({ text, findings, summary, filename, provider, orgShield, conversationId, userId, emit, registerDecision }) {
     const reg = registerDecision || register;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Compliance — the per-agent Data Protection Impact Assessments: the org
  * listing, one agent's assessment, its PDF and the upsert.
@@ -26,6 +26,9 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
  * (routes/compliance/chatMonitoring.js chatMonitoringDpiaHook, after the
  * response). Required lazily, for that key only: every other DPIA save never
  * loads the chat signals router through this file.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function chatMonitoringDpiaHook(req, res, next) {
     if (req.params?.agentId !== CHAT_MONITORING_DPIA_KEY) return next();
@@ -45,8 +48,14 @@ function chatMonitoringDpiaHook(req, res, next) {
 // grows with the form, and dpiaStore stores it whole as jsonb. Only the three
 // answers a questionnaire cannot do without are checked (REQUIRED_ANSWERS).
 
+/** @type {[string, ...string[]]} */
 const MODES = ['attestation', 'questionnaire'];
+/** @type {[string, ...string[]]} */
 const RISKS = ['low', 'medium', 'high'];
+/**
+ * @param {string} name
+ * @param {[string, ...string[]]} values
+ */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 // A questionnaire is the assessment itself, so it cannot be blank. Every
@@ -61,8 +70,13 @@ const REQUIRED_ANSWERS = Object.freeze([
     ['human_oversight', 'A questionnaire needs who oversees the output (answers.human_oversight).'],
 ]);
 
+/** @param {unknown} v */
 const filled = (v) => typeof v === 'string' && v.trim() !== '';
 
+/**
+ * @param {{ mode?: string, answers?: Record<string, unknown> }} body
+ * @param {import('zod').RefinementCtx} ctx
+ */
 function requireQuestionnaireAnswers(body, ctx) {
     if (body.mode !== 'questionnaire') return;
     const answers = body.answers || {};
@@ -92,7 +106,7 @@ router.get('/dpia', requireAuth, requirePermission('admin_compliance'), async (r
 
 // PDF rendition of one agent's latest DPIA. Registered before /dpia/:agentId
 // so the sub-path wins.
-router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request<{ agentId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const dpia = await dpiaStore.getLatestForAgent(orgId, req.params.agentId);
@@ -120,13 +134,13 @@ router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_complianc
     res.send(buffer);
 });
 
-router.get('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request<{ agentId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const row = await dpiaStore.getLatestForAgent(orgId, req.params.agentId);
     res.json(row || null);
 });
 
-router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), chatMonitoringDpiaHook, async (req, res) => {
+router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), chatMonitoringDpiaHook, async (/** @type {import('express').Request<{ agentId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await dpiaStore.upsertAssessment(orgId, req.params.agentId, {

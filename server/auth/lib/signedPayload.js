@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The HMAC-SHA256 "payload.signature" envelope shared by the signed-token
  * modules (publicShareToken, webpagePreviewToken).
@@ -16,11 +16,17 @@
 
 const crypto = require('crypto');
 
+/**
+ * @param {string | NonSharedBuffer} buf
+ */
 function b64urlEncode(buf) {
     return Buffer.from(buf).toString('base64')
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/**
+ * @param {string} str
+ */
 function b64urlDecode(str) {
     const pad = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
     return Buffer.from(str.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64');
@@ -53,10 +59,12 @@ function verify(secret, token) {
     const payloadB64 = token.slice(0, dot);
     const sigB64 = token.slice(dot + 1);
 
+    /** @type {NonSharedBuffer} */
     let expectedSig;
     try { expectedSig = crypto.createHmac('sha256', secret).update(payloadB64).digest(); }
     catch (_) { return null; }
 
+    /** @type {Buffer<ArrayBuffer>} */
     let providedSig;
     try { providedSig = b64urlDecode(sigB64); } catch (_) { return null; }
     if (providedSig.length !== expectedSig.length) return null;

@@ -163,3 +163,16 @@ async function buildCatalogForUser(userId, session) {
 }
 
 module.exports = { buildCatalogForUser };
+
+/**
+ * @typedef {{ name: string, description?: string, sideEffect: boolean, askOnceable: boolean,
+ *   outputSchema: ReturnType<typeof import('./outputSchemas').getOutputSchema>,
+ *   inputSchema: { type?: string, properties?: Record<string, unknown>, required?: string[] } | null,
+ *   outputSample: unknown }} CatalogAction
+ * @typedef {{ id: string, label: string, available: boolean, connected: boolean, permitted: boolean, actions: CatalogAction[] }} CatalogApp
+ * `toolNames` is absent when the catalog could not be built (`catalogError` set); `datatables` and
+ * `documents` are attached by the callers that need them.
+ * @typedef {{ apps: CatalogApp[], toolNames?: Set<string>, triggerOutputs: Record<string, unknown>, catalogError?: string,
+ *   datatables?: import('./builderTools/pendingDatatables').DatatableCatalogEntry[] | null,
+ *   documents?: Awaited<ReturnType<typeof import('./builderDocumentCatalog').buildDocumentCatalogForUser>> | null }} BuilderCatalog
+ */

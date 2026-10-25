@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The rules every Dutch catalogue (migrations/add-nl-*) answers to, as one
  * suite a catalogue's own test file registers. They pin the silent failures

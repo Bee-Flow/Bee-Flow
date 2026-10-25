@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -33,7 +34,9 @@ const SENTINEL_TABLES = ['users', 'agents', 'automations', 'direct_conversations
 
 const CACHE_TTL_MS = 30_000;
 
+/** @type {{ at: number; ok: boolean; schemaReady: boolean; } | { at: number; ok: boolean; schemaReady: boolean; } | null} */
 let _cache = null;     // { ok, schemaReady, at }
+/** @type {Promise<{ at: number; ok: boolean; schemaReady: boolean; } | { at: number; ok: boolean; schemaReady: boolean; }> | null} */
 let _inflight = null;  // promise-memo: gelijktijdige polls delen één query
 
 async function _probe() {
@@ -71,12 +74,12 @@ function getSchemaHealth() {
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { ok, schemaReady } = await getSchemaHealth();
     res.json({ ok, schemaReady, build: APP_BUILD_SHA });
 });
 
 module.exports = router;
-module.exports.getSchemaHealth = getSchemaHealth;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).getSchemaHealth = getSchemaHealth;
 // Alleen voor tests: de 30s-cache tussen cases legen.
-module.exports._resetCache = () => { _cache = null; _inflight = null; };
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports)._resetCache = () => { _cache = null; _inflight = null; };

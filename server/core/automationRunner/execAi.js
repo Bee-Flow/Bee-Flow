@@ -366,3 +366,11 @@ async function execAiStep(step, ctx, runState, mode) {
 }
 
 module.exports = { execIntegrationAction, collectAiStepOutputFields, execAiStep };
+
+/**
+ * @typedef {{ id?: string, type?: string, prompt?: string, modelTier?: string, inputs?: Record<string, any>,
+ *   outputSchema?: object|null, systemPrompt?: unknown }} AiStep  an ai_step as the definition stores it (parsed JSON)
+ * @typedef {{ userId?: string, orgId?: string, session?: Express.Session|null, definition?: object }} AiCtx
+ * @typedef {Awaited<ReturnType<typeof loadAiStepAgentContext>>} AiStepAgentContext
+ * @typedef {Awaited<ReturnType<typeof resolveAiStepTier>>} AiStepTier
+ */

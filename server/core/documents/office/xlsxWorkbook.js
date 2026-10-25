@@ -111,3 +111,5 @@ async function buildXlsxWorkbook(sheets, opts = {}) {
 }
 
 module.exports = { buildXlsxWorkbook, xmlEscape, isNumericCell, colLetter, sanitizeSheetName };
+
+/** @typedef {Parameters<typeof import('./rowsMatrix').coerceCell>[0]} CellValue */

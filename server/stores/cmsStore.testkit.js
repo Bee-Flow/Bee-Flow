@@ -149,3 +149,5 @@ function configTableAnswer(configState) {
 }
 
 module.exports = { clone, likeToRegex, createCmsConfigMocks, installCmsStoreMocks, configTableAnswer };
+
+/** @typedef {{ get: (key: string) => Promise<any>, set: (key: string, value: unknown) => Promise<void>, keysLike: (pattern: string) => Promise<string[]> }} GroupIo */

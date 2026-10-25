@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The per-turn mutable state the agentic loop (./turnLoop) carries from round
  * to round, and the one-off notebook seed that runs before the first round.
@@ -8,6 +8,23 @@
  * and counters, and the loop reads them back between rounds.
  */
 const log = require('../../../telemetry/log');
+
+/**
+ * The shapes the turn's phases pass to each other.
+ * @typedef {Record<string, any>} AgentRow  a raw agents row (agentStore.getForRuntime)
+ * @typedef {Record<string, any>} ConversationRow  a raw conversations row (or the in-memory ephemeral one)
+ * @typedef {import('../../providers/base').OnEvent} OnEvent
+ * @typedef {{ type?: string, text?: string, [key: string]: unknown }} ContentPart
+ * @typedef {{ role: string, content?: string | ContentPart[], attachments?: Attachment[], tool_calls?: ToolCall[], tool_call_id?: string, [key: string]: unknown }} ChatMessage  a message in the turn's prompt or durable history
+ * @typedef {import('../assistantMessageExtras').ThinkingPart} ThinkingPart
+ * @typedef {{ id?: string, type?: string, function?: { name?: string, arguments?: string }, [key: string]: unknown }} ToolCall
+ * @typedef {{ type?: string, function?: { name?: string, description?: string, parameters?: unknown }, [key: string]: unknown }} ToolDef
+ * @typedef {{ orgId?: string | null, groups?: string[] }} RunningUserContext
+ * @typedef {{ document_id?: string, kb_id?: string, title?: string, source_uri?: string, score?: number, snippet?: string, [key: string]: unknown }} KbSource  a knowledge-base citation the turn persists
+ * @typedef {{ session?: Express.Session, encryptionKey?: string | null, extraTools?: ToolDef[], integrationOrgId?: string | null, integrationUserId?: string | null, piiActionOverride?: string | null, __runCtx?: RunningUserContext, supportThreadId?: string | null, userId?: string, userOrgId?: string | null }} UserAuth
+ * @typedef {{ name?: string, type?: string, url?: string, size?: number, content?: string, [key: string]: unknown }} Attachment
+ * @typedef {{ activeSkillIds?: string[], attachments?: Attachment[], autoSend?: boolean, chatSignals?: Record<string, unknown>, conversationId?: string, ephemeral?: boolean, ephemeralKey?: string, memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, messageId?: string, modelTier?: string, nanoBananaSettings?: Record<string, unknown>, notebookspaceAvailable?: boolean, notebookspaceContent?: string, notebookspaceSelection?: string, orgId?: string | null, parentCallId?: string, parentId?: string, projectId?: string, reasoningEffort?: string, req?: import('express').Request, scheduleId?: string, scheduleText?: string, sidePanelDocument?: Record<string, unknown>, sidePanelWebpage?: Record<string, unknown>, signal?: AbortSignal, timezone?: string, toolChoice?: unknown, toolDecisions?: unknown[] | Map<string, 'approve'|'decline'>, unattended?: boolean, userOrgId?: string | null, verbosity?: string, webSearchEnabled?: boolean, testAs?: Parameters<typeof import('../testAs').coerceTestAs>[0], testSandbox?: boolean, testChat?: unknown, [key: string]: unknown }} MessageMetadata
+ */
 
 /** How many times the same failing (or held) tool call may repeat before the loop bails. */
 const MAX_TOOL_REPEAT = 3;
@@ -23,10 +40,10 @@ const MAX_TOOL_REPEAT = 3;
 function createThinkingState() {
     const state = {
         text: '',
-        parts: [],
+        parts: /** @type {ThinkingPart[]} */ ([]),
         snapshotFrom: 0,
         // Look up / create a thinking part by provider-supplied partId.
-        getPart: (partId) => {
+        getPart: (/** @type {string} */ partId) => {
             if (!partId) return null;
             let part = state.parts.find(p => p.id === partId);
             if (!part) {
@@ -72,15 +89,15 @@ function createTurnLoopState() {
         iterations: 0,
         promptTokens: 0,
         completionTokens: 0,
-        toolCalls: [],
-        emailDrafts: [],
-        calendarDrafts: [],
-        linkedInDrafts: [],
-        mapEmbeds: [],
-        audioFiles: [],
-        generatedFiles: [], // decks and other files a tool built — shown as a card, persisted
-        pendingToolCalls: [],
-        toolHistory: [], // Track tool calls for persistence
+        toolCalls: /** @type {Record<string, unknown>[]} */ ([]),
+        emailDrafts: /** @type {Record<string, unknown>[]} */ ([]),
+        calendarDrafts: /** @type {Record<string, unknown>[]} */ ([]),
+        linkedInDrafts: /** @type {Record<string, unknown>[]} */ ([]),
+        mapEmbeds: /** @type {Record<string, unknown>[]} */ ([]),
+        audioFiles: /** @type {Record<string, unknown>[]} */ ([]),
+        generatedFiles: /** @type {Record<string, unknown>[]} */ ([]), // decks and other files a tool built — shown as a card, persisted
+        pendingToolCalls: /** @type {Record<string, unknown>[]} */ ([]),
+        toolHistory: /** @type {Record<string, unknown>[]} */ ([]), // Track tool calls for persistence
         thinking: createThinkingState(),
         // Track repeated failing tool calls so the loop breaks instead of burning
         // the full max-iterations budget on a deterministic failure (e.g. permission
@@ -108,6 +125,9 @@ function createTurnLoopState() {
  * exactly without re-running the checks. `workspaceTools` loads
  * integrations/workspaceTools (handed in: it sits in the server's large
  * import cycle, which this module stays out of).
+ */
+/**
+ * @param {{ messageMetadata: MessageMetadata, tools: ToolDef[], conversation: ConversationRow, userId: string, workspaceTools: () => typeof import('../../../integrations/workspaceTools') }} opts
  */
 async function seedNotebookFromEditor({ messageMetadata, tools, conversation, userId, workspaceTools }) {
     const _seedNbContent = messageMetadata?.notebookspaceContent;

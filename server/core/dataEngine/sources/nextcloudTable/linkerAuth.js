@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "May this mirror talk to Nextcloud right now, and as whom?"
  *
@@ -86,6 +86,12 @@ async function resolveLinker(source, { orgId = null, fresh = false } = {}) {
     return value;
 }
 
+/**
+ * @param {ReturnType<typeof deps>} d
+ * @param {{ linkedByUserId?: string; ncTableId?: number; ncInstanceId?: string; }} source
+ * @param {string} userId
+ * @param {string | null} orgId
+ */
 async function resolveUncached(d, source, userId, orgId) {
     // The org, if the mirror has one, must still be a Nextcloud org and still
     // the SAME instance the table was linked from.
@@ -146,7 +152,10 @@ async function resolveUncached(d, source, userId, orgId) {
     return { auth, userId, session };
 }
 
-/** Test/relink hook: forget a linker's memo. */
+/**
+ * Test/relink hook: forget a linker's memo.
+ * @param {string} userId
+ */
 function forget(userId) {
     for (const k of _memo.keys()) if (k.startsWith(`${userId}|`)) _memo.delete(k);
 }

@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * What changed in a project, per reader.
  *

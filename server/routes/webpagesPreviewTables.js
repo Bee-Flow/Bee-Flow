@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `/api/webpages-preview/:id/tables/:tid/*` — the runtime bridge
  * `window.beeflowTables` from a page to a BOUND datatable.
@@ -89,7 +90,10 @@ const SORT_TEXT = 'sort is { field, dir } or a list of those, dir "asc" or "desc
 const LIMIT_TEXT = 'limit is a whole number of rows, at least 1.';
 const CURSOR_TEXT = 'cursor is the nextCursor a previous page returned.';
 
-/** Eén voorwaarde: een object — wat erin staat is aan de compiler. */
+/**
+ * Eén voorwaarde: een object — wat erin staat is aan de compiler.
+ * @param {string} message
+ */
 const clause = (message) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: message }) });
 
 // Every refusal within a sort is the same sentence: a union answers with the first
@@ -127,8 +131,12 @@ const UpdateBody = bodyOf({ rowId: z.unknown().optional(), values: z.unknown().o
  * "and now what?": forget that one `return` and the request hangs until the browser gives
  * up — no error, no answer, nothing in the log. A single `catch` arm that handles everything
  * makes that impossible.
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
  */
 function refuse(status, code, message) {
+    /** @type {Error & { safe?: boolean }} */
     const e = new Error(message);
     e.status = status;
     e.code = code;
@@ -142,6 +150,7 @@ function refuse(status, code, message) {
  * Nooit `previewClaims.userId` als terugval: dat is de EIGENAAR van de pagina,
  * en die terugval zou elke lezer van een gedeelde pagina de tabelrechten van de
  * auteur geven.
+ * @param {import('express').Request} req
  */
 function requireViewer(req) {
     const viewerUserId = req.previewClaims?.viewerUserId || null;
@@ -157,6 +166,8 @@ function requireViewer(req) {
  *
  * `write` asks for the LITERAL mode 'readwrite'; the normaliser has already narrowed every
  * other value to 'read', so here only that one string needs to be recognised.
+ * @param {import('express').Request<{ tid: string }>} req
+ * @param {{ write?: boolean }} [opts]
  */
 async function requireBinding(req, { write = false } = {}) {
     const grants = await getBridgeGrants(req.previewClaims.webpageId);
@@ -199,7 +210,7 @@ async function resolveFor(req, needed) {
 
 // ── Lezen ────────────────────────────────────────────────────────────
 
-router.post('/:id/tables/:tid/query', requirePreviewToken, tableReadBridgeLimiter, validate({ body: QueryBody }), async (req, res) => {
+router.post('/:id/tables/:tid/query', requirePreviewToken, tableReadBridgeLimiter, validate({ body: QueryBody }), async (/** @type {import('express').Request<{ id: string, tid: string }>} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const binding = await requireBinding(req);
         const resolved = await resolveFor(req, 'viewer');
@@ -216,7 +227,7 @@ router.post('/:id/tables/:tid/query', requirePreviewToken, tableReadBridgeLimite
 
 // ── Schrijven ────────────────────────────────────────────────────────
 
-router.post('/:id/tables/:tid/insert', requirePreviewToken, tableWriteBridgeLimiter, validate({ body: InsertBody }), async (req, res) => {
+router.post('/:id/tables/:tid/insert', requirePreviewToken, tableWriteBridgeLimiter, validate({ body: InsertBody }), async (/** @type {import('express').Request<{ id: string, tid: string }>} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const binding = await requireBinding(req, { write: true });
         const resolved = await resolveFor(req, 'editor');
@@ -230,7 +241,7 @@ router.post('/:id/tables/:tid/insert', requirePreviewToken, tableWriteBridgeLimi
     }
 });
 
-router.post('/:id/tables/:tid/update', requirePreviewToken, tableWriteBridgeLimiter, validate({ body: UpdateBody }), async (req, res) => {
+router.post('/:id/tables/:tid/update', requirePreviewToken, tableWriteBridgeLimiter, validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string, tid: string }>} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const binding = await requireBinding(req, { write: true });
         const resolved = await resolveFor(req, 'editor');

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The message-level half of the project chat store (../projectChatStore.js):
@@ -9,7 +9,13 @@
 const { AUTHOR_KINDS, AI_TRIGGERS, NOTICES, ProjectChatStoreError, toInt, rowToMessage, clampLimit } = require('./projectChatRows');
 const { RESET_DERIVED_TITLES, DROP_TRACES } = require('./projectChatSql');
 
-/** Move a member's read marker forward, never back. */
+/**
+ * Move a member's read marker forward, never back.
+ * @param {string} chatId
+ * @param {string} userId
+ * @param {number} seq
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ */
 async function advanceRead(q, chatId, userId, seq) {
     await q.query(
         `INSERT INTO project_chat_reads (chat_id, user_id, last_read_seq, updated_at)
@@ -46,7 +52,7 @@ function makeMessageAppend(db, ready) {
      * @param {{ id: string, projectId: string, chatId: string, authorKind: 'user'|'assistant'|'system',
      *           authorUserId?: string|null, agentId?: string|null, content: string,
      *           mentions?: string[], replyTo?: string|null, threadId?: string|null,
-     *           refs?: { kind: 'document'|'notebook', id: string }[], aiMeta?: object|null, aiTrace?: string|null, clientMsgId?: string|null,
+     *           refs?: { kind: string, id: string }[], aiMeta?: object|null, aiTrace?: string|null, clientMsgId?: string|null,
      *           aiTrigger?: string|null, aiReason?: string|null, notice?: string|null,
      *           unlessHumanAfterSeq?: number|null }} m  `content` sealed ('' for a notice)
      * @returns {Promise<{ message: ReturnType<typeof rowToMessage>, created: boolean, stale?: false }|{ stale: true }|null>}
@@ -154,7 +160,11 @@ function makeMessageAppend(db, ready) {
  * @param {() => Promise<void>} ready
  */
 function makeMessageReads(db, ready) {
-    /** One message, only when it belongs to this chat. */
+    /**
+     * One message, only when it belongs to this chat.
+     * @param {string} chatId
+     * @param {string} messageId
+     */
     async function getMessage(chatId, messageId) {
         await ready();
         const r = await db.query('SELECT * FROM project_chat_messages WHERE id = $1 AND chat_id = $2', [messageId, chatId]);
@@ -232,6 +242,10 @@ function makeMessageEdits(db, ready) {
      * Replace a message's content. Only the author's own, not-deleted, human
      * message matches — the predicate is the rule, the route's check is the
      * worded refusal in front of it. The traces of answers to it are dropped.
+     * @param {string} chatId
+     * @param {string} messageId
+     * @param {string} authorUserId
+     * @param {string} content
      */
     async function editMessage(chatId, messageId, authorUserId, content) {
         await ready();
@@ -255,6 +269,9 @@ function makeMessageEdits(db, ready) {
      * Give a chat whose title was taken from `messageId` a new sealed title
      * (after that message was edited). A chat named otherwise is left alone.
      * @returns {Promise<boolean>} whether the title changed
+     * @param {string} chatId
+     * @param {string} messageId
+     * @param {string} title
      */
     async function retitleFromMessage(chatId, messageId, title) {
         await ready();
@@ -272,6 +289,8 @@ function makeMessageEdits(db, ready) {
      * so is a title taken from this message (`titleReset` says so).
      *
      * @returns {Promise<(ReturnType<typeof rowToMessage> & { titleReset: boolean })|null>}
+     * @param {string} chatId
+     * @param {string} messageId
      */
     async function softDeleteMessage(chatId, messageId) {
         await ready();
@@ -300,6 +319,9 @@ function makeMessageEdits(db, ready) {
     /**
      * Move the caller's read marker to `seq` (clamped to the chat's last seq,
      * never backwards). Returns the stored marker, or null for no such chat.
+     * @param {string} chatId
+     * @param {string} userId
+     * @param {number} seq
      */
     async function markRead(chatId, userId, seq) {
         await ready();

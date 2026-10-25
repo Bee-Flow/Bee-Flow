@@ -501,3 +501,12 @@ module.exports = {
     isPickField,
     MAX_RENDERED_DESCRIPTION_LEN,
 };
+
+/**
+ * @typedef {{ theme?: object, collect?: unknown, fields?: unknown, [key: string]: unknown }} FormDeclaration
+ *   a form as an author wrote it (trigger.form or a form_page step's form)
+ * @typedef {{ type: string, optionsFrom?: unknown, fieldsFrom?: unknown } & Record<string, any>} FormField   one declared (or normalized) question: loose authored JSON
+ * @typedef {(code: string, path: string, message: string, hint: string) => unknown} IssuePush   collects one validation issue
+ * @typedef {{ code: string, path: string, message: string, hint: string }} FormIssue
+ * @typedef {(s: string) => string} Interpolator
+ */

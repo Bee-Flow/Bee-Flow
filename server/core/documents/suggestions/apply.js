@@ -142,3 +142,15 @@ function makeSuggestionApplier(deps) {
 }
 
 module.exports = { makeSuggestionApplier, LIVE_ATTEMPTS };
+
+/**
+     * @typedef {{ id: string, projectId?: string|null, versionId?: string|null, bodyHtml?: string }} SuggestedDoc
+     * @typedef {{ userId: string, isAdmin?: boolean }} SuggestionActor
+     * @typedef {import('./engine').SuggestionEngine} Engine
+     * @typedef {{ ydoc: import('yjs').Doc, fragment: import('yjs').XmlFragment, html: string, seq: number }} LiveFragment
+     * @typedef {{
+     *   withFragment?: <T>(kind: string, id: string, fn: (f: LiveFragment) => T) => Promise<T | null>,
+     *   read: (kind: string, id: string) => Promise<{ html?: string, seq?: number } | null>,
+     *   applyServerEdit: (kind: string, id: string, who: { origin: string, actorId: string }, edit: { replaceWith: { ast: unknown }, expectSeq?: number }) => Promise<{ stale?: boolean, applied?: boolean, versionId?: string, seq?: number } | null>
+     * }} LiveCollab
+     */

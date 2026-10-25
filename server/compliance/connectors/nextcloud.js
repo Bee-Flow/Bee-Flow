@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud serverinfo connector — workplace-software evidence for
  * A.8.19/A.8.8: which server version is running and whether app updates are
@@ -28,6 +28,7 @@ module.exports = {
     credential: { provider: 'nextcloud', kinds: ['basic'] },
     settingsHint: 'base_url: "https://cloud.acme.nl"',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         const baseUrl = String(settings?.base_url || settings?.baseUrl || '').trim().replace(/\/+$/, '');
         if (!/^https?:\/\//i.test(baseUrl)) {
@@ -49,7 +50,7 @@ module.exports = {
         if (!res.ok) {
             throw new Error(`Nextcloud serverinfo failed (${res.status}) — check base_url and the admin app password`);
         }
-        const data = await res.json().catch(() => null);
+        const data = /** @type {{ ocs?: { data?: { nextcloud?: Record<string, any> } } } | null} */ (await res.json().catch(/** @returns {null} */ () => null));
         const nc = data?.ocs?.data?.nextcloud;
         if (!nc) throw new Error('Nextcloud serverinfo returned an unexpected shape');
 
@@ -64,7 +65,7 @@ module.exports = {
                 version,
                 apps_updates_available: Number.isFinite(appsUpdates) ? appsUpdates : null,
                 users: Number.isFinite(users) ? users : null,
-                version_outdated_hint: null,
+                version_outdated_hint: /** @type {string | null} */ (null),
             },
         }];
     },

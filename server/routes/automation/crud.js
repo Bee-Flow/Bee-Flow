@@ -721,3 +721,5 @@ function scheduleWasConfigured(body, updates) {
 }
 
 module.exports = router;
+
+/** @typedef {{ kind?: string, appEvent?: { provider?: string, event?: string } }} AppEventTriggerLike */

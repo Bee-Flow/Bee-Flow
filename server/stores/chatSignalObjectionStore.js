@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * chat_signal_objections — "Don't count my chat turns" (GDPR Art. 21).
  *
@@ -31,6 +31,10 @@ const MEMO_MAX = 5000;
  * @param {{ ready?: () => Promise<unknown>, now?: () => number }} [opts]
  */
 function makeChatSignalObjectionStore(db, { ready = async () => {}, now = Date.now } = {}) {
+    /**
+     * @param {string} sql
+     * @param {unknown[]} [params]
+     */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
     const memo = createTtlCache({ ttlMs: MEMO_TTL_MS, max: MEMO_MAX, now });
 

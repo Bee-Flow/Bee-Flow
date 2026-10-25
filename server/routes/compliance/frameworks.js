@@ -349,3 +349,13 @@ router.post('/frameworks/:id/relevance', requireAuth, requirePermission('admin_c
 module.exports = router;
 module.exports.serialize = serialize;
 module.exports.RECENTLY_IN_FORCE_DAYS = RECENTLY_IN_FORCE_DAYS;
+
+/** @typedef {Record<string, any> & { status: string }} LatestRow A compliance_checks row (getLatestPerCheck) */
+
+/** @typedef {NonNullable<ReturnType<typeof frameworks.byId>>} Framework */
+
+/** @typedef {Awaited<ReturnType<typeof frameworkPolicy.resolve>>[number]} FrameworkState */
+
+/** @typedef {(import('../../compliance/calendar').Affects & { derived_relevance?: undefined }) | { detections: number, derived_relevance: string | null }} FrameworkAffects */
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

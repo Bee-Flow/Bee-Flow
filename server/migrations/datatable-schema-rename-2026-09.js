@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Migration: rename every per-tenant datatable schema from `dtorg_<orgId>` to
  * the fixed-length hashed name `dt_<sha256(scopeKind\0scopeId)[0:40]>` (2026-09).
@@ -46,14 +47,17 @@ const { schemaNameFor, LEGACY_ORG_PREFIX } = require('../stores/datatableDbStore
 // Postgres SQLSTATEs that mean another replica finished the rename first.
 const ALREADY_DONE = new Set(['42P06', '3F000']);
 
-/** A Postgres quoted identifier — the only correct escape is doubling `"`. */
+/**
+ * A Postgres quoted identifier — the only correct escape is doubling `"`.
+ * @param {string} name
+ */
 function quoted(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
 async function up() {
     // A fresh install reaches this migration with no datatable tables at all.
-    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(() => null);
+    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(/** @returns {null} */ () => null);
     if (!probe?.t) return;
 
     const rows = await getAll(`SELECT organization_id FROM datatable_models`);
@@ -90,7 +94,7 @@ async function up() {
             if (ALREADY_DONE.has(e?.code)) continue;   // another replica won the race
             // One tenant with an unusual schema must not hold back everyone
             // else's rename, and the legacy fallback keeps this org working.
-            console.error(`[Migration] datatable-schema-rename: org ${orgId} failed: ${e.message}`);
+            console.error(`[Migration] datatable-schema-rename: org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
         }
     }
 

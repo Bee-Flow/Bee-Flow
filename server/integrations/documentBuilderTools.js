@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Document Builder Tools — the chat's way to author a rendered document.
  *
@@ -34,6 +35,19 @@ const { shouldSuggest } = require('../core/documents/suggestions/policy');
  * live layer, which takes an actor and no role (the stored-body path would
  * have refused them in updateDocument; the live one would not).
  */
+/**
+ * @typedef {import('../stores/documentStore').DocumentView} DocView
+ * @typedef {Parameters<typeof executeDocumentTool>[2]} DocToolCtx
+ * The live co-editing facade (core/collab) as this file uses it; every method may be missing.
+ * @typedef {{ read?: (type: string, id: string) => Promise<{ html?: string, seq?: number } | null>,
+ *   readHtml?: (type: string, id: string) => Promise<string | null>,
+ *   withFragment?: <R>(type: string, id: string, fn: (state: { html: unknown, fragment: unknown }) => R) => Promise<R | null>,
+ *   applyServerEdit?: (type: string, id: string, actor: { origin: string, actorId: string },
+ *     edit: { replaceWith: { html: string }, expectSeq?: number }) => Promise<{ stale?: boolean, applied?: boolean, seq?: number } | null> }} LiveCollab
+ * @typedef {ReturnType<typeof applyFindReplace>} FindReplaceResult
+ */
+
+/** @param {DocView} doc */
 const readOnlyFor = (doc) => !!doc.projectRole && !canEditAs(doc.projectRole);
 const READ_ONLY = { error: 'Document is read-only.' };
 // A spreadsheet's cells are in a datatable, not in the body slots.
@@ -42,7 +56,9 @@ const sheetTools = () => require('./sheetDocumentTools');
 // moves with every keystroke. document_read hands out a versionId that also names the live
 // update it read (`<versionId>@live:<seq>`); a full write is applied only while that is newest.
 const LIVE_MARK = '@live:';
+/** @param {string | null | undefined} versionId @param {number} seq */
 const liveToken = (versionId, seq) => `${versionId || ''}${LIVE_MARK}${seq}`;
+/** @param {unknown} value */
 function parseExpected(value) {
     const text = typeof value === 'string' ? value : '';
     const at = text.lastIndexOf(LIVE_MARK);
@@ -52,6 +68,11 @@ function parseExpected(value) {
 }
 
 /** The live state of a page and the update it is at (seq null when the facade cannot say). */
+/**
+ * @param {LiveCollab} live
+ * @param {string} id
+ * @returns {Promise<{ html: string | null, seq: number | null }>}
+ */
 async function readLive(live, id) {
     if (typeof live.read === 'function') {
         const state = await live.read('document', id);
@@ -64,8 +85,15 @@ async function readLive(live, id) {
  * Run `fn({ html, fragment })` on what people see now: the live state of a
  * co-edited page, opened once so anchors get relative positions into the very
  * fragment the editors hold, or the stored body (fragment null).
+ *
+ * @template R
+ * @param {LiveCollab | null} live
+ * @param {string} id
+ * @param {string | undefined} storedHtml
+ * @param {(body: { html: string, fragment: unknown }) => R} fn
  */
 async function withCurrentBody(live, id, storedHtml, fn) {
+    /** @type {{ html: string, fragment: unknown }} */
     const stored = { html: storedHtml || '', fragment: null };
     if (!live) return fn(stored);
     if (typeof live.withFragment === 'function') {
@@ -78,6 +106,7 @@ async function withCurrentBody(live, id, storedHtml, fn) {
 
 // What an AI edit is in the history: its own version, marked as the AI's,
 // made for the person whose chat asked for it (never folded into their typing).
+/** @param {string} userId @param {string | undefined} summary */
 const aiRevision = (userId, summary) => ({
     source: 'ai', summary: typeof summary === 'string' && summary.trim() ? summary.trim().slice(0, 500) : 'AI edit',
     contributors: [{ userId, kind: 'ai' }],
@@ -89,18 +118,26 @@ const MAX_OPEN_SUGGESTIONS_LISTED = 50;
  * Does an AI change to this page wait for a human (suggestions)? Direct only for
  * a page this chat made, private, unfiled and not live
  * (core/documents/suggestions/policy.js).
+ *
+ * @param {DocView} doc
+ * @param {DocToolCtx} ctx
+ * @param {LiveCollab | null} live
  */
 const mustSuggest = (doc, ctx, live) => doc.docType === 'page' && shouldSuggest({
     doc, createdInThisChat: !!(ctx.documentScope && typeof ctx.documentScope.createdInChat === 'function' && ctx.documentScope.createdInChat(doc.id)),
     liveSession: !!live,
 });
 
+/** @param {DocToolCtx} ctx */
 const suggestionStoreOf = (ctx) => ctx.suggestionStore || require('../stores/documentSuggestionStore');
 
 /**
  * Turn "the body the model wants" into stored suggestions instead of a write:
  * one per run of changed blocks, for the person to accept. Nothing is changed.
  * `currentHtml` is what people see now (the live state for a live page).
+ *
+ * @param {{ doc: DocView, userId: string, ctx: DocToolCtx, currentHtml: string, proposedHtml: string,
+ *   baseToken?: string, summary?: string, fragment?: unknown }} params
  */
 async function suggestBody({ doc, userId, ctx, currentHtml, proposedHtml, baseToken, summary, fragment = null }) {
     const engine = ctx.engine || require('../core/documents/suggestions/engine').engine();
@@ -129,10 +166,14 @@ async function suggestBody({ doc, userId, ctx, currentHtml, proposedHtml, baseTo
 }
 
 const APP_PATH = 'app/studio/documents';
+/** @param {string} id */
 function documentUrl(id) {
     return `/${APP_PATH}/${id}`;
 }
 
+/** @typedef {{ type: string, function: { name: string, description: string, parameters: { type: string, properties: Record<string, object>, required?: string[] } } }} ToolDef */
+
+/** @type {ToolDef[]} */
 const DOCUMENT_TOOLS = [
     {
         type: 'function',
@@ -236,14 +277,22 @@ for (const tool of DOCUMENT_TOOLS) {
 DOCUMENT_TOOLS.push(require('./sheetDownloadTool').DOCUMENT_DOWNLOAD_TOOL);
 const DOCUMENT_TOOL_NAMES = new Set(DOCUMENT_TOOLS.map(t => t.function.name));
 
+/** @param {string} toolName */
 function isDocumentTool(toolName) {
     return DOCUMENT_TOOL_NAMES.has(toolName);
 }
 
 /**
+ * @typedef {{ documentId?: string, name?: string, settings?: import('../stores/documentStore').DocSettings, useHouseStyle?: boolean, docType?: string,
+ *   description?: string, kind?: string, expectedVersionId?: string, bodyHtml?: string, outline?: string,
+ *   css?: string, summary?: string, slot?: string, find_text?: string, replace_text?: string,
+ *   replace_all?: boolean, format?: string, tab?: string, mode?: string, range?: string }} DocumentToolArgs
+ */
+
+/**
  * @param {string} toolName
- * @param {object} args
- * @param {{userId: string, orgId?: string, conversationId?: string, agentId?: string, documentScope?: {has(id: string): boolean, add(id: string): void, markCreated?(id: string): void, createdInChat?(id: string): boolean}, suggestionStore?: any, announceSuggestions?: Function, engine?: any}} ctx
+ * @param {DocumentToolArgs} args
+ * @param {{userId?: string, orgId?: string, conversationId?: string, agentId?: string, documentScope?: {has(id: string): boolean, add(id: string): void, markCreated?(id: string): void, createdInChat?(id: string): boolean}, suggestionStore?: any, announceSuggestions?: Function, engine?: any}} [ctx]
  */
 async function executeDocumentTool(toolName, args = {}, ctx = {}) {
     const userId = ctx.userId;
@@ -342,7 +391,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         if (doc.docType === 'page') {
             try {
                 openSuggestions = (await suggestionStoreOf(ctx).list('document', doc.id, { status: 'open' }))
-                    .slice(0, MAX_OPEN_SUGGESTIONS_LISTED).map((x) => ({ id: x.id, summary: x.summary }));
+                    .slice(0, MAX_OPEN_SUGGESTIONS_LISTED).map((/** @type {import('../stores/documentSuggestionStore').SuggestionRow} */ x) => ({ id: x.id, summary: x.summary }));
             } catch (e) {
                 log.warn('[DocumentTools] open suggestions not listed:', e.message);
             }
@@ -443,6 +492,7 @@ async function executeDocumentTool(toolName, args = {}, ctx = {}) {
         const field = slot === 'body' ? 'bodyHtml' : 'css';
         if (doc.versionId && !args.expectedVersionId) return { error: 'Read document_read first and pass its versionId as expectedVersionId.' };
         const label = slot === 'body' ? (doc.docType === 'presentation' ? 'The slide outline' : 'The document body') : 'The stylesheet';
+        /** @param {string} text */
         const edit = (text) => applyFindReplace(text, {
             findText: args.find_text,
             replaceText: args.replace_text ?? '',
@@ -507,6 +557,12 @@ const LIVE_EDIT_ATTEMPTS = 3;
  * (`{ error }`), because the body would undo what they typed. Null when the
  * page is not live (the caller then saves the stored body with its revision
  * check).
+ *
+ * @param {DocView} doc
+ * @param {string} userId
+ * @param {string} html
+ * @param {LiveCollab | null} live
+ * @param {number | undefined} expectSeq
  */
 async function writeLive(doc, userId, html, live, expectSeq) {
     if (!live || typeof live.applyServerEdit !== 'function') return null;
@@ -527,6 +583,11 @@ async function writeLive(doc, userId, html, live, expectSeq) {
  * A find/replace on a page edited live: applied to the live state and written
  * only from the update it was computed on. Null when the page turns out not to
  * be live (the caller edits the stored body).
+ *
+ * @param {DocView} doc
+ * @param {string} userId
+ * @param {LiveCollab} live
+ * @param {(text: string) => FindReplaceResult} edit
  */
 async function editLive(doc, userId, live, edit) {
     for (let attempt = 0; attempt < LIVE_EDIT_ATTEMPTS; attempt += 1) {
@@ -541,7 +602,12 @@ async function editLive(doc, userId, live, edit) {
     return { error: LIVE_STALE };
 }
 
-/** Tell the project's change feed about an AI edit to a filed document. */
+/**
+ * Tell the project's change feed about an AI edit to a filed document.
+ * @param {DocView} before
+ * @param {DocView} after
+ * @param {string} userId
+ */
 async function reportAiEdit(before, after, userId) {
     if (after.versionId === before.versionId) return;
     await documentFeed.recordContentChange(after, {

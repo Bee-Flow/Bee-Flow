@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The legacy keyed `content` shape the public marketing renderer expects.
  *
@@ -32,8 +32,10 @@ function objs(v) {
  * Per-block `style` overrides are preserved on the blocks[] entries so
  * the renderer can apply the same visual customizations on the public
  * site as inside the admin preview.
+ * @param {import('../../stores/cms/shared').CmsDoc} eff
  */
 function synthesizeLegacyContent(eff) {
+    /** @type {import('../../stores/cms/shared').CmsDoc} */
     const out = {};
     if (eff.header) {
         // navLinks / ctaHref: Header.jsx reads flat `{label, href}` and
@@ -172,8 +174,8 @@ function synthesizeLegacyContent(eff) {
     // false so pages that pre-date the flag still show both.
     out.hideHeader = !!eff.page?.hideHeader;
     out.hideFooter = !!eff.page?.hideFooter;
-    const enabledBlocks = (eff.page?.blocks || []).filter(b => b.enabled !== false);
-    out.blocks = enabledBlocks.map(b => ({
+    const enabledBlocks = (eff.page?.blocks || []).filter(/** @param {import('../../stores/cms/shared').CmsBlock} b */ b => b.enabled !== false);
+    out.blocks = enabledBlocks.map(/** @param {import('../../stores/cms/shared').CmsBlock} b */ b => ({
         id: b.id,
         type: b.type,
         enabled: true,

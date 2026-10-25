@@ -28,10 +28,17 @@ const { bestEffort } = require('../../../utils/bestEffort');
 const DAY_MS = 86_400_000;
 const FLUSH_CHARS = 64 * 1024;
 
+/**
+ * @param {string} message
+ * @param {string} errorClass
+ */
 function tableError(message, errorClass) {
     return Object.assign(new Error(message), { errorClass });
 }
 
+/**
+ * @param {number | undefined} ttlDays
+ */
 function clampTtlDays(ttlDays) {
     const days = Math.round(Number(ttlDays) || DOCUMENT_TTL_DEFAULT_DAYS);
     return Math.min(DOCUMENT_TTL_MAX_DAYS, Math.max(DOCUMENT_TTL_MIN_DAYS, days));
@@ -69,6 +76,7 @@ function makeTableWriter(deps = {}) {
         const keys = cols.map(c => c.key);
         const previewKeep = limits.previewRows > 0 ? limits.previewRows : 0;
 
+        /** @type {Record<string, unknown>[]} */
         const sample = [];
         let rowCount = 0;
         let rawBytes = 0;
@@ -103,7 +111,7 @@ function makeTableWriter(deps = {}) {
             try {
                 await storage().uploadFileFromPath(key, tmpPath, 'application/gzip');
             } catch (e) {
-                log.warn(`[tables] upload failed: ${e.message}`);
+                log.warn(`[tables] upload failed: ${/** @type {Error} */ (e).message}`);
                 throw tableError('The table could not be saved to storage.', 'storage_unavailable');
             }
             uploaded = true;

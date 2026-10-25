@@ -697,3 +697,13 @@ module.exports = router;
 // It authorises nothing on its own: every caller resolves the project role, or
 // the project list, before it hands an id over.
 module.exports.buildGraphForProject = buildGraphForProject;
+
+/**
+ * Request after requireRole: the loaded project.
+ * @typedef {import('express').Request<{ id: string }> & { project?: Awaited<ReturnType<typeof projectStore.getProject>> }} ProjectReq
+ * @typedef {NonNullable<Awaited<ReturnType<typeof projectStore.updateProject>>>} UpdateAnswer
+ * @typedef {Extract<UpdateAnswer, { conflict: boolean }>} UpdateConflict
+ * @typedef {Exclude<UpdateAnswer, UpdateConflict>} UpdatedProject
+ */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof S.ListQuery>>} ProjectListReq */

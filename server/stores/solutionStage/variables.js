@@ -382,3 +382,7 @@ function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
 }
 
 module.exports = { makeVariablesStore, coerceValue, VARIABLE_NAME_RE, VARIABLE_TYPES };
+
+/** @typedef {import('./deploymentModel').Queryable} Queryable */
+
+/** @typedef {import('./deploymentModel').StageDb} StageDb */

@@ -159,3 +159,22 @@ async function verifyExisting({ playbook, principal, recipe }, deps) {
 }
 
 module.exports = { runTablePhase };
+
+/**
+ * @typedef {{ key: string, name?: string, type?: string }} FieldRef
+ * @typedef {{ userId?: string, options?: { tableMode?: string, locale?: string, tableTitle?: string, datatableId?: string },
+ *   phases?: import('../lifecycle').Phase[] }} TablePlaybook
+ * @typedef {{
+ *   title?: string,
+ *   schema?: ReadonlyArray<Record<string, unknown>>,
+ *   schemaFor?: (locale: string | null) => ReadonlyArray<Record<string, unknown>>,
+ *   tableTitleFor?: (locale: string | null) => string,
+ *   verifyExistingTable: (fields: FieldRef[]) => ReturnType<typeof import('../recipeDoc').verifyAgainstRoles>,
+ *   schemaMapping: (locale: string | null) => Record<string, string>,
+ *   defaultTableKey: (title: string, usedKeys: Set<string>, locale: string | null) => string,
+ * }} TableRecipe
+ * @typedef {NonNullable<Parameters<typeof import('../../core/dataEngine/createStudioDatatable').createStudioDatatable>[1]>
+ *   & { createStudioDatatable?: typeof import('../../core/dataEngine/createStudioDatatable').createStudioDatatable }} TableDeps
+ * @typedef {import('../../auth/datatableAccess').DatatablePrincipal} Principal
+ * @typedef {{ ok: boolean, artifacts?: Record<string, unknown>, summary?: string, code?: string, error?: string, missing?: string[] }} TablePhaseResult
+ */

@@ -25,6 +25,18 @@ const { fallback } = require('../../../utils/bestEffort');
 // import cycle).
 const PARTS_DEPS = { applyTokenMapToOutbound, usageStore };
 
+/**
+ * @param {{
+ *   agent: import('./turnState').AgentRow, agentId: string, userId: string,
+ *   messageMetadata: import('./turnState').MessageMetadata, modelToUse: string,
+ *   conversation: import('./turnState').ConversationRow, tools: import('./turnState').ToolDef[],
+ *   signal?: AbortSignal, onEvent: import('./turnState').OnEvent,
+ *   regexConfig?: import('./roundRequest').RegexConfig | null, guardrailViolation?: string | null,
+ *   _forceFinalAnswer?: boolean, effectiveSystemPrompt: string, effectiveVolatilePrompt: string,
+ *   finalMessages: import('./turnState').ChatMessage[], tierSettings: import('./roundRequest').TierSettings,
+ *   headers: Record<string, string>, apiUrl: string, _streamCallStart: number, _thinking: string,
+ * }} turn
+ */
 async function streamRawSseRound({
     agent, agentId, userId, messageMetadata, modelToUse, conversation,
     tools, signal, onEvent, regexConfig, guardrailViolation, _forceFinalAnswer,
@@ -46,6 +58,7 @@ async function streamRawSseRound({
     // and logged once after the stream ends: logging inside the loop caused
     // duplicate rows whenever a server emitted more than one usage frame (and
     // was racy with the inner async path).
+    /** @type {import('./rawSseParts').RawRoundState} */
     const rs = {
         contentBuffer: '', currentToolCalls: [], thinking: _thinking,
         usage: null, finishReason: null, guardTripped: false,
@@ -61,7 +74,7 @@ async function streamRawSseRound({
     // `_emitVisibleText` carries the pre-existing regex-guard +
     // content emission so guarded output still cancels the stream.
     const { createThinkTagSplitter } = require('../../providers/thinkTagStream');
-    const _emitVisibleText = (text) => {
+    const _emitVisibleText = (/** @type {string} */ text) => {
         rs.contentBuffer += text;
         // Real-time Agent Output validation - check as we stream
         if (regexConfig?.enabled && regexConfig?.scope?.agentOutput) {

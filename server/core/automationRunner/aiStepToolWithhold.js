@@ -308,3 +308,10 @@ module.exports = {
     _startsAutomation,
     _toolName,
 };
+
+/**
+ * A tool definition as this deduction reads it.
+ * @typedef {import('../agentRuntime/toolPolicy/appIndex').ToolDef & { __automation?: { id?: string }, __step?: { id?: string } }} WithholdTool
+ */
+
+/** @typedef {import('../agentRuntime/toolPolicy/configShape').ToolsConfig} ToolsConfig */

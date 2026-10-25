@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * approvalReactionIngest — a 👍 in Nextcloud Talk becomes a real vote.
  *
@@ -49,6 +50,10 @@ const automationStore = require('../stores/automationStore');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+/** @typedef {import('./approvalRulebook').ApprovalViewer} ApprovalViewer */
+/** @typedef {{ id?: string, approvalId?: string, organizationId?: string|null, userId?: string|null, externalRef?: { roomToken?: string, messageId?: string|number }|null }} Delivery  a card's ledger row */
+
 /**
  * Emoji that mean yes / no. Compared after normalisation, so 👍🏽 and 👍️ are
  * the same vote. Anything else is not an answer and is ignored outright — a
@@ -57,7 +62,11 @@ const { fallback } = require('../utils/bestEffort');
 const APPROVE_EMOJI = new Set(['👍', '✅', '☑️', '✔️', '🆗']);
 const REJECT_EMOJI = new Set(['👎', '❌', '⛔', '🚫']);
 
-/** Strip skin-tone modifiers (U+1F3FB–U+1F3FF) and the variation selector. */
+/**
+ * Strip skin-tone modifiers (U+1F3FB–U+1F3FF) and the variation selector.
+ *
+ * @param {unknown} raw
+ */
 function normalizeEmoji(raw) {
     return String(raw || '')
         .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '')
@@ -65,6 +74,10 @@ function normalizeEmoji(raw) {
         .trim();
 }
 
+/**
+ * @param {unknown} raw
+ * @returns {'approve'|'reject'|null}
+ */
 function classifyReaction(raw) {
     const e = normalizeEmoji(raw);
     if (!e) return null;
@@ -77,6 +90,9 @@ function classifyReaction(raw) {
  * The viewer a REACTION speaks for. Deliberately narrower than the session
  * viewer routes/automation/approvals.js builds: no org-admin capability, so
  * canDecide's admin clause cannot fire from a chat room.
+ *
+ * @param {Record<string, any>} user  the user row
+ * @returns {Promise<ApprovalViewer>}
  */
 async function reactionViewer(user) {
     const { parseGroupIds } = require('../auth/orgMembership');
@@ -94,6 +110,9 @@ async function reactionViewer(user) {
  * approvalService.currentStage). Legacy panel and single-assignee rows reuse
  * approvalService.canDecide unchanged — with the admin clause disarmed by the
  * viewer above. One rulebook, no second copy of the seat arithmetic.
+ *
+ * @param {Approval} approval
+ * @param {ApprovalViewer} viewer
  */
 function seatedNow(approval, viewer) {
     const approvalService = require('./approvalService');
@@ -104,11 +123,16 @@ function seatedNow(approval, viewer) {
     return approvalService.canDecide(approval, viewer);
 }
 
-/** The deep link, as the card prints it. */
+/**
+ * The deep link, as the card prints it.
+ *
+ * @param {string} approvalId
+ */
 function approvalLink(approvalId) {
     return require('./publicUrl').approvalUrlForId(approvalId);
 }
 
+/** @param {{ delivery: Delivery, approval: Approval, reason: string }} p */
 async function nudgeToApp({ delivery, approval, reason }) {
     try {
         const { replyInTalk } = require('./approvalDelivery');
@@ -130,9 +154,13 @@ async function nudgeToApp({ delivery, approval, reason }) {
  * Never throws — the caller is a webhook ack path. Returns a small verdict
  * object; `counted: true` means a vote reached approvalService.decide.
  *
- * @param {{orgId:string, ncUid:string|null, payload:object}} p
+ * @param {{orgId:string, ncUid?:string|null, payload?:{ removed?: boolean, reaction?: string, actorType?: string, roomToken?: string, messageId?: string|number, actor?: string }}} p
  */
 async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
+    /**
+     * @param {string} outcome
+     * @param {Record<string, unknown>} [extra]
+     */
     const verdict = (outcome, extra = {}) => ({ counted: false, outcome, ...extra });
     try {
         if (!orgId) return verdict('no_org');
@@ -156,7 +184,7 @@ async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
         if (!roomToken || messageId == null) return verdict('incomplete_payload');
 
         // (1) Is this one of our cards?
-        const delivery = await automationStore.getApprovalDeliveryForTalkMessage(roomToken, messageId);
+        const delivery = /** @type {Delivery|null} */ (await automationStore.getApprovalDeliveryForTalkMessage(roomToken, messageId));
         if (!delivery) return verdict('not_an_approval_card');
         // The org that signed the forward must be the org the card was sent
         // for — otherwise one tenant's connector could vote on another's card.
@@ -166,7 +194,7 @@ async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
         }
 
         // (2) Is the row still open?
-        const approval = await automationStore.getApproval(delivery.approvalId);
+        const approval = /** @type {Approval|null} */ (await automationStore.getApproval(delivery.approvalId));
         if (!approval) return verdict('approval_gone');
         if (approval.status !== 'pending') return verdict('already_decided', { status: approval.status });
 
@@ -236,6 +264,8 @@ async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
  *
  * Bounded by "approvals still waiting", so on an instance with an empty queue
  * — or with no Talk cards at all — this does one indexed query and returns.
+ *
+ * @param {{ limit?: number, budgetMs?: number, now?: () => number }} [opts]
  */
 async function pollTalkReactions({ limit = 200, budgetMs = 20_000, now = () => Date.now() } = {}) {
     // A WALL-CLOCK BUDGET, not just a row limit. `limit` bounds how many cards
@@ -252,9 +282,10 @@ async function pollTalkReactions({ limit = 200, budgetMs = 20_000, now = () => D
     let counted = 0;
     let checked = 0;
     let timedOut = false;
+    /** @type {Delivery[]} */
     let deliveries = [];
     try {
-        deliveries = await automationStore.getPendingTalkDeliveries(limit);
+        deliveries = /** @type {Delivery[]} */ (await automationStore.getPendingTalkDeliveries(limit));
     } catch (e) {
         log.warn(`[ApprovalReactions] poll query failed: ${e.message}`);
         return { checked: 0, counted: 0 };
@@ -265,6 +296,7 @@ async function pollTalkReactions({ limit = 200, budgetMs = 20_000, now = () => D
     const { listMessageReactions } = require('../integrations/nextcloudTalkBot');
     // One Nextcloud identity per owner, not per card: a queue of ten approvals
     // from one owner must not rebuild the same session ten times.
+    /** @type {Map<string, import('./approvalDelivery').NcContext|null>} */
     const contexts = new Map();
 
     for (const d of deliveries) {

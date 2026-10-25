@@ -37,6 +37,23 @@ const { resolveBridgeModel, loadAiContext } = require('./webpagesPreviewAi');
 const { compactToolResultForLLM, buildAskToolSurface, automationToolName } = require('./webpagesPreviewAskTools');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
+/** @typedef {NonNullable<Awaited<ReturnType<typeof loadAiContext>>>} AiCtx */
+/** @typedef {ReturnType<typeof buildAskToolSurface>} AskSurface */
+/** @typedef {{ query?: unknown, topK?: string, inputs?: unknown }} AskToolArgs */
+/** @typedef {{ id: string, type?: string, name?: string, function?: { name?: string, arguments?: string } }} StreamToolCall */
+/** @typedef {{ text?: string, id?: string, name?: string, input?: unknown, function?: { name?: string, arguments?: string }, error?: string }} StreamEventData */
+/**
+ * @typedef {{ ctx: AiCtx, surface: AskSurface,
+ *   shieldGate: ReturnType<typeof import('../core/privacy/toolPiiGate').toolLoopGate>,
+ *   send: (event: string, data?: unknown) => void, isGone: () => boolean,
+ *   usageAcc: ReturnType<typeof createUsageAccumulator>,
+ *   viewerUserId: string | null | undefined, webpageId: string }} AskState
+ */
+/**
+ * @typedef {{ tierName: string, modelId: string | null, adapter?: ReturnType<typeof getAdapter>, apiKey?: string,
+ *   apiUrl?: string, maxTokens?: number, maxRounds?: number, temperature?: number, tools?: AskSurface['tools'] }} AskLlm
+ */
+
 const MAX_ASK_ROUNDS_DEFAULT = 6;
 const MAX_ASK_ROUNDS_HARD_CAP = 10;
 
@@ -44,6 +61,11 @@ const MAX_ASK_ROUNDS_HARD_CAP = 10;
 // server"): the bridge acts as the author, so the author's rules hold
 // (BFSF-354). Rules in core/privacy/toolPiiGate.js; a failed lookup
 // leaves the lists unapplied, as a missing shield does elsewhere.
+/**
+ * @param {AiCtx} ctx
+ * @param {unknown[]} tools
+ * @param {string} modelId
+ */
 async function buildShieldGate(ctx, tools, modelId) {
     const toolPiiGate = require('../core/privacy/toolPiiGate');
     const shield = tools.length > 0
@@ -60,6 +82,10 @@ async function buildShieldGate(ctx, tools, modelId) {
     });
 }
 
+/**
+ * @param {AskState} ask
+ * @param {AskToolArgs} toolArgs
+ */
 async function searchPageKnowledge(ask, toolArgs) {
     const query = String(toolArgs.query || '').trim();
     if (!query) return { error: 'query is required' };
@@ -72,6 +98,11 @@ async function searchPageKnowledge(ask, toolArgs) {
     return { chunks: r?.chunks || [], contextPrompt: r?.contextPrompt || '' };
 }
 
+/**
+ * @param {AskState} ask
+ * @param {string} toolName
+ * @param {AskToolArgs} toolArgs
+ */
 async function runGrantedAutomation(ask, toolName, toolArgs) {
     const { ctx, surface, viewerUserId, webpageId } = ask;
     // Find the original grant by reversing the sanitized name match
@@ -97,6 +128,11 @@ async function runGrantedAutomation(ask, toolName, toolArgs) {
     return { runId: run.id, status: run.status, output: run.output ?? null, error: run.error || null };
 }
 
+/**
+ * @param {AskState} ask
+ * @param {string} toolName
+ * @param {AskToolArgs} toolArgs
+ */
 function runGrantedIntegration(ask, toolName, toolArgs) {
     const { ctx, webpageId } = ask;
     const grant = ask.surface.integrationGrantByTool.get(toolName);
@@ -119,6 +155,11 @@ function runGrantedIntegration(ask, toolName, toolArgs) {
     });
 }
 
+/**
+ * @param {AskState} ask
+ * @param {string} toolName
+ * @param {AskToolArgs} toolArgs
+ */
 async function runAskTool(ask, toolName, toolArgs) {
     try {
         if (toolName === 'page_knowledge_search' && ask.surface.groundEnabled) return await searchPageKnowledge(ask, toolArgs);
@@ -130,9 +171,14 @@ async function runAskTool(ask, toolName, toolArgs) {
     }
 }
 
+/**
+ * @param {AskState} ask
+ * @param {StreamToolCall} toolCall
+ */
 async function dispatchAskTool(ask, toolCall) {
     const { send, shieldGate } = ask;
     const toolName = toolCall.function?.name || toolCall.name;
+    /** @type {AskToolArgs} */
     let toolArgs = {};
     try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { fallback('routes/webpagesPreviewAsk:dispatchAskTool', _); /* tool arguments are not valid JSON, call the tool with none */ }
 
@@ -161,8 +207,12 @@ async function dispatchAskTool(ask, toolCall) {
     };
 }
 
-/** One round's stream state plus the provider callback that fills it. */
+/**
+ * One round's stream state plus the provider callback that fills it.
+ * @param {AskState} ask
+ */
 function makeRoundState(ask) {
+    /** @type {{ fullContent: string, streamToolCalls: StreamToolCall[], callback?: (type: string, data: StreamEventData) => void }} */
     const state = { fullContent: '', streamToolCalls: [] };
     state.callback = (type, data) => {
         if (type === 'text') {
@@ -189,6 +239,11 @@ function makeRoundState(ask) {
     return state;
 }
 
+/**
+ * @param {AskState} ask
+ * @param {AskLlm} llm
+ * @param {Array<{ role: string, content: string | null, tool_calls?: StreamToolCall[], tool_call_id?: string }>} messages
+ */
 async function runAskRounds(ask, llm, messages) {
     const { isGone } = ask;
     const { adapter, apiKey, apiUrl, modelId, tools, maxTokens, maxRounds, temperature } = llm;
@@ -204,6 +259,7 @@ async function runAskRounds(ask, llm, messages) {
         state.fullContent = '';
         state.streamToolCalls = [];
 
+        /** @type {{ maxTokens: number, temperature: number, tools?: AskSurface['tools'], toolChoice?: string }} */
         const streamOptions = { maxTokens, temperature };
         if (tools.length > 0) {
             streamOptions.tools = tools;
@@ -236,7 +292,12 @@ async function runAskRounds(ask, llm, messages) {
     return { rounds, truncated };
 }
 
-/** Adapter, credentials and the clamps for this ask, or null without a model. */
+/**
+ * Adapter, credentials and the clamps for this ask, or null without a model.
+ * @param {AiCtx} ctx
+ * @param {{ tier?: unknown, maxTokens?: string, maxRounds?: string } | null | undefined} body
+ * @returns {Promise<AskLlm>}
+ */
 async function resolveAskLlm(ctx, body) {
     const { tierName, modelId, tierDefaults, maxTokens } = await resolveBridgeModel(ctx, body);
     if (!modelId) return { tierName, modelId: null };
@@ -255,6 +316,10 @@ async function resolveAskLlm(ctx, body) {
 }
 
 // POST /:id/ai/ask
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function ask(req, res) {
     // `viewerUserId`, NEVER `userId`: the latter is the page's OWNER
     // (auth/webpagePreviewToken.js explains why the two claims exist side by
@@ -271,7 +336,7 @@ async function ask(req, res) {
     // spending tokens / dispatching integration+automation side effects on
     // behalf of a client that's no longer listening.
     const { send: sendEvent, isGone, stopHeartbeat } = openSse(res, { heartbeat: true });
-    const send = (event, data) => {
+    const send = (/** @type {string} */ event, /** @type {unknown} */ data) => {
         if (isGone()) return;
         sendEvent(event, data || {});
     };

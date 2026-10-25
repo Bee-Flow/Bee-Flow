@@ -254,3 +254,7 @@ async function openTicket(req, r, val) {
 
 module.exports = { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket };
 
+/**
+ * @typedef {{ userId: string | null, email: string, name: string | null, orgRole: string | null, orgId: string | null, orgName: string | null }} SupportRequester
+ * @typedef {{ thread: Awaited<ReturnType<typeof supportStore.createThread>>, userId: string | null, requesterEmail: string, requesterName: string | null, subject: string, requesterUrl: ReturnType<typeof _buildThreadUrl>, skipOutboundEmail: boolean }} TicketMailCtx
+ */

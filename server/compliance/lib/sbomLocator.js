@@ -182,3 +182,5 @@ module.exports = {
     DEFAULT_IMAGE_PATH,
     REPO_ROOT,
 };
+
+/** @typedef {{ component_count: number, generated_at: string | null, version: string | null, name: string | null, build_sha: string | null, spec_version: string | null, tool: string | null }} SbomParsed */

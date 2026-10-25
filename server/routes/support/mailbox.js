@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').Router} Router */
+// @typecheck noImplicitAny
 /**
  * Mailbox residue in the company inbox: report whether an email box is still
  * feeding it, and let a super-admin cut that mailbox loose and purge the
@@ -17,6 +18,10 @@ const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.o
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * @param {import('express').IRouter} router
+ * @param {Router} router
+ */
 function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
     // GET  /mailbox            — is an email box feeding this company inbox?
@@ -30,12 +35,12 @@ function register(router) {
     // panel. deleteInbox now purges instead; these endpoints clear up what earlier
     // disconnects already spilled here.
     // ──────────────────────────────────────────────────────────────────────────
-    router.get('/mailbox', requireStaffSupport, async (req, res) => {
+    router.get('/mailbox', requireStaffSupport, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const summary = await supportStore.getCompanyMailboxSummary();
         res.json({ mailbox: { connected: summary.count > 0, ...summary } });
     });
 
-    router.post('/mailbox/disconnect', validate({ body: NoBody }), async (req, res) => {
+    router.post('/mailbox/disconnect', validate({ body: NoBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         if (!isSuperAdmin(req)) {
             return res.status(403).json({ error: 'Super-admin required' });
         }

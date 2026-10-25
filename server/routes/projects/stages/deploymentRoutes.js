@@ -1,4 +1,3 @@
-// @typecheck
 'use strict';
 /**
  * Deployment routes (design 8, 6): ask for a deployment (202, the runner does
@@ -203,3 +202,25 @@ function makeDeploymentRouter(d) {
 }
 
 module.exports = { makeDeploymentRouter, stepView, encodeCursor, decodeCursor };
+
+/**
+ * What projects/stages/stageAuth.js sets on `req.stageCtx`: the caller, the Dev
+ * project, the addressed stage and the caller's roles on them.
+ * @typedef {object} StageCtx
+ * @property {string} userId
+ * @property {{ id: string, ownerId?: string, [key: string]: any }} dev
+ * @property {string|null} devRole
+ * @property {{ projectId: string, currentReleaseId?: string, [key: string]: any }|null} stage
+ * @property {string} stageName
+ * @property {string|null} stageRole
+ * @property {Record<string, string>} stageRoles
+ * @property {boolean} isSolutionOwner
+ * @property {boolean} isOrgAdmin
+ * @property {boolean} viaOrgAdmin
+ */
+
+/** @typedef {import('express').Request & { stageCtx: StageCtx }} StageReq */
+
+/** @typedef {import('./stageRoutes').StageDeps} StageDeps */
+
+/** @typedef {import('./stageRoutes').DeploymentRow} DeploymentRow */

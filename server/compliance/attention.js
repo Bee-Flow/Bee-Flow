@@ -446,3 +446,11 @@ module.exports = {
     SECTION_FOR_REGULATION,
     makeDeps,
 };
+
+/**
+ * @typedef {{ complianceStore: typeof import('../stores/complianceStore'), registry: typeof import('./registry'), frameworkPolicy: typeof import('./frameworkPolicy'), dsrStore: typeof import('../stores/dsrStore'), incidentStore: typeof import('../stores/incidentStore'), soaStore: typeof import('../stores/soaStore'), obligationStore: typeof import('../stores/isoObligationStore'), aiActAssessmentStore: typeof import('../stores/aiActAssessmentStore'), titles: Record<string, string>, now: () => number }} Deps
+ */
+
+/** @typedef {{ id: string, regulation?: string, severity?: string, verification?: string, frameworks?: { regulation: string, ref: string }[], autoFixId?: string | null, remediationLink?: string | null, titleKey?: string, subjectNoun?: string }} CheckDef */
+
+/** @typedef {{ id: string, source: string, code: string, severity: string, status: string, title: string | null, titleKey?: string, meta: Record<string, unknown>, action: Record<string, unknown>, _at: number }} Item */

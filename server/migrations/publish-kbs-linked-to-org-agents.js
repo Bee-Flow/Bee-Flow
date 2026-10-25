@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/** @typedef {import('pg').Pool} Pool */
+// @typecheck noImplicitAny
 /**
  * Migration: make the knowledge bases that org agents already read READABLE.
  *
@@ -60,7 +62,10 @@
 
 const { pool } = require('../db');
 
-/** Agents that belong to an organisation and name at least one knowledge base. */
+/**
+ * Agents that belong to an organisation and name at least one knowledge base.
+ * @param {Pool} db
+ */
 async function orgAgentsWithKbs(db) {
     const r = await db.query(
         `SELECT id, name, owner_id, organization_id, shared_groups, config
@@ -71,6 +76,9 @@ async function orgAgentsWithKbs(db) {
     return r.rows || [];
 }
 
+/**
+ * @param {string} value
+ */
 function jsonArray(value) {
     if (Array.isArray(value)) return value;
     try {
@@ -81,6 +89,7 @@ function jsonArray(value) {
     }
 }
 
+/** @param {Record<string, any>} agent */
 function kbIdsOf(agent) {
     let config = agent.config;
     if (typeof config === 'string') {
@@ -90,15 +99,26 @@ function kbIdsOf(agent) {
 }
 
 /**
+ * @typedef {Object} PlanArgs
+ * @property {Pool} [db]
+ */
+/**
+ * @typedef {{ kbId: string, kbName: string | null, organizationId: string, sharedGroups: string[],
+ *   agents: { id: string, name: string, organizationId: string }[] }} PlanEntry
+ * @typedef {{ kbId: string, reason: string }} SkippedEntry
+ */
+/**
  * Work out what each knowledge base needs, without writing anything.
  *
- * @returns {Promise<{publish: Array, adopt: Array, skipped: Array}>}
+ * @returns {Promise<{publish: PlanEntry[], adopt: PlanEntry[], skipped: SkippedEntry[]}>}
  *   `publish` = branch (a), `adopt` = branch (b). Each entry names the base,
  *   the organisation, the group union and which agents pointed at it, so the
  *   dry run is readable per agent as well as per base.
+ * @param {PlanArgs} [param0]
  */
 async function plan({ db = pool } = {}) {
     const agents = await orgAgentsWithKbs(db);
+    /** @type {Map<string, Record<string, any>[]>} */
     const byKb = new Map();
 
     for (const agent of agents) {
@@ -108,8 +128,11 @@ async function plan({ db = pool } = {}) {
         }
     }
 
+    /** @type {PlanEntry[]} */
     const publish = [];
+    /** @type {PlanEntry[]} */
     const adopt = [];
+    /** @type {SkippedEntry[]} */
     const skipped = [];
 
     for (const [kbId, agentsUsing] of byKb) {
@@ -154,12 +177,19 @@ async function plan({ db = pool } = {}) {
 }
 
 /**
+ * @typedef {Object} UpArgs
+ * @property {Pool} [db]
+ * @property {boolean} [dryRun]
+ * @property {(value: string) => void} [log]
+ */
+/**
  * Apply the plan.
  *
  * Per row, never in one transaction: this touches a base at a time and a
  * failure on one must not roll back the rest — a half-migrated install where
  * the migration can simply be re-run is better than an all-or-nothing that
  * leaves every agent broken because one base had a problem.
+ * @param {UpArgs} [param0]
  */
 async function up({ db = pool, dryRun = false, log = console.log } = {}) {
     const { publish, adopt, skipped } = await plan({ db });
@@ -194,7 +224,7 @@ async function up({ db = pool, dryRun = false, log = console.log } = {}) {
             await kbStore.setPublished(e.kbId, true, e.sharedGroups);
             published += 1;
         } catch (err) {
-            console.warn(`[Migration] ${e.kbId} could not be published: ${err.message}`);
+            console.warn(`[Migration] ${e.kbId} could not be published: ${/** @type {Error} */ (err).message}`);
             failed += 1;
         }
     }
@@ -213,7 +243,7 @@ async function up({ db = pool, dryRun = false, log = console.log } = {}) {
             await kbStore.setPublished(e.kbId, true, e.sharedGroups);
             adopted += 1;
         } catch (err) {
-            console.warn(`[Migration] ${e.kbId} could not be adopted: ${err.message}`);
+            console.warn(`[Migration] ${e.kbId} could not be adopted: ${/** @type {Error} */ (err).message}`);
             failed += 1;
         }
     }
@@ -221,7 +251,9 @@ async function up({ db = pool, dryRun = false, log = console.log } = {}) {
     return { published, adopted, failed, skipped: skipped.length };
 }
 
+/** @param {SkippedEntry[]} skipped */
 function summarise(skipped) {
+    /** @type {Record<string, number>} */
     const counts = {};
     for (const s of skipped) counts[s.reason] = (counts[s.reason] || 0) + 1;
     return Object.entries(counts).map(([k, v]) => `${k}: ${v}`).join(', ') || 'none';
