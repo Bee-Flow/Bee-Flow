@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { integrationsAdminKeys, useNcScopeQuery } from '../../../api/queries/integrationsAdmin';
+import { mutate } from '../../../api/mutate';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import type { DesignElement } from '../../admin/Studio/Playbooks/phaseMachine';
 import type { ScopeMap, ScopeBody } from './NcScopeSection.types';
@@ -16,45 +19,34 @@ import { MODE_ALL, MODE_SELECTED, MODE_OFF, ScopeRow } from './ScopeRow';
 
 const NcScopeSection = () => {
     const { t } = useTranslation();
-    const [integrations, setIntegrations] = useState<ScopeMap | null>(null); // { [id]: {name, mode, selected, scopable, resource} }
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
+    const scopeQuery = useNcScopeQuery<ScopeMap>(); // { [id]: {name, mode, selected, scopable, resource} }
+    const integrations: ScopeMap | null = scopeQuery.data ?? null;
+    const setIntegrations = (next: ScopeMap | null | ((cur: ScopeMap | null) => ScopeMap | null)) => {
+        queryClient.setQueryData<ScopeMap | null>(integrationsAdminKeys.ncScope, (cur) => (typeof next === 'function' ? next(cur ?? null) : next));
+    };
+    const loadError: string | null = scopeQuery.isError ? (scopeQuery.error.message || t('nc_scope.load_error', 'Could not load access settings')) : null;
     const [saveState, setSaveState] = useState('idle');     // idle | saving | saved | error
     const [confirmRevoke, setConfirmRevoke] = useState(false);
     const savedTimer = useRef<NodeJS.Timeout | undefined>(undefined);
 
-    const load = useCallback(async () => {
-        try {
-            const res = await authFetch(`${API_BASE}/api/nc-scope`);
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) { setIntegrations(data.integrations); setLoadError(null); }
-            else setLoadError(data.error || t('nc_scope.load_error', 'Could not load access settings'));
-        } catch (_) {
-            setLoadError(t('nc_scope.load_error', 'Could not load access settings'));
-        }
-    }, [t]);
-    useEffect(() => { load(); }, [load]);
-
     const persist = useCallback(async (body: ScopeBody) => {
         setSaveState('saving');
         try {
-            const res = await authFetch(`${API_BASE}/api/nc-scope`, {
+            const res = await mutate(`${API_BASE}/api/nc-scope`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
             const data = await res.json().catch(() => ({}));
-            if (res.ok) {
-                setIntegrations(data.integrations);
-                setSaveState('saved');
-                clearTimeout(savedTimer.current);
-                savedTimer.current = setTimeout(() => setSaveState('idle'), 2000);
-            } else {
-                setSaveState('error');
-            }
+            queryClient.setQueryData<ScopeMap | null>(integrationsAdminKeys.ncScope, data.integrations ?? null);
+            setSaveState('saved');
+            clearTimeout(savedTimer.current);
+            savedTimer.current = setTimeout(() => setSaveState('idle'), 2000);
         } catch (_) {
             setSaveState('error');
         }
-    }, []);
+    }, [queryClient]);
 
     const onModeChange = (id: string, mode: string) => {
         // Optimistic words update; the PUT response is authoritative.
@@ -70,20 +62,20 @@ const NcScopeSection = () => {
         setConfirmRevoke(false);
         setSaveState('saving');
         try {
-            const res = await authFetch(`${API_BASE}/api/nc-scope/revoke-all`, { method: 'POST' });
+            const res = await mutate(`${API_BASE}/api/nc-scope/revoke-all`, { method: 'POST' });
             const data = await res.json().catch(() => ({}));
-            if (res.ok) { setIntegrations(data.integrations); setSaveState('saved'); }
-            else setSaveState('error');
+            setIntegrations(data.integrations ?? null);
+            setSaveState('saved');
         } catch (_) { setSaveState('error'); }
     };
 
     const reset = async () => {
         setSaveState('saving');
         try {
-            const res = await authFetch(`${API_BASE}/api/nc-scope/reset`, { method: 'POST' });
+            const res = await mutate(`${API_BASE}/api/nc-scope/reset`, { method: 'POST' });
             const data = await res.json().catch(() => ({}));
-            if (res.ok) { setIntegrations(data.integrations); setSaveState('saved'); }
-            else setSaveState('error');
+            setIntegrations(data.integrations ?? null);
+            setSaveState('saved');
         } catch (_) { setSaveState('error'); }
     };
 

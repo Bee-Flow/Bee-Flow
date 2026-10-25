@@ -223,16 +223,17 @@ export const ACTION_CHECKS: Record<string, ActionCheck> = {
             },
         ],
         async fetchState(ctx: CheckContext) {
-            const [list, recent, cowork, agents, kbs] = await Promise.all([
+            const legs = await Promise.all([
                 settle(getJson('/api/automation/'), null),
                 settle(getJson('/api/automation/_runs/recent'), null),
                 settle(getJson('/api/cowork'), null),
                 settle(getJson('/agents'), null),
                 settle(getJson('/api/kb'), null),
             ]);
+            const [list, recent, cowork, agents, kbs] = legs;
             // All legs down = nothing to verify against — surface as an error
             // so the honor fallback appears rather than a silent all-fail.
-            if (!list && !recent && !cowork && !agents && !kbs) throw new Error('fetch_failed');
+            if (legs.every((leg) => !leg)) throw new Error('fetch_failed');
             return {
                 automations: list?.automations || [],
                 runs: recent?.runs || [],

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Bot, Sparkles, Table2 } from 'lucide-react';
 import React from 'react';
@@ -21,6 +21,7 @@ vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock })
 vi.mock('../../shell/NavLink', () => ({ default: ({ children, ...p }) => <a {...p}>{children}</a> }));
 
 import StudioRail from './StudioRail';
+import { renderWithClient as render } from '../../../test/render';
 
 const SECTIONS = [
     { id: 'aiTasks', urlSegment: 'automations', labelKey: 'studio.tab.automations', labelFallback: 'Automations', Icon: Table2, kind: 'automation', countKey: 'automations', category: 'build', locked: null },

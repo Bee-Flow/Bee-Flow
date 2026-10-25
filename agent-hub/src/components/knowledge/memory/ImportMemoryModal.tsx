@@ -2,7 +2,8 @@ import { Copy, Check, X } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { errorBody, mutate, RefusedError } from '../../../api/mutate';
 import Modal from '../../shared/Modal';
 import { memoryRefusal } from './memoryErrors';
 import { logger } from '../../../utils/logger';
@@ -65,19 +66,23 @@ export default function ImportMemoryModal({ onClose, onImported }: ImportMemoryM
         setSubmitting(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/agents/memory/import`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: pasted.trim() }),
-            });
-            const data = (await res.json().catch(() => ({}))) as ImportResult & { error?: string; code?: string };
-            if (!res.ok) {
-                const known = memoryRefusal(t, data?.code ?? null, res.status);
+            let data: ImportResult & { error?: string; code?: string };
+            try {
+                const res = await mutate(`${API_BASE}/agents/memory/import`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: pasted.trim() }),
+                });
+                data = (await res.json().catch(() => ({}))) as ImportResult & { error?: string; code?: string };
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const refused = (errorBody(err) ?? {}) as { error?: string; code?: string };
+                const known = memoryRefusal(t, refused.code ?? null, err.status);
                 if (known) throw new Error(known);
-                if (res.status === 403) {
+                if (err.status === 403) {
                     throw new Error(t('knowledge.memory_import_err_paused', 'Importing is not available while memory is paused or turned off.'));
                 }
-                throw new Error(data?.error || `${t('settings.memory_import_error', 'Import failed')} (HTTP ${res.status})`);
+                throw new Error(refused.error || `${t('settings.memory_import_error', 'Import failed')} (HTTP ${err.status})`);
             }
             setResult(data);
             onImported?.();

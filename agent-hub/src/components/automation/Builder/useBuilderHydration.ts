@@ -4,7 +4,7 @@ import type { FlowDefinition } from './flow/types';
 import type { RowAnswer } from './unwrapRow';
 import type { BuilderSnapshot } from '../../../hooks/builderStream';
 import type { AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { fetchBuilderSessionSnapshot } from '../../../api/queries/automationBuilderReads';
 import { logger } from '../../../utils/logger';
 
 /**
@@ -88,12 +88,9 @@ export default function useBuilderHydration({
         let alive = true;
         (async () => {
             try {
-                const r = await authFetch(`${API_BASE}/api/automation/builder/session/${aid}`);
+                const snapshot = await fetchBuilderSessionSnapshot<BuilderSnapshot>(aid);
                 if (!alive) return;
-                if (r.ok) {
-                    const j: { snapshot?: BuilderSnapshot } | null = await r.json();
-                    if (j?.snapshot) hydrate(j.snapshot);
-                }
+                if (snapshot) hydrate(snapshot);
             } catch (err) { logger.debug('silent — snapshot is optional', err); }
             if (alive) setHasHydrated(true);
         })();

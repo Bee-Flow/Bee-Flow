@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Video } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { useGmeetNotesUserSettings, settingsOptionalKeys } from '../../api/queries/settingsOptionalRead';
+import { useQueryClient } from '@tanstack/react-query';
 import { LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage, messageOf } from '../../utils/caughtError';
-import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
+import { RefusedError, mutate, errorBody } from '../../api/mutate';
 
 interface GmeetConfig {
     autoImport: boolean;
@@ -28,6 +30,14 @@ interface SaveMessage {
 // Google Meet brand colour, for the header icon only; the Save button uses the accent.
 const MEET_GREEN = '#00832D';
 
+const DEFAULT_CFG: GmeetConfig = { autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' };
+
+/** The answer split into the connection block (null while nothing is loaded; {} when absent) and the settings. */
+function splitLoaded(data: (Partial<GmeetConfig> & { connection?: GmeetConnection }) | null | undefined) {
+    const { connection, ...loadedCfg } = data ?? {};
+    return { connection: data ? (connection || {}) : null, loadedCfg };
+}
+
 /**
  * Personal Google Meet → Meeting Notes settings. Rendered for every account
  * that has the Meeting Notes feature; self-hides (renders null) when the
@@ -38,28 +48,23 @@ const MEET_GREEN = '#00832D';
  */
 export default function GoogleMeetNotesSection() {
     const { t } = useTranslation();
-    const [cfg, setCfg] = useState<GmeetConfig>({ autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' });
-    const [connection, setConnection] = useState<GmeetConnection | null>(null);
-    const [available, setAvailable] = useState(true);
-    const [loading, setLoading] = useState(true);
+    const query = useGmeetNotesUserSettings<Partial<GmeetConfig> & { connection?: GmeetConnection }>();
+    const queryClient = useQueryClient();
+    // The loaded values with the person's edits on top (nothing is shown before the load, so no edit can predate it).
+    const [edits, setEdits] = useState<Partial<GmeetConfig>>({});
+    const { connection, loadedCfg } = splitLoaded(query.data);
+    const cfg: GmeetConfig = { ...DEFAULT_CFG, ...loadedCfg, ...edits };
+    const setCfg = (fn: (c: GmeetConfig) => GmeetConfig) => setEdits(fn(cfg));
+    const available = query.data != null;
+    const loading = query.isPending;
     const [saving, setSaving] = useState(false);
     const [reauthing, setReauthing] = useState(false);
     const [message, setMessage] = useState<SaveMessage | null>(null);
 
     const load = async () => {
-        try {
-            const res = await request(`${API_BASE}/api/gmeet-notes-settings/user/me`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const { connection: conn, ...data } = await res.json();
-                setConnection(conn || {});
-                setCfg((prev: GmeetConfig) => ({ ...prev, ...data }));
-            } else setAvailable(false); // 403/404 → feature not licensed for this account
-        } catch (_) { setAvailable(false); } finally { setLoading(false); }
+        setEdits({});
+        await queryClient.refetchQueries({ queryKey: settingsOptionalKeys.gmeetNotes });
     };
-    useEffect(() => { load(); }, []);
 
     const save = async () => {
         setSaving(true); setMessage(null);

@@ -17,7 +17,8 @@ import OrgNcPairingPanel from '../../components/integrations/nextcloud/OrgNcPair
 import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
 import McpLibraryPage from '../../components/mcpLibrary/McpLibraryPage';
 import Tabs from '../../components/shared/Tabs';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useHasGoogleMapsKey } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { FormMessage, OrgInfoSaveState } from '../../components/admin/org/orgInfo/useOrgInfoForm';
 import type { SettingsUser } from './shell/settingsShellTypes';
@@ -28,15 +29,10 @@ const GoogleMapsRow = () => {
     const { t } = useTranslation();
     const [key, setKey] = useState('');
     const [saving, setSaving] = useState(false);
-    const [hasKey, setHasKey] = useState(false);
+    const storedKey = useHasGoogleMapsKey().data === true;
+    const [justSaved, setHasKey] = useState(false);
+    const hasKey = storedKey || justSaved;
     const [open, setOpen] = useState(false);
-
-    React.useEffect(() => {
-        authFetch(`${API_BASE}/ai/config`)
-            .then(r => r.json())
-            .then(d => setHasKey(!!d.hasGoogleMapsKey))
-            .catch(() => {});
-    }, []);
 
     const save = async () => {
         if (!key.trim()) return;

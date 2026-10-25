@@ -126,7 +126,7 @@ and `npm run lint:secrets`.
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),
   `lint:eslint-disable-ratchet`, `lint:fire-event-ratchet` (`fireEvent` calls that `userEvent` can replace),
-  `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet`,
+  `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet` (and the stricter AST `lint:fetch-in-effect-ratchet`: a network call in an effect, also through an api/ helper or a local loader), `lint:big-file-ratchet`,
   `lint:dutch-comment-ratchet` and `lint:import-zones-ratchet` (agent-hub layer direction:
   `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
   `pages/`; tests excluded). Also `lint:empty-catch-ratchet`, `lint:rollback-in-store-ratchet`

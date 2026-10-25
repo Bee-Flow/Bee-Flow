@@ -1,7 +1,30 @@
 import { useCallback, useEffect, useRef } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import useTranslation, { type TranslateFn } from '../../../../../hooks/useTranslation';
+import { API_BASE } from '../../../../../utils/helpers';
 import { mutate, errorBody, RefusedError } from '../../../../../api/mutate';
+
+/**
+ * PUT one part. Resolves null when the server took it, or the part number it
+ * expects instead (409: its ledger knows better than our counter). Anything else throws.
+ */
+async function putPart(url: string, blob: Blob, signal: AbortSignal, n: number, t: TranslateFn): Promise<number | null> {
+    let res: Response | null = null;
+    let refused: RefusedError | null = null;
+    try {
+        res = await mutate(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: blob, signal });
+    } catch (partErr) {
+        if (!(partErr instanceof RefusedError)) throw partErr;
+        refused = partErr;
+    }
+    const status = (res ?? refused as RefusedError).status;
+    const body = res ? await res.json().catch(() => ({})) : (errorBody(refused as RefusedError) ?? {});
+    if (status === 409) {
+        if (Number.isInteger(body.expected)) return body.expected;
+        throw new Error(body.error || t('studio_apps_runtime.dataset_upload.part_out_of_sequence', 'part out of sequence'));
+    }
+    if (refused) throw new Error(body.error || t('studio_apps_runtime.dataset_upload.part_failed', 'part {n} failed ({status})', { n, status }));
+    return null;
+}
 
 /**
  * App Studio runtime — chunked uploader for LARGE datasets (multi-GB VCFs).
@@ -60,20 +83,8 @@ export default function useDatasetUpload(appId: string | null | undefined) {
             let sent = false;
             for (let attempt = 0; attempt < 3 && !sent; attempt++) {
                 try {
-                    const res = await authFetch(`${base}/${encodeURIComponent(datasetId)}/parts/${n}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/octet-stream' },
-                        body: blob,
-                        signal: ac.signal,
-                    });
-                    if (res.status === 409) {
-                        // The ledger knows better than our counter — re-sync.
-                        const body = await res.json().catch(() => ({}));
-                        if (Number.isInteger(body.expected)) { n = body.expected; sent = true; break; }
-                        throw new Error(body.error || tRef.current('studio_apps_runtime.dataset_upload.part_out_of_sequence', 'part out of sequence'));
-                    }
-                    const body = await res.json().catch(() => ({}));
-                    if (!res.ok) throw new Error(body.error || tRef.current('studio_apps_runtime.dataset_upload.part_failed', 'part {n} failed ({status})', { n, status: res.status }));
+                    const resync = await putPart(`${base}/${encodeURIComponent(datasetId)}/parts/${n}`, blob, ac.signal, n, tRef.current);
+                    if (resync !== null) { n = resync; sent = true; break; }
                     n += 1;
                     sent = true;
                 } catch (err) {

@@ -1,15 +1,23 @@
 import { Plus, Loader2 } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { authFetch } from '../../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { useNamedConnections } from '../../api/queries/settingsConnections';
 import { HTTP_AUTH_TYPES, splitHttpAuthValues, missingHttpAuthFields, type HttpAuthType } from '../../utils/httpCredentialTypes';
 import type { ProviderField, ConnectionSecretMeta, Connection, Grant, GroupLabelProps, AddConnectionFormProps } from './ConnectionsManager.types';
-import { BASE, PROVIDERS, PROVIDER_BY_ID, inputStyle, inputCls, errorFrom } from './ConnectionsManager.helpers';
+import { BASE, PROVIDERS, PROVIDER_BY_ID, inputStyle, inputCls } from './ConnectionsManager.helpers';
 import { ErrorLine, ConnectionRow } from './ConnectionRow';
 
 const GroupLabel = ({ children }: GroupLabelProps) => (
     <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">{children}</p>
 );
+
+/** A refused create says what the server said (or the fallback); anything else says its own message. */
+function createFailureText(e: unknown, fallback: string): string {
+    if (!(e instanceof RefusedError)) return (e as Error).message;
+    const serverError = errorBody(e)?.error;
+    return typeof serverError === 'string' && serverError ? serverError : fallback;
+}
 
 // ── Add-connection inline form ──────────────────────────────────────
 const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
@@ -51,7 +59,7 @@ const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
         }
         setBusy(true); setErr(null);
         try {
-            const res = await authFetch(BASE, {
+            await mutate(BASE, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     provider: providerId,
@@ -61,13 +69,13 @@ const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
                     ...(secretMeta ? { secretMeta } : {}),
                 }),
             });
-            if (!res.ok) {
-                setErr(await errorFrom(res, t('connections.create_failed', 'Could not create')));
-                // Drop the typed secrets even on failure — leaving them in
-                // component state keeps them in the DOM indefinitely.
-                setFields({});
-            } else { reset(); setOpen(false); onAdded(); }
-        } catch (e) { setErr((e as Error).message); setFields({}); }
+            reset(); setOpen(false); onAdded();
+        } catch (e) {
+            setErr(createFailureText(e, t('connections.create_failed', 'Could not create')));
+            // Drop the typed secrets even on failure — leaving them in
+            // component state keeps them in the DOM indefinitely.
+            setFields({});
+        }
         setBusy(false);
     };
 
@@ -128,33 +136,15 @@ const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
 // ── Manager ─────────────────────────────────────────────────────────
 const ConnectionsManager = () => {
     const { t } = useTranslation();
-    const [connections, setConnections] = useState<Connection[]>([]);
-    const [grants, setGrants] = useState<Grant[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null>(null);
-
-    const load = useCallback(async () => {
-        setLoadError(null);
-        try {
-            const [cRes, gRes] = await Promise.all([
-                authFetch(BASE),
-                authFetch(`${BASE}/grants?mine=outgoing`),
-            ]);
-            // A failed list used to render as "No named connections yet.",
-            // which reads as "your credentials are gone".
-            if (!cRes.ok) throw new Error(await errorFrom(cRes, t('connections.load_failed', 'Could not load your connections')));
-            const c = await cRes.json();
-            const g = gRes.ok ? await gRes.json() : { grants: [] };
-            setConnections(c.connections || []);
-            setGrants(g.grants || []);
-        } catch (e) {
-            console.error('[ConnectionsManager]', e);
-            setLoadError((e as Error).message || t('connections.load_failed', 'Could not load your connections'));
-        }
-        setLoading(false);
-    }, [t]);
-
-    useEffect(() => { load(); }, [load]);
+    const query = useNamedConnections<Connection, Grant>();
+    const connections = query.data?.connections ?? [];
+    const grants = query.data?.grants ?? [];
+    // A retry shows the spinner again; a refetch after a change does not.
+    const loading = query.isPending || (query.isError && query.isFetching);
+    const loadError = query.isError && !query.isFetching
+        ? (query.error.message || t('connections.load_failed', 'Could not load your connections'))
+        : null;
+    const load = async () => { await query.refetch(); };
 
     // Group connections by provider for display.
     const byProvider: Record<string, Connection[]> = {};
@@ -176,7 +166,7 @@ const ConnectionsManager = () => {
                         {loadError ? (
                             <div className="px-4 py-4">
                                 <ErrorLine>{loadError}</ErrorLine>
-                                <button onClick={() => { setLoading(true); load(); }} className="text-[12px] underline mt-1 text-[var(--accent-primary)]">
+                                <button onClick={() => { void load(); }} className="text-[12px] underline mt-1 text-[var(--accent-primary)]">
                                     {t('connections.retry', 'Try again')}
                                 </button>
                             </div>

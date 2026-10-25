@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { SECTION_TTL_MS, readNavHas, writeNavHas } from './sidebarTokens';
 import { useStudioCounts } from '../../../hooks/useStudioCounts';
 import { useRuntimeStudioApps } from '../../../moduleRuntime/registry';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { rankStudioItems } from '../../../utils/studioRecents';
 import { STUDIO_RECENT_SOURCES, normaliseRecentItems } from '../../../utils/studioRecentSources';
 import { studioAppsApi } from '../../admin/Studio/AppStudio/studioAppsApi';
@@ -121,8 +121,14 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
         let cancelled = false;
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/api/automation/forms`);
-                if (!res.ok || cancelled) return;
+                let res: Response;
+                try {
+                    res = await request(`${API_BASE}/api/automation/forms`);
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    return;
+                }
+                if (cancelled) return;
                 const data = await res.json();
                 const forms = Array.isArray(data?.forms) ? data.forms : [];
                 setPublishedForms(forms);

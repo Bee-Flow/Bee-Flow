@@ -3,7 +3,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { mutate, request, RefusedError } from '../../../api/mutate';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import type { Organization } from './useOrgDirectory';
 import type { AdminCurrentUser } from './userManagement/types';
@@ -48,10 +49,15 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const persistSelectedOrg = useCallback(async (id: string | null) => {
         if (!id) return;
         try {
-            await authFetch(`${API_BASE}/auth/admin/selected-org`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orgId: id }),
-            });
+            try {
+                await mutate(`${API_BASE}/auth/admin/selected-org`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orgId: id }),
+                });
+            } catch (err) {
+                // A refusal still reloads the snapshot, as the unchecked call did.
+                if (!(err instanceof RefusedError)) throw err;
+            }
             reloadEntitlements?.();
         } catch (err) { logger.debug('picker still works for viewing other orgs', err); }
     }, [reloadEntitlements]);
@@ -63,8 +69,11 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
         let alive = true;
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/auth/organizations`);
-                if (!res.ok) { if (alive) setOrgs([]); return; }
+                const res = await request(`${API_BASE}/auth/organizations`).catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                if (!res) { if (alive) setOrgs([]); return; }
                 const j = await res.json();
                 const list = Array.isArray(j) ? j : (j.organizations || j.orgs || []);
                 if (!alive) return;

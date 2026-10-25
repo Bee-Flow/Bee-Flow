@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
+import { API_BASE } from '../../../utils/helpers';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
 
 /** One pending invitation, as GET /auth/invitations returns it. */
 export interface Invitation {
@@ -83,16 +83,27 @@ export default function useOrgInvitations(): OrgInvitations {
         setSendingInvite(true);
         setInviteResult(null);
         try {
-            const res = await authFetch(`${API_BASE}/auth/invitations`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
-            });
-            const data: {
+            let ok = true;
+            let data: {
                 success?: boolean; error?: string; code?: string;
                 emailSent?: boolean; inviteUrl?: string;
-            } = await res.json();
-            if (res.ok && data.success) {
+            };
+            try {
+                const res = await mutate(`${API_BASE}/auth/invitations`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+                });
+                data = await res.json();
+            } catch (err) {
+                // A refusal carries its JSON body (error, code); a body that is not JSON is the network-error path.
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err);
+                if (body == null) throw err;
+                ok = false;
+                data = body;
+            }
+            if (ok && data.success) {
                 setInviteResult({
                     success: true,
                     message: data.emailSent ? `Invitation sent to ${inviteEmail}` : `Invitation created but email delivery failed. Share the link manually:`,

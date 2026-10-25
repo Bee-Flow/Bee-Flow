@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AllowedDomainsEditor } from './orgInfo/orgInfoShared';
 import { useTranslation } from '../../../hooks/useTranslation';
 import OrganisationSection from '../../../pages/settings/OrganisationSection';
+import { withQueryClient } from '@/test/render';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
 vi.mock('../../../utils/helpers', async (importOriginal) => ({
@@ -46,7 +47,7 @@ beforeEach(() => {
 
 it('saves what the form shows now, not the state after the first keystroke', async () => {
     const user = userEvent.setup();
-    render(<OrganisationSection user={USER} activeSection="info" />);
+    render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
     const name = await screen.findByDisplayValue('Old BV');
 
     await user.clear(name);
@@ -61,7 +62,7 @@ it('saves what the form shows now, not the state after the first keystroke', asy
 
 it('after a save, a further edit is saved too and the bar knows it is dirty again', async () => {
     const user = userEvent.setup();
-    render(<OrganisationSection user={USER} activeSection="info" />);
+    render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
     const name = await screen.findByDisplayValue('Old BV');
 
     await user.type(name, ' one');
@@ -89,7 +90,7 @@ it('an edit typed while the save is in flight keeps the bar dirty', async () => 
         return base(url, init);
     });
     const user = userEvent.setup();
-    render(<OrganisationSection user={USER} activeSection="info" />);
+    render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
     const name = await screen.findByDisplayValue('Old BV');
 
     await user.type(name, ' one');
@@ -106,7 +107,7 @@ it('an edit typed while the save is in flight keeps the bar dirty', async () => 
 // ── Organisation Info: the page names itself, and every label names its field.
 describe('Organisation Info page', () => {
     it('has a page title and labels tied to their fields', async () => {
-        render(<OrganisationSection user={USER} activeSection="info" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
         expect(await screen.findByRole('heading', { level: 2, name: 'Organisation Info' })).toBeInTheDocument();
         expect(screen.getByLabelText('Company Name')).toHaveValue('Old BV');
         expect(screen.getByLabelText('Country').tagName).toBe('SELECT');
@@ -130,7 +131,7 @@ describe('logo', () => {
     it('a refused removal says so and keeps the logo', async () => {
         serveLogo('/uploads/old.png', (m) => (m === 'DELETE' ? respond(500, {}) : null));
         const user = userEvent.setup();
-        render(<OrganisationSection user={USER} activeSection="info" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
 
         await user.click(await screen.findByRole('button', { name: 'Remove logo' }));
 
@@ -142,7 +143,7 @@ describe('logo', () => {
     it('a refused upload says so instead of saying nothing', async () => {
         serveLogo('', (m) => (m === 'POST' ? respond(400, { error: 'No file uploaded' }) : null));
         const user = userEvent.setup();
-        render(<OrganisationSection user={USER} activeSection="info" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
 
         await user.upload(await screen.findByLabelText('Upload Logo'), png());
 
@@ -153,7 +154,7 @@ describe('logo', () => {
     it('an uploaded logo is already stored, so the form is not left "unsaved"', async () => {
         serveLogo('', (m) => (m === 'POST' ? respond(200, { success: true, logo: '/uploads/new.png' }) : null));
         const user = userEvent.setup();
-        render(<OrganisationSection user={USER} activeSection="info" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="info" />));
 
         await user.upload(await screen.findByLabelText('Upload Logo'), png());
 
@@ -167,7 +168,7 @@ describe('logo', () => {
 describe('Sign-in Method', () => {
     it('is a radio group that reports and moves its choice', async () => {
         const user = userEvent.setup();
-        render(<OrganisationSection user={USER} activeSection="auth" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
         const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
         const radios = within(group).getAllByRole('radio');
         expect(radios).toHaveLength(3);
@@ -184,7 +185,7 @@ describe('Sign-in Method', () => {
 
     it('locks the method once it is saved, not as soon as a card is picked', async () => {
         const user = userEvent.setup();
-        render(<OrganisationSection user={USER} activeSection="auth" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
         const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
 
         await user.click(within(group).getByRole('radio', { name: /Sign in with Google/ }));
@@ -213,7 +214,7 @@ describe('Sign-in Method', () => {
             return base(url, init);
         });
         const user = userEvent.setup();
-        render(<OrganisationSection user={USER} activeSection="auth" />);
+        render(withQueryClient(<OrganisationSection user={USER} activeSection="auth" />));
         const group = await screen.findByRole('radiogroup', { name: 'Sign-in Method' });
         const google = within(group).getByRole('radio', { name: /Sign in with Google/ });
         const microsoft = within(group).getByRole('radio', { name: /Sign in with Microsoft/ });
@@ -242,7 +243,7 @@ describe('AllowedDomainsEditor', () => {
 
     it('names its buttons and its input, and announces a refused domain', async () => {
         const user = userEvent.setup();
-        render(<Harness />);
+        render(withQueryClient(<Harness />));
         const input = screen.getByRole('textbox', { name: 'Allowed Domains' });
 
         await user.type(input, 'acme.nl{Enter}');
@@ -283,7 +284,7 @@ describe('License & Usage', () => {
     it('reports a cancelled checkout on the licence page, not in the save bar', async () => {
         window.history.replaceState({}, '', '/app/settings/organisation/license?checkout=cancelled');
         serveCloud(null);
-        render(<OrganisationSection user={CLOUD_USER} activeSection="license" />);
+        render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="license" />));
 
         const note = await screen.findByText('Checkout was cancelled. No changes were made.');
         expect(note.closest('[role="alert"]')).not.toBeNull();
@@ -294,7 +295,7 @@ describe('License & Usage', () => {
     it('"Upgrade plan" near the cap opens the plan picker on this page', async () => {
         serveCloud({ ...NEAR_CAP, changeable_plans: [BUSINESS] });
         const user = userEvent.setup();
-        render(<OrganisationSection user={CLOUD_USER} activeSection="license" />);
+        render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="license" />));
 
         const cta = await screen.findByRole('button', { name: 'Upgrade plan' });
         expect(screen.queryByRole('link', { name: 'Upgrade plan' })).toBeNull();
@@ -305,7 +306,7 @@ describe('License & Usage', () => {
 
     it('without a plan to upgrade to, the near-cap banner offers no button', async () => {
         serveCloud({ ...NEAR_CAP, changeable_plans: [{ ...BUSINESS, direction: 'downgrade' }] });
-        render(<OrganisationSection user={CLOUD_USER} activeSection="license" />);
+        render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="license" />));
 
         expect(await screen.findByText(/You've used 90% of your AI usage budget/)).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Upgrade plan' })).toBeNull();
@@ -314,7 +315,7 @@ describe('License & Usage', () => {
 
     it('reads AI usage out once, in "Usage this period"', async () => {
         serveCloud(NEAR_CAP);
-        render(<OrganisationSection user={CLOUD_USER} activeSection="license" />);
+        render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="license" />));
 
         expect(await screen.findByText('Usage this period')).toBeInTheDocument();
         expect(screen.queryByText('AI usage of cap this period')).toBeNull();
@@ -326,7 +327,7 @@ describe('License & Usage', () => {
             effective_limits: { max_users: 10 }, current_usage: {},
             billing: { subscription_total: 30, per_seat: true, seat_quantity: 3, plan_price: 10, plan_currency: 'eur', billing_interval: 'monthly' },
         });
-        render(<OrganisationSection user={CLOUD_USER} activeSection="license" />);
+        render(withQueryClient(<OrganisationSection user={CLOUD_USER} activeSection="license" />));
 
         expect(await screen.findByText('Plan limits')).toBeInTheDocument();
         expect(screen.getAllByRole('button', { name: /Add user/ })).toHaveLength(1);

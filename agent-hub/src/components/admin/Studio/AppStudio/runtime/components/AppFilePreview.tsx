@@ -1,7 +1,7 @@
 import { Download, FileText, Loader2, RotateCw } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState, type JSX } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { authFetch } from '../../../../../../utils/helpers';
+import { studioAppFetch } from '../../../../../../api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
@@ -25,7 +25,7 @@ export { firstDescriptor };
  * end in the one place people look for them.
  *
  * WHY A BLOB URL AND NOT `<iframe src={API_BASE}/…>`, which would be simpler:
- *   • authFetch is the demo-mode choke point (utils/helpers setDemoTransport).
+ *   • studioAppFetch (authFetch) is the demo-mode choke point (utils/helpers setDemoTransport).
  *     A raw iframe src bypasses it entirely and turns an anonymous demo click
  *     into a real authenticated API call.
  *   • In the Nextcloud embedding API_BASE is a different origin behind the
@@ -208,11 +208,11 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                 let rendered = false;
                 let res: Response | null = null;
                 if (wantsCadRender(entry, (entry && typeof entry === 'object' && entry.mime) || '')) {
-                    const shot = await authFetch(`${href}/preview`);
+                    const shot = await studioAppFetch(`${href}/preview`);
                     if (shot.ok) { res = shot; rendered = true; }
                 }
                 if (!res) {
-                    res = await authFetch(href);
+                    res = await studioAppFetch(href);
                     if (!res.ok) throw Object.assign(new Error(''), { status: res.status });
                 }
                 const blob = await res.blob();
@@ -229,7 +229,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                 let downloadUrl = url;
                 if (rendered) {
                     try {
-                        const src = await authFetch(href);
+                        const src = await studioAppFetch(href);
                         if (src.ok && alive) {
                             downloadUrl = URL.createObjectURL(await src.blob());
                             sourceRef.current = downloadUrl;

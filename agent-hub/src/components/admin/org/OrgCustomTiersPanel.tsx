@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useEffectEvent } from 'react';
 import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
 
@@ -64,18 +64,23 @@ const OrgCustomTiersPanel = () => {
     const loadAll = async () => {
         setLoading(true);
         try {
+            // A refusal is an answer here (the 403 text, "no providers"), not a failure.
+            const refusal = (err: unknown) => {
+                if (err instanceof RefusedError) return err;
+                throw err;
+            };
             const [tiersRes, providersRes] = await Promise.all([
-                authFetch(`${API_BASE}/ai/config/org-custom-chat-models`),
-                authFetch(`${API_BASE}/ai/providers`),
+                request(`${API_BASE}/ai/config/org-custom-chat-models`).catch(refusal),
+                request(`${API_BASE}/ai/providers`).catch(refusal),
             ]);
-            if (tiersRes.ok) {
+            if (!(tiersRes instanceof RefusedError)) {
                 const data = await tiersRes.json();
                 setOrgTiers(Array.isArray(data.orgTiers) ? data.orgTiers : []);
                 setGlobalTiers(Array.isArray(data.globalTiers) ? data.globalTiers : []);
             } else if (tiersRes.status === 403) {
                 setMessage({ type: 'error', text: 'You do not have permission to manage custom tiers for your organisation.' });
             }
-            if (providersRes.ok) {
+            if (!(providersRes instanceof RefusedError)) {
                 const { providers } = await providersRes.json();
                 const results = await Promise.all(
                     (providers || []).map(async (p: { id: string; name?: string; type?: string }) => {

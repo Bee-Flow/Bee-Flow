@@ -29,6 +29,7 @@
     "lint:explicit-any-ratchet": "node scripts/count-ratchet.mjs explicit-any agent-hub && node scripts/count-ratchet.mjs explicit-any mobile",
     "lint:as-unknown-as-ratchet": "node scripts/count-ratchet.mjs as-unknown-as agent-hub && node scripts/count-ratchet.mjs as-unknown-as mobile",
     "lint:authfetch-effect-ratchet": "node scripts/count-ratchet.mjs authfetch-effect agent-hub",
+    "lint:fetch-in-effect-ratchet": "node scripts/count-ratchet.mjs fetch-in-effect agent-hub",
     "lint:authfetch-outside-api-ratchet": "node scripts/count-ratchet.mjs authfetch-outside-api agent-hub",
     "lint:module-mock-ratchet": "node scripts/count-ratchet.mjs module-mock server",
     "lint:status-5xx-ratchet": "node scripts/count-ratchet.mjs status-5xx server",

@@ -11,16 +11,24 @@ import type { ScopeStep, ScopeGraph } from './flowletScope.types';
  */
 export function layerCallScopes(def: ScopeGraph | null | undefined, key: string) {
     if (!def || !key) return [];
-    const out = [];
-    for (const step of walkSteps(def.steps || [])) {
-        if (step?.type === 'call_layer' && step.layerKey === key) out.push('root');
-    }
-    for (const [k, layer] of Object.entries(def.layers || {})) {
-        for (const step of walkSteps(layer?.steps || [])) {
-            if (step?.type === 'call_layer' && step.layerKey === key) out.push(k);
-        }
+    const out: string[] = [];
+    const scopes: Array<[string, ScopeStep[]]> = [
+        ['root', def.steps || []],
+        ...Object.entries(def.layers || {}).map(([k, layer]): [string, ScopeStep[]] => [k, layer?.steps || []]),
+    ];
+    for (const [scope, steps] of scopes) {
+        for (let i = countCallsTo(steps, key); i > 0; i -= 1) out.push(scope);
     }
     return out;
+}
+
+/** How many call_layer steps (nested ones included) in `steps` call the flowlet `key`. */
+export function countCallsTo(steps: ScopeStep[] | null | undefined, key: string): number {
+    let n = 0;
+    for (const step of walkSteps(steps)) {
+        if (step?.type === 'call_layer' && step.layerKey === key) n += 1;
+    }
+    return n;
 }
 
 /**

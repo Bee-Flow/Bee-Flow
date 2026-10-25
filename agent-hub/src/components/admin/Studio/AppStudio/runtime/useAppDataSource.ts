@@ -5,7 +5,8 @@ import { NOT_BATCHED, queueRead, unwrapReadResult } from '../../../../../api/dat
 import { useDataContext } from './DataContext';
 import { dataErrorFromResponse, isRateLimited, type DataError } from '../../../../../api/dataErrors';
 import { dataCacheKey } from './resolveBinding';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
+import { studioAppFetch } from '../../../../../api/queries/studioApps';
 import type { ConnectorBinding, DataBinding } from './resolveBinding.types';
 
 /** The bindings this hook fetches: a data read, or a connector run. */
@@ -163,7 +164,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         // the viewer's) connection; params are already resolved to literals
         // (resolveBindingParams) by the fetcher layer.
         const connectorId = encodeURIComponent(binding.connectorId ?? '');
-        const res = await authFetch(`${API_BASE}/api/studio-apps/${id}/data/connectors/${connectorId}/run`, {
+        const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/connectors/${connectorId}/run`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ params: (binding.params && typeof binding.params === 'object' && !Array.isArray(binding.params)) ? binding.params : {} }),
@@ -203,7 +204,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         // count-per-status needs no saved dataset and no new route. Note the key
         // rename: the binding says `filter` (matching records), the route says
         // `filters`.
-        const res = await authFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
+        const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -222,7 +223,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         return Array.isArray(body?.rows) ? body.rows : [];
     }
     if (binding.kind === 'dataset') {
-        const res = await authFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
+        const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(sample
@@ -243,7 +244,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         limit,
         sample: sample ? 1 : undefined,
     });
-    const res = await authFetch(`${API_BASE}/api/studio-apps/${id}/data/tables/${table}/records${query}`);
+    const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/tables/${table}/records${query}`);
     if (res.status === 404) return binding.kind === 'record' ? null : [];
     let body = null;
     try { body = await res.json(); } catch { body = null; }

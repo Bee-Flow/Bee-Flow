@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -29,6 +29,7 @@ vi.mock('../../components/shared/AudienceRows', () => ({
 
 import { otherLinksNotice } from './AddressCard';
 import WebpageAudiencePanel, { initialColumnChoice, countChosenColumns, countPublicColumns } from './WebpageAudiencePanel';
+import { renderWithClient as render } from '../../test/render';
 
 const MODEL = {
     internal: { mode: 'personal', isPublished: false, sharedGroups: [], organizationId: null },

@@ -1,15 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Globe, Search, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useWebpageListQuery } from '../../api/queries/webpagesPanels';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
 import { errorMessage } from '../../utils/caughtError';
-
-interface PickerState {
-    loading: boolean;
-    items: WebpageRow[];
-    error: string | null | undefined;
-}
 
 interface WebpagePickerPopoverProps {
     anchorRef?: React.RefObject<HTMLElement | null>;
@@ -31,7 +25,14 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
     const popoverRef = useRef<HTMLDivElement>(null);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [state, setState] = useState<PickerState>({ loading: true, items: [], error: null });
+    const listQuery = useWebpageListQuery(open);
+    // Every open starts from a fresh read: nothing of the previous answer shows while it loads.
+    const loading = listQuery.isFetching || (open && listQuery.isPending);
+    const state = {
+        loading,
+        items: loading ? [] : (listQuery.data ?? []),
+        error: !loading && listQuery.isError ? errorMessage(listQuery.error) : null,
+    };
 
     // Debounce the search term so each keystroke doesn't re-run the filter
     // (and trigger a fresh useMemo) — irrelevant for small lists, but the
@@ -51,24 +52,6 @@ export default function WebpagePickerPopover({ anchorRef, open, onClose, onSelec
         document.addEventListener('mousedown', onDoc);
         return () => document.removeEventListener('mousedown', onDoc);
     }, [open, onClose, anchorRef]);
-
-    useEffect(() => {
-        if (!open) return;
-        let cancelled = false;
-        setState({ loading: true, items: [], error: null });
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/webpages`);
-                if (!res.ok) throw new Error(`Failed (${res.status})`);
-                const data = await res.json();
-                const items = Array.isArray(data?.webpages) ? data.webpages : [];
-                if (!cancelled) setState({ loading: false, items, error: null });
-            } catch (err) {
-                if (!cancelled) setState({ loading: false, items: [], error: errorMessage(err) });
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [open]);
 
     const filtered = useMemo(() => {
         const q = debouncedSearch.trim().toLowerCase();

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import { logger } from '../../../../utils/logger';
 import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
 
@@ -128,7 +129,7 @@ async function resolveMyOrg(orgs: OrgRow[], grps: GroupRow[], user: OrgInfoUser 
     // user.organizationId — the SaaS is the authority for the current binding.
     if (!myOrg) {
         try {
-            const fresh = await authFetch(`${API_BASE}/auth/user`).then((r: Response) => r.ok ? r.json() : null);
+            const fresh = await settled(`${API_BASE}/auth/user`, undefined, 'empty').then(r => r.ok ? r.res.json() : null);
             const freshOrgId = fresh?.user?.organizationId;
             if (freshOrgId) {
                 myOrg = orgs.find(o => o.id === freshOrgId);
@@ -230,13 +231,13 @@ export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateC
         setLoading(true);
         try {
             const [orgsRes, groupsRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/organizations`),
-                authFetch(`${API_BASE}/auth/groups`),
+                settled(`${API_BASE}/auth/organizations`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/groups`, undefined, 'empty'),
             ]);
             let orgs: OrgRow[] = [];
             let grps: GroupRow[] = [];
-            if (orgsRes.ok) orgs = await orgsRes.json();
-            if (groupsRes.ok) grps = await groupsRes.json();
+            if (orgsRes.ok) orgs = await orgsRes.res.json();
+            if (groupsRes.ok) grps = await groupsRes.res.json();
 
             if (orgs.length > 0) {
                 const myOrg = await resolveMyOrg(orgs, grps, user);

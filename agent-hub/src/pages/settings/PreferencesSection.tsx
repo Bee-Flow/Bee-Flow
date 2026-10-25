@@ -6,7 +6,8 @@ import useProjectsAvailable from '../../hooks/useProjectsAvailable';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useViewport } from '../../hooks/useViewport';
 import { Check, ChevronDown } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useUiLocales } from '../../api/queries/settingsLocales';
 import { mutate } from '../../api/mutate';
 import scopedStorage from '../../utils/scopedStorage';
 import MeetingNotesSection from './MeetingNotesSection';
@@ -16,6 +17,8 @@ import SummaryTemplatesSection from './SummaryTemplatesSection';
 import VoiceprintSection from './VoiceprintSection';
 import EditorPreferencesSection from './EditorPreferencesSection';
 import type { PreferencesUser, PreferencesAgent, PreferencesSectionProps, RowProps, DropdownOption, DropdownProps, ToggleProps, UiLocale } from './PreferencesSection.types';
+
+const NO_LOCALES: UiLocale[] = [];
 
 // ── Generic list row used in the General container ───────────────────────────
 const Row = ({ label, description, right, first }: RowProps) => (
@@ -164,13 +167,7 @@ const PreferencesSection = ({
     };
 
     // Available UI locales (only render the row if more than one).
-    const [locales, setLocales] = useState<UiLocale[]>([]);
-    useEffect(() => {
-        authFetch(`${API_BASE}/api/languages/user/locales`)
-            .then((r: Response) => r.json())
-            .then((data: unknown) => { if (Array.isArray(data)) setLocales(data); })
-            .catch(e => console.warn('[Preferences] load locales failed', e));
-    }, []);
+    const locales = useUiLocales<UiLocale>().data ?? NO_LOCALES;
 
     // Simple Mode toggle (lifted from SimpleModeSection).
     const [simpleSaving, setSimpleSaving] = useState(false);

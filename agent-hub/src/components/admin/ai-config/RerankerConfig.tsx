@@ -8,6 +8,23 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
 
+const hasChanges = (endpoint: string, apiKey: string, model: string, savedModel: string): boolean => !!endpoint.trim() || !!apiKey.trim() || model !== savedModel;
+
+interface RerankerBadgesProps {
+    hasEndpoint: boolean;
+    hasKey: boolean;
+    savedModel: string;
+    t: ReturnType<typeof useTranslation>['t'];
+}
+
+const RerankerBadges = ({ hasEndpoint, hasKey, savedModel, t }: RerankerBadgesProps) => (
+    <>
+        {hasEndpoint && <ProviderStatusPill>{t('admin_ai_config.endpoint_pill', 'Endpoint')}</ProviderStatusPill>}
+        {hasKey && <ProviderStatusPill>{t('admin_ai_config.key_pill', 'Key')}</ProviderStatusPill>}
+        {savedModel && <ProviderStatusPill tone="orange">{savedModel}</ProviderStatusPill>}
+    </>
+);
+
 const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
     const [endpoint, setEndpoint] = useState('');
@@ -29,7 +46,7 @@ const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
     const hasKey = !!config?.hasAzureRerankerKey;
 
     const handleSave = async () => {
-        if (!endpoint.trim() && !apiKey.trim() && model === savedModel) return;
+        if (!hasChanges(endpoint, apiKey, model, savedModel)) return;
         const body: Record<string, string> = {};
         if (endpoint.trim()) body.azureRerankerEndpoint = endpoint;
         if (apiKey.trim()) body.azureRerankerKey = apiKey;
@@ -91,11 +108,7 @@ const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
             iconGradient="linear-gradient(135deg, rgba(234,88,12,0.2), rgba(249,115,22,0.2))"
             title={t('admin_ai_config.rerank_title', 'Azure Cohere Reranker')}
             subtitle={isConfigured ? t('admin_ai_config.rerank_configured', '✅ Configured: Knowledge Base search results are reranked') : t('admin_ai_config.rerank_subtitle', 'Improve Knowledge Base search accuracy with neural reranking')}
-            badges={<>
-                {hasEndpoint && <ProviderStatusPill>{t('admin_ai_config.endpoint_pill', 'Endpoint')}</ProviderStatusPill>}
-                {hasKey && <ProviderStatusPill>{t('admin_ai_config.key_pill', 'Key')}</ProviderStatusPill>}
-                {savedModel && <ProviderStatusPill tone="orange">{savedModel}</ProviderStatusPill>}
-            </>}
+            badges={<RerankerBadges hasEndpoint={hasEndpoint} hasKey={hasKey} savedModel={savedModel} t={t} />}
         >
             {/* Endpoint URL */}
             <div>
@@ -152,7 +165,7 @@ const RerankerConfig = ({ onMessage }: ProviderCardProps) => {
                     )}
                     <button
                         onClick={handleSave}
-                        disabled={saving || (!endpoint.trim() && !apiKey.trim() && model === savedModel)}
+                        disabled={saving || !hasChanges(endpoint, apiKey, model, savedModel)}
                         className="px-5 py-2.5 rounded-lg font-medium text-white text-sm transition-all disabled:opacity-50 bg-[var(--accent-primary)]"
                     >
                         {saving ? '...' : t('admin_ai_config.save', 'Save')}

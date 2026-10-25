@@ -315,38 +315,41 @@ export function normaliseSettings(settings?: Record<string, unknown> | null): Se
  * never "the form object minus a few keys" — a field added next year must be
  * declared here before it can travel (BFSF-441 discipline).
  */
+const textOrNull = (v: unknown): string | null => {
+    const s = String(v ?? '').trim();
+    return s === '' ? null : s;
+};
+
+const trimmedStrings = (v: unknown) => asArray(v).map((x: unknown) => String(x).trim()).filter(Boolean);
+
+type ContactBody = { name: string; email: string; entity: string };
+
+/** How each field kind travels in the body; a kind not listed is plain trimmed text (empty = null). */
+const BODY_VALUE = new Map<string, (v: unknown) => unknown>([
+    ['toggle', (v) => v === true],
+    ['chips', trimmedStrings],
+    ['emails', trimmedStrings],
+    ['strings', (v) => asArray(v).filter((x: unknown) => (typeof x === 'string' ? x.trim() : x)).map((x: unknown) => (typeof x === 'string' ? x.trim() : x))],
+    ['contacts', (v) => asArray<Contact | null | undefined>(v)
+        .map((c: Contact | null | undefined): ContactBody => ({ name: String(c?.name || '').trim(), email: String(c?.email || '').trim(), entity: String(c?.entity || '').trim() }))
+        .filter((c: ContactBody) => c.name || c.email || c.entity)],
+    ['number', (v) => {
+        const n = String(v ?? '').trim();
+        return n === '' ? null : Number(n);
+    }],
+    ['stamp', (v) => v || null],
+]);
+
+/** Kinds the page draws but the body never carries. */
+const NOT_IN_BODY = new Set(['relevance', 'userfill']);
+
 export function buildSettingsBody(form?: SettingsForm | null): Record<string, unknown> {
     const f: SettingsForm = form || {};
     const body: Record<string, unknown> = {};
     for (const group of SETTINGS_GROUPS) {
         for (const spec of group.fields) {
-            const name = spec.name;
-            const v = f[name];
-            switch (spec.kind) {
-                case 'relevance': case 'userfill': continue;
-                case 'toggle': body[name] = v === true; break;
-                case 'chips': case 'emails':
-                    body[name] = asArray(v).map((x: unknown) => String(x).trim()).filter(Boolean);
-                    break;
-                case 'strings':
-                    body[name] = asArray(v).filter((x: unknown) => (typeof x === 'string' ? x.trim() : x)).map((x: unknown) => (typeof x === 'string' ? x.trim() : x));
-                    break;
-                case 'contacts':
-                    body[name] = asArray<Contact | null | undefined>(v)
-                        .map((c: Contact | null | undefined) => ({ name: String(c?.name || '').trim(), email: String(c?.email || '').trim(), entity: String(c?.entity || '').trim() }))
-                        .filter((c: { name: string; email: string; entity: string }) => c.name || c.email || c.entity);
-                    break;
-                case 'number': {
-                    const n = String(v ?? '').trim();
-                    body[name] = n === '' ? null : Number(n);
-                    break;
-                }
-                case 'stamp': body[name] = v || null; break;
-                default: {
-                    const s = String(v ?? '').trim();
-                    body[name] = s === '' ? null : s;
-                }
-            }
+            if (NOT_IN_BODY.has(spec.kind)) continue;
+            body[spec.name] = (BODY_VALUE.get(spec.kind) ?? textOrNull)(f[spec.name]);
         }
     }
     return body;

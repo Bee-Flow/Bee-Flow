@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Video, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useOrgNotesSettingsQuery } from '../../api/queries/meetingNotesSettings';
 import { LANGS, Toggle, Row, Select } from '../../pages/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { logger } from '../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 const MEET_GREEN = '#00832D';
@@ -25,6 +25,8 @@ interface SaveMessage {
     text: string | undefined;
 }
 
+const DEFAULT_CFG: GoogleMeetConfig = { autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' };
+
 /**
  * Org-level Google Meet → Meeting Notes settings. Mirrors the Talk meeting
  * notes admin pattern. Org values take precedence over each member's own
@@ -33,20 +35,14 @@ interface SaveMessage {
 export default function GoogleMeetAdminPanel({ user }: GoogleMeetAdminPanelProps) {
     const { t } = useTranslation();
     const orgId = user?.organizationId;
-    const [cfg, setCfg] = useState<GoogleMeetConfig>({ autoImport: false, autoRecordConfig: false, importScope: 'organizer', language: 'nl' });
-    const [loading, setLoading] = useState(true);
+    const settingsQuery = useOrgNotesSettingsQuery<GoogleMeetConfig>('gmeet', orgId);
+    const [draft, setDraft] = useState<GoogleMeetConfig | null>(null);
+    // Edits replace the whole config (defaults, then the server answer, then the person's changes).
+    const cfg: GoogleMeetConfig = draft ?? { ...DEFAULT_CFG, ...settingsQuery.data };
+    const setCfg = (update: (c: GoogleMeetConfig) => GoogleMeetConfig) => setDraft(update(cfg));
+    const loading = !!orgId && settingsQuery.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<SaveMessage | null>(null);
-
-    useEffect(() => {
-        if (!orgId) { setLoading(false); return; }
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/gmeet-notes-settings/${orgId}`);
-                if (res.ok) { const data = await res.json(); setCfg((prev: GoogleMeetConfig) => ({ ...prev, ...data })); }
-            } catch (err) { logger.debug('ignore', err); } finally { setLoading(false); }
-        })();
-    }, [orgId]);
 
     const save = async () => {
         setSaving(true); setMessage(null);

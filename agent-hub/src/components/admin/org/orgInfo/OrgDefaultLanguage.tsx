@@ -1,40 +1,26 @@
 import { Check, Info } from 'lucide-react';
-import { useId, useState, useEffect } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { useOrgDefaultLanguage } from '../../../../api/queries/orgAdminReads';
 import { mutate, ApiError } from '../../../../api/mutate';
-
-interface LocaleOption {
-    code: string;
-    name: string;
-}
 
 // ── Org Default Language ───────────────────────────────────────────────────
 const OrgDefaultLanguage = () => {
     const { t } = useTranslation();
-    const [locales, setLocales] = useState<LocaleOption[]>([]);
-    const [defaultLocale, setDefaultLocale] = useState('en');
+    const { data: loaded, loading } = useOrgDefaultLanguage();
+    const locales = loaded?.locales ?? [];
+    // null until the admin picks one: the select shows the server's default, a pick replaces it.
+    const [picked, setPicked] = useState<string | null>(null);
+    const defaultLocale = picked ?? loaded?.defaultLocale ?? 'en';
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [saveFailed, setSaveFailed] = useState(false);
-    const [loading, setLoading] = useState(true);
     const selectId = useId();
-
-    useEffect(() => {
-        setLoading(true);
-        authFetch(`${API_BASE}/api/languages/org/default`)
-            .then((r: Response) => r.json())
-            .then(data => {
-                if (data.defaultLocale) setDefaultLocale(data.defaultLocale);
-                if (Array.isArray(data.locales)) setLocales(data.locales);
-            })
-            .catch(e => console.warn('[OrgInfoPanel] load locales failed', e))
-            .finally(() => setLoading(false));
-    }, []);
 
     const handleSave = async (code: string) => {
         const previous = defaultLocale;
-        setDefaultLocale(code);
+        setPicked(code);
         setSaving(true);
         setSaved(false);
         setSaveFailed(false);
@@ -53,7 +39,7 @@ const OrgDefaultLanguage = () => {
             setTimeout(() => setSaved(false), 2000);
         } catch {
             // The select shows what the server holds, not the refused choice.
-            setDefaultLocale(previous);
+            setPicked(previous);
             setSaveFailed(true);
         } finally {
             setSaving(false);

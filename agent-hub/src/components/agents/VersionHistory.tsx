@@ -1,38 +1,29 @@
-import { useState, useEffect, useCallback, type MouseEvent, SetStateAction, Dispatch } from 'react';
+import { useState, type MouseEvent, SetStateAction, Dispatch } from 'react';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
-import { mutate } from '../../api/mutate';
+import { useQueryClient } from '@tanstack/react-query';
+import { API_BASE } from '../../utils/helpers';
+import { mutate, request } from '../../api/mutate';
+import { agentVersionsKey, useAgentVersions, type AgentVersionRow } from '../../api/queries/agentVersions';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import { Clock, RotateCcw, ChevronDown, ChevronRight, Trash2, Eye } from 'lucide-react';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { VersionHistoryProps, SnapshotPhaseAgent, SnapshotPhase, AgentSnapshot, VersionPreview } from './VersionHistory.types';
 
+const NO_VERSIONS: AgentVersionRow[] = [];
+
 export default function VersionHistory({ agentId, onRestore }: VersionHistoryProps) {
-    const [versions, setVersions] = useState<{ id: string; version_number: number; created_at: string; change_summary: string }[]>([]);
-    const [loading, setLoading] = useState(false);
     const [expanded, setExpanded] = useState(false);
+    const queryClient = useQueryClient();
+    const versionsQuery = useAgentVersions(agentId, expanded);
+    const versions = versionsQuery.data ?? NO_VERSIONS;
+    const loading = versionsQuery.isFetching;
     const [previewVersion, setPreviewVersion] = useState<VersionPreview | null>(null);
     const [restoring, setRestoring] = useState<string | null>(null);
     const { confirm, confirmDialog } = useConfirm();
     const { t } = useTranslation();
 
-    const loadVersions = useCallback(async () => {
-        if (!agentId) return;
-        setLoading(true);
-        try {
-            const res = await authFetch(`${API_BASE}/versions/${agentId}`);
-            const data = await res.json();
-            setVersions(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('[VersionHistory] Load error:', err);
-        }
-        setLoading(false);
-    }, [agentId]);
-
-    useEffect(() => {
-        if (expanded) loadVersions();
-    }, [expanded, agentId, loadVersions]);
+    const { refetch: loadVersions } = versionsQuery;
 
     const handleRestore = async (versionId: string, versionNumber: number) => {
         const ok = await confirm({
@@ -48,13 +39,9 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
         // success. Only a 2xx is one.
         const failed = t('notebooks.restore_failed', 'Restore failed. Your content is unchanged — try again.');
         try {
-            const res = await authFetch(`${API_BASE}/versions/${agentId}/${versionId}/restore`, { method: 'POST' });
-            if (!res.ok) {
-                toast.error(failed);
-            } else {
-                await loadVersions();
-                if (onRestore) onRestore();
-            }
+            await mutate(`${API_BASE}/versions/${agentId}/${versionId}/restore`, { method: 'POST' });
+            await loadVersions();
+            if (onRestore) onRestore();
         } catch (err) {
             console.error('[VersionHistory] Restore error:', err);
             toast.error(failed);
@@ -68,7 +55,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
             return;
         }
         try {
-            const res = await authFetch(`${API_BASE}/versions/${agentId}/${versionId}`);
+            const res = await request(`${API_BASE}/versions/${agentId}/${versionId}`);
             const data = await res.json();
             setPreviewVersion(data);
         } catch (err) {
@@ -81,7 +68,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
         if (!(await confirm({ title: 'Delete this version?', confirmLabel: 'Delete', destructive: true }))) return;
         try {
             await mutate(`${API_BASE}/versions/${agentId}/${versionId}`, { method: 'DELETE' });
-            setVersions(prev => prev.filter(v => v.id !== versionId));
+            queryClient.setQueryData<AgentVersionRow[]>(agentVersionsKey(agentId), prev => (prev ?? []).filter(v => v.id !== versionId));
             if (previewVersion?.id === versionId) setPreviewVersion(null);
         } catch (err) {
             console.error('[VersionHistory] Delete error:', err);

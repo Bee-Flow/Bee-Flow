@@ -95,6 +95,12 @@ interface EvidenceTabProps {
     dl?: (url: string) => string | null;
 }
 
+/** The rows and total of the loaded page; nothing while it loads or after a failed read. */
+function readyPage(state: string, page: EvidencePage | null): { rows: EvidenceRow[]; total: number | null } {
+    if (state !== 'ready') return { rows: [], total: null };
+    return { rows: page?.rows ?? [], total: page?.total ?? null };
+}
+
 export default function EvidenceTab({
     regulation,
     checks = null,
@@ -166,8 +172,7 @@ export default function EvidenceTab({
 
     const columns = useMemo(() => evidenceColumns(t), [t]);
     const cells = Object.fromEntries(columns.map((c) => [c.id, c]));
-    const rows = state === 'ready' ? page?.rows ?? [] : [];
-    const total = state === 'ready' ? page?.total ?? null : null;
+    const { rows, total } = readyPage(state, page);
 
     const renderRow = (row: EvidenceRow) => {
         const hash = shortHash(row.hash || row.payload_hash);

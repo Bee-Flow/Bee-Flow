@@ -1,6 +1,7 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 import SettingsForm from './SettingsForm';
 import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { authFetch } from '../../../../utils/helpers';
@@ -42,6 +43,9 @@ beforeEach(() => {
     scopedStorage.setCurrentUser('guard-test-user');
     try { localStorage.clear(); } catch {}
 });
+
+
+// The code under test reads through react-query: every render gets its own client.
 
 describe('SettingsForm — guard', () => {
     it('asks what to scan and says where the two branches go', () => {

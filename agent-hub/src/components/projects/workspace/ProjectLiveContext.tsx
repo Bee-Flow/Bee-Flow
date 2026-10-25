@@ -131,6 +131,21 @@ export function affectsActivity(kind: string, event: ProjectLiveEvent): boolean 
 }
 
 /** The conversation or team chat a typing/message event is about, if any. */
+const PIN_EXACT_KINDS = new Set(['pins.changed', 'forbidden', 'resync', 'chat.created', 'chat.updated', 'chat.deleted']);
+const PIN_KIND_PREFIXES = ['content.', 'resource_', 'member_', 'file.', 'task.'];
+
+function affectsBoard(kind: string): boolean {
+    return kind.startsWith('task.') || kind === 'resync';
+}
+
+function affectsFileContent(kind: string): boolean {
+    return kind.startsWith('file.') || kind === 'resync' || kind === 'forbidden';
+}
+
+function affectsPins(kind: string): boolean {
+    return PIN_EXACT_KINDS.has(kind) || PIN_KIND_PREFIXES.some((prefix) => kind.startsWith(prefix));
+}
+
 function conversationOf(event: ProjectLiveEvent): string {
     return String(event.conversationId || event.payload?.chatId || event.targetId || '');
 }
@@ -263,11 +278,11 @@ export function ProjectLiveProvider({ projectId, currentUserId, enabled = true, 
         if (!projectId) return;
         const event = (raw && typeof raw === 'object' ? raw : {}) as ProjectLiveEvent;
         trackPeople(kind, event);
-        if (kind.startsWith('task.') || kind === 'resync') qc.invalidateQueries({ queryKey: [...projectKeys.detail(projectId), 'board'] });
-        if (kind.startsWith('file.') || kind === 'resync' || kind === 'forbidden') {
+        if (affectsBoard(kind)) qc.invalidateQueries({ queryKey: [...projectKeys.detail(projectId), 'board'] });
+        if (affectsFileContent(kind)) {
             qc.invalidateQueries({ queryKey: [...projectKeys.detail(projectId), 'file-content'] });
         }
-        if (kind === 'pins.changed' || kind === 'forbidden' || kind === 'resync' || kind.startsWith('content.') || kind.startsWith('resource_') || kind.startsWith('member_') || kind.startsWith('file.') || kind.startsWith('task.') || ['chat.created', 'chat.updated', 'chat.deleted'].includes(kind)) {
+        if (affectsPins(kind)) {
             qc.invalidateQueries({ queryKey: discoveryKeys.pins(projectId) });
             qc.invalidateQueries({ queryKey: discoveryKeys.search(projectId) });
         }

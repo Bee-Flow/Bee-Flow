@@ -48,17 +48,17 @@ interface RibbonDropdownProps {
 
 export default function RibbonDropdown({
     label,
-    tipTitle = null,
-    desc = null,
-    tipFooter = null,
-    icon: Icon = null,
-    glyph = null,
+    tipTitle,
+    desc,
+    tipFooter,
+    icon: Icon,
+    glyph,
     open,
     onToggle,
     children,
     align = 'left',
     width = 300,
-    buttonProps = null,
+    buttonProps,
 }: RibbonDropdownProps) {
     const btnRef = useRef<HTMLButtonElement>(null);
     const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -94,7 +94,7 @@ export default function RibbonDropdown({
                         ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
                 }`}
-                {...(buttonProps || null)}
+                {...buttonProps}
                 {...hoverProps}
             >
                 {resolvedGlyph}

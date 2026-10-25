@@ -1,13 +1,14 @@
 import { BarChart3, History, Loader2 } from 'lucide-react';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { SvgAreaChart, type ChartPoint } from '../../monitoring/shared';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SupportInbox, SupportTeammate } from './supportStudio.types';
 import { logger } from '../../../../utils/logger';
-import { request, RefusedError, errorBody } from '../../../../api/mutate';
+import { useSupportTeammates } from '../../../../api/queries/studioSupport';
+import { mutate, request, RefusedError, errorBody } from '../../../../api/mutate';
 
 // Explicit, non-purple chart color (the strict UI ban rules out the default indigo).
 const CHART_COLOR = '#10b981';
@@ -134,12 +135,15 @@ function ScanSection({ inboxId, t }: ScanSectionProps) {
     const run = async () => {
         setBusy(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`, {
+            const res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
             });
             const d = await res.json().catch(() => ({}));
-            if (res.ok) setScan(s => ({ ...(s || {}), scan_status: d.inbox?.scan_status || 'queued' }));
-            else toast.error(d.error || t('support.scan.failed', 'Could not start scan'));
+            setScan(s => ({ ...(s || {}), scan_status: d.inbox?.scan_status || 'queued' }));
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const d = errorBody(err) ?? {};
+            toast.error(d.error || t('support.scan.failed', 'Could not start scan'));
         } finally { setBusy(false); }
     };
 
@@ -202,7 +206,12 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
     const { t } = useTranslation();
     const [data, setData] = useState<Insights | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [names, setNames] = useState<Record<string, string>>({});
+    const teammates = useSupportTeammates<SupportTeammate>();
+    const names = useMemo(() => {
+        const m: Record<string, string> = {};
+        teammates.forEach((tm) => { m[tm.id] = tm.name || tm.email || tm.id; });
+        return m;
+    }, [teammates]);
     // Scans are per-inbox: use the selected inbox, or the only one when "all".
     const scanInboxId = activeInbox && activeInbox !== 'all'
         ? activeInbox
@@ -226,11 +235,6 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
     }, [activeInbox]);
 
     useEffect(() => { fetchInsights(); }, [fetchInsights]);
-    useEffect(() => {
-        authFetch(`${API_BASE}/api/support-inbox/teammates`).then(r => r.ok ? r.json() : { teammates: [] })
-            .then(d => { const m: Record<string, string> = {}; (d.teammates || []).forEach((tm: SupportTeammate) => { m[tm.id] = tm.name || tm.email || tm.id; }); setNames(m); })
-            .catch(() => {});
-    }, []);
 
     if (error) return <div className="p-6 text-sm [color:#dc2626]!">{error}</div>;
     if (!data || !data.handling) {

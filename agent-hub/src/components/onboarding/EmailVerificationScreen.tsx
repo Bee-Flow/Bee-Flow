@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useEffectEvent, useRef } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { postForBody } from '../../api/postForBody';
 import beeFlowIcon from '../../assets/bee-flow-logo.svg';
 
 interface EmailVerificationScreenProps {
@@ -52,9 +53,8 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
         setInfo(null);
         setAttemptsLeft(null);
         try {
-            const res = await authFetch(`${API_BASE}/setup/request-verification-code`, { method: 'POST' });
-            const body = await res.json().catch(() => ({}));
-            if (res.ok && body.ok) {
+            const { ok, body } = await postForBody(`${API_BASE}/setup/request-verification-code`, { method: 'POST' });
+            if (ok && body.ok) {
                 setMaskedEmail(body.maskedEmail || null);
                 setExpiresAt(body.expiresAt || null);
                 setPhase('ready');
@@ -112,13 +112,12 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
         setError(null);
         setInfo(null);
         try {
-            const res = await authFetch(`${API_BASE}/setup/verify-email-code`, {
+            const { ok, body } = await postForBody(`${API_BASE}/setup/verify-email-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (res.ok && body.ok) {
+            if (ok && body.ok) {
                 window.location.reload();
                 return;
             }

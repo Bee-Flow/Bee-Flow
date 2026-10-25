@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Activity, Zap, DollarSign, BarChart3, Bot, MessageSquare, BookOpen, Search, Code, LayoutTemplate, type LucideIcon } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useConsumerUsage } from '../../api/queries/settingsConsumer';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 
 const fNum = (n: number|null) => {
@@ -132,37 +132,12 @@ interface UsageRow {
 const ConsumerUsageSection = () => {
     const { t } = useTranslation();
     const [days, setDays] = useState(30);
-    const [loading, setLoading] = useState(true);
-    const [summary, setSummary] = useState<UsageSummary | null>(null);
-    const [costTimeline, setCostTimeline] = useState<CostTimelineRow[]>([]);
-    const [byModel, setByModel] = useState<UsageRow[]>([]);
-    const [bySource, setBySource] = useState<UsageRow[]>([]);
-
-    useEffect(() => {
-        let cancelled = false;
-        const load = async () => {
-            setLoading(true);
-            try {
-                const [s, ct, m, src] = await Promise.all([
-                    authFetch(`${API_BASE}/api/usage/summary?days=${days}`).then(r => r.ok ? r.json() : null),
-                    authFetch(`${API_BASE}/api/usage/cost-timeline?days=${days}`).then(r => r.ok ? r.json() : []),
-                    authFetch(`${API_BASE}/api/usage/by-model?days=${days}`).then(r => r.ok ? r.json() : []),
-                    authFetch(`${API_BASE}/api/usage/sources?days=${days}`).then(r => r.ok ? r.json() : []),
-                ]);
-                if (cancelled) return;
-                setSummary(s);
-                setCostTimeline(Array.isArray(ct) ? ct : []);
-                setByModel(Array.isArray(m) ? m : []);
-                setBySource(Array.isArray(src) ? src : []);
-            } catch (e) {
-                console.error('[ConsumerUsage] load error:', e);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-        load();
-        return () => { cancelled = true; };
-    }, [days]);
+    const query = useConsumerUsage<UsageSummary, UsageRow, CostTimelineRow>(days);
+    const loading = query.isFetching;
+    const summary = query.data?.summary ?? null;
+    const costTimeline = useMemo(() => query.data?.costTimeline ?? [], [query.data]);
+    const byModel = query.data?.byModel ?? [];
+    const bySource = query.data?.bySource ?? [];
 
     const sparklinePoints = useMemo(() => {
         return costTimeline.map(row => ({

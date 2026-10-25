@@ -26,19 +26,28 @@ interface ReviewedProposalInput {
     [key: string]: unknown;
 }
 
+function graphNodes(d: FlowDefinition): FlowStep[] {
+    return [d.trigger, ...(d.triggers || []), ...(d.steps || [])].filter(Boolean) as FlowStep[];
+}
+
+function stepLabel(step: FlowStep): string | undefined {
+    return step.label || step.type || step.kind;
+}
+
+function diffGraph(changes: ProposalChange[], a: FlowDefinition = {}, b: FlowDefinition = {}, scope = ''): void {
+    const before = graphNodes(a);
+    const after = graphNodes(b);
+    for (const step of after) {
+        const old = before.find((s: FlowStep) => s.id === step.id);
+        if (!old || !deepEqual(old, step)) changes.push({ id: step.id, scope, kind: old ? 'changed' : 'added', label: stepLabel(step), before: old, after: step });
+    }
+    for (const step of before) if (!after.some((s: FlowStep) => s.id === step.id)) changes.push({ id: step.id, scope, kind: 'removed', label: stepLabel(step), before: step });
+    for (const key of new Set([...Object.keys(a.layers || {}), ...Object.keys(b.layers || {})])) diffGraph(changes, a.layers?.[key], b.layers?.[key], key);
+}
+
 export function proposalChanges(base: FlowDefinition | null | undefined, next: FlowDefinition | null | undefined): ProposalChange[] {
     const changes: ProposalChange[] = [];
-    function graph(a: FlowDefinition = {}, b: FlowDefinition = {}, scope = '') {
-        const before = [a.trigger, ...(a.triggers || []), ...(a.steps || [])].filter(Boolean) as FlowStep[];
-        const after = [b.trigger, ...(b.triggers || []), ...(b.steps || [])].filter(Boolean) as FlowStep[];
-        for (const step of after) {
-            const old = before.find((s: FlowStep) => s.id === step.id);
-            if (!old || !deepEqual(old, step)) changes.push({ id: step.id, scope, kind: old ? 'changed' : 'added', label: step.label || step.type || step.kind, before: old, after: step });
-        }
-        for (const step of before) if (!after.some((s: FlowStep) => s.id === step.id)) changes.push({ id: step.id, scope, kind: 'removed', label: step.label || step.type || step.kind, before: step });
-        for (const key of new Set([...Object.keys(a.layers || {}), ...Object.keys(b.layers || {})])) graph(a.layers?.[key], b.layers?.[key], key);
-    }
-    graph(base || {}, next || {});
+    diffGraph(changes, base || {}, next || {});
     return changes;
 }
 

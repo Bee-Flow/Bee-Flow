@@ -43,6 +43,8 @@ export function columnStepPx({ innerWidth, columnGap = 0, columns = GRID_COLUMNS
     return (innerWidth + gap) / columns;
 }
 
+const cssPx = (value: string | undefined): number => parseFloat(value ?? '') || 0;
+
 /**
  * Measure a live grid element into `columnStepPx`. Kept beside the math (rather
  * than inline in the component) so the two stay in step; returns 0 for anything
@@ -52,9 +54,9 @@ export function measureColumnWidth(gridEl: HTMLElement | null | undefined) {
     if (!gridEl || typeof gridEl.getBoundingClientRect !== 'function') return 0;
     const view = gridEl.ownerDocument?.defaultView;
     const cs = view?.getComputedStyle?.(gridEl);
-    const padLeft = parseFloat(cs?.paddingLeft ?? '') || 0;
-    const padRight = parseFloat(cs?.paddingRight ?? '') || 0;
-    const columnGap = parseFloat(cs?.columnGap ?? '') || 0;
+    const padLeft = cssPx(cs?.paddingLeft);
+    const padRight = cssPx(cs?.paddingRight);
+    const columnGap = cssPx(cs?.columnGap);
     // clientWidth drops borders and the scrollbar gutter but keeps padding.
     const outer = gridEl.clientWidth || gridEl.getBoundingClientRect().width || 0;
     return columnStepPx({ innerWidth: outer - padLeft - padRight, columnGap });

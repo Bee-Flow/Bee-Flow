@@ -133,6 +133,13 @@ function renameInExpr(src: unknown, base: string, from: string, to: string): unk
     return out;
 }
 
+/** Which payload field of each binding kind holds an expression-ish string, and how to rename inside it. */
+const BINDING_RENAMERS = new Map<string, { field: 'path' | 'value'; rename: (text: string, base: string, from: string, to: string) => string }>([
+    ['ref', { field: 'path', rename: renameFieldPath }],
+    ['template', { field: 'value', rename: renameInTemplate }],
+    ['expr', { field: 'value', rename: renameInExpr }],
+]);
+
 /**
  * Deep-walk a value, returning a rewritten COPY and counting what changed.
  *
@@ -146,20 +153,14 @@ function rewriteDeep(value: JsonValue, base: string, from: string, to: string, c
 
     const kind = typeof value.kind === 'string' ? value.kind : null;
     if (kind === 'literal') return { ...value };
-    if (kind === 'ref' && typeof value.path === 'string') {
-        const next = renameFieldPath(value.path, base, from, to);
-        if (next !== value.path) counter.count += 1;
-        return { ...value, path: next };
-    }
-    if (kind === 'template' && typeof value.value === 'string') {
-        const next = renameInTemplate(value.value, base, from, to);
-        if (next !== value.value) counter.count += 1;
-        return { ...value, value: next };
-    }
-    if (kind === 'expr' && typeof value.value === 'string') {
-        const next = renameInExpr(value.value, base, from, to);
-        if (next !== value.value) counter.count += 1;
-        return { ...value, value: next };
+    const wrapper = kind ? BINDING_RENAMERS.get(kind) : undefined;
+    if (wrapper) {
+        const current = value[wrapper.field];
+        if (typeof current === 'string') {
+            const next = wrapper.rename(current, base, from, to);
+            if (next !== current) counter.count += 1;
+            return { ...value, [wrapper.field]: next };
+        }
     }
 
     const out: JsonObject = {};

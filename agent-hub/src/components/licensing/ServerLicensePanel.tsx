@@ -1,12 +1,12 @@
 import { ShieldCheck, Key, AlertCircle, Loader2, X, Globe } from 'lucide-react';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLicenseContext } from './LicenseContext';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useLicenseStatus } from '../../api/queries/serverLicense';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
-import { logger } from '../../utils/logger';
-import { request, RefusedError } from '../../api/mutate';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 interface ServerLicenseRecord {
     tier?: string;
@@ -61,38 +61,23 @@ export default function ServerLicensePanel() {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
     const { reload: reloadLicenseContext } = useLicenseContext();
-    const [status, setStatus] = useState<LicenseStatus | null>(null);
-    const [loading, setLoading] = useState(true);
+    const statusQuery = useLicenseStatus<LicenseStatus>();
+    const status = statusQuery.data ?? null;
+    const loading = statusQuery.isFetching;
     const [tokenInput, setTokenInput] = useState('');
     const [showInput, setShowInput] = useState(false);
     const [busy, setBusy] = useState<'activate' | 'deactivate' | null>(null); // 'activate' | 'deactivate'
-    const [actionError, setActionError] = useState<string | null>(null);
+    const [mutationError, setActionError] = useState<string | null>(null);
+    const actionError = mutationError ?? (statusQuery.isError ? messageOf(statusQuery.error, 'Failed to load licence status') : null);
 
     // Pull the server-wide licence status. The server-side getLicenseStatus
     // returns the server-scope row with serverOverride:true when present,
     // regardless of the caller's org — so a plain GET /status suffices.
+    const { refetch } = statusQuery;
     const reload = useCallback(async () => {
-        setLoading(true);
-        try {
-            let r: Response;
-            try {
-                r = await request(`${API_BASE}/api/license/status`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
-            }
-            const data = await r.json();
-            setStatus(data);
-            setActionError(null);
-        } catch (e) {
-            console.warn('[ServerLicensePanel] reload failed', e);
-            setActionError(messageOf(e, 'Failed to load licence status'));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { reload(); }, [reload]);
+        setActionError(null);
+        await refetch();
+    }, [refetch]);
 
     // `serverLicense` is present whenever a server-wide row exists, regardless
     // of deployment mode — so the panel shows/manages the licence on cloud too
@@ -122,16 +107,17 @@ export default function ServerLicensePanel() {
         setBusy('activate');
         setActionError(null);
         try {
-            const r = await authFetch(`${API_BASE}/api/license/activate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, scope: 'server' }),
-            });
-            let data: LicenseActionResponse = {};
-            try { data = await r.json(); } catch (err) { logger.debug('ignore', err); }
-            if (!r.ok) {
+            try {
+                await mutate(`${API_BASE}/api/license/activate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, scope: 'server' }),
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = (errorBody(err) ?? {}) as LicenseActionResponse;
                 const code = data.code || data.error;
-                const msg = data.message || data.error || `HTTP ${r.status}`;
+                const msg = data.message || data.error || `HTTP ${err.status}`;
                 throw new Error(`${msg}${code ? ` (${code})` : ''}`);
             }
             setTokenInput('');
@@ -157,11 +143,14 @@ export default function ServerLicensePanel() {
         setBusy('deactivate');
         setActionError(null);
         try {
-            const r = await authFetch(`${API_BASE}/api/license/deactivate?scope=server`, { method: 'DELETE' });
-            if (!r.ok && r.status !== 404) {
-                let data: LicenseActionResponse = {};
-                try { data = await r.json(); } catch (err) { logger.debug('ignore', err); }
-                throw new Error(data.error || `HTTP ${r.status}`);
+            try {
+                await mutate(`${API_BASE}/api/license/deactivate?scope=server`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                if (err.status !== 404) {
+                    const data = (errorBody(err) ?? {}) as LicenseActionResponse;
+                    throw new Error(data.error || `HTTP ${err.status}`);
+                }
             }
             await reload();
             reloadLicenseContext && reloadLicenseContext();

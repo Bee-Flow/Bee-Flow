@@ -5,8 +5,7 @@ import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
-import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { openGoogleConsentPopup } from '../../../api/oauthPopupLaunchers';
 import { errorMessage } from '../../../utils/caughtError';
 
 interface MeetRecording {
@@ -84,7 +83,7 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
         setReauthBusy(true);
         setReauthError(null);
         try {
-            const result = await openGoogleOAuthPopup({ authFetch, apiBase: API_BASE });
+            const result = await openGoogleConsentPopup();
             if (result?.success) {
                 setReauthorized(true);
                 load();

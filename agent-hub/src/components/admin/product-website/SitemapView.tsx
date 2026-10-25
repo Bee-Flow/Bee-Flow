@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { AppIcon } from './blog/jsComponents';
 import { cmsApi } from './cmsApi';
 import SettingsFlyout from './sitemap/SettingsFlyout';
@@ -6,13 +6,13 @@ import SitemapEdges from './sitemap/SitemapEdges';
 import type { EdgePopoverState } from './sitemap/SitemapEdges';
 import {
     CHROME_H, CHROME_W, NODE_W, PADDING,
-    bfsLayout, collectChromeTargets, collectInternalEdges, ensureOk,
+    bfsLayout, collectChromeTargets, collectInternalEdges,
 } from './sitemap/sitemapGraph';
 import type { SitemapPage, SitemapSite } from './sitemap/sitemapGraph';
 import { EdgePopover, NodeCard, SitemapLegend, SitemapToolbar } from './sitemap/SitemapParts';
 import useSitemapDrag from './sitemap/useSitemapDrag';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { authFetch } from '../../../utils/helpers';
+import { useCmsSitePayload } from '../../../api/queries/cmsSitePayload';
 import { describeError } from '../../../utils/caughtError';
 
 /**
@@ -64,28 +64,9 @@ interface AdminPayload {
 
 /** Fetch the admin payload (site + pages with blocks). */
 function useSitemapPayload(siteId: string | null) {
-    const [adminPayload, setAdminPayload] = useState<AdminPayload | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError]     = useState<string | null>(null);
-
-    const fetchData = useCallback(async () => {
-        if (!siteId) { setLoading(false); setAdminPayload(null); return; }
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await authFetch(cmsApi.site(siteId));
-            await ensureOk(res, 'Failed to load');
-            const data = await res.json();
-            setAdminPayload(data);
-        } catch (err) {
-            setError(describeError(err));
-        } finally {
-            setLoading(false);
-        }
-    }, [siteId]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-    return { adminPayload, loading, error, fetchData };
+    const { data, loading, error, refetch } = useCmsSitePayload<AdminPayload>(siteId, siteId ? cmsApi.site(siteId) : null);
+    const fetchData = useCallback(() => { void refetch(); }, [refetch]);
+    return { adminPayload: data, loading, error: error ? describeError(error) : null, fetchData };
 }
 
 /** Merge the page index (has isHomepage) with the page docs (have blocks), then derive graph + layout. */

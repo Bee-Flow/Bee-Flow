@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useUsageSubscription, useUsageTiers, useUsageReport } from '../../api/queries/settingsUsage';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
 import {
     Bot, Filter, X, Cpu, Users, ChevronDown, Activity, BarChart3,
@@ -109,6 +109,11 @@ interface UsageSectionProps {
     initialReport?: string;
 }
 
+type StarterTiers = { fast?: StarterModel; standard?: StarterModel; thinking?: StarterModel };
+const EMPTY_TIER_MAP: Record<string, string> = {};
+const EMPTY_USAGE: UsageData = { summary: null, timeline: [], users: [], sources: [], agents: [], models: [], modelsByAgent: [], modelsByUser: [] };
+const EMPTY_AZURE: AzureServicesData = { summary: null, byType: [], byUser: [] };
+
 const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const { t } = useTranslation();
     const { hasFeature: hasLicenseFeature } = useLicenseContext();
@@ -123,7 +128,6 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
 
     const [range, setRange] = useState(() => defaultRange('30d'));
     const rangeParams = useMemo(() => deriveRangeParams(range), [range]);
-    const [loading, setLoading] = useState(true);
     // initialReport lets deep links open a specific report tab. Unknown values
     // — including the RETIRED 'safety'/'integrations' ids from old bookmarks —
     // fall back to overview; the license bounce below still wins for
@@ -141,46 +145,15 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     if (!canSeeAdvancedUsage && activeReport !== 'overview') setActiveReport('overview');
 
     // Subscription (customer-view header: plan, billing, cost cap).
-    const [subscription, setSubscription] = useState<Record<string, unknown> | null>(null);
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const permsRes = await authFetch(`${API_BASE}/auth/my-permissions`);
-                if (!permsRes.ok) return;
-                const perms = await permsRes.json();
-                const orgId = (perms?.organizations || [])[0];
-                if (!orgId) return;
-                const subRes = await authFetch(`${API_BASE}/api/subscriptions/orgs/${orgId}`);
-                if (!subRes.ok) return;
-                const sub = await subRes.json();
-                if (!cancelled) setSubscription(sub);
-            } catch (err) { logger.debug('non-fatal', err); }
-        })();
-        return () => { cancelled = true; };
-    }, []);
+    const subscription = useUsageSubscription().data ?? null;
 
     // Model → tier map (cloud view badges).
-    const [modelTierMap, setModelTierMap] = useState<Record<string, string>>({});
     // Raw tiers config retained so the customer "By tier" breakdown can resolve
     // custom-tier display labels (tierLabel needs the tier object for `custom:*`).
-    const [modelTiers, setModelTiers] = useState<{ fast?: StarterModel; standard?: StarterModel; thinking?: StarterModel }>({});
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
-                if (!res.ok) return;
-                const d = await res.json();
-                const tiers = d?.tiers || d?.modelTiers || d;
-                if (!cancelled) {
-                    setModelTierMap(buildModelTierMap(tiers));
-                    setModelTiers(tiers && typeof tiers === 'object' ? tiers : {});
-                }
-            } catch (err) { logger.debug('non-fatal — falls back to model-only badges', err); }
-        })();
-        return () => { cancelled = true; };
-    }, []);
+    const tiersRaw = useUsageTiers<Parameters<typeof buildModelTierMap>[0]>().data;
+    const modelTierMap = useMemo(() => (tiersRaw ? buildModelTierMap(tiersRaw) : EMPTY_TIER_MAP), [tiersRaw]);
+    const modelTiers: StarterTiers = useMemo(
+        () => (tiersRaw && typeof tiersRaw === 'object' ? tiersRaw as StarterTiers : {}), [tiersRaw]);
     const tierFor = useCallback((model: string | null) => tierForModel(modelTierMap, model), [modelTierMap]);
 
     // Cross-cutting filters
@@ -191,18 +164,10 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     const hasFilters = filterUser || filterAgent || filterModel || filterSource;
     const clearFilters = () => { setFilterUser(null); setFilterAgent(null); setFilterModel(null); setFilterSource(null); };
 
-    const [data, setData] = useState<UsageData>({ summary: null, timeline: [], users: [], sources: [], agents: [], models: [], modelsByAgent: [], modelsByUser: [] });
-    const [azureServices, setAzureServices] = useState<AzureServicesData>({ summary: null, byType: [], byUser: [] });
-
-    // Backend redacts token/call counts for cloud non-admin customers and swaps
-    // estimated_cost for marked-up billed_cost. Detect that shape.
-    const isCustomerView = Boolean(data.summary && data.summary.total_calls === undefined && data.summary.billed_cost !== undefined);
-    // Single source of truth for token visibility: self-hosted always; cloud only
-    // for admins (who keep total_calls). Defaults to hidden in cloud until the
-    // summary loads, so tokens never flash for a customer.
-    const showTokens = isSelfHosted || (data.summary != null && !isCustomerView);
-
-    const buildQS = useCallback(() => {
+    // The query string of the current range and filters. A customer view has no model filter pill, so a
+    // stale model filter must never scope it (`customerView` follows the report, see below).
+    const [customerView, setCustomerView] = useState(false);
+    const qs = useMemo(() => {
         const params = new URLSearchParams();
         // Always send a day count (works with today's days-only usage routes);
         // also send startDate/endDate so the routes use the exact window once the
@@ -212,50 +177,26 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
         if (rangeParams.endDate) params.set('endDate', rangeParams.endDate);
         if (filterUser) params.set('user', filterUser);
         if (filterAgent) params.set('agent', filterAgent);
-        // Customers see tiers, not models, and have no model filter pill — never
-        // let a stale model filter scope their dashboard to a hidden model id.
-        if (filterModel && !isCustomerView) params.set('model', filterModel);
+        if (filterModel && !customerView) params.set('model', filterModel);
         if (filterSource) params.set('source', filterSource);
         return params.toString();
-    }, [rangeParams, filterUser, filterAgent, filterModel, filterSource, isCustomerView]);
+    }, [rangeParams, filterUser, filterAgent, filterModel, filterSource, customerView]);
 
-    useEffect(() => {
-        const fetchUsage = async () => {
-            setLoading(true);
-            try {
-                const qs = buildQS();
-                const sj = async (r: Response, fb: unknown) => { try { if (!r.ok) return fb; const d = await r.json(); return d?.error ? fb : d; } catch { return fb; } };
-                const sa = async (r: Response) => { const d = await sj(r, []); return Array.isArray(d) ? d : []; };
+    // The previous report stays on screen while the next loads.
+    const report = useUsageReport<UsageData, AzureServicesData>(qs);
+    const loading = report.isFetching;
+    const data: UsageData = report.data?.data ?? EMPTY_USAGE;
+    const azureServices: AzureServicesData = report.data?.azure ?? EMPTY_AZURE;
 
-                const eps = ['summary', 'timeline', 'users', 'sources', 'agents', 'models', 'models-by-agent', 'models-by-user'];
-                const results = await Promise.all(eps.map(ep => authFetch(`${API_BASE}/api/usage/${ep}?${qs}`)));
-                setData({
-                    summary: await sj(results[0], {}),
-                    timeline: await sa(results[1]),
-                    users: await sa(results[2]),
-                    sources: await sa(results[3]),
-                    agents: await sa(results[4]),
-                    models: await sa(results[5]),
-                    modelsByAgent: await sa(results[6]),
-                    modelsByUser: await sa(results[7]),
-                });
+    // Backend redacts token/call counts for cloud non-admin customers and swaps
+    // estimated_cost for marked-up billed_cost. Detect that shape.
+    const isCustomerView = Boolean(data.summary && data.summary.total_calls === undefined && data.summary.billed_cost !== undefined);
+    // Single source of truth for token visibility: self-hosted always; cloud only
+    // for admins (who keep total_calls). Defaults to hidden in cloud until the
+    // summary loads, so tokens never flash for a customer.
+    const showTokens = isSelfHosted || (data.summary != null && !isCustomerView);
 
-                // The guardrails/integrations blocks (19 requests) left with
-                // the Safety & Integrations tabs — see the Privacy Shield
-                // Activity tab, which fetches its two consolidated overviews
-                // only when it is actually open.
-                const azEps = ['azure-services/summary', 'azure-services/by-type', 'azure-services/by-user'];
-                const azResults = await Promise.all(azEps.map(ep => authFetch(`${API_BASE}/api/usage/${ep}?${qs}`)));
-                setAzureServices({
-                    summary: await sj(azResults[0], {}),
-                    byType: await sa(azResults[1]),
-                    byUser: await sa(azResults[2]),
-                });
-            } catch (err) { console.error('Failed to load usage', err); }
-            setLoading(false);
-        };
-        fetchUsage();
-    }, [buildQS]);
+    if (isCustomerView !== customerView) setCustomerView(isCustomerView);
 
     // Filter dropdown options
     const userOptions = useMemo(() => data.users.map(u => ({ value: u.user_id, label: u.display_name || u.user_id })), [data.users]);

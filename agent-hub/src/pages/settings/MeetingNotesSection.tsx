@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useTalkNotesUserSettings } from '../../api/queries/settingsOptionalRead';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
@@ -21,6 +22,10 @@ interface SaveMessage {
     text: string | undefined;
 }
 
+// recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
+// so /Talk/Recording is the default on a stock Nextcloud.
+const DEFAULT_CFG: TalkNotesConfig = { autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio' };
+
 /**
  * Personal Nextcloud Talk → Meeting Notes settings. Rendered for every account
  * that has the Meeting Notes feature; self-hides (renders null) when the
@@ -31,27 +36,17 @@ export default function MeetingNotesSection() {
     const { t } = useTranslation();
     // recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
     // so /Talk/Recording is the default on a stock Nextcloud.
-    const [cfg, setCfg] = useState<TalkNotesConfig>({ autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio' });
-    const [available, setAvailable] = useState(true);
-    const [connected, setConnected] = useState(false);
-    const [recordingEnabled, setRecordingEnabled] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const query = useTalkNotesUserSettings<Partial<TalkNotesConfig> & { nextcloudConnected?: boolean; recordingEnabled?: boolean }>();
+    // The loaded values with the person's edits on top (nothing is shown before the load, so no edit can predate it).
+    const [edits, setEdits] = useState<Partial<TalkNotesConfig>>({});
+    const cfg: TalkNotesConfig = { ...DEFAULT_CFG, ...query.data, ...edits };
+    const setCfg = (fn: (c: TalkNotesConfig) => TalkNotesConfig) => setEdits(fn(cfg));
+    const loading = query.isPending;
+    const available = query.data != null;
+    const connected = !!query.data?.nextcloudConnected;
+    const recordingEnabled = !!query.data?.recordingEnabled;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<SaveMessage | null>(null);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/talk-notes-settings/user/me`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setConnected(!!data.nextcloudConnected);
-                    setRecordingEnabled(!!data.recordingEnabled);
-                    setCfg((prev: TalkNotesConfig) => ({ ...prev, ...data }));
-                } else setAvailable(false); // 403/404 → feature not licensed for this account
-            } catch (_) { setAvailable(false); } finally { setLoading(false); }
-        })();
-    }, []);
 
     const save = async () => {
         setSaving(true); setMessage(null);

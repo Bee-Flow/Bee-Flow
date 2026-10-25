@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, SetStateAction, RefObject, Dispatch } from 'react';
 import { Sparkles, X, Users, Lock } from 'lucide-react';
 import { readOrgGroups, type OrgGroup } from '../../api/queries/orgGroups';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useSkillDetail } from '../../api/queries/skillDetail';
 import useTranslation from '../../hooks/useTranslation';
 import { managedOf, managedRefusalOf, type ManagedBannerInfo, type ManagedPart } from '../shared/managedPart';
 import ManagedPartBanner from '../shared/ManagedPartBanner';
@@ -10,7 +10,6 @@ import type { TranslateParams } from '../../hooks/useTranslation';
 import type { Skill } from '../../hooks/useSkills';
 import type { SkillRecord } from './SkillCard';
 import type { TextTab, FormState, CharCountProps, SkillFormModalProps } from './SkillFormModal.types';
-import { logger } from '../../utils/logger';
 import { ICONS, INSTRUCTION_LIMIT, TABS, STRUCTURE_WARNING, STRUCTURED_TEXT_FIELDS } from './SkillFormModal.constants';
 ;
 
@@ -83,20 +82,9 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
     const [refusal, setRefusal] = useState<ManagedBannerInfo | null>(null);
     // The list rows the callers hand in do not carry `managed` (only GET
     // /api/skills/:id does), so an existing skill is asked once on open.
-    const [fetchedManaged, setFetchedManaged] = useState<ManagedPart | null>(null);
     const skillId = skill?.id || null;
-    useEffect(() => {
-        if (!skillId || managedOf(skill)) return undefined;
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/skills/${encodeURIComponent(skillId)}`);
-                if (!cancelled && res.ok) setFetchedManaged(managedOf(await res.json()));
-            } catch (err) { logger.debug('non-fatal: the 409 on save still turns the form read-only', err); }
-        })();
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per skill id
-    }, [skillId]);
+    const detail = useSkillDetail<unknown>(skillId, !managedOf(skill));
+    const fetchedManaged: ManagedPart | null = detail.data ? managedOf(detail.data) : null;
     const managedPart = managedOf(skill) ?? fetchedManaged ?? refusal?.managed ?? null;
     const locked = !!managedPart || refusal != null;
     const save = () => Promise.resolve(onSave(payloadOf(form, initial, locked))).catch((err) => {

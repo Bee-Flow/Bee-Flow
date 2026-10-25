@@ -1,8 +1,9 @@
 import { RefreshCw } from 'lucide-react';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { sevMeta, labelFor, summarize, SEVERITY_IDS, SEVERITY_META } from './healthMeta';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { integrationsAdminKeys, useOrgEventTimelineQuery } from '../../../api/queries/integrationsAdmin';
 import type { HealthEvent } from './healthMeta';
 
 interface OrgEventTimelineProps {
@@ -18,31 +19,22 @@ interface OrgEventTimelineProps {
  */
 export default function OrgEventTimeline({ orgId }: OrgEventTimelineProps) {
     const { t } = useTranslation();
-    const [events, setEvents] = useState<HealthEvent[]>([]);
-    const [nextCursor, setNextCursor] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const queryClient = useQueryClient();
     const [severity, setSeverity] = useState('');
-
-    const fetchPage = useCallback(async (cursor: string | null) => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            params.set('limit', '50');
-            if (severity) params.set('severity', severity);
-            if (cursor) params.set('cursor', cursor);
-            const res = await authFetch(`${API_BASE}/auth/admin/connector-health/${orgId}/events?${params.toString()}`);
-            const d = await res.json().catch(() => ({ events: [] }));
-            setEvents((prev: HealthEvent[]) => cursor ? [...prev, ...(d.events || [])] : (d.events || []));
-            setNextCursor(d.nextCursor || null);
-        } catch {
-            if (!cursor) setEvents([]);
-            setNextCursor(null);
-        } finally {
-            setLoading(false);
+    const timeline = useOrgEventTimelineQuery<HealthEvent>(orgId, severity);
+    const events: HealthEvent[] = timeline.data?.events ?? [];
+    // A failed "load more" ends the trail: no button to try again, like the failure it replaces.
+    const nextCursor: string | null = timeline.isError ? null : (timeline.data?.nextCursor ?? null);
+    const loading = timeline.isFetching;
+    const fetchPage = (cursor: string | null) => {
+        if (cursor) void timeline.fetchNextPage();
+        else {
+            // Refresh starts again from the first page; the rows on screen stay until it lands.
+            const key = integrationsAdminKeys.orgEvents(orgId, severity);
+            queryClient.setQueryData<InfiniteData<unknown>>(key, (d) => d && { pages: d.pages.slice(0, 1), pageParams: d.pageParams.slice(0, 1) });
+            void timeline.refetch();
         }
-    }, [orgId, severity]);
-
-    useEffect(() => { fetchPage(null); }, [fetchPage]);
+    };
 
     return (
         <div className="space-y-3">

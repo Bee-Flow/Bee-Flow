@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import { logger } from '../../../../utils/logger';
 import { request, RefusedError } from '../../../../api/mutate';
 
@@ -71,9 +72,9 @@ function useServerUrl(): string {
     useEffect(() => {
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/auth/setup-status`);
+                const res = await settled(`${API_BASE}/auth/setup-status`, undefined, 'empty');
                 if (res.ok) {
-                    const data = await res.json();
+                    const data = await res.res.json();
                     if (data.serverUrl) setServerUrl(data.serverUrl);
                 }
             } catch (err) { logger.debug('setup status unavailable, server URL stays unset', err); }
@@ -118,13 +119,13 @@ export default function useSsoProviders(): SsoProvidersState {
         setMessage(null);
 
         try {
-            const res = await authFetch(`${API_BASE}/auth/providers/${provider}`, {
+            const res = await settled(`${API_BASE}/auth/providers/${provider}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(providerBody(provider, providers[provider], secrets[provider]))
             });
 
-            const data = await res.json();
+            const data = res.ok ? await res.res.json() : res.body;
             if (res.ok) {
                 setMessage({ type: 'success', text: data.message });
                 setSecrets(prev => ({ ...prev, [provider]: '' }));
@@ -144,10 +145,10 @@ export default function useSsoProviders(): SsoProvidersState {
         setMessage(null);
 
         try {
-            const res = await authFetch(`${API_BASE}/auth/providers/${provider}/test`, {
+            const res = await settled(`${API_BASE}/auth/providers/${provider}/test`, {
                 method: 'POST',
             });
-            const data = await res.json();
+            const data = res.ok ? await res.res.json() : res.body;
             setMessage({ type: res.ok ? 'success' : 'error', text: res.ok ? data.message : data.error });
         } catch (e) {
             setMessage({ type: 'error', text: 'Connection test failed' });

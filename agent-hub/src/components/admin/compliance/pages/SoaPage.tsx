@@ -213,11 +213,17 @@ interface HistoryApiRow {
     note?: string;
 }
 
+/** The first value that is neither null nor undefined (what `a ?? b ?? c ?? null` says), else null. */
+function firstDefined<T>(...values: Array<T | null | undefined>): T | null {
+    for (const v of values) if (v !== null && v !== undefined) return v;
+    return null;
+}
+
 function normaliseHistoryRow(row: HistoryApiRow | null | undefined, i: number) {
     if (!row || typeof row !== 'object') return null;
-    const ref = row.control_ref ?? row.ref ?? null;
-    const at = row.changed_at ?? row.updated_at ?? row.at ?? null;
-    const by = row.changed_by ?? row.updated_by ?? row.by ?? null;
+    const ref = firstDefined(row.control_ref, row.ref);
+    const at = firstDefined(row.changed_at, row.updated_at, row.at);
+    const by = firstDefined(row.changed_by, row.updated_by, row.by);
     const decision = row.applicable === false ? 'excluded' : (row.status ?? null);
     return { id: row.id ?? `${ref}-${at}-${i}`, ref, at, by, decision, field: row.field ?? null, from: row.from ?? null, to: row.to ?? null, note: row.note ?? null };
 }

@@ -44,6 +44,34 @@ interface WebSearchInferenceConfigProps {
     onNavigateToTab: React.Dispatch<React.SetStateAction<string>>;
 }
 
+type EmbedSummary = { providerId: string | null; providerName: string | null; modelId: string | null };
+
+const isChatModel = (m: InferenceModel): boolean => {
+    const meta = getModelMeta(m.id);
+    if (!meta) return true;
+    return !['Embedding', 'OCR', 'Moderation', 'Audio'].includes(meta.cat);
+};
+
+function groupByProvider(models: InferenceModel[]): Record<string, InferenceModel[]> {
+    const groups: Record<string, InferenceModel[]> = {};
+    models.forEach((m: InferenceModel) => {
+        const key = m.providerName || 'Unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(m);
+    });
+    return groups;
+}
+
+const findSelected = (models: InferenceModel[], sel: { providerId: string; modelId: string }): InferenceModel | undefined =>
+    models.find((m: InferenceModel) => m.id === sel.modelId && m.providerId === sel.providerId);
+
+const modelLabel = (m: InferenceModel | undefined, fallback: string): string => (m ? `${getModelDisplayName(m)} · ${m.providerName}` : fallback);
+
+function inheritedEmbedName(summary: EmbedSummary): string | null {
+    if (!(summary.providerId && summary.modelId)) return null;
+    return `${getModelMeta(summary.modelId)?.name || summary.modelId} · ${summary.providerName || summary.providerId}`;
+}
+
 const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearchInferenceConfigProps) => {
     const { t } = useTranslation();
     const RERANK_METHODS = getRerankMethods(t);
@@ -105,53 +133,24 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     if (loading) return <div className="text-sm p-4 text-[var(--text-muted)]">{t('admin_ai_config.loading_ellipsis', 'Loading…')}</div>;
 
     // Filter to chat-completion models only — same exclusions ChatModelTiersConfig uses.
-    const chatModels = (allModels || []).filter((m: InferenceModel) => {
-        const meta = getModelMeta(m.id);
-        if (!meta) return true;
-        return !['Embedding', 'OCR', 'Moderation', 'Audio'].includes(meta.cat);
-    });
-    const cleanupGroups: Record<string, InferenceModel[]> = {};
-    chatModels.forEach((m: InferenceModel) => {
-        const key = m.providerName || 'Unknown';
-        if (!cleanupGroups[key]) cleanupGroups[key] = [];
-        cleanupGroups[key].push(m);
-    });
+    const chatModels = (allModels || []).filter(isChatModel);
+    const cleanupGroups = groupByProvider(chatModels);
 
     // Embedding-only models — for the per-feature embed override.
     const embedModels = (allModels || []).filter((m: InferenceModel) => getModelMeta(m.id)?.cat === 'Embedding');
-    const embedGroups: Record<string, InferenceModel[]> = {};
-    embedModels.forEach((m: InferenceModel) => {
-        const key = m.providerName || 'Unknown';
-        if (!embedGroups[key]) embedGroups[key] = [];
-        embedGroups[key].push(m);
-    });
+    const embedGroups = groupByProvider(embedModels);
 
-    const cleanupSelected = chatModels.find((m: InferenceModel) =>
-        m.id === config.cleanup.modelId && m.providerId === config.cleanup.providerId
-    );
-    const cleanupLabel = cleanupSelected
-        ? `${getModelDisplayName(cleanupSelected)} · ${cleanupSelected.providerName}`
-        : t('admin_ai_config.ws_cleanup_none', 'Disabled (no cleanup model selected)');
+    const cleanupLabel = modelLabel(findSelected(chatModels, config.cleanup), t('admin_ai_config.ws_cleanup_none', 'Disabled (no cleanup model selected)'));
 
     // Embed override — picker; empty falls back to global Embeddings config.
-    const embedOverride = embedModels.find((m: InferenceModel) =>
-        m.id === config.embed.modelId && m.providerId === config.embed.providerId
-    );
-    const embedConfigured = !!(embedSummary.providerId && embedSummary.modelId);
-    const embedFallbackName = embedConfigured
-        ? `${getModelMeta(embedSummary.modelId as string)?.name || embedSummary.modelId} · ${embedSummary.providerName || embedSummary.providerId}`
-        : null;
-    const embedLabel = embedOverride
-        ? `${getModelDisplayName(embedOverride)} · ${embedOverride.providerName}`
-        : (embedFallbackName ? t('admin_ai_config.ws_inherit_named', 'Inherit global · {name}', { name: embedFallbackName }) : t('admin_ai_config.ws_inherit_none', 'Inherit global · (none configured)'));
+    const embedFallbackName = inheritedEmbedName(embedSummary);
+    const inheritLabel = embedFallbackName
+        ? t('admin_ai_config.ws_inherit_named', 'Inherit global · {name}', { name: embedFallbackName })
+        : t('admin_ai_config.ws_inherit_none', 'Inherit global · (none configured)');
+    const embedLabel = modelLabel(findSelected(embedModels, config.embed), inheritLabel);
 
     // Rerank model picker — only relevant when method='provider'.
-    const rerankSelected = chatModels.find((m: InferenceModel) =>
-        m.id === config.rerank.modelId && m.providerId === config.rerank.providerId
-    );
-    const rerankLabel = rerankSelected
-        ? `${getModelDisplayName(rerankSelected)} · ${rerankSelected.providerName}`
-        : t('admin_ai_config.ws_pick_model', 'Pick a model');
+    const rerankLabel = modelLabel(findSelected(chatModels, config.rerank), t('admin_ai_config.ws_pick_model', 'Pick a model'));
 
     return (
         <div className="p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]">

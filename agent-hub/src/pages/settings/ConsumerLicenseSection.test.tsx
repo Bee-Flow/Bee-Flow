@@ -1,7 +1,8 @@
 // Settings → Account → License & Usage for a consumer account. Pinned: the
 // AI-usage percentage is shown once, as the "Usage This Period" bar; the
 // plan card no longer repeats it as a quick stat.
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithClient as render } from '../../test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const authFetch = vi.fn();

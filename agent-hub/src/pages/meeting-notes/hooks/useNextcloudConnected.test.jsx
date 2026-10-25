@@ -1,8 +1,9 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
+import { renderHookWithClient as renderHook } from '@/test/render';
 import useNextcloudConnected from './useNextcloudConnected';
 import { authFetch } from '../../../utils/helpers';
 

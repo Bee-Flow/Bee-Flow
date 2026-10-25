@@ -1,7 +1,7 @@
 // AI-step editor (prompt, tier, tool picker, structured output), extracted
 // verbatim from SettingsForm.jsx. Rendered by the SettingsForm dispatch.
 import { Plus, Sparkles, X } from 'lucide-react';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { AgentStepFields } from './agentStepFields';
 import { AiStepAdvancedRows, ConcurrencyField } from './aiStepReliability/AiStepReliabilitySections';
 import { ForEachSection, RetrySection, retryIsSet } from './collectionEditors';
@@ -9,7 +9,7 @@ import { FormRow, inputClass, textareaClass } from './formPrimitives';
 import { ProblemRing, runStepProblem } from './runProblem';
 import { StructuredOutputFields } from './structuredOutputFields';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { useAiStepKnowledgeBases } from '../../../../../api/queries/builderLookups';
 import { lazyWithI18n } from '../../../../../utils/lazyWithReload';
 import { tierLabel, configuredTierKeys } from '../../../../licensing/tierMeta';
 import TemplateField from '../../mapping/TemplateField';
@@ -298,19 +298,7 @@ function AiStepToolSelect({ draft, set, catalog }: AiStepToolSelectProps) {
 
 function AiStepKbSelect({ draft, set }: AiStepKbSelectProps) {
     const { t } = useTranslation();
-    const [kbs, setKbs] = useState<KnowledgeBaseRow[] | null>(null); // null = loading
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const r = await authFetch(`${API_BASE}/api/kb?context=ai_step`);
-                const body = r.ok ? await r.json() : [];
-                const list = Array.isArray(body) ? body : (body?.knowledge_bases || body?.kbs || []);
-                if (alive) setKbs(list);
-            } catch { if (alive) setKbs([]); }
-        })();
-        return () => { alive = false; };
-    }, []);
+    const kbs = useAiStepKnowledgeBases<KnowledgeBaseRow>().data ?? null; // null = loading
 
     const selected = new Set(Array.isArray(draft.knowledgeBaseIds) ? draft.knowledgeBaseIds : []);
     const toggle = (id: string) => {

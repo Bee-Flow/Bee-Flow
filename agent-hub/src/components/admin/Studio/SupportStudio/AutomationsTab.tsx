@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { SupportInbox, SupportKb } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import ConfigToggle from '../../../shared/ConfigToggle';
 import FormField from '../../../shared/FormField';
 import Section from '../../../shared/Section';
@@ -58,12 +58,19 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }: KnowledgeIngestionProps) 
         if (!name) return;
         setBusy(true); setStatus('');
         try {
-            const res = await authFetch(`${API_BASE}/api/kb`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, organizationId: inbox.organization_id }),
-            });
-            const kb = await res.json().catch(() => ({}));
-            if (!res.ok || !kb.id) { setStatus(kb.error || t('support.kb_ingest.create_failed', 'Could not create knowledge base')); return; }
+            let kb: { id?: string; error?: string };
+            try {
+                const res = await mutate(`${API_BASE}/api/kb`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, organizationId: inbox.organization_id }),
+                });
+                kb = await res.json().catch(() => ({}));
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                kb = errorBody(err) ?? {};
+                kb.id = undefined;
+            }
+            if (!kb.id) { setStatus(kb.error || t('support.kb_ingest.create_failed', 'Could not create knowledge base')); return; }
             setKbId(kb.id); setNewKbName('');
         } finally { setBusy(false); }
     };
@@ -168,15 +175,19 @@ function SlaPolicies() {
     const savePolicy = async (prio: string) => {
         setSavingP(prio);
         try {
-            await authFetch(`${API_BASE}/api/support-inbox/sla-policies`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    priority: prio,
-                    firstResponseMinutes: Number(valueFor(prio, 'first')),
-                    resolutionMinutes: Number(valueFor(prio, 'resolution')),
-                    enabled: byPriority[prio]?.enabled !== false,
-                }),
-            });
+            try {
+                await mutate(`${API_BASE}/api/support-inbox/sla-policies`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        priority: prio,
+                        firstResponseMinutes: Number(valueFor(prio, 'first')),
+                        resolutionMinutes: Number(valueFor(prio, 'resolution')),
+                        enabled: byPriority[prio]?.enabled !== false,
+                    }),
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err; // a refused save is re-read below, as before
+            }
             await load();
         } finally { setSavingP(null); }
     };

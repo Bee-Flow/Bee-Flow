@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useEffectEvent, type Dispatch, type SetStateAction } from 'react';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
-import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
+import { API_BASE, generateMessageId } from '../utils/helpers';
+import { fetchAllAgentConversations, fetchDirectConversations } from '../api/queries/hubDataFetches';
 import scopedStorage from '../utils/scopedStorage';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { ConversationRow } from './useConversationMeta';
@@ -55,8 +56,8 @@ const useDirectChatEvents = ({
     const loadAllConversations = useCallback(async () => {
         try {
             const [agentRes, directRes] = await Promise.all([
-                authFetch(`${API_BASE}/agents/conversations/all`),
-                authFetch(`${API_BASE}/ai/direct/conversations`),
+                fetchAllAgentConversations(),
+                fetchDirectConversations(),
             ]);
             let all: ConversationRow[] = [];
             if (agentRes.ok) {

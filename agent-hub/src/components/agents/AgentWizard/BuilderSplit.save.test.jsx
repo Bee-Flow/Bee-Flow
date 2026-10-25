@@ -7,7 +7,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/BuilderSplit.save.test.jsx
  */
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -23,6 +23,7 @@ vi.mock('../../renderers/MarkdownRenderer', () => ({
     default: ({ content }) => <div data-testid="markdown">{content}</div>,
 }));
 
+import { renderWithClient as render } from '@/test/render';
 import BuilderSplit from './BuilderSplit';
 import { authFetch } from '../../../utils/helpers';
 
@@ -59,6 +60,8 @@ function routeFetch(routes) {
 }
 const calls = (method, part) => authFetch.mock.calls
     .filter(([url, opts]) => (opts?.method || 'GET') === method && String(url).includes(part));
+
+// The component reads through react-query: every render gets its own client.
 
 describe('BuilderSplit — standalone bootstrap', () => {
     it('reads the six pickers sources in this order when no provider is mounted', async () => {

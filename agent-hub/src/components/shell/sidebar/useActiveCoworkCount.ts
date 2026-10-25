@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { logger } from '../../../utils/logger';
+import { useEffect, useRef } from 'react';
+import { useActiveCoworkCountQuery } from '../../../api/queries/shellSidebar';
 
 /**
  * How much is currently running or scheduled, shown as a badge on the Cowork
@@ -13,20 +12,12 @@ import { logger } from '../../../utils/logger';
  * Split out of Sidebar.jsx without a change in behaviour.
  */
 export function useActiveCoworkCount(currentPage: string | undefined): number {
-    const [activeCoworkCount, setActiveCoworkCount] = useState(0);
+    const { data, refetch } = useActiveCoworkCountQuery();
+    const lastPage = useRef(currentPage);
     useEffect(() => {
-        let cancelled = false;
-        const load = async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/cowork`);
-                if (!res.ok || cancelled) return;
-                const data = await res.json();
-                const schedules: Array<{ isActive?: boolean }> = Array.isArray(data?.schedules) ? data.schedules : [];
-                setActiveCoworkCount(schedules.filter(s => s.isActive).length);
-            } catch (err) { logger.debug('silent', err); }
-        };
-        load();
-        return () => { cancelled = true; };
-    }, [currentPage]);
-    return activeCoworkCount;
+        if (lastPage.current === currentPage) return;
+        lastPage.current = currentPage;
+        void refetch();
+    }, [currentPage, refetch]);
+    return data ?? 0;
 }

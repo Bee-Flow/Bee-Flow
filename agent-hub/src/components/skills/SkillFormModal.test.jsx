@@ -1,7 +1,8 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 import SkillFormModal from './SkillFormModal';
 
 /**
@@ -36,6 +37,9 @@ beforeEach(() => { cleanup(); vi.clearAllMocks(); });
 const open = (props = {}) => render(
     <SkillFormModal onSave={vi.fn()} onCancel={vi.fn()} saving={false} {...props} />,
 );
+
+
+// The code under test reads through react-query: every render gets its own client.
 
 describe('SkillFormModal', () => {
     it('warns that rewriting the workflow text replaces the steps Studio owns', async () => {

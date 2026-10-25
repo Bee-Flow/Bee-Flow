@@ -1,33 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Save } from 'lucide-react';
-import { authFetch, API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { useSupportConfigQuery } from '../../../api/queries/supportPanels';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 export default function SupportToolsTab() {
     const { t } = useTranslation();
-    const [v2Enabled, setV2Enabled] = useState(false);
-    const [threshold, setThreshold] = useState(0.78);
+    const configQuery = useSupportConfigQuery();
+    // The person's edits on top of the server answer.
+    const [v2Draft, setV2Enabled] = useState<boolean | null>(null);
+    const [thresholdDraft, setThreshold] = useState<number | null>(null);
+    const v2Enabled = v2Draft ?? !!configQuery.data?.v2Enabled;
+    const threshold = thresholdDraft ?? configQuery.data?.autoResolveThreshold ?? 0.78;
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null | undefined>(null);
+    const [actionError, setError] = useState<string | null | undefined>(null);
+    const [attempted, setAttempted] = useState(false);
+    // A failed load shows until the first save attempt clears it, like the error state it replaces.
+    const error = actionError ?? (!attempted && configQuery.isError ? errorMessage(configQuery.error) : null);
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/support/config`);
-                if (res.ok) {
-                    const d = await res.json();
-                    setV2Enabled(!!d.v2Enabled);
-                    setThreshold(d.autoResolveThreshold ?? 0.78);
-                }
-            } catch (e) { setError(errorMessage(e)); }
-        })();
-    }, []);
-
     const save = async () => {
-        setBusy(true); setError(null); setSaved(false);
+        setBusy(true); setError(null); setAttempted(true); setSaved(false);
         try {
             try {
                 await mutate(`${API_BASE}/api/support/config`, {

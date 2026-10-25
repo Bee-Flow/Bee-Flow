@@ -7,7 +7,8 @@ import { toast } from '../../components/shared/Toast';
 import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { postForBody } from '../../api/postForBody';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
 import OrgMcpConnections from './OrgMcpConnections';
 import type { McpServerSource } from '../../components/apps/appCatalog';
@@ -461,9 +462,8 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
     const autoCreate = async () => {
         setAutoCreating(true); setNotice(null); setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/auth/create-app-password`, { method: 'POST' });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok) {
+            const { ok, body: data } = await postForBody(`${API_BASE}/auth/create-app-password`, { method: 'POST' });
+            if (ok) {
                 onSaved();
                 if (data.warning) setNotice(data.warning);
             } else {

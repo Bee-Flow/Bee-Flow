@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import type { AdminGroup, AdminMessage, AdminOrganization, AdminPermission, AdminRole, AdminUser } from './types';
 
 export interface UserManagementData {
@@ -34,18 +35,18 @@ export default function useUserManagementData(): UserManagementData {
         setLoading(true);
         try {
             const [usersRes, groupsRes, rolesRes, permsRes, orgsRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/users`),
-                authFetch(`${API_BASE}/auth/groups`),
-                authFetch(`${API_BASE}/auth/roles`),
-                authFetch(`${API_BASE}/auth/permissions`),
-                authFetch(`${API_BASE}/auth/organizations`),
+                settled(`${API_BASE}/auth/users`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/groups`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/roles`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/permissions`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/organizations`, undefined, 'empty'),
             ]);
 
-            if (usersRes.ok) setUsers(await usersRes.json());
-            if (groupsRes.ok) setGroups(await groupsRes.json());
-            if (rolesRes.ok) setRoles(await rolesRes.json());
-            if (permsRes.ok) setPermissions(await permsRes.json());
-            if (orgsRes.ok) setOrganizations(await orgsRes.json());
+            if (usersRes.ok) setUsers(await usersRes.res.json());
+            if (groupsRes.ok) setGroups(await groupsRes.res.json());
+            if (rolesRes.ok) setRoles(await rolesRes.res.json());
+            if (permsRes.ok) setPermissions(await permsRes.res.json());
+            if (orgsRes.ok) setOrganizations(await orgsRes.res.json());
         } catch (err) {
             setMessage({ type: 'error', text: 'Failed to load data. Ensure you are admin.' });
         } finally {

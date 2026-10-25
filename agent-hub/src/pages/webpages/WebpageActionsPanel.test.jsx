@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -26,6 +26,7 @@ vi.mock('./WebpageAppsPanel', () => ({
 }));
 
 import WebpageActionsPanel, { scaffoldHttpAutomation, automationDeepLink } from './WebpageActionsPanel';
+import { renderWithClient as render } from '../../test/render';
 
 const CALL = {
     kind: 'fetch', method: null, url: 'https://api.vendor.com/v1/rates',

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Loader2, Check } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useConsumerEnabledApps } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';
 import { INTEGRATION_CATALOG, NEXTCLOUD_INTEGRATION_IDS, CATEGORY_ORDER, type IntegrationEntry } from '../../config/integrationCatalog';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../config/integrationIcons';
@@ -59,8 +60,10 @@ const IntegrationTile = ({ entry, enabled, onToggle }: IntegrationTileProps) => 
 
 const ConsumerIntegrationsSection = () => {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [enabledApps, setEnabledApps] = useState<string[] | null>(null);
+    const query = useConsumerEnabledApps();
+    const loading = query.isPending;
+    // The server's list (null = all enabled: materialised into the full catalogue) until the person edits.
+    const [edited, setEdited] = useState<string[] | null>(null);
     const [saveState, setSaveState] = useState('idle');
     const timerRef = useRef<NodeJS.Timeout>(null);
     const serverRef = useRef<string[]>(null);
@@ -73,27 +76,12 @@ const ConsumerIntegrationsSection = () => {
         );
     }, []);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/ai/user-settings`);
-                if (res.ok) {
-                    const data = await res.json();
-                    // Server may return null (= all enabled). Materialise that into
-                    // the full catalogue so toggle UI starts in a sensible state.
-                    const explicit = Array.isArray(data.enabledApps)
-                        ? data.enabledApps
-                        : usableIntegrations.map(i => i.id);
-                    setEnabledApps(explicit);
-                    serverRef.current = explicit;
-                }
-            } catch (e) {
-                console.error('[ConsumerIntegrations] load error:', e);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, [usableIntegrations]);
+    const serverList = useMemo(
+        () => (query.data ? (query.data.enabledApps ?? usableIntegrations.map(i => i.id)) : null),
+        [query.data, usableIntegrations],
+    );
+    const enabledApps = edited ?? serverList;
+    const setEnabledApps = setEdited;
 
     useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
@@ -117,7 +105,7 @@ const ConsumerIntegrationsSection = () => {
                 setTimeout(() => setSaveState(prev => prev === 'saved' ? 'idle' : prev), SAVED_FLASH_MS);
             } catch (e) {
                 console.error('[ConsumerIntegrations] save error:', e);
-                setEnabledApps(serverRef.current);
+                setEnabledApps(serverRef.current ?? serverList);
                 setSaveState('idle');
             }
         }, SAVE_DEBOUNCE_MS);

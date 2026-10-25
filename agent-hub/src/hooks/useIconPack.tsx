@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE } from '../utils/helpers';
+import { useActiveIconPackId } from '../api/queries/coreIconPack';
 import { buildStampedCacheKey, ICONPACK_CACHE_PREFIX } from '../utils/storageMigrations';
 import { logger } from '../utils/logger';
 import { mutate, ApiError, request, RefusedError } from '../api/mutate';
@@ -56,7 +57,10 @@ function writeCachedPack(packId: string, icons: IconMap): void {
 
 function IconPackProvider({ children }: { children: ReactNode }) {
     const [icons, setIcons] = useState<IconMap>({});
-    const [activePackId, setActivePackId] = useState<string | null>(null);
+    // undefined = the user has not switched pack yet: the server's active pack applies.
+    const [chosenPackId, setActivePackId] = useState<string | null | undefined>(undefined);
+    const serverPackId = useActiveIconPackId();
+    const activePackId = chosenPackId === undefined ? serverPackId : chosenPackId;
     const [isLoading, setIsLoading] = useState(false);
     const loadedPackRef = useRef<string | null>(null);
 
@@ -97,23 +101,6 @@ function IconPackProvider({ children }: { children: ReactNode }) {
     }, []);
 
     // Initial load to check which pack is active
-    useEffect(() => {
-        let mounted = true;
-        const fetchInitial = async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/icons`);
-                if (res.ok && mounted) {
-                    const data = await res.json();
-                    if (data.activeIconPackId) {
-                        setActivePackId(data.activeIconPackId);
-                    }
-                }
-            } catch (err) { logger.debug('No pack list means the default icons, which is what renders until one arrives — nothing to report.', err); }
-        };
-        fetchInitial();
-        return () => { mounted = false; };
-    }, []);
-
     // Reload pack when activeId changes
     useEffect(() => {
         if (activePackId && activePackId !== loadedPackRef.current) {

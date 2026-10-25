@@ -12,21 +12,16 @@
  * this hook returns no "selected" value — a cowork brief and a chat message
  * draw on the same list, which is also how the backend sees it.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { useCallback, useState } from 'react';
+import { API_BASE } from '../utils/helpers';
+import { mutate } from '../api/mutate';
+import { useAppsCatalogSources } from '../api/queries/coreAppsCatalog';
 import { useIntegrationStatus } from './useIntegrationStatus';
 import { APP_DEFS, buildAppCatalog, filterAvailableApps } from '../components/apps/appCatalog';
-import type { AppDef, ExposedStepSource, McpServerSource, N8nWorkflowSource } from '../components/apps/appCatalog';
+import type { AppDef } from '../components/apps/appCatalog';
 
 /** One entry of the picker (the gate flags filterAvailableApps reads included). */
 export type CatalogApp = AppDef;
-
-interface N8nWorkflow extends N8nWorkflowSource {
-    enabled?: boolean;
-    allowKbIngestion?: boolean;
-}
-
-type McpServer = McpServerSource;
 
 // Local names kept from when appCatalog was JavaScript (they held typed views).
 const buildCatalog = buildAppCatalog;
@@ -50,9 +45,8 @@ export default function useAppsCatalog(
     // is not a third caller of that endpoint.
     const { integrationStatus } = useIntegrationStatus();
 
-    const [n8nWorkflows, setN8nWorkflows] = useState<N8nWorkflow[]>([]);
-    const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
-    const [exposedSteps, setExposedSteps] = useState<ExposedStepSource[]>([]);
+    // Three best-effort reads: a source that fails contributes no apps.
+    const { n8nWorkflows, mcpServers, exposedSteps } = useAppsCatalogSources();
     // null = every app enabled. Seeded from the cached settings payload and
     // then owned locally, so toggling never has to invalidate that cache.
     const [enabledApps, setEnabledApps] = useState<string[] | null>(null);
@@ -63,33 +57,6 @@ export default function useAppsCatalog(
         setSeeded(true);
     }
 
-    useEffect(() => {
-        let alive = true;
-        // All three are best-effort: a 403/404 (beta off, nothing configured)
-        // just means that source contributes no apps.
-        authFetch(`${API_BASE}/ai/n8n/config`)
-            .then(r => r.ok ? r.json() : null)
-            .then(data => {
-                if (alive && data?.workflows?.length) {
-                    setN8nWorkflows(data.workflows.filter((w: N8nWorkflow) => w.enabled && !w.allowKbIngestion));
-                }
-            })
-            .catch(() => { });
-        authFetch(`${API_BASE}/ai/mcp-servers/user-credentials`)
-            .then(r => r.ok ? r.json() : null)
-            .then(data => {
-                if (alive && data?.servers?.length) {
-                    setMcpServers(data.servers.filter((s: McpServer) => (s.toolCount ?? 0) > 0));
-                }
-            })
-            .catch(() => { });
-        authFetch(`${API_BASE}/api/step/chat-tools`)
-            .then(r => r.ok ? r.json() : null)
-            .then(data => { if (alive && Array.isArray(data?.tools)) setExposedSteps(data.tools); })
-            .catch(() => { });
-        return () => { alive = false; };
-    }, []);
-
     const toggleApp = useCallback((appId: string) => {
         setEnabledApps(prev => {
             const defaults: string[] = APP_DEFS.filter(a => !a.requiresNone).map(a => a.id);
@@ -99,7 +66,7 @@ export default function useAppsCatalog(
                 : [...current, appId];
             // Persist to the server, fire-and-forget: the switch flipping
             // instantly matters more than confirming the write.
-            authFetch(`${API_BASE}/ai/user-settings`, {
+            mutate(`${API_BASE}/ai/user-settings`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabledApps: next }),

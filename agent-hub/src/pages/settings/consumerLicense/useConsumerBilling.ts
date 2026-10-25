@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { takePendingPlan } from '../../../components/billing/pendingPlan';
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { useConsumerBillingData } from '../../../api/queries/settingsConsumer';
 import { isPaidPlan, type CheckoutMessage, type ConsumerPlan, type ConsumerUsageData } from './consumerBilling';
-import { errorMessage } from '../../../utils/caughtError';
-import { request, RefusedError } from '../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 /** The checkout result Stripe sends back on the URL, read once and cleaned off. */
 function readCheckoutResult(): CheckoutMessage | null {
@@ -41,71 +41,43 @@ function usePreselectedPlan(plans: ConsumerPlan[]) {
     return { preselectedPlanId, preselectedRef };
 }
 
+const NO_PLANS: ConsumerPlan[] = [];
+
 /** POST to a Stripe redirect endpoint and follow the URL it answers with. */
 async function redirectVia(path: string, body: Record<string, unknown>, fallbackError: string): Promise<CheckoutMessage | null> {
     try {
-        const res = await authFetch(`${API_BASE}${path}`, {
+        const res = await mutate(`${API_BASE}${path}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
         const result = await res.json();
-        if (res.ok && result.url) {
+        if (result.url) {
             window.location.href = result.url;
             return null;
         }
         return { type: 'error', text: result.error || fallbackError };
-    } catch {
+    } catch (err) {
+        // A refusal answers with its own JSON (error text); anything unreadable is a connection problem.
+        const refused = err instanceof RefusedError ? errorBody(err) : null;
+        if (refused) return { type: 'error', text: refused.error || fallbackError };
         return { type: 'error', text: 'Connection error. Please try again.' };
     }
 }
 
 /** Usage, plans and the Stripe checkout / portal round-trips of a consumer account. */
 export default function useConsumerBilling(t: TranslateFn) {
-    const [data, setData] = useState<ConsumerUsageData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null | undefined>(null);
-    const [plans, setPlans] = useState<ConsumerPlan[]>([]);
-    const [stripeEnabled, setStripeEnabled] = useState(false);
+    const query = useConsumerBillingData<ConsumerUsageData, ConsumerPlan>();
+    const data = query.data?.data ?? null;
+    const loading = query.isPending;
+    const error = query.data?.error ?? null;
+    const plans = query.data?.plans ?? NO_PLANS;
+    const stripeEnabled = !!query.data?.stripeEnabled;
     const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null); // planId being loaded
     const [portalLoading, setPortalLoading] = useState(false);
-    const [checkoutMessage, setCheckoutMessage] = useState<CheckoutMessage | null>(null); // success/cancel banner
+    const [checkoutMessage, setCheckoutMessage] = useState<CheckoutMessage | null>(readCheckoutResult); // success/cancel banner (read once, off the URL, on mount)
     const [waiverAccepted, setWaiverAccepted] = useState<Record<string, boolean>>({}); // planId → withdrawal-waiver tick
     const preselection = usePreselectedPlan(plans);
-
-    useEffect(() => {
-        const result = readCheckoutResult();
-        if (result) setCheckoutMessage(result);
-    }, []);
-
-    const fetchData = useCallback(async () => {
-        try {
-            setLoading(true);
-            const [usageRes, statusRes] = await Promise.all([
-                authFetch(`${API_BASE}/api/subscriptions/consumer/usage`),
-                authFetch(`${API_BASE}/api/stripe/status`),
-            ]);
-            if (usageRes.ok) setData(await usageRes.json());
-            else throw new Error('Failed to load usage data');
-            if (statusRes.ok) {
-                const status = await statusRes.json();
-                setStripeEnabled(status.enabled);
-                if (status.enabled) {
-                    const plansRes = await request(`${API_BASE}/api/stripe/plans?type=consumer`).catch((err: unknown) => {
-                        if (err instanceof RefusedError) return null;
-                        throw err;
-                    });
-                    if (plansRes) setPlans(await plansRes.json());
-                }
-            }
-        } catch (e) {
-            console.error('[ConsumerLicense] fetch error:', e);
-            setError(errorMessage(e));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-    useEffect(() => { fetchData(); }, [fetchData]);
 
     const handleCheckout = async (plan: ConsumerPlan) => {
         const planId = plan.id;

@@ -2,7 +2,8 @@ import { AlertTriangle, Search, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useStudioSearchQuery } from '../../api/queries/shellSearch';
+import type { StudioHit, StudioSearchAnswer } from '../../api/queries/shellSearch';
 import { STUDIO_APPS } from '../admin/Studio/studioApps';
 import type { StudioAppDescriptor } from '../admin/Studio/studioRegistry';
 import { segmentForSection } from '../admin/Studio/studioRoutes';
@@ -49,19 +50,6 @@ const SECTION_FOR_KIND: Record<string, string> = { automations: 'aiTasks' };
 const sectionForKind = (kind: string): string => SECTION_FOR_KIND[kind] || kind;
 
 type StudioApp = StudioAppDescriptor;
-
-/** One hit of the search, as GET /api/studio/search lists it. */
-interface StudioHit {
-    id: string;
-    name?: string;
-}
-
-/** What GET /api/studio/search answers. */
-interface StudioSearchAnswer {
-    results?: Record<string, StudioHit[]>;
-    errors?: unknown[];
-    tooShort?: boolean;
-}
 
 /** One kind's hits, with where its rows start in the flat keyboard list. */
 interface StudioHitGroup {
@@ -181,50 +169,33 @@ function ResultGroup({ t, group, activeIdx, setActiveIdx, openRow, openSection }
     );
 }
 
-/** The request half: debounce, out-of-order guard, and the three answers. */
+/** The request half: debounce, out-of-order guard (react-query ignores stale keys), and the three answers. */
 function useStudioSearch(isOpen: boolean, trimmed: string) {
-    // null = nothing asked yet. Never conflated with "asked, got nothing".
-    const [answer, setAnswer] = useState<StudioSearchAnswer | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
-    // Request-level failure: the whole search, not one kind of it.
-    const [failed, setFailed] = useState<boolean>(false);
-    const requestSeq = useRef<number>(0);
-
+    const active = isOpen && trimmed.length >= MIN_QUERY_LENGTH;
+    // The term the server is asked about: `trimmed` once it has rested for DEBOUNCE_MS.
+    const [debounced, setDebounced] = useState<string>('');
+    // Closing or clearing the box forgets the term, so the next one waits out the debounce again.
+    if (!active && debounced) setDebounced('');
     useEffect(() => {
-        if (!isOpen || trimmed.length < MIN_QUERY_LENGTH) {
-            // Below the threshold the server would not look either, so do not
-            // ask — and clear whatever the previous query answered rather than
-            // leaving stale rows under a new word.
-            requestSeq.current += 1;
-            setAnswer(null);
-            setFailed(false);
-            setLoading(false);
-            return undefined;
-        }
-        const seq = ++requestSeq.current;
-        setLoading(true);
-        const timer = setTimeout(async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/studio/search?q=${encodeURIComponent(trimmed)}`);
-                if (seq !== requestSeq.current) return; // a newer keystroke won
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const body = await res.json();
-                if (seq !== requestSeq.current) return;
-                setAnswer(body);
-                setFailed(false);
-            } catch {
-                if (seq !== requestSeq.current) return;
-                // NOT an empty answer. `answer` is cleared so no stale rows
-                // survive, and `failed` makes the difference visible.
-                setAnswer(null);
-                setFailed(true);
-            } finally {
-                if (seq === requestSeq.current) setLoading(false);
-            }
-        }, DEBOUNCE_MS);
+        if (!active) return undefined;
+        const timer = setTimeout(() => setDebounced(trimmed), DEBOUNCE_MS);
         return () => clearTimeout(timer);
-    }, [isOpen, trimmed]);
+    }, [active, trimmed]);
 
+    const ready = active && debounced === trimmed;
+    const query = useStudioSearchQuery(debounced, ready);
+    // Request-level failure: the whole search, not one kind of it. Sticky until
+    // the next answer settles, so the notice does not flicker while retyping.
+    const settled = ready && !query.isFetching;
+    const [failedSticky, setFailedSticky] = useState<boolean>(false);
+    if (!active && failedSticky) setFailedSticky(false);
+    else if (settled && failedSticky !== query.isError) setFailedSticky(query.isError);
+
+    // null = nothing asked yet. Never conflated with "asked, got nothing".
+    // NOT an empty answer on failure: `failed` makes the difference visible.
+    const failed = active && failedSticky;
+    const answer: StudioSearchAnswer | null = active && !failed ? (query.data ?? null) : null;
+    const loading = active && !settled;
     return { answer, loading, failed };
 }
 

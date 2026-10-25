@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -51,10 +51,13 @@ vi.mock('./SummaryTemplatesSection', () => ({ default: () => <div data-testid="s
 vi.mock('./VoiceprintSection', () => ({ default: () => <div data-testid="voiceprint" /> }));
 vi.mock('./AiParticipationSection', () => ({ default: ({ enabled }) => <div data-testid="ai-participation" data-enabled={String(enabled)} /> }));
 
+import { renderWithClient as render } from '@/test/render';
 import PreferencesSection from './PreferencesSection';
 import LicenseContext from '../../components/licensing/LicenseContext';
 import { authFetch } from '../../utils/helpers';
 import scopedStorage from '../../utils/scopedStorage';
+
+// The sections read through react-query: one client per render, kept across rerender().
 
 const USER = { id: 'u1', username: 'tom', displayName: 'Tom Smit', email: 'tom@example.com', orgRole: 'org_admin' };
 const AGENTS = [{ id: 'a1', name: 'Scribe' }, { id: 'a2', name: 'Analyst' }];

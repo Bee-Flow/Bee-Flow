@@ -14,7 +14,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/pickers/FilesUploadModal.test.jsx
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -32,7 +32,7 @@ vi.mock('../../../../utils/helpers', () => ({
         }
         const ingest = /\/api\/kb\/([^/]+)\/ingest\/file$/.exec(url);
         if (ingest) {
-            if (failIngest) return { ok: false, text: async () => 'ingest exploded' };
+            if (failIngest) return { ok: false, status: 500, json: async () => ({ error: 'ingest exploded' }) };
             const kb = (docsByKb[ingest[1]] ||= { documents: [], total: 0 });
             kb.documents = [{ id: `d${kb.total + 1}`, title: 'uploaded.txt' }, ...kb.documents];
             kb.total += 1;
@@ -47,6 +47,7 @@ vi.mock('../../../../utils/helpers', () => ({
     }),
 }));
 
+import { renderWithClient as render } from '@/test/render';
 import FilesUploadModal from './FilesUploadModal';
 
 // Interpolates `{count}` like the real t(), so counted phrases read as shown.
@@ -86,6 +87,8 @@ beforeEach(() => {
     failIngest = false;
     docsByKb = {};
 });
+
+// The component reads through react-query: every render gets its own client.
 
 describe('FilesUploadModal — draft support (BFSF-270)', () => {
     it('shows the draft notice for unsaved drafts, hides it for saved agents', () => {

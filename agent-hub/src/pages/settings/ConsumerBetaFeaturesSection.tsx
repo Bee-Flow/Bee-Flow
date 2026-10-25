@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Sparkles } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useConsumerBetaFeatures } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';
 import { pickBetaIcon } from '../../utils/betaFeatureIcon';
 import { useLicenseContext } from '../../components/licensing/LicenseContext';
@@ -22,26 +22,10 @@ interface BetaFeature {
 const ConsumerBetaFeaturesSection = () => {
     const { t } = useTranslation();
     const { hasTier, upgradeUrl, deploymentMode, loading: licenseLoading } = useLicenseContext();
-    const [loading, setLoading] = useState(true);
-    const [allowed, setAllowed] = useState<string[]>([]);
-    const [registry, setRegistry] = useState<BetaFeature[]>([]);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/auth/me/consumer-features`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setAllowed(Array.isArray(data.allowedBetaFeatures) ? data.allowedBetaFeatures : []);
-                    setRegistry(Array.isArray(data.betaRegistry) ? data.betaRegistry : []);
-                }
-            } catch (e) {
-                console.error('[ConsumerBeta] load error:', e);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, []);
+    const query = useConsumerBetaFeatures<BetaFeature>();
+    const loading = query.isPending;
+    const allowed = query.data?.allowed ?? [];
+    const registry = query.data?.registry ?? [];
 
     if (loading || licenseLoading) {
         return (
