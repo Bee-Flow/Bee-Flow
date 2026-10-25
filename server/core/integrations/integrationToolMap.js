@@ -185,38 +185,20 @@ const INTEGRATION_TOOL_MAP = {
     // ── NMBRS (read-only payroll/HR) ─────────────────────────
     // Payroll/HR records are highly sensitive (names, salaries, contracts) —
     // tag the categories so the egress dashboard and PII scan reflect that.
-    nmbrs_list_debtors: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr',
-    },
-    nmbrs_list_companies: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr',
-    },
-    nmbrs_list_employees: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr, pii',
-    },
-    nmbrs_get_employee: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr, pii',
-    },
-    nmbrs_list_employee_contracts: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr, pii',
-    },
-    nmbrs_list_employee_salaries: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr, payroll, pii',
-    },
-    nmbrs_list_employee_wage_components: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr, payroll, pii',
-    },
-    nmbrs_list_payslips: {
-        integration: 'nmbrs', label: 'NMBRS', serverFn: () => null,
-        direction: 'received', dataCategories: 'hr, payroll, pii',
-    },
+    nmbrs_list_debtors: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr' },
+    nmbrs_list_companies: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr' },
+    nmbrs_list_employees: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, pii' },
+    nmbrs_get_employee: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, pii' },
+    nmbrs_list_employee_contracts: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, pii' },
+    nmbrs_list_employee_salaries: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_list_employee_wage_components: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_list_payslips: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_list_company_employments: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, pii' },
+    nmbrs_list_company_lease_cars: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_list_company_svw_settings: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_list_company_runs: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll' },
+    nmbrs_list_company_personal_info: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, payroll, pii' },
+    nmbrs_list_company_contracts: { integration: 'nmbrs', label: 'NMBRS', serverFn: () => null, direction: 'received', dataCategories: 'hr, pii' },
 
     // ── Withings (read-only health) ──────────────────────────
     // Everything Withings returns is health data about an identified person —

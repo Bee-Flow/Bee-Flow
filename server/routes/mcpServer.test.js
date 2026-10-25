@@ -121,7 +121,8 @@ const withTools = { toolsForUser: async () => ({ tools: FAKE_TOOLS, session: nul
 
 test('tools/list advertises every tool the user can use, with safety annotations', async () => {
     const res = await mcp.handleRpc({ jsonrpc: '2.0', id: 11, method: 'tools/list' }, 'user-1', withTools);
-    const names = res.result.tools.map(t => t.name);
+    // The datatable row tools follow the integration tools (mcpDatatableTools.test.js).
+    const names = res.result.tools.map(t => t.name).filter(n => !n.startsWith('datatables_'));
     assert.deepEqual(names, ['gmail_search', 'gmail_send']);
     const search = res.result.tools[0];
     assert.equal(search.description, 'Search mail');

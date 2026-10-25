@@ -64,6 +64,7 @@ function TokenRow({ token, onRevoke, onToggle, busy, eligibility }: TokenRowProp
                         <span key={s.id} className={CHIP}>
                             {serverName(s.id)}: {levelWord(scope.level)}
                             {s.id === 'cms' && scope.publish ? `, ${t('mcp_access.tokens.may_publish', 'may publish')}` : ''}
+                            {s.id === 'automations' && scope.run ? `, ${t('mcp_access.tokens.may_run', 'may start runs')}` : ''}
                         </span>
                     );
                 })}
