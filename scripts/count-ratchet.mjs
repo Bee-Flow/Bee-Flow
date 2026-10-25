@@ -466,6 +466,15 @@ const METRICS = {
         what: 'files pairing authFetch with useEffect',
         advice: 'read through useQuery/useMutation in src/api/queries/ instead',
     },
+    'fetch-in-effect': {
+        include: (rel) => !TEST_FILE.test(rel) && /\.[jt]sx?$/.test(rel),
+        // The AST question authfetch-effect only approximates: does an effect
+        // call the network, directly, through an api/ helper, or through a local
+        // loader. Moving authFetch into a wrapper does not move it out of here.
+        measure: (text, _pkg, rel) => fetchInEffect(text, rel),
+        what: 'files whose useEffect makes a network call (directly, via an api/ helper or a local loader)',
+        advice: 'read through a useQuery hook in src/api/queries/ and derive state from its data; scripts/effect-fetch.mjs says what counts',
+    },
     'authfetch-outside-api': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.ts',
         measure: (text) => (/(?<![\w.$])authFetch\s*\(/.test(blankNonCode(text)) ? 1 : 0),
@@ -638,9 +647,11 @@ const METRICS = {
 
 const args = process.argv.slice(2);
 const [metricName, pkg] = args.filter((a) => !a.startsWith('--'));
-// The one metric that needs a parser: loaded on demand, so the others run without it.
+// The metrics that need a parser: loaded on demand, so the others run without it.
 let countSwallowed;
 if (metricName === 'swallowed-error') ({ countSwallowed } = await import('./catch-classify.mjs'));
+let fetchInEffect;
+if (metricName === 'fetch-in-effect') ({ fetchInEffect } = await import('./effect-fetch.mjs'));
 const metric = METRICS[metricName];
 if (!metric || !pkg) {
     console.error(`count-ratchet: usage: node scripts/count-ratchet.mjs <${Object.keys(METRICS).join('|')}> <package> [--update] [--list]`);
