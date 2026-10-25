@@ -82,3 +82,18 @@ test('the equivalence gate accepts changed specifiers only', () => {
     assert.strictEqual(checkEquivalent("const a = require('../x');\nf();\n", "const a = require('./x');\nf();\n"), null);
     assert.match(checkEquivalent("const a = require('../x');\nf();\n", "const a = require('./x');\ng();\n"), /differs/);
 });
+
+test('a resolve-stub key naming a changed require string gets an alias for the new string (value hoisted, not copied)', () => {
+    const dir = fixture({
+        'server/migrations/ddl.js': "const db = require('../db');\nmodule.exports = { db };\n",
+        'server/db.js': 'module.exports = {};\n',
+        'server/stores/a.js': "require('../migrations/ddl');\n",
+        'server/stores/a.test.js': "const { installResolveStub } = require('../testUtils/stubRequire');\nconst restore = installResolveStub({\n    '../db': {\n        run: async () => 1,\n    },\n});\nrequire('../migrations/ddl');\n",
+    });
+    const report = run(dir, 'server/migrations/ddl.js', 'server/stores/ddl/ddl.js');
+    const t = read(dir, 'server/stores/a.test.js');
+    assert.match(t, /const stubFor1 = \{\n        run: async \(\) => 1,\n    \};/);
+    assert.match(t, /'\.\.\/db': stubFor1,/);
+    assert.match(t, /'\.\.\/\.\.\/db': stubFor1,/);
+    assert.ok(report.warnings.some((w) => /stub-key alias/.test(w)));
+});

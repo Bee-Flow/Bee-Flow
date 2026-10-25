@@ -128,6 +128,9 @@ export function move(pairs, opts = {}) {
 
     const files = walk(server, (n) => CODE_EXT.test(n));
     const edits = new Map(); // abs file (old location) -> new text
+    /** every file's rewritten specifiers (moved or not) */
+    const allChanges = new Map();
+    const aliasedFiles = new Set();
     const touchesMoved = new Set(); // files that name a moved file
     const specChanges = new Map(); // moved file -> [{ oldSpec, newSpec, target(old abs), mapped }]
     const reportRewritten = [];
@@ -172,6 +175,7 @@ export function move(pairs, opts = {}) {
             changes.push({ oldSpec: lit, newSpec: n, target: hit, mapped: true, rooted: true });
             return `${head}${q}${n}${q}`;
         });
+        allChanges.set(file, changes);
         if (changes.some((c) => c.mapped)) touchesMoved.add(file);
         if (text !== src) {
             edits.set(file, text);
@@ -193,19 +197,27 @@ export function move(pairs, opts = {}) {
         const t = edits.get(f) ?? fs.readFileSync(f, 'utf8');
         if (!/installResolveStub|_resolveFilename/.test(t)) continue;
         if (!touchesMoved.has(f) && !map.has(f)) continue;
-        for (const [file, changes] of specChanges) {
+        /** @type {Array<[string, string]>} */
+        const pairs = [];
+        for (const changes of allChanges.values()) {
             for (const c of changes) {
                 if (c.rooted || c.oldSpec === c.newSpec) continue;
-                const esc = c.oldSpec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                if (new RegExp(`['"]${esc}['"]\\s*:`).test(t)) {
-                    warnings.push(`${rel(root, f)}: stub key '${c.oldSpec}' was a require string of ${rel(root, file)}, now '${c.newSpec}'`);
-                }
+                if (!pairs.some(([a, b]) => a === c.oldSpec && b === c.newSpec)) pairs.push([c.oldSpec, c.newSpec]);
             }
         }
+        const { text: aliased, added } = aliasStubKeys(t, pairs.filter(([o]) => new RegExp(`['"]${o.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]\\s*:`).test(t)));
+        if (added.length) {
+            edits.set(f, aliased);
+            aliasedFiles.add(f);
+            if (!reportRewritten.some((r) => r.file === rel(root, map.get(f) ?? f))) reportRewritten.push({ file: rel(root, map.get(f) ?? f), changes: added.length });
+            warnings.push(`${rel(root, f)}: added ${added.length} stub-key alias(es): ${added.map(([a, b]) => `${a} -> ${b}`).join(', ')}`);
+        }
+        if (/_resolveFilename/.test(t) && !/installResolveStub/.test(t)) warnings.push(`${rel(root, f)}: hand-rolled _resolveFilename stub; check its keys by hand`);
     }
 
     // Move-equivalence gate: undo the recorded specifier changes on the new text; must equal the old text.
     for (const [file, changes] of specChanges) {
+        if (aliasedFiles.has(file)) continue;
         const gate = equivalence(fs.readFileSync(file, 'utf8'), edits.get(file), changes);
         if (gate) throw refuse(`move-equivalence failed for ${rel(root, file)}: ${gate}`);
     }
@@ -262,6 +274,64 @@ export function move(pairs, opts = {}) {
         textFiles: [...textEdits.keys()].map((f) => rel(root, f)),
         warnings: [...new Set(warnings)],
     };
+}
+
+/**
+ * Give a stub key an alias for the require string its module now uses. `text` has
+ * `'<old>': VALUE` inside an `installResolveStub({...})` call; the value is hoisted into a const
+ * before that statement (one object, two keys) and the alias is added after the entry.
+ * Returns the new text and the aliases added.
+ * @param {string} text
+ * @param {Array<[string, string]>} pairs [oldSpec, newSpec]
+ */
+export function aliasStubKeys(text, pairs) {
+    const added = [];
+    let out = text;
+    let n = 0;
+    for (const [oldSpec, newSpec] of pairs) {
+        const esc = oldSpec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const keyRe = new RegExp(`(['"])${esc}\\1\\s*:\\s*`, 'g');
+        let m;
+        while ((m = keyRe.exec(out))) {
+            const callAt = out.lastIndexOf('installResolveStub(', m.index);
+            if (callAt < 0 || out.indexOf(`'${newSpec}'`, callAt) >= 0 && out.indexOf(`'${newSpec}'`, callAt) < m.index + 2000) continue;
+            // the value runs to the next top-level comma or the closing brace of the object
+            let i = m.index + m[0].length;
+            const vStart = i;
+            let depth = 0;
+            let quote = '';
+            for (; i < out.length; i += 1) {
+                const c = out[i];
+                if (quote) { if (c === '\\') i += 1; else if (c === quote) quote = ''; continue; }
+                if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+                if (c === '/' && out[i + 1] === '/') { while (i < out.length && out[i] !== '\n') i += 1; continue; }
+                if (c === '/' && out[i + 1] === '*') { i = out.indexOf('*/', i + 2) + 1; continue; }
+                if ('({['.includes(c)) depth += 1;
+                else if (')}]'.includes(c)) { if (depth === 0) break; depth -= 1; } else if (c === ',' && depth === 0) break;
+            }
+            const value = out.slice(vStart, i).trimEnd();
+            if (!value) continue;
+            const indent = (/^[ \t]*/.exec(out.slice(out.lastIndexOf('\n', m.index) + 1))?.[0]) ?? '    ';
+            let entryValue = value;
+            let hoist = '';
+            if (!/^[A-Za-z_$][\w$.]*$/.test(value)) {
+                n += 1;
+                const name = `stubFor${n}`;
+                hoist = `const ${name} = ${value};\n\n`;
+                entryValue = name;
+            }
+            const tail = out[i] === ',' ? i + 1 : i;
+            const insertEntry = `\n${indent}'${newSpec}': ${entryValue},`;
+            const stmtStart = out.lastIndexOf('\n', callAt) + 1;
+            // apply the later edit first so the earlier offsets stay valid
+            out = `${out.slice(0, vStart)}${entryValue}${out.slice(i, tail)}${insertEntry}${out.slice(tail)}`;
+            out = `${out.slice(0, stmtStart)}${hoist}${out.slice(stmtStart)}`;
+            added.push([oldSpec, newSpec]);
+            keyRe.lastIndex = 0;
+            break;
+        }
+    }
+    return { text: out, added };
 }
 
 function replacePath(text, from, to, quotedOnly = false) {
