@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The SQL fragments the memory vector path is built from.
  *

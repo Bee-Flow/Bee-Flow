@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Microsoft scopes live in ONE place.
  *

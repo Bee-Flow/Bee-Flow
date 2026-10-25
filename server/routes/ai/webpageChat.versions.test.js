@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The AI turn and the version history (W4).
  *

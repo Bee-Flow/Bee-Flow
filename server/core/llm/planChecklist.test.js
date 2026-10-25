@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The agent's to-do list, shared by the automation and App Studio builders.
  */

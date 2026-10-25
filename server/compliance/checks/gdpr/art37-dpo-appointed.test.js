@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR-Art37-dpo-appointed — records THAT a DPO is on file, never who.
  *

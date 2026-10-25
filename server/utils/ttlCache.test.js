@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the TTL cache.
  * Run: node utils/ttlCache.test.js

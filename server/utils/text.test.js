@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * countWords / stripMarkdownLite unit tests.
  *

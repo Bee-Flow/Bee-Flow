@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * auth/passwordHash.js: argon2id for every new login hash, bcrypt hashes that
  * already exist keep verifying, and needsRehash says which ones to upgrade.

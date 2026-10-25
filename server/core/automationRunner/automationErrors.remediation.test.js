@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /** Run: node --test core/automationRunner/automationErrors.remediation.test.js */
 const test = require('node:test');
 const assert = require('node:assert');

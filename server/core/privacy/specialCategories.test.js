@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Special categories (GDPR Art. 9) in the monitoring views: which labels count,
  * and what a row that carries a person keeps.

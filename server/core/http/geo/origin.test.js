@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * origin — BEEFLOW_SERVER_LOCATION parsing.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Fencing retrieved passages so a model reads them as DATA.
  *

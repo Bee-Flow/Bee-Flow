@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Download names (core/http/contentDisposition.js). A template's file name is
  * whatever the uploader's multipart header said, so it can carry `../` or

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * utils/nextcloudErrorClassifier.js — raw Nextcloud failures to a stable code.
  *

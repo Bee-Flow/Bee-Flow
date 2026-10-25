@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Every EXPORTED advisory-lock key or name is unique.
  *

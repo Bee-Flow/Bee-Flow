@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The `tabs` block (issue #238): catalogue entry, seeded defaults, the
  * validator's warnings and the server-rendered (pre-hydration) HTML.

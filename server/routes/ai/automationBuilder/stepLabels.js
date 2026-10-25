@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — POST /label-steps: fast-tier auto-label and auto-icon
  * for the steps in a flow.

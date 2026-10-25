@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Unit — auto-provisioned Nextcloud org display names.
  *

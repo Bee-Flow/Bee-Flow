@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The customer-story blocks (issue #239): catalogue entries, seeded defaults
  * and the validator's warnings. The store/route/HTML side is covered by

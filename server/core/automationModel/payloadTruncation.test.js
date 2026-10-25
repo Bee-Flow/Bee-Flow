@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The 256 KB truncation cap and its sentinel.
  *

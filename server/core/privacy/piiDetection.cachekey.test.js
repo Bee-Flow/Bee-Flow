@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 // Regression tests for the PII scan-result cache key. Run: node --test

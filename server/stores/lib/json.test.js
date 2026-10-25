@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * DB-free unit test for stores/lib/json.js (M6).
  * Run: cd server && node --test --test-force-exit --test-timeout=30000 stores/lib/json.test.js

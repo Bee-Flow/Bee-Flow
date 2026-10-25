@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The Blueprint store's pure helpers (stores/blueprint/mappers.js).
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * webpagesFullTierProxy — gate + WS-upgrade-auth regressions (BE-P3).
  *

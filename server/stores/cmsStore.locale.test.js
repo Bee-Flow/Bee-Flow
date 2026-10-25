@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Store tests for the two CMS values that reach the server-rendered marketing
  * HTML as raw text: the default locale (spliced into <html lang>) and the

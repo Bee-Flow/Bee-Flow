@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Mistral model catalog, effort mapping and the served/regional registries.
  *

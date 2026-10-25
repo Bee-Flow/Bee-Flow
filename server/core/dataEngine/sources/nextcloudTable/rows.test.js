@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One Nextcloud row → one mirror row: keyed by the mirror's field keys, the
  * id is Nextcloud's, unknown columns are ignored, missing ones are NULL, and

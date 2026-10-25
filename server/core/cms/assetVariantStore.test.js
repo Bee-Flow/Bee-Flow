@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert');
 const sharp = require('sharp');

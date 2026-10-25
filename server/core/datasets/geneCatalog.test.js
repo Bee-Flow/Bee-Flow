@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * core/datasets — gene catalog sanity against the generated data files.
  *

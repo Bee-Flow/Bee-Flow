@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ipClass — a table of addresses a real socket can report, and what each is.
  *

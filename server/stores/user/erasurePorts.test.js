@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { registerErasurePorts, erasurePort, resetErasurePortsForTests } = require('./erasurePorts');

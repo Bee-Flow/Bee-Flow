@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The live-build harness compares a stored binding with the brief's
  * expectation by the path the RUN reads, not by its spelling.

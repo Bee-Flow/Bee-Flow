@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * routes/ai/webpageChat — the `bf-*` convention in the builder prompt.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { COMPONENT_TYPE_ALIASES, canonicalComponentType } = require('./componentAliases');

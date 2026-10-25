@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * project_member_colors against PGlite, through makeProjectMemberColorStore.
  *

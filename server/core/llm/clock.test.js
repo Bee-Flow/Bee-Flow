@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * core/llm/clock — the shared prompt clock.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * A module's router sits behind its capability gate. When the entitlement

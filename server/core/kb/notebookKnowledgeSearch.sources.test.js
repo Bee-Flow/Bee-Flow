@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Mapping a retrieved chunk to its notebook source: the source id (stored as the
  * chunk's source_uri) is exact and wins; the fuzzy name match is only a fallback.

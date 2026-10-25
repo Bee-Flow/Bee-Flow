@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The rule shapes taught to the AI builder: every example is valid grammar
  * and evaluates on a sample item. (That each one also opens as clickable

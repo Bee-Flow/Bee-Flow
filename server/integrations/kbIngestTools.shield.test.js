@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Two things every write through this tool must carry, on BOTH of its ingest
  * paths — and neither was carried before K10.
