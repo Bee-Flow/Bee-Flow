@@ -140,6 +140,9 @@ services:
       # docker-compose.from-registry.yml, where it sits behind `profiles: [guard]`
       # and an unreachable URL would fail CLOSED on a core-only install.
       - PII_SERVICE_URL=${PII_SERVICE_URL:-http://guard-service:8100}
+      # The same key the sidecars below enforce; the server sends it as X-API-Key
+      # (falls back from PII_SERVICE_API_KEY / CLASSIFY_SERVICE_API_KEY).
+      - SERVICES_API_KEY=${SERVICES_API_KEY:-}
       - PII_SERVICE_API_KEY=${PII_SERVICE_API_KEY:-}
       # Topic classifier for the "is about" rule. Empty by default: the
       # classify-service sits behind `--profile classify`, and a URL on a run
@@ -272,6 +275,10 @@ services:
       - GUARD_LOG_LEVEL=${GUARD_LOG_LEVEL:-INFO}
       - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
+      # The sidecar fails closed: no SERVICES_API_KEY and it refuses to start. This
+      # developer stack binds 127.0.0.1 only, so it may run open when no key is set
+      # (set SERVICES_API_KEY in .env to require one; it then applies either way).
+      - SERVICES_ALLOW_OPEN=${SERVICES_ALLOW_OPEN:-1}
     depends_on:
       guard-redis:
         condition: service_healthy
@@ -351,6 +358,8 @@ services:
       - CLASSIFY_LABEL_MODE=${CLASSIFY_LABEL_MODE:-joint}
       - CLASSIFY_LOG_LEVEL=${CLASSIFY_LOG_LEVEL:-INFO}
       - CLASSIFY_API_KEY=${CLASSIFY_API_KEY:-}
+      # Fails closed without a key; this developer stack binds 127.0.0.1 only (see guard-service).
+      - SERVICES_ALLOW_OPEN=${SERVICES_ALLOW_OPEN:-1}
       - MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-}
       - SERVICES_API_KEY=${SERVICES_API_KEY:-}
     cpus: ${CLASSIFY_CPUS:-3}

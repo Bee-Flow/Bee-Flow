@@ -1142,7 +1142,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
         expect(missingFrom(functionSlice(read('stores/automationStore/forms.js'), 'rowToPage'), [
             'id', 'automationId', 'triggerStepId', 'createdAt', 'lastSeenAt', 'submissions', 'audience', 'sharedGroups', 'sharedUserIds',
         ])).toEqual([]);
-        expect(missingFrom(functionSlice(read('stores/automationStore/folders.js'), 'rowToFolder'), [
+        expect(missingFrom(functionSlice(read('stores/automationStore/folderStore.mts'), 'rowToFolder'), [
             'id', 'organizationId', 'name', 'icon', 'color', 'createdAt', 'updatedAt', 'automationCount',
         ])).toEqual([]);
 

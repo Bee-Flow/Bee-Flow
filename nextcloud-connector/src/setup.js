@@ -32,7 +32,8 @@ const auth = require('./auth');
 const rateLimit = require('./rateLimit');
 const { assertAllowedUrl, parseAllowedUrl } = require('./remoteHost');
 const { ncTlsMode } = require('./ncTls'); // NC TLS posture for diagnostics
-const ncProxy = require('./ncProxy'); // callback-signature health for diagnostics
+const ncProxy = require('./ncProxy');
+const log = require('./log'); // callback-signature health for diagnostics
 
 const router = express.Router();
 
@@ -57,7 +58,7 @@ function requireNcAdmin(req, res, next) {
         });
     }
     if (!user.isNcAdmin) {
-        console.warn(`[Setup] denied ${req.method} ${req.originalUrl} for non-admin uid=${user.uid}`);
+        log.warn(`[Setup] denied ${req.method} ${req.originalUrl} for non-admin uid=${log.ref(user.uid)}`);
         return res.status(403).json({
             ok: false, code: 'not_admin',
             error: 'Only a Nextcloud administrator can change the Bee Flow connection.',
@@ -165,7 +166,7 @@ async function instanceIdOf(baseUrl) {
         throw new Error(`redirected somewhere this connector will not follow: ${err.message}`);
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json())?.ocs?.data;
+    const data = /** @type {any} */ (await res.json())?.ocs?.data;
     // Only the id Nextcloud itself publishes. bootstrap.js can synthesise a
     // host-derived fallback, which by construction differs between the internal
     // and public URL and would make every check a false mismatch.
@@ -338,7 +339,7 @@ router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), asy
         if (verdict.result === 'unreachable') {
             // Expected for a NAT/tunnel setup that is not up yet — this field
             // exists for exactly that case, so warn rather than refuse.
-            console.warn(`[Setup] public NC URL ${url} is not reachable from the connector `
+            log.warn(`[Setup] public NC URL ${url} is not reachable from the connector `
                 + `(${verdict.detail}) — saving it unverified.`);
         }
     }
@@ -355,7 +356,7 @@ router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), asy
     // restarting the container manually.
     if (typeof bootstrap.invalidateAndRebootstrap === 'function') {
         bootstrap.invalidateAndRebootstrap().catch(err => {
-            console.warn('[Setup] public NC URL re-bootstrap failed (non-fatal):', err.message);
+            log.warn('[Setup] public NC URL re-bootstrap failed (non-fatal):', err.message);
         });
     }
 
@@ -399,7 +400,7 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
     // background so the user can keep clicking through the SPA.
     if (typeof bootstrap.invalidateAndRebootstrap === 'function') {
         bootstrap.invalidateAndRebootstrap().catch(err => {
-            console.warn('[Setup] re-bootstrap failed (non-fatal):', err.message);
+            log.warn('[Setup] re-bootstrap failed (non-fatal):', err.message);
         });
     }
 
@@ -416,7 +417,7 @@ function tenantKeyFingerprint() {
 
 // A failed re-bootstrap, answered to the NC admin who pressed the button.
 function rebindFailed(res, err, action, uid, remediation) {
-    console.warn(`[Setup] ${action} FAILED for uid=${uid}: ${err.message}`);
+    log.warn(`[Setup] ${action} FAILED for uid=${log.ref(uid)}: ${err.message}`);
     // The message is a diagnostic for that admin (bootstrap.js writes them
     // for a person); setup.html shows it as is.
     res.status(502).json({
@@ -437,10 +438,10 @@ function rebindFailed(res, err, action, uid, remediation) {
 // the install.
 router.post('/rotate-tenant-key', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
-    console.log(`[Setup] tenant-key rotation requested by uid=${uid}`);
+    log.info(`[Setup] tenant-key rotation requested by uid=${log.ref(uid)}`);
     try {
         await bootstrap.invalidateAndRebootstrap();
-        console.log(`[Setup] tenant-key rotated by uid=${uid} — org ${config.organizationId}`);
+        log.info(`[Setup] tenant-key rotated by uid=${log.ref(uid)} — org ${config.organizationId}`);
         res.json({
             ok: true,
             organizationId: config.organizationId,
@@ -462,10 +463,10 @@ router.post('/rotate-tenant-key', requireNcAdmin, limits.rebind, express.json(),
 // Rollback to the previous key happens automatically if the re-bootstrap fails.
 router.post('/clear-cache', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
-    console.log(`[Setup] organisation cache clear requested by uid=${uid}`);
+    log.info(`[Setup] organisation cache clear requested by uid=${log.ref(uid)}`);
     try {
         await bootstrap.invalidateAndRebootstrap();
-        console.log(`[Setup] organisation cache cleared by uid=${uid} — org ${config.organizationId}`);
+        log.info(`[Setup] organisation cache cleared by uid=${log.ref(uid)} — org ${config.organizationId}`);
         res.json({
             ok: true,
             organizationId: config.organizationId,
@@ -493,10 +494,10 @@ router.post('/apply-pairing-code', requireNcAdmin, limits.verify, express.json()
             remediation: 'Pairing codes look like XXXX-XXXX (8 letters/digits, one dash).',
         });
     }
-    console.log(`[Setup] pairing code applied by uid=${uid} (${raw.slice(0, 4)}***)`);
+    log.info(`[Setup] pairing code applied by uid=${log.ref(uid)} (${raw.slice(0, 4)}***)`);
     try {
         await bootstrap.invalidateAndRebootstrap({ pairingCode: raw });
-        console.log(`[Setup] pairing code redeemed by uid=${uid} — org ${config.organizationId}`);
+        log.info(`[Setup] pairing code redeemed by uid=${log.ref(uid)} — org ${config.organizationId}`);
         res.json({
             ok: true,
             organizationId: config.organizationId,
@@ -525,7 +526,7 @@ router.post('/verify-email-code', requireNcAdmin, limits.verify, express.json(),
     const uid = req.beeflow?.user?.uid || 'unknown';
     try {
         const result = await bootstrap.submitVerificationCode(code);
-        console.log(`[Setup] email verification confirmed by uid=${uid} — org ${result.organizationId}`);
+        log.info(`[Setup] email verification confirmed by uid=${log.ref(uid)} — org ${result.organizationId}`);
         return res.json({ ok: true, organizationId: result.organizationId, organizationName: result.organizationName });
     } catch (err) {
         const status = err.code === 'no_pending' ? 409

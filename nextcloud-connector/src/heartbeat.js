@@ -26,6 +26,7 @@ const { withWarmupRetry } = require('./appApiClient');
 const { decodeAuthHeader, secretMatches, HDR } = require('./auth');
 const { ocsSucceeded } = require('./ocs');
 const rateLimit = require('./rateLimit');
+const log = require('./log');
 
 /**
  * Is this caller presenting the AppAPI shared secret?
@@ -93,7 +94,7 @@ function untrustedLifecycleAllowed(route, why) {
         windowMs: INIT_UNTRUSTED_WINDOW_MS,
     });
     if (warn.allowed) {
-        console.warn(`[Lifecycle] ignoring /${route} from a caller with no AppAPI shared secret — `
+        log.warn(`[Lifecycle] ignoring /${route} from a caller with no AppAPI shared secret — `
             + `more than ${INIT_UNTRUSTED_LIMIT} in ${INIT_UNTRUSTED_WINDOW_MS / 60_000} minutes. `
             + `AppAPI calls it on install and upgrade only; a loop of unauthenticated calls is `
             + `someone on this docker network ${why}. `
@@ -173,7 +174,7 @@ function registerLifecycle(app) {
 
         setImmediate(() => {
             runInitInBackground().catch(err => {
-                console.error(`[Init] Background setup failed: ${err.message}`);
+                log.error(`[Init] Background setup failed: ${err.message}`);
                 // Surface the error to AppAPI so `--wait-finish` exits cleanly
                 // instead of polling forever.
                 reportInitProgress(0, err.message).catch(() => {});
@@ -194,7 +195,7 @@ function registerLifecycle(app) {
         if (!isTrustedLifecycleCaller(req)
             && !untrustedLifecycleAllowed('enabled', 'filling the container log')) return;
 
-        console.log(`[Lifecycle] enabled=${req.query?.enabled === '1'}`);
+        log.info(`[Lifecycle] enabled=${req.query?.enabled === '1'}`);
     });
 }
 
@@ -224,7 +225,7 @@ async function runInitOnce() {
             const { bootstrapIfNeeded } = require('./bootstrap');
             await bootstrapIfNeeded();
         } catch (err) {
-            console.warn(`[Init] Bootstrap retry failed (non-fatal): ${err.message}`);
+            log.warn(`[Init] Bootstrap retry failed (non-fatal): ${err.message}`);
         }
     }
     await reportInitProgress(25).catch(() => {});
@@ -232,13 +233,13 @@ async function runInitOnce() {
     // 2. NC UI registrations — independent, run in parallel.
     const declarativeSettings = require('./declarativeSettings');
     await Promise.allSettled([
-        registerTopMenu().catch(err => console.warn(`[Init] TopMenu register failed: ${err.message}`)),
-        registerEmbedScript().catch(err => console.warn(`[Init] Embed script register failed: ${err.message}`)),
-        declarativeSettings.registerSettingsForm().catch(err => console.warn(`[Init] Settings form register failed: ${err.message}`)),
+        registerTopMenu().catch(err => log.warn(`[Init] TopMenu register failed: ${err.message}`)),
+        registerEmbedScript().catch(err => log.warn(`[Init] Embed script register failed: ${err.message}`)),
+        declarativeSettings.registerSettingsForm().catch(err => log.warn(`[Init] Settings form register failed: ${err.message}`)),
         // Studio-app menu entries (a top-menu icon per published app). A no-op
         // until bootstrap has a tenant key; the poller catches up afterwards.
         require('./studioAppMenus').syncStudioAppMenus()
-            .catch(err => console.warn(`[Init] Studio-app menu sync failed: ${err.message}`)),
+            .catch(err => log.warn(`[Init] Studio-app menu sync failed: ${err.message}`)),
     ]);
     declarativeSettings.startPolling();
     await reportInitProgress(60).catch(() => {});
@@ -247,7 +248,7 @@ async function runInitOnce() {
     await registerEventListeners();
     await reportInitProgress(100).catch(() => {});
 
-    console.log(`[Init] Background setup completed in ${Date.now() - t0}ms`);
+    log.info(`[Init] Background setup completed in ${Date.now() - t0}ms`);
 }
 
 function appApiHeaders() {
@@ -282,7 +283,7 @@ async function registerTopMenu() {
     if (!ok) {
         throw new Error(`TopMenu register HTTP ${res.status}${code === null ? '' : ` / OCS ${code}`}: ${body.slice(0, 200)}`);
     }
-    console.log('[Init] TopMenu entry registered');
+    log.info('[Init] TopMenu entry registered');
 }
 
 // Registers a JS file that NC will inject into the embedded template. The
@@ -307,7 +308,7 @@ async function registerEmbedScript() {
     if (!ok) {
         throw new Error(`Script register HTTP ${res.status}${code === null ? '' : ` / OCS ${code}`}: ${body.slice(0, 200)}`);
     }
-    console.log('[Init] Embed script registered');
+    log.info('[Init] Embed script registered');
 }
 
 // Real-time event subscriptions now go through Nextcloud's bundled
@@ -323,18 +324,18 @@ async function registerEmbedScript() {
 // Talk-bot webhook rather than an event subscription.
 async function registerEventListeners() {
     const { ensureWebhookListeners, startRetry } = require('./webhookListeners');
-    const { registerTalkBot } = require('./talkBot');
+    const { registerTalkBot } = /** @type {any} */ (require('./talkBot'));
     const { registerTaskProcessing } = require('./taskProcessing');
     const { registerFilesActions } = require('./filesActions');
     // Independent of the webhook registration: Talk bots are a different
     // mechanism with a different failure mode (Talk simply not installed).
-    await registerTalkBot().catch(err => console.warn(`[Init] Talk bot registration failed: ${err.message}`));
-    await registerTaskProcessing().catch(err => console.warn(`[Init] Task Processing registration failed: ${err.message}`));
+    await registerTalkBot().catch(err => log.warn(`[Init] Talk bot registration failed: ${err.message}`));
+    await registerTaskProcessing().catch(err => log.warn(`[Init] Task Processing registration failed: ${err.message}`));
     // AppAPI mounts its Files plugin only if some ExApp has registered a file
     // action, so this call is what puts Bee Flow in the right-click menu at all.
-    await registerFilesActions().catch(err => console.warn(`[Init] Files action registration failed: ${err.message}`));
+    await registerFilesActions().catch(err => log.warn(`[Init] Files action registration failed: ${err.message}`));
     const result = await ensureWebhookListeners().catch(err => {
-        console.warn(`[Init] Webhook registration failed: ${err.message}`);
+        log.warn(`[Init] Webhook registration failed: ${err.message}`);
         return { ok: false };
     });
     if (!result.ok) {
@@ -342,14 +343,14 @@ async function registerEventListeners() {
         // webhook_listeners yet. Keep trying quietly in the background.
         startRetry();
     }
-    console.log('[Init] Real-time user/group sync is not available via webhooks '
+    log.info('[Init] Real-time user/group sync is not available via webhooks '
         + '(Nextcloud\'s User/Group events are not webhook-compatible); the periodic '
         + 'sync backstop and manual "Sync now" remain in use.');
 }
 
 async function unregisterEventListeners() {
     const { unregisterWebhookListeners } = require('./webhookListeners');
-    const { unregisterTalkBot } = require('./talkBot');
+    const { unregisterTalkBot } = /** @type {any} */ (require('./talkBot'));
     const { unregisterTaskProcessing } = require('./taskProcessing');
     const { unregisterFilesActions } = require('./filesActions');
     await Promise.allSettled([

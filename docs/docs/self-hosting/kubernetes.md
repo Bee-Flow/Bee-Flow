@@ -49,7 +49,7 @@ The server is configured entirely through environment variables. Mirror the `ser
   the natural place.
 - **`SESSION_SECRET`**, **`MASTER_ENCRYPTION_KEY`** — required secrets (fresh random values).
 - **`RUSTFS_ENDPOINT`**, **`RUSTFS_ACCESS_KEY`**, **`RUSTFS_SECRET_KEY`** — object storage.
-- `SERVICES_API_KEY` — shared secret between the server and the sidecars.
+- `SERVICES_API_KEY` — shared secret between the server and the sidecars. Required: the guard and classify pods refuse to start without it.
 - `PII_SERVICE_URL` (+ `PII_SERVICE_API_KEY`) — points the server at the guard, if you deploy it.
 - `PORT` — the server's listen port (`3001` in the compose setup).
 
@@ -92,7 +92,7 @@ spec:
 
 Sessions are stored in Postgres, so multiple server replicas work without sticky sessions or
 Redis. The guard needs a generous readiness window (it loads its model before `/ready` goes
-green) — and note it [fails closed](env.md#privacy-shield): chat is blocked while no guard replica
+green) — and note it [fails closed](env.md#service-to-service-sidecars): chat is blocked while no guard replica
 is ready, so run two replicas if a restart must not interrupt service.
 
 ### Token-signing secrets: leave these to the server

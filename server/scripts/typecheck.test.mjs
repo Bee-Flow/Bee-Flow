@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { checkedFiles, parseDiagnostics, runTypecheck } from './typecheck.mjs';
+import { checkedFiles, MTS_OPTIONS, parseDiagnostics, runTypecheck } from './typecheck.mjs';
 
 function sandbox({ marked, dep }) {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'typecheck-'));
@@ -45,6 +45,16 @@ test('an error in a marked file is reported with file, position and code', (t) =
     assert.equal(diagnostics[0].file, 'marked.js');
     assert.equal(diagnostics[0].line, 4);
     assert.equal(diagnostics[0].code, 'TS2322');
+});
+
+test('an .mts file needs no marker and is checked strictly, with only erasable syntax', (t) => {
+    const dir = sandbox({ marked: 'module.exports = {};\n', dep: CLEAN_DEP });
+    writeFileSync(path.join(dir, 'tree.mts'), 'export const f = (x) => x;\nexport enum E { A }\nexport const ok: number = 1;\n');
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    assert.deepEqual(checkedFiles(dir), ['tree.mts'], 'listed without a marker, next to unmarked .js');
+    const { diagnostics, crashed } = runTypecheck(['tree.mts'], { dir, compilerOptions: MTS_OPTIONS });
+    assert.equal(crashed, false);
+    assert.deepEqual(diagnostics.map((d) => d.code).sort(), ['TS1294', 'TS7006']);
 });
 
 test('an error in an unmarked dependency is not reported', (t) => {

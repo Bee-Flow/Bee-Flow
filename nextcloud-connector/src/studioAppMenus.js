@@ -53,6 +53,7 @@ const { withWarmupRetry } = require('./appApiClient');
 const { ocsSucceeded } = require('./ocs');
 const { verifyHmac } = require('./ncProxy');
 const rateLimit = require('./rateLimit');
+const log = require('./log');
 
 const STATE_FILE = 'studio-app-menus.json';
 const LIST_PATH = '/api/nextcloud/studio-apps';
@@ -172,7 +173,7 @@ function saveState(state) {
         fs.mkdirSync(config.persistentStorage, { recursive: true });
         fs.writeFileSync(statePath(), JSON.stringify(state, null, 2), { mode: 0o600 });
     } catch (err) {
-        console.warn(`[StudioAppMenus] Could not persist state: ${err.message}`);
+        log.warn(`[StudioAppMenus] Could not persist state: ${err.message}`);
     }
 }
 
@@ -199,7 +200,7 @@ async function fetchDesiredApps() {
     if (!res.ok) {
         throw new Error(`SaaS answered HTTP ${res.status}`);
     }
-    const data = await res.json().catch(() => null);
+    const data = /** @type {any} */ (await res.json().catch(() => null));
     if (!data || !Array.isArray(data.apps)) throw new Error('SaaS answered without an apps list');
     return data.apps;
 }
@@ -317,7 +318,7 @@ async function _runPass() {
     try {
         apps = await fetchDesiredApps();
     } catch (err) {
-        console.warn(`[StudioAppMenus] Could not fetch app list (keeping current menu): ${err.message}`);
+        log.warn(`[StudioAppMenus] Could not fetch app list (keeping current menu): ${err.message}`);
         return { ok: false, error: err.message };
     }
     if (apps === null) return { ok: true, skipped: 'server_without_endpoint' };
@@ -357,7 +358,7 @@ async function _runPass() {
                 updated++;
             }
         } catch (err) {
-            console.warn(`[StudioAppMenus] Register ${name} failed: ${err.message}`);
+            log.warn(`[StudioAppMenus] Register ${name} failed: ${err.message}`);
         }
     }
 
@@ -370,14 +371,14 @@ async function _runPass() {
             delete registered[name];
             removed++;
         } catch (err) {
-            console.warn(`[StudioAppMenus] Unregister ${name} failed: ${err.message}`);
+            log.warn(`[StudioAppMenus] Unregister ${name} failed: ${err.message}`);
         }
     }
 
     state.entries = registered;
     saveState(state);
     if (added || removed || updated) {
-        console.log(`[StudioAppMenus] Synced: +${added} -${removed} ~${updated} (now ${Object.keys(registered).length})`);
+        log.info(`[StudioAppMenus] Synced: +${added} -${removed} ~${updated} (now ${Object.keys(registered).length})`);
     }
     return { ok: true, added, removed, updated };
 }
@@ -387,7 +388,7 @@ let _pollTimer = null;
 function startPolling() {
     if (_pollTimer) return;
     _pollTimer = setInterval(() => {
-        syncStudioAppMenus().catch(err => console.warn(`[StudioAppMenus] Sync failed: ${err.message}`));
+        syncStudioAppMenus().catch(err => log.warn(`[StudioAppMenus] Sync failed: ${err.message}`));
     }, SYNC_INTERVAL_MS);
     // A background convenience must never keep the process alive on its own.
     if (typeof _pollTimer.unref === 'function') _pollTimer.unref();
@@ -582,7 +583,7 @@ function mountPushHook(app) {
             const parsed = JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '{}');
             if (parsed && typeof parsed.reason === 'string') reason = parsed.reason.slice(0, 40);
         } catch (_) { /* informational only */ }
-        console.log(`[StudioAppMenus] Push from Bee Flow (${reason}) — syncing now`);
+        log.info(`[StudioAppMenus] Push from Bee Flow (${reason}) — syncing now`);
 
         let result;
         try {

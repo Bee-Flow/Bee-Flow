@@ -63,6 +63,11 @@
  *   explicit-any      `: any`, `as any` and `<any>` in non-test TypeScript: a
  *                     value the compiler stops checking. The target is a real
  *                     type, `unknown` plus narrowing, or a generic.
+ *   eslint-disable    `eslint-disable`, `eslint-disable-next-line` and
+ *                     `eslint-disable-line` comments in non-test code: a rule
+ *                     switched off where it fires. The target is to fix the code
+ *                     or, for a rule that is wrong for the whole file or folder,
+ *                     to change the config with a reason.
  *   as-unknown-as     `as unknown as T` double casts in non-test code: a
  *                     conversion the compiler would refuse. The target is a
  *                     type guard or a correct type at the source.
@@ -472,6 +477,12 @@ const METRICS = {
         measure: countMatches(/:\s*any\b|(?<![\w$])as\s+any\b|<any>/g),
         what: 'explicit any types',
         advice: 'give it a real type, use unknown and narrow it, or make the function generic',
+    },
+    'eslint-disable': {
+        include: (rel) => !TEST_FILE.test(rel) && /\.[cm]?[jt]sx?$/.test(rel),
+        measure: countMatches(/(?:\/\/|\/\*)\s*eslint-disable\b/g),
+        what: 'eslint-disable comments',
+        advice: 'fix what the rule flags; a rule that is wrong for a whole file belongs in the eslint config, with its reason',
     },
     'as-unknown-as': {
         include: (rel) => !TEST_FILE.test(rel),

@@ -89,7 +89,7 @@ const CLASS_OK = /^(?!Synthetic)(Date|RegExp|Error|TypeError|File|Blob|FormData|
  * written (a function, an unknown class, too large). `named(objDescs)` may name
  * an object shape. `opts.optional` is set when `undefined` was seen.
  */
-export function typeFromSamples(descs, named = () => null, depth = 0, opts = {}) {
+export function typeFromSamples(descs, named = (/** @type {any} */ _objs) => null, depth = 0, opts = {}) {
     if (!descs.length || depth > 3) return null;
     const parts = new Set(); const objs = []; const arrs = [];
     for (const d of descs) {
@@ -131,7 +131,7 @@ export function typeFromSamples(descs, named = () => null, depth = 0, opts = {})
     }
     if (!parts.size || [...parts].every((x) => x === 'null')) return null; // only null seen says nothing
     // boolean stays boolean, null last for reading.
-    const order = [...parts].sort((a, b) => (a === 'null') - (b === 'null'));
+    const order = [...parts].sort((a, b) => Number(a === 'null') - Number(b === 'null'));
     const text = order.join(' | ');
     return text.length > 160 ? null : text;
 }

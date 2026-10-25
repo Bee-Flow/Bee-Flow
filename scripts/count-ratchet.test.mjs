@@ -322,6 +322,20 @@ test('explicit-any counts any annotations, casts and type arguments in TypeScrip
     assert.strictEqual(budgetOf(dir, 'explicit-any'), 3);
 });
 
+test('eslint-disable counts disable directives in source (block, next-line and line), not mentions or tests', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.ts': '// eslint-disable-next-line no-console\nconsole.log(1);\nfoo(); // eslint-disable-line no-undef\n/* eslint-disable react/no-danger */\n',
+            'b.js': 'const s = "eslint-disable in a string";\n// we never eslint-disable here\n',
+            'a.test.ts': '// eslint-disable-next-line no-console\n',
+            'notes.md': '// eslint-disable\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'eslint-disable').code, 0);
+    assert.strictEqual(budgetOf(dir, 'eslint-disable'), 3);
+});
+
 test('as-unknown-as counts double casts in source and leaves single casts and tests alone', () => {
     const dir = sandbox({
         src: false,

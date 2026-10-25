@@ -29,6 +29,7 @@
  */
 
 'use strict';
+const log = require('./log');
 
 // Cap on distinct keys held per bucket. Reached only under deliberate churn
 // (a caller varying the key); the oldest entries are dropped first, which at
@@ -110,11 +111,11 @@ function callerKey(req) {
  * Answers 429 with `Retry-After` when the budget is spent, as the manual
  * prescribes for `IRateLimitExceededException`.
  */
-function limit(name, { limit: max, windowMs, keyOf = callerKey, message } = {}) {
+function limit(name, { limit: max, windowMs, keyOf = callerKey, message } = /** @type {{ limit?: number, windowMs?: number, keyOf?: (req: any) => any, message?: string }} */ ({})) {
     return function rateLimitMiddleware(req, res, next) {
         const verdict = consume(name, keyOf(req), { limit: max, windowMs });
         if (verdict.allowed) return next();
-        console.warn(`[RateLimit] ${name} exceeded by ${keyOf(req)} — ${max}/${Math.round(windowMs / 1000)}s`);
+        log.warn(`[RateLimit] ${name} exceeded by ${keyOf(req)} — ${max}/${Math.round(windowMs / 1000)}s`);
         res.set('Retry-After', String(verdict.retryAfter));
         return res.status(429).json({
             ok: false,

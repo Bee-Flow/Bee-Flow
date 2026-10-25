@@ -82,7 +82,7 @@ test('read-only hints match what the dispatcher actually persists on', () => {
         const writes = MUTATING_TOOLS.has(tool.name)
             || tool.name === 'builder_finalize'
             || tool.name === 'automations_create'
-            || tool.name === 'automations_run'; // starts a real run
+            || require('./mcpRunTools').WRITE_TOOL_NAMES.has(tool.name);
         assert.equal(
             tool.annotations.readOnlyHint, !writes,
             `${tool.name}: readOnlyHint disagrees with whether the call writes`,

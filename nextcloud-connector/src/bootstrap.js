@@ -1,3 +1,4 @@
+const log = require('./log');
 /**
  * One-click bootstrap: turn a fresh ExApp install into a fully-configured
  * Bee Flow tenant without the NC admin having to paste anything.
@@ -76,7 +77,7 @@ async function writeCache(data) {
         await fs.mkdir(config.persistentStorage, { recursive: true });
         await fs.writeFile(cachePath, JSON.stringify(data, null, 2), { mode: 0o600 });
     } catch (e) {
-        console.warn(`[Bootstrap] Could not persist tenant key to ${cachePath}: ${e.message}`);
+        log.warn(`[Bootstrap] Could not persist tenant key to ${cachePath}: ${e.message}`);
     }
 }
 
@@ -96,7 +97,7 @@ async function writePendingFile(data) {
         await fs.mkdir(config.persistentStorage, { recursive: true });
         await fs.writeFile(p, JSON.stringify(data, null, 2), { mode: 0o600 });
     } catch (e) {
-        console.warn(`[Bootstrap] Could not persist pending state to ${p}: ${e.message}`);
+        log.warn(`[Bootstrap] Could not persist pending state to ${p}: ${e.message}`);
     }
 }
 
@@ -112,7 +113,7 @@ async function fetchCapabilities() {
         signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) throw new Error(`NC capabilities HTTP ${res.status}`);
-    const body = await res.json();
+    const body = /** @type {any} */ (await res.json());
     const data = body?.ocs?.data;
     if (!data?.version) throw new Error('NC capabilities missing version data');
     const themingName = data?.capabilities?.theming?.name || 'Nextcloud';
@@ -124,7 +125,7 @@ async function fetchCapabilities() {
         // re-derives) so it doesn't change when NC is upgraded — which would
         // otherwise create a duplicate org on the next re-bootstrap.
         instanceId = stableInstanceIdFallback(config.nextcloudPublicUrl || config.nextcloudUrl, themingName);
-        console.warn(`[Bootstrap] NC exposes no theming/core instanceid; using stable host fallback '${instanceId}'`);
+        log.warn(`[Bootstrap] NC exposes no theming/core instanceid; using stable host fallback '${instanceId}'`);
     }
     return { instanceId, themingName, version: data?.version?.string || 'unknown' };
 }
@@ -161,7 +162,7 @@ async function fetchAllUids() {
         signal: AbortSignal.timeout(10_000),
     }), { label: 'users-list', budgetMs: 60_000 });
     if (!res.ok) throw new Error(`AppAPI users list HTTP ${res.status}`);
-    const body = await res.json();
+    const body = /** @type {any} */ (await res.json());
     const data = body?.ocs?.data;
     if (!Array.isArray(data)) throw new Error('Unexpected users-list payload');
     return data;
@@ -175,7 +176,7 @@ async function fetchUserInfo(uid) {
         signal: AbortSignal.timeout(10_000),
     }), { label: 'user-info', budgetMs: 30_000 });
     if (!res.ok) return null;
-    const body = await res.json();
+    const body = /** @type {any} */ (await res.json());
     return body?.ocs?.data || null;
 }
 
@@ -190,7 +191,7 @@ async function fetchAdminUidsViaGroup() {
             signal: AbortSignal.timeout(5_000),
         });
         if (!res.ok) return null;
-        const body = await res.json();
+        const body = /** @type {any} */ (await res.json());
         const data = body?.ocs?.data?.users;
         return Array.isArray(data) && data.length > 0 ? data : null;
     } catch { return null; }
@@ -320,7 +321,7 @@ async function writeErrorFile(data) {
         await fs.mkdir(config.persistentStorage, { recursive: true });
         await fs.writeFile(p, JSON.stringify(data, null, 2), { mode: 0o600 });
     } catch (e) {
-        console.warn(`[Bootstrap] Could not persist error state to ${p}: ${e.message}`);
+        log.warn(`[Bootstrap] Could not persist error state to ${p}: ${e.message}`);
     }
 }
 async function clearErrorFile() {
@@ -385,7 +386,7 @@ async function recordBootstrapError(err, phase, opts = {}) {
     };
     lastErrorState = state;
     await writeErrorFile(state);
-    console.warn(`[Bootstrap] ${category} (${phase || '-'}): ${state.error}`);
+    log.warn(`[Bootstrap] ${category} (${phase || '-'}): ${state.error}`);
     return state;
 }
 
@@ -403,7 +404,7 @@ function armTaskPolling() {
     try {
         require('./taskProcessing').startPolling();
     } catch (err) {
-        console.warn(`[Bootstrap] could not arm the task-processing poller: ${err.message}`);
+        log.warn(`[Bootstrap] could not arm the task-processing poller: ${err.message}`);
     }
 }
 
@@ -450,31 +451,31 @@ async function pollPendingBinding(pending) {
                 signal: AbortSignal.timeout(10_000),
             });
         } catch (e) {
-            console.warn(`[Bootstrap] Poll failed (will retry): ${e.message}`);
+            log.warn(`[Bootstrap] Poll failed (will retry): ${e.message}`);
             continue;
         }
         if (res.status === 202) continue;
         if (res.status === 410) {
             const body = await res.json().catch(() => ({}));
-            console.warn(`[Bootstrap] Pending binding ${body.status || 'denied/expired'} — abandoning poll`);
+            log.warn(`[Bootstrap] Pending binding ${body.status || 'denied/expired'} — abandoning poll`);
             pendingState = { ...pendingState, status: body.status || 'denied' };
             await deletePendingFile();
             return;
         }
         if (res.ok) {
-            const json = await res.json();
+            const json = /** @type {any} */ (await res.json());
             if (!json.tenantKey) {
-                console.warn('[Bootstrap] Pending poll returned 200 without tenantKey — retrying');
+                log.warn('[Bootstrap] Pending poll returned 200 without tenantKey — retrying');
                 continue;
             }
             await applyTenantKeyResponse(json, pending.ncInstanceId);
-            console.log(`[Bootstrap] Bound to existing org ${json.organizationId} (${json.organizationName})`);
+            log.info(`[Bootstrap] Bound to existing org ${json.organizationId} (${json.organizationName})`);
             return;
         }
         // 4xx/5xx other than 202/410 — keep trying with backoff, capped.
-        console.warn(`[Bootstrap] Poll HTTP ${res.status}, retrying`);
+        log.warn(`[Bootstrap] Poll HTTP ${res.status}, retrying`);
     }
-    console.warn('[Bootstrap] Pending binding poll window elapsed — giving up');
+    log.warn('[Bootstrap] Pending binding poll window elapsed — giving up');
     pendingState = { ...pendingState, status: 'expired' };
     await deletePendingFile();
 }
@@ -515,7 +516,7 @@ async function submitVerificationCode(code) {
     if (res.ok && json.tenantKey) {
         await applyTenantKeyResponse(json, pending.ncInstanceId);
         await clearErrorFile();
-        console.log(`[Bootstrap] Email verification succeeded — bound to org ${json.organizationId} (${json.organizationName})`);
+        log.info(`[Bootstrap] Email verification succeeded — bound to org ${json.organizationId} (${json.organizationName})`);
         return { ok: true, organizationId: json.organizationId, organizationName: json.organizationName };
     }
     const err = new Error(json.error || `Verification failed (HTTP ${res.status})`);
@@ -585,7 +586,7 @@ function bootstrapIfNeeded() {
 
 async function _provisionFlow() {
     if (!config.isAutoTenantKey) {
-        console.log('[Bootstrap] BEEFLOW_TENANT_KEY explicitly set, skipping auto-bootstrap');
+        log.info('[Bootstrap] BEEFLOW_TENANT_KEY explicitly set, skipping auto-bootstrap');
         return;
     }
 
@@ -602,12 +603,12 @@ async function _provisionFlow() {
         // deletes the cache) drops the pin.
         if (cached.boundApiBaseUrl && !process.env.BEEFLOW_API_BASE_URL) {
             if (config.apiBaseUrl !== cached.boundApiBaseUrl) {
-                console.warn(`[Bootstrap] Pinning to bound server ${cached.boundApiBaseUrl} (ignoring configured ${config.apiBaseUrl})`);
+                log.warn(`[Bootstrap] Pinning to bound server ${cached.boundApiBaseUrl} (ignoring configured ${config.apiBaseUrl})`);
             }
             config.apiBaseUrl = cached.boundApiBaseUrl;
         }
         await clearErrorFile();
-        console.log(`[Bootstrap] Loaded cached tenant key for org ${cached.organizationId}`);
+        log.info(`[Bootstrap] Loaded cached tenant key for org ${cached.organizationId}`);
         armTaskPolling();
         return;
     }
@@ -630,18 +631,18 @@ async function _provisionFlow() {
             // the embedded view — restore the state so the SPA re-renders the
             // verification screen. No polling: the user action drives it.
             pendingState = { status: 'awaiting_email_verification', ...existingPending };
-            console.log(`[Bootstrap] Resuming email verification ${existingPending.pendingId}`);
+            log.info(`[Bootstrap] Resuming email verification ${existingPending.pendingId}`);
             return;
         }
         if (stillValid && existingPending.pollUrl) {
-            console.log(`[Bootstrap] Resuming pending binding ${existingPending.pendingId} (awaiting admin approval)`);
-            pollPendingBinding(existingPending).catch(e => console.warn('[Bootstrap] Pending poll crashed:', e.message));
+            log.info(`[Bootstrap] Resuming pending binding ${existingPending.pendingId} (awaiting admin approval)`);
+            pollPendingBinding(existingPending).catch(e => log.warn('[Bootstrap] Pending poll crashed:', e.message));
             return;
         }
         await deletePendingFile();
     }
 
-    console.log('[Bootstrap] No cached tenant key; provisioning from SaaS...');
+    log.info('[Bootstrap] No cached tenant key; provisioning from SaaS...');
 
     let caps, admins, admin;
     try {
@@ -691,7 +692,7 @@ async function _provisionFlow() {
         // restart doesn't re-redeem against a now-invalid code.
         if (config.pairingCode) {
             headers['X-Beeflow-Pairing-Code'] = config.pairingCode;
-            console.log(`[Bootstrap] Attaching pairing code ${config.pairingCode.slice(0, 4)}*** for redemption`);
+            log.info(`[Bootstrap] Attaching pairing code ${config.pairingCode.slice(0, 4)}*** for redemption`);
         }
         res = await fetch(`${config.apiBaseUrl}/auth/connector/bootstrap`, {
             method: 'POST',
@@ -711,7 +712,7 @@ async function _provisionFlow() {
     }
 
     if (res.status === 202) {
-        const json = await res.json();
+        const json = /** @type {any} */ (await res.json());
         // Same-domain match — confirm via an emailed code entered in the
         // embedded view. No polling: the connector waits for the admin to
         // submit the code through /setup/verify-email-code, which calls
@@ -736,7 +737,7 @@ async function _provisionFlow() {
             await writePendingFile(pending);
             pendingState = { status: 'awaiting_email_verification', ...pending };
             await clearErrorFile(); // verification is a valid in-flight state
-            console.log(`[Bootstrap] Awaiting email verification (pending ${json.pendingId}, code sent to ${json.maskedEmail})`);
+            log.info(`[Bootstrap] Awaiting email verification (pending ${json.pendingId}, code sent to ${json.maskedEmail})`);
             return;
         }
         // Adoption candidate — admin approval required (legacy). Stash poll
@@ -754,9 +755,9 @@ async function _provisionFlow() {
             ncInstanceId: caps.instanceId,
         };
         await writePendingFile(pending);
-        console.log(`[Bootstrap] Awaiting org-admin approval (pending ${json.pendingId}, expires ${json.expiresAt})`);
+        log.info(`[Bootstrap] Awaiting org-admin approval (pending ${json.pendingId}, expires ${json.expiresAt})`);
         await clearErrorFile(); // pending is a valid in-flight state, not a failure
-        pollPendingBinding(pending).catch(e => console.warn('[Bootstrap] Pending poll crashed:', e.message));
+        pollPendingBinding(pending).catch(e => log.warn('[Bootstrap] Pending poll crashed:', e.message));
         return;
     }
 
@@ -774,7 +775,7 @@ async function _provisionFlow() {
         await recordBootstrapError(e, 'saas_post', { remediation: parsed?.remediation });
         throw e;
     }
-    const json = await res.json();
+    const json = /** @type {any} */ (await res.json());
     if (!json.tenantKey) {
         const e = new Error('Bootstrap response missing tenantKey');
         await recordBootstrapError(e, 'saas_response');
@@ -787,10 +788,10 @@ async function _provisionFlow() {
     // restart can't try to redeem it again (the SaaS will reject it on a
     // second attempt anyway, but better to fail closed before the request).
     if (config.pairingCode) {
-        console.log('[Bootstrap] Pairing code redeemed — clearing for future restarts');
+        log.info('[Bootstrap] Pairing code redeemed — clearing for future restarts');
         config.pairingCode = null;
     }
-    console.log(`[Bootstrap] Provisioned org ${json.organizationId} (${json.organizationName}) — tenant key cached`);
+    log.info(`[Bootstrap] Provisioned org ${json.organizationId} (${json.organizationName}) — tenant key cached`);
 }
 
 /**
@@ -802,7 +803,7 @@ async function _provisionFlow() {
  *
  * Best-effort: errors are caught + logged, never thrown to the caller.
  */
-async function invalidateAndRebootstrap({ pairingCode } = {}) {
+async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCode?: string }} */ ({})) {
     // Snapshot the previous working state so we can roll back if the new
     // target's bootstrap fails. Without this, a typo in the settings panel
     // (or a Cloud-mode pick from a localhost-only NC sandbox) wipes the
@@ -829,7 +830,7 @@ async function invalidateAndRebootstrap({ pairingCode } = {}) {
         if (pairingCode) {
             config.pairingCode = pairingCode;
         }
-        console.log('[Bootstrap] Invalidated cached tenant key after setup change — re-bootstrapping');
+        log.info('[Bootstrap] Invalidated cached tenant key after setup change — re-bootstrapping');
         // Explicit admin reset must force a fresh provision, not piggy-back on an
         // in-flight one (which may be mid-bind to the old target / without the
         // pairing code). Clearing the single-flight guard is safe here: the SaaS
@@ -843,7 +844,7 @@ async function invalidateAndRebootstrap({ pairingCode } = {}) {
             throw new Error('bootstrap completed without producing a tenant key');
         }
     } catch (err) {
-        console.warn(`[Bootstrap] re-bootstrap failed (${err.message}); rolling back to previous tenant key`);
+        log.warn(`[Bootstrap] re-bootstrap failed (${err.message}); rolling back to previous tenant key`);
         config.tenantKey = prev.tenantKey;
         config.organizationId = prev.organizationId;
         config.ncInstanceId = prev.ncInstanceId;

@@ -43,6 +43,7 @@
 
 const config = require('./config');
 const { withWarmupRetry } = require('./appApiClient');
+const log = require('./log');
 
 const REGISTER_API = '/ocs/v2.php/apps/app_api/api/v1/ai_provider/task_processing';
 const TP_API = '/ocs/v2.php/taskprocessing';
@@ -204,10 +205,10 @@ async function registerTaskProcessing() {
         .filter(x => x.r.status === 'rejected');
     const failed = failures.length;
     if (registered > 0) _registered = true;
-    console.log(`[TaskProcessing] ${registered}/${TASK_TYPES.length} providers registered`
+    log.info(`[TaskProcessing] ${registered}/${TASK_TYPES.length} providers registered`
         + (failed ? ` (${failed} failed)` : ''));
     for (const { id, r } of failures) {
-        console.warn(`[TaskProcessing] provider '${id}' failed to register: ${r.reason?.message || r.reason}`);
+        log.warn(`[TaskProcessing] provider '${id}' failed to register: ${/** @type {PromiseRejectedResult} */ (r).reason?.message || /** @type {PromiseRejectedResult} */ (r).reason}`);
     }
     return { ok: failed === 0, registered, failed, failedIds: failures.map(f => f.id) };
 }
@@ -237,11 +238,16 @@ async function fetchNextTask(id) {
     });
     if (res.status === 404) return null; // nothing queued
     if (!res.ok) throw new Error(`next task HTTP ${res.status}`);
-    const body = await res.json().catch(() => null);
+    const body = /** @type {any} */ (await res.json().catch(() => null));
     return body?.ocs?.data?.task || null;
 }
 
+/**
+ * @param {string} taskId
+ * @param {{ output?: any, errorMessage?: string, userFacingErrorMessage?: string }} result
+ */
 async function reportResult(taskId, { output, errorMessage, userFacingErrorMessage }) {
+    /** @type {Record<string, any>} */
     const payload = {};
     if (output) payload.output = output;
     if (errorMessage) payload.errorMessage = errorMessage;
@@ -251,7 +257,7 @@ async function reportResult(taskId, { output, errorMessage, userFacingErrorMessa
         headers: appApiHeaders(),
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(10_000),
-    }).catch(err => console.warn(`[TaskProcessing] could not report result for ${taskId}: ${err.message}`));
+    }).catch(err => log.warn(`[TaskProcessing] could not report result for ${taskId}: ${err.message}`));
 }
 
 /**
@@ -304,7 +310,7 @@ const USER_ERRORS = {
     unconfigured: 'Bee Flow is not finished setting up on this server yet. Please ask your administrator to check the Bee Flow app settings.',
 };
 
-async function executeViaSaaS(task, { timeoutMs } = {}) {
+async function executeViaSaaS(task, { timeoutMs } = /** @type {{ timeoutMs?: number }} */ ({})) {
     const crypto = require('crypto');
     const path = '/api/nextcloud/task-processing/execute';
     const body = JSON.stringify({
@@ -337,7 +343,7 @@ async function executeViaSaaS(task, { timeoutMs } = {}) {
         const text = await res.text().catch(() => '');
         throw new Error(`Bee Flow returned ${res.status}: ${text.slice(0, 200)}`);
     }
-    const data = await res.json().catch(() => null);
+    const data = /** @type {any} */ (await res.json().catch(() => null));
     if (!data || typeof data.output !== 'object') {
         throw new Error('Bee Flow returned no output');
     }
@@ -358,7 +364,7 @@ async function runTask(task) {
         // Two messages on purpose: Nextcloud shows the user-facing one and
         // keeps the detailed one for admins. Never leak the SaaS URL or status
         // text to an end user.
-        console.warn(`[TaskProcessing] task ${task.id} (${task.type}) failed after `
+        log.warn(`[TaskProcessing] task ${task.id} (${task.type}) failed after `
             + `${timedOut ? `${timeoutMs}ms watchdog` : 'upstream error'}: ${err.message}`);
         await reportResult(task.id, {
             errorMessage: timedOut ? `Bee Flow watchdog fired after ${timeoutMs}ms: ${err.message}` : err.message,
@@ -405,7 +411,7 @@ async function _drainWith({ fetchNextTask: fetchNext, runTask: run }, id, { conc
                 try {
                     task = await fetchNext(id);
                 } catch (err) {
-                    console.warn(`[TaskProcessing] could not fetch next task for ${id}: ${err.message}`);
+                    log.warn(`[TaskProcessing] could not fetch next task for ${id}: ${err.message}`);
                     // Stop the whole pool: if Nextcloud is refusing us, the
                     // other workers will only produce the same error N times.
                     queueEmpty = true;
@@ -458,7 +464,7 @@ async function pollOnce() {
         try {
             found += await drainProvider(providerId(t.id));
         } catch (err) {
-            console.warn(`[TaskProcessing] poll failed for ${t.id}: ${err.message}`);
+            log.warn(`[TaskProcessing] poll failed for ${t.id}: ${err.message}`);
         }
     }
     if (found > 0) _emptyRounds = 0; else _emptyRounds += 1;
@@ -473,7 +479,7 @@ function scheduleNextPoll() {
     if (_pollTimer) clearTimeout(_pollTimer);
     _pollTimer = setTimeout(() => {
         pollOnce()
-            .catch(err => console.warn(`[TaskProcessing] poll error: ${err.message}`))
+            .catch(err => log.warn(`[TaskProcessing] poll error: ${err.message}`))
             .finally(scheduleNextPoll);
     }, currentPollDelay());
     // Never hold the process open for a poll.
@@ -501,7 +507,7 @@ function handleTrigger(req, res) {
     scheduleNextPoll();
     setImmediate(() => {
         drainProvider(id).catch(err =>
-            console.warn(`[TaskProcessing] drain failed for ${id}: ${err.message}`));
+            log.warn(`[TaskProcessing] drain failed for ${id}: ${err.message}`));
     });
 }
 

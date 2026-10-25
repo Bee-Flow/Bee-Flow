@@ -34,12 +34,9 @@ from .inference import _MODEL_BATCH_SIZE
 from .label_groups import _grouped_categories, label_groups
 from .noise import _is_noise_person_org, _is_skippable
 from .overlaps import _finalise_custom
-from .postprocess import (
-    _apply_validators,
-    _postprocess_entities,
-    _precision_filter,
-)
+from .postprocess import _apply_validators, _postprocess_entities, _precision_filter
 from .scan_policy import configured_regions, resolve_tier_mode
+from .state import _PiiState
 from .thresholds import (
     _ABSOLUTE_CEIL,
     _ABSOLUTE_FLOOR,
@@ -229,7 +226,7 @@ def _acceptance_floor(category: str, confidence_threshold: float) -> float:
     return min(_ABSOLUTE_CEIL, max(_ABSOLUTE_FLOOR, confidence_threshold))
 
 
-def _query_threshold(group: list[str]) -> float:
+def _query_threshold(group: _Labels) -> float:
     """The threshold to QUERY the model with — deliberately not the floor.
 
     GLiNER's span decoding is greedy and the threshold takes part in it, so a
@@ -310,7 +307,7 @@ class _SpanCollector:
     def _accept_custom(
         self, label_id: str, score: float, ent: dict, chunk_offset: int
     ) -> None:
-        if score < self._custom.floor_for(label_id):
+        if self._custom is None or score < self._custom.floor_for(label_id):
             return
         start, end, word = self._placed(ent, chunk_offset)
         # Ids never equal a shipped category name, so one seen-set serves both.
@@ -480,7 +477,7 @@ def _log_tier_diff(regex_entities: list[dict], model_entities: list[dict]) -> No
     """Shadow mode's one honest answer: would `off` have detected FEWER?
     Category names and integer counts only — never offsets, spans or input."""
 
-    def _cats(ents):
+    def _cats(ents: list[dict]) -> Counter[str]:
         return Counter(e["category"] for e in ents)
 
     regex_cats = _cats(regex_entities)
@@ -517,7 +514,7 @@ def _scan_stats(
     }
 
 
-class _Detection:
+class _Detection(_PiiState):
     """``PiiService``'s detection half. Mixed into the service."""
 
     def detect(
@@ -688,7 +685,7 @@ class _Detection:
             if active_groups
             else ([], None, None)
         )
-        units = _scan_units(active_groups, chunks)
+        units = _scan_units(list[_Labels](active_groups), chunks)
         groups: list[_Labels] = list(active_groups)
         custom_chunks: list[tuple[int, str]] | None = None
         if custom is not None:
@@ -854,7 +851,7 @@ class _Detection:
                 lock_wait_ms=timings.lock_wait_ms,
                 predict_ms=timings.predict_ms,
             ), None
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - a failing custom group is isolated from the rest of the scan
             # The custom group's labels are admin-written prompts, and an
             # exception message may quote its input: log only the type there.
             logger.error(

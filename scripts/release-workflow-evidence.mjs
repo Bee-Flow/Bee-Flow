@@ -13,7 +13,7 @@ async function main() {
         Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
     }, signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error(`Cannot verify workflow provenance (${response.status})`);
-    const run = await response.json();
+    const run = /** @type {any} */ (await response.json());
     const commit = verifyRun(run, workflowPath);
     if (!Number.isInteger(run.run_attempt) || run.run_attempt < 1) throw new Error('Invalid workflow attempt');
     if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `commit=${commit}\nattempt=${run.run_attempt}\n`);

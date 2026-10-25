@@ -321,7 +321,7 @@ def _precision_filter(entities: list[dict]) -> list[dict]:
         if category == "PhoneNumber" and _TIME_OF_DAY_RE.match(word):
             continue
 
-        minimum = _MIN_DIGITS_BY_CATEGORY.get(category)
+        minimum = _MIN_DIGITS_BY_CATEGORY.get(category or "")
         if minimum is not None:
             if sum(1 for ch in word if ch.isdigit()) < minimum:
                 continue
@@ -425,8 +425,8 @@ def _cell_bounds(text: str, start: int, end: int, reach: int) -> tuple[int, int]
     lo = max(0, start - reach)
     for m in _CELL_BREAK_RE.finditer(text, lo, start):
         lo = m.end()
-    m = _CELL_BREAK_RE.search(text, end, end + reach)
-    hi = m.start() if m else min(len(text), end + reach)
+    nxt = _CELL_BREAK_RE.search(text, end, end + reach)
+    hi = nxt.start() if nxt else min(len(text), end + reach)
     return lo, hi
 
 

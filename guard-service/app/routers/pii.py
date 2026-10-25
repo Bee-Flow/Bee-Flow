@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import Counter
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
@@ -25,7 +26,7 @@ logger = logging.getLogger("guard.pii.router")
 router = APIRouter(tags=["pii"])
 
 
-def _engine_fp(enabled_regions=None, custom_labels=None) -> str | None:
+def _engine_fp(enabled_regions: Any = None, custom_labels: Any = None) -> str | None:
     """Never let provenance break a detection response — absent means the
     caller must treat the result as un-memoisable, which is the safe default."""
     try:
@@ -39,7 +40,7 @@ def _engine_fp(enabled_regions=None, custom_labels=None) -> str | None:
         return None
 
 
-def _custom_log_fields(custom_labels, result: dict) -> tuple[int, int, str]:
+def _custom_log_fields(custom_labels: Any, result: dict) -> tuple[int, int, str]:
     """(labels asked, entities found, found per id). Opaque ids and counts
     ONLY: a prompt is customer-authored text about what their data looks like,
     and must never reach a log line."""

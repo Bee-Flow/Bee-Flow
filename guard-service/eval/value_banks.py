@@ -853,7 +853,7 @@ def gen_url(rng: random.Random, lang: str = "nl") -> tuple[str, str]:
 
 
 def gen_license_plate(rng: random.Random, lang: str = "nl") -> tuple[str, str]:  # noqa: C901, PLR0911
-    def L():  # noqa: E743 - short local
+    def L():
         return rng.choice(string.ascii_uppercase)
 
     def D():
@@ -879,7 +879,7 @@ def gen_license_plate(rng: random.Random, lang: str = "nl") -> tuple[str, str]: 
             return f"{L()}{L()}-{D()}{D()}{D()}-{L()}{L()}", "plate_fr"
         if which == "es":
             # Post-2000: four digits then three consonants.
-            C = lambda: rng.choice("BCDFGHJKLMNPRSTVWXYZ")  # noqa: E731
+            C = lambda: rng.choice("BCDFGHJKLMNPRSTVWXYZ")
             return f"{D()}{D()}{D()}{D()} {C()}{C()}{C()}", "plate_es"
         if which == "it":
             return f"{L()}{L()}{D()}{D()}{D()}{L()}{L()}", "plate_it"
@@ -893,8 +893,8 @@ def gen_license_plate(rng: random.Random, lang: str = "nl") -> tuple[str, str]: 
         # (March) or 51-79 (September), and I/Q are not used as area letters;
         # the old generator emitted any two digits, so most of its plates were
         # registrations that cannot exist.
-        A = lambda: rng.choice("ABCDEFGHJKLMNOPRSTUVWXY")  # noqa: E731
-        S = lambda: rng.choice("ABCDEFGHJKLMNOPRSTUVWXYZ")  # noqa: E731
+        A = lambda: rng.choice("ABCDEFGHJKLMNOPRSTUVWXY")
+        S = lambda: rng.choice("ABCDEFGHJKLMNOPRSTUVWXYZ")
         age = rng.choice(list(range(2, 30)) + list(range(51, 80)))
         return f"{A()}{A()}{age:02d} {S()}{S()}{S()}", "plate_gb"
 
@@ -1027,4 +1027,4 @@ def generate(category: str, rng: random.Random, lang: str = "nl") -> tuple[str, 
     return gen(rng, lang)
 
 
-__all__ = ["GENERATORS", "DETERMINISTIC_CATEGORIES", "generate"]
+__all__ = ["DETERMINISTIC_CATEGORIES", "GENERATORS", "generate"]

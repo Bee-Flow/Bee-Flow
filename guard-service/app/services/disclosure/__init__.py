@@ -37,20 +37,20 @@ from .similarity import (
 
 # The re-exports above, named so a linter sees them as the public surface.
 __all__ = [
+    "MAX_SEGMENTS",
+    "MAX_SEGMENT_CHARS",
+    "MIN_SEGMENT_CHARS",
     "NEGATIVE_ANCHORS",
     "POSITIVE_ANCHORS",
+    "DisclosureService",
+    "SentenceEncoder",
     "anchor_ids",
     "anchor_texts",
     "bank_digest",
-    "positive_count",
-    "SentenceEncoder",
-    "DisclosureService",
-    "get_disclosure_service",
-    "MAX_SEGMENT_CHARS",
-    "MAX_SEGMENTS",
-    "MIN_SEGMENT_CHARS",
     "best_similarity",
     "cosine",
+    "get_disclosure_service",
+    "positive_count",
     "segments",
     "verdict",
 ]

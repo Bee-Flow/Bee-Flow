@@ -21,6 +21,8 @@
     "strictNullChecks": false,
     "noImplicitAny": false,
     "resolveJsonModule": true,
+    // require('./x.mts'): Node strips the types of a .mts file on load (noEmit, so nothing is emitted).
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "maxNodeModuleJsDepth": 0,

@@ -22,12 +22,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Response
 
-from app.api_key_auth import APIKeyMiddleware
 from app.config import effective_api_key, settings
 from app.limits import BodySizeLimitMiddleware
 from app.models import HealthResponse
 from app.routers import classify
 from app.services.classifier import BACKEND, engine_fingerprint, get_classifier
+from app.shared.api_key_auth import APIKeyMiddleware
+from app.shared.startup import require_api_key
 
 logger = logging.getLogger("classify")
 
@@ -117,7 +118,10 @@ async def ready(response: Response) -> HealthResponse:
 
 
 def create_app(api_key: str | None = None) -> FastAPI:
-    """Build the app. ``api_key=None`` reads CLASSIFY_API_KEY / SERVICES_API_KEY."""
+    """Build the app. ``api_key=None`` reads CLASSIFY_API_KEY / SERVICES_API_KEY.
+
+    An empty key raises ApiKeyRequired unless an *_ALLOW_OPEN variable is 1.
+    """
     app = FastAPI(
         title="Classify Service",
         description="Zero-shot text classification (GLiClass, Apache-2.0) on CPU.",
@@ -126,6 +130,15 @@ def create_app(api_key: str | None = None) -> FastAPI:
     )
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
     key = effective_api_key(settings) if api_key is None else api_key
+    # Fail closed: no key refuses to start, unless CLASSIFY_ALLOW_OPEN=1 or
+    # SERVICES_ALLOW_OPEN=1 says the service may run open. No CORS: only the
+    # Bee Flow server calls this service, server to server.
+    key = require_api_key(
+        key,
+        service="classify-service",
+        key_vars="CLASSIFY_API_KEY or SERVICES_API_KEY",
+        allow_open_vars=("CLASSIFY_ALLOW_OPEN", "SERVICES_ALLOW_OPEN"),
+    )
     if key:
         # Added last, so it runs first: an unauthenticated body is never read.
         app.add_middleware(APIKeyMiddleware, api_key=key)

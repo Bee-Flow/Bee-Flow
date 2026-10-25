@@ -43,8 +43,8 @@ docker compose -f docker-compose.from-registry.yml --profile classify up -d clas
 ```
 
 Then point the server at it with `CLASSIFY_SERVICE_URL=http://classify-service:8300`
-(and `CLASSIFY_SERVICE_API_KEY` when a key is set). `./selfhost.sh` does this
-when the `classify` profile is on. The compose service runs with a read-only
+(and `CLASSIFY_SERVICE_API_KEY` when it differs from `SERVICES_API_KEY`). `./selfhost.sh` does this
+when the `classify` profile is on, and generates `SERVICES_API_KEY` when it is missing. The compose service runs with a read-only
 root filesystem and a tmpfs on `/tmp`, capped at `CLASSIFY_CPUS` (default 3, what the eval measured) and
 `CLASSIFY_MEM` (default 3g: peak 2.2 GB at the service's batch of 4, plus 30%;
 see `eval/MODEL-DECISIONS.md`).
@@ -135,7 +135,7 @@ All variables carry the `CLASSIFY_` prefix.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `CLASSIFY_API_KEY` | (empty) | Required `X-API-Key`. Falls back to `SERVICES_API_KEY`; with neither set the service is open (it binds to 127.0.0.1 and the compose network). |
+| `CLASSIFY_API_KEY` | (empty) | Required `X-API-Key`. Falls back to `SERVICES_API_KEY`; with neither set the service refuses to start, unless `CLASSIFY_ALLOW_OPEN=1` (or `SERVICES_ALLOW_OPEN=1`) says it may run open. No CORS: only the server calls it. |
 | `CLASSIFY_LABEL_MODE` | `joint` | `joint`: all labels in one pass per text. `independent`: one pass per label, so no label's score depends on the others, at labels-times the cost. |
 | `CLASSIFY_DEFAULT_THRESHOLD` | `0.75` | Reported to callers; the eval's dev best (`eval/MODEL-DECISIONS.md`). |
 | `CLASSIFY_MAX_CHARS` | `4000` | Characters kept per text before tokenizing (start, plus the last 1000). |
