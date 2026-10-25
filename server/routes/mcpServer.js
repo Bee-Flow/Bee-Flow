@@ -61,6 +61,8 @@ const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
 const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
+// The datatable row tools live in their own module; this file only lists and dispatches them.
+const datatableTools = require('./mcpDatatableTools');
 
 const router = express.Router();
 
@@ -202,9 +204,9 @@ function parseToolCall(params) {
 }
 
 /**
- * @param {any} [deps]  test seam: `{ toolsForUser }`. The real one needs
+ * @param {any} [deps]  test seam: `{ toolsForUser, datatableTools }`. The real one needs
  *                         Postgres, and this router's tests run without it.
- * @param {{ token?: { scopes?: any } }|null} [access]  what the access gate
+ * @param {{ token?: { id?: string|null, scopes?: any } }|null} [access]  what the access gate
  *                         resolved for this request. Its token's scopes narrow
  *                         tools/list and are re-checked on tools/call. Absent
  *                         (unit tests calling this directly) = no narrowing.
@@ -237,8 +239,9 @@ async function handleRpc(message, userId, deps = {}, access = null) {
                 .map(t => t.function)
                 .filter(Boolean)
                 .map(toMcpTool);
+            const all = [...listed, ...datatableTools.DATATABLE_TOOLS];
             return rpcResult(id, {
-                tools: scopes ? filterToolsByScope(scopes, 'integrations', listed) : listed,
+                tools: scopes ? filterToolsByScope(scopes, 'integrations', all) : all,
             });
         }
 
@@ -246,6 +249,23 @@ async function handleRpc(message, userId, deps = {}, access = null) {
             const toolCall = parseToolCall(params);
             if (toolCall.error) return rpcError(id, -32602, toolCall.error);
             const { name, args } = toolCall;
+
+            // Datatable rows: their own tools, the token's scope first, the table's
+            // access decision inside the tool at the moment of the write.
+            if (datatableTools.DATATABLE_TOOL_NAMES.has(name)) {
+                if (scopes && !scopeAllowsTool(scopes, 'integrations', name, { readOnly: !datatableTools.WRITE_TOOL_NAMES.has(name) })) {
+                    return rpcResult(id, {
+                        content: [{ type: 'text', text: `Tool "${name}" is not available to this token.` }],
+                        isError: true,
+                    });
+                }
+                const run = deps.datatableTools || datatableTools.makeDatatableTools();
+                const result = await run.call(name, args, { userId, tokenId: access?.token?.id || null });
+                return rpcResult(id, {
+                    content: [{ type: 'text', text: JSON.stringify(result ?? null) }],
+                    isError: !!(result && typeof result === 'object' && result.error),
+                });
+            }
 
             // Re-resolve on every call rather than trusting a cached list: a
             // long-lived MCP client would otherwise keep calling a tool after

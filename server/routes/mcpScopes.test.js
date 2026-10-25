@@ -87,11 +87,13 @@ test('integrations: tools are filtered by level and by the explicit list, and to
     const names = [readName, writeName];
     const rpc = (message, scopes) => mcp.handleRpc(message, 'u1', { toolsForUser: async () => ({ tools: names.map(fn), session: null }) }, access(scopes));
 
+    // The datatable row tools are listed next to the integration tools (their own tests: mcpDatatableTools.test.js).
+    const integrationOnly = (res) => res.result.tools.map((t) => t.name).filter((n) => !n.startsWith('datatables_'));
     const writeAll = await rpc({ id: 1, method: 'tools/list' }, { integrations: { level: 'write' } });
-    assert.deepEqual(writeAll.result.tools.map((t) => t.name).sort(), [...names].sort());
+    assert.deepEqual(integrationOnly(writeAll).sort(), [...names].sort());
 
     const readOnlyList = await rpc({ id: 1, method: 'tools/list' }, { integrations: { level: 'read' } });
-    assert.deepEqual(readOnlyList.result.tools.map((t) => t.name), [readName]);
+    assert.deepEqual(integrationOnly(readOnlyList), [readName]);
 
     const narrowed = await rpc({ id: 1, method: 'tools/list' }, { integrations: { level: 'write', tools: [writeName] } });
     assert.deepEqual(narrowed.result.tools.map((t) => t.name), [writeName]);
