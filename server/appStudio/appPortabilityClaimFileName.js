@@ -1,5 +1,7 @@
 // @typecheck strict
 
+const { isObject, deepClone, claimText } = require('./portabilityClaims');
+
 const APP_FORMAT = 'beeflow.app';
 
 const APP_SCHEMA_VERSION = 1;
@@ -41,33 +43,6 @@ const SHA256_RE = /^[0-9a-f]{64}$/;
 
 /** What the design half of an archive is allowed to carry. Nothing else does. */
 const TEMPLATE_FIELDS = ['definition', 'dataModel', 'datasets', 'seedPeople'];
-
-/**
- * @param {unknown} v
- * @returns {v is Record<string, unknown>}
- */
-function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-
-/**
- * @template T
- * @param {T} value
- * @returns {T}
- */
-function deepClone(value) {
-    if (value === null || typeof value !== 'object') return value;
-    try { return structuredClone(value); }
-    catch { return JSON.parse(JSON.stringify(value)); }
-}
-
-/**
- * @param {unknown} value
- * @param {number} max
- */
-function claimText(value, max) {
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    return trimmed ? trimmed.slice(0, max) : null;
-}
 
 /**
  * A file NAME, as a name and never as a path.

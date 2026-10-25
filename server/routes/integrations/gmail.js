@@ -33,8 +33,9 @@ const { extractTextBody, getGmailHeader: getHeader } = require('../../services/e
 // paths sanitise header values identically (no second copy to keep in sync).
 const { buildRawMessage } = require('../../integrations/gmailTools');
 const { validate } = require('../../core/http/validate');
-const { z, typeError } = require('../../utils/zod');
+const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { optionalText, draftFields, listSize } = require('./mailSchemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -63,23 +64,10 @@ const { worded } = require('../../core/http/schemaParts');
 // the rest. (Spam and Trash stay out either way: that needs the separate
 // `includeSpamTrash`, which this route never sets.)
 
-/**
- * @param {string} name
- * @param {string} what
- */
-const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
-/**
- * @param {string} name
- */
-const optionalText = (name) => worded(`${name} must be text.`).nullish();
-
 const MessagesQuery = z.object({
     query: worded('query must be text.').optional(),
     pageToken: worded('pageToken must be text.').optional(),
-    pageSize: z.coerce.number({ error: typeError({ invalid: 'pageSize must be a number.' }) })
-        .int('pageSize must be a whole number.')
-        .min(1, 'pageSize must be at least 1.')
-        .optional(),
+    pageSize: listSize('pageSize'),
     label: worded('label must be a Gmail label id.').min(1, 'label must be a Gmail label id.').optional(),
 }).strict();
 
@@ -89,11 +77,7 @@ const MessageParams = z.object({
 }).strict();
 
 const EmailBody = z.object({
-    to: required('to', 'who the message goes to'),
-    subject: required('subject', 'what the message is about'),
-    body: required('body', 'the message itself'),
-    cc: optionalText('cc'),
-    bcc: optionalText('bcc'),
+    ...draftFields,
     threadId: optionalText('threadId'),
     inReplyTo: optionalText('inReplyTo'),
     references: optionalText('references'),

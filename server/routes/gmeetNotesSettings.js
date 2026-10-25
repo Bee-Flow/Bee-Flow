@@ -22,6 +22,7 @@ const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
+const { bodyOf, LANGUAGE_TEXT, toggleFields, lookbackHoursField } = require('./meetingNotesSettingsSchema');
 const { fallback } = require('../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
@@ -49,32 +50,17 @@ const { fallback } = require('../utils/bestEffort');
 // rollback) and the server's own `updatedAt`/`updatedBy` stamp arrive too.
 // They are accepted; the stamp is ignored and rewritten on save.
 
-/**
- * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
- * @template {import('zod').ZodRawShape} T
- * @param {T} shape
- */
-const bodyOf = (shape) => z.preprocess(
-    (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
-);
-
-const onOff = (/** @type {string} */ name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
-    .nullable().optional();
-
-const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
 const legacyList = (/** @type {string} */ name) => z.array(
     worded(`${name} is a list of ids.`).min(1, `${name} is a list of ids.`),
     { error: typeError({ invalid: `${name} is a list of ids.` }) },
 ).optional();
 
 const SettingsBody = bodyOf({
-    autoImport: onOff('autoImport'),
-    autoRecordConfig: onOff('autoRecordConfig'),
+    ...toggleFields,
     importScope: choice(['organizer', 'calendar'], "importScope is 'organizer' or 'calendar', or null for no opinion.")
         .nullable().optional(),
     language: worded(LANGUAGE_TEXT).trim().min(1, LANGUAGE_TEXT).max(35, LANGUAGE_TEXT).nullable().optional(),
-    lookbackHours: z.number({ error: typeError({ invalid: 'lookbackHours is a number of hours.' }) }).nullable().optional(),
+    lookbackHours: lookbackHoursField,
     excludedEventIds: legacyList('excludedEventIds'),
     excludedMeetingCodes: legacyList('excludedMeetingCodes'),
     updatedAt: z.string().nullish(),
