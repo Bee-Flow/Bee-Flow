@@ -39,6 +39,7 @@ const MAX_IMAGE_EDGE_PX = 1920;
  * the bytes cannot be made presentable.
  */
 async function toPptxImage(dataUrl, { maxEdge = MAX_IMAGE_EDGE_PX, width = null } = {}) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- PPTX_IMAGE_RE / RASTER_IMAGE_RE are anchored literal prefixes with a fixed alternation: linear
     const s = String(dataUrl || '').replace(/\s+/g, '');
     if (PPTX_IMAGE_RE.test(s) && !width) return s;
     if (!RASTER_IMAGE_RE.test(s)) return null;

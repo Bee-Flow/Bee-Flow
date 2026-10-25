@@ -103,6 +103,7 @@ export function levelOfText(text) {
  * @param {Level} level
  */
 export function withLevel(text, level) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: MARKER_LINE is anchored literals plus one optional word, on header lines of our own sources: linear
     const lines = text.split('\n');
     for (let i = 0; i < Math.min(lines.length, HEADER_LINES); i++) {
         const m = MARKER_LINE.exec(lines[i]);

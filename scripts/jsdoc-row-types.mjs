@@ -70,6 +70,7 @@ function columnsRead(ts, fn, name) {
 
 export function planFile(project, file, tables) {
     const { ts } = project;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: MAPPER is anchored alternation of literals plus \w*, tested on function names: linear
     const sf = project.svc.service.getProgram().getSourceFile(file);
     const edits = [];
     const text = sf.text;

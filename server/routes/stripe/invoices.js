@@ -53,6 +53,7 @@ router.get('/invoices/:id/pdf', requireCloud, requireAuth, async (req, res, next
         const customerId = sub?.stripe_customer_id;
         if (!customerId) return res.status(404).json({ error: 'No billing account found' });
 
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- sends a PDF buffer with an explicit application/pdf Content-Type and nosniff, not HTML
         const pdf = await stripeService.getInvoicePdf(/** @type {string} */ (req.params.id), { customerId });
         if (!pdf) return res.status(404).json({ error: 'Invoice PDF not available' });
 

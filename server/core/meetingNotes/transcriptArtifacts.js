@@ -340,6 +340,7 @@ function sanitizeTimestamp(raw, { starts = [], lastEnd = 0 } = {}) {
         if (lastEnd > 0 && secNum > lastEnd + 1) return '';
         return formatTime(Math.round(secNum));
     }
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored digit patterns with bounded counts on one trimmed time stamp: linear
     const trimmed = String(raw || '').trim();
     const sec = parseClock(trimmed);
     if (sec === null) return '';

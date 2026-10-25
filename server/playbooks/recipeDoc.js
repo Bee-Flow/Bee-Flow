@@ -226,6 +226,7 @@ function columnsOf(t) {
  */
 function normaliseField(raw, i, used, copy) {
     // A string entry IS the column ("invoice_date", "Vendor Name").
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- KEY_RE is anchored, one class with a bounded {0,39}: linear
     const f = /** @type {RawField} */ (raw && typeof raw === 'object' ? raw : { name: String(raw ?? '') });
     const name = String(f.name || f.label || f.key || copy.columnFallback(i + 1)).trim().slice(0, MAX_LABEL);
     let key = typeof f.key === 'string' && KEY_RE.test(f.key.toLowerCase()) ? f.key.toLowerCase() : keyFromTitle(name, i, used);
@@ -355,6 +356,7 @@ function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
     /** @type {Set<string>} */
     const usedInputs = new Set();
     const inputs = (Array.isArray(d.inputs) ? d.inputs : []).slice(0, MAX_INPUTS).map((x, i) => {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- INPUT_KEY_RE is anchored, one class with a bounded {0,39}: linear
         const r = /** @type {RawInput} */ (x && typeof x === 'object' ? x : {});
         const label = String(r.label || r.key || copy.inputFallback(i + 1)).trim().slice(0, MAX_LABEL);
         let key = typeof r.key === 'string' && INPUT_KEY_RE.test(r.key) ? r.key : (slug(label) || `input_${i + 1}`);

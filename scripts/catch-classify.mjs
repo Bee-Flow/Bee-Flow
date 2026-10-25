@@ -221,8 +221,10 @@ function messageOf(ts, call) {
  */
 export function scanText(text, file) {
     // A generated bundle is rebuilt, not edited.
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: fixed literals over the first 400 characters of a source file: linear
     if (/GENERATED|do not edit/i.test(text.slice(0, 400)) && /^\s*\/[*/]/.test(text)) return [];
     const ts = loadTs();
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script over source files it reads itself; every pattern is a fixed literal or one anchored class: linear
     const sf = parse(text, file);
     const r = rel(file);
     const sites = [];
@@ -309,6 +311,7 @@ export function scanText(text, file) {
 
 /** Count for the `swallowed-error` ratchet: every site of kinds debug-only, empty and promise. */
 export function countSwallowed(text, file) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: word-boundary literals over a source file it reads itself: linear
     if (!/\blog\s*\.\s*debug\b|\bcatch\b/.test(text)) return 0;
     return scanText(text, file).length;
 }
@@ -543,6 +546,7 @@ const PAIR_CHECK = /(?:!!\s*)?\b([\w$]+)\s*(?:&&\s*)?\(?\s*\1\??\.code === '(42P
  */
 export function dedupeMissingTable(text, file) {
     const ts = loadTs();
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script: a fixed word-boundary literal over a source file it reads itself: linear
     if (/\bisMissingTable\b/.test(text)) return { text: null, applied: 0 };
     let out = text;
     let applied = 0;

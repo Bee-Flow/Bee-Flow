@@ -102,6 +102,7 @@ async function up() {
         }
         if (!backfillModelFieldIds(model).changed) continue;   // already healthy
 
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- a boot migration logging to the server log; nothing is sent to a client
         try {
             const next = await withTransaction(async (client) => {
                 // Re-read under the lock a schema save takes: a save landing
@@ -142,6 +143,7 @@ async function up() {
         const plan = reconcileDdl(model);
         if (!plan.length) continue;
         const key = datatableDbStore.scopeKey(scope);
+        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- a boot migration logging to the server log; nothing is sent to a client
         try {
             for (let i = 0; i < plan.length; i += MAX_STATEMENTS) {
                 await datatableDbStore.applyMigration(key, key, plan.slice(i, i + MAX_STATEMENTS));

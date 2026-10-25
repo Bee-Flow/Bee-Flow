@@ -13,6 +13,7 @@ const PRESETS = {
  */
 function designCss(design = {}) {
     const d = { ...PRESETS.neutral, ...PRESETS[design.preset], ...design };
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- /^#[\da-f]{6}$/ is anchored with a bounded count: linear
     const color = (/** @type {string} */ v, /** @type {string} */ fallback) => /^#[\da-f]{6}$/i.test(v) ? v : fallback;
     const num = (/** @type {unknown} */ v, /** @type {number} */ min, /** @type {number} */ max, /** @type {number} */ fallback) => Number.isFinite(Number(v)) ? Math.min(max, Math.max(min, Number(v))) : fallback;
     const font = d.font === 'serif' ? 'Georgia, serif' : d.font === 'mono' ? 'monospace' : 'Arial, sans-serif';

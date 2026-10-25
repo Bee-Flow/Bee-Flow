@@ -99,11 +99,14 @@ router.get('/:token/certificate.pdf', limiter, async (req, res) => {
 // serial, never progress. Tokens are inlined because this page carries no
 // app CSS; light and dark follow the visitor's colour scheme.
 router.get('/:token', limiter, async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the token matched a stored hash before use, and every value put into the page goes through esc()
     const record = await resolve(req.params.token);
     if (!record || !record.isPublic) return notFoundPage(res);
 
     const base = getPublicBaseUrl();
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the token matched a stored hash before use, and the URL goes through esc() where the page uses it
     const imgUrl = base ? `${base}/verify/${req.params.token}/image.png` : `/verify/${req.params.token}/image.png`;
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the token matched a stored hash before use, and the URL goes through esc() where the page uses it
     const pdfUrl = `/verify/${req.params.token}/certificate.pdf`;
     const courseTitles = (record.courses || []).map((/** @type {{ title: string }} */ c) => esc(c.title));
     const desc = `${esc(record.recipientName)} earned the ${esc(record.title)} certificate from Bee Flow.`;
