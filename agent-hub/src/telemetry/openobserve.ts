@@ -54,10 +54,16 @@ declare global {
 
 /** The slice of an RUM event the redaction hook reads and rewrites. */
 interface ScrubbableRumEvent {
+    type?: string;
     error?: { message?: string; stack?: string };
     view?: { url?: string };
     resource?: { url?: string };
+    action?: { target?: { name?: string }; [k: string]: unknown };
+    _o2?: { action?: { name_source?: string }; [k: string]: unknown };
 }
+
+/** What a click is called when nobody named it on purpose. */
+export const MASKED_ACTION_NAME = 'Masked Element';
 
 const env = import.meta.env;
 
@@ -178,13 +184,24 @@ function tracingUrls() {
 // They double as the consent kill switch: returning false discards the event
 // before batching, so a withdrawal on the public site stops every request even
 // though the SDK itself cannot be torn down once initialised.
-function scrubRumEvent(event: ScrubbableRumEvent) {
+/**
+ * A click the SDK names after the element's text (a conversation title, a
+ * contact's name) would carry personal data out. Only a name a developer set on
+ * purpose (data-dd-action-name) leaves the browser.
+ */
+function maskActionName(event: ScrubbableRumEvent) {
+    const target = event?.type === 'action' ? event.action?.target : undefined;
+    if (target && event._o2?.action?.name_source !== 'custom_attribute') target.name = MASKED_ACTION_NAME;
+}
+
+export function scrubRumEvent(event: ScrubbableRumEvent) {
     if (consentWithheld()) return false;
     try {
         if (event?.error?.message) event.error.message = redactSecrets(event.error.message);
         if (event?.error?.stack)   event.error.stack   = redactSecrets(event.error.stack);
         if (event?.view?.url)      event.view.url      = redactSecrets(event.view.url);
         if (event?.resource?.url)  event.resource.url  = redactSecrets(event.resource.url);
+        maskActionName(event);
     } catch (err) { logger.debug('never break telemetry', err); }
     return true;
 }
@@ -238,6 +255,7 @@ export async function initOpenObserve() {
             trackResources: true,
             trackLongTasks: true,
             trackUserInteractions: true,
+            enablePrivacyForActionName: true, // click names follow the mask level, not the element's text
             allowedTracingUrls: tracingUrls(),
             beforeSend: scrubRumEvent,
         });
