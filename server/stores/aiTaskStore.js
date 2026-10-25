@@ -87,6 +87,9 @@ function rowToTask(r) {
     };
 }
 
+/**
+ * @param {string} str
+ */
 function safeParseJSON(str, fallback = []) {
     if (Array.isArray(str)) return str;
     try { return JSON.parse(str); } catch (_) { return fallback; }
@@ -266,6 +269,9 @@ async function resumeNeedsReauthForUser(userId) {
 // in the days_of_week JSON array. Keep in sync with the frontend day picker.
 const DOW_TOKENS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+/**
+ * @param {string | number | Date} currentNextRun
+ */
 function advanceNextRun(currentNextRun, interval, daysOfWeek = null) {
     const d = new Date(currentNextRun);
     // Automation day-of-week mode: advance one day at a time until we hit a
@@ -297,6 +303,9 @@ function advanceNextRun(currentNextRun, interval, daysOfWeek = null) {
     return d.toISOString();
 }
 
+/**
+ * @param {string | number | Date} currentNextRun
+ */
 async function advanceSchedule(id, currentNextRun, interval, daysOfWeek = null) {
     const next = advanceNextRun(currentNextRun, interval, daysOfWeek);
     if (next) {

@@ -51,12 +51,15 @@ function loadSharp() {
     _sharpProbed = true;
     try { _sharp = require('sharp'); }
     catch (e) {
-        log.warn('[ImageDownscale] sharp unavailable — large images will reach the API unmodified:', e.message);
+        log.warn('[ImageDownscale] sharp unavailable — large images will reach the API unmodified:', /** @type {Error} */ (e).message);
         _sharp = null;
     }
     return _sharp;
 }
 
+/**
+ * @param {import('buffer').WithImplicitCoercion<string>} b64
+ */
 async function shrinkOne(b64, mediaType) {
     const sharp = loadSharp();
     if (!sharp) return null;
@@ -85,6 +88,7 @@ async function shrinkOne(b64, mediaType) {
         });
 
         const mt = (mediaType || '').toLowerCase();
+        /** @type {string} */
         let outMime;  // reassigned by the JPEG fallback below
         if (mt.includes('jpeg') || mt.includes('jpg')) {
             pipeline = pipeline.jpeg({ quality: 85 });
@@ -117,7 +121,7 @@ async function shrinkOne(b64, mediaType) {
                     .toBuffer();
                 outMime = 'image/jpeg';
             } catch (err) {
-                log.warn('[ImageDownscale] JPEG re-encode failed, keeping original encoding:', err.message);
+                log.warn('[ImageDownscale] JPEG re-encode failed, keeping original encoding:', /** @type {Error} */ (err).message);
             }
         }
 
@@ -129,7 +133,7 @@ async function shrinkOne(b64, mediaType) {
             newDims: { w: newW || w, h: newH || h },
         };
     } catch (err) {
-        log.warn('[ImageDownscale] failed to shrink image:', err.message);
+        log.warn('[ImageDownscale] failed to shrink image:', /** @type {Error} */ (err).message);
         return null;
     }
 }

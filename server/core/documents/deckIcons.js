@@ -24,6 +24,9 @@ const ALIASES = Object.freeze({
     play: 'circle-play', offline: 'wifi-off', online: 'wifi', 'cloud-off': 'cloud-off', storage: 'database', data: 'database',
 });
 
+/**
+ * @param {string} name
+ */
 function normaliseIconName(name) {
     const raw = String(name || '').trim().toLowerCase().replace(/[\s_]+/g, '-').replace(/^:|:$/g, '');
     if (!raw) return null;
@@ -42,6 +45,8 @@ function attrs(obj) {
 /**
  * The icon as an SVG element string, `size` px square, stroked in `colour`.
  * Lucide icons are stroke drawings: 2px on the 24-grid, round caps/joins.
+ * @param {string} [colour]
+ * @param {string} name
  */
 function iconSvg(name, colour = '#1A1D21', { size = 24, strokeWidth = 2 } = {}) {
     const key = normaliseIconName(name);
@@ -52,7 +57,12 @@ function iconSvg(name, colour = '#1A1D21', { size = 24, strokeWidth = 2 } = {}) 
 
 const pngCache = new Map();
 
-/** The icon as a PNG data: URL, `px` square — for pptxgenjs. Null without sharp or for an unknown name. */
+/**
+ * The icon as a PNG data: URL, `px` square — for pptxgenjs. Null without sharp or for an unknown name.
+ * @param {string} [colour]
+ * @param {number} [px]
+ * @param {string} name
+ */
 async function iconPng(name, colour = '#1A1D21', px = 192) {
     const key = normaliseIconName(name);
     if (!key) return null;

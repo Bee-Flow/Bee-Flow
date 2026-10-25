@@ -55,6 +55,7 @@ const keyOf = (c) => `${c.kind}\u0000${c.userId || ''}\u0000${c.agentId || ''}`;
  * @returns {Contributor[]}
  */
 function mergeContributors(...lists) {
+    /** @type {Contributor[]} */
     const out = [];
     const seen = new Set();
     for (const list of lists) {

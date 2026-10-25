@@ -37,11 +37,11 @@ async function notifyStaff({ title, message, threadId, category = 'heads_up' }) 
                     message,
                 });
             } catch (e) {
-                log.warn('[Support] notifyStaff createNotification error:', e.message);
+                log.warn('[Support] notifyStaff createNotification error:', /** @type {Error} */ (e).message);
             }
         }
     } catch (e) {
-        log.warn('[Support] notifyStaff lookup failed:', e.message);
+        log.warn('[Support] notifyStaff lookup failed:', /** @type {Error} */ (e).message);
     }
 }
 

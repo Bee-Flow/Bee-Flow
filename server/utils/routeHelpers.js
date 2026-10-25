@@ -81,7 +81,7 @@ async function getUserAuth(req) {
         orgIds = await resolveUserOrgIds(req, { strict: true });
     } catch (e) {
         orgUnknown = true;
-        log.warn('[routeHelpers] could not resolve the workspace:', e.message);
+        log.warn('[routeHelpers] could not resolve the workspace:', /** @type {Error} */ (e).message);
     }
     let userOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
     if (userOrgId === null && orgUnknown) userOrgId = req.session?.user?.organizationId || null;

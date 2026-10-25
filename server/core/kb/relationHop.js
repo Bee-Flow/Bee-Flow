@@ -127,6 +127,7 @@ function pickChunk(chunks, label) {
 /**
  * The rows this document's relation cells point at, as they are in the base.
  * @returns {Promise<Array<{column, table, title, tableName, chunkId, text}>>}
+ * @param {string[]} kbIds
  */
 async function forwardHop(client, kbIds, meta, limits) {
     const targets = forwardTargets(meta, limits.forwardPerAnchor);
@@ -170,6 +171,8 @@ async function forwardHop(client, kbIds, meta, limits) {
  * The rows pointing at this one: how many per table, and the few most
  * relevant to the question, ranked on the database.
  * @returns {Promise<{counts: Array<{tableName, n}>, rows: Array<{chunkId, title, tableName, text}>}>}
+ * @param {string[]} kbIds
+ * @param {{ vectorStr: string | null; query: string; }} q
  */
 async function reverseHop(client, kbIds, { table, rowId, title }, q, limits) {
     const needle = JSON.stringify({ relations: [{ table, rowId }] });
@@ -246,8 +249,11 @@ async function reverseHop(client, kbIds, { table, rowId, title }, q, limits) {
  * is already a passage of its own are counted but not repeated: the model
  * has them, and repeating them would make two passages read as one to the
  * near-duplicate filter downstream.
+ * @param {Set<string>} present
+ * @param {{ anchors: number; forward: number; reverse: number; }} stats
  */
 function applyToAnchor(anchor, fwd, rev, present, limits, stats) {
+    /** @type {string[]} */
     const parts = [];
     const linked = [];
 
@@ -260,6 +266,7 @@ function applyToAnchor(anchor, fwd, rev, present, limits, stats) {
     }
 
     const shownByTable = new Map();
+    /** @type {string[]} */
     const rowLines = [];
     for (const r of rev.rows) {
         stats.reverse += 1;
@@ -332,7 +339,7 @@ async function expandRelations(results, opts = /** @type {any} */ ({})) {
                 ]);
                 applyToAnchor(anchor, fwd, rev, present, limits, stats);
             } catch (e) {
-                log(`Relation hop skipped for a passage: ${e.message}`);
+                log(`Relation hop skipped for a passage: ${/** @type {Error} */ (e).message}`);
             }
         }));
     } finally {

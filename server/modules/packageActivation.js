@@ -31,6 +31,9 @@ const DEFAULT_TICK_MS = 60_000;
  * timeouts, worker-tick rejections, activation failures. CRASH_THRESHOLD
  * crashes inside CRASH_WINDOW_MS auto-disables the module DURABLY
  * (ledger status 'quarantined' — boot skips it) until an operator re-enables.
+ * @param {string} moduleId
+ * @param {string} source
+ * @param {Error} err
  */
 function _recordCrash(moduleId, source, err) {
     const h = _healthOf(moduleId);
@@ -46,6 +49,11 @@ function _recordCrash(moduleId, source, err) {
     }
 }
 
+/**
+ * @param {string} moduleId
+ * @param {string} version
+ * @param {string} reason
+ */
 async function _quarantine(moduleId, version, reason) {
     log.error(`[Modules] QUARANTINE ${moduleId}@${version}: ${reason}`);
     _logSystem(moduleId, `quarantined: ${reason}`);
@@ -57,6 +65,7 @@ async function _quarantine(moduleId, version, reason) {
 /**
  * Operator lever: re-verify + reactivate a quarantined module and reset its
  * crash counters.
+ * @param {string} moduleId
  */
 async function reactivateModule(moduleId, { actorId = null } = {}) {
     const rows = await packageStore().listForModule(moduleId);
@@ -73,6 +82,10 @@ async function reactivateModule(moduleId, { actorId = null } = {}) {
 }
 
 // ── Worker tick ───────────────────────────────────────────────────────────
+/**
+ * @param {string} moduleId
+ * @param {number} intervalMs
+ */
 function _startTick(moduleId, tickFn, intervalMs) {
     _stopTick(moduleId);
     let running = false;
@@ -84,7 +97,7 @@ function _startTick(moduleId, tickFn, intervalMs) {
         running = true;
         try { await tickFn(); }
         catch (e) {
-            log.error(`[module:${moduleId}] tick error:`, e.message);
+            log.error(`[module:${moduleId}] tick error:`, /** @type {Error} */ (e).message);
             _recordCrash(moduleId, 'tick', e);
         }
         finally { running = false; }
@@ -124,6 +137,9 @@ function _composeHandler(entry) {
         // Express catches sync handler throws internally and reports them via
         // next(err) — so crash accounting must hook the next callback, not
         // just the (rare) direct throw out of router().
+        /**
+         * @param {Error} err
+         */
         const crashAwareNext = (err) => {
             if (err) _recordCrash(entry.moduleId, 'router', err);
             return next(err);
@@ -143,6 +159,9 @@ function _composeHandler(entry) {
     };
 }
 
+/**
+ * @param {string} dir
+ */
 async function _readManifest(dir) {
     const raw = await fsp.readFile(path.join(dir, 'manifest.json'), 'utf8');
     return JSON.parse(raw);
@@ -232,7 +251,7 @@ async function activate(moduleId, version, {
         mod = require(entryAbs);
     } catch (e) {
         _remoteDescriptors.delete(moduleId); _pushDescriptors();
-        throw new Error(`module require failed: ${e.message}`);
+        throw new Error(`module require failed: ${/** @type {Error} */ (e).message}`);
     }
     if (!mod || typeof mod.createModule !== 'function') {
         _remoteDescriptors.delete(moduleId); _pushDescriptors();
@@ -244,7 +263,7 @@ async function activate(moduleId, version, {
         instance = await mod.createModule(hostApi);
     } catch (e) {
         _remoteDescriptors.delete(moduleId); _pushDescriptors();
-        throw new Error(`createModule failed: ${e.message}`);
+        throw new Error(`createModule failed: ${/** @type {Error} */ (e).message}`);
     }
     if (!instance || typeof instance.router !== 'function') {
         _remoteDescriptors.delete(moduleId); _pushDescriptors();
@@ -261,7 +280,7 @@ async function activate(moduleId, version, {
             _stopTick(moduleId);
             _dispatch.delete(moduleId);
             _remoteDescriptors.delete(moduleId); _pushDescriptors();
-            throw new Error(`initDBs failed: ${e.message}`);
+            throw new Error(`initDBs failed: ${/** @type {Error} */ (e).message}`);
         }
     }
     if (onPhase) onPhase('activating', 90);
@@ -332,6 +351,9 @@ async function activate(moduleId, version, {
     return { ok: true, moduleId, version };
 }
 
+/**
+ * @param {string} moduleId
+ */
 async function deactivate(moduleId, { actorId = null, persist = true } = {}) {
     _stopTick(moduleId);
     const entry = _dispatch.get(moduleId);
@@ -347,14 +369,14 @@ async function deactivate(moduleId, { actorId = null, persist = true } = {}) {
                 new Promise((_, rej) => { const t = setTimeout(() => rej(new Error('dispose_timeout')), 10_000); if (t.unref) t.unref(); }),
             ]);
         } catch (e) {
-            if (e && e.message === 'dispose_timeout') _healthOf(moduleId).disposeTimeouts++;
-            log.warn(`[Modules] dispose failed for ${moduleId}:`, e.message);
+            if (e && /** @type {Error} */ (e).message === 'dispose_timeout') _healthOf(moduleId).disposeTimeouts++;
+            log.warn(`[Modules] dispose failed for ${moduleId}:`, /** @type {Error} */ (e).message);
         }
     }
     _logSystem(moduleId, 'deactivated');
     _purgeRequireCache(moduleId);
     if (persist) {
-        try { await store().setRemoved(moduleId, { actorId }); } catch (e) { log.warn(`[Modules] deactivate persist failed for ${moduleId}:`, e.message); }
+        try { await store().setRemoved(moduleId, { actorId }); } catch (e) { log.warn(`[Modules] deactivate persist failed for ${moduleId}:`, /** @type {Error} */ (e).message); }
     }
     runtime().invalidateCache();
     await runtime().refreshModuleActivations();

@@ -29,6 +29,9 @@ const { listProjectAgents, countProjectAgents, setAgentProject, clearProjectFrom
  *   purpose: the positional list here is already thirteen long, and the last
  *   time one was appended (`categoryId`) a caller that stopped short silently
  *   wiped it (see updateAgent).
+ * @param {boolean} [threadsEnabled]
+ * @param {boolean} [copyEnabled]
+ * @param {boolean} [workspaceEnabled]
  */
 async function createAgent(name, description, systemPrompt, ownerId, model = null, starterPrompts = [], threadsEnabled = true, copyEnabled = true, workspaceEnabled = false, config = {}, organizationId = null, sharedGroups = [], categoryId = null, opts = {}) {
     await initDB();
@@ -45,7 +48,7 @@ async function createAgent(name, description, systemPrompt, ownerId, model = nul
             const versionStore = require('../versionStore');
             await versionStore.createVersion(id, 'agent', created, ownerId, 'Initial version');
         }
-    } catch (e) { log.error('[AgentCrud] Initial version snapshot failed:', e.message); }
+    } catch (e) { log.error('[AgentCrud] Initial version snapshot failed:', /** @type {Error} */ (e).message); }
     _notifySync(organizationId, id);
     return result;
 }
@@ -163,6 +166,11 @@ const AGENT_UPDATE_COLUMNS = Object.freeze({
  *   agent filed into a Solution stage, only sharing, `embed_enabled` and the
  *   category may change without it (409 managed_part otherwise).
  * @returns {Promise<{ok:true, rev:number}|{ok:false, conflict:true, currentRev:number}|{ok:false, notFound:true}>}
+ * @param {boolean} [threadsEnabled]
+ * @param {boolean} [copyEnabled]
+ * @param {boolean} [workspaceEnabled]
+ * @param {boolean} [embedEnabled]
+ * @param {string} id
  */
 async function updateAgent(id, name, description, systemPrompt, ownerId, model = null, starterPrompts = [], avatar = null, threadsEnabled = true, copyEnabled = true, workspaceEnabled = false, config = {}, embedEnabled = false, organizationId = undefined, sharedGroups = undefined, categoryId = undefined, opts = {}) {
     await initDB();
@@ -239,7 +247,7 @@ async function updateAgent(id, name, description, systemPrompt, ownerId, model =
             try {
                 const versionStore = require('../versionStore');
                 await versionStore.createVersion(id, 'agent', existing, ownerId);
-            } catch (e) { log.error('[AgentCrud] Version snapshot failed:', e.message); }
+            } catch (e) { log.error('[AgentCrud] Version snapshot failed:', /** @type {Error} */ (e).message); }
         }
         _notifySync(orgId, id);
         return { ok: true, rev: (Number(existing?.rev) || 1) + 1 };
@@ -320,7 +328,7 @@ async function managedPayloadOfAgent(agent) {
     try {
         return await require('../solutionStageStore').managedPayloadFor({ projectId: agent.project_id, kind: 'agent', entityId: agent.id });
     } catch (err) {
-        log.warn(`[AgentCrud] managed lookup for ${agent.id} failed: ${err.message}`);
+        log.warn(`[AgentCrud] managed lookup for ${agent.id} failed: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -338,6 +346,9 @@ async function assertAgentDeletable(id, { managedWrite = null } = {}) {
     }
 }
 
+/**
+ * @param {string} id
+ */
 async function deleteAgent(id, ownerId, opts = {}) {
     await initDB();
     await assertAgentDeletable(id, opts);
@@ -356,6 +367,7 @@ async function deleteAgent(id, ownerId, opts = {}) {
  * Best effort and probe-first: the table belongs to the automation store, which
  * may not have booted yet, and a failed sweep must never fail the delete (the
  * runtime ignores a binding whose agent is gone either way).
+ * @param {string} agentId
  */
 async function dropAutomationBindings(agentId) {
     try {
@@ -363,10 +375,13 @@ async function dropAutomationBindings(agentId) {
         if (!probe || !probe.t) return;
         await run('DELETE FROM automation_agent_bindings WHERE agent_id = $1', [agentId]);
     } catch (e) {
-        log.warn(`[AgentCrud] could not drop the automation bindings of deleted agent ${agentId}: ${e.message}`);
+        log.warn(`[AgentCrud] could not drop the automation bindings of deleted agent ${agentId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
+/**
+ * @param {string} id
+ */
 async function forceDeleteAgent(id, opts = {}) {
     await initDB();
     await assertAgentDeletable(id, opts);

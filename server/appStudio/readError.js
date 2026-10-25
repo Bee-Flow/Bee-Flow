@@ -35,7 +35,11 @@
 
 'use strict';
 
-/** Een weigering met status + boodschap die de router letterlijk doorgeeft. */
+/**
+ * Een weigering met status + boodschap die de router letterlijk doorgeeft.
+ * @param {number} status
+ * @param {string} message
+ */
 function readError(status, message) {
     const err = /** @type {Error & {status?: number, safe?: boolean}} */ (new Error(message));
     err.status = status;

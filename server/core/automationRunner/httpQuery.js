@@ -31,7 +31,10 @@ const QUERY_MODES = Object.freeze(['fields', 'json']);
 // A runaway binding (a 50 000 row list under one key) must not build a URL no server accepts.
 const MAX_PAIRS = 500;
 
-/** An Error the step card can explain (utils/stepErrorInfo.js reads `stepErrorCode` + `userReason`). */
+/**
+ * An Error the step card can explain (utils/stepErrorInfo.js reads `stepErrorCode` + `userReason`).
+ * @param {string} reason
+ */
 function queryError(reason) {
     const err = new Error(`http_request: the query parameters cannot be used: ${reason}`);
     err.stepErrorCode = 'http_query_invalid';
@@ -43,12 +46,16 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isEmpty = (v) => v === undefined || v === null || v === '';
 const isScalar = (v) => v === null || ['string', 'number', 'boolean', 'bigint'].includes(typeof v);
 
-/** Same escaping as `qs` and n8n: brackets in a key are encoded too (`a%5B0%5D`). */
+/**
+ * Same escaping as `qs` and n8n: brackets in a key are encoded too (`a%5B0%5D`).
+ * @param {string | number | boolean} s
+ */
 const enc = (s) => encodeURIComponent(s);
 
 /**
  * Flatten a value into [key, text] pairs. Null, undefined and '' are dropped;
  * empty arrays and objects contribute nothing.
+ * @param {string} prefix
  */
 function flatten(prefix, value, format, out) {
     if (isEmpty(value)) return;
@@ -80,7 +87,10 @@ function pairsOfObject(obj, format) {
     return out;
 }
 
-/** The text of a query pair list: `a%5B0%5D=1&b=2`. */
+/**
+ * The text of a query pair list: `a%5B0%5D=1&b=2`.
+ * @param {[string, string][]} pairs
+ */
 function encodePairs(pairs) {
     return pairs.map(([k, v]) => `${enc(k)}=${enc(v)}`).join('&');
 }
@@ -158,6 +168,7 @@ function rootKeyOf(rawKey) {
  * as written (never decoded and re-encoded, which is how a hand-encoded `%5B`
  * would turn into `%255B`), except for entries whose root key the step also
  * sets: the step wins.
+ * @param {[string, string][]} pairs
  */
 function applyQueryToUrl(url, pairs) {
     if (!pairs.length) return url;
@@ -200,9 +211,13 @@ function splitQueryFromUrl(url) {
     for (const part of noHash.slice(qAt + 1).split('&')) {
         if (!part) continue;
         const eq = part.indexOf('=');
+        /**
+         * @param {string} s
+         */
         const dec = (s) => { try { return decodeURIComponent(s.replace(/\+/g, ' ')); } catch { return s; } };
         const key = dec(eq >= 0 ? part.slice(0, eq) : part);
         const value = eq >= 0 ? dec(part.slice(eq + 1)) : '';
+        /** @type {string[]} */
         const path = [];
         const head = key.split('[')[0];
         path.push(head);
@@ -216,6 +231,10 @@ function splitQueryFromUrl(url) {
     return { url: base + fragment, query: { mode: 'json', json, arrayFormat: format } };
 }
 
+/**
+ * @param {string[]} path
+ * @param {string} value
+ */
 function assign(root, path, value) {
     let node = root;
     for (let i = 0; i < path.length; i++) {
@@ -281,10 +300,13 @@ function withStepQuery(baseUrl, query, runState) {
 
 // Parse the final URL, or fail with a message that names the URL setting
 // without echoing the URL itself (it may carry a token in its query).
+/**
+ * @param {string | URL} url
+ */
 function parseStepUrl(url) {
     try { return new URL(url); }
     catch (e) {
-        const err = new Error(`http_request: invalid URL: not a valid web address (${e.message}). Check the URL setting and any value inserted into it.`);
+        const err = new Error(`http_request: invalid URL: not a valid web address (${/** @type {Error} */ (e).message}). Check the URL setting and any value inserted into it.`);
         err.stepErrorCode = 'http_url_invalid';
         // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a sentence shown to the user, not a credential
         err.userReason = 'it is not a valid web address. Check the URL and any value inserted into it (a domain or path that came out empty is a common cause).';
@@ -298,20 +320,30 @@ function parseStepUrl(url) {
 // organisation-name detection turn "ondernemerskompas.inserve.nl" into
 // "[organization_1].inserve.nl", and every call then failed with a bare
 // "Invalid URL" that named neither the Shield nor the setting.
+/**
+ * @param {string | URL} url
+ */
 function splitUrl(url) {
+    /** @type {URL} */
     let u;
     try { u = new URL(url); } catch { return null; }
     const tail = u.pathname + u.search + u.hash;
     return { base: u.href.slice(0, u.href.length - tail.length), tail };
 }
 
-/** The part of a URL the Shield scans: path, query and fragment. */
+/**
+ * The part of a URL the Shield scans: path, query and fragment.
+ * @param {string} url
+ */
 function shieldPart(url) {
     const parts = splitUrl(url);
     return parts ? parts.tail : url;
 }
 
-/** Re-attach the scanned part to the untouched scheme, credentials and host. */
+/**
+ * Re-attach the scanned part to the untouched scheme, credentials and host.
+ * @param {string} url
+ */
 function joinShieldedUrl(url, guarded) {
     if (typeof guarded !== 'string') return url;
     const parts = splitUrl(url);

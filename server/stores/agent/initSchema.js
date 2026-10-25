@@ -7,6 +7,7 @@
 const base = require('./initSchema.base');
 const agents = require('./initSchema.agents');
 
+/** @type {Promise<void> | null} */
 let initPromise = null;
 
 const { AGENT_CATEGORY_NAME_INDEX_SQL } = agents;

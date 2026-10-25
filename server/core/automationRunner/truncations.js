@@ -16,9 +16,15 @@
 const SUMMARY_NAMED = 2;
 const MAX_RUN_TRUNCATIONS = 200;
 
-/** The unit the cap counts: batches for a batched loop, items otherwise. */
+/**
+ * The unit the cap counts: batches for a batched loop, items otherwise.
+ * @param {{ stepId: string; processed: number; total: number; unit: 'items' | 'batches'; implicit: boolean; }} t
+ */
 const unitOf = (t) => (t.unit === 'batches' ? 'batch' : 'item');
 
+/**
+ * @param {{ stepId: string; processed: number; total: number; unit: 'items' | 'batches'; implicit: boolean; }} t
+ */
 function describeTruncation(t) {
     const unit = unitOf(t);
     const plural = t.total === 1 ? unit : (unit === 'batch' ? 'batches' : 'items');

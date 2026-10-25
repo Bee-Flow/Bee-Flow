@@ -19,6 +19,11 @@ const { cleanProps } = require('./props');
 // ---------------------------------------------------------------------------
 
 // A boolean OR a {kind:'formula',expr}; anything else is invalid and reported.
+/**
+ * @param {string} path
+ * @param {string} code
+ * @param {(arg0: string, path: string, arg2: string) => void} push
+ */
 function cleanBoolOrFormula(raw, path, push, code) {
     if (typeof raw === 'boolean') return raw;
     if (isFormulaObj(raw)) return cleanFormula(raw, `${path}.expr`, push);
@@ -26,6 +31,10 @@ function cleanBoolOrFormula(raw, path, push, code) {
     return undefined;
 }
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, path: string, arg2: string) => void} push
+ */
 function cleanValidation(rule, path, push) {
     if (!isObject(rule)) {
         push('validation.invalid', path, 'Each validation must be an object { type, ... } — kept for the validator.');
@@ -41,11 +50,16 @@ function cleanValidation(rule, path, push) {
 }
 
 // Role KEY references (screen/node visibleToRoles) — an array of strings.
+/**
+ * @param {string} path
+ * @param {(arg0: string, path: string, arg2: string) => void} push
+ */
 function cleanRoleRefs(raw, path, push) {
     if (!Array.isArray(raw)) {
         push('roles.ref_invalid', path, 'visibleToRoles must be an array of role keys — dropped.');
         return undefined;
     }
+    /** @type {string[]} */
     const out = [];
     for (const r of raw) {
         if (typeof r === 'string' && r) out.push(r);
@@ -56,6 +70,10 @@ function cleanRoleRefs(raw, path, push) {
 
 // Attach the v2 optional logic fields to `out` (only when present in input, so
 // v1 nodes canonicalize to a byte-identical shape).
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function attachNodeLogic(out, node, path, push) {
     for (const flag of ['visibleWhen', 'enabledWhen', 'readOnly']) {
         if (node[flag] === undefined) continue;
@@ -97,6 +115,11 @@ function attachNodeLogic(out, node, path, push) {
 // yields [self, ...hoistedSiblings].
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function canonNode(node, path, depth, ids, push) {
     const id = ids.canonId(node.id, 'component', `${path}.id`);
     const spec = COMPONENT_SPECS[node.type];

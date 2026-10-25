@@ -1,3 +1,4 @@
+/** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
 // @typecheck
 /**
  * Conversation title encryption.
@@ -28,11 +29,19 @@ const { conversationKey } = require('./messageCrypto');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
 const log = require('../../telemetry/log');
 
-/** Bound to the conversation AND its table, so a title cannot be replayed across either. */
+/**
+ * Bound to the conversation AND its table, so a title cannot be replayed across either.
+ * @param {string} type
+ * @param {string} conversationId
+ */
 function titleAad(type, conversationId) {
     return `bftitle:v1:${type || 'agent'}:${conversationId}`;
 }
 
+/**
+ * @param {string} conversationId
+ * @param {CryptoContext} ctx
+ */
 function _key(ctx, conversationId) {
     const root = (ctx && (ctx.backgroundKey || ctx.key)) || null;
     return root ? conversationKey(root, conversationId) : null;
@@ -41,6 +50,10 @@ function _key(ctx, conversationId) {
 /**
  * Storable form of a title. Passes plaintext straight through when the policy
  * is off or no key resolved.
+ * @param {string} title
+ * @param {string} conversationId
+ * @param {string} type
+ * @param {CryptoContext} ctx
  */
 function sealTitle(title, conversationId, type, ctx) {
     if (title === null || title === undefined) return title;
@@ -59,6 +72,9 @@ function sealTitle(title, conversationId, type, ctx) {
  * not take down the other forty, and the caller substitutes a placeholder. The
  * loud-failure rule exists to stop a silent empty read from being written BACK
  * over good data — and nothing writes a title as a side effect of listing it.
+ * @param {string} conversationId
+ * @param {string} type
+ * @param {CryptoContext} ctx
  */
 function openTitle(stored, conversationId, type, ctx) {
     if (!isEnvelope(stored)) return stored;
@@ -68,7 +84,7 @@ function openTitle(stored, conversationId, type, ctx) {
             aad: titleAad(type, conversationId),
         });
     } catch (err) {
-        log.warn(`[ConversationTitle] could not open title for ${conversationId}: ${err.message}`);
+        log.warn(`[ConversationTitle] could not open title for ${conversationId}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -76,6 +92,8 @@ function openTitle(stored, conversationId, type, ctx) {
 /**
  * Decrypt the `title` on a set of rows in place-ish (returns new objects).
  * `id` is taken from each row, so this works for both conversation tables.
+ * @param {string} type
+ * @param {CryptoContext} ctx
  */
 function openTitles(rows, type, ctx) {
     if (!Array.isArray(rows) || !rows.length) return rows;

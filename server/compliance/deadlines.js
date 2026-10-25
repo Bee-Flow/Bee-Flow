@@ -106,16 +106,26 @@ function makeDeps(overrides = {}) {
     return d;
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const toMs = (v) => {
     if (v == null) return null;
     const t = new Date(v).getTime();
     return Number.isFinite(t) ? t : null;
 };
+/**
+ * @param {string | number | Date} ms
+ */
 const iso = (ms) => (ms == null ? null : new Date(ms).toISOString());
 
 /**
  * The clock arithmetic, pure: `{ state, pct }` for a due date.
  * state: 'overdue' (due < now) · 'urgent' (within the kind's window) · 'ok' · 'none' (no due date).
+ * @param {string} kind
+ * @param {number | null} dueMs
+ * @param {number | null} startedMs
+ * @param {number} nowMs
  */
 function clockState(kind, dueMs, startedMs, nowMs) {
     if (dueMs == null) return { state: 'none', pct: 0 };
@@ -129,6 +139,15 @@ function clockState(kind, dueMs, startedMs, nowMs) {
     return { state, pct: Math.round(pct * 1000) / 1000 };
 }
 
+/**
+ * @param {string} kind
+ * @param {string} id
+ * @param {string} ref
+ * @param {string} title
+ * @param {number | null} startedMs
+ * @param {number | null} dueMs
+ * @param {string} target
+ */
 function item(kind, id, ref, title, meta, startedMs, dueMs, target, nowMs) {
     const { state, pct } = clockState(kind, dueMs, startedMs, nowMs);
     return {
@@ -218,6 +237,10 @@ async function incidentItems(orgId, d, nowMs) {
         const target = complianceIncidentPath(r.id);
         if (isCra) {
             const severe = r.kind !== 'vulnerability';
+            /**
+             * @param {string} kind
+             * @param {string} stage
+             */
             const craMeta = (kind, stage) => (severe
                 ? { ...base, stage, article: CRA_SEVERE_INCIDENT_ARTICLE[kind] }
                 : { ...base, stage });
@@ -239,11 +262,11 @@ async function incidentItems(orgId, d, nowMs) {
         // The authority clock of the non-CRA regimes (GDPR 72 h, NIS2 24/72 h,
         // DORA customer notice), cited per regime. A CRA-only row has none:
         // its notification is the cra_notification item above.
-        const nonCra = regimes.filter(x => x !== 'CRA');
+        const nonCra = regimes.filter((/** @type {string} */ x) => x !== 'CRA');
         if (nonCra.length > 0 && !r.authority_notified_at) {
             const due = authorityDue(d, r, nonCra);
             if (due != null) {
-                const article = nonCra.map(x => REGIME_ARTICLE[x]).filter(Boolean).join(' · ') || ARTICLE.incident;
+                const article = nonCra.map((/** @type {string | number} */ x) => REGIME_ARTICLE[x]).filter(Boolean).join(' · ') || ARTICLE.incident;
                 out.push(item('incident', r.id, `INC-${r.id}`, title, { ...base, regimes: nonCra, article },
                     started, due, target, nowMs));
             }
@@ -252,6 +275,9 @@ async function incidentItems(orgId, d, nowMs) {
     return out;
 }
 
+/**
+ * @param {string} s
+ */
 function safeJson(s, fallback) {
     try { return JSON.parse(s); } catch { return fallback; }
 }
@@ -292,6 +318,7 @@ const SOURCES = Object.freeze([
     { kinds: ['attestation_expiry'], read: attestationItems },
 ]);
 
+/** @type {Record<string, number>} */
 const STATE_RANK = { overdue: 0, urgent: 1, ok: 2, none: 3 };
 
 /**
@@ -309,7 +336,7 @@ async function build(orgId, opts = {}) {
             items.push(...await src.read(orgId, d, nowMs));
         } catch (e) {
             complete = false;
-            log.warn(`[ComplianceDeadlines] ${src.kinds.join('/')} source failed:`, e?.message || e);
+            log.warn(`[ComplianceDeadlines] ${src.kinds.join('/')} source failed:`, /** @type {Error} */ (e)?.message || e);
         }
     }));
     items.sort((a, b) => {

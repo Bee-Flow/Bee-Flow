@@ -51,6 +51,9 @@ const n = (row) => (row && row.n != null && Number.isFinite(Number(row.n)) ? Num
 
 // ── Per-org "affects" counts (each null on failure — never a fake 0) ──────
 
+/**
+ * @param {string} orgId
+ */
 async function countGeneratingAutomations(orgId, d) {
     const signals = d.signals;
     if (!signals || typeof signals.listGeneratingAutomations !== 'function') return null;
@@ -60,6 +63,9 @@ async function countGeneratingAutomations(orgId, d) {
     } catch { return null; }
 }
 
+/**
+ * @param {string} orgId
+ */
 async function countPublishedAgents(orgId, d) {
     try {
         return n(await d.db.getOne(
@@ -68,6 +74,9 @@ async function countPublishedAgents(orgId, d) {
     } catch { return null; }
 }
 
+/**
+ * @param {string} orgId
+ */
 async function countPublishedWebpages(orgId, d) {
     try {
         return n(await d.db.getOne(
@@ -78,6 +87,9 @@ async function countPublishedWebpages(orgId, d) {
 
 // Live public forms: form pages of the org's active, non-draft automations
 // (same org join as stores/automationStore/forms.js listFormPagesForUser).
+/**
+ * @param {string} orgId
+ */
 async function countPublicForms(orgId, d) {
     try {
         return n(await d.db.getOne(
@@ -96,11 +108,17 @@ async function countPublicForms(orgId, d) {
  * The per-org "affects" counts for one affects_kind, uncached — the frameworks
  * page reuses it for the candidate cards ("Affects you: 3 automations · 4 agents").
  * @returns {Promise<{automations, agents, webpages, forms}|null>}
+ * @param {string} kind
+ * @param {string} orgId
  */
 async function affectsCounts(kind, orgId, opts = {}) {
     return affectsFor(kind, orgId, makeDeps(opts.deps || {}), {});
 }
 
+/**
+ * @param {string} kind
+ * @param {string} orgId
+ */
 async function affectsFor(kind, orgId, d, cache) {
     if (kind === 'marking') {
         if (!cache.marking) {
@@ -121,6 +139,9 @@ async function affectsFor(kind, orgId, d, cache) {
 
 // ── Relevance ─────────────────────────────────────────────────────────────
 
+/**
+ * @param {string} frameworkId
+ */
 function relevanceOf(policyById, frameworkId) {
     const p = policyById.get(frameworkId);
     if (!p) return false;

@@ -93,7 +93,10 @@ async function finalizeStreamTurn(turn) {
     };
 }
 
-/** The assistant message with its persisted metadata, before tokenisation info. */
+/**
+ * The assistant message with its persisted metadata, before tokenisation info.
+ * @param {string} fullResponse
+ */
 function buildAssistantMessage(turn, fullResponse) {
     const {
         messageMetadata, conversation, _emailDrafts, _calendarDrafts, _linkedInDrafts, _mapEmbeds,
@@ -186,7 +189,7 @@ async function scheduleMemoryExtraction(turn) {
                 try { onEvent('memory_extraction_failed', { error: err.message }); } catch (err) { bestEffort('core/agentRuntime/finalizeTurn:scheduleMemoryExtraction', err); /* ignore */ }
             });
     } catch (memErr) {
-        log.error('[AgentRuntime] Memory extractor load failed:', memErr.message);
+        log.error('[AgentRuntime] Memory extractor load failed:', /** @type {Error} */ (memErr).message);
     }
 }
 
@@ -234,7 +237,7 @@ function scheduleRedactionRewrite(turn) {
             await _serializeConversationWrite(conversation.id, () => agentStore.updateConversation(conversation.id, updatedMessages, userAuth.encryptionKey, userAuth.userId));
             log.info(`[RegexGuard] Server-side persistence completed for conversation ${conversation.id}`);
         } catch (redactErr) {
-            log.error('[RegexGuard] Server-side persistence failed:', redactErr.message);
+            log.error('[RegexGuard] Server-side persistence failed:', /** @type {Error} */ (redactErr).message);
         }
     });
 }

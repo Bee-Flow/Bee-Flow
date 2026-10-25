@@ -29,6 +29,10 @@ const MAX_TEXTS_PER_STEP = Number(process.env.AUTOMATION_TOPIC_MAX_TEXTS) || 500
 /** Distinct texts one run may classify, across every step and loop pass. */
 const MAX_TEXTS_PER_RUN = Number(process.env.AUTOMATION_TOPIC_MAX_TEXTS_PER_RUN) || 5_000;
 
+/**
+ * @param {string} errorClass
+ * @param {string} message
+ */
 function topicError(errorClass, message) {
     const err = new Error(message);
     err.errorClass = errorClass;

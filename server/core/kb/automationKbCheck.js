@@ -71,6 +71,9 @@ function walkSteps(steps, fn) {
  */
 function collectKbSteps(definition) {
     const found = [];
+    /**
+     * @param {string | null} layerKey
+     */
     const take = (layerKey) => (step) => {
         const path = layerKey ? `layers.${layerKey}.steps.${step.id || ''}` : `steps.${step.id || ''}`;
 

@@ -16,6 +16,9 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 
 // The caller's access to the automation behind a RUN, or null after a 403
 // (see runGuard in automation/access.js for the 'read' / 'act' / 'edit' rules).
+/**
+ * @param {string} need
+ */
 const runAccess = (req, res, run, need) => automationAccess.runGuard(req, res, run, need);
 
 // Per-user throttle for the run-spawning endpoints (retry re-executes a run;
@@ -276,6 +279,7 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
     const runner = require('../../core/automationRunner');
     const RESPONSE_TIMEOUT_MS = 60_000;
     let timedOut = false;
+    /** @type {NodeJS.Timeout} */
     let guardTimer;
     let newRunId = null;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, RESPONSE_TIMEOUT_MS); });
@@ -328,6 +332,7 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
  * leg of its journey. For a run that was never paused this is the run itself.
  * Falls back to the addressed row if the chain lookup fails, so an action never
  * breaks on a bookkeeping problem.
+ * @param {string} runId
  */
 async function resolveActionableRun(runId) {
     const addressed = await automationStore.getRun(runId);
@@ -660,7 +665,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
             const live = require('../../core/automationRunner/definitionForRun').automationForRun(a, { mode: 'live', triggerKind: 'manual' });
             await runner.executeAutomation({ ...live, needsFirstRunConfirm: false }, { triggerKind: 'manual', mode: 'live', confirmFirstRun: true, startedByUserId: userId });
         }
-        catch (e) { log.error('[automation/runs/approve] error:', e.message); }
+        catch (e) { log.error('[automation/runs/approve] error:', /** @type {Error} */ (e).message); }
     });
     res.json({ accepted: true, decision: 'approve' });
 });

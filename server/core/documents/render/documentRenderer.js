@@ -50,6 +50,9 @@ const CONTENT_FORMATS = Object.freeze(['markdown', 'html']);
 // only — see renderDocument). Unknown values fall back to 'document'.
 const LAYOUTS = Object.freeze(['document', 'slides']);
 
+/**
+ * @param {string} bodyHtml
+ */
 function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking = null, extraCss = '' } = {}) {
     const stamp = date || new Date().toISOString().slice(0, 10);
     const heading = title
@@ -115,11 +118,16 @@ function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking 
  */
 
 /**
+ * @typedef {Object} DocxOptionsArgs
+ * @property {string} [title]
+ */
+/**
  * html-to-docx writes the core properties it is given (title, subject,
  * creator, keywords, description); custom properties such as a bespoke
  * AIGenerated field are not supported by the library, so the marking rides in
  * keywords + description. Documented limitation. The visible line is the
  * trailing `<p class="ai-mark">` buildPrintHtml already put in the HTML.
+ * @param {DocxOptionsArgs} [param0]
  */
 function docxOptions({ title = '', marking = null, style = null } = {}) {
     const opts = {
@@ -140,6 +148,9 @@ function docxOptions({ title = '', marking = null, style = null } = {}) {
     return opts;
 }
 
+/**
+ * @param {string} html
+ */
 async function renderDocx(html, { title = '', marking = null, style = null } = {}) {
     let HTMLtoDOCX = require('@turbodocx/html-to-docx');
     if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
@@ -221,7 +232,7 @@ async function renderDocument({
         // Only the BROWSER being unavailable earns the fallback. A malformed
         // document is a real error and must not be quietly downgraded into a
         // plain-looking PDF nobody knows is wrong.
-        log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${e.message}`);
+        log.warn(`[documentRenderer] browser PDF unavailable, falling back to pdfkit: ${/** @type {Error} */ (e).message}`);
         const buffer = await renderPdfViaPdfkit(cFmt === 'html' ? htmlToPlainish(text) : text, { title, marking: mark });
         return {
             buffer, contentType: CONTENT_TYPES.pdf, format: 'pdf', extension: 'pdf', degraded: true,

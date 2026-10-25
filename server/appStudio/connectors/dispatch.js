@@ -128,6 +128,7 @@ const MISSING_CONNECTION_RE = /not connected|must log in|not configured|no (?:va
  *
  * `code` stays `connection_required` either way so existing clients keep working;
  * `reason` distinguishes them for a caller that wants to.
+ * @param {string} message
  */
 async function connectionError(connector, message, { userId, deps } = {}) {
     const provider = (typeof connector?.integrationId === 'string' && connector.integrationId) ? connector.integrationId : null;
@@ -181,7 +182,7 @@ async function dispatchTool(tool, args, exec, deps, app, connector) {
         });
     } catch (err) {
         if (Number.isInteger(err?.status)) throw err;          // already classified
-        const message = String(err?.message || err);
+        const message = String(/** @type {Error} */ (err)?.message || err);
         if (MISSING_CONNECTION_RE.test(message)) throw await connectionError(connector, message, { userId: exec.userId, deps });
         throw connectorError(502, message.slice(0, 300), 'connector_failed');
     }

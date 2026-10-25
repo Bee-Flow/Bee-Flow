@@ -40,6 +40,7 @@ const SAMPLE_RATE = 16000;
 const CHANNELS = 1;
 
 /** Output containers we know how to emit, mapped to their ffmpeg codec. */
+/** @type {Record<string, { codec: string; format: string; }>} */
 const FORMATS = {
     // Lossless, universally accepted. What the Azure SDK requires.
     wav: { codec: 'pcm_s16le', format: 'wav' },
@@ -69,7 +70,11 @@ function conditionArgs(inputPath, outPath, { codec, container, maxSeconds }) {
     });
 }
 
-/** ffmpeg arguments for `asM4aIfAdts`: copy the AAC stream into MPEG-4. */
+/**
+ * ffmpeg arguments for `asM4aIfAdts`: copy the AAC stream into MPEG-4.
+ * @param {string} inputPath
+ * @param {string} outPath
+ */
 function repackArgs(inputPath, outPath) {
     return buildAudioArgs({
         input: inputPath,
@@ -108,7 +113,7 @@ async function preprocessForStt(inputPath, opts = {}) {
     try {
         getFfmpegPath();
     } catch (err) {
-        log.warn(`[AudioPreprocess] ffmpeg unavailable, sending original audio: ${err.message}`);
+        log.warn(`[AudioPreprocess] ffmpeg unavailable, sending original audio: ${/** @type {Error} */ (err).message}`);
         return noop;
     }
 
@@ -128,7 +133,7 @@ async function preprocessForStt(inputPath, opts = {}) {
     } catch (err) {
         // Corrupt input, unsupported codec, ffmpeg missing a library — none of
         // these should cost the user their transcription.
-        log.warn(`[AudioPreprocess] Conditioning failed, sending original audio: ${err.message}`);
+        log.warn(`[AudioPreprocess] Conditioning failed, sending original audio: ${/** @type {Error} */ (err).message}`);
         try { fs.unlinkSync(outPath); } catch (_) { log.debug('converted temp file already gone', _); }
         return noop;
     }
@@ -148,10 +153,16 @@ async function preprocessForStt(inputPath, opts = {}) {
     };
 }
 
+/**
+ * @param {string} p
+ */
 function statSizeOrNull(p) {
     try { return fs.statSync(p).size; } catch (_) { return null; }
 }
 
+/**
+ * @param {number} bytes
+ */
 function mb(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
@@ -181,7 +192,7 @@ async function asM4aIfAdts(inputPath, fileName) {
     try {
         getFfmpegPath();
     } catch (err) {
-        log.warn(`[AudioPreprocess] ffmpeg unavailable, sending the .aac as is: ${err.message}`);
+        log.warn(`[AudioPreprocess] ffmpeg unavailable, sending the .aac as is: ${/** @type {Error} */ (err).message}`);
         return same;
     }
 
@@ -189,7 +200,7 @@ async function asM4aIfAdts(inputPath, fileName) {
     try {
         await runFfmpeg(repackArgs(inputPath, outPath));
     } catch (err) {
-        log.warn(`[AudioPreprocess] Repacking .aac failed, sending it as is: ${err.message}`);
+        log.warn(`[AudioPreprocess] Repacking .aac failed, sending it as is: ${/** @type {Error} */ (err).message}`);
         try { fs.unlinkSync(outPath); } catch (_) { log.debug('repacked temp file already gone', _); }
         return same;
     }

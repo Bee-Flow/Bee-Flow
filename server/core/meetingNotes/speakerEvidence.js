@@ -52,7 +52,7 @@ async function extractSpeakerEvidence(segments, rendered, detectPii) {
     } catch (err) {
         // detectPii already swallows guard errors; belt and braces, because a
         // naming aid must never take a transcription down with it.
-        log.warn('[SpeakerEvidence] person detection threw, continuing without it:', err.message);
+        log.warn('[SpeakerEvidence] person detection threw, continuing without it:', /** @type {Error} */ (err).message);
         return null;
     }
 
@@ -109,7 +109,10 @@ async function extractSpeakerEvidence(segments, rendered, detectPii) {
     };
 }
 
-/** Index of the segment whose char range contains `offset`, or -1. */
+/**
+ * Index of the segment whose char range contains `offset`, or -1.
+ * @param {{ start: number; end: number; bodyStart?: number; }[]} offsets
+ */
 function segmentAt(offsets, offset) {
     let lo = 0, hi = offsets.length - 1;
     while (lo <= hi) {

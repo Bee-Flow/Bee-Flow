@@ -119,7 +119,10 @@ function rerunAiOnFollowUp(thread) {
         .catch(e => log.warn(`[Support] follow-up AI failed (thread=${_shortId(thread.id)}):`, e.message));
 }
 
-/** A requester reply: flip to awaiting_agent, tell staff, and give the AI one more shot if it still owns the thread. */
+/**
+ * A requester reply: flip to awaiting_agent, tell staff, and give the AI one more shot if it still owns the thread.
+ * @param {SupportThread} thread
+ */
 async function afterRequesterReply(thread, body) {
     await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
     if (thread.assignee_user_id) {
@@ -147,6 +150,7 @@ async function afterRequesterReply(thread, body) {
 /**
  * POST /threads/:id/messages, past the access check in threads.js: append
  * the reply of `userId` (`staff` or the requester) and what follows it.
+ * @param {SupportThread} thread
  */
 async function appendReply(req, res, thread, { userId, staff }) {
     const body = req.body.body;
@@ -201,7 +205,7 @@ async function threadPatch(thread, { status, priority, assignee_user_id, categor
             patch.sla_first_response_due_at = due.first;
             patch.sla_resolution_due_at = due.resolution;
         } catch (e) {
-            log.warn('[Support] SLA recompute on priority change failed:', e.message);
+            log.warn('[Support] SLA recompute on priority change failed:', /** @type {Error} */ (e).message);
         }
     }
     return patch;
@@ -209,6 +213,9 @@ async function threadPatch(thread, { status, priority, assignee_user_id, categor
 
 /** Audit each field the patch actually changed (best-effort). */
 function auditPatch(thread, patch, userId) {
+    /**
+     * @param {string} action
+     */
     const event = (action, payload) => supportStore.recordThreadEvent({
         threadId: thread.id, actorUserId: userId, actorKind: 'staff', action, payload,
     }).catch((e) => fallback('routes/support/threadHandlers:event', e));
@@ -281,8 +288,14 @@ async function threadEvents(req, res) {
     res.json({ events });
 }
 
-/** One bulk action on one thread; returns an error text when the action misses a parameter. */
+/**
+ * One bulk action on one thread; returns an error text when the action misses a parameter.
+ * @param {string} id
+ */
 async function bulkOne(id, thread, action, params, userId) {
+    /**
+     * @param {string} kind
+     */
     const event = (kind, payload) => supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: kind, payload }).catch((e) => fallback('routes/support/threadHandlers:event#2', e));
     if (action === 'tag') {
         const tag = params.tag || '';
@@ -325,7 +338,7 @@ async function bulk(req, res) {
             _emit('thread_updated', { threadId: id });
             results.push({ id, ok: true });
         } catch (e) {
-            results.push({ id, ok: false, error: e.message });
+            results.push({ id, ok: false, error: /** @type {Error} */ (e).message });
         }
     }
     res.json({ ok: true, results });

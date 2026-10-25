@@ -19,7 +19,7 @@ async function listInvoices(stripeCustomerId, { limit = 24 } = {}) {
     const stripe = await getClient();
     const res = await stripe.invoices.list({ customer: stripeCustomerId, limit });
     return (res?.data || [])
-        .filter(inv => inv.status && inv.status !== 'draft')
+        .filter((/** @type {{ status: string; }} */ inv) => inv.status && inv.status !== 'draft')
         .map(inv => ({
             id: inv.id,
             number: inv.number || null,
@@ -93,6 +93,7 @@ async function createPromoCode(options) {
     const stripe = await getClient();
 
     // 1. Create the Coupon (defines the discount)
+    /** @type {{ duration: string; name: string; metadata: { beeflow_promo: string; }; percent_off?: number; amount_off?: number; currency?: string; duration_in_months?: number }} */
     const couponParams = {
         duration: options.duration || 'once',
         name: options.name || `Promo: ${options.code}`,

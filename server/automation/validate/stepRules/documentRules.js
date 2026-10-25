@@ -19,6 +19,9 @@ const {
     SLIDE_CHART_TYPES, SLIDE_STYLES, SLIDE_MAX_STATS,
 } = require('../constants');
 
+/**
+ * @param {string} at
+ */
 function checkGenerateDocument(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'generate_document') {
@@ -43,6 +46,9 @@ function checkGenerateDocument(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkFillDocument(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'fill_document') {
@@ -72,6 +78,9 @@ function checkFillDocument(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkSlide(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'slide') {
@@ -113,6 +122,9 @@ function checkSlide(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkPresentation(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'presentation') {

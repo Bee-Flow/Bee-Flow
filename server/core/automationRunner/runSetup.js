@@ -212,6 +212,7 @@ async function resolveRunIdentity(deps, automation) {
     // fails today as `datatable_forbidden` — an authorisation refusal for what
     // is really a lookup outage, with nothing anywhere saying so. execDatatable
     // reads this and fails with `datatable_identity_unavailable` instead.
+    /** @type {string | null} */
     let runIdentityError = null;
     try {
         const { resolveUserGroups } = loadAudience();
@@ -220,7 +221,7 @@ async function resolveRunIdentity(deps, automation) {
         const owner = await userStore.getUser(automation.userId);
         runUserOrgRole = owner?.orgRole || null;
         runUserHomeOrgId = owner?.organizationId || null;
-    } catch (e) { runIdentityError = e?.message || 'identity lookup failed'; }
+    } catch (e) { runIdentityError = /** @type {Error} */ (e)?.message || 'identity lookup failed'; }
     return { runUserGroupIds, runUserOrgRole, runUserHomeOrgId, runIdentityError };
 }
 

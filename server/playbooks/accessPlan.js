@@ -257,6 +257,7 @@ function resolveNames(raw, { roles = [], groups = [], people = [], digest = null
         if (!ROLE_KEY_RE.test(key) || existing.has(key) || BUILTIN_ROLES.includes(key)) continue;
         if (newRoles.some((x) => x.key === key)) continue;
         const scope = r && r.scope && typeof r.scope === 'object' ? r.scope : null;
+        /** @type {string | null} */
         let rule = null;
         if (scope) {
             const column = str(scope.column, 63);
@@ -308,6 +309,7 @@ function resolveNames(raw, { roles = [], groups = [], people = [], digest = null
     }
 
     const rawAudience = d.audience && typeof d.audience === 'object' ? d.audience : { kind: 'unchanged' };
+    /** @type {{ kind: string; groupIds: string[]; groupNames: string[]; } | { kind: string | undefined; } | null} */
     let audience = null;
     if (['private', 'organisation', 'groups'].includes(rawAudience.kind)) {
         if (rawAudience.kind === 'groups') {
@@ -358,6 +360,7 @@ function defaultDeps() {
 async function planAccess({ message, appName = 'App', roles = [], groups = [], people = [], digest = null, tableId = null, validateRule = null, locale = 'en', userId = null, userOrgId = null, tier = 'fast' }, deps = defaultDeps()) {
     const said = typeof message === 'string' ? message.trim() : '';
     if (!said) return { ok: false, code: 'message_required', error: 'Say who should use this app.' };
+    /** @type {string | null} */
     let modelId;
     // Neither the config store's words nor the provider's reach the person:
     // a fixed sentence and an id, the error in the log (./modelFailure.js).

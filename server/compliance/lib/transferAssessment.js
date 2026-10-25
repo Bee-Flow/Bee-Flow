@@ -62,7 +62,9 @@ function assessTransfers(transfers, sccConfirmed) {
     const unlocatedPct = totalCalls > 0 ? Math.round((1000 * unlocatedCalls) / totalCalls) / 10 : 0;
     const tooManyUnlocated = totalCalls > 0 && unlocatedCalls / totalCalls > UNLOCATED_WARN_RATIO;
 
+    /** @type {string} */
     let status;
+    /** @type {string} */
     let details;
     if (nonEuUnconfirmed.length > 0) {
         status = 'fail';

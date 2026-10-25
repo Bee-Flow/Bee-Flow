@@ -52,6 +52,7 @@ const executePartial = (automation, opts, ctx) => runSeeded(executeAutomation, a
  * Locate a step that lives inside a flowlet/layer (definition.layers[*])
  * rather than the root graph. Returns { layerKey, layer } when `stepId` is
  * one of the layer's own steps (or its layer_input trigger), else null.
+ * @param {string} stepId
  */
 function findStepInLayers(def, stepId) {
     const layers = def?.layers || {};
@@ -77,6 +78,7 @@ function findStepInLayers(def, stepId) {
  * Returns `{ chain, prefix, localId, body }` — `chain` is the loop steps from
  * OUTERMOST to innermost, which is the order their item variables have to be
  * resolved in (an inner loop's source may be a field of the outer item).
+ * @param {string} stepId
  */
 function findStepInLoopBody(def, stepId) {
     const parts = String(stepId || '').split('/').filter(Boolean);
@@ -257,6 +259,7 @@ async function runPartialInLoopBody(automation, { chain, prefix, localId, body }
  * The synthetic definition keeps the full `layers` map (so nested call_layer
  * still resolves) and document-level `vars`. Recorded step ids are the layer's
  * own bare ids, so the inspector finds the target step record by its id.
+ * @param {string} stepId
  */
 async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, recordPrefix = '', startedByUserId = null, seed = seedOptions() } = {}) {
     const def = automation.definition || {};
@@ -446,6 +449,7 @@ async function runPartialInLayer(automation, { layerKey, layer }, stepId, { mode
  * the first ADDITIONAL trigger that does. A step only wired from a secondary
  * trigger used to be seeded from the primary, whose walk never reached it, so
  * "Run up to here" on it executed nothing.
+ * @param {string} stepId
  */
 function rootReaching(def, stepId) {
     const edges = Array.isArray(def.edges) ? def.edges : [];
@@ -474,6 +478,7 @@ function rootReaching(def, stepId) {
  * directly and builds synthetics from it; throws managed_part_not_deployed
  * (409) when there is no live copy. The result carries `runsLiveVersion`, so
  * executeAutomation keeps the synthetic definitions built from it.
+ * @param {string} triggerKind
  */
 async function forPartialRun(automation, triggerKind) {
     if (!await isManagedAutomation(automation)) return automation;
@@ -488,6 +493,9 @@ async function forPartialRun(automation, triggerKind) {
 // caller's yes to executing steps that send or write; `planOnly` returns
 // `{ rerunPlan }` and executes nothing. The result of an executed seeded run
 // carries `rerunPlan` too.
+/**
+ * @param {string} stepId
+ */
 async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'manual', triggerPayload = null, rootStepId = null, startedByUserId = null, seedRunId = null, allowLiveUpstream = false, confirmSideEffects = false, planOnly = false } = {}) {
     if (!stepId) throw new Error('runPartial: stepId is required');
     const seed = seedOptions({ seedRunId, allowLiveUpstream, confirmSideEffects, planOnly }, mode);
@@ -616,6 +624,7 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
  * What re-running `stepId` from the chosen run would do, without running it: the
  * same seeding and the same plan runPartial enforces. Throws the same 404 / 409
  * for a seed run that is not usable; never the confirm refusals (it reports them).
+ * @param {string} stepId
  */
 async function planPartialRun(automation, stepId, opts = {}) {
     const planned = await runPartial(automation, stepId, { ...opts, planOnly: true });

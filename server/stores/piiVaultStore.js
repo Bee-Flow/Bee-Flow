@@ -99,6 +99,8 @@ async function _initVaultTables() {
  * the narrow escrow that also covers the conversation token maps.
  *
  * @returns {Promise<{ value: Buffer, index: Buffer }|null>}
+ * @param {string} userId
+ * @param {string | null} [orgId]
  */
 async function _vaultKeys(userId, orgId = undefined) {
     try {
@@ -107,7 +109,7 @@ async function _vaultKeys(userId, orgId = undefined) {
         if (!dek) return null;
         return vaultKeysFromDek(dek);
     } catch (err) {
-        log.warn(`[PiiVault] key unavailable for ${userId}: ${err.message}`);
+        log.warn(`[PiiVault] key unavailable for ${userId}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -126,7 +128,10 @@ function vaultKeysFromDek(dek) {
     };
 }
 
-/** Comparison form of a value: case-, punctuation- and whitespace-insensitive. */
+/**
+ * Comparison form of a value: case-, punctuation- and whitespace-insensitive.
+ * @param {string} value
+ */
 function normaliseValue(value) {
     return String(value || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 }
@@ -137,6 +142,9 @@ function normaliseValue(value) {
  * Falls back to a plain digest ONLY when no key can be derived, which is the
  * same install state in which the value itself is stored in the clear — so it
  * reveals nothing the row next to it does not already.
+ * @param {string} category
+ * @param {string} value
+ * @param {{ value: Buffer; index: Buffer; } | null} keys
  */
 function blindIndex(category, value, keys) {
     const norm = `${category}|${normaliseValue(value)}`;
@@ -145,6 +153,10 @@ function blindIndex(category, value, keys) {
         : crypto.createHash('sha256').update(norm).digest('hex');
 }
 
+/**
+ * @param {string} userId
+ * @param {string} category
+ */
 function _aad(userId, category) {
     return `bfvault:v1:${userId}:${category}`;
 }
@@ -160,6 +172,7 @@ function _aad(userId, category) {
  * @param {string} userId
  * @param {Array<{category: string, value: string}>} candidates
  * @returns {Promise<Map<string, {token: string, value: string}>>} keyed `category|normalisedValue`
+ * @param {string | null} [orgId]
  */
 async function lookupTokens(userId, candidates, orgId = undefined) {
     const out = new Map();
@@ -191,7 +204,7 @@ async function lookupTokens(userId, candidates, orgId = undefined) {
         } catch (err) {
             // One unopenable entry must not fail the turn — the tokenizer just
             // mints a fresh token for that value.
-            log.warn(`[PiiVault] entry for ${userId} could not be opened: ${err.message}`);
+            log.warn(`[PiiVault] entry for ${userId} could not be opened: ${/** @type {Error} */ (err).message}`);
             continue;
         }
         out.set(`${row.category}|${hit.norm}`, { token: row.token, value });
@@ -203,6 +216,7 @@ async function lookupTokens(userId, candidates, orgId = undefined) {
  * Per-category high-water marks. The tokenizer needs these as counter floors so
  * a freshly minted token cannot collide with one already issued in the vault.
  * @returns {Promise<Record<string, number>>}
+ * @param {string} userId
  */
 async function getCounterFloors(userId) {
     if (!userId) return {};
@@ -271,7 +285,7 @@ async function buildSeed(userId, entities, existingTokenMap = null) {
         }
         return { tokenMap: merged, counterFloors: counterFloors || {} };
     } catch (err) {
-        log.warn(`[PiiVault] seed unavailable for ${userId}: ${err.message}`);
+        log.warn(`[PiiVault] seed unavailable for ${userId}: ${/** @type {Error} */ (err).message}`);
         return { tokenMap: merged, counterFloors: {} };
     }
 }
@@ -303,6 +317,7 @@ const _TOKEN_RE = /^\[([a-z0-9_]+)_(\d+)\]$/;
  * @param {string} userId
  * @param {Record<string, string>} tokenMap token → real value
  * @returns {Promise<{ stored: number, bumped: number }>}
+ * @param {string | null} [orgId]
  */
 async function recordTokens(userId, tokenMap, orgId = undefined) {
     const result = { stored: 0, bumped: 0 };
@@ -313,6 +328,7 @@ async function recordTokens(userId, tokenMap, orgId = undefined) {
     try {
         await initVaultTables();
         const keys = await _vaultKeys(userId, orgId);
+        /** @type {Record<string, number>} */
         const highWater = {};
 
         for (const [token, value] of entries) {
@@ -354,7 +370,7 @@ async function recordTokens(userId, tokenMap, orgId = undefined) {
         await _raiseHighWater(userId, highWater);
         await _evictIfOverCap(userId);
     } catch (err) {
-        log.warn(`[PiiVault] recordTokens failed for ${userId}: ${err.message}`);
+        log.warn(`[PiiVault] recordTokens failed for ${userId}: ${/** @type {Error} */ (err).message}`);
     }
     return result;
 }
@@ -362,6 +378,8 @@ async function recordTokens(userId, tokenMap, orgId = undefined) {
 /**
  * Raise per-category high-water marks. GREATEST, never assignment: a counter
  * that can go down would reissue a token number to a different value.
+ * @param {string} userId
+ * @param {Record<string, number>} highWater
  */
 async function _raiseHighWater(userId, highWater) {
     for (const [category, value] of Object.entries(highWater)) {
@@ -381,6 +399,7 @@ async function _raiseHighWater(userId, highWater) {
  * Counters are untouched, so an evicted token number is never handed to a
  * different value later. The user loses the stable mapping for that value —
  * a new sighting mints a new token — which is why it is logged.
+ * @param {string} userId
  */
 async function _evictIfOverCap(userId) {
     const row = await getOne('SELECT COUNT(*)::int AS n FROM pii_vault_entries WHERE user_id = $1', [userId]);
@@ -407,6 +426,7 @@ async function _evictIfOverCap(userId) {
 /**
  * The user's own vault, decrypted, for the settings screen.
  * @returns {Promise<{entries: Array, total: number}>}
+ * @param {string} userId
  */
 async function listForUser(userId, { search = '', limit = 200, offset = 0, orgId = undefined } = {}) {
     if (!userId) return { entries: [], total: 0 };
@@ -456,6 +476,8 @@ async function listForUser(userId, { search = '', limit = 200, offset = 0, orgId
  * The counter high-water is deliberately NOT lowered: the deleted token number
  * must never be reissued, or a `[person_7]` still sitting in an old stored
  * message would start resolving to somebody else.
+ * @param {string} userId
+ * @param {string} entryId
  */
 async function deleteEntry(userId, entryId) {
     if (!userId || !entryId) return false;
@@ -464,7 +486,10 @@ async function deleteEntry(userId, entryId) {
     return rowCount > 0;
 }
 
-/** Empty a user's vault. Counters survive, for the reason in deleteEntry. */
+/**
+ * Empty a user's vault. Counters survive, for the reason in deleteEntry.
+ * @param {string} userId
+ */
 async function clearForUser(userId) {
     if (!userId) return 0;
     await initVaultTables();

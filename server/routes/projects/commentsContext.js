@@ -28,13 +28,13 @@ function resolveCommentsDeps(deps) {
         store: () => deps.store || require('../../stores/projectCommentStore'),
         getProject: deps.getProject || ((id) => require('../../stores/projectStore').getProject(id)),
         getProjectRole: deps.getProjectRole
-            || ((userId, projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId)),
+            || ((/** @type {string} */ userId, /** @type {string} */ projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId)),
         commentCrypto: () => deps.commentCrypto || require('../../projects/comments/commentCrypto'),
         assistant: () => deps.assistant
             || (defaultAssistant || (defaultAssistant = require('../../projects/comments/commentAssistant').makeCommentAssistant())),
         participation: deps.participation || {
-            notify: (p) => require('../../projects/comments/surface').notifyHumanComment(p),
-            cancel: (threadId) => require('../../projects/comments/surface').cancelCommentThread(threadId),
+            notify: (/** @type {{ threadId: string; commentId: string; authorUserId: string; orgId: string | null; limitOrgId: string | null; projectId: string; explicit?: boolean; }} */ p) => require('../../projects/comments/surface').notifyHumanComment(p),
+            cancel: (/** @type {string} */ threadId) => require('../../projects/comments/surface').cancelCommentThread(threadId),
         },
         resolveOrgs: deps.resolveOrgs || (async (req) => {
             const userId = req.session.user.id;
@@ -43,7 +43,7 @@ function resolveCommentsDeps(deps) {
             return { orgId: orgId || null, limitOrgId: limitOrgId || null };
         }),
         emit: deps.emit
-            || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' })),
+            || ((/** @type {string} */ projectId, /** @type {{ kind?: string; actorId?: string | null; targetType?: string | null; targetId?: string | null; payload?: object; }} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' })),
         logActivity: deps.logActivity
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
         postLimiter: deps.postLimiter || function rateLimitMiddleware(req, res, next) {
@@ -88,7 +88,7 @@ function makeCommentsContext(deps = {}) {
                 await ctx.collabNotifier().commentMentioned({ project, actorId, mentionedUserIds, targetType: thread.targetType, targetId: thread.targetId });
             }
         } catch (err) {
-            log.warn(`[ProjectComments] mention not notified: ${err && err.message}`);
+            log.warn(`[ProjectComments] mention not notified: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -136,7 +136,7 @@ function makeCommentsContext(deps = {}) {
         try {
             return await ctx.participationStore().feedbackFor(userId, ids);
         } catch (err) {
-            log.warn(`[ProjectComments] feedback not read: ${err && err.message}`);
+            log.warn(`[ProjectComments] feedback not read: ${err && /** @type {Error} */ (err).message}`);
             return new Map();
         }
     }

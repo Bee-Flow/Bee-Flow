@@ -45,6 +45,7 @@ for (const mod of DECLARED) {
  * `nextcloud-mail`. Settle on the catalogue's: underscores become hyphens, and
  * the few ids that differ in more than that are aliased.
  */
+/** @type {Record<string, string>} */
 const APP_ALIASES = {
     'ms-teams': 'teams',
     'google-meet': 'gmeet',
@@ -56,6 +57,7 @@ const normaliseApp = (app) => {
 };
 
 /** (app, pattern kind) → declared provider and event. */
+/** @type {Record<string, { provider: string; event: string; label: string; }>} */
 const APP_TRIGGERS = {
     'gmail|mail_template': { provider: 'gmail', event: 'mail.new', label: 'New email in Gmail' },
     'outlook|mail_template': { provider: 'msgraph', event: 'mail.new', label: 'New email in Outlook' },
@@ -67,7 +69,10 @@ const APP_TRIGGERS = {
     'meetings|meeting_followup': { provider: 'meeting-notes', event: 'meeting.processed', label: 'Meeting notes ready' },
 };
 
-/** Only entries whose provider and event are declared survive. */
+/**
+ * Only entries whose provider and event are declared survive.
+ * @param {string} app
+ */
 function resolveAppTrigger(app, kind) {
     const t = APP_TRIGGERS[`${normaliseApp(app)}|${kind}`];
     if (!t) return null;
@@ -115,6 +120,7 @@ const TOOL_PREFIXES = [
  * "sheets_append_rows" → "Append rows". The longest prefix that names the app
  * goes: the app id itself ("nextcloud_tables_" for nextcloud-tables), any one
  * of its parts ("docs_" for google-docs), or a known tool prefix.
+ * @param {string} [app]
  */
 function humaniseTool(verb, app = '') {
     const appId = String(app ?? '');
@@ -133,19 +139,26 @@ function humaniseTool(verb, app = '') {
 const READ_VERB_RE = /(?:^|_)(?:search|list|find|get|read|fetch|lookup)(?:_|$)/;
 const LOCATE_VERB_RE = /(?:^|_)(?:search|list|find)(?:_|$)/;
 
+/** @type {Record<string, string>} */
 const EVENT_VERB_LABELS = {
     'mail.sent': 'Send the email',
     'file.created': 'Save the file',
     'doc.uploaded': 'Upload the document',
 };
 
-/** The app a tool step belongs to when its event did not say. */
+/**
+ * The app a tool step belongs to when its event did not say.
+ * @param {string} fallback
+ */
 function appForVerb(verb, fallback) {
     for (const [p, app] of TOOL_PREFIXES) if (verb.startsWith(p)) return app;
     return fallback;
 }
 
-/** What a file-drop automation does with the file: create it where the user did. */
+/**
+ * What a file-drop automation does with the file: create it where the user did.
+ * @param {string} app
+ */
 function fileDropSteps(c, app) {
     const kb = c.verbs?.[0] === 'doc.uploaded';
     return [

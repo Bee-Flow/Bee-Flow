@@ -59,7 +59,10 @@ const log = require('../telemetry/log');
 const HKDF_SALT = Buffer.from('beeflow:transcript:hkdf-salt:v1');
 const DEK_COLUMN = 'org_transcript_dek';
 
-/** AAD binds the envelope to the organisation it was minted for. */
+/**
+ * AAD binds the envelope to the organisation it was minted for.
+ * @param {string} orgId
+ */
 function transcriptDekAad(orgId) {
     return Buffer.from(`beeflow:transcript-dek:v1:org:${orgId}`);
 }
@@ -70,6 +73,9 @@ const _cache = new Map(); // orgId -> { at, key }
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX = 200;
 
+/**
+ * @param {string} orgId
+ */
 function _cacheGet(orgId) {
     const hit = _cache.get(orgId);
     if (!hit) return null;
@@ -81,6 +87,10 @@ function _cacheGet(orgId) {
     return hit.key;
 }
 
+/**
+ * @param {string} orgId
+ * @param {Buffer<ArrayBuffer>} key
+ */
 function _cacheSet(orgId, key) {
     if (_cache.size >= CACHE_MAX) {
         const oldest = _cache.keys().next().value;
@@ -104,6 +114,9 @@ function invalidateTranscriptKeyCache(orgId) {
     _cache.delete(String(orgId || ''));
 }
 
+/**
+ * @param {string} rawOrgId
+ */
 function _normOrgId(rawOrgId) {
     const orgId = typeof rawOrgId === 'string' ? rawOrgId.trim() : '';
     return orgId || null;
@@ -140,7 +153,7 @@ async function getTranscriptDek(rawOrgId, deps = {}) {
     try {
         row = await getOne(`SELECT "${DEK_COLUMN}" AS dek FROM organizations WHERE id = $1`, [orgId]);
     } catch (e) {
-        log.error(`[TranscriptEscrow] Could not read the transcript DEK for '${orgId}': ${e.message}`);
+        log.error(`[TranscriptEscrow] Could not read the transcript DEK for '${orgId}': ${/** @type {Error} */ (e).message}`);
         return null;
     }
     if (!row) return null;
@@ -167,7 +180,7 @@ async function getTranscriptDek(rawOrgId, deps = {}) {
         await run(`UPDATE organizations SET "${DEK_COLUMN}" = $1 WHERE id = $2 AND "${DEK_COLUMN}" IS NULL`, [sealed, orgId]);
     } catch (e) {
         secureClear(dek);
-        log.error(`[TranscriptEscrow] Could not store a transcript DEK for '${orgId}': ${e.message}`);
+        log.error(`[TranscriptEscrow] Could not store a transcript DEK for '${orgId}': ${/** @type {Error} */ (e).message}`);
         return null;
     }
     // Re-read rather than trust the UPDATE: two workers can mint concurrently
@@ -211,6 +224,9 @@ function transcriptionKey(dek, transcriptionId) {
  *
  * @returns {Promise<string|null>} the new envelope, or null if there is nothing to rewrap
  * @throws when a DEK exists but will not open under the old root key
+ * @param {Buffer<ArrayBufferLike>} oldOrk
+ * @param {Buffer<ArrayBufferLike>} newOrk
+ * @param {string} rawOrgId
  */
 async function rewrapForRotation(rawOrgId, oldOrk, newOrk, deps = {}) {
     const orgId = _normOrgId(rawOrgId);

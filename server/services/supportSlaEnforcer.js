@@ -17,6 +17,7 @@ const notificationStore = require('../stores/notificationStore');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 /**
@@ -34,6 +35,9 @@ async function computeSlaDueAt(thread) {
     };
 }
 
+/**
+ * @param {string} which
+ */
 async function _notifyBreach(row, which) {
     // Lazy-require to avoid a circular dependency (routes/support requires this).
     let notifyStaff;
@@ -44,7 +48,7 @@ async function _notifyBreach(row, which) {
             threadId: row.id, actorUserId: null, actorKind: 'automation',
             action: 'sla_breach', payload: { which },
         }));
-    } catch (e) { log.warn('[SupportSLA] recordThreadEvent failed:', e.message); }
+    } catch (e) { log.warn('[SupportSLA] recordThreadEvent failed:', /** @type {Error} */ (e).message); }
 
     if (typeof notifyStaff === 'function') {
         notifyStaff({
@@ -75,7 +79,7 @@ async function _notifyBreach(row, which) {
                     .notify({ thread, event: 'sla_breach', detail: `${label} SLA missed` })
                     .catch((e) => bestEffort('services/supportSlaEnforcer:_notifyBreach#2', e));
             }
-        } catch (e) { log.warn('[SupportSLA] chat notification skipped:', e.message); }
+        } catch (e) { log.warn('[SupportSLA] chat notification skipped:', /** @type {Error} */ (e).message); }
     }
     try {
         require('../support/events').supportEvents.emit('event', {
@@ -91,7 +95,7 @@ async function slaTick() {
         const resBreaches = await supportStore.flagResolutionBreaches();
         for (const row of resBreaches) await _notifyBreach(row, 'resolution');
     } catch (e) {
-        log.warn('[SupportSLA] tick error:', e.message);
+        log.warn('[SupportSLA] tick error:', /** @type {Error} */ (e).message);
     }
 }
 

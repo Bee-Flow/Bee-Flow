@@ -260,6 +260,7 @@ async function downloadFile(n, file, { maxBytes = null } = {}) {
     if (maxBytes && p.size != null && p.size > maxBytes) {
         throw new SpreadsheetSourceError(413, 'spreadsheet_too_large', `"${p.name}" is ${Math.round(p.size / 1048576)} MB; the limit is ${Math.round(maxBytes / 1048576)} MB.`, { ref: refOf(file) });
     }
+    /** @type {Response} */
     let res;
     try {
         res = await n.auth.fetch(n.d.webdav.joinDavPath(n.root, p.path), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
@@ -295,6 +296,7 @@ async function uploadFile(n, file, buffer, { ifMatch = null, contentType = null 
         'OC-Total-Length': String(buffer.length),
     };
     if (ifMatch && ifMatch.etag) headers['If-Match'] = ifMatch.etag;
+    /** @type {Response} */
     let res;
     try {
         res = await n.auth.fetch(n.d.webdav.joinDavPath(n.root, path), {

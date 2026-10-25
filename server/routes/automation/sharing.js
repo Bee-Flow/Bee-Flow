@@ -101,6 +101,9 @@ function makeSharingRouter(overrides = {}) {
         } catch { return false; }
     });
 
+    /**
+     * @param {string} need
+     */
     async function loadAutomation(req, res, need) {
         const a = await store().getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
@@ -117,7 +120,7 @@ function makeSharingRouter(overrides = {}) {
         let counts = new Map();
         if (groupIds.length && orgId) {
             try { counts = await store().countGroupMembers(orgId, groupIds); }
-            catch (e) { log.warn(`[automation sharing] member count failed for ${a.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation sharing] member count failed for ${a.id}: ${/** @type {Error} */ (e).message}`); }
         }
         const described = [];
         for (const s of shares) {
@@ -255,7 +258,7 @@ function makeSharingRouter(overrides = {}) {
                     await subs.syncAppEventSubscription(a.id, targetId, liveDef);
                 }
             } catch (e) {
-                log.warn(`[automation sharing] subscription re-sync after transfer failed for ${a.id}: ${e.message}`);
+                log.warn(`[automation sharing] subscription re-sync after transfer failed for ${a.id}: ${/** @type {Error} */ (e).message}`);
                 warnings.push({
                     code: 'transfer.subscription_resync_failed', params: {},
                     message: 'The automation could not re-connect its event trigger for the new owner. Pause it and switch it on again.',
@@ -309,7 +312,7 @@ function makeSharingRouter(overrides = {}) {
         let counts = new Map();
         if (orgGroups.length) {
             try { counts = await store().countGroupMembers(orgId, orgGroups.map(g => String(g.id))); }
-            catch (e) { log.warn(`[automation sharing] member count failed for ${loaded.a.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation sharing] member count failed for ${loaded.a.id}: ${/** @type {Error} */ (e).message}`); }
         }
         res.json({
             users: (members || []).map(u => ({ id: String(u.id), name: nameOf(u) || String(u.id) })),

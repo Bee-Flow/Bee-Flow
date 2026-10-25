@@ -101,13 +101,13 @@ async function executeDataStep(app, model, step, ctx = {}) {
         // Quota errors (studioAppQuota) carry the frozen 409 contract — the
         // step error keeps the code so callers can surface "app is full".
         if (status === 409 && e.code === 'quota_exceeded') {
-            return { ok: false, error: e.message || 'Storage quota exceeded', code: 'quota_exceeded', limit: e.limit, used: e.used };
+            return { ok: false, error: /** @type {Error} */ (e).message || 'Storage quota exceeded', code: 'quota_exceeded', limit: e.limit, used: e.used };
         }
         // AccessError (403 forbidden / 400 bad filter) and CompileError (422
         // bad field/descriptor) carry client-safe messages; everything else is
         // an internal fault we collapse to a generic string.
         if (status === 403 || status === 422 || status === 400) {
-            return { ok: false, error: e.message || 'Step failed' };
+            return { ok: false, error: /** @type {Error} */ (e).message || 'Step failed' };
         }
         // A refusal from the table layer (appStudio/readError.js) carries the flag `safe`
         // AND a status, and precisely the statuses NOT listed above: 503 "we could not
@@ -115,9 +115,9 @@ async function executeDataStep(app, model, step, ctx = {}) {
         // would remove the only sentence someone can act on: "empty", "not allowed" and
         // "could not" would become one word.
         if (e && e.safe === true && typeof status === 'number') {
-            return { ok: false, error: e.message || 'Step failed', code: 'datatable_source' };
+            return { ok: false, error: /** @type {Error} */ (e).message || 'Step failed', code: 'datatable_source' };
         }
-        log.error(`[ActionExecutor] ${step.kind} failed: ${e && e.message}`);
+        log.error(`[ActionExecutor] ${step.kind} failed: ${e && /** @type {Error} */ (e).message}`);
         return { ok: false, error: 'Step failed' };
     }
 }

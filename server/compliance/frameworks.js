@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Framework catalogue — the static list of regulatory frameworks the
  * Compliance Center knows about, with time as an axis.
@@ -393,6 +394,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Days a framework's legal status may go unchecked before it is reported as stale. */
 const LEGAL_REVIEW_STALE_DAYS = 90;
 
+/**
+ * @param {string} iso
+ */
 function _dayMs(iso) {
     if (typeof iso !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return NaN;
     return Date.parse(`${iso}T00:00:00Z`);
@@ -402,6 +406,7 @@ function _dayMs(iso) {
  * How current one framework's legal status is. A missing or unreadable date
  * is stale, never fresh: "nobody recorded a check" must not read as "checked".
  * @returns {{ verified_on: string|null, age_days: number|null, stale: boolean, stale_after_days: number, sources: number }}
+ * @param {number} [nowMs]
  */
 function legalReview(fw, nowMs = Date.now()) {
     const verified = fw && typeof fw.legal_status_verified === 'string' ? fw.legal_status_verified : null;
@@ -420,6 +425,7 @@ function legalReview(fw, nowMs = Date.now()) {
  * The catalogue as a whole: the OLDEST check across the given frameworks
  * (all built-ins by default) — the date the catalogue can vouch for — and
  * which of them are stale.
+ * @param {number} [nowMs]
  */
 function catalogueReview(nowMs = Date.now(), list = FRAMEWORKS) {
     const rows = list.map(fw => ({ id: fw.id, ...legalReview(fw, nowMs) }));
@@ -438,7 +444,13 @@ const _byId = new Map(FRAMEWORKS.map(f => [f.id, f]));
 const _byRegulation = new Map(FRAMEWORKS.map(f => [f.regulation, f]));
 
 function listBuiltin() { return FRAMEWORKS.slice(); }
+/**
+ * @param {string} id
+ */
 function byId(id) { return _byId.get(id) || null; }
+/**
+ * @param {string} code
+ */
 function byRegulation(code) { return _byRegulation.get(code) || null; }
 
 /** Every regulation code a check may carry — GDPR, AIA, ISO27001 first, then the rest, then CUSTOM. */
@@ -446,18 +458,30 @@ function regulationCodes() {
     return FRAMEWORKS.map(f => f.regulation).concat(CUSTOM_REGULATION);
 }
 
+/**
+ * @param {string | undefined} regulation
+ */
 function frameworkIdOf(regulation) {
     if (regulation === CUSTOM_REGULATION) return null; // one per org — resolve from the row's framework_code
     return _byRegulation.get(regulation)?.id || null;
 }
+/**
+ * @param {string} frameworkId
+ */
 function regulationOf(frameworkId) {
     if (isCustomId(frameworkId)) return CUSTOM_REGULATION;
     return _byId.get(frameworkId)?.regulation || null;
 }
+/**
+ * @param {string} id
+ */
 function capabilityOf(id) {
     if (isCustomId(id)) return 'compliance_hub_custom';
     return _byId.get(id)?.capability || null;
 }
+/**
+ * @param {string} id
+ */
 function isCustomId(id) {
     return typeof id === 'string' && id.startsWith(CUSTOM_ID_PREFIX);
 }
@@ -466,6 +490,7 @@ function isCustomId(id) {
  * Article/control refs arrive in several spellings — '50', '50(2)', 'Art. 50',
  * 'Art 50(2)', 'Annex III'. Reduce them to the key shape the `articles` map
  * uses so a per-article date is found regardless of how a check wrote it.
+ * @param {string | undefined} ref
  */
 function _normaliseRef(ref) {
     if (ref == null) return '';
@@ -480,6 +505,8 @@ function _normaliseRef(ref) {
  * (exact ref, then the bare article number: '26(6)' → '26'); otherwise the
  * framework's own date (`in_force_since`, or `in_force_from` for a framework
  * that is still ahead). null for a standard (ISO 27001) or an unknown code.
+ * @param {string | undefined} regulation
+ * @param {string | undefined} ref
  */
 function inForceSince(regulation, ref) {
     const fw = _byRegulation.get(regulation);

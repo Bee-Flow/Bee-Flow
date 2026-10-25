@@ -172,7 +172,7 @@ router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), 
         verdictCacheSet(cacheKey, verdict);
         return res.json(verdict);
     } catch (e) {
-        log.error('[learning/coach] grading failed:', e.message);
+        log.error('[learning/coach] grading failed:', /** @type {Error} */ (e).message);
         return res.json({ score: null, passed: false, feedback: 'The AI coach hit a snag — you can retry or skip ahead.', strengths: [], improvements: [], error: 'coach_error' });
     }
 });
@@ -242,7 +242,7 @@ router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), 
         verdictCacheSet(cacheKey, body);
         return res.json(body);
     } catch (e) {
-        log.error('[learning/tutor] failed:', e.message);
+        log.error('[learning/tutor] failed:', /** @type {Error} */ (e).message);
         return res.json({ answer: TUTOR_FALLBACK_ANSWER, error: 'tutor_error' });
     }
 });
@@ -366,14 +366,14 @@ router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate
             await require('../../stores/configStore')
                 .setConfig(`${PRACTICE_KEY_PREFIX}${practiceId}`, { keys, ts: Date.now() });
         } catch (err) {
-            log.warn('[learning/practice] key persist failed (single-pod grading only):', err.message);
+            log.warn('[learning/practice] key persist failed (single-pod grading only):', /** @type {Error} */ (err).message);
         }
         const payload = { practiceId, items: publicItems, expiresAt: new Date(Date.now() + PRACTICE_TTL_MS).toISOString() };
         practiceCachePrune(practiceTopicCache, PRACTICE_TOPIC_CACHE_MAX);
         practiceTopicCache.set(topicKey, { payload, ts: Date.now() });
         return res.json(payload);
     } catch (e) {
-        log.error('[learning/practice] generation failed:', e.message);
+        log.error('[learning/practice] generation failed:', /** @type {Error} */ (e).message);
         return unavailable();
     }
 });
@@ -396,7 +396,7 @@ router.post('/practice/grade', requireAuth, practiceGradeLimiter, validate({ bod
                 practiceKeyCache.set(practiceId, entry);
             }
         } catch (err) {
-            log.warn('[learning/practice] key lookup failed:', err.message);
+            log.warn('[learning/practice] key lookup failed:', /** @type {Error} */ (err).message);
         }
     }
     if (!entry || Date.now() - entry.ts > PRACTICE_TTL_MS) {
@@ -629,7 +629,7 @@ router.get('/training-gates', requireAuth, async (req, res) => {
         const areas = await evaluateForRequest(req, { extraCourses });
         res.json({ areas, catalog: TRAINING_AREAS });
     } catch (e) {
-        log.error('[learning/training-gates] failed:', e.message);
+        log.error('[learning/training-gates] failed:', /** @type {Error} */ (e).message);
         // Fail open: a client that cannot read the gates must not lock its own
         // buttons. The server still enforces on write.
         res.json({ areas: {}, catalog: TRAINING_AREAS });

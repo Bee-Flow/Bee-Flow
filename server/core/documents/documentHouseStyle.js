@@ -88,12 +88,18 @@ const DEFAULT_STYLE = Object.freeze({
     deck: require('./deckThemeOptions').DEFAULT_DECK_STYLE,
 });
 
-/** `#abc` or `#aabbcc`, or '' — never a raw string into a stylesheet. */
+/**
+ * `#abc` or `#aabbcc`, or '' — never a raw string into a stylesheet.
+ * @param {string} fallback
+ */
 function sanitizeHex(value, fallback) {
     const t = String(value ?? '').trim();
     return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t) ? t : fallback;
 }
 
+/**
+ * @param {number} [max]
+ */
 function sanitizeText(value, max = 200) {
     // Strip control characters and cap. These are rendered as TEXT by the
     // client and handed to the model as facts; markup in them is either a
@@ -159,6 +165,9 @@ function normaliseStyle(input = {}) {
 
 const _cache = new Map(); // orgId → { at, style }
 
+/**
+ * @param {string | undefined} orgId
+ */
 async function getHouseStyle(orgId) {
     if (!orgId) return { ...DEFAULT_STYLE };
     const hit = _cache.get(orgId);
@@ -169,7 +178,7 @@ async function getHouseStyle(orgId) {
     } catch (e) {
         // A config read failure must not take the document down with it: an
         // unstyled invoice is a working invoice.
-        log.warn('[DocumentHouseStyle] read failed, using defaults:', e.message);
+        log.warn('[DocumentHouseStyle] read failed, using defaults:', /** @type {Error} */ (e).message);
         return { ...DEFAULT_STYLE };
     }
     let style;
@@ -288,6 +297,7 @@ function houseStyleDeckTheme(style, overrides = null) {
  * the same switch a document has in `settings.houseStyle`, and like there it
  * is the USER's choice, never the model's. `overrides` still apply on top of
  * the neutral theme, so "unbranded but in blue" is expressible.
+ * @param {string | null} orgId
  */
 async function deckThemeFor(orgId, { houseStyle = true, overrides = null } = {}) {
     if (houseStyle === false) return houseStyleDeckTheme(null, overrides);

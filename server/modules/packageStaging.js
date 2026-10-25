@@ -1,3 +1,4 @@
+/** @typedef {import('./packageVerify').PackageManifest} PackageManifest */
 /**
  * Package loader: paths, verify-and-stage and the atomic extract.
  *
@@ -17,6 +18,9 @@ const { deps, dataRoot, packageKeyResolver } = require('./packageState');
 const { hubClient, licenseVerify, packageVerify, hostApiFactory } = deps;
 
 // ── Path helpers (defense-in-depth segment sanitising) ────────────────────
+/**
+ * @param {string} seg
+ */
 function _safeSeg(seg) {
     const s = String(seg || '');
     if (!s || s.includes('/') || s.includes('\\') || s.includes('..')) {
@@ -24,12 +28,29 @@ function _safeSeg(seg) {
     }
     return s;
 }
+/**
+ * @param {string} id
+ */
 function moduleRoot(id) { return path.join(dataRoot(), _safeSeg(id)); }
+/**
+ * @param {string} id
+ * @param {string} version
+ */
 function versionDir(id, version) { return path.join(moduleRoot(id), 'versions', _safeSeg(version)); }
+/**
+ * @param {string} id
+ */
 function moduleDataDir(id) { return path.join(moduleRoot(id), 'data'); }
+/**
+ * @param {string} id
+ * @param {string} version
+ */
 function packagePath(id, version) { return path.join(moduleRoot(id), 'pkg', `${_safeSeg(version)}.bfmod`); }
 
 // ── Compatibility gate ─────────────────────────────────────────────────────
+/**
+ * @param {string} reason
+ */
 function _incompatible(reason) {
     const e = new Error(reason);
     e.compat = true;
@@ -39,6 +60,7 @@ function _incompatible(reason) {
  * Compatibility gate — SIGNED payload values first (what the signer pinned),
  * manifest spellings (snake_case AND the SDK's authored camelCase) only as
  * fallback for packages signed before the payload carried them.
+ * @param {PackageManifest | undefined} manifest
  */
 function _compatCheck(manifest, signedPayload = null) {
     const semver = require('../utils/semver');
@@ -74,6 +96,10 @@ function _compatCheck(manifest, signedPayload = null) {
 }
 
 // ── Atomic extraction ──────────────────────────────────────────────────────
+/**
+ * @param {string} destDir
+ * @param {Map<string, Buffer<ArrayBufferLike>> | undefined} files
+ */
 async function _extractAtomic(destDir, files) {
     const parent = path.dirname(destDir);
     await fsp.mkdir(parent, { recursive: true });
@@ -89,6 +115,9 @@ async function _extractAtomic(destDir, files) {
     await fsp.rename(tmp, destDir);
 }
 
+/**
+ * @param {Map<string, Buffer<ArrayBufferLike>> | undefined} files
+ */
 function _kidFromSignature(files) {
     try {
         const jws = files.get('signature.jws');
@@ -98,6 +127,9 @@ function _kidFromSignature(files) {
     } catch (_) { return null; }
 }
 
+/**
+ * @param {PackageManifest | undefined} m
+ */
 function _manifestSummary(m) {
     return {
         id: m.id,
@@ -129,6 +161,7 @@ function _manifestSummary(m) {
  * @returns {Promise<{ manifest, dir, sha256, kid }>}
  */
 async function verifyAndStage(moduleId, version, { buffer = null, download = false, expectedSha256 = null, redownloadSha = null } = {}) {
+    /** @type {string | null} */
     let sha256 = null;
     let pkgPath = packagePath(moduleId, version);
 
@@ -175,7 +208,12 @@ async function verifyAndStage(moduleId, version, { buffer = null, download = fal
 }
 
 // ── Re-verify from disk (boot, reconcile, rollback, reactivate) ──────────
+/**
+ * @param {string} moduleId
+ * @param {string} version
+ */
 async function _reverifyFromDisk(moduleId, version) {
+    /** @type {NonSharedBuffer} */
     let buffer;
     try { buffer = await fsp.readFile(packagePath(moduleId, version)); }
     catch (_) { throw new Error('package_file_missing'); }

@@ -421,6 +421,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // once the race below is decided instead: left armed after a run that
     // beat the cap, it would hold this request's closure for the rest of
     // the wait.
+    /** @type {NodeJS.Timeout} */
     let guardTimer;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, waitMs); });
     // Collected so a timeout can still answer with a pollable run id.
@@ -610,8 +611,8 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
         });
         send({ type: 'done' });
     } catch (e) {
-        log.error(`[StudioAppsRun/aiChat] ${e.message}`);
-        send({ type: 'error', error: e.status === 400 ? e.message : 'The assistant failed to respond.' });
+        log.error(`[StudioAppsRun/aiChat] ${/** @type {Error} */ (e).message}`);
+        send({ type: 'error', error: e.status === 400 ? /** @type {Error} */ (e).message : 'The assistant failed to respond.' });
     }
     res.end();
 });

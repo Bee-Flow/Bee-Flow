@@ -44,6 +44,7 @@
  *                                      the small model misapplied to create_record)
  *   full  → LOOKUP, SPLIT_VIEW, LINKED
  * `count` caps how many of that list go out.
+ * @param {number} [count]
  */
 function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     if (count <= 0) return [];

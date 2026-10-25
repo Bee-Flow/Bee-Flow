@@ -58,7 +58,7 @@ async function handleChargeDisputeCreated(dispute) {
                 target = await userStore.findSubscriptionByStripeCustomerId(charge.customer);
             }
         } catch (e) {
-            log.warn('[Stripe Webhook] dispute charge retrieve failed:', e.message);
+            log.warn('[Stripe Webhook] dispute charge retrieve failed:', /** @type {Error} */ (e).message);
         }
     }
     if (!target && dispute.customer) {
@@ -161,7 +161,7 @@ async function _resolveEarlyConfirmationTarget(invoice) {
         }
         return await findSubscriptionTargetByCustomerId(invoice.customer);
     } catch (e) {
-        log.warn('[Stripe Webhook] early subscription confirmation target lookup failed:', e.message);
+        log.warn('[Stripe Webhook] early subscription confirmation target lookup failed:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -244,7 +244,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
             log.warn(`[Stripe Webhook] subscription confirmation email failed: ${result?.error || 'unknown'}`);
         }
     } catch (e) {
-        log.warn('[Stripe Webhook] _sendSubscriptionConfirmationEmailOnce error:', e.message);
+        log.warn('[Stripe Webhook] _sendSubscriptionConfirmationEmailOnce error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -303,7 +303,7 @@ async function handleInvoicePaymentFailed(invoice) {
             );
             await _sendFinalDunningEmailOnce({ target, customerId: invoice.customer || null });
         } catch (e) {
-            log.warn('[Stripe Webhook] dunning-cap transition failed:', e.message);
+            log.warn('[Stripe Webhook] dunning-cap transition failed:', /** @type {Error} */ (e).message);
         }
         return; // do NOT fire the per-attempt email once we've capped
     }
@@ -318,6 +318,13 @@ async function handleInvoicePaymentFailed(invoice) {
     });
 }
 
+/**
+ * @typedef {Object} _sendFinalDunningEmailOnceArgs
+ * @property {string} [customerId]
+ */
+/**
+ * @param {_sendFinalDunningEmailOnceArgs} param0
+ */
 async function _sendFinalDunningEmailOnce({ target, customerId }) {
     try {
         const targetType = target.scope === 'organization' ? 'organization' : 'consumer';
@@ -362,10 +369,18 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
             reason: 'payment_dunning_capped',
         }).catch(e => log.warn('[Stripe Webhook] final dunning email send failed:', e.message));
     } catch (e) {
-        log.warn('[Stripe Webhook] _sendFinalDunningEmailOnce error:', e.message);
+        log.warn('[Stripe Webhook] _sendFinalDunningEmailOnce error:', /** @type {Error} */ (e).message);
     }
 }
 
+/**
+ * @typedef {Object} _sendPaymentFailedEmailOnceArgs
+ * @property {number} attempt
+ * @property {string} [customerId]
+ */
+/**
+ * @param {_sendPaymentFailedEmailOnceArgs} param0
+ */
 async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
     try {
         const targetType = target.scope === 'organization' ? 'organization' : 'consumer';
@@ -415,7 +430,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
             attemptCount: attempt,
         }).catch(e => log.warn('[Stripe Webhook] payment_failed email send failed:', e.message));
     } catch (e) {
-        log.warn('[Stripe Webhook] _sendPaymentFailedEmailOnce error:', e.message);
+        log.warn('[Stripe Webhook] _sendPaymentFailedEmailOnce error:', /** @type {Error} */ (e).message);
     }
 }
 

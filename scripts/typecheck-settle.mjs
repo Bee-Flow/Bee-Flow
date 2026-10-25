@@ -47,6 +47,8 @@ export function requiresOf(text) {
         const bound = m[1].startsWith('{') ? m[1].slice(1, -1).split(',').map((s) => s.split(':').pop().trim().split('=')[0].trim()).filter(Boolean) : [m[1]];
         for (const n of bound) names.set(n, m[2]);
     }
+    // A lazy `require('../x').y(...)` inside a function counts as a dependency too.
+    for (const m of text.matchAll(/\brequire\(\s*['"](\.[^'"]+)['"]\s*\)/g)) specs.add(m[1]);
     return { names, specs: [...specs] };
 }
 

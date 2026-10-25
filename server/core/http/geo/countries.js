@@ -26,6 +26,7 @@ const EU_EEA_COUNTRIES = new Set([
 ]);
 
 /** Overrides for Intl's names; also the fallback when Intl lacks a code. */
+/** @type {Record<string, string>} */
 const COUNTRY_NAMES = {
     US: 'United States', GB: 'United Kingdom', DE: 'Germany', NL: 'Netherlands',
     FR: 'France', IE: 'Ireland', BE: 'Belgium', SE: 'Sweden', FI: 'Finland',
@@ -41,12 +42,16 @@ const COUNTRY_NAMES = {
     MX: 'Mexico', AR: 'Argentina', CL: 'Chile', CO: 'Colombia',
 };
 
+/** @type {Intl.DisplayNames | null} */
 let _display = null;
 try {
     _display = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
 } catch (err) { fallbackSwallowed('core/http/geo/countries:anon', err); /* a Node without full ICU: the table above still answers */ }
 
-/** ISO-2 → English name; the code itself when unknown; null for no code. */
+/**
+ * ISO-2 → English name; the code itself when unknown; null for no code.
+ * @param {string} code
+ */
 function countryName(code) {
     if (!code) return null;
     const cc = String(code).toUpperCase();

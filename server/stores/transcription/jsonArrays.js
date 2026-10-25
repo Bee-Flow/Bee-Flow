@@ -13,6 +13,7 @@
  * and took out the ENTIRE list response, for the owner, for every org member
  * the note was published to, and for super admins. One bad row, everyone's
  * library gone.
+ * @param {string} value
  */
 function parseJsonArray(value) {
     if (Array.isArray(value)) return value;

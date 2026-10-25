@@ -90,6 +90,7 @@ const MD_PROMPT_PATHS = {
 
 // ── Cache for loaded defaults ────────────────────────────────────
 
+/** @type {Record<string, string> | null} */
 let _defaultsCache = null;
 
 /**
@@ -99,6 +100,7 @@ let _defaultsCache = null;
 async function loadAllDefaults() {
     if (_defaultsCache) return _defaultsCache;
 
+    /** @type {Record<string, string>} */
     const defaults = {};
 
     // Load system agent prompts from the database
@@ -111,7 +113,7 @@ async function loadAllDefaults() {
             }
         }
     } catch (err) {
-        log.warn('[PromptDefaults] Failed to load system agent prompts from DB:', err.message);
+        log.warn('[PromptDefaults] Failed to load system agent prompts from DB:', /** @type {Error} */ (err).message);
     }
 
     // Load markdown file prompts
@@ -121,7 +123,7 @@ async function loadAllDefaults() {
                 defaults[promptId] = fs.readFileSync(filePath, 'utf-8');
             }
         } catch (err) {
-            log.warn(`[PromptDefaults] Failed to load ${promptId} from ${filePath}:`, err.message);
+            log.warn(`[PromptDefaults] Failed to load ${promptId} from ${filePath}:`, /** @type {Error} */ (err).message);
         }
     }
 
@@ -131,6 +133,7 @@ async function loadAllDefaults() {
 
 /**
  * Get the default English prompt text for a given prompt ID.
+ * @param {string} promptId
  */
 async function getDefaultPrompt(promptId) {
     const defaults = await loadAllDefaults();

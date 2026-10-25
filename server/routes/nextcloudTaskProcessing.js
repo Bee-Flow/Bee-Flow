@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Execution endpoint for Nextcloud Task Processing.
  *
@@ -167,6 +168,9 @@ function threadOwner(org, userId) {
     return `${org?.id || ''}\u0000${userId || ''}`;
 }
 
+/**
+ * @param {string} owner
+ */
 function threadPut(token, messages, owner) {
     agentThreads.delete(token);
     agentThreads.set(token, { messages, at: Date.now(), owner });
@@ -321,7 +325,7 @@ async function runAgentTurn({ input, org, user, ncUid }) {
             } catch (err) {
                 messages.push({
                     role: 'tool', tool_call_id: call?.id, name,
-                    content: `Error: ${err.message}`,
+                    content: `Error: ${/** @type {Error} */ (err).message}`,
                 });
             }
         }
@@ -361,7 +365,10 @@ const ExecuteBody = z.object({
     }
 });
 
-/** The signature comes before the schema: an unsigned caller learns nothing about the shape. */
+/**
+ * The signature comes before the schema: an unsigned caller learns nothing about the shape.
+ * @param {NextFunction} next
+ */
 async function requireConnectorSig(req, res, next) {
     const org = await verifyConnectorSig(req);
     if (!org) return res.status(401).json({ error: 'Invalid or missing signature' });

@@ -42,6 +42,7 @@ function toolSetFingerprint(tools) {
  */
 function toolBytesFingerprint(tools) {
     if (!Array.isArray(tools) || tools.length === 0) return 'none';
+    /** @type {string} */
     let bytes;
     try { bytes = JSON.stringify(tools); } catch (_) { return 'unserialisable'; }
     return crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 12);

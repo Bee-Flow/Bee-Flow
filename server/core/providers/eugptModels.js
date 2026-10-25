@@ -37,6 +37,7 @@ const EUGPT_WIRE_MODEL = 'auto';
 /**
  * Tier-picker metadata for the routed model. `eugpt: true` is the flag the
  * frontend admits server-described models on (see agent-hub modelMeta.js).
+ * @param {string} [modelId]
  */
 function describeEuGptModel(modelId = EUGPT_MODEL_ID) {
     return {

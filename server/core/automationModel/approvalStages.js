@@ -42,7 +42,10 @@ const MAX_STAGE_DESCRIPTION_LEN = 200;
 
 const STAGE_RULES = ['all', 'first', 'quorum'];
 
-/** One seat: exactly one of userId / groupId, or null. */
+/**
+ * One seat: exactly one of userId / groupId, or null.
+ * @param {{ userId: string; groupId: string; }} raw
+ */
 function cleanSeat(raw) {
     if (!raw || typeof raw !== 'object') return null;
     if (typeof raw.userId === 'string' && raw.userId.trim()) return { userId: raw.userId.trim() };
@@ -74,13 +77,14 @@ function cleanSeats(raw) {
  * One authored stage → canonical form. `index` supplies the fallback key and
  * the fallback name, so a stage the author never named still reads as
  * something ("Stage 2") rather than as blank chrome.
+ * @param {number} index
  */
 function cleanStage(raw, index, { interpolate = null } = {}) {
     if (!raw || typeof raw !== 'object') return null;
     const approvers = cleanSeats(raw.approvers);
     if (!approvers.length) return null;
 
-    const render = (v) => {
+    const render = (/** @type {string} */ v) => {
         if (typeof v !== 'string' || !v.trim()) return null;
         const text = typeof interpolate === 'function' ? interpolate(v) : v;
         return typeof text === 'string' ? text.trim() : null;

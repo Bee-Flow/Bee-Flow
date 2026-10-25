@@ -81,7 +81,7 @@ async function buildCatalogForUser(userId, session) {
             userToolDefs = Array.isArray(r.tools) ? r.tools : [];
             for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {
-            const err = new Error(`Could not resolve which integrations you can use: ${e.message}`);
+            const err = new Error(`Could not resolve which integrations you can use: ${/** @type {Error} */ (e).message}`);
             err.code = 'catalog_unresolved';
             throw err;
         }
@@ -157,8 +157,8 @@ async function buildCatalogForUser(userId, session) {
         // could not read it, and the prompt must not say "no integrations
         // connected". `catalogError` is the marker the renderers look for;
         // `toolNames` stays absent, so the add-time gate stays permissive.
-        log.warn('[builderCatalog] catalog could not be built:', e && e.message);
-        return { apps: [], triggerOutputs: {}, catalogError: (e && e.message) || 'catalog unavailable' };
+        log.warn('[builderCatalog] catalog could not be built:', e && /** @type {Error} */ (e).message);
+        return { apps: [], triggerOutputs: {}, catalogError: (e && /** @type {Error} */ (e).message) || 'catalog unavailable' };
     }
 }
 

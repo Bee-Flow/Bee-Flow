@@ -59,6 +59,9 @@ const CACHE_MAX = 500;
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const cache = new Map(); // key → { value, ts }
 
+/**
+ * @param {string} key
+ */
 function cacheGet(key) {
     const entry = cache.get(key);
     if (!entry) return null;
@@ -72,6 +75,10 @@ function cacheGet(key) {
     return entry.value;
 }
 
+/**
+ * @param {string} key
+ * @param {{ tier: string; reason: string; }} value
+ */
 function cacheSet(key, value) {
     if (cache.size >= CACHE_MAX) {
         // Evict oldest (Map iterates insertion order)
@@ -85,6 +92,11 @@ function clearClassifierCache() {
     cache.clear();
 }
 
+/**
+ * @param {string} message
+ * @param {string[]} availableTiers
+ * @param {crypto.BinaryLike} classifierModel
+ */
 function buildCacheKey(message, availableTiers, classifierModel) {
     const msg = typeof message === 'string' ? message : JSON.stringify(message);
     const shape = [...availableTiers].sort().join(',');
@@ -99,6 +111,9 @@ function buildCacheKey(message, availableTiers, classifierModel) {
 
 // ─── Heuristic Classifier ─────────────────────────────────────────
 
+/**
+ * @param {string} message
+ */
 function classifyPromptComplexity(message) {
     if (!message || typeof message !== 'string') {
         return { tier: 'fast', score: 0, reason: 'empty input', confident: true };
@@ -106,6 +121,7 @@ function classifyPromptComplexity(message) {
 
     const msg = message.trim();
     const len = msg.length;
+    /** @type {string[]} */
     const reasons = [];
     let score = 0;
 
@@ -207,6 +223,7 @@ function classifyPromptComplexity(message) {
     }
 
     // ── Score-based tier (medium confidence) ──
+    /** @type {string} */
     let tier;
     if (score >= 8) tier = 'deep_thinking';
     else if (score >= 3) tier = 'thinking';
@@ -225,10 +242,14 @@ function classifyPromptComplexity(message) {
 
 // ─── LLM Classifier ───────────────────────────────────────────────
 
+/**
+ * @param {string[]} availableTiers
+ */
 function buildClassifierPrompt(availableTiers) {
     // Each tier description names a single, non-overlapping trigger. The
     // tiers are ordered from cheapest/simplest to heaviest so the model
     // reads them as an escalation ladder.
+    /** @type {Record<string, string>} */
     const tierDescriptions = {
         fast:
             'fast — One-shot, low-effort answers. Greetings, acks, quick factual lookups, ' +
@@ -302,12 +323,18 @@ Hard rules:
 }
 
 // Start and end of a long message: the ask is usually at one of the two.
+/**
+ * @param {string} text
+ */
 function truncateForLLM(text) {
     if (text.length <= LLM_HEAD_CHARS + LLM_TAIL_CHARS) return text;
     return `${text.slice(0, LLM_HEAD_CHARS)}\n…\n${text.slice(-LLM_TAIL_CHARS)}`;
 }
 
 // Map legacy tier keys to current ones if the modern key is configured.
+/**
+ * @param {string} suggested
+ */
 function normaliseTierKey(suggested, tiers) {
     if (!suggested) return suggested;
     if (suggested === 'pro' && tiers.deep_thinking?.modelId) return 'deep_thinking';
@@ -320,13 +347,18 @@ function normaliseTierKey(suggested, tiers) {
 // preface the answer with prose despite the "one word only" instruction).
 // The answer word conventionally comes last, so the LAST whole-word tier
 // mention wins. \b handles deep_thinking vs thinking (_ is a word char).
+/**
+ * @param {string} content
+ */
 function extractTierWord(content, tiers) {
     if (!content || typeof content !== 'string') return null;
     const candidates = new Set([...Object.keys(tiers), 'pro', 'smart']);
+    /** @type {{ index: number; word: string; } | null} */
     let best = null;
     for (const word of candidates) {
         const safe = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const rx = new RegExp(`\\b${safe}\\b`, 'gi');
+        /** @type {RegExpExecArray | null} */
         let m;
         while ((m = rx.exec(content)) !== null) {
             if (!best || m.index > best.index) best = { index: m.index, word };
@@ -480,7 +512,7 @@ async function classifyWithLLM(message, tiers, { userOrgId = null, userId = null
 
         log.info(`[Classifier] LLM returned invalid tier (${raw.length} chars), falling back`);
     } catch (err) {
-        log.info(`[Classifier] LLM failed: ${err.message}, falling back to heuristic`);
+        log.info(`[Classifier] LLM failed: ${/** @type {Error} */ (err).message}, falling back to heuristic`);
     }
 
     // Stage 5: heuristic fallback (when LLM fails or returns garbage).

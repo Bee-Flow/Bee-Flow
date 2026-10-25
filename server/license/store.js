@@ -22,6 +22,9 @@ const { run, getOne, getAll } = require('../db');
 const { logSubscriptionAudit } = require('../stores/user/audit');
 const log = require('../telemetry/log');
 
+/**
+ * @param {string} s
+ */
 function parseJSON(s, fallback) {
     if (!s) return fallback;
     if (typeof s === 'object') return s;
@@ -52,8 +55,22 @@ function rowToLicense(row) {
 }
 
 /**
+ * @typedef {Object} UpsertLicenseArgs
+ * @property {string} [licenseId]
+ * @property {string | null | undefined} [organizationId]
+ * @property {string} [scope]
+ * @property {string} [rawToken]
+ * @property {string} [tier]
+ * @property {string} issuer
+ * @property {string} issuedAt
+ * @property {string} expiresAt
+ * @property {string} [billingInterval]
+ * @property {string | null} [activatedBy]
+ */
+/**
  * Insert or replace a license activation. Older active licenses for the same
  * scope target are marked expired so only one is "current".
+ * @param {UpsertLicenseArgs} param0
  */
 async function upsertLicense({
     licenseId,
@@ -149,6 +166,9 @@ async function upsertLicense({
     return getLicenseById(licenseId);
 }
 
+/**
+ * @param {string} licenseId
+ */
 async function getLicenseById(licenseId) {
     const row = await getOne(`SELECT * FROM license_keys WHERE id = $1`, [licenseId]);
     return rowToLicense(row);
@@ -158,6 +178,7 @@ async function getLicenseById(licenseId) {
  * Returns the most recently issued non-revoked license for an org.
  * "Active" here means `refresh_status` ∈ {active, pending, grace}; expired
  * and revoked licenses are excluded.
+ * @param {string} organizationId
  */
 async function getActiveLicenseForOrg(organizationId) {
     if (!organizationId) return null;
@@ -171,6 +192,9 @@ async function getActiveLicenseForOrg(organizationId) {
     return rowToLicense(row);
 }
 
+/**
+ * @param {string} userId
+ */
 async function getActiveLicenseForUser(userId) {
     if (!userId) return null;
     const row = await getOne(
@@ -239,6 +263,7 @@ async function getActiveLicensesForOrgs(orgIds = []) {
 /**
  * Returns all monthly licenses that have not been refreshed within the
  * given window (in seconds). The refresh scheduler walks this set.
+ * @param {number} [stalerThanSeconds]
  */
 async function getLicensesNeedingRefresh(stalerThanSeconds = 86400) {
     const rows = await getAll(
@@ -270,6 +295,9 @@ async function markRefreshSuccess(licenseId, { newToken = null, newExpiresAt = n
     }
 }
 
+/**
+ * @param {string} licenseId
+ */
 async function markRefreshFailure(licenseId, { graceWindowSeconds = 10 * 86400 } = {}) {
     // Falls into 'grace' until the grace window passes since last successful refresh.
     const lic = await getLicenseById(licenseId);
@@ -286,6 +314,9 @@ async function markRefreshFailure(licenseId, { graceWindowSeconds = 10 * 86400 }
     }
 }
 
+/**
+ * @param {string} licenseId
+ */
 async function markRevoked(licenseId, reason = null) {
     const lic = await getLicenseById(licenseId);
     if (!lic) return;
@@ -309,14 +340,20 @@ async function markRevoked(licenseId, reason = null) {
             await bustSessionsForUser(lic.userId);
         }
     } catch (e) {
-        log.warn('[License Store] markRevoked session bust failed:', e.message);
+        log.warn('[License Store] markRevoked session bust failed:', /** @type {Error} */ (e).message);
     }
 }
 
 /**
+ * @typedef {Object} GetAdminIssuedLicensesArgs
+ * @property {string | null} [organizationId]
+ * @property {boolean} [includeInactive]
+ */
+/**
  * List licenses issued by the admin console (issuer = 'beeflow.admin.console').
  * Pass `organizationId` to scope to a single org. Includes expired/revoked rows
  * by default so the admin UI can show full grant history.
+ * @param {GetAdminIssuedLicensesArgs} [param0]
  */
 async function getAdminIssuedLicenses({ organizationId = null, includeInactive = true } = {}) {
     const params = ['beeflow.admin.console'];
@@ -337,6 +374,9 @@ async function getAdminIssuedLicenses({ organizationId = null, includeInactive =
 
 /**
  * Extend (or shorten) the expiry on an existing license. Audited.
+ * @param {string} licenseId
+ * @param {string} newExpiresAt
+ * @param {string | null} changedBy
  */
 async function extendExpiry(licenseId, newExpiresAt, changedBy) {
     const lic = await getLicenseById(licenseId);
@@ -354,6 +394,10 @@ async function extendExpiry(licenseId, newExpiresAt, changedBy) {
     return getLicenseById(licenseId);
 }
 
+/**
+ * @param {string} licenseId
+ * @param {string | null} deactivatedBy
+ */
 async function deactivateLicense(licenseId, deactivatedBy) {
     const lic = await getLicenseById(licenseId);
     if (!lic) return false;
@@ -368,6 +412,9 @@ async function deactivateLicense(licenseId, deactivatedBy) {
 /**
  * Audit log entries are stored alongside subscription audits in
  * `subscription_audit_log`. Action names use the `license_*` prefix.
+ * @param {string} action
+ * @param {string | null | undefined} targetId
+ * @param {string | null} changedBy
  */
 async function logLicenseAudit(action, targetId, changedBy, oldValues, newValues) {
     if (!targetId) {
@@ -378,7 +425,7 @@ async function logLicenseAudit(action, targetId, changedBy, oldValues, newValues
     try {
         await logSubscriptionAudit(action, 'license', targetId, changedBy, oldValues, newValues);
     } catch (e) {
-        log.error('[License Store] Audit log error:', e.message);
+        log.error('[License Store] Audit log error:', /** @type {Error} */ (e).message);
     }
 }
 

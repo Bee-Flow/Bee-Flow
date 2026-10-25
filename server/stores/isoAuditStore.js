@@ -113,6 +113,9 @@ const OBJECTIVE_STATUSES = new Set(['active', 'achieved', 'dropped']);
 
 // ---------------------------------------------------------------- 9.2 audits
 
+/**
+ * @param {string} orgId
+ */
 async function listAudits(orgId) {
     await initDB();
     return getAll(`
@@ -223,6 +226,9 @@ async function addFinding(orgId, auditId, input) {
 
 // --------------------------------------------------- 9.3 management reviews
 
+/**
+ * @param {string} orgId
+ */
 async function listReviews(orgId) {
     await initDB();
     return getAll(`

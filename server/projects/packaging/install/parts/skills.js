@@ -14,6 +14,8 @@ const crypto = require('crypto');
  * names a row of the installation the file came from, so it is not a pointer
  * here and never survives; a ref with nothing behind it leaves the list and is
  * named in `unresolved`.
+ * @param {Map<string, string>} refMap
+ * @param {string[]} unresolved
  */
 function resolvedRefList(list, refMap, unresolved) {
     const holder = { knowledge_base_ids: (Array.isArray(list) ? list : []).filter(isRef) };
@@ -101,6 +103,7 @@ async function installSkills(entities, ctx, report) {
                     report.warnings.push(`A reference to "${ref}" in the skill "${entity.name}" could not be connected — whatever it pointed at was not installed.`);
                 }
             }
+            /** @type {string} */
             let id;
             if (staged) {
                 id = crypto.randomUUID();
@@ -120,7 +123,7 @@ async function installSkills(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'skill', entityId: id, payload: fields });
             (report.installed.skills ||= []).push({ ref: entity.ref, id, name: entity.name });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'skill', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'skill', why: /** @type {Error} */ (err).message });
         }
     }
 }

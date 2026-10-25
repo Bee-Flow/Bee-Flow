@@ -88,6 +88,8 @@ async function deleteOrgSyncConfig(orgId) {
 
 /**
  * Mark a resource as needing sync (called after create/update/delete).
+ * @param {string} resourceType
+ * @param {string} resourceId
  */
 async function markPending(orgId, resourceType, resourceId) {
     await initDB();
@@ -102,6 +104,8 @@ async function markPending(orgId, resourceType, resourceId) {
 
 /**
  * Mark a resource as 'deleted' — pending removal from GitHub.
+ * @param {string} resourceType
+ * @param {string} resourceId
  */
 async function markDeleted(orgId, resourceType, resourceId) {
     await initDB();
@@ -116,6 +120,8 @@ async function markDeleted(orgId, resourceType, resourceId) {
 
 /**
  * Update sync state after a successful push.
+ * @param {string} resourceType
+ * @param {string} contentSha
  */
 async function markSynced(orgId, resourceType, resourceId, contentSha, commitSha) {
     await initDB();
@@ -132,6 +138,8 @@ async function markSynced(orgId, resourceType, resourceId, contentSha, commitSha
 
 /**
  * Mark a resource sync as errored.
+ * @param {string} resourceType
+ * @param {string} errorMessage
  */
 async function markError(orgId, resourceType, resourceId, errorMessage) {
     await initDB();
@@ -144,6 +152,7 @@ async function markError(orgId, resourceType, resourceId, errorMessage) {
 
 /**
  * Get sync state for a single resource.
+ * @param {string} resourceType
  */
 async function getSyncState(orgId, resourceType, resourceId) {
     await initDB();
@@ -175,6 +184,7 @@ async function getSyncOverview(orgId) {
         'SELECT sync_status, COUNT(*) as count FROM github_sync_state WHERE organization_id = $1 GROUP BY sync_status',
         [orgId]
     );
+    /** @type {Record<string, number>} */
     const result = { synced: 0, pending: 0, error: 0, deleted: 0, total: 0 };
     for (const row of rows) {
         result[row.sync_status] = parseInt(row.count);
@@ -198,6 +208,7 @@ async function getAllSyncStates(orgId) {
 
 /**
  * Remove sync state record (after file deleted from GitHub).
+ * @param {string} resourceType
  */
 async function removeSyncState(orgId, resourceType, resourceId) {
     await initDB();

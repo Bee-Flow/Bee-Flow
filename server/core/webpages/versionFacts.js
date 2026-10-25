@@ -164,6 +164,7 @@ function restoreSummary(seq) {
 function actorOf(actorUserId, { viewerId = null, names = null } = {}) {
     const id = typeof actorUserId === 'string' && actorUserId.trim() ? actorUserId.trim() : null;
     if (!id) return null;
+    /** @type {string | null} */
     let name = null;
     if (names && typeof names.get === 'function') name = names.get(id);
     else if (names && typeof names === 'object') name = /** @type {Record<string, string>} */ (names)[id];

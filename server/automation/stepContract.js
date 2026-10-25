@@ -36,6 +36,9 @@ function walkSteps(steps, fn) {
 }
 
 // Coarse fallback when the static tool→integration map can't resolve a tool.
+/**
+ * @param {string} tool
+ */
 function coarseIntegration(tool) {
     if (!tool) return null;
     if (tool.startsWith('nextcloud')) return 'nextcloud';
@@ -89,6 +92,9 @@ function requiredIntegrations(definition) {
     let resolveIntegration = null;
     try { ({ resolveIntegration } = require('../core/integrations/integrationToolMap')); } catch (err) { bestEffort('automation/stepContract:requiredIntegrations', err); /* optional */ }
     const ids = new Set();
+    /**
+     * @param {string | null} tool
+     */
     const addTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;
         const resolved = resolveIntegration ? resolveIntegration(tool) : null;

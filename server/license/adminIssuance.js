@@ -24,11 +24,17 @@ const { bestEffort } = require('../utils/bestEffort');
 const ADMIN_ISSUER = 'beeflow.admin.console';
 const BLOB_PREFIX = 'beeflow-admin-v1.';
 
+/**
+ * @param {string} buf
+ */
 function base64UrlEncode(buf) {
     return Buffer.from(buf).toString('base64')
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/**
+ * @param {string} str
+ */
 function base64UrlDecode(str) {
     str = str.replace(/-/g, '+').replace(/_/g, '/');
     while (str.length % 4) str += '=';
@@ -40,6 +46,9 @@ function encodeAdminLicenseBlob(payload) {
     return BLOB_PREFIX + base64UrlEncode(json);
 }
 
+/**
+ * @param {string} blob
+ */
 function decodeAdminLicenseBlob(blob) {
     if (typeof blob !== 'string' || !blob.startsWith(BLOB_PREFIX)) {
         throw new Error('Not an admin license blob');
@@ -49,7 +58,7 @@ function decodeAdminLicenseBlob(blob) {
     try {
         parsed = JSON.parse(base64UrlDecode(body).toString('utf8'));
     } catch (e) {
-        throw new Error(`Malformed admin license blob: ${e.message}`);
+        throw new Error(`Malformed admin license blob: ${/** @type {Error} */ (e).message}`);
     }
     return parsed;
 }
@@ -58,6 +67,9 @@ function isAdminIssuedLicense(license) {
     return !!license && license.issuer === ADMIN_ISSUER;
 }
 
+/**
+ * @param {string | Date} expiresAt
+ */
 function normalizeExpiresAt(expiresAt) {
     const d = expiresAt instanceof Date ? expiresAt : new Date(expiresAt);
     if (Number.isNaN(d.getTime())) throw new Error('Invalid expiresAt');
@@ -174,6 +186,7 @@ async function issueAdminLicense({
  * Import a previously-exported admin license blob into this install. Generates
  * a fresh license id so each install has its own row, but preserves tier,
  * expiry, billing interval, and metadata.
+ * @param {string} blob
  */
 async function importAdminLicense(blob, { activatedBy = null, organizationId = null } = {}) {
     const decoded = decodeAdminLicenseBlob(blob);

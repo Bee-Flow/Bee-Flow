@@ -45,6 +45,7 @@ const { PII_CATEGORIES } = require('./categories');
 const SWEPT_CATEGORY_KEYS = new Set(['person']);
 
 /** Category a seed token's key stands for (`[person_3]` → Person). */
+/** @type {Record<string, string>} */
 const _CATEGORY_OF_KEY = { person: 'Person' };
 
 // Honorifics and degrees the detector often includes in a person span. Only
@@ -63,11 +64,18 @@ const _SEED_TOKEN_RE = /^\[([a-z0-9_]+)_\d+\]$/;
 const _LEAD_IN = /[\s"'“”‘’‚„«»([{•*·–—-]/u;
 const _SENTENCE_END = /[.!?…\n\r]/u;
 
+/**
+ * @param {number} cp
+ */
 function _isWordCodePoint(cp) {
     return cp !== undefined && _WORD_CHAR.test(String.fromCodePoint(cp));
 }
 
-/** Is the character that ends just before index `i` a letter/mark/digit? */
+/**
+ * Is the character that ends just before index `i` a letter/mark/digit?
+ * @param {string} s
+ * @param {number} i
+ */
 function _wordCharBefore(s, i) {
     if (i <= 0) return false;
     const unit = s.charCodeAt(i - 1);
@@ -75,17 +83,29 @@ function _wordCharBefore(s, i) {
     return _isWordCodePoint(s.codePointAt(isLowSurrogate && i >= 2 ? i - 2 : i - 1));
 }
 
-/** Is the character that starts at index `i` a letter/mark/digit? */
+/**
+ * Is the character that starts at index `i` a letter/mark/digit?
+ * @param {string} s
+ * @param {number} i
+ */
 function _wordCharAt(s, i) {
     return i < s.length && _isWordCodePoint(s.codePointAt(i));
 }
 
+/**
+ * @param {string} word
+ * @param {Set<string>} particles
+ */
 function _isNameWord(word, particles) {
     const lower = word.toLowerCase();
     return word.length >= 3 && !particles.has(lower) && !_TITLES.has(lower);
 }
 
-/** Does a sentence (or a line) start at `at`? */
+/**
+ * Does a sentence (or a line) start at `at`?
+ * @param {string} text
+ * @param {number} at
+ */
 function _atSentenceStart(text, at) {
     let i = at - 1;
     // Both patterns are one character class tested against one character: constant time.
@@ -115,6 +135,11 @@ function sweepNameOccurrences({ text, spans, seedEntries = [], categoryKeyOf, pa
 
     /** @type {Map<string, {category: string, label: string, oneWord: boolean}>} */
     const needles = new Map();
+    /**
+     * @param {string | undefined} value
+     * @param {string | undefined} category
+     * @param {string | undefined} label
+     */
     const addValue = (value, category, label) => {
         // Every regex that reads `v` below is linear: the split's pattern is one
         // class repeated with nothing after it, the tests are one class each.
@@ -123,6 +148,10 @@ function sweepNameOccurrences({ text, spans, seedEntries = [], categoryKeyOf, pa
         const parts = v.split(_PART_SPLIT).filter(Boolean);
         // A value with no distinctive word ("van der") names nobody.
         if (!parts.some(p => _isNameWord(p, particles))) return;
+        /**
+         * @param {string} needle
+         * @param {boolean} oneWord
+         */
         const add = (needle, oneWord) => {
             // A one-word needle must be written capitalised: a lower-case
             // "wil" the detector called a name is not evidence for every "wil".
@@ -158,6 +187,9 @@ function sweepNameOccurrences({ text, spans, seedEntries = [], categoryKeyOf, pa
 
     /** @type {Set<string>|null} */
     let lowerCaseWords = null;
+    /**
+     * @param {string} word
+     */
     const usedInLowerCase = (word) => {
         if (!lowerCaseWords) {
             lowerCaseWords = new Set();

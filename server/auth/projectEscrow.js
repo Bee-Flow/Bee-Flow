@@ -67,6 +67,9 @@ const _projectKeyCache = new Map(); // `${orgId}|${projectId}` -> { at, key }
 const CACHE_TTL_MS = 5 * 60_000;
 const CACHE_MAX = 500;
 
+/**
+ * @param {string} cacheKey
+ */
 function _cacheGet(cacheKey) {
     const hit = _projectKeyCache.get(cacheKey);
     if (!hit) return null;
@@ -78,6 +81,10 @@ function _cacheGet(cacheKey) {
     return hit.key;
 }
 
+/**
+ * @param {string} cacheKey
+ * @param {Buffer<ArrayBufferLike>} key
+ */
 function _cacheSet(cacheKey, key) {
     if (_projectKeyCache.size >= CACHE_MAX) {
         const oldest = _projectKeyCache.keys().next().value;
@@ -273,7 +280,7 @@ async function assertNoSharedConversations(orgId) {
         // The columns may not exist yet on an install that has never run the
         // Phase-1 migration. No shared conversations can exist there, so this is
         // not a reason to block a rotation.
-        if (/column .* does not exist|relation .* does not exist/i.test(err.message)) return;
+        if (/column .* does not exist|relation .* does not exist/i.test(/** @type {Error} */ (err).message)) return;
         throw err;
     }
 

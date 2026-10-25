@@ -46,16 +46,25 @@ class ScalewayProvider extends BaseProvider {
 
     // ─── Model capabilities ──────────────────────────────────────────
 
+    /**
+     * @param {string} modelId
+     */
     supportsVision(modelId) {
         return !!describeScalewayModel(modelId).vision;
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsReasoning(modelId) {
         return !!describeScalewayModel(modelId).reasoning;
     }
 
     // ─── Request Building ────────────────────────────────────────────
 
+    /**
+     * @param {string} model
+     */
     buildRequestBody(model, messages, options = {}) {
         const body = super.buildRequestBody(model, messages, options);
 
@@ -112,7 +121,7 @@ class ScalewayProvider extends BaseProvider {
                 clearTimeout(timer);
             }
         } catch (e) {
-            log.warn(`[Scaleway] /v1/models failed: ${e.message}`);
+            log.warn(`[Scaleway] /v1/models failed: ${/** @type {Error} */ (e).message}`);
             return [];
         }
 

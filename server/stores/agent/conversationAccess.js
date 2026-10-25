@@ -30,12 +30,16 @@
 
 const { getOne } = require('../../db');
 
+/** @type {Record<string, string>} */
 const TABLES = {
     direct: 'direct_conversations',
     agent: 'agent_conversations',
 };
 
-/** Map a caller-supplied type onto a real table name. Never interpolate raw. */
+/**
+ * Map a caller-supplied type onto a real table name. Never interpolate raw.
+ * @param {string} type
+ */
 function tableFor(type) {
     return TABLES[type] || TABLES.direct;
 }
@@ -71,7 +75,7 @@ async function resolveConversationAccess(conversationId, viewerId, type = 'direc
     } catch (err) {
         // Pre-migration installs have no shared_scope/crypto_scope columns. Fall
         // back to owner-only, which is exactly what those installs support.
-        if (/column .* does not exist/i.test(err.message)) {
+        if (/column .* does not exist/i.test(/** @type {Error} */ (err).message)) {
             row = await getOne(
                 `SELECT id, user_id, project_id, title, updated_at FROM ${table} WHERE id = $1`,
                 [conversationId]
@@ -87,6 +91,7 @@ async function resolveConversationAccess(conversationId, viewerId, type = 'direc
     const sharedScope = row.shared_scope || 'private';
     const cryptoScope = row.crypto_scope || 'user';
 
+    /** @type {string | null} */
     let projectRole = null;
     if (!isOwner) {
         // A private conversation is invisible to everyone but its owner, no
@@ -97,6 +102,7 @@ async function resolveConversationAccess(conversationId, viewerId, type = 'direc
         if (!projectRole) return null;
     }
 
+    /** @type {Record<string, number>} */
     const rank = { viewer: 0, editor: 1, owner: 2 };
     return {
         id: row.id,

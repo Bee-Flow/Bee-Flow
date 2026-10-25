@@ -37,6 +37,9 @@ function isImageGenTool(name) {
     return name === 'generate_image';
 }
 
+/**
+ * @param {(arg0: string, arg1: { data: string; mimeType: string | null; }) => void} send
+ */
 async function executeImageGenTool(args, imageGenSettings, send, req) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
@@ -61,6 +64,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
     send('image', { data: result.imageBase64, mimeType: result.mimeType });
 
     // Save image to RustFS (or local disk as fallback)
+    /** @type {string | null} */
     let imageUrl = null;
     try {
         const crypto = require('crypto');
@@ -83,7 +87,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
             log.info(`[ImageGen Tool] Saved to disk: ${imageUrl}`);
         }
     } catch (e) {
-        log.warn('[ImageGen Tool] Failed to save image to disk:', e.message);
+        log.warn('[ImageGen Tool] Failed to save image to disk:', /** @type {Error} */ (e).message);
     }
 
     // Log usage
@@ -99,7 +103,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
             source: 'image_generation',
         });
     } catch (e) {
-        log.warn('[ImageGen Tool] Failed to log usage:', e.message);
+        log.warn('[ImageGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 
     return {

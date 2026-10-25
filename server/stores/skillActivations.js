@@ -71,6 +71,10 @@ const initDB = makeStoreInit('SkillActivations', async () => {
 // key → epoch ms of the last write. Bounded; cleared wholesale when full.
 const _recent = new Map();
 
+/**
+ * @param {string} key
+ * @param {number} now
+ */
 function _seenRecently(key, now) {
     const at = _recent.get(key);
     if (at !== undefined && now - at < ACTIVATION_TTL_MS) return true;
@@ -123,7 +127,7 @@ async function recordActivations({ skillIds, agentId = null, conversationId = nu
     } catch (err) {
         // A failed write must not be remembered as done.
         for (const id of ids) _recent.delete(`${id}|${conversation}|${agent}|${src}`);
-        log.warn('[SkillActivations] recordActivations failed:', err.message);
+        log.warn('[SkillActivations] recordActivations failed:', /** @type {Error} */ (err).message);
         return 0;
     }
 }
@@ -172,7 +176,10 @@ async function getLastActivationByAgent(skillId, agentIds) {
     return out;
 }
 
-/** Recent activations of one skill (newest first). */
+/**
+ * Recent activations of one skill (newest first).
+ * @param {number} [limit]
+ */
 async function listRecentActivations(skillId, limit = 50) {
     if (!skillId) return [];
     await initDB();

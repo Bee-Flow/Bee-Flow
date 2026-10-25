@@ -20,6 +20,9 @@
 
 'use strict';
 
+/**
+ * @type {string | null}
+ */
 let testOverride = null;
 
 /** The active SQL dialect: 'sqlite' (default) or 'pg'. */
@@ -63,6 +66,7 @@ function resolveDialect(opts) {
 /**
  * Test-only override. Pass 'pg' / 'sqlite' to force a dialect, or null /
  * undefined to fall back to the environment variable.
+ * @param {string | null | undefined} v
  */
 function _setForTests(v) {
     if (v !== null && v !== undefined && v !== 'pg' && v !== 'sqlite') {

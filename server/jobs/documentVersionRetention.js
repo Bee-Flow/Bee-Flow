@@ -160,7 +160,7 @@ async function runOnce() {
                     deleted += Number(await d.pruneVersions(id, { selectPrunable: d.selectPrunable, referencedIds })) || 0;
                 } catch (err) {
                     failed += 1;
-                    d.log.warn('[documentVersionRetention] a document could not be thinned:', err.message);
+                    d.log.warn('[documentVersionRetention] a document could not be thinned:', /** @type {Error} */ (err).message);
                 }
             }
             if (deleted || failed) {
@@ -170,7 +170,7 @@ async function runOnce() {
         });
         return out.ran ? out.value : null;
     } catch (err) {
-        d.log.warn('[documentVersionRetention] pass failed:', err.message);
+        d.log.warn('[documentVersionRetention] pass failed:', /** @type {Error} */ (err).message);
         return null;
     } finally {
         _running = false;

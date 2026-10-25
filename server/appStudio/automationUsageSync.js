@@ -110,7 +110,7 @@ async function collectAppAutomationUsage(appId, deps = {}) {
     } catch (e) {
         // A READ ERROR is not a vanished app. Were this read as 'no-app', a database
         // hiccup would clear the index of an app that simply exists.
-        return { ok: false, reason: 'unreadable-app', error: e.message };
+        return { ok: false, reason: 'unreadable-app', error: /** @type {Error} */ (e).message };
     }
     if (!app) return { ok: false, reason: 'no-app' };
     if (!app.userId) return { ok: false, reason: 'no-owner' };
@@ -245,7 +245,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
             unset: collected.unset || 0,
         };
     } catch (e) {
-        log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS.failed} (${e.message})`);
+        log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS.failed} (${/** @type {Error} */ (e).message})`);
         return { ok: false, reason: 'failed', written: 0 };
     }
 }
@@ -270,7 +270,10 @@ const _pending = new Map();
  */
 const _purgeEpoch = new Map();
 
-/** Cancel a running pass (the app is being deleted). */
+/**
+ * Cancel a running pass (the app is being deleted).
+ * @param {string} appId
+ */
 function cancelPendingReconcile(appId) {
     const timer = _pending.get(appId);
     if (!timer) return false;
@@ -322,7 +325,7 @@ async function purgeAppAutomationUsage(appId, deps = {}) {
         // The deletion itself has already happened; throwing here would give the user a 500
         // over an app that IS gone. The rows then stay in place — annoying, but visible in the
         // log, and the next reconcile on that id cleans them up via the safety net.
-        (deps.log || console).warn(`[${LABEL}] ${appId}: automation usage purge failed — ${e.message}`);
+        (deps.log || console).warn(`[${LABEL}] ${appId}: automation usage purge failed — ${/** @type {Error} */ (e).message}`);
         return 0;
     }
 }
@@ -372,14 +375,17 @@ async function backfillAutomationUsage(deps = {}) {
         }
         return { ok: true, reason: 'backfilled', indexed, failed };
     } catch (e) {
-        log.warn(`[${LABEL}] automation usage backfill failed — ${e.message}`);
+        log.warn(`[${LABEL}] automation usage backfill failed — ${/** @type {Error} */ (e).message}`);
         return { ok: false, reason: 'failed', indexed, failed };
     } finally {
         _backfillRunning = false;
     }
 }
 
-/** Same pass, but detached: a read does not wait for it. */
+/**
+ * Same pass, but detached: a read does not wait for it.
+ * @param {UsageDeps} [deps]
+ */
 function backfillAutomationUsageDetached(deps = {}) {
     Promise.resolve()
         .then(() => backfillAutomationUsage(deps))

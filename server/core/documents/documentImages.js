@@ -28,7 +28,10 @@
 const { fallback } = require('../../utils/bestEffort');
 const USER_KEY = /^users\/([^/]+)\//;
 
-/** The spellings a key can have in a stored outline: as is, and as a proxy URL's path. */
+/**
+ * The spellings a key can have in a stored outline: as is, and as a proxy URL's path.
+ * @param {string} key
+ */
 function spellingsOf(key) {
     const encoded = key.split('/').map((segment) => encodeURIComponent(segment)).join('/');
     return encoded === key ? [key] : [key, encoded];

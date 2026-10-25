@@ -4,7 +4,10 @@
  * both helpers). Pure, no I/O.
  */
 
-/** Coerce an arbitrary value into a spreadsheet/document-safe cell value. */
+/**
+ * Coerce an arbitrary value into a spreadsheet/document-safe cell value.
+ * @param {boolean} [keepFormulas]
+ */
 function coerceCell(v, keepFormulas = false) {
     // A cell the caller marks as a formula ({ formula }) survives only where the
     // writer can emit it (create_spreadsheet); elsewhere it falls through to text.

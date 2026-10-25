@@ -26,10 +26,13 @@ export function openServer(files, { level = 'noImplicitAny', serverDir = path.jo
     return { ts, svc, text, diagnostics, update: svc.update };
 }
 
-/** Insert `edits` ({ at, text }) into `text`, last position first so offsets stay valid. */
+/** One edit: `text` goes in at `at`, replacing up to `end` when given (an insert otherwise). */
+const applyOne = (text, e) => text.slice(0, e.at) + e.text + text.slice(e.end ?? e.at);
+
+/** Apply `edits` ({ at, end?, text }) to `text`, last position first so offsets stay valid. */
 export function insertAll(text, edits) {
     let out = text;
-    for (const e of [...edits].sort((a, b) => b.at - a.at)) out = out.slice(0, e.at) + e.text + out.slice(e.at);
+    for (const e of [...edits].sort((a, b) => b.at - a.at)) out = applyOne(out, e);
     return out;
 }
 
@@ -48,7 +51,7 @@ export function keepHarmless(original, edits, count) {
     let now = base;
     // Offsets shift once an earlier edit is in: apply from the last position backwards on the ORIGINAL positions.
     for (const e of [...edits].sort((a, b) => b.at - a.at)) {
-        const candidate = current.slice(0, e.at) + e.text + current.slice(e.at);
+        const candidate = applyOne(current, e);
         const n = count(candidate);
         if (n <= now) { kept.push(e); current = candidate; now = n; }
     }

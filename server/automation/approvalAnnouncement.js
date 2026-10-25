@@ -29,16 +29,24 @@ const ANNOUNCEMENT_FIELDS = Object.freeze([
     'event', 'code', 'automationName', 'headline', 'role', 'answerInApp', 'link',
 ]);
 
-/** Designer-written text fit for one line: trimmed, no line breaks, capped. */
+/**
+ * Designer-written text fit for one line: trimmed, no line breaks, capped.
+ * @param {number} [max]
+ */
 function oneLine(text, max = 120) {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
 }
 
 /**
+ * @typedef {Object} RoleWordingArgs
+ * @property {{ index: number; total: number; } | null} [position]
+ */
+/**
  * Who the request is asked of, in role terms: the stage name the automation's
  * designer gave it (never its free-text description), else the kind of
  * assignee. Never a person's name.
+ * @param {RoleWordingArgs} param0
  */
 function roleWording({ approval, stage = null, position = null }) {
     if (stage) {

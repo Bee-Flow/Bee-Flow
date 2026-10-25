@@ -102,6 +102,7 @@ function deriveNameFromPrompt(prompt) {
 async function resolveCreateSources(req, sources) {
     if (!sources.length) return [];
     const userId = req.session.user.id;
+    /** @type {{ kind: string; id: string; name: string; }[]} */
     const resolved = [];
 
     const automationIds = sources.filter(s => s.kind === 'automation').map(s => s.id);

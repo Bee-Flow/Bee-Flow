@@ -98,7 +98,7 @@ async function getAgentCallableTools({ agentId = null, forDispatch = false } = {
     let bound;
     try { bound = await store.listAutomationsBoundToAgent(agentId); }
     catch (e) {
-        log.warn(`[agentCallableTools] bindings of agent ${agentId} unreadable — offering none: ${e.message}`);
+        log.warn(`[agentCallableTools] bindings of agent ${agentId} unreadable — offering none: ${/** @type {Error} */ (e).message}`);
         return [];
     }
     const tools = [];
@@ -171,6 +171,10 @@ function runnerTraceOptions(trace, ctx) {
  * `{ error, code }` (toolErrorFor) and names no agent or automation.
  */
 class AgentCallRefusedError extends Error {
+    /**
+     * @param {string} message
+     * @param {string} [code]
+     */
     constructor(message, code = 'agent_not_allowed') {
         super(message);
         this.name = 'AgentCallRefusedError';
@@ -205,6 +209,11 @@ async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
     if (!toolMeta?.id) throw new Error('dispatchAgentCallableTool: missing automation id');
     const store = deps.automationStore || automationStore;
     const trace = callerTraceOf(ctx);
+    /**
+     * @param {string} reason
+     * @param {string} message
+     * @param {string} [code]
+     */
     const refuse = (reason, message, code) => {
         log.info(`[agentCallableTools] refused automation=${toolMeta.id} agent=${trace.callerAgentId || 'none'} reason=${reason}`);
         return new AgentCallRefusedError(message, code);
@@ -283,13 +292,13 @@ async function dispatchAgentCallableByName(toolName, toolArgs, ctx, deps = {}) {
         const tools = await getAgentCallableTools({ agentId, forDispatch: true }, deps);
         match = tools.find((t) => t?.function?.name === toolName) || null;
     } catch (e) {
-        log.warn('[agentCallableTools] agent-callable automation lookup failed:', e.message);
+        log.warn('[agentCallableTools] agent-callable automation lookup failed:', /** @type {Error} */ (e).message);
     }
     if (!match) return { handled: false };
     try {
         return { handled: true, result: await dispatchAgentCallableTool(match.__automation, toolArgs, ctx, deps) };
     } catch (e) {
-        log.warn(`[agentCallableTools] automation ${match.__automation?.id} not started: ${e.message}`);
+        log.warn(`[agentCallableTools] automation ${match.__automation?.id} not started: ${/** @type {Error} */ (e).message}`);
         return { handled: true, result: require('./automationCallDepth').toolErrorFor(e) };
     }
 }
@@ -337,6 +346,7 @@ function stepToTool(step) {
  * The published Steps a user exposed as chat tools. v1: owner-only, so we ask
  * the store for the caller's callable Steps (org list empty → owner rows only)
  * and keep the ones flagged expose_as_tool.
+ * @param {string} userId
  */
 async function getStepToolsForUser(userId) {
     if (!userId) return [];

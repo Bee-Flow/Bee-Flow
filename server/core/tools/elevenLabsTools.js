@@ -106,6 +106,9 @@ const ELEVENLABS_TOOLS = [
 
 // ─── Helpers ────────────────────────────────────────────────────
 
+/**
+ * @param {string} name
+ */
 function isElevenLabsTool(name) {
     return name === 'elevenlabs_music' || name === 'elevenlabs_tts' || name === 'elevenlabs_sfx';
 }
@@ -128,6 +131,10 @@ function normalizeVoiceSettings(vs) {
     return Object.keys(out).length ? out : undefined;
 }
 
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ * @param {string} ext
+ */
 async function _saveAudioLocal(buffer, ext, prefix) {
     const genDir = path.join(__dirname, '..', '..', 'data', 'uploads', 'generated');
     await fs.promises.mkdir(genDir, { recursive: true });
@@ -137,6 +144,12 @@ async function _saveAudioLocal(buffer, ext, prefix) {
     return { filePath, filename };
 }
 
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ * @param {string} ext
+ * @param {string} mimeType
+ * @param {string} userId
+ */
 async function _saveAudioToStorage(buffer, ext, prefix, mimeType, userId) {
     const storageStore = require('../../stores/storageStore');
     const filename = `${prefix}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
@@ -155,6 +168,10 @@ async function _saveAudioToStorage(buffer, ext, prefix, mimeType, userId) {
     }
 }
 
+/**
+ * @param {string} source
+ * @param {string} model
+ */
 function _logUsage(source, model, promptLen) {
     try {
         const usageStore = require('../../stores/usageStore');
@@ -182,8 +199,11 @@ async function executeElevenLabsTool(toolName, toolArgs, send, req, nanoBananaSe
     const elSettings = nanoBananaSettings?.elevenlabs || {};
     const sfxSettings = nanoBananaSettings?.sfx || {};
 
+    /** @type {{ audioBase64: string | null; mimeType: string; }} */
     let result;
+    /** @type {string} */
     let source;
+    /** @type {string} */
     let model;
     let promptText;
 
@@ -227,8 +247,8 @@ async function executeElevenLabsTool(toolName, toolArgs, send, req, nanoBananaSe
             return { error: `Unknown ElevenLabs tool: ${toolName}` };
         }
     } catch (err) {
-        log.error(`[ElevenLabs Tool] ${toolName} failed:`, err.message);
-        return { error: `ElevenLabs ${toolName} failed: ${err.message}` };
+        log.error(`[ElevenLabs Tool] ${toolName} failed:`, /** @type {Error} */ (err).message);
+        return { error: `ElevenLabs ${toolName} failed: ${/** @type {Error} */ (err).message}` };
     }
 
     if (!result?.audioBase64) {
@@ -236,6 +256,7 @@ async function executeElevenLabsTool(toolName, toolArgs, send, req, nanoBananaSe
     }
 
     // Save audio to RustFS (or local disk as fallback) and get URL
+    /** @type {string | null} */
     let audioUrl = null;
     try {
         const buf = Buffer.from(result.audioBase64, 'base64');
@@ -243,7 +264,7 @@ async function executeElevenLabsTool(toolName, toolArgs, send, req, nanoBananaSe
         const userId = req?.session?.user?.id;
         audioUrl = await _saveAudioToStorage(buf, 'mp3', prefix, result.mimeType || 'audio/mpeg', userId);
     } catch (e) {
-        log.warn('[ElevenLabs Tool] Failed to save audio:', e.message);
+        log.warn('[ElevenLabs Tool] Failed to save audio:', /** @type {Error} */ (e).message);
     }
 
     // Send audio URL via SSE (not base64 — URL persists on refresh)

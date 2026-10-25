@@ -26,16 +26,25 @@ const { EventEmitter } = require('events');
 const bus = new EventEmitter();
 bus.setMaxListeners(200); // SSE clients add up; raise the cap
 
+/**
+ * @param {string | symbol} type
+ */
 function emitRunEvent(type, payload) {
     bus.emit(type, { type, at: new Date().toISOString(), ...payload });
 }
 
+/**
+ * @param {string} type
+ */
 function onRunEvent(type, handler) {
     bus.on(type, handler);
     return () => bus.off(type, handler);
 }
 
 function onAny(handler) {
+    /**
+     * @param {string} _type
+     */
     const wrap = (_type) => (payload) => handler(payload);
     const types = ['run.started', 'run.finished', 'run.failed', 'step.started', 'step.finished', 'step.heartbeat'];
     const wrappers = types.map(t => {

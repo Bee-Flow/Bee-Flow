@@ -42,7 +42,7 @@ function createExternalToolInjection({ lazy }) {
                 if (!tools.find(x => x.function?.name === t.function?.name)) tools.push(t);
             }
         } catch (e) {
-            log.warn('[IntegrationTools] MCP injection failed:', e.message);
+            log.warn('[IntegrationTools] MCP injection failed:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -79,7 +79,7 @@ function createExternalToolInjection({ lazy }) {
                 }
             }
         } catch (e) {
-            log.warn('[IntegrationTools] MCP trigger availability failed:', e.message);
+            log.warn('[IntegrationTools] MCP trigger availability failed:', /** @type {Error} */ (e).message);
             return new Set();
         }
         return out;
@@ -126,7 +126,7 @@ function createExternalToolInjection({ lazy }) {
                 }
             }
         } catch (e) {
-            log.warn('[IntegrationTools] Custom integration injection failed:', e.message);
+            log.warn('[IntegrationTools] Custom integration injection failed:', /** @type {Error} */ (e).message);
         }
     }
 

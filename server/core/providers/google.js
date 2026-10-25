@@ -36,6 +36,7 @@ const THINKING_MODEL_PATTERNS_25 = [
 ];
 
 // Thinking level mapping from generic effort labels
+/** @type {Record<string, string | null>} */
 const THINKING_LEVEL_MAP = {
     low: 'low',
     minimal: 'minimal',
@@ -46,6 +47,7 @@ const THINKING_LEVEL_MAP = {
 };
 
 // Budget mapping from reasoning effort labels → token budget
+/** @type {Record<string, number>} */
 const THINKING_BUDGET_MAP = {
     minimal: 128,
     low: 1024,
@@ -84,6 +86,9 @@ class GoogleProvider extends BaseProvider {
 
     // ─── Model Helpers ───────────────────────────────────────────
 
+    /**
+     * @param {string} modelId
+     */
     supportsReasoning(modelId) {
         return THINKING_MODEL_PATTERNS_3X.some(p => p.test(modelId))
             || THINKING_MODEL_PATTERNS_25.some(p => p.test(modelId));
@@ -94,14 +99,23 @@ class GoogleProvider extends BaseProvider {
         return true;
     }
 
+    /**
+     * @param {string} modelId
+     */
     _isGemini25(modelId) {
         return THINKING_MODEL_PATTERNS_25.some(p => p.test(modelId));
     }
 
+    /**
+     * @param {string} modelId
+     */
     _isGemini3x(modelId) {
         return THINKING_MODEL_PATTERNS_3X.some(p => p.test(modelId));
     }
 
+    /**
+     * @param {string} modelId
+     */
     isImageModel(modelId) {
         return /image-preview/.test(modelId);
     }
@@ -323,6 +337,9 @@ class GoogleProvider extends BaseProvider {
     // ─── Explicit Context Caching ────────────────────────────────
     // Cache system instruction + tools server-side for 90% token savings
 
+    /**
+     * @param {string} model
+     */
     async _getOrCreateCache(ai, model, systemInstruction, tools) {
         if (!systemInstruction) return null;
 
@@ -375,13 +392,16 @@ class GoogleProvider extends BaseProvider {
             log.info(`[Google] Created explicit cache: ${cacheName} (~${estimatedTokens} tokens)`);
             return cacheName;
         } catch (err) {
-            log.warn('[Google] Explicit cache creation failed (using inline):', err.message);
+            log.warn('[Google] Explicit cache creation failed (using inline):', /** @type {Error} */ (err).message);
             return null;
         }
     }
 
     // ─── Build Config ────────────────────────────────────────────
 
+    /**
+     * @param {string} model
+     */
     _buildGenerateConfig(model, options = {}) {
         const config = {};
 
@@ -414,6 +434,7 @@ class GoogleProvider extends BaseProvider {
 
         // Gemini 3.x models: use thinkingLevel
         if (this._isGemini3x(model)) {
+            /** @type {string | null} */
             let level = null;
 
             // 1. Explicit thinkingLevel from options
@@ -521,6 +542,7 @@ class GoogleProvider extends BaseProvider {
     /**
      * Non-streaming chat via SDK.
      * baseUrl is accepted for interface compatibility but ignored — SDK handles it.
+     * @param {string} model
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const ai = this.createClient(apiKey, options);
@@ -583,6 +605,7 @@ class GoogleProvider extends BaseProvider {
     /**
      * Streaming chat via SDK.
      * baseUrl is accepted for interface compatibility but ignored.
+     * @param {string} model
      */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         const ai = this.createClient(apiKey, options);
@@ -684,11 +707,11 @@ class GoogleProvider extends BaseProvider {
                 }
             }
         } catch (err) {
-            log.error('[Google] Stream error:', err.message);
+            log.error('[Google] Stream error:', /** @type {Error} */ (err).message);
             if (err.status) log.error('[Google] Error status:', err.status);
             // Log full error details for debugging
             if (err.errorDetails) log.error('[Google] Error details:', JSON.stringify(err.errorDetails));
-            onEvent('error', { error: `Google API error: ${err.message}` });
+            onEvent('error', { error: `Google API error: ${/** @type {Error} */ (err).message}` });
         }
 
         // Ensure thinking is closed — covers streams that end while still in thinking phase.
@@ -740,8 +763,11 @@ class GoogleProvider extends BaseProvider {
             config,
         });
 
+        /** @type {string | null} */
         let text = null;
+        /** @type {string | undefined | null} */
         let imageBase64 = null;
+        /** @type {string | null} */
         let mimeType = null;
 
         if (response.candidates?.[0]?.content?.parts) {
@@ -789,10 +815,12 @@ class GoogleProvider extends BaseProvider {
 
         log.info(`[Google] Music generation: "${log.textForLog(prompt)}" (${durationMs / 1000}s, ${bpm} BPM)`);
 
+        /** @type {Buffer<ArrayBuffer>[]} */
         const audioChunks = [];
 
         return new Promise(async (resolve, reject) => {
             let sessionClosed = false;
+            /** @type {NodeJS.Timeout} */
             let timeoutHandle;
 
             try {
@@ -863,8 +891,8 @@ class GoogleProvider extends BaseProvider {
                 }, durationMs);
 
             } catch (err) {
-                log.error('[Google] Lyria RealTime connection error:', err.message);
-                reject(new Error(`Music generation failed: ${err.message}`));
+                log.error('[Google] Lyria RealTime connection error:', /** @type {Error} */ (err).message);
+                reject(new Error(`Music generation failed: ${/** @type {Error} */ (err).message}`));
             }
 
             const finalize = () => {
@@ -1008,6 +1036,7 @@ class GoogleProvider extends BaseProvider {
         try {
             const ai = this.createClient(apiKey);
             const result = await ai.models.list();
+            /** @type {({ id: string | undefined; name: string | undefined; })[]} */
             const models = [];
             // The SDK returns a PagedIterable
             for await (const model of result) {
@@ -1021,7 +1050,7 @@ class GoogleProvider extends BaseProvider {
             log.info(`[Google] Found ${models.length} models`);
             return models;
         } catch (e) {
-            log.error('[Google] SDK listModels failed:', e.message);
+            log.error('[Google] SDK listModels failed:', /** @type {Error} */ (e).message);
             return [];
         }
     }

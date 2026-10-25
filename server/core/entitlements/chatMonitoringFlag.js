@@ -77,7 +77,9 @@ function computeState({ settings, dpiaRow, installHasOrganisations, orgKey, now 
     if (ev.global.length) return OFF;
 
     const selected = Array.isArray(s.chat_monitoring_surfaces) ? s.chat_monitoring_surfaces : [];
+    /** @type {string[]} */
     const surfaces = [];
+    /** @type {Readonly<{ surface: string; missing: readonly string[]; }>[]} */
     const paused = [];
     for (const surface of V.PHASE.surfaces) {
         if (!selected.includes(surface)) continue;
@@ -114,6 +116,7 @@ function makeResolver(deps, { ttlMs = CACHE_TTL_MS, errorTtlMs = ERROR_TTL_MS, o
     const memo = new Map();      // orgKey -> { at, ttl, value }
     const inflight = new Map();  // orgKey -> Promise
     const generation = new Map(); // orgKey -> number, bumped by invalidate
+    /** @type {{ at: number; value: boolean; } | null} */
     let orgs = null;             // { at, value }
 
     async function installHasOrganisations() {
@@ -123,6 +126,9 @@ function makeResolver(deps, { ttlMs = CACHE_TTL_MS, errorTtlMs = ERROR_TTL_MS, o
         return value;
     }
 
+    /**
+     * @param {string} orgKey
+     */
     async function read(orgKey) {
         if (!(await deps.isModuleActive('compliance'))) return OFF;
         const capable = await deps.hasCapability('compliance_hub_gdpr', { orgId: orgKey === 'default' ? null : orgKey });

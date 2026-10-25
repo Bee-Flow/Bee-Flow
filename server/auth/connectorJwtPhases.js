@@ -43,6 +43,9 @@ function ok(user = null) { return { kind: 'ok', user }; }
 // deadlock. Match is an exact equality on the stable nc_admin_uid. reqNcUid
 // comes from _resolveRequesterNcUid: the tenant-key-signed JWT `sub` wins; the
 // unsigned X-Beeflow-NC-Uid header is only a last-resort fallback (BFSF-377).
+/**
+ * @param {string} reqNcUid
+ */
 function _isOrgAdminRequester(org, reqNcUid) {
     return !!(org && org.nc_admin_uid && reqNcUid && reqNcUid === org.nc_admin_uid);
 }
@@ -117,7 +120,7 @@ async function reconcileUserRecord(user, orgId, payload) {
             user.organizationId = orgId;
             log.info(`[ConnectorJWT] Backfilled organizationId=${orgId} for user ${user.id}`);
         } catch (e) {
-            log.warn(`[ConnectorJWT] Failed to backfill organizationId for ${user.id}: ${e.message}`);
+            log.warn(`[ConnectorJWT] Failed to backfill organizationId for ${user.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -151,7 +154,7 @@ async function reconcileUserRecord(user, orgId, payload) {
             log.warn(`[ConnectorJWT] Repaired stale nc_uid for user ${user.id}: ${user.nc_uid} → ${payload.sub}`);
             user.nc_uid = payload.sub;
         } catch (e) {
-            log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${e.message}`);
+            log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
@@ -187,6 +190,7 @@ async function establishConnectorSession(req, user, orgId, payload) {
     // every request. Both the SSO-recovery DEK and the deterministic
     // fallback are stable for the user's lifetime (until they explicitly
     // rotate via the encryption-pin flow), so first computation wins.
+    /** @type {string | null} */
     let cachedEnc = null;
     try {
         cachedEnc = _encKeyCache.get(user.id);
@@ -200,7 +204,7 @@ async function establishConnectorSession(req, user, orgId, payload) {
             if (cachedEnc) _encKeyCache.set(user.id, cachedEnc);
         }
     } catch (e) {
-        log.warn(`[ConnectorJWT] EncryptionKey derivation failed for user ${user.id}: ${e.message}`);
+        log.warn(`[ConnectorJWT] EncryptionKey derivation failed for user ${user.id}: ${/** @type {Error} */ (e).message}`);
         orgHealth.problem('auth.encryption_key_failed', {
             orgId, source: 'connectorJwt', req,
             meta: { userId: user.id, reason: 'derivation_failed' },

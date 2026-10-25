@@ -103,8 +103,8 @@ ${sourcesList}
         return markdown;
 
     } catch (err) {
-        log.error(`[BingSearch] Error:`, err.message);
-        return `Search failed: ${err.message}`;
+        log.error(`[BingSearch] Error:`, /** @type {Error} */ (err).message);
+        return `Search failed: ${/** @type {Error} */ (err).message}`;
     }
 }
 

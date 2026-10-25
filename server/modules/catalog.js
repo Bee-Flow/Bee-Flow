@@ -46,6 +46,9 @@ const _EDITION = String(process.env.BEEFLOW_EDITION || 'full').trim().toLowerCas
 const _EXPLICIT = String(process.env.BEEFLOW_MODULES || '')
     .split(',').map(s => s.trim()).filter(Boolean);
 
+/**
+ * @param {string} id
+ */
 function availableByEdition(id) {
     if (_EXPLICIT.length) return _EXPLICIT.includes(id);
     return _EDITION !== 'core';
@@ -171,6 +174,9 @@ function listModules() {
     return MODULES;
 }
 
+/**
+ * @param {string} id
+ */
 function getModule(id) {
     return MODULES.find(m => m.id === id) || null;
 }
@@ -185,6 +191,7 @@ function getModule(id) {
  *
  * Unknown ids answer true: core surfaces are not in this catalog and must
  * never be switched off by a typo.
+ * @param {string} id
  */
 function isModuleAvailable(id) {
     const m = getModule(id);

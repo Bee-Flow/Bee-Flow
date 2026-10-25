@@ -60,6 +60,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
     // the request; if the cap is hit, fall back to fire-and-forget.
     const RESPONSE_TIMEOUT_MS = 60_000;
     let timedOut = false;
+    /** @type {NodeJS.Timeout} */
     let guardTimer;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, RESPONSE_TIMEOUT_MS); });
     // The cap counts from here, so the payload lookups below spend from it as
@@ -264,7 +265,7 @@ router.get('/:id/steps/:stepId/rerun-plan', validate({ query: RerunPlanQuery }),
         });
     } catch (e) {
         // runPartial names a step it cannot find in a plain Error.
-        if (/not found in definition/.test(e?.message || '')) throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
+        if (/not found in definition/.test(/** @type {Error} */ (e)?.message || '')) throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
         throw e;
     }
     res.json({ rerunPlan });
@@ -306,11 +307,13 @@ router.post('/_schedule/preview', runTriggerLimiter, validate({ body: SchedulePr
     try {
         cron.parseCron(cronExpr);
     } catch (e) {
-        return res.json({ valid: false, error: e.message });
+        return res.json({ valid: false, error: /** @type {Error} */ (e).message });
     }
+    /** @type {string[]} */
     const next = [];
     const startedAt = Date.now();
     let from = startedAt;
+    /** @type {{ date: string; key: string; name: string; }[]} */
     let skipped = [];
     try {
         for (let i = 0; i < count; i++) {
@@ -332,7 +335,7 @@ router.post('/_schedule/preview', runTriggerLimiter, validate({ body: SchedulePr
     } catch (e) {
         // Only the time zone can throw past parseCron (Intl rejects an
         // unknown IANA name); the scheduler would hit the same error.
-        return res.json({ valid: false, error: `Unknown time zone "${tz}": ${e.message}` });
+        return res.json({ valid: false, error: `Unknown time zone "${tz}": ${/** @type {Error} */ (e).message}` });
     }
     res.json({ valid: true, cron: cronExpr, tz, next, skipHolidays, skipped });
 });

@@ -37,6 +37,9 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         return path.join(workDir, `${id}.db`);
     }
 
+    /**
+     * @param {string} localPath
+     */
     async function downloadIfExists(ownerId, id, localPath) {
         if (!storage.isAvailable()) return false;
         try {
@@ -46,7 +49,7 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
             await fsp.writeFile(localPath, Buffer.concat(chunks));
             return true;
         } catch (err) {
-            if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return false;
+            if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return false;
             throw err;
         }
     }

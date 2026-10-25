@@ -62,7 +62,10 @@ async function setRedirect(siteId, input) {
     return { entry: /** @type {Redirect} */ (entry), redirects: doc.redirects };
 }
 
-/** @returns {Promise<boolean>} whether an entry was removed */
+/**
+ * @returns {Promise<boolean>} whether an entry was removed
+ * @param {string} siteId
+ */
 async function removeRedirect(siteId, id) {
     let removed = false;
     await mutate(siteId, (cur) => {
@@ -97,7 +100,7 @@ async function recordRename(siteId, oldSlug, newSlug) {
             return { ...cur, redirects: rules.addRedirect(free, input, { allowedHosts: cur.allowedHosts }) };
         });
     } catch (e) {
-        log.warn(`[CMS] no automatic redirect for ${oldSlug} -> ${newSlug}: ${e.message}`);
+        log.warn(`[CMS] no automatic redirect for ${oldSlug} -> ${newSlug}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -112,7 +115,7 @@ async function redirectDeleted(siteId, slug, to) {
         const { entry } = await setRedirect(siteId, { from: `/${slug}`, to });
         return { entry };
     } catch (e) {
-        if (e instanceof rules.RedirectError) return { error: e.message };
+        if (e instanceof rules.RedirectError) return { error: /** @type {Error} */ (e).message };
         throw e;
     }
 }

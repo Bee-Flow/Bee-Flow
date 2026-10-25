@@ -66,12 +66,15 @@ async function aiStepIds(store, run) {
         const def = await store.getVersionDefinition?.(run.automationId, run.version);
         if (def) for (const s of require('../aiActDetect').detectAiUse(def).steps) if (s.stepId) ids.add(s.stepId);
     } catch (e) {
-        log.debug(`[automation/runCompare] version definition unavailable, AI classification by step type only: ${e.message}`);
+        log.debug(`[automation/runCompare] version definition unavailable, AI classification by step type only: ${/** @type {Error} */ (e).message}`);
     }
     return ids;
 }
 
-/** One side of the comparison: its steps by key, its readable run ids, its header. */
+/**
+ * One side of the comparison: its steps by key, its readable run ids, its header.
+ * @param {string} viewerId
+ */
 async function loadSide(run, legs, viewerId, store, aiIds) {
     const readable = (legs?.length ? legs : [run]).filter(l => canReadRunData(l, viewerId));
     const runIds = readable.map(l => l.id);
@@ -149,7 +152,11 @@ async function compareStep(key, ea, eb, env) {
     return out;
 }
 
-/** The summary of one file of one side, read through the byte cap, remembered per compare. */
+/**
+ * The summary of one file of one side, read through the byte cap, remembered per compare.
+ * @param {string} label
+ * @param {number} fileMaxBytes
+ */
 function summaryLoader(side, label, storage, fileMaxBytes) {
     return (file) => {
         const memo = side.files;

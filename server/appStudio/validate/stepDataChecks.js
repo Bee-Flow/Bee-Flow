@@ -93,7 +93,7 @@ function checkDatasetQuery(step, path, ctx) {
     // So: literals are checked statically, formulas are left to the run
     // time, which knows what the viewer actually typed.
     const present = ['gene', 'region', 'rsid'].filter((f) => step[f] !== undefined && step[f] !== null);
-    const isDecidable = (v) => typeof v === 'string'
+    const isDecidable = (/** @type {{ kind: string; }} */ v) => typeof v === 'string'
         || (isObject(v) && v.kind === 'static');
     const literal = present.filter((f) => {
         const v = step[f];

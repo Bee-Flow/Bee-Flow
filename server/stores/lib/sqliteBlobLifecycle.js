@@ -134,7 +134,7 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
                 if (entry.flushTimer) clearTimeout(entry.flushTimer);
                 if (entry.dirty && !entry.poisoned) await flushNow(id);
             } catch (e) {
-                log.warn(`[${logPrefix}] Shutdown flush failed for ${id}:`, e.message);
+                log.warn(`[${logPrefix}] Shutdown flush failed for ${id}:`, /** @type {Error} */ (e).message);
             }
             try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
             handles.delete(id);

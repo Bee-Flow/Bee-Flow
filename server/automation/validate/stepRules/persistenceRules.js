@@ -31,6 +31,9 @@ const {
     DATATABLE_MAX_FILTERS, DATATABLE_MAX_LIMIT, DATATABLE_MATCH_MODES, PENDING_DATATABLE_RE,
 } = require('../constants');
 
+/**
+ * @param {string} at
+ */
 function checkKnowledgeWrite(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // ── knowledge_write ──────────────────────────────────────────────
@@ -78,6 +81,9 @@ function checkKnowledgeWrite(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkDatatable(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // ── datatable ────────────────────────────────────────────────────

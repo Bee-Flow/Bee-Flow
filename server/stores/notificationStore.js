@@ -56,7 +56,7 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
             await pool.query(INIT_SQL);
             log.info('[NotificationStore] PostgreSQL initialized');
         } catch (err) {
-            log.error('[NotificationStore] Init error:', err.message);
+            log.error('[NotificationStore] Init error:', /** @type {Error} */ (err).message);
             throw err;
         }
     }

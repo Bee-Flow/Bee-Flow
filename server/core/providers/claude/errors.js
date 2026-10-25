@@ -18,6 +18,7 @@
  * adapter did. `stop_details` is populated ONLY for a refusal and is null for
  * every other stop reason, so it must always be guarded before reading.
  */
+/** @type {Record<string, string>} */
 const REFUSAL_CATEGORY_HINTS = {
     cyber: 'security or exploitation content',
     bio: 'biological or chemical risk content',
@@ -25,6 +26,9 @@ const REFUSAL_CATEGORY_HINTS = {
     frontier_llm: 'a request about frontier model internals',
 };
 
+/**
+ * @param {(Message & { _request_id?: string | null; _workspace_id?: string | null; }) | import('@anthropic-ai/sdk').ParsedMessage<null>} response
+ */
 function refusalMessage(response) {
     const details = response?.stop_details || null;
     const hint = (details && REFUSAL_CATEGORY_HINTS[details.category]) || null;
@@ -38,6 +42,7 @@ function refusalMessage(response) {
  * request simply did not fit. Worth distinguishing from a refusal and from a
  * plain `max_tokens` truncation, because the remedy is different (fold the
  * conversation, don\'t rephrase it).
+ * @param {(Message & { _request_id?: string | null; _workspace_id?: string | null; }) | import('@anthropic-ai/sdk').ParsedMessage<null>} response
  */
 function isContextWindowStop(response) {
     return response?.stop_reason === 'model_context_window_exceeded';

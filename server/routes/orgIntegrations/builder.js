@@ -75,9 +75,15 @@ const MAX_TOOL_NAME_CHARS = 41;
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-/** A JSON object (never an array); its contents are someone else's to judge. */
+/**
+ * A JSON object (never an array); its contents are someone else's to judge.
+ * @param {string} message
+ */
 const jsonObject = (message) => z.record(z.string(), z.unknown(), { error: typeError({ required: message, invalid: message }) });
 
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
 const NAME_TEXT = 'An integration needs a name.';
@@ -149,6 +155,7 @@ function credentialSpecFor(kind, definition) {
 
     if (kind === 'mcp_remote') {
         const mcp = (def.mcp && typeof def.mcp === 'object' && !Array.isArray(def.mcp)) ? def.mcp : null;
+        /** @type {string | null} */
         let boundOrigin = null;
         try { boundOrigin = new URL(mcp.url).origin; } catch (_) { boundOrigin = null; }
         if (!mcp || !boundOrigin) {
@@ -159,6 +166,7 @@ function credentialSpecFor(kind, definition) {
 
     // kind === 'rest'
     const api = (def.api && typeof def.api === 'object' && !Array.isArray(def.api)) ? def.api : null;
+    /** @type {string | null} */
     let boundOrigin = null;
     try { boundOrigin = new URL(api.baseUrl).origin; } catch (_) { boundOrigin = null; }
     if (!api || !boundOrigin) {
@@ -182,6 +190,7 @@ function checkCredentialValues(values, declaredFields) {
     if (!values || typeof values !== 'object' || Array.isArray(values)) {
         return { ok: false, errors: ['values must be an object map of credential fields.'] };
     }
+    /** @type {string[]} */
     const errors = [];
     const keys = Object.keys(values);
     if (keys.length === 0) errors.push('values must contain at least one credential field.');
@@ -237,7 +246,7 @@ router.param('id', async (req, res, next, id) => {
         req.customIntegration = row;
         next();
     } catch (err) {
-        log.error('[CustomIntegrationsAPI] loader error:', err.message);
+        log.error('[CustomIntegrationsAPI] loader error:', /** @type {Error} */ (err).message);
         res.status(404).json({ error: 'Not found' });
     }
 });
@@ -246,6 +255,9 @@ router.param('id', async (req, res, next, id) => {
 
 // Access-audit (best-effort by contract — logAccessAudit never throws).
 // NEVER pass secrets, tool args or response bodies: names/versions/statuses.
+/**
+ * @param {string} verb
+ */
 function audit(req, verb, integrationId, oldValues, newValues) {
     return userStore().logAccessAudit(
         `custom_integration.${verb}`, 'custom_integration', integrationId,
@@ -285,6 +297,9 @@ async function resolveAdminSecretObject(req, row) {
 }
 
 // Remove (or keep) 'custom:<id>' in the org-admin enablement list.
+/**
+ * @param {boolean} enabled
+ */
 async function setOrgCapability(orgId, integrationId, enabled) {
     const us = userStore();
     const capId = `custom:${integrationId}`;
@@ -429,6 +444,7 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
     // A JSON boolean only: `!!"false"` used to allow writes (see the header).
     const { allowWrites, lendMode } = req.body;
 
+    /** @type {string[]} */
     const warnings = [];
     let toolsCache;
     if (row.kind === 'rest') {
@@ -440,7 +456,7 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
         try {
             discovered = await client.discoverTools(row, { secretObject });
         } catch (e) {
-            log.warn('[OrgIntegrations] tool discovery failed:', e.message);
+            log.warn('[OrgIntegrations] tool discovery failed:', /** @type {Error} */ (e).message);
             throw new HttpError(502, 'tool_discovery_failed', 'Tool discovery failed');
         }
         warnings.push(...(discovered.warnings || []));
@@ -523,7 +539,7 @@ router.post('/:id/refresh-tools', validate({ body: NoBody }), async (req, res) =
     try {
         discovered = await client.discoverTools(row, { secretObject });
     } catch (e) {
-        log.warn('[OrgIntegrations] tool refresh failed:', e.message);
+        log.warn('[OrgIntegrations] tool refresh failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'tool_discovery_failed', 'Tool discovery failed');
     }
     const def = { ...row.definition, mcp: { ...row.definition.mcp, discoveredTools: discovered.tools } };

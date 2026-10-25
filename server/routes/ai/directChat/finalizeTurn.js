@@ -55,7 +55,7 @@ async function ensureConversationWithKbs({ convId, userId, modelTier, usableKbId
                 const projectStore = require('../../../stores/projectStore');
                 await projectStore.assignConversation(conv.id, validProjectId, userId, 'direct_conversations');
             } catch (e) {
-                log.warn('[DirectChat] Failed to assign conversation to project:', e.message);
+                log.warn('[DirectChat] Failed to assign conversation to project:', /** @type {Error} */ (e).message);
             }
         }
         return conv.id;
@@ -67,7 +67,7 @@ async function ensureConversationWithKbs({ convId, userId, modelTier, usableKbId
     try {
         await agentStore.setDirectConversationKnowledgeBases(convId, attachedKbIds, userId);
     } catch (kbErr) {
-        log.warn('[DirectChat] Failed to persist attached knowledge bases:', kbErr.message);
+        log.warn('[DirectChat] Failed to persist attached knowledge bases:', /** @type {Error} */ (kbErr).message);
     }
     return convId;
 }

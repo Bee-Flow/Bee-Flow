@@ -1,3 +1,4 @@
+/** @typedef {import('../core/automationModel/dslFilters').DslFilter} DslFilter */
 // @typecheck
 /**
  * Trigger Bus — fans incoming app events into matching automation runs.
@@ -130,7 +131,7 @@ async function runPollingPass() {
             await automationStore.updateSubscription(sub.id, { lastPolledAt: new Date().toISOString() });
             await automationStore.resetSubscriptionFailures(sub.id);
         } catch (e) {
-            log.warn(`[TriggerBus] polling failed for sub ${sub.id}: ${e.message}`);
+            log.warn(`[TriggerBus] polling failed for sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
             // Stamp lastPolledAt on the FAILURE path too. getPollingSubscriptions
             // selects `last_polled_at IS NULL OR last_polled_at < NOW() - olderThanMs`
             // and orders `last_polled_at ASC NULLS FIRST LIMIT 50` — a subscription
@@ -143,7 +144,7 @@ async function runPollingPass() {
             // still notifies the user at the threshold.
             await automationStore.updateSubscription(sub.id, { lastPolledAt: new Date().toISOString() })
                 .catch(err => log.warn(`[TriggerBus] could not stamp lastPolledAt for sub ${sub.id}: ${err.message}`));
-            await escalateSubscriptionFailure(sub, POLL_FAILURE_THRESHOLD, e.message);
+            await escalateSubscriptionFailure(sub, POLL_FAILURE_THRESHOLD, /** @type {Error} */ (e).message);
         }
     }
 }
@@ -226,6 +227,7 @@ async function runDeclaredSource(sub, passCtx) {
  * failing the trigger. The trade-off: when their browser session expires,
  * the poller goes dark until they sign in again. Opportunistic vault
  * migration is a separate, future cleanup.
+ * @param {string} userId
  */
 async function loadSession(userId) {
     // Connector-bound users authenticate to NC via the ExApp reverse proxy
@@ -267,7 +269,7 @@ async function loadSession(userId) {
             };
         }
     } catch (err) {
-        log.warn(`[TriggerBus] vault session lookup failed for user ${userId}: ${err.message}`);
+        log.warn(`[TriggerBus] vault session lookup failed for user ${userId}: ${/** @type {Error} */ (err).message}`);
     }
 
     // 1.5) Connector-bound users have no bearer token — return the connector
@@ -298,7 +300,7 @@ async function loadSession(userId) {
             _source: 'session',
         };
     } catch (e) {
-        log.warn(`[TriggerBus] user_sessions fallback failed for user ${userId}: ${e.message}`);
+        log.warn(`[TriggerBus] user_sessions fallback failed for user ${userId}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -321,6 +323,10 @@ const ctx = {
     escalate: (sub, threshold, errorMsg) => escalateSubscriptionFailure(sub, threshold, errorMsg),
 };
 
+/**
+ * @param {number} threshold
+ * @param {string} errorMsg
+ */
 function escalateSubscriptionFailure(sub, threshold, errorMsg) {
     return escalateWithCtx(ctx, sub, threshold, errorMsg);
 }
@@ -340,6 +346,10 @@ function fetchLatestGmailMatch(userId, filter) {
     return latestMatch.fetchLatestGmailMatch(ctx, userId, filter);
 }
 
+/**
+ * @param {string} event
+ * @param {DslFilter | null} filter
+ */
 function fetchLatestNextcloudMatch(userId, event, filter) {
     return latestMatch.fetchLatestNextcloudMatch(ctx, userId, event, filter);
 }

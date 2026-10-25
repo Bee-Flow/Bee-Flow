@@ -33,6 +33,11 @@ function defaultDeps() {
     };
 }
 
+/**
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 const fail = (status, code, message) => ({ ok: false, status, code, message });
 
 /**

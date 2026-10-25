@@ -23,7 +23,10 @@ const { isMissingTable } = require('../../../utils/isMissingTable');
 const REQUIRED_MONTHS = 6;
 const DAY_MS = 86400 * 1000;
 
-/** The six calendar months before `nowMs`, in whole days (181–184). */
+/**
+ * The six calendar months before `nowMs`, in whole days (181–184).
+ * @param {number} nowMs
+ */
 function requiredDays(nowMs) {
     return Math.round((nowMs - addCalendarMonths(new Date(nowMs), -REQUIRED_MONTHS).getTime()) / DAY_MS);
 }
@@ -37,6 +40,8 @@ function requiredDays(nowMs) {
  * (the SQLSTATE) on a failed read. An org-scoped read is the integration
  * ledger's, filtered with LEDGER_ORG_SQL so the 'default' bucket also counts
  * the org-less rows logToolEgress writes for users without an organisation.
+ * @param {string} table
+ * @param {boolean} orgScoped
  */
 async function _oldestAgeDays(table, orgScoped, orgId) {
     try {

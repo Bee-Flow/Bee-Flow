@@ -95,6 +95,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
 
     const piiEnabled = !!(aiConfig.piiDetectionEnabled || (shield && shield.enabled) || override.scanEnabled);
     // strictest action wins; override may only tighten relative to the org shield.
+    /** @type {Record<string, number>} */
     const STRICTNESS = { block: 3, tokenize: 2, redact: 1, off: 0 };
     const baseAction = (shield && shield.piiDetectionAction) || aiConfig.piiDetectionAction || 'block';
     const overrideAction = override.action || null;
@@ -135,6 +136,9 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     return policy;
 }
 
+/**
+ * @param {{ id: string; }} step
+ */
 function buildAuditBase(ctx, step, { source = 'automation' } = {}) {
     return {
         organization_id: ctx.orgId || null,
@@ -215,6 +219,7 @@ function buildPiiSummary(entries, { source = 'guard', degraded = false } = {}) {
  * the same answer as "there is nothing here" and must never be collapsed into it.
  *
  * @returns {{ entities, degraded, degradedReason, degradedCategories, overflow }}
+ * @param {string} text
  */
 async function scanTextForPii(text, policy) {
     return _scanText(String(text ?? ''), policy || {});

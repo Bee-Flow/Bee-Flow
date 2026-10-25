@@ -30,6 +30,9 @@ const DEFAULT_WINDOW_DAYS = 90;
 const DEFAULT_LIMIT = 5000;
 const MAX_LIMIT = 20000;
 
+/**
+ * @param {string | Date | undefined} since
+ */
 function sinceOf(since) {
     const t = since instanceof Date ? since.getTime() : (since == null ? NaN : Date.parse(String(since)));
     return new Date(Number.isFinite(t) ? t : Date.now() - DEFAULT_WINDOW_DAYS * 86400_000).toISOString();
@@ -40,6 +43,10 @@ function sinceOf(since) {
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeManualActivityReader(db, { ready = async () => {} } = {}) {
+    /**
+     * @param {string} sql
+     * @param {string[] | (string | number | string[])[]} params
+     */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
 
     /**

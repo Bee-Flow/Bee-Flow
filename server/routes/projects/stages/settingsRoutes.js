@@ -75,7 +75,7 @@ async function cleanGroups(d, orgId, groups) {
         return await d.validateSharedGroupsForOrg(orgId, groups);
     } catch (err) {
         const status = Number(err && err.status);
-        if (status >= 400 && status < 500) throw new HttpError(status, 'invalid_groups', err.message);
+        if (status >= 400 && status < 500) throw new HttpError(status, 'invalid_groups', /** @type {Error} */ (err).message);
         throw err;
     }
 }
@@ -90,6 +90,9 @@ function makeSettingsHandlers(d) {
         return { stamp, shape };
     }
 
+    /**
+     * @param {boolean} active
+     */
     async function switchAutomation(ctx, shape, active) {
         const { userId, stage } = ctx;
         if (active) {
@@ -169,7 +172,7 @@ function makeSettingsHandlers(d) {
             for (const a of on) {
                 try { await d.goLive.deactivateCore({ automation: a, actorId: userId }); } catch (err) {
                     failed.push({ id: a.id, code: (err && err.code) || 'deactivate_failed' });
-                    log.warn(`[stages] pause: automation ${a.id} not switched off: ${err && err.message}`);
+                    log.warn(`[stages] pause: automation ${a.id} not switched off: ${err && /** @type {Error} */ (err).message}`);
                 }
             }
             return { changed: true, stage: updated, failed, count: on.length };
@@ -189,7 +192,7 @@ function makeSettingsHandlers(d) {
                 if (r.ok) count += 1; else failed.push({ id, code: r.code || 'go_live_refused' });
             } catch (err) {
                 failed.push({ id, code: (err && err.code) || 'activate_failed' });
-                log.warn(`[stages] resume: automation ${id} not switched on: ${err && err.message}`);
+                log.warn(`[stages] resume: automation ${id} not switched on: ${err && /** @type {Error} */ (err).message}`);
             }
         }
         // What could not come back on stays recorded, and the stage stays paused.
@@ -198,6 +201,9 @@ function makeSettingsHandlers(d) {
         return { changed: true, stage: updated || stage, failed, count };
     }
 
+    /**
+     * @param {boolean} pause
+     */
     function pauseHandler(pause) {
         return async function pauseResume(req, res) {
             const ctx = req.stageCtx;
@@ -242,9 +248,11 @@ function makeSettingsHandlers(d) {
             const target = onDev ? ctx.dev.id : ctx.stage.projectId;
             const isOwner = onDev ? ctx.devRole === 'owner' : ctx.stageRole === 'owner';
             const decls = await declarationsFor(d, ctx);
+            /** @type {Record<string, string | number | boolean | null>} */
             const typed = {};
             // Owner-only names (D18) on every target; on a stage they also wait
             // for a deployment. Dev has no deployment, so its values go live at once.
+            /** @type {string[]} */
             const steeringNames = [];
             const { coerceValue } = require('../../../stores/solutionStage/variables');
             for (const [name, value] of Object.entries(req.body.values)) {
@@ -473,6 +481,9 @@ function makeSettingsRouter(d, h) {
         res.json({ variables: saved.map(publicDecl) });
     });
 
+    /**
+     * @param {string} min
+     */
     const valueAuth = (min) => authMw(d, { stage: min, devStage: min });
     router.get('/:id/stages/:stage/variables', gate(d, 'projects'), valueAuth('viewer'), h.getValues);
     router.put('/:id/stages/:stage/variables', gate(d, 'projects'), valueAuth('editor'), validate({ body: S.PutValuesBody }), h.putValues);

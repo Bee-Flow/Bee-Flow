@@ -101,6 +101,9 @@ const CHECK_TIMEOUT_MS = parseInt(process.env.COMPLIANCE_CHECK_TIMEOUT_MS || '30
 const DEBUG = process.env.COMPLIANCE_RUNNER_DEBUG === '1';
 
 class FrameworkDisabledError extends Error {
+    /**
+     * @param {string} regulation
+     */
     constructor(checkId, regulation) {
         super(`Check ${checkId} belongs to ${regulation}, which is not active for this organisation`);
         this.name = 'FrameworkDisabledError';
@@ -117,11 +120,17 @@ function _hashPayload(payload) {
         .digest('hex');
 }
 
+/**
+ * @param {number} ms
+ */
 function _humanTimeout(ms) {
     return ms % 1000 === 0 ? `${ms / 1000} s` : `${ms} ms`;
 }
 
-/** The sentence a timed-out step records, built from our own constants only. */
+/**
+ * The sentence a timed-out step records, built from our own constants only.
+ * @param {string} label
+ */
 function _timeoutText(label) {
     return `${label} timed out after ${_humanTimeout(CHECK_TIMEOUT_MS)}`;
 }
@@ -144,6 +153,7 @@ const CHECK_EXCEPTION_DETAILS = 'The check stopped with an error; see the server
  * must not be written into it. The id is enough to join back to the live
  * record, whose current name the Compliance Center resolves at read time; the
  * check's own evidence is responsible for carrying ids and counts only.
+ * @param {{ id: string; } | null} subject
  */
 function _evidenceSubject(subject) {
     if (!subject) return null;
@@ -160,6 +170,7 @@ const SUBJECT_LABEL_MAX = 120;
  * labels are the org's own configuration (an agent's or automation's title),
  * and the row is not the chain: the ledger payload keeps `_evidenceSubject`,
  * id only. A check that already wrote its own `subject_label` keeps it.
+ * @param {{ id: string; } | null} subject
  */
 function _rowEvidence(evidence, subject) {
     const label = typeof subject?.label === 'string' ? subject.label.trim().slice(0, SUBJECT_LABEL_MAX) : '';
@@ -174,6 +185,10 @@ function _rowEvidence(evidence, subject) {
  * row occupies; without it the slot is derived from the subject, which is what
  * every check verdict does. The coverage row passes its own slot so it sits
  * beside the check's verdicts instead of overwriting one of them.
+ * @param {string} runType
+ * @param {{ id: string; } | null} subject
+ * @param {{ type: string; id: string; } | null} [scope]
+ * @param {string} orgId
  */
 async function _persistResult(check, orgId, result, runType, subject, scope = null) {
     const scopeType = scope?.type || (subject ? 'per-source' : 'global');
@@ -216,7 +231,10 @@ async function _persistResult(check, orgId, result, runType, subject, scope = nu
     await complianceStore.addEvidence(evidenceRow).catch(onEvidenceWriteFailed(evidenceRow));
 }
 
-/** listSubjects() under the same wall clock as evaluate(): a hung listing must not stall the sweep. */
+/**
+ * listSubjects() under the same wall clock as evaluate(): a hung listing must not stall the sweep.
+ * @param {string} orgId
+ */
 function _listSubjectsTimed(check, orgId) {
     return _withTimeout(
         Promise.resolve().then(() => check.listSubjects(orgId)),
@@ -231,8 +249,11 @@ function _listSubjectsTimed(check, orgId) {
  * unref'd: an unref'd timer lets the event loop drain mid-race). A check that
  * finishes after the deadline has its result dropped — the fail row is
  * already written.
+ * @param {number} ms
+ * @param {string} label
  */
 function _withTimeout(promise, ms, label) {
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
     const clock = new Promise((_, reject) => {
         timer = setTimeout(() => {
@@ -244,6 +265,9 @@ function _withTimeout(promise, ms, label) {
     return Promise.race([promise, clock]).finally(() => { if (timer) clearTimeout(timer); });
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _runSafe(check, orgId, subject) {
     const started = Date.now();
     try {
@@ -290,6 +314,8 @@ async function _runSafe(check, orgId, subject) {
  * complete. Checks without listCoverage() are untouched; they simply declare
  * no population, and the snapshot summary counts them as neither covered nor
  * uncovered.
+ * @param {string} runType
+ * @param {string} orgId
  */
 async function _runCoverage(check, orgId, runType) {
     if (typeof check.listCoverage !== 'function') return null;
@@ -362,6 +388,8 @@ function _asListing(check, listed) {
  * exists" — the row enters an evidence chain that can never be corrected.
  * The words are the check's own when it has them (`retiredDetails`): a team
  * chat whose AI was switched back to "on mention" did not stop existing.
+ * @param {string} runType
+ * @param {string} orgId
  */
 async function _retireVanished(check, orgId, runType, liveIds) {
     if (typeof complianceStore.listLatestScopes !== 'function') return 0;
@@ -386,7 +414,11 @@ async function _retireVanished(check, orgId, runType, liveIds) {
     return retired;
 }
 
-/** The check's own verdicts: one row for a global check, one per subject otherwise. */
+/**
+ * The check's own verdicts: one row for a global check, one per subject otherwise.
+ * @param {string} runType
+ * @param {string} orgId
+ */
 async function _runVerdicts(check, orgId, runType) {
     const results = [];
     if (check.scope === 'per-source' && typeof check.listSubjects === 'function') {
@@ -430,6 +462,8 @@ async function _runVerdicts(check, orgId, runType) {
  * The coverage row runs AFTER the verdicts and never in place of them: a check
  * that can enumerate its population still has to judge the part of it it can
  * see, and the two answers are both wanted.
+ * @param {string} runType
+ * @param {string} orgId
  */
 async function _runCheck(check, orgId, runType) {
     const results = await _runVerdicts(check, orgId, runType);
@@ -443,6 +477,8 @@ async function _runCheck(check, orgId, runType) {
  * modules — compliance/custom/runner.js (Wave 1) walks them. Until it ships
  * its absence is harmless; once it does, whatever it returns under `scores`
  * ({ 'custom:<uuid>': n }) joins the snapshot.
+ * @param {string} orgId
+ * @param {string} runType
  */
 async function _runCustom(orgId, runType) {
     let customRunner = null;
@@ -456,6 +492,9 @@ async function _runCustom(orgId, runType) {
     }
 }
 
+/**
+ * @param {string | number | null} orgId
+ */
 function _invalidateCounts(orgId) {
     // routes/compliance/counts.js caches /counts for 60 s per org; bust it so
     // the rail reflects this sweep. The module lands in Wave 1 — best-effort.
@@ -474,6 +513,7 @@ function _invalidateCounts(orgId) {
  * Throws frameworkPolicy.EntitlementsUnavailableError when the licence cannot
  * be resolved — the scheduler skips the org rather than running with an empty
  * set (which would look like "nothing to check").
+ * @param {string} orgId
  */
 async function runAll(orgId, { runType = 'scheduled', frameworks: only = null } = {}) {
     const active = await frameworkPolicy.activeRegulations(orgId);
@@ -538,6 +578,9 @@ async function runAll(orgId, { runType = 'scheduled', frameworks: only = null } 
  * invoked when an admin enables it, so the card scores right away instead of
  * at the next 6-hourly sweep. Same activity gate as runAll: a framework that
  * is not active yields no rows.
+ * @param {string} orgId
+ * @param {string} frameworkId
+ * @param {{ runType: string; }} [opts]
  */
 async function runFramework(orgId, frameworkId, opts = {}) {
     const regulation = frameworks.regulationOf(frameworkId);
@@ -582,6 +625,8 @@ async function runFramework(orgId, frameworkId, opts = {}) {
  *
  * Never throws for an absent subject or a switched-off framework — both are
  * ordinary, and an empty array is the honest answer.
+ * @param {string} orgId
+ * @param {string[]} subjectIds
  */
 async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
     const wanted = new Set(
@@ -629,6 +674,8 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
  * complete. That is what makes the re-run after an auto-fix, or after an event
  * that changed who the subjects are, show the fixed state at once instead of
  * leaving the fixed subjects' last `fail` rows standing until the next sweep.
+ * @param {string} checkId
+ * @param {string} orgId
  */
 async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } = {}) {
     const check = registry.get(checkId);
@@ -677,6 +724,8 @@ const OPT_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
  * framework's fix. The check receives the full opts; the append-only chain
  * gets the subject id and the option NAMES only — the route forwards the
  * request body as it came, and free text in it must never become permanent.
+ * @param {string} checkId
+ * @param {string} orgId
  */
 async function autoFix(orgId, checkId, opts = {}) {
     const check = registry.get(checkId);

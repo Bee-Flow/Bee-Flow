@@ -9,6 +9,7 @@
  *
  * `getRunsForAutomation` overrides the store's default (every run recorded in
  * this harness for the automation, most recently created first).
+ * @param {string} modPath
  */
 
 function stub(modPath, exportsObj) {

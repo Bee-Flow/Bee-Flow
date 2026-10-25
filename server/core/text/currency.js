@@ -28,10 +28,17 @@ const _missingRateWarned = new Set();
 const _alertThrottle = new Map();  // key → lastAt
 const ALERT_THROTTLE_MS = 5 * 60_000;
 
+/**
+ * @param {string} currencyCode
+ */
 function _configKeyFor(currencyCode) {
     return `currency_fx_usd_${currencyCode.toLowerCase()}`;
 }
 
+/**
+ * @param {string} kind
+ * @param {{ currency: string; error: string; }} payload
+ */
 function _emitAlert(kind, payload) {
     const key = `${kind}:${JSON.stringify(payload)}`;
     const last = _alertThrottle.get(key) || 0;
@@ -61,6 +68,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
     const hit = _fxCache.get(c);
     if (hit && hit.expiresAt > Date.now()) return hit.rate;
 
+    /** @type {number | null} */
     let rate = null;
     let lookupFailed = false;
     try {
@@ -69,7 +77,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
         if (Number.isFinite(parsed) && parsed > 0) rate = parsed;
     } catch (e) {
         lookupFailed = true;
-        _emitAlert('fx_rate_lookup_failed', { currency: c, error: e.message });
+        _emitAlert('fx_rate_lookup_failed', { currency: c, error: /** @type {Error} */ (e).message });
     }
 
     if (rate !== null) {
@@ -121,6 +129,7 @@ async function getAllConfiguredRates() {
     }
     // Fallback when the key listing fails: probe common currencies.
     const candidates = ['eur', 'gbp', 'usd', 'sek', 'nok', 'dkk', 'chf', 'cad', 'aud', 'jpy'];
+    /** @type {Record<string, number>} */
     const out = {};
     for (const code of candidates) {
         const raw = await configStore.getConfig(_configKeyFor(code.toUpperCase()));
@@ -134,6 +143,7 @@ async function getAllConfiguredRates() {
  * Admin helper: persist a USD→<currency> rate. `currencyCode` is a 3-letter
  * ISO code; `rate` is a positive Number. Caller is responsible for audit
  * logging and PAYG-cache invalidation.
+ * @param {string} currencyCode
  */
 async function setUsdToCurrencyRate(currencyCode, rate) {
     const c = String(currencyCode || '').toUpperCase();

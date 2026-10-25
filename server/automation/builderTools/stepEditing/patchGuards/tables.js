@@ -16,9 +16,15 @@ const { validateReadTableStep } = require('../../../../core/automationModel/tabl
 const READ_TABLE_KEYS = ['source', 'sheets', 'headerRow', 'provenanceSheet', 'format', 'delimiter', 'skipHiddenSheets', 'expiresInDays'];
 const TABLE_KEYS = ['source', 'ops', 'name', 'expiresInDays'];
 
+/**
+ * @param {string[]} keys
+ */
 const underPatched = (f, keys) => keys.some(k => f.path === k || f.path.startsWith(`${k}[`) || f.path.startsWith(`${k}.`));
 
-/** A refusal, or null. Mutates `next` (source and ops). */
+/**
+ * A refusal, or null. Mutates `next` (source and ops).
+ * @param {string[]} patchNotes
+ */
 function patchTableStep(graph, step, patch, next, draftWrap, patchNotes) {
     const isRead = step.type === 'read_table';
     if (!isRead && step.type !== 'table') return null;

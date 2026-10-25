@@ -35,7 +35,7 @@ function maybeLoadTiktoken() {
         _tiktokenEncoder = tiktoken.get_encoding('o200k_base');
         log.info('[tokenBudget] tiktoken o200k_base loaded');
     } catch (err) {
-        log.warn(`[tokenBudget] OPENAI_PROMPT_COUNTER=true but @dqbd/tiktoken not installed: ${err.message}`);
+        log.warn(`[tokenBudget] OPENAI_PROMPT_COUNTER=true but @dqbd/tiktoken not installed: ${/** @type {Error} */ (err).message}`);
     }
     return _tiktokenEncoder;
 }
@@ -56,6 +56,7 @@ function estimateTokens(text) {
 
 /**
  * Rough char budget for a given token budget.
+ * @param {number} tokens
  */
 function tokensToChars(tokens) {
     return Math.max(0, Math.floor(tokens * CHARS_PER_TOKEN));
@@ -68,6 +69,8 @@ function tokensToChars(tokens) {
  * notice to the prompt.
  *
  * Returns `{ text, truncated, originalTokens, keptTokens }`.
+ * @param {string} text
+ * @param {number} maxTokens
  */
 function fitIntoTokenBudget(text, maxTokens, { marker = '…[truncated]…' } = {}) {
     if (!text) return { text: '', truncated: false, originalTokens: 0, keptTokens: 0 };

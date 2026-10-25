@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the SHAPE of a value, deep: keys and types, never values,
  * so a path the AI binds can be checked all the way down and the AI can be
@@ -73,6 +74,7 @@ const isContainer = n => !!n && (n.t === 'obj' || n.t === 'arr');
  * A shape in which nothing is complete any more: every object may hold more
  * keys, no list is authoritative. Below a list that was not read whole an
  * unread entry may carry keys, or types, the read ones do not.
+ * @param {number} [depth]
  */
 function openDeep(n, depth = 0) {
     if (!n || depth > MAX_DEPTH) return n;
@@ -128,6 +130,10 @@ function fromValue(value, opts = {}) {
     return readValue(value, opts, 0, { left: NODE_BUDGET });
 }
 
+/**
+ * @param {number} depth
+ * @param {{ left: number; }} budget
+ */
 function readValue(value, opts, depth, budget) {
     const sure = opts.sure !== false;
     budget.left--;
@@ -178,6 +184,8 @@ function readValue(value, opts, depth, budget) {
  * there on the next. Its lists stay sure at the top (a list is a list), and
  * list items are `sure: false` throughout: descriptors recorded before
  * 2026-10 read element 0 only.
+ * @param {number} [depth]
+ * @param {boolean} [sure]
  */
 function fromDescriptor(d, depth = 0, sure = true) {
     if (depth > MAX_DEPTH) return ANY;
@@ -194,6 +202,9 @@ function fromDescriptor(d, depth = 0, sure = true) {
         }
     }
     if (!d || typeof d !== 'object' || Array.isArray(d)) return ANY;
+    /**
+     * @param {string} k
+     */
     const own = k => Object.prototype.hasOwnProperty.call(d, k);
     if (own('_array')) return { t: 'arr', item: fromDescriptor(d._array, depth + 1, false), sure };
     // JSON text, described as what it encodes.
@@ -206,7 +217,11 @@ function fromDescriptor(d, depth = 0, sure = true) {
 
 // ── Curated description strings ──────────────────────────────────────────
 
-/** The text between the brace at `open` and its partner (or the end). */
+/**
+ * The text between the brace at `open` and its partner (or the end).
+ * @param {string} s
+ * @param {number} open
+ */
 function braced(s, open) {
     let depth = 0;
     for (let i = open; i < s.length; i++) {
@@ -216,8 +231,12 @@ function braced(s, open) {
     return s.slice(open + 1);
 }
 
-/** Split on commas that sit outside {…}, (…) and […]. */
+/**
+ * Split on commas that sit outside {…}, (…) and […].
+ * @param {string} s
+ */
 function splitTopLevel(s) {
+    /** @type {string[]} */
     const parts = [];
     let depth = 0;
     let cur = '';
@@ -231,7 +250,11 @@ function splitTopLevel(s) {
     return parts;
 }
 
-/** `{ a, b: string, c (x|y), d: array of { e }, f: [{ g }] }` → an object shape. */
+/**
+ * `{ a, b: string, c (x|y), d: array of { e }, f: [{ g }] }` → an object shape.
+ * @param {number} depth
+ * @param {string} text
+ */
 function objFromMembers(text, depth) {
     const keys = new Map();
     for (const part of splitTopLevel(text)) {
@@ -253,7 +276,11 @@ function objFromMembers(text, depth) {
     return { t: 'obj', keys, open: false, sure: false };
 }
 
-/** One curated description ('array of { id, name }', 'integer', 'object|undefined', …). */
+/**
+ * One curated description ('array of { id, name }', 'integer', 'object|undefined', …).
+ * @param {string} desc
+ * @param {number} [depth]
+ */
 function fromDescription(desc, depth = 0) {
     if (typeof desc !== 'string' || depth > MAX_DEPTH) return ANY;
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- /^array\s+of\s+/i is anchored, with the two \s+ runs separated by the literal "of": no overlapping repeats, linear
@@ -272,6 +299,9 @@ function fromDescription(desc, depth = 0) {
     return scalarFromWord(s);
 }
 
+/**
+ * @param {string} s
+ */
 function scalarFromWord(s) {
     if (/^(string|text|markdown|iso|date|url|uri|email)\b/i.test(s)) return { t: 'str' };
     if (/^(integer|int)\b/i.test(s)) return { t: 'num', int: true };
@@ -336,6 +366,9 @@ function merge(a, b) {
 
 // ── Walking ──────────────────────────────────────────────────────────────
 
+/**
+ * @param {string} k
+ */
 const isIndexKey = k => typeof k === 'number' || (typeof k === 'string' && /^-?[0-9]+$/.test(k));
 
 /**
@@ -353,6 +386,7 @@ const isIndexKey = k => typeof k === 'number' || (typeof k === 'string' && /^-?[
  *                                              node: 'missing' | 'key-on-list' |
  *                                              'not-list' | 'scalar' | 'match-key'
  * `indexHits` (on ok/unknown) lists numeric indices into name/value lists.
+ * @param {number} [from]
  */
 function walk(node, tokens, from = 0, indexHits = []) {
     let cur = node;
@@ -420,8 +454,11 @@ function itemOf(node) {
  * Every path under `node` whose last key is `want` (case-insensitively),
  * written with `prefix` in front, nearest first: where a field the AI named
  * actually lives. Lists are entered as `[0]` (or `[*]` with `wild`).
+ * @param {string} prefix
+ * @param {string} want
  */
 function findKey(node, want, prefix, { wild = false, max = 3, maxDepth = 8 } = {}) {
+    /** @type {string[]} */
     const hits = [];
     const lower = String(want).toLowerCase();
     let level = [{ node, path: prefix }];
@@ -449,7 +486,10 @@ function findKey(node, want, prefix, { wild = false, max = 3, maxDepth = 8 } = {
     return hits;
 }
 
-/** The name/value entry names of a list node that match `want` case-insensitively. */
+/**
+ * The name/value entry names of a list node that match `want` case-insensitively.
+ * @param {string} want
+ */
 function pairNameFor(list, want) {
     if (!list || !list.pairs) return null;
     const lower = String(want).toLowerCase();
@@ -459,9 +499,15 @@ function pairNameFor(list, want) {
 
 // ── Rendering for the AI ─────────────────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const TYPE_WORD = { str: 'string', num: 'number', bool: 'boolean', null: 'null', any: 'any' };
 const typeWord = n => (!n ? 'any' : n.t === 'num' && n.int ? 'integer' : (TYPE_WORD[n.t] || 'any'));
 
+/**
+ * @param {number} depth
+ * @param {number} maxKeys
+ * @param {number} maxDepth
+ */
 function renderNode(n, depth, maxDepth, maxKeys) {
     if (!n) return '[*] (empty list)';
     if (n.t === 'arr') {
@@ -488,6 +534,11 @@ function renderNode(n, depth, maxDepth, maxKeys) {
     return typeWord(n);
 }
 
+/**
+ * @param {number} depth
+ * @param {number} maxKeys
+ * @param {number} maxDepth
+ */
 function renderMember(k, v, depth, maxDepth, maxKeys) {
     const name = appendKey('', k);
     const json = v && v.json ? ' (JSON text)' : '';
@@ -509,6 +560,9 @@ function renderMember(k, v, depth, maxDepth, maxKeys) {
  */
 function renderShape(node, { maxChars = 900, maxDepth = 8, maxKeys = 24 } = {}) {
     if (!node) return null;
+    /**
+     * @param {number} d
+     */
     const render = (d) => {
         if (node.t === 'obj') {
             const parts = [...node.keys].slice(0, maxKeys * 2).map(([k, v]) => {

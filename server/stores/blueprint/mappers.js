@@ -20,10 +20,18 @@ const {
 function newId() { return `bp_${crypto.randomBytes(8).toString('hex')}`; }
 function newReleaseId() { return `rel_${crypto.randomBytes(8).toString('hex')}`; }
 
+/**
+ * @param {string | undefined} v
+ */
 const isNonEmptyString = (v) => typeof v === 'string' && v.length > 0;
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-/** An error a route may pass on: status, code, and a message written for people. */
+/**
+ * An error a route may pass on: status, code, and a message written for people.
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 function storeError(status, code, message) {
     return Object.assign(new Error(message), { status, code, expose: true });
 }
@@ -116,6 +124,9 @@ function assertManifestSize(manifest) {
     const bytes = Buffer.byteLength(JSON.stringify(manifest), 'utf8');
     if (bytes <= MAX_BLUEPRINT_BYTES) return;
     const worst = largestEntity(manifest);
+    /**
+     * @param {number} n
+     */
     const mb = (n) => `${(n / 1024 / 1024).toFixed(1)} MB`;
     throw new Error(
         worst
@@ -130,11 +141,15 @@ function normalizeNotes(notes) {
     if (typeof notes !== 'object' || Array.isArray(notes)) {
         throw new Error('Release notes must be an object.');
     }
+    /** @type {string} */
     let json;
     try { json = JSON.stringify(notes); } catch (_) { json = undefined; }
     if (typeof json !== 'string') throw new Error('Release notes must be plain JSON.');
     const bytes = Buffer.byteLength(json, 'utf8');
     if (bytes > MAX_NOTES_BYTES) {
+        /**
+         * @param {number} n
+         */
         const kb = (n) => `${Math.round(n / 1024)} KB`;
         throw new Error(`These release notes are ${kb(bytes)}, over the ${kb(MAX_NOTES_BYTES)} limit. Shorten the note — the Blueprint itself is stored separately.`);
     }
@@ -198,7 +213,10 @@ function mapStampRow(r) {
     };
 }
 
-/** A count value, or null when there is none. Never a silent 0. */
+/**
+ * A count value, or null when there is none. Never a silent 0.
+ * @param {string} raw
+ */
 function asCount(raw) {
     const n = typeof raw === 'number' ? raw
         : (typeof raw === 'string' && /^\d+$/.test(raw) ? Number(raw) : NaN);

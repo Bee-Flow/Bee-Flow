@@ -123,7 +123,9 @@ function applyAddLoop(draft, args, draftWrap) {
     // type-specific required fields. Missing ids would crash the runner with
     // a null step_id DB constraint.
     const rawBody = Array.isArray(args.body) ? args.body : [];
+    /** @type {string[]} */
     const childErrors = [];
+    /** @type {string[]} */
     const notes = [];
     // The list the loop walks: canonicalised and checked as a LIST, like a
     // forEach.overRef (a bracket path survives; `results.files` becomes

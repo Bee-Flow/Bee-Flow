@@ -24,7 +24,7 @@ async function listThreads(req, res) {
         inboxIds = [inbox];
     }
     if (!inboxIds.length) return res.json({ threads: [], counts: {} });
-    const statusList = status ? status.split(',').map(s => s.trim()).filter(Boolean) : null;
+    const statusList = status ? status.split(',').map((/** @type {string} */ s) => s.trim()).filter(Boolean) : null;
     const { NOT_SUPPORT_TAG } = require('../../services/supportClassifier');
     const { tag, excludeFiltered } = req.query;
     const viewingNotSupport = tag === NOT_SUPPORT_TAG;
@@ -127,8 +127,8 @@ async function replyToThread(req, res) {
         emitInboxEvent('thread_updated', thread.inbox_id, { threadId: thread.id });
         res.json({ message: { ...msg, email_send_status: sent.status } });
     } catch (sendErr) {
-        log.error('[SupportInbox] send failed:', sendErr.message);
-        await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: sendErr.message, at: new Date().toISOString() });
+        log.error('[SupportInbox] send failed:', /** @type {Error} */ (sendErr).message);
+        await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: /** @type {Error} */ (sendErr).message, at: new Date().toISOString() });
         throw new HttpError(502, 'reply_send_failed', 'Reply saved but sending failed', { messageId: msg.id });
     }
 }
@@ -172,7 +172,7 @@ async function patchThread(req, res) {
     }
     if (unfilter === true) {
         const current = Array.isArray(updated.tags) ? updated.tags : (Array.isArray(thread.tags) ? thread.tags : []);
-        updated = await supportStore.setThreadTags(thread.id, current.filter(tg => tg !== NOT_SUPPORT_TAG));
+        updated = await supportStore.setThreadTags(thread.id, current.filter((/** @type {string} */ tg) => tg !== NOT_SUPPORT_TAG));
         // Re-queue for a human (deliberately do NOT re-run the AI) + remember the sender.
         if (updated.status === 'open' || updated.status === 'closed') {
             updated = await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
@@ -203,6 +203,7 @@ async function patchThread(req, res) {
  * Emit support.ticket.resolved into the automation trigger bus (org-scoped).
  * Carries a trimmed transcript so the KB-ingest template is self-contained.
  * Lazy-required + fully guarded so a missing dispatcher never breaks resolve.
+ * @param {string | null} resolvedByUserId
  */
 async function _dispatchResolved(thread, resolvedByUserId) {
     try {
@@ -229,7 +230,7 @@ async function _dispatchResolved(thread, resolvedByUserId) {
             transcript, genuineContact: true,
         }, thread.organization_id || null);
     } catch (e) {
-        log.warn('[SupportInbox] dispatchSupportEvent failed:', e.message);
+        log.warn('[SupportInbox] dispatchSupportEvent failed:', /** @type {Error} */ (e).message);
     }
 }
 

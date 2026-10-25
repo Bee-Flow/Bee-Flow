@@ -47,6 +47,9 @@ const MAX_ORGS = 200;
 /** @type {Map<string, {count:number, first_at:string, last_at:string, entries:Array}>} */
 const byOrg = new Map();
 
+/**
+ * @param {Error} err
+ */
 function errorType(err) {
     const raw = err && (err.code || err.name);
     return raw ? String(raw).slice(0, 60) : 'Error';

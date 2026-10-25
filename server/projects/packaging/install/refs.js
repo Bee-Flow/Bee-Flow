@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/packaging/walkers').DefinitionNode} DefinitionNode */
 // @typecheck
 /**
  * Turning a Blueprint's `{ $ref }`s back into real ids, and putting back what
@@ -26,6 +27,9 @@ function clone(v) {
  * for a `$ref` the registry has no row for (a hand-made file), so nothing that
  * looks like a reference survives into a stored payload. Mutates `payload`;
  * every ref with no target lands in `unresolved`.
+ * @param {string} holderKind
+ * @param {DefinitionNode} payload
+ * @param {Map<string, string> | null} [templateVersions]
  */
 function resolveRefs(holderKind, payload, refMap, unresolved, templateVersions = null) {
     const { unresolved: missed } = fromRefs(holderKind, payload, refMap);
@@ -59,11 +63,17 @@ function pinTemplateVersions(definition, versionByDocId) {
  * target kinds; every other ref is left for the patch pass. Used before a
  * automation's resolutions run, so a datatable step that points at a table this
  * bundle carries is already wired when `rebindDatatables` looks for holes.
+ * @param {string} holderKind
+ * @param {DefinitionNode} payload
+ * @param {string[]} targetKinds
  */
 function resolveKnownRefs(holderKind, payload, refMap, targetKinds) {
     visitPointers(holderKind, payload, (ptr) => {
         if (!targetKinds.includes(ptr.targetKind)) return;
         const value = ptr.get();
+        /**
+         * @param {DefinitionNode} v
+         */
         const real = (v) => (isRef(v) && typeof refMap.get(v.$ref) === 'string' ? refMap.get(v.$ref) : v);
         if (ptr.many) { if (Array.isArray(value)) ptr.set(value.map(real)); return; }
         const next = real(value);

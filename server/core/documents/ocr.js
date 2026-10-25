@@ -103,7 +103,7 @@ async function mistralOCR(base64Data, mimeType, filename) {
         return null;
 
     } catch (error) {
-        log.error('[MistralOCR] Error:', error.message);
+        log.error('[MistralOCR] Error:', /** @type {Error} */ (error).message);
         return null;
     }
 }

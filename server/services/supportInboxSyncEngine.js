@@ -35,9 +35,13 @@ const LOOKBACK_OVERLAP_MS = 5 * 60 * 1000; // re-scan window; dedupe makes it sa
 // a mailbox hostage for longer than this (see syncOneInbox).
 const SYNC_LOCK_TTL_MINUTES = 10;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _emitEvent = null; // injected lazily to avoid a require cycle with routes/support
 
+/**
+ * @param {string} event
+ */
 function _emit(event, inboxId, data = {}) {
     try {
         if (!_emitEvent) {
@@ -78,7 +82,7 @@ async function tickOnce() {
         while (idx < due.length) {
             const row = due[idx++];
             try { total += await syncOneInbox(row); }
-            catch (e) { log.warn(`[SupportInboxSync] inbox ${row.id}:`, e.message); }
+            catch (e) { log.warn(`[SupportInboxSync] inbox ${row.id}:`, /** @type {Error} */ (e).message); }
         }
     };
     await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, due.length) }, worker));
@@ -124,7 +128,7 @@ async function syncOneInbox(inboxRow) {
         else if (inbox.provider === 'outlook') count = await syncOutlook(inbox, onRefresh);
         await supportInboxStore.updateSyncState(inbox.id, { syncStatus: 'idle', syncError: null, lastSyncAt: new Date().toISOString() });
     } catch (e) {
-        await supportInboxStore.updateSyncState(inboxRow.id, { syncStatus: 'error', syncError: String(e.message).slice(0, 500), lastSyncAt: new Date().toISOString() });
+        await supportInboxStore.updateSyncState(inboxRow.id, { syncStatus: 'error', syncError: String(/** @type {Error} */ (e).message).slice(0, 500), lastSyncAt: new Date().toISOString() });
     } finally {
         await supportInboxStore.releaseSyncLock(inboxRow.id);
     }
@@ -153,7 +157,7 @@ async function syncGmail(inbox, onRefresh) {
             const full = await gmail.users.messages.get({ userId: 'me', id, format: 'full' });
             if (await ingestGmail(inbox, full.data)) processed++;
         } catch (e) {
-            log.warn(`[SupportInboxSync] gmail msg ${id}:`, e.message);
+            log.warn(`[SupportInboxSync] gmail msg ${id}:`, /** @type {Error} */ (e).message);
         }
     }
     return processed;
@@ -163,6 +167,9 @@ async function ingestGmail(inbox, msg) {
     const labels = msg.labelIds || [];
     if (labels.includes('SENT') || labels.includes('DRAFT')) return false; // our own / drafts
     const headers = msg.payload?.headers || [];
+    /**
+     * @param {string} n
+     */
     const getHeader = (n) => parse.getGmailHeader(headers, n);
     const fromAddress = parse.parseAddress(getHeader('From'));
     const auto = parse.detectAutoOrBulk(getHeader, { fromAddress, inboxAddress: inbox.email_address });
@@ -205,7 +212,7 @@ async function syncOutlook(inbox, onRefresh) {
     let processed = 0;
     for (const m of items) {
         try { if (await ingestOutlook(inbox, m)) processed++; }
-        catch (e) { log.warn(`[SupportInboxSync] graph msg ${m.id}:`, e.message); }
+        catch (e) { log.warn(`[SupportInboxSync] graph msg ${m.id}:`, /** @type {Error} */ (e).message); }
     }
     return processed;
 }
@@ -326,7 +333,7 @@ async function ingestNormalized(inbox, n) {
             }
             await triggerAi(inbox, thread);
         } catch (e) {
-            log.warn('[SupportInboxSync] AI trigger failed:', e.message);
+            log.warn('[SupportInboxSync] AI trigger failed:', /** @type {Error} */ (e).message);
         }
     })();
     return true;
@@ -383,7 +390,7 @@ async function dispatchResolved(inbox, threadId) {
             transcript, genuineContact: true,
         }, thread.organization_id || null);
     } catch (e) {
-        log.warn('[SupportInboxSync] dispatchResolved failed:', e.message);
+        log.warn('[SupportInboxSync] dispatchResolved failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -405,8 +412,8 @@ async function deliverAiReply(inbox, threadId, message) {
             providerMessageId: sent.providerMessageId || null,
         });
     } catch (e) {
-        log.error('[SupportInboxSync] AI auto-send failed:', e.message);
-        await supportStore.setMessageEmailStatus(message.id, { ok: false, error: e.message, at: new Date().toISOString() });
+        log.error('[SupportInboxSync] AI auto-send failed:', /** @type {Error} */ (e).message);
+        await supportStore.setMessageEmailStatus(message.id, { ok: false, error: /** @type {Error} */ (e).message, at: new Date().toISOString() });
     }
 }
 

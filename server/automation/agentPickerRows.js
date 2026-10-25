@@ -46,6 +46,9 @@ const AGENT_PICKER_REASONS = Object.freeze(['not_published', 'other_org', 'not_s
 /** Agents that are not a choice: the product supplies them, nobody publishes them. */
 const SYSTEM_OWNER_IDS = Object.freeze(['system', 'swarm']);
 
+/**
+ * @param {{ owner_id: string; }} agent
+ */
 function _isSystemAgent(agent) {
     return !!agent && SYSTEM_OWNER_IDS.includes(agent.owner_id);
 }

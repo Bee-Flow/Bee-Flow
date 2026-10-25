@@ -138,7 +138,7 @@ async function applyAppScreenshot(draftWrap, args) {
         });
     } catch (e) {
         // The service contract is "never throws" — this is belt-and-braces.
-        shot = { ok: false, reason: e.message };
+        shot = { ok: false, reason: /** @type {Error} */ (e).message };
     }
     if (shot && shot.code === 'no_renderer') {
         // Nothing the caller can fix (no runtime bundle in this build): say so, so it skips screenshots.
@@ -232,8 +232,11 @@ function applyInspectCatalog(args) {
     }
     const { renderComponentEntry, renderStepEntry } = require('../builderPrompt/catalogRender');
     const out = { components: {}, steps: {} };
+    /** @type {string[]} */
     const unknown = [];
+    /** @type {string[]} */
     const skipped = [];
+    /** @type {string[]} */
     const aliased = [];
     let answeredComponents = 0;
     for (const type of components) {
@@ -296,7 +299,7 @@ async function applyListAutomations(draftWrap, args = {}) {
     try {
         rows = await automationStore.getAutomationsForUser(draftWrap.userId);
     } catch (e) {
-        log.warn('app_list_automations failed', { error: e.message });
+        log.warn('app_list_automations failed', { error: /** @type {Error} */ (e).message });
         return { error: "Could not list the owner's automations right now." };
     }
     const query = typeof args?.query === 'string' ? args.query.trim().toLowerCase() : '';
@@ -322,7 +325,7 @@ async function applyInspectAutomation(draftWrap, args) {
     try {
         a = await automationStore.getAutomation(automationId);
     } catch (e) {
-        log.warn('app_inspect_automation failed', { error: e.message });
+        log.warn('app_inspect_automation failed', { error: /** @type {Error} */ (e).message });
         return { error: 'Could not inspect the automation right now.' };
     }
     if (!a || a.userId !== draftWrap.userId) {

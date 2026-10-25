@@ -19,7 +19,10 @@ require('../automation/runnerPorts');
 require('../integrations/runnerPorts');
 require('../services/runnerPorts');
 
-/** Put `exportsObj` in the require cache under `modPath` (resolved from core/). */
+/**
+ * Put `exportsObj` in the require cache under `modPath` (resolved from core/).
+ * @param {string} modPath
+ */
 function stub(modPath, exportsObj) {
     const resolved = require.resolve(modPath);
     require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports: exportsObj });

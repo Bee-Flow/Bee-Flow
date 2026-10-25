@@ -33,6 +33,7 @@ const CATEGORY_HINTS = Object.freeze([
 ]);
 
 function categoriesOf(fields) {
+    /** @type {string[]} */
     const out = [];
     for (const hint of CATEGORY_HINTS) {
         if ((fields || []).some((f) => hint.re.test(`${(f && f.key) || ''} ${(f && f.name) || ''}`))) out.push(hint.label);
@@ -43,7 +44,7 @@ function categoriesOf(fields) {
 function defaultDeps() {
     return {
         getAll: (sql, params) => require('../../db').getAll(sql, params),
-        getTableMeta: (a, b) => require('../../stores/datatableStore').getTableMeta(a, b),
+        getTableMeta: (/** @type {{ kind: string; id: string; }} */ a, /** @type {string} */ b) => require('../../stores/datatableStore').getTableMeta(a, b),
     };
 }
 

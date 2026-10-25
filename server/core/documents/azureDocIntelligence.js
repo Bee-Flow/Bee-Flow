@@ -24,7 +24,9 @@ const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Cached client ────────────────────────────────────────────────
+/** @type {DocumentIntelligenceClient | null} */
 let _client = null;
+/** @type {string | null} */
 let _clientConfig = null;
 
 /**

@@ -109,7 +109,7 @@ async function annotateTemplateUpgrades(apps, /** @type {{loadApp?: Function, ge
             const full = loadApp ? await loadApp(a.id) : null;
             available = !!full && isPristine(full);
         } catch (e) {
-            log.warn(`[templateUpgrade] pristine check failed for ${a && a.id}: ${e && e.message ? e.message : e}`);
+            log.warn(`[templateUpgrade] pristine check failed for ${a && a.id}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
         }
         out.push({ ...a, templateUpgrade: { available, fromVersion: cand.fromVersion, toVersion: cand.toVersion } });
     }

@@ -30,6 +30,7 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
      * row by id; getProjectRole picks the best of whatever remains).
      *
      * Returns the share id — the existing one when this was an update.
+     * @param {string} [permission]
      */
     async function shareProject(projectId, sharedWithType, sharedWithId, permission = 'viewer', invitedBy = null) {
         await initDB();
@@ -61,6 +62,9 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
         };
     }
 
+    /**
+     * @param {string} role
+     */
     async function updateMemberRole(shareId, role) {
         await initDB();
         const perm = normalizePermission(role);
@@ -196,6 +200,9 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
 
     /**
      * Backwards-compatible boolean wrapper. New code should call getProjectRole.
+     * @param {string} userId
+     * @param {string} projectId
+     * @param {string[]} [groupIds]
      */
     async function userHasAccess(userId, projectId, groupIds = []) {
         const role = await getProjectRole(userId, projectId, groupIds);

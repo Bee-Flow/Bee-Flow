@@ -493,7 +493,13 @@ const PUBLIC_SHARE_PROJECTION = deepFreeze({
  *   so cannot be mutated.
  */
 function assertProjectionComplete(elements = BF_ELEMENTS) {
+    /** @type {string[]} */
     const undecided = [];
+    /**
+     * @param {string} level
+     * @param {string[]} keys
+     * @param {string} where
+     */
     const check = (level, keys, where) => {
         const { ship, hold } = PUBLIC_SHARE_PROJECTION[level];
         for (const key of keys) {
@@ -534,17 +540,26 @@ const BY_TAG = new Map(BF_ELEMENTS.map(e => [e.tag, e]));
 
 // ── kleine helpers ────────────────────────────────────────────────────
 
-/** Does this look like one of OUR elements? Says nothing about whether we know it. */
+/**
+ * Does this look like one of OUR elements? Says nothing about whether we know it.
+ * @param {string} tag
+ */
 function isBfTag(tag) {
     return typeof tag === 'string' && BF_TAG_PATTERN.test(tag.trim().toLowerCase());
 }
 
-/** De definitie, of `null`. Onbekend geeft NOOIT een lege definitie terug. */
+/**
+ * De definitie, of `null`. Onbekend geeft NOOIT een lege definitie terug.
+ * @param {string} tag
+ */
 function getBfElement(tag) {
     if (typeof tag !== 'string') return null;
     return BY_TAG.get(tag.trim().toLowerCase()) || null;
 }
 
+/**
+ * @param {string} tag
+ */
 function isKnownBfTag(tag) {
     return getBfElement(tag) !== null;
 }
@@ -559,7 +574,11 @@ function tagsExpandedServerSide() {
     return BF_ELEMENTS.filter(e => !e.needsJs).map(e => e.tag);
 }
 
-/** De attribuutdefinitie bij een geschreven naam (canoniek of alias). */
+/**
+ * De attribuutdefinitie bij een geschreven naam (canoniek of alias).
+ * @param {string} tag
+ * @param {string} written
+ */
 function attributeSpec(tag, written) {
     const def = getBfElement(tag);
     if (!def || typeof written !== 'string') return null;
@@ -567,7 +586,11 @@ function attributeSpec(tag, written) {
     return def.attributes.find(a => a.name === name || (a.aliases || []).includes(name)) || null;
 }
 
-/** The canonical name for a written name, or `null` if we do not know it. */
+/**
+ * The canonical name for a written name, or `null` if we do not know it.
+ * @param {string} written
+ * @param {string} tag
+ */
 function canonicalAttribute(tag, written) {
     const spec = attributeSpec(tag, written);
     return spec ? spec.name : null;
@@ -596,6 +619,7 @@ function readAttributes(tag, source) {
     const def = getBfElement(tag);
     if (!def) return {};
     const get = attrGetter(source);
+    /** @type {Record<string, string>} */
     const out = {};
     for (const spec of def.attributes) {
         for (const name of [spec.name, ...(spec.aliases || [])]) {
@@ -610,7 +634,11 @@ function readAttributes(tag, source) {
     return out;
 }
 
-/** Dezelfde attributen, met de verklaarde defaults ingevuld. */
+/**
+ * Dezelfde attributen, met de verklaarde defaults ingevuld.
+ * @param {string} tag
+ * @param {{ [x: string]: string; }} attrs
+ */
 function effectiveAttributes(tag, attrs) {
     const def = getBfElement(tag);
     if (!def) return {};
@@ -621,7 +649,11 @@ function effectiveAttributes(tag, attrs) {
     return out;
 }
 
-/** Is this attribute required here, given what else is written? */
+/**
+ * Is this attribute required here, given what else is written?
+ * @param {{ name: string; required: boolean; means: string; }} spec
+ * @param {{ [x: string]: string; }} effective
+ */
 function isRequired(spec, effective) {
     if (spec.required === true) return true;
     const when = spec.requiredWhen;
@@ -635,6 +667,8 @@ function isRequired(spec, effective) {
  * Which required attributes are missing? Canonical names, in vocabulary order.
  * An UNKNOWN element yields `null` — "we do not know" is something other than
  * "nothing is missing".
+ * @param {string} tag
+ * @param {{ [x: string]: string; }} attrs
  */
 function missingAttributes(tag, attrs) {
     const def = getBfElement(tag);
@@ -651,6 +685,8 @@ function missingAttributes(tag, attrs) {
  * @returns {{kind:string, id:(string|null), from:string, gate:string, fallback:(string|null)}|null}
  *   `null` if the element binds nothing or we do not know it. `id: null` with a
  *   `fallback` means: take what is in that field of the PAGE.
+ * @param {string} tag
+ * @param {{ [x: string]: string; }} attrs
  */
 function bindingFor(tag, attrs) {
     const def = getBfElement(tag);
@@ -674,6 +710,7 @@ function bindingFor(tag, attrs) {
  * An unknown `bf-*` element comes back here as `{ known: false }` with a
  * `reason` — RECOGNIZABLY unknown, never an empty definition that presents itself as a known
  * element.
+ * @param {string} tag
  */
 function inspectBfElement(tag, source) {
     const name = typeof tag === 'string' ? tag.trim().toLowerCase() : '';
@@ -707,7 +744,10 @@ function inspectBfElement(tag, source) {
     };
 }
 
-/** Staat er überhaupt iets van ons in deze HTML? Goedkoop, vóór elke JSDOM. */
+/**
+ * Staat er überhaupt iets van ons in deze HTML? Goedkoop, vóór elke JSDOM.
+ * @param {string} html
+ */
 function hasBfTags(html) {
     return /<\s*bf-/i.test(typeof html === 'string' ? html : '');
 }
@@ -721,11 +761,14 @@ function hasBfTags(html) {
  *
  * @returns {{found:string[], known:string[], unknown:string[]}} de-duplicated,
  *   lower case, in order of first occurrence.
+ * @param {string} html
  */
 function scanBfTags(html) {
     const src = typeof html === 'string' ? html : '';
+    /** @type {string[]} */
     const found = [];
     const re = new RegExp(BF_TAG_SCAN.source, 'gi');
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(src)) !== null) {
         const tag = String(m[1] || '').toLowerCase();
@@ -753,6 +796,7 @@ function assertCoversVocabulary(surface, handled) {
     const missing = BF_TAGS.filter(t => !seen.includes(t));
     const stray = seen.filter(t => !isKnownBfTag(t));
     if (!missing.length && !stray.length) return true;
+    /** @type {string[]} */
     const parts = [];
     if (missing.length) {
         parts.push(`zegt niets over ${missing.join(', ')} — een element dat hier niet wordt genoemd, `
@@ -787,6 +831,7 @@ function assertCoversVocabulary(surface, handled) {
  * @returns {Object<string, object>} tag → the projection. Nothing in this output
  *   is a reference to the frozen vocabulary: the bridge serializes it
  *   to JSON and the browser may do with it what it likes.
+ * @param {string} [surface]
  */
 function bridgeVocabulary(surface = 'reactShare') {
     if (!BRIDGE_SURFACES.includes(surface)) {
@@ -796,6 +841,9 @@ function bridgeVocabulary(surface = 'reactShare') {
         // not a shared link).
         throw new Error(`[bfElements] ${surface} is geen brug-plek; ken er een in BRIDGE_SURFACES.`);
     }
+    /**
+     * @param {string} level
+     */
     const project = (level, source) => {
         const out = {};
         for (const key of PUBLIC_SHARE_PROJECTION[level].ship) {

@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/automationModel/dslFilters').DslFilter} DslFilter */
 // @typecheck
 /**
  * Latest-match lookups that seed manual runs, activation and trigger
@@ -44,6 +45,7 @@ async function fetchLatestGmailMatch(ctx, userId, filter) {
         // Coarse server-side narrowing. Only fields Gmail's `q` understands
         // get pre-filtered; the rest (regex, exclude labels, freshness, ...)
         // are caught by the client-side matcher.
+        /** @type {string[]} */
         const q = [];
         if (filter?.from) q.push(`from:${filter.from}`);
         if (filter?.to) q.push(`to:${filter.to}`);
@@ -69,7 +71,7 @@ async function fetchLatestGmailMatch(ctx, userId, filter) {
         }
         return null;
     } catch (e) {
-        log.warn(`[TriggerBus] fetchLatestGmailMatch failed for user ${userId}: ${e.message}`);
+        log.warn(`[TriggerBus] fetchLatestGmailMatch failed for user ${userId}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -81,6 +83,8 @@ async function fetchLatestGmailMatch(ctx, userId, filter) {
  * by hand gets `triggerPayload=null`, so `trigger.output.path` is undefined and
  * the first NC action fails with "path is required" (the "Sort Invoices" bug).
  * Mirrors fetchLatestGmailMatch. Returns null when nothing matches.
+ * @param {DslFilter | null} filter
+ * @param {string} event
  */
 async function fetchLatestNextcloudMatch(ctx, userId, event, filter) {
     try {
@@ -98,7 +102,7 @@ async function fetchLatestNextcloudMatch(ctx, userId, event, filter) {
         }
         return null;
     } catch (e) {
-        log.warn(`[TriggerBus] fetchLatestNextcloudMatch failed for user ${userId}: ${e.message}`);
+        log.warn(`[TriggerBus] fetchLatestNextcloudMatch failed for user ${userId}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }

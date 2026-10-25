@@ -99,6 +99,9 @@ function migrateSite(v) {
     return v;
 }
 
+/**
+ * @param {string} siteId
+ */
 function sanitizeSite(siteId, site) {
     const sanitized = {
         version: SITE_VERSION,

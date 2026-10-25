@@ -22,7 +22,13 @@ function createAuthConfigStore({ db, configStore }) {
             const { rows } = await client.query('SELECT key, value FROM config WHERE key = ANY($1::text[])',
                 [[...META_KEYS, ...Object.values(SECRET_KEYS)]]);
             const values = new Map(rows.map(row => [row.key, row.value]));
+            /**
+             * @param {string} key
+             */
             const read = key => values.has(key) ? JSON.parse(values.get(key)) : null;
+            /**
+             * @param {boolean} [secret]
+             */
             const write = async (key, value, secret = false) => {
                 const encoded = secret ? configStore.encryptValue(value) : JSON.stringify(value);
                 if (secret && configStore.decryptValue(encoded) !== value) throw new Error('OAuth secret encryption verification failed');
@@ -37,7 +43,7 @@ function createAuthConfigStore({ db, configStore }) {
                 // Postgres delivers transactional notifications only at commit.
                 await client.query('SELECT pg_notify($1,$2)', [configStore.CONFIG_INVALIDATE_CHANNEL, key]);
             };
-            const secretValue = provider => {
+            const secretValue = (/** @type {string} */ provider) => {
                 const raw = values.get(SECRET_KEYS[provider]);
                 if (!raw) return '';
                 if (JSON.parse(raw)?._encrypted !== 'config-v1') throw new Error('OAuth credential is not encrypted');

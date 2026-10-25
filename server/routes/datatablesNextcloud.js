@@ -108,6 +108,7 @@ function answer(res, e) {
  * The scope a request addresses — the same words and the same chain as
  * POST /: `organisation` (default when the account has one) or `personal`.
  * Returns the scope, or answers the refusal itself and returns null.
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} wanted
  */
 async function resolveScope(req, res, principal, wanted) {
     if (wanted !== undefined && wanted !== 'organisation' && wanted !== 'personal') {

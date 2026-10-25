@@ -57,6 +57,7 @@ function makeNotificationPrefsStore(db, { ready = async () => {} } = {}) {
 
     /** @param {string} userId @param {Record<string, Record<string, boolean>>} partial */
     async function setPrefs(userId, partial) {
+        /** @type {((string | boolean)[])[]} */
         const entries = [];
         for (const [channel, events] of Object.entries(partial || {})) {
             if (!CHANNELS.includes(channel)) throw new TypeError(`unknown channel: ${channel}`);

@@ -159,7 +159,7 @@ function makeDocumentFns(ctx) {
                 try {
                     await KnowledgeBasesStore.snapshotDocumentVersion(id, deletedBy);
                 } catch (e) {
-                    log.warn('[KnowledgeBases] deleteDocument: snapshot failed', e.message);
+                    log.warn('[KnowledgeBases] deleteDocument: snapshot failed', /** @type {Error} */ (e).message);
                 }
             }
             await run('DELETE FROM documents WHERE id = $1', [id]);

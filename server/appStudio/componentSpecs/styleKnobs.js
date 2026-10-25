@@ -155,7 +155,10 @@ const RESPONSIVE_VISIBILITY_KNOBS = Object.freeze(['hideBelow', 'hideAbove']);
 
 const _expandedKnobCache = new WeakMap();
 
-/** A type's (or the section's) style knobs plus the advanced sizing knobs it earns. */
+/**
+ * A type's (or the section's) style knobs plus the advanced sizing knobs it earns.
+ * @param {WeakKey} knobs
+ */
 function expandStyleKnobs(knobs) {
     if (!Array.isArray(knobs)) return [];
     const cached = _expandedKnobCache.get(knobs);
@@ -213,6 +216,7 @@ const DEFINITE_HEIGHT_PRESETS = Object.freeze([...FIXED_HEIGHT_PRESETS, 'fill'])
  * it". The wrapper a container renders between its cell and its children
  * decides that, and most of them drop the height — see containerPassesHeightDown,
  * which is what the validator actually threads through the walk.
+ * @param {boolean} [parentDefinite]
  */
 function styleHeightIsDefinite(style, parentDefinite = false) {
     if (!style || typeof style !== 'object') return false;
@@ -289,6 +293,7 @@ function containerHeightRoute(type) {
  * definite, AND the container must thread it through its wrapper. The 'fill'
  * route collapses both into one check — a fill node's wrapper is `h-full`, and
  * `h-full` is only a height if the cell above it already is.
+ * @param {boolean} [parentDefinite]
  */
 function containerPassesHeightDown(type, style, parentDefinite = false) {
     const route = containerHeightRoute(type);

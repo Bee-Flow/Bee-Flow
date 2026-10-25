@@ -197,6 +197,7 @@ function normaliseSuggestRequest(body) {
         }
         if (seenRoots.has(root)) continue;
         seenRoots.add(root);
+        /** @type {string} */
         let text;
         try { text = JSON.stringify(s.sample); } catch { text = undefined; }
         if (typeof text !== 'string') continue;   // no sample: nothing to verify against
@@ -443,6 +444,7 @@ function paramLine(p, compact = false) {
  * @param {SuggestParam[]} params
  */
 function inputsBlock(params) {
+    /** @type {string[]} */
     const lines = [];
     const shown = [];
     let room = MODEL_INPUTS_CHARS;
@@ -463,6 +465,7 @@ function inputsBlock(params) {
  */
 function mappedBlock(mapped) {
     if (!mapped.length) return '';
+    /** @type {string[]} */
     const lines = [];
     let room = MODEL_MAPPED_CHARS;
     for (const m of mapped) {
@@ -617,7 +620,7 @@ function makeSuggestMappingsRouter(deps = {}) {
             // The request itself (suggest_mappings_too_large), not the model.
             if (e instanceof HttpError) throw e;
             // e.message only: the samples are the author's data and stay out of logs.
-            log.error('[automationBuilder/suggest-mappings] inference failed:', e?.message);
+            log.error('[automationBuilder/suggest-mappings] inference failed:', /** @type {Error} */ (e)?.message);
             throw new HttpError(502, 'suggest_mappings_unavailable', 'Could not ask the AI to map these inputs right now.');
         }
         log.info(`[automationBuilder/suggest-mappings] params=${input.params.length} sources=${input.sources.length} suggested=${out.suggestions.length} rejected=${out.rejected.length}`);

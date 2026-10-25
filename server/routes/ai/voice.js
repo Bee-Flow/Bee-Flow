@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Voice Chat Routes (Beta) — Realtime voice conversation with Mistral.
  *
@@ -80,6 +81,9 @@ const agentStore = require('../../stores/agentStore');
 const { requireAuth } = require('../../auth/permissions');
 const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * @param {NextFunction} next
+ */
 async function requireMistralConfigured(req, res, next) {
     const key = await configStore.getSecret('mistral_api_key');
     if (!key) {
@@ -104,7 +108,10 @@ const uploadTurn = multer({
     },
 });
 
-/** multer, with its refusals answered as what they are instead of a 500. */
+/**
+ * multer, with its refusals answered as what they are instead of a 500.
+ * @param {NextFunction} next
+ */
 function receiveTurnAudio(req, res, next) {
     uploadTurn.single('audio')(req, res, (err) => {
         if (!err) return next();
@@ -123,6 +130,10 @@ const AGENT_TEXT = 'agentId is the id of an agent you can use.';
 const VOICE_TEXT = 'voice is the name of a voice.';
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
 const HISTORY_TEXT = 'history is a JSON list of { role, content } messages.';
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const boundedText = (message, max) => z.string({ error: typeError({ invalid: message }) }).max(max, message);
 
 const SessionBody = orEmpty(z.object({
@@ -225,11 +236,15 @@ function filterVoiceTools(tools) {
 
 // Map BCP-47 codes → human name for the language directive injected into
 // the system prompt per turn.
+/** @type {Record<string, string>} */
 const LANG_NAMES = {
     en: 'English', nl: 'Dutch', fr: 'French', de: 'German', es: 'Spanish',
     it: 'Italian', pt: 'Portuguese', hi: 'Hindi', ar: 'Arabic',
     pl: 'Polish', ru: 'Russian', tr: 'Turkish', zh: 'Chinese', ja: 'Japanese',
 };
+/**
+ * @param {string | null} code
+ */
 function languageName(code) {
     if (!code) return null;
     const short = String(code).toLowerCase().slice(0, 2);
@@ -264,6 +279,7 @@ function compactToolResultForLLM(result) {
  * bracketed code when it wavers between free-form text and tool calls.
  * The voice system prompt forbids this, but belt-and-braces: clean the
  * string so the user never hears stray punctuation.
+ * @param {string} text
  */
 function cleanSpokenText(text) {
     if (typeof text !== 'string') return '';
@@ -430,7 +446,7 @@ router.post(
                     });
                     voiceTools = filterVoiceTools(tools);
                 } catch (err) {
-                    log.warn('[Voice turn] tool discovery failed:', err.message);
+                    log.warn('[Voice turn] tool discovery failed:', /** @type {Error} */ (err).message);
                 }
             }
 
@@ -458,6 +474,7 @@ router.post(
             const adapter = getAdapter('mistral');
             let assistantText = '';
             let round = 0;
+            /** @type {({ round: number; ttftMs: number | null; totalMs: number; toolCalls: number; })[]} */
             const roundsMetrics = [];
             const execContext = {
                 userId: req.session.user.id,
@@ -490,7 +507,7 @@ router.post(
                     const { resolveShieldFor } = require('../../core/privacy/orgShield');
                     shield = await resolveShieldFor({ orgId: req.session.user?.organizationId || null, userId: req.session.user.id });
                 } catch (e) {
-                    log.warn('[Voice turn] Shield lookup failed; tool block lists not applied:', e.message);
+                    log.warn('[Voice turn] Shield lookup failed; tool block lists not applied:', /** @type {Error} */ (e).message);
                 }
             }
             const logShieldEvent = (fields) => {
@@ -507,6 +524,7 @@ router.post(
             while (round < MAX_VOICE_TOOL_ROUNDS) {
                 let roundText = '';
                 const roundToolCalls = [];
+                /** @type {number | null} */
                 let firstTokenAt = null;
                 const roundStart = Date.now();
 
@@ -585,7 +603,7 @@ router.post(
                         });
                         return { tc, result, ok };
                     } catch (err) {
-                        const errResult = { error: err.message || 'tool failed' };
+                        const errResult = { error: /** @type {Error} */ (err).message || 'tool failed' };
                         send('tool_result', {
                             id: tc.id,
                             name: tc.name,
@@ -626,7 +644,7 @@ router.post(
                         language: stt.language || language,
                     });
                 } catch (err) {
-                    const msg = String(err?.message || err);
+                    const msg = String(/** @type {Error} */ (err)?.message || err);
                     if (msg.includes('no_voice_configured')) ttsReason = 'no_voice_configured';
                     else ttsReason = 'tts_failed';
                     log.warn('[Voice turn] TTS pipeline error:', msg);
@@ -653,7 +671,7 @@ router.post(
             res.end();
         } catch (err) {
             log.error('[Voice turn] error:', err);
-            send('error', { message: err.message || 'Voice turn failed' });
+            send('error', { message: /** @type {Error} */ (err).message || 'Voice turn failed' });
             try { res.end(); } catch (_) { log.debug('response already closed', _); }
         }
     }

@@ -153,6 +153,9 @@ function fieldFinding(tokens, items) {
     return near ? { read: `${first.key}[*].${column.key}`, near: `${first.key}[*].${near}` } : null;
 }
 
+/**
+ * @param {string} at
+ */
 function checkRuleFields(ctx, step, at) {
     if (!isListRoute(step)) return;
     const root = sampleRoot(ctx.graph, ctx.trigger, step.arrayRef);
@@ -210,6 +213,9 @@ function listCompareProblem(node) {
     return null;
 }
 
+/**
+ * @param {string} at
+ */
 function checkRuleShapes(ctx, step, at) {
     for (const { expr, at: where } of ruleTexts(step)) {
         const ast = parsed(expr);
@@ -269,6 +275,9 @@ function findingsFor(ctx) {
 
 const nameOf = (s) => (typeof s.label === 'string' && s.label.trim() ? s.label.trim() : s.id);
 
+/**
+ * @param {string} at
+ */
 function checkRouteReads(ctx, step, at) {
     if (ctx.nested) return;
     for (const f of findingsFor(ctx).get(step.id) || []) {
@@ -290,6 +299,9 @@ function checkRouteReads(ctx, step, at) {
 
 // ── condition.whole_list ────────────────────────────────────────────────
 
+/**
+ * @param {string} at
+ */
 function checkWholeList(ctx, step, at) {
     if (!isObject(step) || !isWholeRunRule(step)) return;
     const lists = [...new Set(wholeRunListReads(step, isListPathIn(ctx.graph, ctx.trigger)).map((r) => r.list))];
@@ -302,7 +314,10 @@ function checkWholeList(ctx, step, at) {
     }
 }
 
-/** Every route rule, in a fixed order. Registered after checkSwitch. */
+/**
+ * Every route rule, in a fixed order. Registered after checkSwitch.
+ * @param {string} at
+ */
 function checkRoutes(ctx, step, at) {
     if (!isObject(step)) return;
     checkRouteReads(ctx, step, at);

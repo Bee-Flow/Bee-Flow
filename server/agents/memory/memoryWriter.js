@@ -44,6 +44,9 @@ const TYPES = ['fact', 'preference', 'instruction', 'person', 'project', 'workfl
 // optional PII Guard container (core/privacy/piiDetection has no regex layer,
 // its detection is the GLiNER service). Same categories, same intent.
 
+/**
+ * @param {string} iban
+ */
 function mod97(iban) {
     const s = iban.replace(/\s+/g, '').toUpperCase();
     if (s.length < 15 || s.length > 34) return false;
@@ -56,6 +59,9 @@ function mod97(iban) {
     return rem === 1;
 }
 
+/**
+ * @param {string} digits
+ */
 function luhn(digits) {
     let sum = 0;
     let alt = false;
@@ -136,11 +142,20 @@ function looksArt9(text) {
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * @param {string | null} v
+ */
 const norm = (v) => String(v ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+/**
+ * @param {number} d
+ */
 const clamp01 = (n, d) => (Number.isFinite(Number(n)) ? Math.max(0, Math.min(1, Number(n))) : d);
 
 function normaliseCandidate(c) {
-    const str = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().replace(/\s+/g, ' ').slice(0, max) : null);
+    /**
+     * @param {number} max
+     */
+    const str = (/** @type {string} */ v, max) => (typeof v === 'string' && v.trim() ? v.trim().replace(/\s+/g, ' ').slice(0, max) : null);
     return {
         type: TYPES.includes(c?.type) ? c.type : 'fact',
         content: typeof c?.content === 'string' ? c.content.trim() : '',
@@ -203,9 +218,9 @@ function realDeps() {
         findByKey: (...a) => store().findByKey(...a),
         /** @param {Parameters<typeof import('../../stores/memoryStore').findSimilarMemories>} a */
         findSimilarMemories: (...a) => store().findSimilarMemories(...a),
-        confirm: (id) => lifecycle().confirm(id),
-        supersede: (o, n) => lifecycle().supersede(o, n),
-        enforceCap: (u, n) => lifecycle().enforceCap(u, n),
+        confirm: (/** @type {string} */ id) => lifecycle().confirm(id),
+        supersede: (/** @type {string} */ o, /** @type {string} */ n) => lifecycle().supersede(o, n),
+        enforceCap: (/** @type {string} */ u, /** @type {number} */ n) => lifecycle().enforceCap(u, n),
         isSensitiveOptInForUser: (u, o) => policy().isSensitiveOptInForUser(u, o),
         getMaxPerUser: async (orgId) => {
             const s = await policy().getOrgMemorySettings(orgId);
@@ -249,10 +264,13 @@ function createMemoryWriter(overrides = {}) {
             const archived = await d.enforceCap(ctx.userId, max);
             if (archived > 0) d.log.info(`[MemoryWriter] Cap reached: archived ${archived} memories`);
         } catch (e) {
-            d.log.warn('[MemoryWriter] cap enforcement failed:', e.message);
+            d.log.warn('[MemoryWriter] cap enforcement failed:', /** @type {Error} */ (e).message);
         }
     }
 
+    /**
+     * @param {string} id
+     */
     async function confirmed(id) {
         await d.confirm(id);
         return { action: 'confirmed', id };
@@ -317,7 +335,7 @@ function createMemoryWriter(overrides = {}) {
                     projectId: ctx.projectId || null, agentId: ctx.agentId || null, limit: 5,
                 });
             } catch (e) {
-                d.log.warn('[MemoryWriter] similarity lookup failed:', e.message);
+                d.log.warn('[MemoryWriter] similarity lookup failed:', /** @type {Error} */ (e).message);
             }
             neighbours = (Array.isArray(neighbours) ? neighbours : []).filter((n) => n?.id).sort((a, b) => b.similarity - a.similarity);
             const top = neighbours[0];
@@ -333,7 +351,7 @@ function createMemoryWriter(overrides = {}) {
                 try {
                     verdict = await d.judge({ candidate: c, neighbours: band, ctx });
                 } catch (e) {
-                    d.log.warn('[MemoryWriter] relation check failed, storing as new:', e.message);
+                    d.log.warn('[MemoryWriter] relation check failed, storing as new:', /** @type {Error} */ (e).message);
                 }
                 const target = verdict && band.find((n) => n.id === verdict.targetId) || (verdict && verdict.decision !== 'new' ? top : null);
                 if (verdict?.decision === 'duplicate' && target) return confirmed(target.id);
@@ -361,7 +379,7 @@ function createMemoryWriter(overrides = {}) {
             try {
                 out.push(await writeMemory(c, ctx));
             } catch (e) {
-                d.log.error('[MemoryWriter] write failed:', e.message);
+                d.log.error('[MemoryWriter] write failed:', /** @type {Error} */ (e).message);
                 out.push({ action: 'rejected', reason: 'error' });
             }
         }

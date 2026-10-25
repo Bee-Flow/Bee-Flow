@@ -117,9 +117,18 @@ function declaredOutputNames(step) {
     return names.length ? names : null;
 }
 
-/** An issue record in the shape customNode.js uses: `{ code, path, message, hint }`. */
+/**
+ * An issue record in the shape customNode.js uses: `{ code, path, message, hint }`.
+ * @param {string} code
+ * @param {string} path
+ * @param {string} message
+ * @param {string} hint
+ */
 function issue(code, path, message, hint) { return { code, path, message, hint }; }
 
+/**
+ * @param {{ code: string; path: string; message: string; hint: string; }[]} issues
+ */
 function refuse(issues) {
     return { ok: false, reason: issues[0].code, issues };
 }
@@ -189,9 +198,12 @@ function promoteCodeStep({ step, outputs = null, label = null } = {}) {
     const toolNames = [...new Set((step.allowedTools || []).map(t => t.trim()))].sort();
 
     // ── the params ──────────────────────────────────────────────────────
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
+    /** @type {{ name: string; type: string; required: boolean; }[]} */
     const params = [];
     const callInputs = {};
+    /** @type {Record<string, { kind: string; path: string; }>} */
     const bodyInputs = {};
     for (const name of Object.keys(inputs)) {
         if (RESERVED_PROTO_KEYS.has(name) || !BINDABLE_SEGMENT_RE.test(name)) {

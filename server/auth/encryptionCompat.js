@@ -237,6 +237,7 @@ async function rewrapUserDEKCompat(userId, oldPassword, newPassword) {
         return { success: true }; // No DEK to rewrap
     }
 
+    /** @type {Buffer<ArrayBufferLike> | null} */
     let dek = null;
 
     if (user.kekSalt) {

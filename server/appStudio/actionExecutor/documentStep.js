@@ -68,7 +68,10 @@ function buildValues(raw, ctx, scope) {
     return out;
 }
 
-/** Safe as a download attribute, a Content-Disposition value and a MIME header. */
+/**
+ * Safe as a download attribute, a Content-Disposition value and a MIME header.
+ * @param {string} fallback
+ */
 function sanitizeFileName(name, fallback) {
     const flat = String(name == null ? '' : name).replace(/[/\\\r\n\0"<>|?*:;]/g, '').trim().slice(0, 120);
     return flat || fallback;
@@ -110,7 +113,7 @@ async function fillDocumentStep(app, model, step, ctx) {
         // document_empty is the author's mistake and worth saying plainly; the
         // rest collapse to a generic message like every other step's failure.
         if (e && e.errorClass === 'document_empty') return { ok: false, error: 'That document is empty, so there is nothing to render' };
-        if (e?.errorClass?.startsWith('document_')) return {ok:false,error:e.message,code:e.errorClass,issues:e.issues || [],documentVersionId:doc.versionId};
+        if (e?.errorClass?.startsWith('document_')) return {ok:false,error:/** @type {Error} */ (e).message,code:e.errorClass,issues:e.issues || [],documentVersionId:doc.versionId};
         throw e;
     }
     const { buffer, contentType, degraded, fill } = rendered;

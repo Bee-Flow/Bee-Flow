@@ -19,6 +19,7 @@ const STYLE_ALIGNS = ['left', 'center', 'right'];
 const COLOR_TOKENS = ['primary', 'secondary', 'accent', 'background', 'surface', 'textPrimary', 'textSecondary'];
 const SPACING_KEYS = ['paddingTop', 'paddingBottom'];
 // Style v2 (the renderer's blockWrapClasses / blockWrapStyle): closed enums.
+/** @type {Record<string, string[]>} */
 const STYLE_ENUMS = {
     band: ['default', 'surface', 'tint', 'dark', 'primary'],
     rhythm: ['tight', 'compact', 'default', 'spacious'],
@@ -31,6 +32,7 @@ const STYLE_KEYS = [
     ...BLOCK_DESIGN_STYLE_KEYS,
 ];
 // Design keys with a closed enum: the key, its legal values, and the label of the fix hint.
+/** @type {Record<string, string[]>} */
 const DESIGN_ENUMS = {
     backgroundPosition: BG_POSITIONS,
     backgroundRepeat: BG_REPEATS,
@@ -48,6 +50,7 @@ const DESIGN_ENUMS = {
 function validateStylePatch(patch) {
     if (!isPlainObject(patch)) return { error: 'stylePatch must be an object.' };
     const out = {};
+    /** @type {string[]} */
     const hints = [];
     for (const [key, value] of Object.entries(patch)) {
         if (!STYLE_KEYS.includes(key)) {
@@ -68,6 +71,7 @@ function validateStylePatch(patch) {
             if (!isPlainObject(value)) {
                 return { error: 'stylePatch.colorOverrides must be an object of color tokens.', _fixHint: `Valid tokens: ${COLOR_TOKENS.join(', ')}.` };
             }
+            /** @type {Record<string, string>} */
             const colors = {};
             for (const [tok, col] of Object.entries(value)) {
                 if (!COLOR_TOKENS.includes(tok)) { hints.push(`colorOverrides.${tok}: unknown token, dropped. Valid tokens: ${COLOR_TOKENS.join(', ')}.`); continue; }
@@ -79,6 +83,7 @@ function validateStylePatch(patch) {
             if (!isPlainObject(value)) {
                 return { error: 'stylePatch.spacing must be an object.', _fixHint: `Valid spacing keys: ${SPACING_KEYS.join(', ')} (numbers).` };
             }
+            /** @type {Record<string, number>} */
             const spacing = {};
             for (const [sk, sv] of Object.entries(value)) {
                 if (!SPACING_KEYS.includes(sk)) { hints.push(`spacing.${sk}: unknown key, dropped. Valid keys: ${SPACING_KEYS.join(', ')}.`); continue; }

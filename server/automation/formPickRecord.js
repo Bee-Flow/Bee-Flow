@@ -69,6 +69,7 @@ async function resolveCallerTools(caller) {
  * who can search Gmail but not read a message would get a picker that lists
  * their mail and then attaches nothing, which is worse than an honest refusal
  * before they pick.
+ * @param {string} sourceId
  */
 async function authorizeSource(sourceId, caller) {
     if (!caller?.userId) {
@@ -82,7 +83,7 @@ async function authorizeSource(sourceId, caller) {
     try {
         allowed = await resolveCallerTools(caller);
     } catch (e) {
-        log.warn(`[formPickRecord] could not resolve tools for ${caller.userId}: ${e.message}`);
+        log.warn(`[formPickRecord] could not resolve tools for ${caller.userId}: ${/** @type {Error} */ (e).message}`);
         return { error: 'We could not check which apps you can use. Try again in a moment.' };
     }
     const missing = pickSources.toolsFor(source).filter(t => !allowed.has(t));
@@ -92,7 +93,10 @@ async function authorizeSource(sourceId, caller) {
     return { source };
 }
 
-/** Run one of a source's declared tools as the caller. Never throws. */
+/**
+ * Run one of a source's declared tools as the caller. Never throws.
+ * @param {string | undefined} toolName
+ */
 async function runTool(toolName, args, caller) {
     const { executeTool } = require('../core/tools/toolDispatcher');
     try {
@@ -120,8 +124,8 @@ async function runTool(toolName, args, caller) {
         }
         return { value: out };
     } catch (e) {
-        log.warn(`[formPickRecord] ${toolName} failed for ${caller.userId}: ${e.message}`);
-        return { error: e.message || 'That app could not be reached.' };
+        log.warn(`[formPickRecord] ${toolName} failed for ${caller.userId}: ${/** @type {Error} */ (e).message}`);
+        return { error: /** @type {Error} */ (e).message || 'That app could not be reached.' };
     }
 }
 
@@ -135,6 +139,8 @@ async function runTool(toolName, args, caller) {
  * the person is looking for a meeting they remember — and it means the search
  * never widens the ACL: `getTranscriptions` has already decided what this
  * person may see before a single word is matched.
+ * @param {string} query
+ * @param {number} limit
  */
 async function searchMeetingNotes(query, limit, caller) {
     const store = require('../stores/transcriptionStore');
@@ -228,7 +234,7 @@ async function searchRecords(sourceId, rawQuery, caller, /** @type {{limit?: num
         if (ran.error) return { error: ran.error };
         return { results: pickSources.usableResults(source.mapResults(ran.value)) };
     } catch (e) {
-        log.warn(`[formPickRecord] search failed for ${sourceId}: ${e.message}`);
+        log.warn(`[formPickRecord] search failed for ${sourceId}: ${/** @type {Error} */ (e).message}`);
         return { error: `${source.app} could not be searched right now.` };
     }
 }
@@ -316,7 +322,7 @@ async function describePick(pick, /** @type {{withText?: boolean, caller?: any}}
         // describePick is written not to throw; this is the belt to its braces,
         // because the one thing that must not happen is losing a submission
         // over a picked record.
-        log.warn(`[formPickRecord] read failed for ${pick.source}/${pick.recordId}: ${e.message}`);
+        log.warn(`[formPickRecord] read failed for ${pick.source}/${pick.recordId}: ${/** @type {Error} */ (e).message}`);
         return { ...base, textError: 'This record could not be read.' };
     }
 }

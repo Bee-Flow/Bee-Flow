@@ -158,6 +158,9 @@ function createEvidence({ run, getOne, getAll, withTransaction, initDB, loadChai
         `, [orgId, Number(id)]);
     }
 
+    /**
+     * @param {number} [limit]
+     */
     async function getEvidenceHistory(orgId, checkId, limit = 100) {
         await initDB();
         return getAll(`

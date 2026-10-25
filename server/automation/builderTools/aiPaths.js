@@ -42,9 +42,11 @@ const SPACED_WORDS_RE = /^([ \t]+[\p{L}\p{N}\p{M}_$@\-&/()#%]+)+/u;
  * Remove whitespace around dots that sit outside quotes and collapse a run of
  * them: `steps . x` / `steps..x` → `steps.x`. A dot inside a quoted key or a
  * match value is data (`["Total.."]`, `[name="v1..2"]`) and is kept.
+ * @param {string} s
  */
 function squeezeDots(s) {
     let out = '';
+    /** @type {string | null} */
     let quote = null;
     for (let i = 0; i < s.length; i++) {
         const c = s[i];
@@ -72,9 +74,11 @@ function squeezeDots(s) {
  * `steps[x].output[y]` → `steps.x.output.y`: a bare name in brackets is not a
  * path (only `[0]`, `[*]`, `["k"]` and `[k=v]` are), and weaker models write
  * it. Indices, wildcards, quoted keys and match segments are left alone.
+ * @param {string} s
  */
 function unbracketBareNames(s) {
     let out = '';
+    /** @type {string | null} */
     let quote = null;
     for (let i = 0; i < s.length; i++) {
         const c = s[i];
@@ -112,14 +116,17 @@ function unbracketBareNames(s) {
  * `trimDebris: false` (templates) leaves a path that does not parse whole
  * as it was: a placeholder holding an expression is the template check's
  * business, not something to cut down to its first name.
+ * @param {string} raw
  */
 function normalizeAiPath(raw, { trimDebris = true } = {}) {
     if (typeof raw !== 'string') return { path: raw, tokens: null, debris: null, notes: [] };
+    /** @type {string[]} */
     const notes = [];
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NAME_CHAR_RE is one character class tested on a single character (s[i - 1]), and /^\$+/ and /^\.+/ are anchored single repeats: linear
     let s = raw.trim().replace(/^\$+/, '').replace(/^\.+/, '');
     s = unbracketBareNames(squeezeDots(s));
     let tokens = parsePath(s);
+    /** @type {string | null} */
     let debris = null;
     if (!tokens) {
         const r = readPath(s, 0);
@@ -155,13 +162,19 @@ function normalizeAiPath(raw, { trimDebris = true } = {}) {
     return { path: formatPath(tokens), tokens, debris, notes };
 }
 
-/** The canonical spelling of a path, or the input unchanged when it does not parse. */
+/**
+ * The canonical spelling of a path, or the input unchanged when it does not parse.
+ * @param {string} raw
+ */
 function canonicalAiPath(raw) {
     const n = normalizeAiPath(raw, { trimDebris: false });
     return n.tokens ? n.path : raw;
 }
 
-/** Does a string hold at least one `{{ … }}` placeholder (quote-aware)? */
+/**
+ * Does a string hold at least one `{{ … }}` placeholder (quote-aware)?
+ * @param {string} text
+ */
 function hasPlaceholder(text) {
     return typeof text === 'string' && scanTemplate(text).some(p => p.type === 'ref');
 }

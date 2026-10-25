@@ -50,7 +50,7 @@ async function _ncFetchActivityRows(ctx, userId, session) {
             if (result?.activities) rows = result.activities;
             return rows;
         } catch (e) {
-            log.warn(`[TriggerBus] nextcloud activity fetch threw for user ${userId}: ${e.message}`);
+            log.warn(`[TriggerBus] nextcloud activity fetch threw for user ${userId}: ${/** @type {Error} */ (e).message}`);
             return rows;
         }
     })().then((rows) => {
@@ -212,7 +212,7 @@ function createNextcloudPollers(ctx) {
                 if (highest > cursorId) await ctx.store().updateSubscription(sub.id, { lastCursor: String(highest) });
                 return events;
             } catch (e) {
-                log.warn('[TriggerBus] nextcloud notifications poll error:', e.message);
+                log.warn('[TriggerBus] nextcloud notifications poll error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },
@@ -256,6 +256,7 @@ function createNextcloudPollers(ctx) {
                 const fired = new Set(Array.isArray(cursor.firedIds) ? cursor.firedIds : []);
 
                 const events = [];
+                /** @type {string[]} */
                 const newlyFired = [];
                 for (const ev of items) {
                     const startsAt = ev.dtstart || null;
@@ -295,7 +296,7 @@ function createNextcloudPollers(ctx) {
                 }
                 return events;
             } catch (e) {
-                log.warn('[TriggerBus] nextcloud calendar upcoming poll error:', e.message);
+                log.warn('[TriggerBus] nextcloud calendar upcoming poll error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },

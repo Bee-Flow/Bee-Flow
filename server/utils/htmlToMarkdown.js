@@ -1,3 +1,4 @@
+/** @typedef {import('domhandler').AnyNode} AnyNode */
 // @typecheck
 const cheerio = require('cheerio');
 const { URL } = require('url');
@@ -17,6 +18,10 @@ const REMOVE_SELECTORS = [
 
 /**
  * Convert an HTML element and its children to Markdown.
+ * @param {cheerio.CheerioAPI} $
+ * @param {AnyNode} el
+ * @param {{ includeLinks: boolean; includeImages: boolean; }} opts
+ * @param {string} baseUrl
  */
 function toMarkdown($, el, opts, baseUrl) {
     if (el.type === 'text') {
@@ -183,6 +188,7 @@ function toMarkdown($, el, opts, baseUrl) {
  * Clean up the generated markdown:
  * - Collapse multiple blank lines to max 2
  * - Trim leading/trailing whitespace
+ * @param {string} md
  */
 function cleanMarkdown(md) {
     return md

@@ -249,6 +249,7 @@ function parseRequires(src) {
     /** @type {Map<string, RequireBinding>} */
     const map = new Map();
     const rx = /(?:const|let|var)\s+(\w+|\{[^}]+\})\s*=\s*require\(\s*['"](\.[^'"]+)['"]\s*\)(?:\.(\w+))?/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = rx.exec(src))) {
         const [, binding, spec, tailProp] = m;
@@ -267,7 +268,11 @@ function parseRequires(src) {
 
 const INLINE_REQUIRE_RX = /^require\(\s*['"](\.[^'"]+)['"]\s*\)(?:\.(\w+))?$/;
 
-/** Does this argument look like a router reference to a local file? */
+/**
+ * Does this argument look like a router reference to a local file?
+ * @param {string} argText
+ * @param {Map<string, RequireBinding>} requires
+ */
 function asRouterRef(argText, requires) {
     const inline = argText.match(INLINE_REQUIRE_RX);
     if (inline) {
@@ -304,6 +309,7 @@ function parseFnParams(src) {
     /** @type {Map<string, string>} */
     const map = new Map();
     const rx = /(?:(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function\s*)?\(([^)]*)\)\s*(?:=>|\{))/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = rx.exec(src))) {
         const name = m[1] || m[3];
@@ -324,6 +330,7 @@ function parseRouterVars(src) {
     /** @type {Set<string>} */
     const vars = new Set();
     const rx = /(?:const|let|var)\s+(\w+)\s*=\s*(?:require\(\s*['"]express['"]\s*\)\s*\.\s*|express\s*\.\s*)?Router\s*\(/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = rx.exec(src))) vars.add(m[1]);
     return vars;
@@ -399,6 +406,7 @@ function parseFile(src) {
     const submounts = [];     // { routerVar, path, offset, ref | localVar, gate, moduleGate }
 
     const callRx = /\b(\w+)\s*\.\s*(get|post|put|patch|delete|all|options|head|use)\s*\(/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = callRx.exec(clean))) {
         const [, recv, method] = m;
@@ -581,8 +589,17 @@ function parseSurface(readSource, entry, opts = {}) {
     // App-level app.use(fn) without a path in the entry file is PLUMBING (helmet, sessions, body parsers,
     // the bridge middleware) — not a gate for what is mounted beneath it. The same exclusion as
     // routeWalk.cli.js makes with isRoot.
-    const gateApplies = (isRoot) => (g) => !(isRoot && g.routerVar === 'app' && g.path === '/');
+    /**
+     * @param {boolean} isRoot
+     */
+    const gateApplies = (isRoot) => (/** @type {{ routerVar: string; path: string; }} */ g) => !(isRoot && g.routerVar === 'app' && g.path === '/');
 
+    /**
+     * @param {string} file
+     * @param {string} prefix
+     * @param {number} depth
+     * @param {() => void} sawCb
+     */
     function emitVar(file, p, vars, prefix, inherited, depth, sawCb) {
         const isRoot = file === entry;
         for (const reg of p.registrations) {
@@ -665,6 +682,7 @@ function sweepSurface(surface, registry, exempt) {
         return null;
     };
 
+    /** @type {{ id: string; file: string; moduleGated: boolean; dynamic: boolean; }[]} */
     const unaccounted = [];
     for (const route of surface.routes) {
         const id = `${route.method} ${route.path}`;
@@ -684,6 +702,7 @@ function sweepSurface(surface, registry, exempt) {
         unaccounted.push({ id, file: route.file, moduleGated: route.moduleGated, dynamic: route.dynamic });
     }
 
+    /** @type {OpaqueMount[]} */
     const unaccountedOpaque = [];
     for (const o of surface.opaque) {
         if (triaged(o.prefix)) continue;

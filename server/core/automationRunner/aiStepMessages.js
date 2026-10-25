@@ -55,6 +55,7 @@ function buildAiStepMessages(step, { agent, grounding, effectiveSchema, resolved
 /**
  * Usage + termination logging (source='automation') — automation LLM spend
  * was previously invisible in ai_usage_log / ai_task_termination_log.
+ * @param {boolean} hitIterationCap
  */
 function logAiStepUsage(ctx, modelId, usageAcc, hitIterationCap) {
     try {

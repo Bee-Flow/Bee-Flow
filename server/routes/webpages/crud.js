@@ -78,12 +78,13 @@ function register(router) {
         const { name, description, instructions, framework, runtime } = req.body;
         const prompt = (req.body.prompt || '').trim().slice(0, MAX_PROMPT_CHARS);
 
+        /** @type {{ kind: string; id: string; name: string; }[]} */
         let sources;
         try {
             sources = await resolveCreateSources(req, normalizeCreateSources(req.body.sources));
         } catch (e) {
             if (!e.status) throw e;
-            return res.status(e.status).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
+            return res.status(e.status).json({ error: /** @type {Error} */ (e).message, ...(e.code ? { code: e.code } : {}) });
         }
 
         // Record the framework + runtime tier in settings so the chat handler and
@@ -164,7 +165,7 @@ function register(router) {
             const counts = await publicShareStore.countLiveSharesForWebpages(webpages.map(w => w.id));
             for (const w of webpages) w.publicShareCount = counts.get(w.id) ?? null;
         } catch (e) {
-            log.warn('[Webpages] public-share count failed:', e.message);
+            log.warn('[Webpages] public-share count failed:', /** @type {Error} */ (e).message);
         }
         res.json({ webpages });
     });
@@ -219,7 +220,7 @@ function register(router) {
             const counts = await publicShareStore.countLiveSharesForWebpages([webpage.id]);
             webpage.publicShareCount = counts.get(webpage.id) ?? null;
         } catch (e) {
-            log.warn('[Webpages] public-share count failed:', e.message);
+            log.warn('[Webpages] public-share count failed:', /** @type {Error} */ (e).message);
         }
         res.json({
             webpage,
@@ -281,6 +282,7 @@ function register(router) {
                         // (5 minutes), because only then do we come here. Read before writeSlot below,
                         // otherwise we would measure the new text against itself.
                         const changed = Object.keys(slotUpdates);
+                        /** @type {number | null} */
                         let lineDelta = null;
                         try {
                             // FIRST ask whether there is anything to read at all.
@@ -289,6 +291,7 @@ function register(router) {
                             if (!webpageStore.slotsAreReadable()) {
                                 throw new Error('object storage unavailable');
                             }
+                            /** @type {Record<string, string>} */
                             const before = {};
                             await Promise.all(changed.map(async (slot) => {
                                 before[slot] = await webpageStore.readSlot(userId, id, slot);
@@ -296,7 +299,7 @@ function register(router) {
                             const after = Object.fromEntries(changed.map(s => [s, slotUpdates[s].content]));
                             lineDelta = versionFacts.slotsLineDelta(before, after, changed);
                         } catch (dErr) {
-                            log.warn('[Webpages] Auto-version line delta unavailable:', dErr.message);
+                            log.warn('[Webpages] Auto-version line delta unavailable:', /** @type {Error} */ (dErr).message);
                         }
                         // "Auto-save" only said THAT something happened. This row belongs to an edit that
                         // someone made by hand in the Code tab; that is what is shown in the list.
@@ -308,7 +311,7 @@ function register(router) {
                         }, 'manual', { actorUserId: userId, lineDelta });
                     }
                 } catch (vErr) {
-                    log.warn('[Webpages] Auto-version failed:', vErr.message);
+                    log.warn('[Webpages] Auto-version failed:', /** @type {Error} */ (vErr).message);
                 }
             }
         }

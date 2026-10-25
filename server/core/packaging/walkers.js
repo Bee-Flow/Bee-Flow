@@ -53,6 +53,7 @@ function walkSteps(steps, fn) {
  * Every TRIGGER of one graph — the primary `trigger`, then each extra entry
  * point in `triggers[]`. Both are nodes of the graph the canvas draws and both
  * can carry the same author-supplied fields a step can.
+ * @param {string | null} layerKey
  */
 function walkTriggers(graph, layerKey, fn) {
     if (isObject(graph.trigger)) fn(graph.trigger, layerKey, true);

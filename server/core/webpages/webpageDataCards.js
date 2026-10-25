@@ -56,6 +56,8 @@ const WRITING_MODES = new Set(['write', 'readwrite']);
  * not an error.
  *
  * @returns {Promise<Map<string, boolean>|null>} null when the files could not be read
+ * @param {string} userId
+ * @param {string} webpageId
  */
 async function scanCodeForTables(userId, webpageId, datatableIds) {
     if (!datatableIds.length) return new Map();

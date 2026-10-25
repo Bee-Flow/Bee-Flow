@@ -66,6 +66,7 @@ function compactToolResultForLLM(toolResult) {
  * Per-request memo of the `direct_chat_tier_tool_params` config read.
  * A rejected read clears the memo so the next tool call retries; each
  * caller's own try/catch keeps the per-tool-call warn behavior.
+ * @param {typeof configStore} [store]
  */
 function makeTierToolParamsGetter(store = configStore) {
     let memo = null;
@@ -147,7 +148,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         const tierToolParams = await ctx.getTierToolParams();
         tierOverrides = tierToolParams[ctx.resolvedTier]?.[toolName] || null;
     } catch (cfgErr) {
-        log.warn(`[DirectChat] Config lookup failed (tier_tool_params${streamed ? ', streamed' : ''}): ${cfgErr.message}`);
+        log.warn(`[DirectChat] Config lookup failed (tier_tool_params${streamed ? ', streamed' : ''}): ${/** @type {Error} */ (cfgErr).message}`);
     }
 
     let toolResult;
@@ -194,7 +195,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                     }
                     log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query PII check passed`);
                 } catch (piiErr) {
-                    log.warn(`[DirectChat WebSearchGuard] PII check failed (fail-open):`, piiErr.message);
+                    log.warn(`[DirectChat WebSearchGuard] PII check failed (fail-open):`, /** @type {Error} */ (piiErr).message);
                 }
             }
         }
@@ -272,7 +273,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         }
     } catch (err) {
         log.error(`[DirectChat] ${streamed ? 'Streamed tool' : 'Tool'} execution failed for ${toolName}:`, err);
-        toolResult = { error: err.message };
+        toolResult = { error: /** @type {Error} */ (err).message };
         toolError = err;
     }
 
@@ -350,6 +351,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
  * The pre-dispatch half of the Privacy Shield tool block lists. Returns null
  * when the call may go ahead, else what to tell the UI and the model. See
  * core/privacy/toolPiiGate.js for the fail-open/closed rules.
+ * @param {string} toolName
  */
 async function _checkToolPiiPolicy(toolName, toolArgs, ctx) {
     if (!ctx.orgShield) return null;
@@ -364,6 +366,7 @@ async function _checkToolPiiPolicy(toolName, toolArgs, ctx) {
  * The result half: strip the categories this tool's class forbids out of what
  * the MODEL reads (the UI already got the raw result on tool_end, as in the
  * agent loop). Fails open.
+ * @param {string} content
  */
 async function _stripForModel(content, toolName, ctx) {
     if (!ctx.orgShield || typeof content !== 'string') return content;

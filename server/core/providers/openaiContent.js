@@ -67,6 +67,9 @@ function _textOf(part) {
 // `reasoningItems`, so dropping these loses nothing the model can use.
 const SILENTLY_DROPPED = new Set(['thinking', 'redacted_thinking', 'tool_use', 'tool_result']);
 
+/**
+ * @param {string} api
+ */
 function _drop(part, api) {
     if (!SILENTLY_DROPPED.has(part?.type)) {
         log.warn(`[OpenAIContent] Dropping a '${part?.type}' content part the ${api} API does not accept`);
@@ -130,7 +133,10 @@ function toCompletionsContent(content, role) {
     return changed ? out : content;
 }
 
-/** Keys a part may carry on the wire; anything else (cache_control, …) is a 400. */
+/**
+ * Keys a part may carry on the wire; anything else (cache_control, …) is a 400.
+ * @param {string[]} allowed
+ */
 function _onlyKeys(obj, allowed) {
     return Object.keys(obj).every(k => allowed.includes(k));
 }

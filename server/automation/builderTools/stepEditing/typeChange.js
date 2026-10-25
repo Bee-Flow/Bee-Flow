@@ -57,6 +57,7 @@ function typeChangeFromPatch(step, patch, draftWrap) {
 
 /** The replace spec for a type change, and the notes about what was read or dropped. */
 function specForTypeChange(step, patch, newType) {
+    /** @type {string[]} */
     const notes = [];
     /** @type {Record<string, any>} */
     const spec = {};

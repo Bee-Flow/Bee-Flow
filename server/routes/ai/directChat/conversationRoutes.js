@@ -27,7 +27,10 @@ const { fallback } = require('../../../utils/bestEffort');
 // bug, and answering 200 to it means the user watches a setting they typed
 // fail to stick with nothing on screen to explain it.
 
-/** An id a caller supplies, in a list. Blank entries are a client bug, not a gap. */
+/**
+ * An id a caller supplies, in a list. Blank entries are a client bug, not a gap.
+ * @param {string} message
+ */
 const ID = (message) => z.string({ error: typeError({ invalid: message }) }).trim().min(1, message);
 
 const KB_IDS_TEXT = 'Each knowledge base id must be a non-empty string.';
@@ -294,6 +297,7 @@ router.patch('/direct/conversations/:id', requireAuth, validate({ body: Conversa
         // to mean "will actually be used". An org admin's bypass and a base
         // its owner switched off for chat both fail here, and both would
         // otherwise be accepted and then silently ignored every turn.
+        /** @type {string[] | null} */
         let nextKbIds = null;
         if (knowledgeBaseIds !== undefined) {
             const usable = await usableKbIdsForRequest(req, knowledgeBaseIds);

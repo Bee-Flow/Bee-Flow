@@ -16,6 +16,7 @@
  * on a box where that module cannot load. `null` means "cannot check", and the
  * caller then only rejects non-strings rather than inventing a list.
  */
+/** @type {Set<string>} */
 let _piiCategoryIds;
 function piiCategoryIds() {
     if (_piiCategoryIds !== undefined) return _piiCategoryIds;

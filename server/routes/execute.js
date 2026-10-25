@@ -63,6 +63,7 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
     const workflowStore = require('../stores/workflowStore');
 
     // Create execution record (include workflow structure for visual replay)
+    /** @type {string | null} */
     let executionId = null;
     if (workflowId) {
         const execution = await workflowStore.createExecution(workflowId, workflowName || 'Workflow', userId, 'manual', workflow);
@@ -84,7 +85,7 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
 
         // Log failed execution
         if (executionId) {
-            await workflowStore.completeExecution(executionId, 'failed', 0, null, error.message).catch((e) => bestEffort('routes/execute:anon', e));
+            await workflowStore.completeExecution(executionId, 'failed', 0, null, /** @type {Error} */ (error).message).catch((e) => bestEffort('routes/execute:anon', e));
         }
 
         next(error);
@@ -112,7 +113,7 @@ router.post('/subworkflow/:workflowId', requireAuth, validate({ body: Subworkflo
     }
 
     // Check if workflow has a subworkflow trigger
-    const hasTrigger = workflow.nodes?.some(n =>
+    const hasTrigger = workflow.nodes?.some((/** @type {{ type: string; data: { componentId: string; }; }} */ n) =>
         n.type === 'trigger-subworkflow' ||
         n.data?.componentId === 'trigger-subworkflow'
     );
@@ -125,7 +126,7 @@ router.post('/subworkflow/:workflowId', requireAuth, validate({ body: Subworkflo
 
     // Inject trigger metadata into the first trigger node
     const workflowCopy = JSON.parse(JSON.stringify(workflow));
-    const triggerNode = workflowCopy.nodes.find(n =>
+    const triggerNode = workflowCopy.nodes.find((/** @type {{ type: string; data: { componentId: string; }; }} */ n) =>
         n.type === 'trigger-subworkflow' ||
         n.data?.componentId === 'trigger-subworkflow'
     );

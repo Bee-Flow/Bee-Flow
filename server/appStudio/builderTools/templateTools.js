@@ -46,7 +46,10 @@ function viewerScope(draftWrap) {
     };
 }
 
-/** Cut at a word boundary with an ellipsis; text that already fits is untouched. */
+/**
+ * Cut at a word boundary with an ellipsis; text that already fits is untouched.
+ * @param {number} max
+ */
 function shortenAtWord(text, max) {
     if (typeof text !== 'string') return '';
     if (text.length <= max) return text;
@@ -86,7 +89,7 @@ async function applyListTemplates(draftWrap) {
             ? await registry.listAvailableTemplates(viewerScope(draftWrap))
             : templates.listTemplates();
     } catch (e) {
-        return { error: `Could not list templates: ${e.message}` };
+        return { error: `Could not list templates: ${/** @type {Error} */ (e).message}` };
     }
     // Built-in rows carry no definition (listTemplates strips the heavy fields),
     // so the screen/table counts come from the full constant. A captured row
@@ -129,7 +132,7 @@ async function applyApplyTemplate(draftWrap, args) {
             ? await registry.resolveTemplate(templateId, viewerScope(draftWrap))
             : (templates && typeof templates.getTemplate === 'function' ? templates.getTemplate(templateId) : null);
     } catch (e) {
-        return { error: `Could not read template ${JSON.stringify(templateId)}: ${e.message}` };
+        return { error: `Could not read template ${JSON.stringify(templateId)}: ${/** @type {Error} */ (e).message}` };
     }
     if (!template) {
         return { error: `Unknown templateId ${JSON.stringify(templateId)}.`, _fixHint: 'Call app_list_templates for the available ids.' };
@@ -198,14 +201,14 @@ async function applyApplyTemplate(draftWrap, args) {
             });
         }
     } catch (e) {
-        log.warn(`[builderTools] template provenance not stamped for ${draftWrap.appId}: ${e && e.message ? e.message : e}`);
+        log.warn(`[builderTools] template provenance not stamped for ${draftWrap.appId}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
     }
 
     let out;
     try {
         out = await templateInstall.installTemplate({ appId: draftWrap.appId, ownerId: draftWrap.userId, template });
     } catch (e) {
-        return { error: `Could not install template "${templateId}": ${e.message}` };
+        return { error: `Could not install template "${templateId}": ${/** @type {Error} */ (e).message}` };
     }
     if (!out || out.ok === false) {
         return { error: (out && out.error) || `Template "${templateId}" could not be installed.` };
@@ -287,7 +290,7 @@ async function applySaveAsTemplate(draftWrap, args) {
             },
         });
     } catch (e) {
-        return { error: `Could not capture the app: ${e.message}` };
+        return { error: `Could not capture the app: ${/** @type {Error} */ (e).message}` };
     }
 
     if (!capture.ok) {
@@ -321,7 +324,7 @@ async function applySaveAsTemplate(draftWrap, args) {
             },
         });
     } catch (e) {
-        return { error: `Could not save the template: ${e.message}` };
+        return { error: `Could not save the template: ${/** @type {Error} */ (e).message}` };
     }
 
     const hints = [

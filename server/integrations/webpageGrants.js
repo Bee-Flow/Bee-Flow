@@ -213,6 +213,7 @@ async function listAvailableIntegrations({ userId, session }, _deps = {}) {
     } catch {
         return { integrations: /** @type {never[]} */ ([]), discoveryFailed: true };
     }
+    /** @type {({ tool: string; label: string; description: string; integrationId: string | undefined; integrationLabel: string | undefined; })[]} */
     const out = [];
     for (const { entry, tools } of deps.loadRegistry()) {
         for (const t of tools) {

@@ -40,13 +40,21 @@ function mirrorCtx({ table, scope, scopeKey, tableMeta, grade, ctx }) {
     return mirrorWrites(table).contextOf({ table, scope, scopeKey, tableMeta, grade, viewerId: ctx.userId || null });
 }
 
+/**
+ * @param {string} message
+ * @param {string} errorClass
+ */
 function fail(message, errorClass) {
     const e = new Error(message);
     Object.assign(e, { errorClass });
     return e;
 }
 
-/** A step-level skip, in the shape the runner already renders amber. */
+/**
+ * A step-level skip, in the shape the runner already renders amber.
+ * @param {string} reason
+ * @param {string} message
+ */
 function skipped(reason, message, output) {
     return { output: { ...output, skipped: message }, skippedReason: reason };
 }

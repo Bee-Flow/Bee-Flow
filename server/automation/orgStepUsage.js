@@ -83,8 +83,14 @@ const PHONE_RUN_RE = /\+?\d[\d\s().-]{7,}\d/g;
 // share token, JWT segment). Paths are split on '/' first, so a deep folder
 // path is not one long run.
 const TOKEN_RUN_RE = /[A-Za-z0-9_\-+=.]{20,}/g;
+/**
+ * @param {string} c
+ */
 const charClass = (c) => (/[a-z]/.test(c) ? 1 : /[A-Z]/.test(c) ? 2 : /[0-9]/.test(c) ? 3 : 0);
 
+/**
+ * @param {string} s
+ */
 function looksLikePhone(s) {
     const runs = s.match(PHONE_RUN_RE) || [];
     return runs.some((run) => run.replace(/\D/g, '').length >= 9);
@@ -94,6 +100,7 @@ function looksLikePhone(s) {
  * A credential mixes letters and digits all the way through; a readable name
  * ("Invoices_2026_Q3_archive") changes between them only at word breaks.
  * Long hex (a hash, a key) counts regardless.
+ * @param {string} s
  */
 function looksLikeToken(s) {
     for (const part of s.split('/')) {
@@ -112,6 +119,7 @@ function looksLikeToken(s) {
 /**
  * True when a value must not be offered to the rest of the org: personal
  * data, a credential, or something that only makes sense once.
+ * @param {string} s
  */
 function isUnsafeValue(s) {
     if (EMAIL_RE.test(s)) return true;
@@ -195,6 +203,7 @@ function aggregate(definitions) {
  * The top values for (tool, input) from an aggregate, most used first.
  * With `viewerId`, a value is offered only when the viewer uses it too, or at
  * least MIN_SHARED_OWNERS known people do (see the header).
+ * @param {number} [limit]
  */
 function topValues(agg, tool, input, limit = MAX_VALUE_ROWS, { viewerId = null } = {}) {
     const byValue = agg?.values?.get(tool)?.get(String(input).replace(/^inputs\./, ''));

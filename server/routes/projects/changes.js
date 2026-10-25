@@ -69,7 +69,10 @@ function makeChangesRouter(deps = {}) {
     const userIdOf = (req) => req.session?.user?.id;
     const keyOf = (item) => `${item.type}:${item.id}`;
 
-    /** Stamp title + availability on every item, with this reader's access. */
+    /**
+     * Stamp title + availability on every item, with this reader's access.
+     * @param {string} projectId
+     */
     async function withTitles(projectId, items) {
         const unique = new Map();
         for (const item of items) unique.set(keyOf(item), item);

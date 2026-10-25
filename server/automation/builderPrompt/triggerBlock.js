@@ -203,6 +203,7 @@ function renderFields(decl, note) {
     return fields.length ? ` → ${fields.join(', ')}` : '';
 }
 
+/** @type {string | null} */
 let memo = null;
 
 /**
@@ -212,7 +213,9 @@ let memo = null;
  */
 function renderTriggerBlockLean() {
     if (memo !== null) return memo;
+    /** @type {string[]} */
     const never = [];
+    /** @type {string[]} */
     const lines = [];
     // Group consecutive events that share a sidecar `group` onto one line —
     // the first member carries the filters/fields/note for all of them.

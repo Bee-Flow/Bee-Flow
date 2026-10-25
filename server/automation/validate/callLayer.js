@@ -6,8 +6,14 @@
 
 const { isObject, pickClosestId } = require('./helpers');
 
+/**
+ * @param {string} [pathPrefix]
+ */
 function collectCallLayerSteps(graph, pathPrefix = '') {
     const out = [];
+    /**
+     * @param {string} basePath
+     */
     const walk = (steps, basePath) => {
         if (!Array.isArray(steps)) return;
         for (let i = 0; i < steps.length; i++) {
@@ -30,6 +36,7 @@ function collectCallLayerSteps(graph, pathPrefix = '') {
 /**
  * Validate a call_layer step against the root `layers` map. Run for every
  * call step (top-level AND inside loop bodies / parallel branches).
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
  */
 function validateCallLayerStep(step, at, layers, pushE) {
     const stepId = step.id || '(no id)';

@@ -134,7 +134,7 @@ async function _initDB() {
     // still brings them in. Tolerated individually like the ALTERs above.
     for (const name of ['studio-app-published-version-2026-08', 'studio-app-public-pages-2026-08']) {
         try { await dep('migration')(name).up(); } catch (e) {
-            log.error(`[StudioAppStore] migration ${name} FAILED: ${e.message}`);
+            log.error(`[StudioAppStore] migration ${name} FAILED: ${/** @type {Error} */ (e).message}`);
         }
     }
     log.info('[StudioAppStore] PostgreSQL initialized');

@@ -22,6 +22,7 @@ function isRunless(approval) {
  * decides it, in any shape (single, panel, stage chain). A row without a
  * recorded requester falls back to its owner (the Solution owner, who is the
  * requester in v1), so a missing column fails closed.
+ * @param {string} userId
  */
 function isOwnDeploymentRequest(approval, userId) {
     if (!userId) return false;
@@ -187,7 +188,10 @@ function voteSummary(v) {
  * its own state (done / current / waiting / skipped) — because "where is this
  * and who is it on" is the question the surface exists to answer.
  */
-/** Approvals a rule needs over `seats` votable seats (the evaluatePanel arithmetic). */
+/**
+ * Approvals a rule needs over `seats` votable seats (the evaluatePanel arithmetic).
+ * @param {number} seats
+ */
 function neededVotes(rule, quorum, seats) {
     if (rule === 'quorum') return Math.min(Math.max(Number(quorum) || 1, 1), seats);
     return rule === 'first' ? 1 : seats;
@@ -210,6 +214,7 @@ function panelProgress(approval, votes) {
                 const approvals = stageVotes.filter(v => v.decision === 'approve').length;
                 const seatCount = (st.approvers || []).length;
                 const idx = order.indexOf(st.key);
+                /** @type {string} */
                 let state;
                 if (st.skipped) state = 'skipped';
                 else if (terminal) state = stageVotes.length ? 'done' : 'never_reached';

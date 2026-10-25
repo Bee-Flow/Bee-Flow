@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./formAnswers/derive').Def} Def */
 /**
  * Form-trigger contract helpers.
  *
@@ -48,7 +50,10 @@ const {
 } = types;
 const { coerceFieldValue, coerceSubmission } = coerce;
 
-/** True when a definition's PRIMARY trigger is a form trigger. */
+/**
+ * True when a definition's PRIMARY trigger is a form trigger.
+ * @param {Def} definition
+ */
 function isFormTriggerDefinition(definition) {
     return definition?.trigger?.kind === 'form';
 }
@@ -56,6 +61,7 @@ function isFormTriggerDefinition(definition) {
 function normalizeOptions(raw) {
     if (!Array.isArray(raw)) return [];
     const cap = formOptionsCap();
+    /** @type {({ hint?: string | undefined; value: string; label: string; })[]} */
     const out = [];
     for (const o of raw) {
         // Both `["Sales","Support"]` and `[{value,label,hint}]` are accepted; the
@@ -222,7 +228,14 @@ function formTriggerFields(definition) {
  */
 function validateFormDeclaration(form, /** @type {{requireFields?: boolean, allowDisplayFields?: boolean, allowRunData?: boolean, allowInfo?: boolean}} */ { requireFields = true, allowDisplayFields = true, allowRunData = false, allowInfo } = {}) {
     const infoOk = allowInfo ?? allowDisplayFields;
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} hint
+     */
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
 
     if (form === undefined || form === null) {
@@ -309,7 +322,12 @@ function validateFormDeclaration(form, /** @type {{requireFields?: boolean, allo
     return issues;
 }
 
-/** Choice questions: static options, the cap, and an optionsFrom source. */
+/**
+ * Choice questions: static options, the cap, and an optionsFrom source.
+ * @param {string} at
+ * @param {boolean} allowRunData
+ * @param {(arg0: string, arg1: string, arg2: string, arg3: string) => void} push
+ */
 function validateChoices(f, at, allowRunData, push) {
     const hasSource = f.optionsFrom !== undefined && f.optionsFrom !== null;
     if (hasSource) {
@@ -327,7 +345,12 @@ function validateChoices(f, at, allowRunData, push) {
     }
 }
 
-/** Info blocks: some text, within limits, and only where display fields are allowed. */
+/**
+ * Info blocks: some text, within limits, and only where display fields are allowed.
+ * @param {string} at
+ * @param {boolean} infoOk
+ * @param {(arg0: string, arg1: string, arg2: string, arg3: string) => void} push
+ */
 function validateInfo(f, at, infoOk, push) {
     if (f.type !== 'info') return;
     if (!infoOk) push('field_type', `${at}.type`, 'A text block cannot be used on this form.', 'Use a question type instead.');
@@ -338,7 +361,12 @@ function validateInfo(f, at, infoOk, push) {
     }
 }
 
-/** File-backed display fields, app pickers and uploads (unchanged rules). */
+/**
+ * File-backed display fields, app pickers and uploads (unchanged rules).
+ * @param {string} at
+ * @param {boolean} allowDisplayFields
+ * @param {(arg0: string, arg1: string, arg2: string, arg3: string) => void} push
+ */
 function validateFileKinds(f, at, allowDisplayFields, push) {
     if (FILE_FIELD_TYPES.includes(f.type)) {
         const what = f.type === 'notebook' ? 'An "Open in Notebooks" button' : 'A download button';

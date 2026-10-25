@@ -106,6 +106,9 @@ function buildToolParamsFromList(toolsWithParams) {
     return tool_params;
 }
 
+/**
+ * @param {string} agentId
+ */
 async function buildToolParams(agentId) {
     const toolsWithParams = await getAgentToolsWithParams(agentId);
     return buildToolParamsFromList(toolsWithParams);

@@ -55,6 +55,11 @@ const DEFAULT_ALLOW = Object.freeze([
 // ── Magic-byte sniffing ─────────────────────────────────────────────
 // Each entry: a byte prefix (with `null` = wildcard) → a canonical "family"
 // label. ZIP/OLE families cover the container-based Office formats.
+/**
+ * @param {Buffer<ArrayBufferLike>} buf
+ * @param {number[]} sig
+ * @param {number} [offset]
+ */
 function startsWith(buf, sig, offset = 0) {
     // The offset matters: tar's `ustar` marker sits at byte 257, not byte 0.
     // (This function silently ignored a third argument for a while, which made
@@ -66,6 +71,9 @@ function startsWith(buf, sig, offset = 0) {
     return true;
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function sniffFamily(buffer) {
     if (!Buffer.isBuffer(buffer) || buffer.length === 0) return 'empty';
     if (startsWith(buffer, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'png';
@@ -101,6 +109,9 @@ function sniffFamily(buffer) {
 // STEP (ISO 10303-21), DXF (ASCII + binary), DWG and IGES.
 const DXF_BINARY_SENTINEL = 'AutoCAD Binary DXF\r\n\x1a\x00';
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function sniffCadFamily(buffer) {
     // Binary DXF: the exact sentinel from the DXF spec.
     if (buffer.length >= DXF_BINARY_SENTINEL.length &&
@@ -139,6 +150,9 @@ function sniffCadFamily(buffer) {
 // IGES is a fixed 80-column card format: cols 1–72 content, col 73 the section
 // letter (S = Start), cols 74–80 a right-aligned sequence number. Pragmatic:
 // first line 80±2 chars, an S in the col-73 zone, a trailing digit.
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function looksLikeIges(buffer) {
     if (!isProbablyText(buffer)) return false;
     const head = buffer.subarray(0, 256).toString('latin1');
@@ -150,6 +164,9 @@ function looksLikeIges(buffer) {
     return /\d$/.test(line.trimEnd());
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function looksLikeSvg(buffer) {
     // Sniff a bounded prefix: optional BOM/whitespace/XML prolog, then <svg.
     const head = buffer.subarray(0, 1024).toString('utf8').replace(/^﻿/, '').trimStart().toLowerCase();
@@ -160,6 +177,9 @@ function looksLikeSvg(buffer) {
 
 // A byte buffer is "probably text" if it decodes as UTF-8 without control
 // characters other than tab/newline/carriage-return (no NULs → not binary).
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function isProbablyText(buffer) {
     const n = Math.min(buffer.length, 4096);
     for (let i = 0; i < n; i++) {
@@ -196,6 +216,10 @@ const MIME_FAMILIES = Object.freeze({
     'application/vnd.ms-powerpoint': ['ole'],
 });
 
+/**
+ * @param {string} declared
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function magicMatchesDeclared(declared, buffer) {
     const families = MIME_FAMILIES[declared];
     if (!families) return false; // unknown declared type → cannot vouch for it
@@ -217,7 +241,7 @@ function resolveAvHook() {
         const mod = require(hookPath);
         _avHook = (typeof mod === 'function') ? mod : (typeof mod.scan === 'function' ? mod.scan : null);
     } catch (err) {
-        log.warn(`[UploadGuard] UPLOAD_AV_HOOK failed to load (${err.message}); scanning is no-op`);
+        log.warn(`[UploadGuard] UPLOAD_AV_HOOK failed to load (${/** @type {Error} */ (err).message}); scanning is no-op`);
         _avHook = null;
     }
     return _avHook;
@@ -243,7 +267,7 @@ async function scanBuffer(buffer) {
             return { clean: !!r };
         } catch (err) {
             // Fail CLOSED — a scanner that errors must not wave a file through.
-            log.error(`[UploadGuard] AV hook error: ${err.message}`);
+            log.error(`[UploadGuard] AV hook error: ${/** @type {Error} */ (err).message}`);
             return { clean: false, signature: 'scanner-error' };
         }
     }
@@ -265,6 +289,9 @@ function uploadGuard({ maxBytes = DEFAULT_MAX_BYTES, allow = DEFAULT_ALLOW, fiel
         limits: { fileSize: maxBytes, files: 1 },
     }).single(field);
 
+    /**
+     * @param {() => void} next
+     */
     return function uploadGuardMiddleware(req, res, next) {
         parseOne(req, res, (err) => {
             if (err) {

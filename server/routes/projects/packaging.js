@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Blueprint packaging — export a Solution so it can be installed elsewhere.
  *
@@ -63,6 +64,7 @@ const blueprintPackaging = requireFeature('blueprint_packaging');
  * A Solution STAGE (UAT or Production, `project.stage` set) answers 404 too:
  * it is a locked copy of a Dev Solution and changes only through a
  * deployment, so it is never exported, upgraded or counted on its own.
+ * @param {NextFunction} next
  */
 async function requireSolutionProject(req, res, next) {
     const project = await require('../../stores/projectStore').getProject(req.params.id);
@@ -141,7 +143,7 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
         } catch (err) {
             // The capture succeeded; only publishing it failed. Hand back
             // the manifest anyway so the download still works, and say why.
-            return res.json({ ...result.manifest, _saveError: err.message });
+            return res.json({ ...result.manifest, _saveError: /** @type {Error} */ (err).message });
         }
     }
 
@@ -185,6 +187,8 @@ router.post('/:id/package/export', blueprintPackaging, requireProjectRole('owner
  * NO FALLBACK: once a Solution has ledger rows, positional refs disagree with
  * earlier releases and an upgrade writes one part over another. A ledger that
  * cannot be written refuses the publication (503 `ref_ledger_unavailable`).
+ * @param {readonly string[]} ENTITY_KINDS
+ * @param {Record<string, string>} REF_PREFIX
  */
 async function galleryRefsFor(project, ENTITY_KINDS, REF_PREFIX) {
     const members = await require('../../projects/packaging/capture').loadMembers(project.id);
@@ -194,7 +198,7 @@ async function galleryRefsFor(project, ENTITY_KINDS, REF_PREFIX) {
         return await require('../../stores/blueprintStore').allocateRefs(project.id, list,
             { prefixOf: (kind) => REF_PREFIX[kind], kinds: [...ENTITY_KINDS] });
     } catch (err) {
-        log.error('[Projects] Blueprint ref ledger unavailable, publication refused:', err.message);
+        log.error('[Projects] Blueprint ref ledger unavailable, publication refused:', /** @type {Error} */ (err).message);
         throw new HttpError(503, 'ref_ledger_unavailable',
             'The part references of this Solution could not be recorded, so nothing was published. Try again later.');
     }
@@ -206,6 +210,7 @@ async function galleryRefsFor(project, ENTITY_KINDS, REF_PREFIX) {
  * ref past the ones handed over (possibly a RETIRED one, never recorded). So
  * every captured ref must be an allocated one, else allocate and capture once
  * more; still changing: 409 `solution_changed`, nothing published.
+ * @param {string} exportedAt
  */
 async function captureWithLedger(project, exportedAt) {
     const { ENTITY_KINDS, REF_PREFIX } = require('../../projects/packaging/manifest');
@@ -233,7 +238,7 @@ async function organizationNameFor(organizationId) {
         const org = await require('../../stores/userStore').getOrganization(organizationId);
         return typeof org?.name === 'string' && org.name ? org.name : null;
     } catch (err) {
-        log.warn('[Projects] could not read the organisation name for a Blueprint:', err.message);
+        log.warn('[Projects] could not read the organisation name for a Blueprint:', /** @type {Error} */ (err).message);
         return null;
     }
 }
@@ -337,11 +342,13 @@ async function capabilityPredicate(req) {
  * `not_newer`, which names the wrong problem.
  *
  * @returns {Promise<{warnings:string[]}>}
+ * @param {string} projectId
  */
 async function checkUpgradeSource(projectId, manifest) {
     const project = await require('../../stores/projectStore').getProject(projectId);
     if (!project) throw new HttpError(404, 'not_found', 'Not found');
 
+    /** @type {string[]} */
     const warnings = [];
     const sourceId = project.installedFromBlueprintId || null;
     const source = sourceId

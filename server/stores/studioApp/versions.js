@@ -32,6 +32,7 @@ const MAX_VERSIONS_PER_APP = 20;
  *
  * @param {object|string} definition Definition object (JSON-stringified here)
  *   or an already-serialized JSON string (the publish path's frozen payload).
+ * @param {string} [summary]
  */
 async function createVersionSnapshot(appId, ownerId, definition, summary = 'Checkpoint', { client = null } = {}) {
     if (client) return writeVersionSnapshot(client, appId, ownerId, definition, summary);
@@ -39,6 +40,9 @@ async function createVersionSnapshot(appId, ownerId, definition, summary = 'Chec
     return withTransaction((own) => writeVersionSnapshot(own, appId, ownerId, definition, summary));
 }
 
+/**
+ * @param {string} summary
+ */
 async function writeVersionSnapshot(client, appId, ownerId, definition, summary) {
     const versionId = crypto.randomUUID();
     const defPayload = typeof definition === 'string' ? definition : JSON.stringify(definition ?? {});

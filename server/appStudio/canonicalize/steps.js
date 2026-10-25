@@ -20,6 +20,10 @@ const { cleanApprovalQuestions, cleanApprovalStages, cleanApprovalOnDecided } = 
 // validate.js enforces MAX_ACTION_DEPTH properly.
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanRecordValues(raw, path, push) {
     if (!isObject(raw)) {
         push('step.field_invalid', path, 'values must be an object map of { column: binding } — reset to {}.');
@@ -30,6 +34,11 @@ function cleanRecordValues(raw, path, push) {
     return out;
 }
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanSteps(raw, path, depth, push) {
     if (!Array.isArray(raw)) {
         push('steps.invalid', path, 'steps must be an array — reset to [].');
@@ -38,6 +47,11 @@ function cleanSteps(raw, path, depth, push) {
     return raw.map((s, i) => cleanStep(s, `${path}[${i}]`, depth, push));
 }
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanSwitchCases(raw, path, depth, push) {
     if (!Array.isArray(raw)) {
         push('steps.invalid', path, 'switch cases must be an array — reset to [].');
@@ -56,6 +70,11 @@ function cleanSwitchCases(raw, path, depth, push) {
     });
 }
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanStep(raw, path, depth, push) {
     if (!isObject(raw)) {
         push('step.invalid', path, 'Each step must be an object { kind, ... } — kept for the validator.');

@@ -46,7 +46,10 @@ function itemTextHash(text) {
     return t ? crypto.createHash('sha256').update(t).digest('hex').slice(0, 16) : '';
 }
 
-/** The key a made task is filed under in `created` (store tasksFromMeeting): the id alone when there is no text to pin it. */
+/**
+ * The key a made task is filed under in `created` (store tasksFromMeeting): the id alone when there is no text to pin it.
+ * @param {string} itemId
+ */
 function itemKey(itemId, text) {
     const hash = itemTextHash(text);
     return hash ? `${itemId}#${hash}` : itemId;
@@ -64,12 +67,18 @@ function createdTaskFor(created, itemId, text) {
     return created.get(itemKey(itemId, text)) || created.get(itemId) || null;
 }
 
-/** `12:05` or `1:02:03` for a timestamp in seconds, or ''. */
+/**
+ * `12:05` or `1:02:03` for a timestamp in seconds, or ''.
+ * @param {number} seconds
+ */
 function clock(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) return '';
     const s = Math.floor(seconds);
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
+    /**
+     * @param {number} n
+     */
     const pad = (n) => String(n).padStart(2, '0');
     return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }

@@ -1,3 +1,4 @@
+/** @typedef {import('zod').ZodString} ZodString */
 /**
  * Cowork Routes — REST API for scheduled cowork and its execution history.
  *
@@ -75,11 +76,17 @@ const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-/** '' from a cleared form field means the same as null. */
+/**
+ * '' from a cleared form field means the same as null.
+ * @param {import('zod').ZodNullable<ZodString> | import('zod').ZodNullable<import('zod').ZodEnum<{ [x: string]: string; }>>} schema
+ */
 const blankIsNull = (schema) => z.preprocess((v) => (v === '' ? null : v), schema);
 
 // An unknown zone would make the runner's Intl.DateTimeFormat throw on every
 // tick — a schedule that silently never runs. Reject it at the door.
+/**
+ * @param {string} value
+ */
 function isKnownTimezone(value) {
     try {
         new Intl.DateTimeFormat('en-US', { timeZone: value }).format(new Date());
@@ -182,7 +189,11 @@ async function getMaxSchedules() {
     return (typeof limit === 'number' && limit > 0) ? limit : DEFAULT_MAX_SCHEDULES;
 }
 
-/** Resolve + authorise an agent link. Returns undefined for "don't touch". */
+/**
+ * Resolve + authorise an agent link. Returns undefined for "don't touch".
+ * @param {string} userId
+ * @param {Express.Session} session
+ */
 async function resolveAgentId(agentId, userId, session) {
     if (agentId === undefined) return undefined;
     if (agentId === null || agentId === '') return null;
@@ -201,7 +212,11 @@ async function resolveAgentId(agentId, userId, session) {
     return agent.id;
 }
 
-/** Load a schedule and assert the caller owns it. */
+/**
+ * Load a schedule and assert the caller owns it.
+ * @param {string} id
+ * @param {string} userId
+ */
 async function loadOwned(id, userId) {
     const existing = await coworkStore.getSchedule(id);
     if (!existing) {
@@ -217,6 +232,9 @@ async function loadOwned(id, userId) {
     return existing;
 }
 
+/**
+ * @param {string} _label
+ */
 function fail(res, err, _label) {
     if (err.statusCode >= 400 && err.statusCode < 500) throw new HttpError(err.statusCode, 'cowork_refused', err.message); // the guards' caller-written message
     throw err; // anything else: the terminal handler logs it and answers a generic 500
@@ -230,6 +248,7 @@ function fail(res, err, _label) {
  *
  * Null is the normal value: a schedule that is not running has nothing open.
  * The open row is deliberately the source and not `lastStatus === 'running'`: those two diverge as soon as reapStaleRuns clears a stuck attempt.
+ * @param {string | null} startedAt
  */
 function withCurrentRun(schedule, startedAt) {
     schedule.currentRunStartedAt = startedAt || null;
@@ -315,7 +334,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
                 try {
                     await executeCowork(schedule, { manual: true });
                 } catch (err) {
-                    log.error(`[Cowork] startNow failed for ${schedule.id}:`, err.message);
+                    log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
                 }
             });
         }
@@ -402,7 +421,7 @@ router.post('/:id/run-now', validate({ body: NoBody }), async (req, res) => {
             try {
                 await executeCowork(existing, { manual: true });
             } catch (err) {
-                log.error(`[Cowork] Run-now failed for ${req.params.id}:`, err.message);
+                log.error(`[Cowork] Run-now failed for ${req.params.id}:`, /** @type {Error} */ (err).message);
             }
         });
 

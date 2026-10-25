@@ -68,7 +68,7 @@ function createGoogleCalendarPollers(ctx) {
                     }));
                 } catch (err) {
                     const code = err?.code || err?.response?.status;
-                    if (code === 410 || /sync token/i.test(err?.message || '')) {
+                    if (code === 410 || /sync token/i.test(/** @type {Error} */ (err)?.message || '')) {
                         log.warn(`[TriggerBus] calendar syncToken stale for sub ${sub.id} — clearing.`);
                         await ctx.store().updateSubscription(sub.id, { lastCursor: null });
                         // Bootstrap on the next tick — return [] so we don't
@@ -78,7 +78,7 @@ function createGoogleCalendarPollers(ctx) {
                     throw err;
                 }
             } catch (e) {
-                log.warn('[TriggerBus] calendar poll error:', e.message);
+                log.warn('[TriggerBus] calendar poll error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },
@@ -155,7 +155,7 @@ function createGoogleCalendarPollers(ctx) {
                 }
                 return events;
             } catch (e) {
-                log.warn('[TriggerBus] calendar upcoming poll error:', e.message);
+                log.warn('[TriggerBus] calendar upcoming poll error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },

@@ -118,11 +118,14 @@ async function componentScopeOf(userId) {
         if (!user) return { userId: null, orgId: null };
         return { userId, orgId: user.organizationId || null };
     } catch (e) {
-        log.warn('[AgentTools] Could not resolve the caller for component scoping:', e.message);
+        log.warn('[AgentTools] Could not resolve the caller for component scoping:', /** @type {Error} */ (e).message);
         return { userId: null, orgId: null };
     }
 }
 
+/**
+ * @param {string} agentId
+ */
 async function getAgentTools(agentId) {
     const componentIds = await _deps.agentStore().getAgentTools(agentId);
     const allComponents = _deps.componentManager().getComponents();
@@ -265,7 +268,7 @@ async function getAgentTools(agentId) {
         await appendMcpTools(tools, { effectiveIntegrations, isToolGranted });
         await appendCustomIntegrationTools(tools, { effectiveIntegrations, orgId: ownerOrgId, isToolGranted });
     } catch (err) {
-        log.warn('[AgentTools] Failed to load MCP tools:', err.message);
+        log.warn('[AgentTools] Failed to load MCP tools:', /** @type {Error} */ (err).message);
     }
 
     return tools;

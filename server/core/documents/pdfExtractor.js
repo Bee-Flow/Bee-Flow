@@ -59,7 +59,7 @@ async function extractTextFromPDF(pdfBuffer, filename = 'unknown') {
 
         return fullText;
     } catch (err) {
-        log.warn(`[PDFExtractor] Failed to extract text from ${log.nameForLog(filename)}:`, err.message);
+        log.warn(`[PDFExtractor] Failed to extract text from ${log.nameForLog(filename)}:`, /** @type {Error} */ (err).message);
         return '';
     }
 }
@@ -95,7 +95,7 @@ async function extractTextFromPDFWithStats(pdfBuffer, filename = 'unknown') {
         const text = nonEmptyTexts.join('\n\n').trim();
         return { text, numPages: doc.numPages, pageCharCounts, pages };
     } catch (err) {
-        log.warn(`[PDFExtractor] Failed to extract text+stats from ${log.nameForLog(filename)}:`, err.message);
+        log.warn(`[PDFExtractor] Failed to extract text+stats from ${log.nameForLog(filename)}:`, /** @type {Error} */ (err).message);
         return { text: '', numPages: 0, pageCharCounts: [], pages: [] };
     }
 }

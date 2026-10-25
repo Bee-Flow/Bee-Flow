@@ -57,6 +57,7 @@ function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?:
     // still scan concurrently but can never mint the same label for two
     // different values.
     let queue = Promise.resolve();
+    /** @type {NodeJS.Timeout | null} */
     let persistTimer = null;
 
     if (seed && typeof seed === 'object') {
@@ -136,7 +137,7 @@ function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?:
             return true;
         } catch (e) {
             dirty = true;
-            log.warn(`[TokenVault] run=${runId} could not persist the token map: ${e.message}`);
+            log.warn(`[TokenVault] run=${runId} could not persist the token map: ${/** @type {Error} */ (e).message}`);
             return false;
         }
     }

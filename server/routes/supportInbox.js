@@ -261,7 +261,7 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
         provisioned = await ensureKbAutomation(inbox, userId, req.session, knowledgeBaseId);
     } catch (e) {
         // Activation/validation failure — do NOT mark enabled (keep state consistent).
-        return res.status(400).json({ error: e.message, details: e.details || null });
+        return res.status(400).json({ error: /** @type {Error} */ (e).message, details: e.details || null });
     }
     const updated = await supportInboxStore.setKbAutomation(
         req.params.id, { enabled: true, kbId: knowledgeBaseId, automationId: provisioned.automationId }, inbox.organization_id

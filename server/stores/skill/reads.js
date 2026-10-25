@@ -11,6 +11,9 @@ const { initDB } = require('./schema');
 const { mapRow } = require('./rows');
 const { getLastTestBySkillIds } = require('./testRuns');
 
+/**
+ * @param {string} userId
+ */
 async function _getUserGroupIds(userId) {
     if (!userId) return [];
     try {
@@ -26,6 +29,10 @@ async function _getUserGroupIds(userId) {
 // Build the shared visibility WHERE fragment + params for a single user.
 //   "skill is owned by user, OR (is_shared AND (no group restriction OR user is in one of the groups))"
 // Returns { sql, params } where the params slot in starting at `nextParamIdx`.
+/**
+ * @param {string} userId
+ * @param {number} nextParamIdx
+ */
 function _buildVisibilityClause(userId, userGroups, nextParamIdx) {
     const params = [userId];
     let userIdx = nextParamIdx;
@@ -44,6 +51,7 @@ function _buildVisibilityClause(userId, userGroups, nextParamIdx) {
  * May `userId` edit this (mapped) skill? Owner, or — when the viewer holds
  * manage_skills (`canManage`) — any skill of the viewer's own organisation.
  * Pure: the route decides `canManage`, the store never guesses a permission.
+ * @param {string} userId
  */
 function canEditSkill(skill, userId, { orgId = null, canManage = false } = {}) {
     if (!skill || !userId || canManage !== true) return false;
@@ -51,7 +59,11 @@ function canEditSkill(skill, userId, { orgId = null, canManage = false } = {}) {
     return !!skill.orgId && !!orgId && skill.orgId === orgId;
 }
 
-/** Attach per-row view fields (`canEdit`) for a viewer. */
+/**
+ * Attach per-row view fields (`canEdit`) for a viewer.
+ * @param {string} userId
+ * @param {{ orgId: string | null; canManage: boolean; } | null} viewer
+ */
 function _withViewer(rows, userId, viewer) {
     if (!viewer) return rows;
     return rows.map(s => ({ ...s, canEdit: canEditSkill(s, userId, viewer) }));
@@ -99,6 +111,7 @@ async function getAvailableSkills(orgId, userId, viewer = null) {
  * Get a single skill by ID (with access check). Personal skills (org_id NULL)
  * are visible only to their owner.
  * @param {{ canManage?: boolean }} [viewer] when given, the row carries `canEdit`.
+ * @param {string} userId
  */
 async function getSkill(id, orgId, userId, viewer = null) {
     await initDB();
@@ -142,6 +155,7 @@ async function getSkillScope(id) {
 /**
  * Get multiple skills by IDs (for chat injection). Includes the user's personal
  * skills so an org-less agent's attached skills still resolve at chat time.
+ * @param {string} userId
  */
 async function getSkillsByIds(ids, orgId, userId) {
     await initDB();

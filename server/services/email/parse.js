@@ -2,13 +2,17 @@
 /**
  * Email parsing + threading + loop-detection helpers shared by the support
  * inbox sync engine. Pure functions — no I/O.
+ * @param {string} name
  */
 
 function getGmailHeader(headers, name) {
-    const h = (headers || []).find(x => x.name && x.name.toLowerCase() === name.toLowerCase());
+    const h = (headers || []).find((/** @type {{ name: string; }} */ x) => x.name && x.name.toLowerCase() === name.toLowerCase());
     return h?.value || '';
 }
 
+/**
+ * @param {string} data
+ */
 function decodeBase64Url(data) {
     if (!data) return '';
     const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
@@ -100,6 +104,9 @@ const NOREPLY_RE = /(no-?reply|do-?not-reply|mailer-daemon|postmaster|bounce|not
  * Returns { skip, reason } — skip=true means don't auto-reply / don't ingest.
  */
 function detectAutoOrBulk(getHeader, { fromAddress = '', inboxAddress = '' } = {}) {
+    /**
+     * @param {string} n
+     */
     const h = (n) => String(getHeader(n) || '').toLowerCase();
     const autoSubmitted = h('auto-submitted');
     if (autoSubmitted && autoSubmitted !== 'no') return { skip: true, reason: 'auto_submitted' };
@@ -126,6 +133,8 @@ function detectAutoOrBulk(getHeader, { fromAddress = '', inboxAddress = '' } = {
  * Is this sender a genuine human customer (not a no-reply/bulk address, and not
  * our own mailbox looping back)? Used by the KB customer-contact gate so only
  * real customer conversations feed the knowledge base.
+ * @param {string | undefined} [fromAddress]
+ * @param {string | null} [inboxAddress]
  */
 function isGenuineCustomerSender(fromAddress = '', inboxAddress = '') {
     const f = String(fromAddress || '').toLowerCase().trim();
@@ -135,7 +144,10 @@ function isGenuineCustomerSender(fromAddress = '', inboxAddress = '') {
     return true;
 }
 
-/** Extract the bare email address from a "Name <addr>" header value. */
+/**
+ * Extract the bare email address from a "Name <addr>" header value.
+ * @param {string} value
+ */
 function parseAddress(value) {
     if (!value) return '';
     const m = String(value).match(/<([^>]+)>/);

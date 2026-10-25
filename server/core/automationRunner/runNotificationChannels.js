@@ -26,7 +26,7 @@ async function isThrottled(dep, { automationId, event, recipient, maxPerHour, no
         return n >= maxPerHour;
     } catch (e) {
         // A ledger that cannot be read must not silence a notification.
-        log.warn(`[RunNotifications] throttle check failed for ${automationId}: ${e.message}`);
+        log.warn(`[RunNotifications] throttle check failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
         return false;
     }
 }
@@ -92,7 +92,7 @@ async function deliverChannel(dep, channel, recipient, m) {
             if (!ok) via = `email:${r.reason}`;
         }
     } catch (e) {
-        log.warn(`[RunNotifications] ${channel} failed for ${automation.id}/${recipient}: ${e.message}`);
+        log.warn(`[RunNotifications] ${channel} failed for ${automation.id}/${recipient}: ${/** @type {Error} */ (e).message}`);
     }
     return { ok, via };
 }
@@ -103,7 +103,7 @@ async function deliverChannel(dep, channel, recipient, m) {
  */
 async function deliverPersonal(dep, m) {
     const { automation, event, ev, recipients, base, rows, report, now } = m;
-    const personal = ev.channels.filter(c => c !== 'talk');
+    const personal = ev.channels.filter((/** @type {string} */ c) => c !== 'talk');
     for (const recipient of personal.length ? recipients : []) {
         if (await isThrottled(dep, { automationId: automation.id, event, recipient, maxPerHour: ev.throttle.maxPerHour, now })) {
             for (const channel of personal) rows.push({ ...base, recipient, channel, bundled: true });
@@ -157,7 +157,7 @@ async function deliverTalk(dep, { automation, event, ev, settings, payload, shor
             ok = !!res?.ok;
         }
     } catch (e) {
-        log.warn(`[RunNotifications] Talk failed for ${automation.id}: ${e.message}`);
+        log.warn(`[RunNotifications] Talk failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
     }
     rows.push({ ...base, recipient, channel: 'talk', delivered: ok });
     report.delivered.push({ recipient, channel: 'talk', ok, via: 'talk' });

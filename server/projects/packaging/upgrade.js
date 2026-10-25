@@ -78,11 +78,16 @@ const PLAN_LISTS = (entities) => [
 ];
 
 /**
+ * @typedef {Object} PlanUpgradeArgs
+ * @property {string} [projectId]
+ */
+/**
  * Decide what an upgrade would do, without doing any of it.
  *
  * Separated from applying so the answer can be shown to somebody before they
  * commit to it — "3 will be updated, 1 you have edited will be left alone" is a
  * decision, and an upgrade that only tells you afterwards is not offering one.
+ * @param {PlanUpgradeArgs} [param0]
  */
 async function planUpgrade({ projectId, manifest } = {}) {
     const checked = sanitizeManifest(manifest);
@@ -119,7 +124,7 @@ async function planUpgrade({ projectId, manifest } = {}) {
             } catch (err) {
                 plan.skip.push({
                     ref: entity.ref, kind, entityId: stamp.entityId,
-                    why: `could not be read, so it is left untouched: ${err.message}`,
+                    why: `could not be read, so it is left untouched: ${/** @type {Error} */ (err).message}`,
                 });
                 continue;
             }
@@ -143,11 +148,16 @@ async function planUpgrade({ projectId, manifest } = {}) {
 
 
 /**
+ * @typedef {Object} IsNewerArgs
+ * @property {number} blueprintVersion
+ */
+/**
  * Is this Blueprint newer than what the project has?
  *
  * Equal versions are NOT an upgrade: re-applying the same version would replace
  * a pristine entity with an identical copy, which is churn, and would say
  * "updated 3 things" when it changed nothing.
+ * @param {IsNewerArgs} param0
  */
 function isNewer({ installedVersion, blueprintVersion }) {
     return Number.isInteger(blueprintVersion) && blueprintVersion > (installedVersion || 0);
@@ -293,6 +303,9 @@ function wiringFromBindings(rows) {
 // live copy gets its live pointer moved to the new version; a part that never
 // went live stays a draft; on/off, audience and sharing are never touched.
 
+/**
+ * @param {string} entityId
+ */
 async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolved) {
     const store = require('../../stores/automationStore');
     const row = await store.getAutomation(entityId);
@@ -341,6 +354,9 @@ async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolve
     });
 }
 
+/**
+ * @param {string} entityId
+ */
 async function replaceApp(entityId, entity, ctx, unresolved) {
     const store = require('../../stores/studioAppStore');
     const { definition } = resolveRefs('app', { definition: clone(entity.definition) }, ctx.refMap, unresolved);
@@ -356,6 +372,9 @@ async function replaceApp(entityId, entity, ctx, unresolved) {
     await ctx.stamp({ ref: entity.ref, kind: 'app', entityId, payload: definition });
 }
 
+/**
+ * @param {string} entityId
+ */
 async function replaceWebpage(entityId, entity, ctx) {
     const store = require('../../stores/webpageStore');
     const row = await store.getWebpageRaw(entityId);
@@ -383,6 +402,9 @@ async function replaceWebpage(entityId, entity, ctx) {
     await ctx.stamp({ ref: entity.ref, kind: 'webpage', entityId, payload: files });
 }
 
+/**
+ * @param {string} entityId
+ */
 async function replaceAgent(entityId, entity, ctx, report, unresolved) {
     // Through the store's own save path, and with the authority rule
     // re-applied on the way in: an UPDATE is as much a way to widen a
@@ -436,6 +458,9 @@ async function replaceAgent(entityId, entity, ctx, report, unresolved) {
     await ctx.stamp({ ref: entity.ref, kind: 'agent', entityId, payload: config });
 }
 
+/**
+ * @param {string} entityId
+ */
 async function replaceEntity(kind, entityId, entity, stamp, ctx, report) {
     const unresolved = [];
     try {
@@ -445,13 +470,19 @@ async function replaceEntity(kind, entityId, entity, stamp, ctx, report) {
         else if (kind === 'agent') await replaceAgent(entityId, entity, ctx, report, unresolved);
         report.replaced.push({ ref: entity.ref, kind, entityId });
     } catch (err) {
-        report.failed.push({ ref: entity.ref, kind, why: err.message });
+        report.failed.push({ ref: entity.ref, kind, why: /** @type {Error} */ (err).message });
     }
     for (const ref of [...new Set(unresolved)]) {
         report.warnings.push(`A reference to "${ref}" could not be connected while updating "${entity.ref}".`);
     }
 }
 
+/**
+ * @typedef {Object} ApplyUpgradeArgs
+ * @property {string} [projectId]
+ * @property {string} [ownerId]
+ * @property {string | null} [organizationId]
+ */
 /**
  * Apply an upgrade.
  *
@@ -477,6 +508,7 @@ async function replaceEntity(kind, entityId, entity, stamp, ctx, report) {
  * `deps` (all optional): `bindings` ({ listBindings }), `projectStore`
  * ({ setInstalledVersion }), `goLive` ({ planGoLive, convergeAfterPublish }),
  * `webpageDb` ({ flush }).
+ * @param {ApplyUpgradeArgs} [param0]
  */
 async function applyUpgrade({
     projectId, manifest, ownerId, organizationId = null, can = () => true, req = null, deps = {},
@@ -506,7 +538,7 @@ async function applyUpgrade({
     try {
         bindingRows = await (deps.bindings || require('../../stores/solutionStageStore')).listBindings(projectId);
     } catch (err) {
-        log.error(`[Blueprint] upgrade of ${projectId}: the kept install choices could not be read:`, err.message);
+        log.error(`[Blueprint] upgrade of ${projectId}: the kept install choices could not be read:`, /** @type {Error} */ (err).message);
         throw new HttpError(503, 'bindings_unavailable',
             'The choices made when this Solution was installed could not be read, so nothing was updated. Try again later.');
     }
@@ -582,7 +614,7 @@ async function applyUpgrade({
         try {
             await (deps.projectStore || require('../../stores/projectStore')).setInstalledVersion(projectId, toVersion);
         } catch (err) {
-            report.warnings.push(`The update was applied, but the version it brought could not be recorded: ${err.message}`);
+            report.warnings.push(`The update was applied, but the version it brought could not be recorded: ${/** @type {Error} */ (err).message}`);
         }
     } else {
         report.warnings.push(`${retryable.length} part(s) could not be updated, so this Solution still counts as running its previous version. Fix what is named and apply this update again.`);

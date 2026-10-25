@@ -99,7 +99,10 @@ function mapMemberState(r) {
  * }} db
  */
 function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
-    /** Run `fn(client)` in one transaction; null when it throws (logged, never raised). */
+    /**
+     * Run `fn(client)` in one transaction; null when it throws (logged, never raised).
+     * @param {string} label
+     */
     async function inTransaction(label, fn) {
         const client = await getClient();
         try {
@@ -113,14 +116,17 @@ function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
             return out;
         } catch (err) {
             try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection already gone', err); }
-            log.warn(`[ProjectStore] ${label} failed:`, err.message);
+            log.warn(`[ProjectStore] ${label} failed:`, /** @type {Error} */ (err).message);
             return null;
         } finally {
             client.release();
         }
     }
 
-    /** Next event seq on the (already locked or lockable) project row, or null when it is gone. */
+    /**
+     * Next event seq on the (already locked or lockable) project row, or null when it is gone.
+     * @param {string} projectId
+     */
     async function nextSeq(client, projectId) {
         const { rows } = await client.query(
             'UPDATE projects SET event_seq = event_seq + 1 WHERE id = $1 RETURNING event_seq',
@@ -129,6 +135,10 @@ function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
         return rows.length ? Number(rows[0].event_seq) : null;
     }
 
+    /**
+     * @param {string} projectId
+     * @param {number} seq
+     */
     async function insertEvent(client, projectId, seq, ev) {
         const id = crypto.randomUUID();
         await client.query(
@@ -215,6 +225,7 @@ function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
             const activityId = open ? open.id : crypto.randomUUID();
             const emit = !open || open.due === true;
             let event = null;
+            /** @type {number | null} */
             let seq = null;
             if (emit) {
                 seq = await nextSeq(client, projectId);

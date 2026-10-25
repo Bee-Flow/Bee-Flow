@@ -67,10 +67,16 @@ const RECENTLY_IN_FORCE_DAYS = 60;
 // merely tagged for. The overview and the check table (shared.js
 // activeResultsFilter) apply the same rule. Flip this one function when the
 // any-framework rule lands.
+/**
+ * @param {Set<string | null>} activeRegs
+ */
 function _runsFor(def, activeRegs) {
     return !!def && activeRegs.has(def.regulation);
 }
 
+/**
+ * @param {Set<string | null>} activeRegs
+ */
 function _activeRowsFilter(latest, activeRegs) {
     return (latest || []).filter(r => {
         const def = registry.get(r.check_id);
@@ -81,10 +87,16 @@ function _activeRowsFilter(latest, activeRegs) {
 function _customStore() {
     try { return require('../../stores/customFrameworkStore'); } catch { return null; }
 }
+/**
+ * @param {string | number | null} orgId
+ */
 function _invalidateCounts(orgId) {
     try { require('./counts').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/frameworks:_invalidateCounts', err); /* not mounted */ }
 }
 
+/**
+ * @param {number} nowMs
+ */
 function _recentlyInForce(fw, nowMs) {
     if (!fw?.in_force_since) return false;
     const since = new Date(fw.in_force_since).getTime();
@@ -93,6 +105,10 @@ function _recentlyInForce(fw, nowMs) {
 
 // "Affects you" per framework: the counts the candidate card shows. Only the
 // frameworks with something cheap and honest to count; the rest is null.
+/**
+ * @param {string} fwId
+ * @param {string} orgId
+ */
 async function _affects(fwId, orgId, latest) {
     if (fwId === 'aia') return calendar.affectsCounts('marking', orgId);
     if (fwId === 'eaa') return calendar.affectsCounts('a11y', orgId);
@@ -116,6 +132,9 @@ async function _affects(fwId, orgId, latest) {
  * `activeRegs` (Set of regulation codes) makes `checks_count` count what would
  * run: the framework's home checks plus the tagged checks whose home framework
  * is active — for a candidate framework too.
+ * @param {number} nowMs
+ * @param {string | null} machineryRelevance
+ * @param {Set<string | null>} activeRegs
  */
 function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryRelevance, activeRegs) {
     const active = !!(state?.enabled && !state?.locked);
@@ -153,6 +172,10 @@ function serialize(fw, state, scores, calendarCounts, nowMs, affects, machineryR
     };
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} id
+ */
 async function _buildOne(orgId, id, req) {
     const [policy, latest] = await Promise.all([
         frameworkPolicy.resolve(orgId, { req }),
@@ -167,6 +190,9 @@ async function _buildOne(orgId, id, req) {
     return serialize(fw, state, scores, calendar.countByFramework(), Date.now(), await _affects(id, orgId, latest), null, activeRegs);
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _customList(orgId, latest, req) {
     const store = _customStore();
     if (!store) return [];
@@ -235,6 +261,11 @@ router.get('/frameworks', requireAuth, requirePermission('admin_compliance'), as
 
 // ───────────────── Mutations ─────────────────
 
+/**
+ * @param {string} id
+ * @param {string} action
+ * @param {string | null} actorId
+ */
 function _evidence(orgId, id, action, actorId, extra = {}) {
     // Explicit allow-list: ids, the action, the actor id, the timestamp.
     const payload = {
@@ -272,12 +303,13 @@ router.post('/frameworks/:id/enable', requireAuth, requirePermission('admin_comp
         // First sweep of the newly enabled checks — awaited so the card that
         // appears has a score. A run failure is reported, not fatal: the
         // framework IS enabled.
-        let ran = null; let run_error = null;
+        /** @type {number | null} */
+        let ran = null; let /** @type {string | null} */ run_error = null;
         try {
             const results = await runner.runFramework(orgId, id, { runType: 'manual' });
             ran = Array.isArray(results) ? results.length : null;
         } catch (e) {
-            run_error = e?.message || String(e);
+            run_error = /** @type {Error} */ (e)?.message || String(e);
             log.warn(`[Compliance] first sweep of ${id} failed:`, run_error);
         }
         await _evidence(orgId, id, 'framework_enabled', actorId, { ran: ran ?? undefined });
@@ -334,7 +366,7 @@ router.post('/frameworks/:id/relevance', requireAuth, requirePermission('admin_c
         try {
             await runner.runFramework(orgId, id, { runType: 'event' });
         } catch (e) {
-            log.warn('[Compliance] re-run after relevance change failed:', e?.message || String(e));
+            log.warn('[Compliance] re-run after relevance change failed:', /** @type {Error} */ (e)?.message || String(e));
         }
         _invalidateCounts(orgId);
         calendar.invalidate(orgId);

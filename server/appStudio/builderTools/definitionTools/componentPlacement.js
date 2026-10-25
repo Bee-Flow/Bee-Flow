@@ -21,6 +21,9 @@ const { idHint } = require('../shared');
 function defaultParentSection(def, draftWrap, args) {
     const screens = Array.isArray(def?.screens) ? def.screens : [];
     if (!screens.length) return null;
+    /**
+     * @param {string} why
+     */
     const pick = (scr, why) => {
         const sec = scr && Array.isArray(scr.sections) ? scr.sections.find((x) => x && x.id) : null;
         return sec ? { sectionId: sec.id, screenName: scr.name || scr.id, why } : null;
@@ -90,7 +93,7 @@ function pageHeaderBelongsOnTop(def, parentId, nodes) {
     if (!found) return null;
     const children = found.section.children || [];
     if (!children.length) return null;
-    if (children.some((c) => c && c.type === 'page_header')) return null;
+    if (children.some((/** @type {{ type: string; }} */ c) => c && c.type === 'page_header')) return null;
     return 0;
 }
 

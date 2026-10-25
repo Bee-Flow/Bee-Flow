@@ -37,6 +37,11 @@ const MAX_CHAIN_STEPS = 3;
 const MAX_CHAIN_CALLS = parseInt(process.env.STUDIO_APP_CHAIN_CALL_BUDGET, 10) || 200;
 const MAX_CHAIN_CONCURRENCY = 4;
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function connectorError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -165,6 +170,9 @@ function unwrapListEnvelope(value) {
 }
 
 // Coerce an external payload into a bounded row array.
+/**
+ * @param {number} [cap]
+ */
 function toRows(value, cap = MAX_CONNECTOR_ROWS) {
     let rows;
     if (Array.isArray(value)) rows = value;
@@ -204,6 +212,9 @@ function integrationIdsFor(connector) {
     let resolveIntegration = null;
     try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { bestEffort('appStudio/connectors/shared:integrationIdsFor', err); /* optional */ }
 
+    /**
+     * @param {string} tool
+     */
     const addForTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;
         const resolved = resolveIntegration ? resolveIntegration(tool) : null;

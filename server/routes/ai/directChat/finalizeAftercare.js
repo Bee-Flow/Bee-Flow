@@ -15,13 +15,19 @@ const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 /**
+ * @typedef {Object} ResolveTitleModelArgs
+ * @property {string} [modelId]
+ */
+/**
  * The title model is the dedicated admin model if set, else the system title
  * agent's concrete model, else the EU-aware Fast tier the chat resolves from,
  * else this conversation's model. Resolved exactly like the tier path; the
  * conversation's provider is reused when the model matches.
+ * @param {ResolveTitleModelArgs} param0
  */
 async function resolveTitleModel({ titleAgent, tiers, modelId, adapter, apiKey, apiUrl }) {
     const titleModelCfg = await configStore.getConfig('title_generation_model');
+    /** @type {string} */
     let titleModelId;
     if (typeof titleModelCfg === 'string' && titleModelCfg.trim()) {
         titleModelId = titleModelCfg.trim();
@@ -63,7 +69,7 @@ async function generateTitle({ convId, userId, savedMessages, send, ...modelCtx 
             send('title', { title, conversationId: convId });
         }
     } catch (e) {
-        log.error('[DirectChat] Title generation failed:', e.message, e.stack);
+        log.error('[DirectChat] Title generation failed:', /** @type {Error} */ (e).message, /** @type {Error} */ (e).stack);
         try { await agentStore.updateDirectConversationTitle(convId, 'New Chat', userId); send('title', { title: 'New Chat', conversationId: convId }); } catch (err) { bestEffort('routes/ai/directChat/finalizeAftercare:generateTitle', err); /* non-fatal */ }
     }
 }

@@ -57,7 +57,10 @@ function appRootPath() {
     return '/app';
 }
 
-/** One approval — approvalNotify/approvalHooks/approvalLifecycle/publicUrl. */
+/**
+ * One approval — approvalNotify/approvalHooks/approvalLifecycle/publicUrl.
+ * @param {string} approvalId
+ */
 function approvalPath(approvalId) {
     return `/app/studio/approvals/${approvalId}`;
 }
@@ -106,6 +109,7 @@ function adminSupportInboxPath() {
  * BFSF-441 ticket reference sent to YouTrack/Google Chat (support/issueEgress,
  * outboundChatNotifier, supportIssueSync), so its stability is part of the
  * privacy design, not just UX.
+ * @param {string | undefined} threadId
  */
 function adminSupportTicketPath(threadId) {
     return `/app/admin/support/${threadId}`;
@@ -147,6 +151,7 @@ function publicBaseUrl(override = null) {
  * 'ai_act', 'settings', 'connectors'; legacy 'iso_controls', 'iso_training'
  * etc. stay aliases on the client) — jobs/complianceDeadlineNotifier.js,
  * compliance/events.js, compliance/attention.js, compliance/deadlines.js.
+ * @param {string} section
  */
 function complianceSectionPath(section) {
     return `/app/admin/compliance/${section}`;
@@ -169,6 +174,8 @@ function complianceIncidentPath(incidentId) {
  * compliance project checks as the per-subject deep link in their evidence and
  * by the project compliance hint. Verbatim interpolation like every helper
  * here; a project id is `[A-Za-z0-9_-]`, which is also all the client parses.
+ * @param {string} projectId
+ * @param {string | null} [section]
  */
 function projectPath(projectId, section = null) {
     return section ? `/app/projects/${projectId}/${section}` : `/app/projects/${projectId}`;
@@ -250,6 +257,7 @@ function legacyBillingSettingsPath() {
  * /auth/redeem-invite/<token> so the token stays out of the URL bar, the
  * Referer header and proxy access logs — it only reaches /login via that
  * endpoint's redirect to 'signup=1'. Byte-identical on purpose.
+ * @param {string} search
  */
 function legacyLoginPath(search) {
     return `/login?${search}`;

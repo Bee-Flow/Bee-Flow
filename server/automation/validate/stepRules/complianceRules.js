@@ -150,6 +150,7 @@ const MAX_NAMED = 4;
  * so neither has the boundary `\bname\b` needs and BOTH came back clean. The
  * detector stays the only judge of what a name means; this only hands it the
  * name split into the words it was written from.
+ * @param {string} segment
  */
 function humanise(segment) {
     return String(segment)
@@ -157,7 +158,10 @@ function humanise(segment) {
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
-/** The personal-data kind a field name claims, or null. */
+/**
+ * The personal-data kind a field name claims, or null.
+ * @param {string} segment
+ */
 function personalKindOf(segment) {
     if (typeof segment !== 'string' || !segment) return null;
     return kindFromName({ key: segment, name: humanise(segment) });
@@ -174,6 +178,7 @@ function personalKindOf(segment) {
  */
 function declaredPersonalFields(step) {
     if (!isObject(step)) return [];
+    /** @type {string[]} */
     const names = [];
     if (step.type === 'ai_step' && isObject(step.outputSchema)) {
         // Same reading `checkAiStep` uses: a JSON-schema object, or the bare
@@ -291,6 +296,7 @@ function exitDestination(step) {
  * warning, never one that is definitely later counted for it.
  */
 function shieldPrecedes(graph, target) {
+    /** @type {boolean | null} */
     let firstShield = null;
     let reachedTarget = false;
     // Everything after the target is irrelevant — a shield found there can only
@@ -330,11 +336,15 @@ function listFields(reads) {
 /**
  * The step field a record points at. The first one a personal read was found
  * in, so the inspector opens the section that actually holds it.
+ * @param {string} at
  */
 function fieldPath(at, reads) {
     return `${at}.${reads[0].where}`;
 }
 
+/**
+ * @param {string} at
+ */
 function checkPersonalDataOutbound(ctx, step, at) {
     const { pushW, stepsById } = ctx;
     const destination = exitDestination(step);
@@ -350,6 +360,9 @@ function checkPersonalDataOutbound(ctx, step, at) {
     });
 }
 
+/**
+ * @param {string} at
+ */
 function checkPersonalDataUnguarded(ctx, step, at) {
     const { pushW, graph, stepsById } = ctx;
     if (!AI_TYPES.has(step.type)) return;
@@ -373,6 +386,7 @@ function checkPersonalDataUnguarded(ctx, step, at) {
  * and `Object.keys(step)` unconditionally. The shape errors for that step are
  * already reported by the time this runs; throwing here would turn a reportable
  * definition into a 500.
+ * @param {string} at
  */
 function checkComplianceFindings(ctx, step, at) {
     if (!isObject(step)) return;

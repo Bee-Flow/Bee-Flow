@@ -66,6 +66,9 @@ const KB_INGEST_TOOLS = [{
     },
 }];
 
+/**
+ * @param {string} name
+ */
 function isKbIngestTool(name) {
     return name === 'knowledge_base_ingest';
 }
@@ -84,6 +87,7 @@ function _readMetadata(doc) {
  * shared "Automation ingest" source per KB.
  *
  * Never throws — the source is bookkeeping, the article is the product.
+ * @param {string} kbId
  */
 async function _ensureAutomationSource(kbId, context = {}) {
     const { ensureKbSource } = require('../core/kb/sources/ensureSource');
@@ -105,6 +109,8 @@ async function _ensureAutomationSource(kbId, context = {}) {
 /**
  * Merge a prior article with a freshly-distilled one into a single, richer,
  * deduplicated article (DEFAULT_MERGE_PROMPT on a 'fast'-tier model).
+ * @param {string} incomingArticle
+ * @param {string | null} orgId
  */
 async function _mergeArticles(priorArticle, incomingArticle, orgId) {
     const { createChatCompletion } = require('../agents/providerAdapters');
@@ -141,6 +147,11 @@ async function _mergeArticles(priorArticle, incomingArticle, orgId) {
  * privacy screen therefore runs in `executeKbIngestTool` BEFORE this is
  * entered, and `opts.pii` carries its verdict here rather than a policy this
  * function would have to apply itself.
+ * @param {string} tenantId
+ * @param {string} kbId
+ * @param {string} article
+ * @param {string} title
+ * @param {string} lang
  */
 async function _refreshInPlace(tenantId, kbId, existingDoc, article, title, lang, extraMeta = {}, sourceId = null, opts = {}) {
     const origin = opts.origin || ORIGINS.support;
@@ -173,6 +184,9 @@ async function _refreshInPlace(tenantId, kbId, existingDoc, article, title, lang
     return res;
 }
 
+/**
+ * @param {string} toolName
+ */
 async function executeKbIngestTool(toolName, args = {}, context = {}) {
     try {
         if (!isKbIngestTool(toolName)) return { error: `Unknown tool: ${toolName}` };
@@ -306,7 +320,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
         } catch (e) {
             // A screen that cannot run has not run. Refuse rather than store
             // text nobody looked at — the direction K4 chose everywhere else.
-            log.warn('[KBIngest] refused: privacy screen unavailable:', e.message);
+            log.warn('[KBIngest] refused: privacy screen unavailable:', /** @type {Error} */ (e).message);
             return { error: 'The personal-data check could not run, so nothing was stored.' };
         }
         if (screened.outcome === OUTCOME.SKIPPED) {
@@ -418,8 +432,8 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
             throw e;
         }
     } catch (e) {
-        log.error('[kbIngestTools] ingest failed:', e.message);
-        return { error: e.message };
+        log.error('[kbIngestTools] ingest failed:', /** @type {Error} */ (e).message);
+        return { error: /** @type {Error} */ (e).message };
     }
 }
 

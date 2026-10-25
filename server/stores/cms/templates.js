@@ -98,6 +98,9 @@ async function deleteTemplate(id) {
 // Returns a deep copy of the template's blocks with FRESH block IDs so
 // it's safe to drop directly into a new page. Throws when the template
 // doesn't exist so callers can surface a clear error to the user.
+/**
+ * @param {string} id
+ */
 async function applyTemplate(id) {
     if (!id) throw new Error('Template id is required');
     const list = await getTemplates();

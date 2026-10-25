@@ -38,6 +38,7 @@ const DAY_MS = 86400e3;
 
 function _httpUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return null;
+    /** @type {globalThis.URL} */
     let u;
     try { u = new URL(value.trim()); } catch { return null; }
     return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : null;
@@ -51,6 +52,10 @@ function _dateOnly(value) {
     return new Date(t).toISOString().slice(0, 10);
 }
 
+/**
+ * @param {string | null} dateOnly
+ * @param {number} now
+ */
 function _daysUntil(dateOnly, now) {
     if (!dateOnly) return null;
     const end = Date.parse(`${dateOnly}T23:59:59.999Z`);
@@ -154,6 +159,7 @@ module.exports = {
             security_update_channel_set: channelSet,
         };
 
+        /** @type {string[]} */
         const missing = [];
         if (!policyUrl) missing.push(settings.support_policy_url ? 'the support policy URL is not a valid http(s) address' : 'no support policy URL');
         if (!endDate) missing.push(settings.support_end_date ? 'the end-of-support date is not a valid date' : 'no end-of-support date');

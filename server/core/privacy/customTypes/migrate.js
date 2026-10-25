@@ -70,6 +70,7 @@ function migrateLegacyTerms(orgId, customSensitiveTerms) {
         const source = String(pattern).slice(0, LIMITS.legacyPatternMax);
         const re2 = re2Compile(source, caseSensitive);
         let engine = 're2';
+        /** @type {string | null} */
         let error = null;
         if (re2.error) {
             engine = 'v8-legacy';

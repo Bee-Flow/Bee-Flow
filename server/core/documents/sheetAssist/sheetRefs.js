@@ -44,6 +44,7 @@ function parseRange(range) {
 
 /** Every cell name in a rectangle, row by row. */
 function cellsIn(/** @type {{ c0: number, r0: number, c1: number, r1: number }} */ r) {
+    /** @type {string[]} */
     const out = [];
     for (let row = r.r0; row <= r.r1; row++) for (let col = r.c0; col <= r.c1; col++) out.push(`${colName(col)}${row + 1}`);
     return out;

@@ -50,8 +50,8 @@ router.get('/iso/soa.pdf', requireAuth, requirePermission('admin_compliance'), a
     const rows = isoControls.CONTROLS.map(c => {
         const e = byRef.get(c.ref) || null;
         const checkIds = checksByControl[c.ref] || [];
-        const worst = checkIds.map(id => statusByCheck[id]).filter(Boolean)
-            .sort((a, b) => ({ fail: 3, warn: 2, pass: 1 }[b] || 0) - ({ fail: 3, warn: 2, pass: 1 }[a] || 0))[0] || null;
+        const worst = checkIds.map((/** @type {string | number} */ id) => statusByCheck[id]).filter(Boolean)
+            .sort((/** @type {string | number} */ a, /** @type {string | number} */ b) => ({ fail: 3, warn: 2, pass: 1 }[b] || 0) - ({ fail: 3, warn: 2, pass: 1 }[a] || 0))[0] || null;
         return {
             ref: c.ref,
             title: GUI_DEFAULTS[c.titleKey] || c.ref,

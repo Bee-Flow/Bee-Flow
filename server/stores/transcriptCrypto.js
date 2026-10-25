@@ -94,6 +94,8 @@ const PLAINTEXT_CONTEXT = Object.freeze({ key: null, encrypt: false, tier: 'none
 /**
  * AAD binds a column's ciphertext to the transcription and column it belongs
  * to, so a value cannot be moved between rows or between fields.
+ * @param {string} transcriptionId
+ * @param {string} column
  */
 function columnAad(transcriptionId, column) {
     return Buffer.from(`beeflow:transcript:v1:${transcriptionId}:${column}`);
@@ -138,12 +140,16 @@ async function resolveTranscriptCrypto(orgId, deps = {}) {
     } catch (e) {
         // A policy hiccup must not fail a transcription request. Plaintext is
         // recoverable; a 500 in the middle of an upload is not.
-        log.error(`[TranscriptCrypto] Could not resolve the context for org '${orgId}': ${e.message}`);
+        log.error(`[TranscriptCrypto] Could not resolve the context for org '${orgId}': ${/** @type {Error} */ (e).message}`);
         return PLAINTEXT_CONTEXT;
     }
 }
 
-/** The per-transcription key, or null when there is no org key. */
+/**
+ * The per-transcription key, or null when there is no org key.
+ * @param {{ key: Buffer | null; encrypt: boolean; }} ctx
+ * @param {string} transcriptionId
+ */
 function keyFor(ctx, transcriptionId, deps = {}) {
     if (!ctx || !ctx.key || !transcriptionId) return null;
     const derive = deps.transcriptionKey
@@ -186,6 +192,8 @@ function encryptRow(transcriptionId, values, ctx, deps = {}) {
  * rather than holding an envelope around an empty string — the readers below
  * distinguish "no snippet stored" from "an empty snippet", and a row that
  * genuinely has no transcript yet must read as the former.
+ * @param {string} transcriptionId
+ * @param {string} fullText
  */
 function buildSnippet(transcriptionId, fullText, ctx, deps = {}) {
     const text = typeof fullText === 'string' ? fullText : '';
@@ -262,7 +270,7 @@ function readSnippet(row, ctx, deps = {}) {
         } catch (e) {
             // One unreadable preview must not fail the whole list. The row
             // still opens on its detail page, where a throw is the right answer.
-            log.warn(`[TranscriptCrypto] Preview for '${row.id}' could not be opened: ${e.message}`);
+            log.warn(`[TranscriptCrypto] Preview for '${row.id}' could not be opened: ${/** @type {Error} */ (e).message}`);
             return '';
         }
     }
@@ -281,6 +289,7 @@ function readSnippet(row, ctx, deps = {}) {
  * that will never parse. Returning "yes" for a genuine plaintext transcript
  * that happens to open with our marker is the harmless direction: the preview
  * is empty rather than wrong.
+ * @param {string} value
  */
 function looksLikeEnvelopeHead(value) {
     if (typeof value !== 'string' || value.length < 10) return false;
@@ -293,6 +302,8 @@ const SUMMARY_SNIPPET_CHARS = 400;
 
 /**
  * Build the stored summary preview. Same shape as buildSnippet, different cap.
+ * @param {string} transcriptionId
+ * @param {string} summary
  */
 function buildSummarySnippet(transcriptionId, summary, ctx, deps = {}) {
     const text = typeof summary === 'string' ? summary : '';
@@ -327,7 +338,7 @@ function readSummarySnippet(row, ctx, deps = {}) {
             const text = decryptField(stored, { key, aad: columnAad(row.id, 'summary_snippet') });
             return typeof text === 'string' ? text.slice(0, SUMMARY_SNIPPET_CHARS) : '';
         } catch (e) {
-            log.warn(`[TranscriptCrypto] Summary preview for '${row.id}' could not be opened: ${e.message}`);
+            log.warn(`[TranscriptCrypto] Summary preview for '${row.id}' could not be opened: ${/** @type {Error} */ (e).message}`);
             return '';
         }
     }

@@ -146,6 +146,7 @@ const CONTENT_JSON_META_KEY = '_contentJson';
  * Everything else stays the raw string, which is what it always was. That is
  * the whole fix for already-stored conversations: the column text is correct,
  * only the reading of it was wrong, so no migration or backfill is needed.
+ * @param {string} raw
  */
 function _parseLegacyContent(raw) {
     let parsed;
@@ -159,6 +160,10 @@ function _parseLegacyContent(raw) {
 
 /**
  * Convert a full messages array (from the legacy blob) into rows for bulk insert.
+ * @param {string} conversationId
+ * @param {string} type
+ * @param {Readonly<CryptoContext>} [ctx]
+ * @param {number} [startSeq]
  */
 function messagesToRows(conversationId, type, messages, ctx = PLAINTEXT_CONTEXT, startSeq = 0) {
     const c = ctx || PLAINTEXT_CONTEXT;
@@ -219,6 +224,7 @@ function messagesToRows(conversationId, type, messages, ctx = PLAINTEXT_CONTEXT,
  * mergeAttachmentSidecars treats an empty sidecar list as "the slim client
  * copy wins", so a silent empty read does not merely hide a user's uploads, it
  * destroys their storageKey and extractedText on the next edit or retry.
+ * @param {Readonly<CryptoContext>} [ctx]
  */
 function rowToMessage(row, ctx = PLAINTEXT_CONTEXT) {
     const c = ctx || PLAINTEXT_CONTEXT;
@@ -284,6 +290,10 @@ function rowToMessage(row, ctx = PLAINTEXT_CONTEXT) {
 const COLS = 10;          // + author_user_id, client_msg_id
 const CHUNK_SIZE = 500;   // max rows per INSERT — keeps pg params < 5000
 
+/**
+ * @param {PoolClient | null} client
+ * @param {string} [onConflict]
+ */
 async function _bulkInsert(rows, client, onConflict = '') {
     if (!rows || rows.length === 0) return;
 
@@ -294,6 +304,7 @@ async function _bulkInsert(rows, client, onConflict = '') {
     // Process in chunks to respect PG parameter limit
     for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
         const chunk = rows.slice(i, i + CHUNK_SIZE);
+        /** @type {string[]} */
         const valueClauses = [];
         const params = [];
         let idx = 1;
@@ -337,6 +348,9 @@ async function _bulkInsert(rows, client, onConflict = '') {
  * Returns true if migration happened, false if already migrated or nothing to do.
  *
  * Phase 5: Uses bulk INSERT instead of N individual INSERTs.
+ * @param {string} conversationId
+ * @param {string} type
+ * @param {CryptoContext | Readonly<CryptoContext>} [ctx]
  */
 async function migrateConversationIfNeeded(conversationId, type, messagesArray, ctx = PLAINTEXT_CONTEXT) {
     await initMessagesTable();
@@ -387,6 +401,8 @@ async function migrateConversationIfNeeded(conversationId, type, messagesArray, 
 /**
  * Get all messages for a conversation, ordered by seq ASC.
  * Returns raw message objects ready for use by the AI runtime.
+ * @param {CryptoContext | Readonly<CryptoContext>} [ctx]
+ * @param {string} conversationId
  */
 async function getMessages(conversationId, ctx = PLAINTEXT_CONTEXT) {
     await initMessagesTable();
@@ -406,6 +422,9 @@ async function getMessages(conversationId, ctx = PLAINTEXT_CONTEXT) {
  *   - A failed write now leaves the old messages intact (ROLLBACK) rather than
  *     leaving an empty conversation after a partial failure.
  *   - N round-trips → 1 round-trip (or ceil(N/500) for very long conversations).
+ * @param {string} conversationId
+ * @param {string} type
+ * @param {Readonly<CryptoContext>} [ctx]
  */
 async function replaceMessages(conversationId, type, messagesArray, ctx = PLAINTEXT_CONTEXT) {
     await initMessagesTable();
@@ -562,6 +581,8 @@ async function rekeyConversation(conversationId, type, fromCtx, toCtx) {
  *
  * Turning encryption OFF is a legitimate downgrade, so `tier: 'none'` is
  * allowed through — that is the operator asking for it explicitly.
+ * @param {string} conversationId
+ * @param {Readonly<CryptoContext>} ctx
  */
 async function _refuseSilentDowngrade(conversationId, ctx) {
     const c = ctx || PLAINTEXT_CONTEXT;

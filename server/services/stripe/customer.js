@@ -103,7 +103,7 @@ async function pushOrgBillingToStripe(orgId, { stripeCustomerId } = {}) {
         const stripe = await getClient();
         await stripe.customers.update(customerId, updates);
     } catch (e) {
-        log.warn(`[Stripe] pushOrgBillingToStripe(${orgId}) failed: ${e.message}`);
+        log.warn(`[Stripe] pushOrgBillingToStripe(${orgId}) failed: ${/** @type {Error} */ (e).message}`);
     }
 }
 

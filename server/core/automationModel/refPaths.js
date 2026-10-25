@@ -29,6 +29,7 @@ const REF_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop']);
  * names the step it reads — that step is checked like any other.
  *
  * @returns {{ valid: boolean, root: string|null, second: string|null, tokens: object[] }}
+ * @param {string} path
  */
 function refHead(path) {
     const p = typeof path === 'string' ? path.trim() : '';
@@ -39,13 +40,19 @@ function refHead(path) {
     return { valid: !!whole, root, second, tokens };
 }
 
-/** The inside of every `{{ … }}` placeholder, read quote-aware like the runner. */
+/**
+ * The inside of every `{{ … }}` placeholder, read quote-aware like the runner.
+ * @param {string} text
+ */
 function templateRefs(text) {
     if (typeof text !== 'string' || !text.includes('{{')) return [];
     return scanTemplate(text).filter(p => p.type === 'ref').map(p => p.inner);
 }
 
-/** True when the text has at least one placeholder the runner would fill. */
+/**
+ * True when the text has at least one placeholder the runner would fill.
+ * @param {string} text
+ */
 function hasPlaceholder(text) {
     return templateRefs(text).length > 0;
 }
@@ -56,6 +63,7 @@ function hasPlaceholder(text) {
  * Kept to the runner's reading on purpose: a validator that called a string a
  * reference where the runner reads it as literal text would pass a step that
  * then extracts from the words of a path.
+ * @param {string} s
  */
 function isBareRefString(s) {
     if (typeof s !== 'string') return false;
@@ -71,6 +79,7 @@ function isBareRefString(s) {
  * the value itself (no tokens), `a.b`, `[0].x`, `[*].sku`, and the JSONPath
  * habit `$.a` / `$[0]`. The old grammar here (PARSE_JSON_PATH_RE) took `$` for
  * a key, so `$.order.id` validated and then resolved to nothing.
+ * @param {string} path
  */
 function relativePathTokens(path) {
     if (path === null || path === undefined) return [];
@@ -151,6 +160,7 @@ const OPERATOR_CHARS = /[|(){}<>=!+*,;&?]/;
  * `fields["Story Points"]`), an unquoted bracket key becomes a key
  * (`items[abc]` → `items.abc`), an unclosed bracket is closed, a doubled or
  * trailing dot is dropped. Returned only when the result parses.
+ * @param {string} path
  */
 function suggestPathSpelling(path) {
     if (typeof path !== 'string') return null;
@@ -206,6 +216,7 @@ function suggestPathSpelling(path) {
 /**
  * suggestPathSpelling for a RELATIVE path (parse_json fields, App Studio
  * result and record paths): the same repair, without a root.
+ * @param {string} path
  */
 function suggestRelativeSpelling(path) {
     if (typeof path !== 'string' || relativePathTokens(path) !== null) return null;
@@ -223,6 +234,7 @@ function suggestRelativeSpelling(path) {
  */
 function suggestExprSpelling(src, opts) {
     if (typeof src !== 'string') return null;
+    /** @type {string[]} */
     const candidates = [];
     if (src.includes('{{')) candidates.push(replaceTemplate(src, inner => canonicalPath(inner) || inner));
     const asPath = canonicalPath(src);

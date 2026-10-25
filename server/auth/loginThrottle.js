@@ -116,6 +116,10 @@ function sourceAddress(req) {
     }
 }
 
+/**
+ * @param {string | undefined} v
+ * @param {number} d
+ */
 const num = (v, d) => {
     const n = parseInt(v, 10);
     return Number.isFinite(n) && n >= 0 ? n : d;
@@ -231,6 +235,10 @@ function redis() {
     }
 }
 
+/**
+ * @param {string} key
+ * @param {number} ttlMs
+ */
 async function incr(key, ttlMs) {
     const r = redis();
     if (r) {
@@ -257,6 +265,9 @@ async function incr(key, ttlMs) {
     return cur.value;
 }
 
+/**
+ * @param {string} key
+ */
 async function get(key) {
     const r = redis();
     if (r) {
@@ -270,7 +281,10 @@ async function get(key) {
     return cur.value;
 }
 
-/** Remaining lifetime in ms, or 0 when the key is absent/expired. */
+/**
+ * Remaining lifetime in ms, or 0 when the key is absent/expired.
+ * @param {string} key
+ */
 async function ttl(key) {
     const r = redis();
     if (r) {
@@ -284,6 +298,11 @@ async function ttl(key) {
     return Math.max(0, cur.expiresAt - Date.now());
 }
 
+/**
+ * @param {string} key
+ * @param {number} value
+ * @param {number} ttlMs
+ */
 async function set(key, value, ttlMs) {
     const r = redis();
     if (r) {
@@ -335,6 +354,8 @@ const _slotBySource = new Map();
  * @returns {{waitMs: number, overflow: boolean}} `overflow` means the queue
  *   already reaches past CONFIG.queueMaxMs, so the caller should refuse now
  *   rather than hold the connection.
+ * @param {string} sourceKey
+ * @param {number} delayMs
  */
 function reserveDelaySlot(sourceKey, delayMs) {
     if (!sourceKey || !(delayMs > 0)) return { waitMs: delayMs > 0 ? delayMs : 0, overflow: false };
@@ -355,7 +376,10 @@ function reserveDelaySlot(sourceKey, delayMs) {
     return { waitMs, overflow: false };
 }
 
-/** Drop timelines that have already drained; they carry no state worth keeping. */
+/**
+ * Drop timelines that have already drained; they carry no state worth keeping.
+ * @param {number} [now]
+ */
 function sweepSlots(now = Date.now()) {
     for (const [k, until] of _slotBySource) {
         if (until <= now) _slotBySource.delete(k);
@@ -369,17 +393,36 @@ if (_slotSweep.unref) _slotSweep.unref();
 /**
  * Normalise the submitted identifier so `Admin`, `admin` and ` admin ` share one
  * counter — otherwise case alone multiplies an attacker's budget.
+ * @param {string} identifier
  */
 function normalizeIdentifier(identifier) {
     return String(identifier || '').trim().toLowerCase().slice(0, 254);
 }
 
+/**
+ * @param {string} id
+ */
 const kAcctFail = (id) => `lt:af:${id}`;
+/**
+ * @param {string} id
+ */
 const kAcctLock = (id) => `lt:al:${id}`;
+/**
+ * @param {string} id
+ */
 const kAcctLockRounds = (id) => `lt:ar:${id}`;
+/**
+ * @param {string} ip
+ */
 const kIpFail = (ip) => `lt:if:${ip}`;
+/**
+ * @param {string} ip
+ */
 const kIpBlock = (ip) => `lt:ib:${ip}`;
-/** How many DISTINCT identifiers this source has failed against. */
+/**
+ * How many DISTINCT identifiers this source has failed against.
+ * @param {string} ip
+ */
 const kIpDistinct = (ip) => `lt:id:${ip}`;
 /**
  * "Has this source already failed against this identifier in this window?"
@@ -387,11 +430,22 @@ const kIpDistinct = (ip) => `lt:id:${ip}`;
  * everything else here: the first increment returning 1 IS the "new identifier"
  * signal. Keeping one storage shape keeps the Redis and in-memory backends
  * interchangeable, which is what lets the whole module fail open safely.
+ * @param {string} ip
+ * @param {string} id
  */
 const kIpSeen = (ip, id) => `lt:is:${ip}:${id}`;
 
-/** Fan-out counters — see recordFanOut. Namespaced so each route has its own. */
+/**
+ * Fan-out counters — see recordFanOut. Namespaced so each route has its own.
+ * @param {string} ip
+ * @param {string} ns
+ */
 const kFanDistinct = (ns, ip) => `lt:fd:${ns}:${ip}`;
+/**
+ * @param {string} ip
+ * @param {string} target
+ * @param {string} ns
+ */
 const kFanSeen = (ns, ip, target) => `lt:fs:${ns}:${ip}:${target}`;
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -426,7 +480,7 @@ async function checkLoginAllowed(req, identifier) {
         }
     } catch (err) {
         // Fail open — never let the throttle become the outage.
-        log.warn('[LoginThrottle] check failed, allowing attempt:', err.message);
+        log.warn('[LoginThrottle] check failed, allowing attempt:', /** @type {Error} */ (err).message);
     }
     return { allowed: true };
 }
@@ -440,6 +494,7 @@ async function checkLoginAllowed(req, identifier) {
  * construction (the key is the submitted string), so it adds no oracle.
  *
  * @returns {Promise<{delayMs: number, locked: boolean, retryAfterSec: number}>}
+ * @param {string} identifier
  */
 async function recordLoginFailure(req, identifier) {
     if (!CONFIG.enabled) return { delayMs: 0, locked: false, retryAfterSec: 0 };
@@ -549,7 +604,7 @@ async function recordLoginFailure(req, identifier) {
         return { delayMs, locked, retryAfterSec };
 
     } catch (err) {
-        log.warn('[LoginThrottle] failure bookkeeping failed:', err.message);
+        log.warn('[LoginThrottle] failure bookkeeping failed:', /** @type {Error} */ (err).message);
         return { delayMs: 0, locked: false, retryAfterSec: 0 };
     }
 }
@@ -579,6 +634,10 @@ const FANOUT = {
     get maxMs() { return num(process.env.AUTH_FANOUT_DELAY_MAX_MS, 5000); },
 };
 
+/**
+ * @param {string} namespace
+ * @param {string} target
+ */
 async function recordFanOut(req, namespace, target) {
     if (!CONFIG.enabled || !CONFIG.ipEnabled) return { delayMs: 0, distinct: 0 };
     const { ip } = sourceAddress(req);
@@ -606,12 +665,15 @@ async function recordFanOut(req, namespace, target) {
         const reserved = reserveDelaySlot(`fan:${namespace}:${ip}`, cost);
         return { delayMs: reserved.waitMs, distinct, overflow: reserved.overflow };
     } catch (err) {
-        log.warn('[LoginThrottle] fan-out bookkeeping failed:', err.message);
+        log.warn('[LoginThrottle] fan-out bookkeeping failed:', /** @type {Error} */ (err).message);
         return { delayMs: 0, distinct: 0 };
     }
 }
 
-/** A successful authentication clears the identifier's failure counter. */
+/**
+ * A successful authentication clears the identifier's failure counter.
+ * @param {string} identifier
+ */
 async function recordLoginSuccess(req, identifier) {
     if (!CONFIG.enabled) return;
     const id = normalizeIdentifier(identifier);
@@ -622,11 +684,14 @@ async function recordLoginSuccess(req, identifier) {
         // eventually guesses right should not also get to reset the ladder for
         // the next account they try from the same identifier.
     } catch (err) {
-        log.warn('[LoginThrottle] success bookkeeping failed:', err.message);
+        log.warn('[LoginThrottle] success bookkeeping failed:', /** @type {Error} */ (err).message);
     }
 }
 
-/** Send the 429 for a refused attempt. One shape for both scopes, on purpose. */
+/**
+ * Send the 429 for a refused attempt. One shape for both scopes, on purpose.
+ * @param {number | undefined} retryAfterSec
+ */
 function denyLogin(res, retryAfterSec) {
     const retryAfter = Math.max(1, retryAfterSec || 60);
     res.set('Retry-After', String(retryAfter));
@@ -637,6 +702,9 @@ function denyLogin(res, retryAfterSec) {
     });
 }
 
+/**
+ * @param {number} ms
+ */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -652,6 +720,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * quarter-second on a wrong password.
  *
  * Call with the timestamp taken at the very start of the handler.
+ * @param {number} startedAt
  */
 async function padFailureResponse(startedAt) {
     const floor = CONFIG.minFailureResponseMs;
@@ -660,7 +729,10 @@ async function padFailureResponse(startedAt) {
     if (remaining > 0) await sleep(remaining);
 }
 
-/** Test/ops helper — drop all throttle state for one identifier. */
+/**
+ * Test/ops helper — drop all throttle state for one identifier.
+ * @param {string} identifier
+ */
 async function clearIdentifier(identifier) {
     const id = normalizeIdentifier(identifier);
     if (!id) return;

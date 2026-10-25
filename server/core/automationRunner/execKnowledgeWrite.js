@@ -46,6 +46,8 @@ const MAX_TITLE_CHARS = 200;
  * The output always carries the bindable keys too, so a downstream step reading
  * `steps.<id>.output.written` gets `false` rather than a crash — an automation that
  * branches on "did this land" must keep working on the run where it did not.
+ * @param {string} reason
+ * @param {string} message
  */
 function skipped(reason, message, extra = {}) {
     return {
@@ -79,6 +81,7 @@ async function execKnowledgeWrite(step, ctx, runState, mode) {
      * step — the shape `generate_document` uses, and the shape the editor's
      * text areas produce. A binding OBJECT still resolves, because a
      * definition is data: an import or an MCP patch can carry one.
+     * @param {string} v
      */
     const resolve = (v) => {
         if (v === undefined || v === null) return null;

@@ -22,6 +22,7 @@
 
 'use strict';
 
+/** @type {Record<string, number>} */
 const NUMBER_WORDS = {
     one: 1, single: 1, a: 1, '1': 1, een: 1, één: 1, enkel: 1, enkele: 1,
     two: 2, '2': 2, twee: 2, three: 3, '3': 3, drie: 3, four: 4, '4': 4, vier: 4, five: 5, '5': 5, vijf: 5,
@@ -64,9 +65,13 @@ function deriveScreenConstraints(...texts) {
     return null;
 }
 
+/**
+ * @param {string} text
+ */
 function readOne(text) {
     const wantsDetail = WANTS_DETAIL_RE.test(text) || ASKS_DETAIL_RE.test(text);
     const noDetail = !wantsDetail && NO_DETAIL_RE.test(text);
+    /** @type {number | null} */
     let screens = null;
     const count = text.match(COUNT_RE);
     if (count) {
@@ -83,7 +88,10 @@ function readOne(text) {
     return { screens, exact: screens !== null, noDetail, wantsDetail, source: String(evidence).trim().slice(0, 80) };
 }
 
-/** True when the constraint actually binds something (a count or no-detail). */
+/**
+ * True when the constraint actually binds something (a count or no-detail).
+ * @param {{ screens: number | null; exact: boolean; noDetail: boolean; source: string; } | null} c
+ */
 function isBinding(c) {
     return !!c && (c.exact || c.noDetail);
 }
@@ -91,9 +99,11 @@ function isBinding(c) {
 /**
  * The constraint as a model-facing sentence (English: the builders' and the
  * designer's instruction language; only labels follow the person's language).
+ * @param {{ screens: number | null; exact: boolean; noDetail: boolean; source: string; } | null} c
  */
 function describeScreenConstraints(c) {
     if (!isBinding(c)) return '';
+    /** @type {string[]} */
     const parts = [];
     if (c.exact && c.screens === 1) parts.push('exactly ONE screen — everything the person needs lives on that single screen; never add a second screen, a detail screen or a navigation to another screen');
     else if (c.exact && c.screens > 1) parts.push(`exactly ${c.screens} screens — never more, never fewer`);
@@ -108,9 +118,11 @@ function describeScreenConstraints(c) {
  *
  * @returns {{ design: object, changes: string[] }}  `changes` is empty when
  *   the design already complied; each entry is a short past-tense note.
+ * @param {{ screens: number | null; exact: boolean; noDetail: boolean; source: string; }} c
  */
 function applyScreenConstraints(design, c, { maxSections = 6 } = {}) {
     if (!design || !Array.isArray(design.screens) || !isBinding(c)) return { design, changes: [] };
+    /** @type {string[]} */
     const changes = [];
     let screens = design.screens.map((s) => ({ ...s, sections: (s.sections || []).map((sec) => ({ ...sec, elements: [...(sec.elements || [])] })) }));
     if (c.noDetail || (c.exact && c.screens === 1)) {

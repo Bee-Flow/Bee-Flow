@@ -33,6 +33,8 @@ const { fallback } = require('../utils/bestEffort');
  * local subscription rows are deleted — otherwise we lose the externalRef and
  * leak orphaned subscriptions at the provider that keep firing into the void
  * until they expire. Best-effort: a revoke failure is logged, never fatal.
+ * @param {string} automationId
+ * @param {string} userId
  */
 async function revokeRemoteSubscriptions(automationId, userId) {
     try {
@@ -45,7 +47,7 @@ async function revokeRemoteSubscriptions(automationId, userId) {
             }
         }
     } catch (e) {
-        log.warn(`[automation/subscriptionSync] revoke: revoke pass failed for ${automationId}: ${e.message}`);
+        log.warn(`[automation/subscriptionSync] revoke: revoke pass failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -69,6 +71,10 @@ function appEventFingerprint(def) {
     return JSON.stringify(trigs);
 }
 
+/**
+ * @param {string} automationId
+ * @param {string} userId
+ */
 async function syncAppEventSubscription(automationId, userId, def) {
     // Snapshot the existing rows BEFORE the wipe so an unchanged trigger's
     // poller cursor can carry over (A12). The cursor is a provider-stream
@@ -102,6 +108,10 @@ async function syncAppEventSubscription(automationId, userId, def) {
     }
 }
 
+/**
+ * @param {string} automationId
+ * @param {string} userId
+ */
 async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) {
     const provider = trig.appEvent.provider;
     const event = trig.appEvent.event;
@@ -118,6 +128,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     //     polling tick still runs as crash-recovery backstop when
     //     last_push_at goes stale.
     //   - Others: polling.
+    /** @type {string} */
     let mode;
     if (provider === 'msgraph') {
         mode = triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
@@ -195,7 +206,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
                 log.warn(`[automation/subscriptionSync] MS Graph provisioning failed for sub ${sub.id}; trigger will not fire until re-activated`);
             }
         } catch (e) {
-            log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${e.message}`);
+            log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }

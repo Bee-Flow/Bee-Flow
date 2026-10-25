@@ -50,7 +50,7 @@ async function protectMemoryContext({ memoryContext, userId, conversationId }) {
             memoryContext = text;
         }
     } catch (err) {
-        log.warn('[DirectChat] Memory scrub failed (fail-open):', err.message);
+        log.warn('[DirectChat] Memory scrub failed (fail-open):', /** @type {Error} */ (err).message);
     }
     return { memoryContext, memorySwap };
 }

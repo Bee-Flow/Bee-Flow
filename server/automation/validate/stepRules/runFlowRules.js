@@ -17,6 +17,9 @@ const {
     RETURN_TO_APP_MAX_RECORD_REF_CHARS,
 } = require('../constants');
 
+/**
+ * @param {string} at
+ */
 function checkNotification(ctx, step, at) {
     const { pushE, pushW } = ctx;
     if (step.type === 'notification') {
@@ -46,6 +49,9 @@ function checkNotification(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkWait(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'wait') {
@@ -56,6 +62,9 @@ function checkWait(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkStopError(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'stop_error') {
@@ -63,6 +72,9 @@ function checkStopError(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkReturnToApp(ctx, step, at) {
     const { pushE } = ctx;
     /**
@@ -124,6 +136,9 @@ function checkReturnToApp(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkNote(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // A canvas annotation (BFSF-411) — bounds-check ONLY. There is
@@ -159,6 +174,9 @@ function checkNote(ctx, step, at) {
 
 const FORM_PAGE_MAX_WHEN_LEN = 2000;
 
+/**
+ * @param {string} at
+ */
 function checkFormPage(ctx, step, at) {
     const { pushE, graph, trigger, nested, isContractScope } = ctx;
     if (step.type === 'form_page') {

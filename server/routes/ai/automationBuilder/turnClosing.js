@@ -1,3 +1,4 @@
+/** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
 // @typecheck
 /**
  * Automation Builder — closing a turn after its rounds: the auto-finalize
@@ -22,6 +23,9 @@ const { proposalPreviewPayload, clientProposal } = require('./datatableTurn');
 const { sanitizeHistory, collectAssistantTurn } = require('./chatTurnLoop');
 const { bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {BuilderTurn} turn
+ */
 async function closeTurn(turn) {
     const {
         send, userId, message, history, messages, draftWrap, snapshot, reviewQuestions, approvedPlan, turnMode,
@@ -77,7 +81,7 @@ async function closeTurn(turn) {
                     turn.lastFinalized = true;
                 }
             } catch (e) {
-                log.warn('[AutomationBuilder] auto-finalize failed:', e.message);
+                log.warn('[AutomationBuilder] auto-finalize failed:', /** @type {Error} */ (e).message);
             }
             // Same as after the model's finalize: a name the failed call
             // never wrote goes back to the default, so the block below
@@ -106,7 +110,7 @@ async function closeTurn(turn) {
                 sendMetadata();
             }
         } catch (e) {
-            log.warn('[AutomationBuilder] naming the draft failed:', e.message);
+            log.warn('[AutomationBuilder] naming the draft failed:', /** @type {Error} */ (e).message);
         }
     }
 

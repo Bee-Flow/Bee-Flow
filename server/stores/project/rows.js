@@ -72,6 +72,9 @@ function mapProjectRow(row) {
 }
 
 // Translate legacy permission vocabulary so external callers don't break.
+/**
+ * @param {string} permission
+ */
 function normalizePermission(permission) {
     if (permission === 'view') return 'viewer';
     if (permission === 'edit') return 'editor';

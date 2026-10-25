@@ -15,6 +15,9 @@ const { rewriteRefPath } = require('../stepIdRewrite');
 
 const TEMP_ID_RX = /^[A-Za-z][A-Za-z0-9_]{0,24}$/;
 
+/**
+ * @param {string} k
+ */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 // What may sit right before `steps` for it to START a path rather than be the
@@ -24,6 +27,10 @@ const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 // past: the test applies to the character before that run.
 const NOT_A_START = /[\p{L}\p{N}\p{M}_$@.\-\]]/u;
 
+/**
+ * @param {string} text
+ * @param {number} i
+ */
 function startsAPath(text, i) {
     let j = i;
     while (j > 0 && (text[j - 1] === '$' || text[j - 1] === '.')) j--;
@@ -41,6 +48,7 @@ function startsAPath(text, i) {
  * The handle resolver used to find `steps.$x` with a regex, so the bracket
  * spelling of a handle was stored verbatim and dangled, and `vars.steps.$x`
  * (a member called `steps`) was rewritten as if it addressed a step.
+ * @param {string} text
  */
 function mapStepIds(text, rename) {
     if (!text.includes('steps')) return text;
@@ -89,7 +97,7 @@ function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
         // and the dangling ref surfaced a round later as ref.unknown_step, far
         // from the call that caused it. The handles are right here in idMap, so
         // say so now.
-        return mapStepIds(value, (id) => {
+        return mapStepIds(value, (/** @type {string} */ id) => {
             if (!id.startsWith('$')) {
                 if (onBareTempId && hasOwn(idMap, id)) onBareTempId(id, idMap[id]);
                 return null;
@@ -127,7 +135,7 @@ function rewriteTempRefs(value, idMap, onMissing, onBareTempId) {
  */
 function resolveHandlesForResend(value, idMap) {
     if (typeof value === 'string') {
-        return mapStepIds(value, (id) => {
+        return mapStepIds(value, (/** @type {string} */ id) => {
             const t = id.startsWith('$') ? id.slice(1) : id;
             return hasOwn(idMap, t) ? idMap[t] : null;
         });

@@ -41,12 +41,12 @@ async function processGmeetAutoImport() {
     try {
         await withNamedLock(_deps.pool(), GMEET_IMPORT_LOCK_NAME, () => gmeetAutoImport.discover());
     } catch (e) {
-        log.error('[AutomationRunner] gmeet auto-import discovery error:', e.message);
+        log.error('[AutomationRunner] gmeet auto-import discovery error:', /** @type {Error} */ (e).message);
     }
     try {
         await gmeetAutoImport.processDue();
     } catch (e) {
-        log.error('[AutomationRunner] gmeet auto-import ingest error:', e.message);
+        log.error('[AutomationRunner] gmeet auto-import ingest error:', /** @type {Error} */ (e).message);
     }
 }
 

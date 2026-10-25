@@ -158,6 +158,9 @@ function storeStepOutput(step, dispatched, runState, mode) {
     return recordedStatus;
 }
 
+/**
+ * @param {string} recordedStatus
+ */
 async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runState, mode, branchIndex }) {
     // In dry-run, annotate the RECORDED output (only) so the UI can
     // tell a synthesized preview from ground truth. Underscore-prefixed
@@ -224,6 +227,7 @@ async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runSt
  * no new finding and costs single-digit seconds on an 8k-row
  * window — which is most of what made ▶ Execute feel broken on
  * a Limit node.
+ * @param {string} recordedStatus
  */
 async function piiSummaryFor(step, dispatched, recordedStatus, ctx) {
     let piiSummary = dispatched.piiSummary || null;

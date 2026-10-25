@@ -92,7 +92,7 @@ async function userHasAnyWebpageAccess(userId, userGroupIds = [], userOrgIds = [
         // JSON.stringify). Keep the old JS reading for it — parse failure
         // means entire-org — over the distinct sharing configurations, which
         // are few, instead of answering "no".
-        log.warn('[WebpageStore] userHasAnyWebpageAccess SQL check failed, using JS fallback:', err?.message);
+        log.warn('[WebpageStore] userHasAnyWebpageAccess SQL check failed, using JS fallback:', /** @type {Error} */ (err)?.message);
         const rows = await getAll(
             `SELECT DISTINCT shared_groups FROM webpages
               WHERE is_published = TRUE AND organization_id = ANY($1::text[])`,
@@ -111,6 +111,7 @@ function sharedGroupsAdmit(groups, groupIds) {
 /**
  * Single-row visibility predicate. Returns true if the caller can read the
  * webpage; mirrors the agent canSeePublished rules.
+ * @param {string} userId
  */
 function canReadWebpage(webpage, userId, userGroupIds = [], userOrgIds = []) {
     if (!webpage) return false;
@@ -127,6 +128,9 @@ function canReadWebpage(webpage, userId, userGroupIds = [], userOrgIds = []) {
 // Same surface as canReadWebpage. Automations were opted in to write to
 // shared/published webpages by product decision; if we later need to gate
 // writes more tightly (e.g. only writers in an explicit acl), narrow here.
+/**
+ * @param {string} userId
+ */
 function canWriteWebpage(webpage, userId, userGroupIds = [], userOrgIds = []) {
     return canReadWebpage(webpage, userId, userGroupIds, userOrgIds);
 }
@@ -181,6 +185,7 @@ function resolveReadVersion(webpage, userId) {
  * strictly owner-or-published, and this is only ever consulted AFTER the sync
  * check has already said no. Read only: filing a page into a project does not
  * make project members its authors, so the write paths do not call this.
+ * @param {string} userId
  */
 async function canReadWebpageAsync(webpage, userId, userGroupIds = [], userOrgIds = []) {
     if (canReadWebpage(webpage, userId, userGroupIds, userOrgIds)) return true;

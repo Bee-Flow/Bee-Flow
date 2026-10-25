@@ -48,6 +48,9 @@ const CLAUDE_CODE_IDENTITY = "You are Claude Code, Anthropic's official CLI for 
 class ClaudeProvider extends BaseProvider {
     // Modern Claude models can reject forced tool_choice. Use native JSON for
     // closed structured-output schemas; actual action tools keep their own path.
+    /**
+     * @param {string} modelId
+     */
     supportsStructuredOutput(modelId, schema) {
         const match = describeClaudeModel(modelId).id.match(/^claude-(?:sonnet|opus|haiku|fable|mythos)-(\d+)/);
         return !!match && Number(match[1]) >= 5 && (schema === undefined || qualifiesForStrict(schema));
@@ -58,6 +61,7 @@ class ClaudeProvider extends BaseProvider {
      * 5.5, Opus 5.5 and Fable/Mythos 5.1 onwards; _buildSdkParams then sends
      * `auto` plus forcedToolInstruction, and llmClient.chatForcedTool retries
      * once when the model still answered in prose.
+     * @param {string} modelId
      */
     supportsForcedToolChoice(modelId) {
         return describeClaudeModel(modelId).forcedToolChoice;
@@ -69,6 +73,10 @@ class ClaudeProvider extends BaseProvider {
 
     // ─── SDK Client ──────────────────────────────────────────────
 
+    /**
+     * @param {string | null} token
+     * @param {boolean} [oauth]
+     */
     createClient(token, oauth = false) {
         // The CJS build exports the class itself; the .d.ts only declares it as `default`.
         const Anthropic = /** @type {typeof import('@anthropic-ai/sdk').default} */ (/** @type {unknown} */ (require('@anthropic-ai/sdk')));
@@ -348,20 +356,32 @@ class ClaudeProvider extends BaseProvider {
     // 4.x model and sent `temperature: 1` plus `budget_tokens`, both of which
     // Opus 5 answers with a 400. The fact now lives in ./claudeModels.js, where
     // an unreleased id still inherits its generation's rules.
+    /**
+     * @param {string} modelId
+     */
     isAdaptiveOnlyReasoning(modelId) {
         return describeClaudeModel(modelId).adaptiveOnly;
     }
 
+    /**
+     * @param {string} model
+     */
     buildThinking(model, options = {}) {
         return buildThinking(this, model, options);
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsReasoning(modelId) {
         // Opus/Sonnet 4.x-5.x and Fable/Mythos support extended thinking.
         // Haiku 4.5 is deliberately excluded — see the catalog note on it.
         return describeClaudeModel(modelId).reasoning;
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsVision(modelId) {
         // Claude 3+, 4.x and 5.x all take image input. Two other copies of this
         // check existed (appStudio/aiRuntime.js and agentRuntime/
@@ -371,6 +391,9 @@ class ClaudeProvider extends BaseProvider {
         return describeClaudeModel(modelId).vision;
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsDocuments(modelId) {
         // Native PDF document blocks ride the same vision capability: the API
         // renders each page and reads its text layer server-side. Anything that
@@ -378,6 +401,9 @@ class ClaudeProvider extends BaseProvider {
         return this.supportsVision(modelId);
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsContextEditing(modelId) {
         // Context editing (clear_tool_uses_20250919) is available on the
         // Claude 4+ and Claude 5 families; Claude 3.x rejects the parameter.
@@ -399,6 +425,9 @@ class ClaudeProvider extends BaseProvider {
 
     // ─── SDK Params Builder ──────────────────────────────────────
 
+    /**
+     * @param {string} model
+     */
     _buildSdkParams(model, messages, options = {}) {
         return buildSdkParams(this, model, messages, options);
     }
@@ -408,6 +437,7 @@ class ClaudeProvider extends BaseProvider {
      * Per-request headers REPLACE defaultHeaders with the same name, so in
      * OAuth mode the oauth beta must ride along with the context-management
      * beta (comma-separated list is the documented form).
+     * @param {boolean} oauth
      */
     _requestOptionsFor(params, oauth) {
         return requestOptionsFor(params, oauth);
@@ -422,6 +452,7 @@ class ClaudeProvider extends BaseProvider {
     /**
      * Non-streaming chat via SDK.
      * baseUrl is accepted for interface compatibility but ignored — SDK handles it.
+     * @param {string} model
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const { token, oauth } = await this._resolveAuth(apiKey);
@@ -434,6 +465,7 @@ class ClaudeProvider extends BaseProvider {
         await downscaleClaudeMessages(params.messages);
 
         log.info('[Claude] SDK chat for model:', model);
+        /** @type {Message & { _request_id?: string | null; _workspace_id?: string | null; }} */
         let response;
         try {
             response = await client.messages.create(params, this._requestOptionsFor(params, oauth));
@@ -442,21 +474,21 @@ class ClaudeProvider extends BaseProvider {
             // switch mid-conversation) — drop the blocks and retry once. They
             // are context, never the request itself.
             if (!options._noThinkingReplay && isThinkingReplayRejection(err)) {
-                log.warn('[Claude] thinking replay rejected — retrying without stored thinking blocks:', err.message);
+                log.warn('[Claude] thinking replay rejected — retrying without stored thinking blocks:', /** @type {Error} */ (err).message);
                 return this.chat(apiKey, baseUrl, model, messages, { ...options, _noThinkingReplay: true });
             }
             // A forced tool_choice on a model the catalog still thinks accepts
             // one: rerun with `auto` plus the instruction rather than failing.
             if (!options._noForcedToolChoice && isForcedToolChoiceRejection(err)
                 && ['tool', 'any'].includes(params.tool_choice?.type)) {
-                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying with auto:`, err.message);
+                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying with auto:`, /** @type {Error} */ (err).message);
                 return this.chat(apiKey, baseUrl, model, messages, { ...options, _noForcedToolChoice: true });
             }
             // A rejection of the context-management beta (unexpected model /
             // beta drift) must not take down chat for the whole model — strip
             // the param and retry once without it.
             if (!params.context_management || !this._isContextManagementRejection(err)) throw err;
-            log.warn('[Claude] context_management rejected — retrying without it:', err.message);
+            log.warn('[Claude] context_management rejected — retrying without it:', /** @type {Error} */ (err).message);
             delete params.context_management;
             response = await client.messages.create(params);
         }
@@ -505,6 +537,7 @@ class ClaudeProvider extends BaseProvider {
     /**
      * Streaming chat via SDK.
      * baseUrl is accepted for interface compatibility but ignored.
+     * @param {string} model
      */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         const { token, oauth } = await this._resolveAuth(apiKey);
@@ -529,13 +562,16 @@ class ClaudeProvider extends BaseProvider {
         let textChunks = 0;
         let thinkingChunks = 0;
         let eventCount = 0;
+        /** @type {{ id: string; name: string; arguments: string; } | null} */
         let currentToolUse = null; // Track in-progress tool_use block
         /** @type {{ partId: string, redacted: boolean, signature: string|null, redactedData?: string } | null} */
         let currentThinking = null; // Track in-progress thinking / redacted_thinking block
         let thinkingPartCounter = 0;
         /** @type {Record<string, any> | null} */
         let streamUsage = null;
+        /** @type {string | null} */
         let stopReason = null;
+        /** @type {RefusalStopDetails | null} */
         let stopDetails = null;
 
         try {
@@ -623,7 +659,7 @@ class ClaudeProvider extends BaseProvider {
                             _drop = true;
                         } else {
                             try { input = JSON.parse(currentToolUse.arguments || '{}'); }
-                            catch (e) { log.warn(`[Claude] Dropping tool_use ${currentToolUse.name}: invalid JSON args (${e.message})`); _drop = true; }
+                            catch (e) { log.warn(`[Claude] Dropping tool_use ${currentToolUse.name}: invalid JSON args (${/** @type {Error} */ (e).message})`); _drop = true; }
                         }
                         if (!_drop) {
                             onEvent('tool_use', {
@@ -692,28 +728,28 @@ class ClaudeProvider extends BaseProvider {
             // params). Safe to restart here: a connect-time 400 fires before
             // any event was emitted downstream.
             if (params.context_management && eventCount === 0 && this._isContextManagementRejection(err)) {
-                log.warn('[Claude] context_management rejected — retrying stream without it:', err.message);
+                log.warn('[Claude] context_management rejected — retrying stream without it:', /** @type {Error} */ (err).message);
                 return this.stream(apiKey, baseUrl, model, messages, { ...options, _noContextEditing: true }, onEvent);
             }
             // Same connect-time-only guard for an unverifiable thinking block:
             // safe to restart because nothing has been emitted downstream yet.
             if (eventCount === 0 && !options._noThinkingReplay && isThinkingReplayRejection(err)) {
-                log.warn('[Claude] thinking replay rejected — retrying stream without stored thinking blocks:', err.message);
+                log.warn('[Claude] thinking replay rejected — retrying stream without stored thinking blocks:', /** @type {Error} */ (err).message);
                 return this.stream(apiKey, baseUrl, model, messages, { ...options, _noThinkingReplay: true }, onEvent);
             }
             // See chat(): a forced tool_choice the model refuses reruns with
             // `auto` — safe here for the same connect-time reason.
             if (eventCount === 0 && !options._noForcedToolChoice && isForcedToolChoiceRejection(err)
                 && ['tool', 'any'].includes(params.tool_choice?.type)) {
-                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying stream with auto:`, err.message);
+                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying stream with auto:`, /** @type {Error} */ (err).message);
                 return this.stream(apiKey, baseUrl, model, messages, { ...options, _noForcedToolChoice: true }, onEvent);
             }
-            log.error('[Claude] Stream error:', err.message);
+            log.error('[Claude] Stream error:', /** @type {Error} */ (err).message);
             if (err.status) log.error('[Claude] Error status:', err.status);
             if (err.error) log.error('[Claude] API error body:', JSON.stringify(err.error));
             // Enrich the error with status info for upstream retry classification
-            if (err.status && !err.message.includes(`API error ${err.status}`)) {
-                err.message = `API error ${err.status}: ${JSON.stringify(err.error || err.message)}`;
+            if (err.status && !/** @type {Error} */ (err).message.includes(`API error ${err.status}`)) {
+                /** @type {Error} */ (err).message = `API error ${err.status}: ${JSON.stringify(err.error || /** @type {Error} */ (err).message)}`;
             }
             throw err;  // Let retryStreamCall handle retry/classify
         }
@@ -733,7 +769,7 @@ class ClaudeProvider extends BaseProvider {
             const response = await client.models.list();
             return (response.data || []).map(m => ({ id: m.id, name: m.display_name || m.id }));
         } catch (e) {
-            log.error('[Claude] SDK listModels failed:', e.message);
+            log.error('[Claude] SDK listModels failed:', /** @type {Error} */ (e).message);
             return [];
         }
     }

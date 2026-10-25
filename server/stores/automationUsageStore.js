@@ -96,6 +96,10 @@ const { runDdl } = require('./lib/_ddl');
  */
 const CONSUMER_KINDS = Object.freeze(['app']);
 
+/**
+ * @param {string} kind
+ * @param {string} who
+ */
 function assertConsumerKind(kind, who) {
     if (!CONSUMER_KINDS.includes(kind)) {
         throw new Error(`${who} requires a consumerKind of ${CONSUMER_KINDS.join(' | ')}, got ${JSON.stringify(kind)}`);
@@ -164,6 +168,7 @@ const initDB = makeStoreInit('AutomationUsageStore', async () => {
  * there, until then one cheap query per call. If it is missing, the rows come
  * back with an empty title — never with fewer rows.
  */
+/** @type {{ apps: boolean; } | null} */
 let _joinable = null;
 async function consumerJoins() {
     if (_joinable) return _joinable;
@@ -304,6 +309,7 @@ async function usageIndexCoverage() {
 /**
  * The apps that have never been indexed — the work list of the backfill.
  * Bounded, because this runs alongside a request.
+ * @param {number} [limit]
  */
 async function listUnindexedApps(limit = 50) {
     await initDB();
@@ -329,6 +335,7 @@ async function listUnindexedApps(limit = 50) {
  * so that a vanished app yields a nameless row instead of a
  * missing one. Sorting on `updated_at DESC` so that the most recently touched button
  * is at the top, the same as `datatableStore.listUsage`.
+ * @param {string} automationId
  */
 async function listUsageOfAutomation(automationId) {
     await initDB();
@@ -367,7 +374,10 @@ async function countUsageOfAutomations(automationIds) {
     return out;
 }
 
-/** The app is gone — remove its rows. There is no FK that does this. */
+/**
+ * The app is gone — remove its rows. There is no FK that does this.
+ * @param {string} consumerKind
+ */
 async function purgeUsageForConsumer(consumerKind, consumerId) {
     await initDB();
     assertConsumerKind(consumerKind, 'purgeUsageForConsumer');

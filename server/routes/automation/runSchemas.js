@@ -13,9 +13,19 @@ const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts')
 /** A body that also accepts no body at all (schemaParts' orEmpty), closed with zod's own wording. */
 const bodyOf = (shape) => orEmpty(z.object(shape).strict());
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
-/** Comma-separated on the wire; parseRunFilters splits it. */
+/**
+ * Comma-separated on the wire; parseRunFilters splits it.
+ * @param {string} name
+ */
 const list = (name) => worded(`${name} is a comma-separated list.`).trim().optional();
+/**
+ * @param {string} name
+ */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
 

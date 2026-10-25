@@ -17,10 +17,20 @@ const { bestEffort } = require('../../utils/bestEffort');
 // (webm/opus, m4a/aac, mp4) is transcoded to mp3 first.
 const SCALEWAY_AUDIO_EXTS = new Set(['.mp3', '.wav', '.flac', '.ogg', '.oga', '.mpga']);
 
+/**
+ * @param {string} filePath
+ * @param {string} outPath
+ */
 function scalewayTranscodeArgs(filePath, outPath) {
     return buildAudioArgs({ input: filePath, output: outPath, channels: 1, sampleRate: 16000, format: 'mp3' });
 }
 
+/**
+ * @param {string} filePath
+ * @param {string} listPath
+ * @param {string} chunkPattern
+ * @param {number} chunkSeconds
+ */
 function scalewaySplitArgs(filePath, listPath, chunkPattern, chunkSeconds) {
     return buildAudioArgs({
         input: filePath,
@@ -37,7 +47,10 @@ function scalewaySplitArgs(filePath, listPath, chunkPattern, chunkSeconds) {
     });
 }
 
-/** Transcode `filePath` to a temp mp3 if its format isn't Scaleway-accepted. Returns {path, cleanup}. */
+/**
+ * Transcode `filePath` to a temp mp3 if its format isn't Scaleway-accepted. Returns {path, cleanup}.
+ * @param {string} filePath
+ */
 async function ensureScalewayFormat(filePath) {
     const path = require('path');
     const ext = path.extname(filePath).toLowerCase();
@@ -64,6 +77,8 @@ async function ensureScalewayFormat(filePath) {
  * ffmpeg's segment muxer with a CSV segment list so each chunk's EXACT start
  * offset is read back (no cumulative drift from assuming fixed lengths).
  * Returns { chunks:[{path,start}], cleanup }.
+ * @param {string} filePath
+ * @param {number} chunkSeconds
  */
 async function splitForScaleway(filePath, chunkSeconds) {
     const path = require('path');
@@ -88,7 +103,11 @@ async function splitForScaleway(filePath, chunkSeconds) {
     }
 }
 
-/** Run up to `limit` async tasks concurrently, preserving input order. */
+/**
+ * Run up to `limit` async tasks concurrently, preserving input order.
+ * @param {{ path: string; start: number; }[]} items
+ * @param {number} limit
+ */
 async function mapLimit(items, limit, fn) {
     const out = new Array(items.length);
     let cursor = 0;
@@ -101,6 +120,7 @@ async function mapLimit(items, limit, fn) {
 /** One Scaleway transcription call for a single Scaleway-safe file. Returned
  *  segment timestamps are relative to THAT file. Retries with backoff on 429
  *  (Scaleway's audio-seconds-per-minute quota) and transient gateway errors,
+ * @param {string} sendPath
  *  honouring Retry-After — this is what paces concurrent chunks under the quota. */
 async function scalewayCallOnce(sendPath, cfg) {
     const path = require('path');
@@ -153,6 +173,8 @@ async function scalewayCallOnce(sendPath, cfg) {
  * Requires `scaleway_api_key`. Speaker labels require a diarizer URL
  * (`WHISPERX_URL` or the encrypted `whisperx_url` secret); without one the
  * transcript is returned with a single `speaker_0`.
+ * @param {string} filePath
+ * @param {string} fileName
  */
 async function transcribeWithScaleway(filePath, fileName, language, contextTerms) {
     const configStore = require('../../stores/configStore');
@@ -179,6 +201,7 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
     const CHUNK_SECONDS = Number(process.env.SCALEWAY_CHUNK_SECONDS) || 600;
     const CONCURRENCY = Number(process.env.SCALEWAY_CHUNK_CONCURRENCY) || 2;
 
+    /** @type {({ text: string; start: number | undefined; end: number | undefined; })[]} */
     let rawSegments = [];
     let fullText = '';
     if (fileSize > CHUNK_THRESHOLD) {
@@ -197,7 +220,7 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
                     return r.segments.map(s => ({ text: s.text, start: (s.start || 0) + ch.start, end: (s.end || 0) + ch.start }));
                 } catch (err) {
                     failedChunks++;
-                    log.error(`[Transcriptions] Scaleway chunk ${idx + 1}/${chunks.length} @${ch.start.toFixed(0)}s FAILED — kept the other chunks: ${err.message}`);
+                    log.error(`[Transcriptions] Scaleway chunk ${idx + 1}/${chunks.length} @${ch.start.toFixed(0)}s FAILED — kept the other chunks: ${/** @type {Error} */ (err).message}`);
                     // `gap: true` marks this as a hole, not speech. Without it a
                     // failed chunk contributed a full CHUNK_SECONDS (10 min) of
                     // "speaking time" to whichever speaker the overlap matcher
@@ -264,7 +287,7 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
                 log.info(`[Transcriptions] Diarization merged: ${turns.length} turns → ${new Set(segments.map(s => s.speakerId)).size} speakers`);
             }
         } catch (err) {
-            log.warn(`[Transcriptions] Scaleway hybrid diarization failed (transcript kept, no speakers): ${err.message}`);
+            log.warn(`[Transcriptions] Scaleway hybrid diarization failed (transcript kept, no speakers): ${/** @type {Error} */ (err).message}`);
         }
     } else if (!diarizerUrl) {
         log.warn('[Transcriptions] No diarizer configured (WHISPERX_URL / whisperx_url) — Scaleway transcript has no speaker labels.');

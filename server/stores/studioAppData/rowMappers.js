@@ -5,6 +5,9 @@
 
 const { parseJSON } = require('../lib/json');
 
+/**
+ * @param {string | number | Date} v
+ */
 function toIso(v) { return v ? new Date(v).toISOString() : null; }
 
 // ── Row mappers ─────────────────────────────────────────────────────

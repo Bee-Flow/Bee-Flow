@@ -37,13 +37,20 @@ function matchNode(text, compiledOrTypes, opts = {}) {
     const compiled = isCompiled(compiledOrTypes) ? compiledOrTypes : compileTypes(compiledOrTypes);
     const str = typeof text === 'string' ? text : '';
     const scan = str.length > NODE_MAX_CHARS ? str.slice(0, NODE_MAX_CHARS) : str;
+    /** @type {{ start: number; end: number; typeId: string; }[]} */
     const spans = [];
     const partialIds = new Set();
+    /** @type {string[]} */
     const timedOut = [];
     const failed = compiled.invalid.filter(i => i.reason === 'compile_failed').map(i => i.id);
     /** @type {Map<string, number>} */
     const counts = new Map();
 
+    /**
+     * @param {number} start
+     * @param {number} end
+     * @param {string} id
+     */
     const push = (start, end, id) => {
         if (!(end > start)) return;
         const n = counts.get(id) || 0;
@@ -52,6 +59,10 @@ function matchNode(text, compiledOrTypes, opts = {}) {
         spans.push({ start, end, typeId: id });
     };
 
+    /**
+     * @param {number} start
+     * @param {number} end
+     */
     const onWord = (start, end, p) => {
         if (p.wholeWord) {
             if (p.edgeStart && isWordChar(codePointBefore(scan, start))) return;

@@ -108,10 +108,10 @@ const STEP_TYPE_TABLE = Object.freeze([
 const typesWhere = (pred) => STEP_TYPE_TABLE.filter(pred).map((e) => e.type);
 
 /** The `type` enum of builder_add_steps. */
-const BATCH_STEP_TYPES = Object.freeze(typesWhere((e) => e.authoring === 'batch'));
+const BATCH_STEP_TYPES = Object.freeze(typesWhere((/** @type {{ authoring: string; }} */ e) => e.authoring === 'batch'));
 
 /** The `newType` enum of builder_replace_step, and the keys of ADD_FOR_TYPE. */
-const REPLACEABLE_STEP_TYPES = Object.freeze(typesWhere((e) => e.authoring === 'batch' && e.replace !== false));
+const REPLACEABLE_STEP_TYPES = Object.freeze(typesWhere((/** @type {{ authoring: string; replace: boolean; }} */ e) => e.authoring === 'batch' && e.replace !== false));
 
 /** [{type, reason, behaviour}] — what the runtime runs and the builder cannot create. */
 const CANVAS_ONLY_STEP_TYPES = Object.freeze(STEP_TYPE_TABLE
@@ -131,7 +131,7 @@ function canvasOnlyMenu() {
 }
 
 /** The step types the single `builder_add_array_op` tool covers by `op`. */
-const ARRAY_OP_FAMILY = Object.freeze(typesWhere((e) => e.family === 'array_op'));
+const ARRAY_OP_FAMILY = Object.freeze(typesWhere((/** @type {{ family: string; }} */ e) => e.family === 'array_op'));
 
 module.exports = {
     STEP_TYPE_TABLE,

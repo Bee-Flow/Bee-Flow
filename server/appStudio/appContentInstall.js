@@ -58,6 +58,9 @@ const actionExecutor = require('./actionExecutor');
 const mailboxAttachments = require('./mailboxAttachments');
 const { orderTablesByDependency, resolveSeedRow } = require('./templateInstall');
 
+/**
+ * @param {object | null} v
+ */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 /** How many individual failures are worth naming before a count will do. */
@@ -107,7 +110,11 @@ async function installAppContent({ app, model, content, deps = {} } = {}) {
     const write = deps.writeRecord || actionExecutor.writeRecord;
     const records = isObject(content) && isObject(content.records) ? content.records : {};
     const files = isObject(content) && Array.isArray(content.files) ? content.files : [];
+    /** @type {string[]} */
     const skipped = [];
+    /**
+     * @param {string} what
+     */
     const note = (what) => { if (skipped.length < MAX_NAMED_SKIPS) skipped.push(what); };
 
     if (!app || !isObject(model) || !Array.isArray(model.tables)) {

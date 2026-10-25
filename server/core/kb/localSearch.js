@@ -31,6 +31,9 @@ const EMBEDDING_CACHE_MAX = 500;
 const EMBEDDING_CACHE_TTL = 30 * 60 * 1000; // 30 minutes — query embeddings are stable
 const _embeddingCache = new Map();
 
+/**
+ * @param {string} query
+ */
 function getCachedEmbedding(query) {
     const entry = _embeddingCache.get(query);
     if (!entry) return null;
@@ -41,6 +44,10 @@ function getCachedEmbedding(query) {
     return entry.embedding;
 }
 
+/**
+ * @param {string} embedding
+ * @param {string} query
+ */
 function setCachedEmbedding(query, embedding) {
     // Evict oldest if at capacity
     if (_embeddingCache.size >= EMBEDDING_CACHE_MAX) {
@@ -133,7 +140,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
         const { expandRelations } = require('./relationHop');
         await expandRelations(results, { kbIds, query, vectorStr });
     } catch (hopErr) {
-        log.warn(`[LocalKBSearch] Relation hop failed: ${hopErr.message}`);
+        log.warn(`[LocalKBSearch] Relation hop failed: ${/** @type {Error} */ (hopErr).message}`);
     }
 
     // Mark results as orphan-filtered so callers don't duplicate the work
@@ -158,6 +165,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
  * The query's embedding as a pgvector literal, from the LRU cache or the
  * configured embedder; null without pgvector or when embedding fails (the
  * search then runs keyword-only).
+ * @param {string} query
  */
 async function embedQuery(query) {
     if (!isPgvectorAvailable()) return null;
@@ -177,7 +185,7 @@ async function embedQuery(query) {
         }
         log.warn('[LocalKBSearch] Query embedding produced no vector — falling back to keyword-only search');
     } catch (err) {
-        log.warn(`[LocalKBSearch] Query embedding failed: ${err.message}`);
+        log.warn(`[LocalKBSearch] Query embedding failed: ${/** @type {Error} */ (err).message}`);
     }
     return null;
 }

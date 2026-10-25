@@ -1,3 +1,4 @@
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 /**
  * Google Drive Integration Routes
  * 
@@ -54,10 +55,12 @@ const ExportParams = z.object({
  * which is enough to step outside the
  * `(<workspace mime types>) and trashed=false` prefix the listing is pinned
  * to.
+ * @param {string | ParsedQs | (string | ParsedQs)[]} text
  */
 const driveLiteral = (text) => text.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
 // MIME types for Google Workspace files
+/** @type {Record<string, { name: string; icon: string; exportMime: string; }>} */
 const WORKSPACE_MIME_TYPES = {
     'application/vnd.google-apps.document': { name: 'Google Doc', icon: '📄', exportMime: 'text/plain' },
     'application/vnd.google-apps.spreadsheet': { name: 'Google Sheet', icon: '📊', exportMime: 'text/csv' },
@@ -133,10 +136,10 @@ router.get('/files', validate({ query: FilesQuery }), async (req, res, next) => 
             nextPageToken: response.data.nextPageToken || null,
         });
     } catch (err) {
-        if (err.message === 'NOT_CONNECTED') {
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Not connected to Google Drive', code: 'NOT_CONNECTED' });
         }
-        log.error('[GoogleDrive] List files error:', err.message);
+        log.error('[GoogleDrive] List files error:', /** @type {Error} */ (err).message);
         next(err);
     }
 });
@@ -188,10 +191,10 @@ router.get('/export/:fileId', validate({ params: ExportParams }), async (req, re
             charCount: content.length,
         });
     } catch (err) {
-        if (err.message === 'NOT_CONNECTED') {
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Not connected to Google Drive', code: 'NOT_CONNECTED' });
         }
-        log.error('[GoogleDrive] Export error:', err.message);
+        log.error('[GoogleDrive] Export error:', /** @type {Error} */ (err).message);
         next(err);
     }
 });

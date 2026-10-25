@@ -40,7 +40,7 @@ async function generateChatTitle(userMessage, modelOverride = null, userOrgId = 
         log.info('[generateChatTitle] Generated title:', title);
         return title.slice(0, 40);
     } catch (error) {
-        log.error('[generateChatTitle] Error:', error.message);
+        log.error('[generateChatTitle] Error:', /** @type {Error} */ (error).message);
     }
 
     return 'New Chat';

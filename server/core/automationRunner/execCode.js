@@ -32,6 +32,7 @@ const sandbox = () => runnerPort('codeSandbox');
  * — i.e. when a LIVE run of this step would refuse too. A rehearsal must not
  * be the thing that tells an author their org has code steps switched off, so
  * it reports a skip rather than raising the refusal a live run raises.
+ * @param {string} why
  */
 function codeStepSkipped(why) {
     return { output: { _dryRun: true, skipped: `code-step skipped in dry-run: ${why}` } };
@@ -84,7 +85,7 @@ async function allowedCodeTools(step, ctx) {
             const r = await permittedCatalog(ctx, getIntegrationTools, { automationStep: true, lend: true });
             ctx.allowedToolNames = new Set((r.tools || []).map(t => t?.function?.name).filter(Boolean));
         } catch (e) {
-            log.warn(`[AutomationRunner] Permission catalog lookup failed (code step): ${e.message}`);
+            log.warn(`[AutomationRunner] Permission catalog lookup failed (code step): ${/** @type {Error} */ (e).message}`);
             throw new Error('Could not verify your permission for this step\'s tools. The automation has been paused — please re-open it after refreshing your permissions.');
         }
     }
@@ -98,6 +99,7 @@ async function allowedCodeTools(step, ctx) {
  * own capture context and logged. Both bridges used to bypass the shield
  * entirely: a code step could call any permitted tool, or fetch any URL, with
  * no scan and no ledger row.
+ * @param {string} mode
  */
 function makeExecuteToolBridge(step, ctx, mode, allowedTools) {
     const { executeTool } = require('../tools/toolDispatcher');
@@ -114,7 +116,7 @@ function makeExecuteToolBridge(step, ctx, mode, allowedTools) {
                 integMeta: meta,
             });
         } catch (err) {
-            if (err && err.guardrailBlocked) return { error: err.message };
+            if (err && err.guardrailBlocked) return { error: /** @type {Error} */ (err).message };
             throw err;
         }
         const t0 = Date.now();
@@ -144,7 +146,10 @@ function makeExecuteToolBridge(step, ctx, mode, allowedTools) {
     };
 }
 
-/** ctx.http: a host on the step's list, guarded (request headers included), sent, logged, and its reply guarded. */
+/**
+ * ctx.http: a host on the step's list, guarded (request headers included), sent, logged, and its reply guarded.
+ * @param {string} mode
+ */
 function makeFetchHttpBridge(step, ctx, mode, guard) {
     return async (url, options) => {
         let host = '';
@@ -203,13 +208,16 @@ function makeFetchHttpBridge(step, ctx, mode, guard) {
         } catch (err) {
             // The sandbox already speaks `{ error }` — the same shape a
             // refused URL or a blocked tool call comes back as.
-            if (err && err.guardrailBlocked) return { error: err.message };
+            if (err && err.guardrailBlocked) return { error: /** @type {Error} */ (err).message };
             throw err;
         }
         return safety.restoreForRunState(guardedRes.result, ctx);
     };
 }
 
+/**
+ * @param {string} mode
+ */
 async function execCode(step, ctx, runState, mode) {
     const rehearsal = mode === 'dry_run';
     // A DRY RUN USED TO SKIP THE CODE OUTRIGHT. Of every step type, this is

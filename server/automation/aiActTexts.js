@@ -59,7 +59,10 @@ const TEXT = {
     'ai_act.model.unavailable': () => 'Bee could not reach its AI model to check this.',
 };
 
-/** The English line for one piece of evidence. */
+/**
+ * The English line for one piece of evidence.
+ * @param {string | number} code
+ */
 function textFor(code, params = {}) {
     const fn = TEXT[code];
     return fn ? fn(params || {}) : '';

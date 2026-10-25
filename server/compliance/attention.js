@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — "Needs attention": the short list at the top of the Overview.
  *
@@ -86,6 +87,9 @@ function makeDeps(overrides = {}) {
     return d;
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const toMs = (v) => { const t = v == null ? NaN : new Date(v).getTime(); return Number.isFinite(t) ? t : null; };
 
 // ── Source (a): check results ────────────────────────────────────────────
@@ -167,17 +171,25 @@ function collapsedItem(def, rows, d, sectionOf) {
     return item;
 }
 
-/** Stored finding decisions, or none when they cannot be read (showing more is the safe side). */
+/**
+ * Stored finding decisions, or none when they cannot be read (showing more is the safe side).
+ * @param {string} orgId
+ */
 async function loadStates(orgId, d) {
     if (typeof d.complianceStore.listFindingStates !== 'function') return findingState.indexStates([]);
     try {
         return findingState.indexStates(await d.complianceStore.listFindingStates(orgId));
     } catch (e) {
-        log.warn('[ComplianceAttention] finding states unreadable, showing every finding:', e?.message || e);
+        log.warn('[ComplianceAttention] finding states unreadable, showing every finding:', /** @type {Error} */ (e)?.message || e);
         return findingState.indexStates([]);
     }
 }
 
+/**
+ * @param {string} orgId
+ * @param {{ limit?: number; deps?: object; now?: number; req?: object; }} opts
+ * @param {number} nowMs
+ */
 async function checkItems(orgId, d, opts, nowMs) {
     const [latest, active, states] = await Promise.all([
         d.complianceStore.getLatestPerCheck(orgId),
@@ -414,9 +426,12 @@ async function build(orgId, opts = {}) {
     let complete = true;
     const all = [];
 
+    /**
+     * @param {string} name
+     */
     const run = async (name, fn) => {
         try { all.push(...await fn()); }
-        catch (e) { complete = false; log.warn(`[ComplianceAttention] ${name} source failed:`, e?.message || e); }
+        catch (e) { complete = false; log.warn(`[ComplianceAttention] ${name} source failed:`, /** @type {Error} */ (e)?.message || e); }
     };
     await Promise.all([
         run('checks', () => checkItems(orgId, d, opts, nowMs)),

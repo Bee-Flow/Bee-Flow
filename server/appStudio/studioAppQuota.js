@@ -38,6 +38,9 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const db = require('../db');
 
+/**
+ * @param {string} code
+ */
 function quotaError(code, { limit, used, message } = {}) {
     const err = new Error(message || 'Storage quota exceeded');
     err.status = 409;
@@ -98,6 +101,7 @@ async function assertDbByteQuota(app) {
 /**
  * Throw when adding an attachment of `addBytes` would breach the per-app
  * attachment count or the per-file byte cap.
+ * @param {number} [addBytes]
  */
 async function assertAttachmentQuota(app, addBytes = 0) {
     assertOwnedApp(app);
@@ -126,6 +130,7 @@ async function assertAttachmentQuota(app, addBytes = 0) {
  * wrong: `datatable_models.size_bytes` is measured by the retention sweep and
  * was read by nobody, so an automation writing a million rows a month showed up
  * nowhere in the figure an admin is shown before being asked to buy more.
+ * @param {string | undefined} orgId
  */
 async function orgUsage(orgId) {
     if (!orgId) return { dbBytes: 0, attachmentBytes: 0, datatableBytes: 0, totalBytes: 0 };
@@ -155,7 +160,7 @@ async function orgUsage(orgId) {
         // The table is created by datatableStore, which is not in App Studio's
         // require graph. A deployment where it has not been initialised yet
         // must report App Studio's usage, not fail the whole usage screen.
-        if (!/datatable_models/.test(String(e.message || ''))) throw e;
+        if (!/datatable_models/.test(String(/** @type {Error} */ (e).message || ''))) throw e;
     }
     const dbBytes = parseInt(dbRow && dbRow.bytes, 10) || 0;
     const attachmentBytes = parseInt(attRow && attRow.bytes, 10) || 0;
@@ -169,6 +174,9 @@ async function orgUsage(orgId) {
 
 // row_counts is a JSONB column — node-postgres hands it back already parsed,
 // but tolerate a string (e.g. a text column or a stubbed store) too.
+/**
+ * @param {string} raw
+ */
 function toRowCounts(raw) {
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
     if (typeof raw === 'string') { try { const v = JSON.parse(raw); return (v && typeof v === 'object') ? v : {}; } catch { return {}; } }
@@ -182,6 +190,7 @@ function toRowCounts(raw) {
  * owner-scoped) so no per-app store fan-out is needed. Read-only; never mutates.
  *
  * → [{ id, name, ownerUserId, isPublished, dbBytes, rowTotal, updatedAt }]
+ * @param {string | undefined} orgId
  */
 async function orgAppBreakdown(orgId) {
     if (!orgId) return [];

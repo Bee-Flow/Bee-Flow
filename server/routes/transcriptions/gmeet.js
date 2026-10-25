@@ -25,6 +25,7 @@ const { resolveUserOrgFromReq } = require('./shared');
 // users who connected Google via the connector).
 
 // Stable failure codes shared with the UI → HTTP status for /from-gmeet.
+/** @type {Record<string, number>} */
 const GMEET_ERROR_STATUS = {
     not_connected: 400,
     needs_reauth: 401,
@@ -36,6 +37,10 @@ const GMEET_ERROR_STATUS = {
     unsupported_edition: 400,
 };
 
+/**
+ * @param {string} message
+ * @param {string} code
+ */
 function gmeetError(message, code) {
     const e = new Error(message);
     e.code = code;
@@ -150,6 +155,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
             if (t) importedNoteId = t.id;
         } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon', err); /* ignore */ }
 
+        /** @type {string} */
         let status;
         if (importedNoteId) status = 'imported';
         else if (excluded) status = 'excluded';
@@ -232,7 +238,7 @@ router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPref
                 }
             }
         } catch (err) {
-            log.warn('[Transcriptions] gmeet auto-record config failed:', err.message);
+            log.warn('[Transcriptions] gmeet auto-record config failed:', /** @type {Error} */ (err).message);
             autoRecordingConfig = 'error';
         }
     }
@@ -389,7 +395,7 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
     } catch (err) {
         const status = err.status || GMEET_ERROR_STATUS[err.code];
         if (!status || status >= 500) throw err; // unclassified: the terminal handler logs it and answers generically
-        res.status(status).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
+        res.status(status).json({ error: /** @type {Error} */ (err).message, ...(err.code ? { code: err.code } : {}) });
     }
 });
 

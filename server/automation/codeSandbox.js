@@ -100,6 +100,11 @@ const SECRETS_NOT_CONFIGURED_MESSAGE =
 
 // Coerce one numeric limit to a finite value within [min, max], falling back
 // to `def` when the supplied value is missing or not a finite number.
+/**
+ * @param {number} def
+ * @param {number} min
+ * @param {number} max
+ */
 function clampLimit(value, def, min, max) {
     if (value == null) return def; // missing/null → default (Number(null) is 0, not NaN)
     const n = Number(value);
@@ -229,6 +234,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
     // Never trust the caller's limits verbatim — clamp to hard ceilings so a
     // step definition can't request e.g. 8 GB / 10 min and starve the host.
     const lim = clampLimits(limits);
+    /** @type {string[]} */
     const logs = [];
     let logBytes = 0;
     let logsTruncated = false;
@@ -275,7 +281,9 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
     let bootScript = null;
     let timedOut = false;
     let cpuExceeded = false;
+    /** @type {NodeJS.Timeout | null} */
     let wallTimer = null;
+    /** @type {NodeJS.Timeout | null} */
     let cpuWatch = null;
     try {
         context = await isolate.createContext();
@@ -290,6 +298,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         const ctxHost = {
             log: (...args) => {
                 if (logsTruncated) return;
+                /** @type {string} */
                 let line;
                 try { line = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '); } catch { return; }
                 if (line.length > LOG_LINE_CAP) line = `${line.slice(0, LOG_LINE_CAP)}… (line cut at ${LOG_LINE_CAP} characters)`;
@@ -314,7 +323,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
                     const r = await bridges.executeTool(toolName, argsObj);
                     return r;
                 } catch (e) {
-                    return { error: e.message || String(e) };
+                    return { error: /** @type {Error} */ (e).message || String(e) };
                 }
             },
             http: async (url, optsJson) => {
@@ -331,7 +340,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
                     const r = await bridges.fetchHttp(url, opts, { responseCap: HTTP_RESPONSE_CAP, timeoutMs: 10_000 });
                     return r;
                 } catch (e) {
-                    return { error: e.message || String(e) };
+                    return { error: /** @type {Error} */ (e).message || String(e) };
                 }
             },
             // NOTE: there is deliberately no `secret` host bridge any more. The
@@ -347,7 +356,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
                 if (typeof bridges.db !== 'function') return { error: 'no db bridge' };
                 let a = {};
                 try { a = argsJson ? JSON.parse(argsJson) : {}; } catch { return { error: 'invalid db args' }; }
-                try { return await bridges.db(op, a); } catch (e) { return { error: e.message || String(e) }; }
+                try { return await bridges.db(op, a); } catch (e) { return { error: /** @type {Error} */ (e).message || String(e) }; }
             },
         };
 
@@ -367,6 +376,9 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
             if (!settleRef) return;
             settleRef.apply(undefined, [id, value], { arguments: { copy: true } }).catch((e) => bestEffort('automation/codeSandbox:settle', e));
         };
+        /**
+         * @param {((value: void) => void | PromiseLike<void>) | null} work
+         */
         const answer = (id, work) => {
             Promise.resolve().then(work).then(
                 (value) => settle(id, value === undefined ? null : value),
@@ -485,7 +497,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         // isolated-vm's own `timeout` ("Script execution timed out.") and the
         // watchdog race for the same budget; either way the CPU limit is what
         // stopped the code, and the author reads one sentence for it.
-        if (cpuExceeded || (!timedOut && /Script execution timed out/i.test((e && e.message) || ''))) {
+        if (cpuExceeded || (!timedOut && /Script execution timed out/i.test((e && /** @type {Error} */ (e).message) || ''))) {
             throw new Error(`Code step exceeded CPU limit (${lim.cpuMs}ms)`);
         }
         if (timedOut) throw new Error(`Code step exceeded wall-clock limit (${lim.wallMs}ms)`);
@@ -510,13 +522,15 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
  * public hostname that resolves (or rebinds, or redirects) to a private
  * address is refused too. All refusals surface as the same structured
  * { error } shape user code already gets.
+ * @param {string | URL} url
  */
 async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CAP, timeoutMs = 10_000, fetchImpl = safeFetch } = {}) {
     if (typeof url !== 'string' || !url.startsWith('https://')) {
         return { error: 'Only https:// URLs are allowed.' };
     }
+    /** @type {string} */
     let hostname;
-    try { hostname = new URL(url).hostname; } catch (e) { return { error: e.message || String(e) }; }
+    try { hostname = new URL(url).hostname; } catch (e) { return { error: /** @type {Error} */ (e).message || String(e) }; }
     if (isPrivateHostname(hostname)) {
         return { error: 'Refused: target resolves to a private/internal address.' };
     }
@@ -541,7 +555,7 @@ async function defaultFetchHttp(url, opts = {}, { responseCap = HTTP_RESPONSE_CA
         if (isPrivateAddressError(e)) {
             return { error: 'Refused: target resolves to a private/internal address.' };
         }
-        return { error: e.message || String(e) };
+        return { error: /** @type {Error} */ (e).message || String(e) };
     } finally {
         clearTimeout(timer);
     }

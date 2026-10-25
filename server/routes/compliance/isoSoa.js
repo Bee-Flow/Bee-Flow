@@ -33,10 +33,14 @@ const { worded } = require('../../core/http/schemaParts');
 const { fallback } = require('../../utils/bestEffort');
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = (/** @type {{ provider?: import("zod").ZodOptional<import("zod").ZodString>; applicable?: import("zod").ZodOptional<import("zod").ZodBoolean>; justification?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; how_met?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; source?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; status?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; owner_user_id?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; evidence_ref?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; }} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const SOURCES = ['auto', 'connector', 'attest', 'inherited'];
 const DECISIONS = ['todo', 'reviewed', 'approved'];
+/**
+ * @param {string} name
+ * @param {string[]} values
+ */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const PROVIDER_TEXT = 'provider must be the name of your IaaS provider.';
@@ -77,6 +81,7 @@ const HistoryQuery = z.object({
 // rows. Controls join to automated checks via the `controls` array each
 // ISO27001 check module declares.
 
+/** @type {Record<string, string>} */
 const SOA_SOURCE_FOR_BUCKET = { auto: 'auto', connector: 'connector', attest: 'attest', physical: 'inherited' };
 
 router.get('/iso/soa', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
@@ -206,6 +211,7 @@ router.get('/iso/readiness', requireAuth, requirePermission('admin_compliance'),
     ]);
     const statusByCheck = {};
     for (const r of latest) {
+        /** @type {Record<string, number>} */
         const rank = { fail: 3, warn: 2, pass: 1, not_applicable: 0 };
         if (!statusByCheck[r.check_id] || (rank[r.status] || 0) > (rank[statusByCheck[r.check_id]] || 0)) {
             statusByCheck[r.check_id] = r.status;

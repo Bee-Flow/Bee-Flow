@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder — render componentSpecs.js into compact prompt text.
  *
@@ -92,8 +93,10 @@ function fmtDefault(v) {
  * is where the look/accent/cardLook enums explain what each value LOOKS like
  * (striped = zebra rows, hero = a tall centered masthead, …); without it the
  * model sees only opaque enum tokens and always picks the default.
+ * @param {string} key
  */
 function renderPropSpec(key, fs) {
+    /** @type {string[]} */
     const bits = [];
     if (fs.type === 'enum') {
         bits.push(fs.values.map((v) => JSON.stringify(v)).join('|') + (fs.allowIsoDate ? '|YYYY-MM-DD' : ''));
@@ -125,6 +128,7 @@ function renderPropSpec(key, fs) {
  * is the only thing the model needs and cannot guess: the legal window depends
  * on the sibling mode knob, so a bare `widthValue` teaches nothing and a single
  * merged range would teach a lie (40..2000 is right for px and absurd for pct).
+ * @param {string} key
  */
 function renderStyleKnob(key) {
     const knob = STYLE_KNOBS[key];
@@ -138,6 +142,9 @@ function renderStyleKnob(key) {
     return key;
 }
 
+/**
+ * @param {string} type
+ */
 function renderComponent(type) {
     const spec = COMPONENT_SPECS[type];
     const flags = [
@@ -159,7 +166,11 @@ function renderComponent(type) {
 // the same field-spec vocabulary ACTION_SPECS and STEP_SPECS use.
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} key
+ */
 function renderActionField(key, fs) {
+    /** @type {string[]} */
     const bits = [];
     switch (fs.type) {
         case 'string': bits.push(fs.nullable ? 'string|null' : 'string'); break;
@@ -202,6 +213,7 @@ function renderSpecFields(fields) {
  * advanced-sizing rule and the "see ### Formulas" line already use. A kind
  * whose full shape is shorter than the pointer (open_modal, close_modal)
  * keeps it inline: never render the longer of two equivalent forms.
+ * @param {string} kind
  */
 function renderActionKind(kind) {
     const full = `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`;
@@ -213,6 +225,9 @@ function renderActionKind(kind) {
     return full;
 }
 
+/**
+ * @param {string} kind
+ */
 function renderStepKind(kind) {
     const spec = STEP_SPECS[kind];
     const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
@@ -242,6 +257,7 @@ const FORMULA_WRAP_COLS = 108;
 
 function renderFormulaFunctions() {
     const signatureByName = new Map(EXPR_FUNCTIONS.map((f) => [f.name, f.signature]));
+    /** @type {string[]} */
     const lines = [];
     let line = '';
     for (const name of EXPR_FUNCTION_NAMES) {
@@ -417,6 +433,7 @@ function buildCatalogSections() {
     return _sections;
 }
 
+/** @type {string | null} */
 let _cached = null;
 
 /**
@@ -506,7 +523,10 @@ const COMPACT_MAX_ITEM_ENUM = 5;   // inside a list item shape (filter_bar.field
 const COMPACT_MAX_ITEM_KEYS = 6;
 const COMPACT_SENTENCE_CHARS = 90;
 
-/** The first sentence of a description (with its full stop), cut at a word boundary past the cap. */
+/**
+ * The first sentence of a description (with its full stop), cut at a word boundary past the cap.
+ * @param {number} [max]
+ */
 function firstSentence(text, max = COMPACT_SENTENCE_CHARS) {
     const s = String(text || '').trim();
     // A full stop followed by a capital (or a quote/bracket) — not the one in
@@ -518,7 +538,10 @@ function firstSentence(text, max = COMPACT_SENTENCE_CHARS) {
     return `${first.slice(0, cut > max / 2 ? cut : max)}…`;
 }
 
-/** `a|b|c` for a short enum; `a|b|c|…(+N)` for a long one. An empty-string value shows as "". */
+/**
+ * `a|b|c` for a short enum; `a|b|c|…(+N)` for a long one. An empty-string value shows as "".
+ * @param {number} max
+ */
 function compactEnum(values, max) {
     const show = (v) => (v === '' ? '""' : (v === null ? 'null' : String(v)));
     if (values.length <= max) return values.map(show).join('|');
@@ -561,7 +584,10 @@ function pickCompactProps(spec) {
     return { picked: picked.slice(0, COMPACT_MAX_PROPS), total: all.length };
 }
 
-/** One line for a component type: what it is, its key props, its style knobs with defaults. */
+/**
+ * One line for a component type: what it is, its key props, its style knobs with defaults.
+ * @param {string} type
+ */
 function renderComponentCompact(type) {
     const spec = COMPONENT_SPECS[type];
     const flags = [
@@ -598,6 +624,7 @@ function renderStepKindCompact() {
     ].join('\n');
 }
 
+/** @type {string | null} */
 let _compact = null;
 
 /**
@@ -691,13 +718,19 @@ ${s.limits}`;
     return _compact;
 }
 
-/** The full catalog entry of one component type (what app_inspect_catalog serves). */
+/**
+ * The full catalog entry of one component type (what app_inspect_catalog serves).
+ * @param {string} type
+ */
 function renderComponentEntry(type) {
     if (!COMPONENT_SPECS[type]) return null;
     return renderComponent(type);
 }
 
-/** The full catalog line of one step kind (what app_inspect_catalog serves). */
+/**
+ * The full catalog line of one step kind (what app_inspect_catalog serves).
+ * @param {string} kind
+ */
 function renderStepEntry(kind) {
     if (!STEP_SPECS[kind]) return null;
     return renderStepKind(kind);

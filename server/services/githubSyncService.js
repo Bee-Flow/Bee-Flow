@@ -29,6 +29,7 @@ const GITHUB_API = 'https://api.github.com';
 
 /**
  * Get the GitHub PAT for a user.
+ * @param {string} userId
  */
 async function getToken(userId) {
     const token = await configStore.getSecret(`github_token_user_${userId}`);
@@ -70,6 +71,9 @@ async function ghFetch(token, endpoint, options = {}) {
 /**
  * Get the SHA of an existing file on GitHub (needed for updates).
  * Returns null if file doesn't exist.
+ * @param {string} token
+ * @param {string} branch
+ * @param {string} path
  */
 async function getFileSha(token, owner, repo, path, branch) {
     try {
@@ -84,6 +88,11 @@ async function getFileSha(token, owner, repo, path, branch) {
 
 /**
  * Create or update a file on GitHub.
+ * @param {string} token
+ * @param {string} filePath
+ * @param {string} content
+ * @param {string} message
+ * @param {string} [branch]
  */
 async function pushFile(token, owner, repo, filePath, content, message, branch = 'main') {
     const encoded = Buffer.from(content, 'utf-8').toString('base64');
@@ -107,6 +116,10 @@ async function pushFile(token, owner, repo, filePath, content, message, branch =
 
 /**
  * Delete a file from GitHub.
+ * @param {string} token
+ * @param {string} filePath
+ * @param {string} message
+ * @param {string} [branch]
  */
 async function deleteFile(token, owner, repo, filePath, message, branch = 'main') {
     const existingSha = await getFileSha(token, owner, repo, filePath, branch);
@@ -127,6 +140,9 @@ async function deleteFile(token, owner, repo, filePath, message, branch = 'main'
 
 // ── Content hashing ──────────────────────────────────────────────
 
+/**
+ * @param {string} content
+ */
 function contentHash(content) {
     return crypto.createHash('sha256').update(content, 'utf-8').digest('hex');
 }
@@ -169,16 +185,26 @@ function serializeStarterPrompts(agent) {
 
 // A JSONB column arrives parsed from pg, as a string from an older TEXT
 // column or a hand-edited file, and as undefined on a row from before S1.
+/**
+ * @param {string} v
+ */
 function _jsonArrayField(v) {
     if (Array.isArray(v)) return v;
     if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; } }
     return [];
 }
+/**
+ * @param {string} v
+ */
 function _jsonObjectField(v) {
     if (v && typeof v === 'object' && !Array.isArray(v)) return v;
     if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); return p && typeof p === 'object' && !Array.isArray(p) ? p : null; } catch { return null; } }
     return null;
 }
+/**
+ * @param {string} camel
+ * @param {string} snake
+ */
 function _pick(skill, camel, snake) {
     return skill[camel] !== undefined ? skill[camel] : skill[snake];
 }
@@ -232,6 +258,7 @@ function serializeSkillMeta(skill) {
  * precedence rule lets the structure win and regenerates the text.
  * A format-1 file (no structure) yields no structured keys at all, so the
  * store parses the .md text instead of overwriting structure with [].
+ * @param {string} json
  */
 function deserializeSkillMeta(json) {
     const meta = typeof json === 'string' ? JSON.parse(json) : (json || {});
@@ -266,6 +293,8 @@ function deserializeSkillMeta(json) {
 /**
  * Sync a single agent to GitHub.
  * Returns { pushed: boolean, commitSha, filesUpdated }
+ * @param {string} token
+ * @param {string} branch
  */
 async function syncAgent(agent, tools, toolParams, token, owner, repo, branch, orgId) {
     const basePath = `agents/${agent.id}`;
@@ -299,8 +328,8 @@ async function syncAgent(agent, tools, toolParams, token, owner, repo, branch, o
             if (commitSha) lastCommitSha = commitSha;
             filesUpdated++;
         } catch (err) {
-            log.error(`[GitHubSync] Failed to push ${filePath}:`, err.message);
-            await githubSyncStore.markError(orgId, 'agent', agent.id, err.message);
+            log.error(`[GitHubSync] Failed to push ${filePath}:`, /** @type {Error} */ (err).message);
+            await githubSyncStore.markError(orgId, 'agent', agent.id, /** @type {Error} */ (err).message);
             throw err;
         }
     }
@@ -312,6 +341,8 @@ async function syncAgent(agent, tools, toolParams, token, owner, repo, branch, o
 
 /**
  * Sync a single skill to GitHub.
+ * @param {string} token
+ * @param {string} branch
  */
 async function syncSkill(skill, token, owner, repo, branch, orgId) {
     const basePath = `skills/${skill.id}`;
@@ -343,8 +374,8 @@ async function syncSkill(skill, token, owner, repo, branch, orgId) {
             if (commitSha) lastCommitSha = commitSha;
             filesUpdated++;
         } catch (err) {
-            log.error(`[GitHubSync] Failed to push ${filePath}:`, err.message);
-            await githubSyncStore.markError(orgId, 'skill', skill.id, err.message);
+            log.error(`[GitHubSync] Failed to push ${filePath}:`, /** @type {Error} */ (err).message);
+            await githubSyncStore.markError(orgId, 'skill', skill.id, /** @type {Error} */ (err).message);
             throw err;
         }
     }
@@ -355,6 +386,8 @@ async function syncSkill(skill, token, owner, repo, branch, orgId) {
 
 /**
  * Delete agent files from GitHub (when agent is deleted).
+ * @param {string} token
+ * @param {string} branch
  */
 async function deleteAgentFromGitHub(agentId, agentName, token, owner, repo, branch, orgId) {
     const basePath = `agents/${agentId}`;
@@ -366,7 +399,7 @@ async function deleteAgentFromGitHub(agentId, agentName, token, owner, repo, bra
                 `Delete agent "${agentName || agentId}"`, branch);
         } catch (err) {
             // Non-fatal: file may not exist on GitHub
-            log.warn(`[GitHubSync] Could not delete ${basePath}/${log.nameForLog(fileName)}:`, err.message);
+            log.warn(`[GitHubSync] Could not delete ${basePath}/${log.nameForLog(fileName)}:`, /** @type {Error} */ (err).message);
         }
     }
 
@@ -375,6 +408,7 @@ async function deleteAgentFromGitHub(agentId, agentName, token, owner, repo, bra
 
 /**
  * Full sync of all agents and skills for an organization.
+ * @param {string} userId
  */
 async function syncAll(orgId, userId) {
     const config = await githubSyncStore.getOrgSyncConfig(orgId);
@@ -407,7 +441,7 @@ async function syncAll(orgId, userId) {
             if (result.skipped) results.agents.skipped++;
             else results.agents.pushed++;
         } catch (err) {
-            log.error(`[GitHubSync] Agent ${agent.id} sync failed:`, err.message);
+            log.error(`[GitHubSync] Agent ${agent.id} sync failed:`, /** @type {Error} */ (err).message);
             results.agents.errors++;
         }
     }
@@ -423,12 +457,12 @@ async function syncAll(orgId, userId) {
                 if (result.skipped) results.skills.skipped++;
                 else results.skills.pushed++;
             } catch (err) {
-                log.error(`[GitHubSync] Skill ${skill.id} sync failed:`, err.message);
+                log.error(`[GitHubSync] Skill ${skill.id} sync failed:`, /** @type {Error} */ (err).message);
                 results.skills.errors++;
             }
         }
     } catch (err) {
-        log.warn('[GitHubSync] Skills sync skipped:', err.message);
+        log.warn('[GitHubSync] Skills sync skipped:', /** @type {Error} */ (err).message);
     }
 
     // Push sync manifest
@@ -444,7 +478,7 @@ async function syncAll(orgId, userId) {
             `Sync manifest updated — ${results.agents.pushed} agents, ${results.skills.pushed} skills`,
             branch);
     } catch (err) {
-        log.warn('[GitHubSync] Manifest push failed:', err.message);
+        log.warn('[GitHubSync] Manifest push failed:', /** @type {Error} */ (err).message);
     }
 
     // Update last full sync
@@ -467,7 +501,7 @@ async function syncAll(orgId, userId) {
                 await githubSyncStore.removeSyncState(orgId, 'skill', del.resource_id);
             }
         } catch (err) {
-            log.warn(`[GitHubSync] Delete failed for ${del.resource_type}/${del.resource_id}:`, err.message);
+            log.warn(`[GitHubSync] Delete failed for ${del.resource_type}/${del.resource_id}:`, /** @type {Error} */ (err).message);
         }
     }
 
@@ -477,6 +511,7 @@ async function syncAll(orgId, userId) {
 
 /**
  * Push only pending changes (incremental sync).
+ * @param {string} userId
  */
 async function syncPending(orgId, userId) {
     const config = await githubSyncStore.getOrgSyncConfig(orgId);
@@ -531,7 +566,7 @@ async function syncPending(orgId, userId) {
                 pushed++;
             }
         } catch (err) {
-            log.error(`[GitHubSync] Pending sync failed for ${item.resource_type}/${item.resource_id}:`, err.message);
+            log.error(`[GitHubSync] Pending sync failed for ${item.resource_type}/${item.resource_id}:`, /** @type {Error} */ (err).message);
             errors++;
         }
     }
@@ -550,6 +585,7 @@ const AUTO_SYNC_DEBOUNCE_MS = 4000;
  * Push a single resource for one org, using the configured user's token.
  * Used by the auto-sync debounce; all failures are non-fatal (the resource
  * stays marked pending/error for a later manual push).
+ * @param {string} action
  */
 async function _pushSingleResource(orgId, resourceType, resourceId, action) {
     const config = await githubSyncStore.getOrgSyncConfig(orgId);
@@ -603,6 +639,7 @@ async function _pushSingleResource(orgId, resourceType, resourceId, action) {
  * Schedule a debounced auto-sync push for a single resource. Fire-and-forget:
  * callers (agent/skill CRUD hooks) should already have marked the resource
  * pending/deleted, so a failed push simply leaves it queued for manual sync.
+ * @param {string} [action]
  */
 function autoSyncResource(orgId, resourceType, resourceId, action = 'pending') {
     if (!orgId || !resourceId) return;

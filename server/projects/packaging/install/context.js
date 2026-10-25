@@ -111,7 +111,7 @@ async function stampAll(ctx, report) {
                 const now = await currentPayload(entry.kind, entry.entityId);
                 if (now !== null && now !== undefined) payload = now;
             } catch (err) {
-                log.warn(`[Blueprint] could not read "${entry.ref}" back for its stamp: ${err.message}`);
+                log.warn(`[Blueprint] could not read "${entry.ref}" back for its stamp: ${/** @type {Error} */ (err).message}`);
             }
         }
         try {
@@ -123,7 +123,7 @@ async function stampAll(ctx, report) {
                 ...(ctx.releaseId !== undefined ? { releaseId: ctx.releaseId } : {}),
             });
         } catch (err) {
-            report.warnings.push(`Could not record how "${entry.ref}" was installed, so it will not be offered future updates automatically: ${err.message}`);
+            report.warnings.push(`Could not record how "${entry.ref}" was installed, so it will not be offered future updates automatically: ${/** @type {Error} */ (err).message}`);
         }
     }
 }

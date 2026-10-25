@@ -141,7 +141,7 @@ async function discoverUser(userId) {
             });
         }
     } catch (err) {
-        log.warn(`[GmeetAutoImport] unpark failed for user ${userId}: ${err.message}`);
+        log.warn(`[GmeetAutoImport] unpark failed for user ${userId}: ${/** @type {Error} */ (err).message}`);
     }
 
     const session = buildVaultSession(auth);
@@ -204,7 +204,7 @@ async function fetchEventAttendees(session, job) {
         const meetings = await listRecentlyEndedMeetMeetings({ session, lookbackHours: hours, graceMinutes: 0 });
         return meetings.find((/** @type {{ eventId?: string, attendees?: Array<{ email?: string, displayName?: string | null, self?: boolean }> }} */ m) => m.eventId === job.calendarEventId)?.attendees || [];
     } catch (err) {
-        log.warn(`[GmeetAutoImport] attendee lookup failed for job ${job.id}: ${err.message}`);
+        log.warn(`[GmeetAutoImport] attendee lookup failed for job ${job.id}: ${/** @type {Error} */ (err).message}`);
         return [];
     }
 }
@@ -285,7 +285,7 @@ async function releaseClaimAfterTerminalFailure(job) {
             log.info(`[GmeetAutoImport] job ${job.id} failed terminally — returned ${woken} sibling job(s) to pending`);
         }
     } catch (e) {
-        log.warn('[GmeetAutoImport] could not release the conference claim:', e.message);
+        log.warn('[GmeetAutoImport] could not release the conference claim:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -378,6 +378,7 @@ async function processJobInline({ job, session, settings = null, language = null
     await gmeetImportStore.heartbeatJob(job.id, INGEST_LEASE_MINUTES)
         .catch(e => log.warn('[GmeetAutoImport] lease extension failed:', e.message));
 
+    /** @type {{ id: string; title?: string | null; dedup?: boolean; sourceUri?: string; }} */
     let saved;
     try {
         saved = await ingestGmeetRecording({
@@ -430,8 +431,13 @@ async function processClaimedJob(job) {
 }
 
 /**
+ * @typedef {Object} ProcessDueArgs
+ * @property {number} [limit]
+ */
+/**
  * Phase B — claim + process due jobs. Runs OUTSIDE the discovery lock (claims
  * are FOR UPDATE SKIP LOCKED, so every pod may run this concurrently).
+ * @param {ProcessDueArgs} [param0]
  */
 async function processDue({ limit = 2 } = {}) {
     return kit.processDueJobs({

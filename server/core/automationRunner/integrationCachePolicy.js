@@ -75,6 +75,7 @@ const _cache = new Map();   // orgId|'' → { at, policy }
  * `!process.env.X` test switches the feature OFF at the exact moment someone
  * writes the word they think means "leave it on" — and the only symptom is a
  * automation quietly getting slower.
+ * @param {string} name
  */
 function envFlagOn(name) {
     const raw = String(process.env[name] || '').trim().toLowerCase();
@@ -120,6 +121,7 @@ function normalizeScopes(stored) {
  * Normalise a stored blob into a complete policy. Anything unrecognised falls
  * back to the DEFAULT, never to "on" — a corrupt config row must not be the
  * thing that starts storing an organisation's data.
+ * @param {{ enabled: boolean; ttlSeconds: number | undefined; scopes: Record<string, boolean>; }} stored
  */
 function normalizePolicy(stored) {
     const src = (stored && typeof stored === 'object') ? stored : {};
@@ -139,6 +141,7 @@ function normalizePolicy(stored) {
  * decided" has no one to be true of.
  *
  * Never throws: a config-store failure falls back to the default, which is off.
+ * @param {string} orgId
  */
 async function resolveCachePolicy(orgId) {
     if (killSwitchOn()) return { ...DEFAULT_POLICY, enabled: false, killSwitch: true };
@@ -161,6 +164,7 @@ async function resolveCachePolicy(orgId) {
  * Only the write path uses this: a durable write is rare next to the step hot
  * path, so one extra config read per stored answer is cheap, and the read side
  * stays memoised.
+ * @param {string} orgId
  */
 async function resolveCachePolicyFresh(orgId) {
     if (killSwitchOn()) return { ...DEFAULT_POLICY, enabled: false, killSwitch: true };
@@ -168,19 +172,25 @@ async function resolveCachePolicyFresh(orgId) {
     return await readPolicy(orgId);
 }
 
+/**
+ * @param {string} orgId
+ */
 async function readPolicy(orgId) {
     let stored = null;
     try {
         stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
     } catch (err) {
-        log.warn(`[IntegrationCache] policy read failed for org ${orgId}: ${err.message}`);
+        log.warn(`[IntegrationCache] policy read failed for org ${orgId}: ${/** @type {Error} */ (err).message}`);
     }
     const policy = normalizePolicy(stored);
     _cache.set(orgId, { at: Date.now(), policy });
     return policy;
 }
 
-/** Drop the memoised policy for an org — called by the settings route on save. */
+/**
+ * Drop the memoised policy for an org — called by the settings route on save.
+ * @param {string} [orgId]
+ */
 function invalidateCachePolicy(orgId) {
     if (orgId) _cache.delete(orgId);
     else _cache.clear();

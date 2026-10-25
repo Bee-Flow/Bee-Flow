@@ -90,6 +90,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
     // Cross-org KBs hard-fail; unresolvable skills are dropped and tool
     // grants are clamped in the copy we publish (never in the concept —
     // that stays the editor's).
+    /** @type {{ warnings: string[]; config: object; }} */
     let checked;
     try {
         checked = await publishableConfig(agent);
@@ -106,6 +107,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
     if (result.conflict) {
         const fresh = await agentStore.getAgent(agent.id);
         if (!fresh) return res.status(404).json({ error: 'Agent not found' });
+        /** @type {{ warnings: string[]; config: object; }} */
         let again;
         try {
             again = await publishableConfig(fresh);
@@ -135,7 +137,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
         const versionStore = require('../../stores/versionStore');
         await versionStore.createVersion(agent.id, 'agent', result.row, userId,
             `Published v${result.publishedVersion}`, { kind: 'published' });
-    } catch (e) { log.error('[PublishVersion] version snapshot failed:', e.message); }
+    } catch (e) { log.error('[PublishVersion] version snapshot failed:', /** @type {Error} */ (e).message); }
 
     // The prompt that runs just changed → re-check Art-50 disclosure now
     // instead of at the next sweep (only meaningful when it has an audience).

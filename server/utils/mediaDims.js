@@ -102,9 +102,15 @@ async function enrichMediaDims(tree, probe, { probeTimeoutMs = 3000, budgetMs = 
     return enriched;
 }
 
-/** Run one probe, aborting it (and resolving null) after timeoutMs. */
+/**
+ * Run one probe, aborting it (and resolving null) after timeoutMs.
+ * @param {(key: string, opts?: { signal?: AbortSignal; }) => Promise<{ width: number; height: number; } | null>} probe
+ * @param {number} timeoutMs
+ * @param {string} key
+ */
 async function probeWithTimeout(probe, key, timeoutMs) {
     const ctrl = new AbortController();
+    /** @type {NodeJS.Timeout} */
     let timer;
     const timeout = new Promise((resolve) => {
         timer = setTimeout(() => { ctrl.abort(); resolve(null); }, timeoutMs);
@@ -134,7 +140,7 @@ function makeStorageProbe(storageStore) {
         if (!sharp) {
             try { sharp = require('sharp'); } catch (e) {
                 sharpFailed = true;
-                log.warn('[CMS] media dims disabled — sharp unavailable:', e.message);
+                log.warn('[CMS] media dims disabled — sharp unavailable:', /** @type {Error} */ (e).message);
                 return null;
             }
         }

@@ -256,7 +256,7 @@ async function executeBuilderTool(toolName, args, ctx) {
                     validationNote = formatToolWarning(violations);
                 }
             } catch (valErr) {
-                log.warn('[WebpageBuilder] Post-write validation failed (skipping):', valErr.message);
+                log.warn('[WebpageBuilder] Post-write validation failed (skipping):', /** @type {Error} */ (valErr).message);
             }
         }
 

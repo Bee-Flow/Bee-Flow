@@ -38,6 +38,7 @@ const houseStyle = require('./documentHouseStyle');
  *
  * A failed lookup is actionable: freezing an empty style after a transient
  * failure would permanently change a reviewed document's printed layout.
+ * @param {string} orgId
  */
 async function houseStyleCssFor(doc, orgId) {
     if (doc?.settings?.houseStyle === false) return '';
@@ -123,6 +124,8 @@ async function renderFilledDocument({ document: doc, values = {}, orgId = null, 
  * Turn a document name into something safe as a filename and as a
  * `Content-Disposition` value — this string reaches an HTTP header and a MIME
  * part, where a stray quote or newline is an injection, not a cosmetic issue.
+ * @param {string} [fallback]
+ * @param {string} [extension]
  */
 function documentFileName(raw, fallback = 'document', extension = 'pdf') {
     const cleaned = String(raw || '')

@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
 /**
  * Notebook Chat — AI chat with full tool support
  *
@@ -149,13 +150,14 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
 
     // Resolve provider
     let config;
+    /** @type {BaseProvider} */
     let adapter;
     try {
         config = await getProviderForModel(modelId);
         adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
     } catch (providerErr) {
-        log.error(`[NotebookChat] Provider resolution failed for model "${modelId}":`, providerErr.message);
-        throw new HttpError(400, 'bad_request', providerErr.message);
+        log.error(`[NotebookChat] Provider resolution failed for model "${modelId}":`, /** @type {Error} */ (providerErr).message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (providerErr).message);
     }
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');
@@ -345,7 +347,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
 
     } catch (err) {
         log.error('[NotebookChat] Error:', err);
-        send('error', { error: `Chat error: ${err.message}` });
+        send('error', { error: `Chat error: ${/** @type {Error} */ (err).message}` });
         res.end();
     }
 });

@@ -45,7 +45,7 @@ async function reapStuckAutomations() {
             }
         }
     } catch (e) {
-        log.error('[AutomationRunner] reapStuckAutomations error:', e.message);
+        log.error('[AutomationRunner] reapStuckAutomations error:', /** @type {Error} */ (e).message);
     }
 
     // §WS2.2 — separately expire approval-paused runs past their deadline. These
@@ -89,7 +89,7 @@ async function reapStuckAutomations() {
                     log.info(`[AutomationRunner] Talk reaction poll recorded ${polled.counted} approval vote(s)`);
                 }
             } catch (e) {
-                log.warn('[AutomationRunner] Talk reaction poll error:', e.message);
+                log.warn('[AutomationRunner] Talk reaction poll error:', /** @type {Error} */ (e).message);
             }
             const orphaned = await automationStore.cancelOrphanedPendingApprovals();
             for (const ap of orphaned) {
@@ -100,10 +100,10 @@ async function reapStuckAutomations() {
                 runnerPort('approvals').dispatchApprovalDecided(ap);
             }
         } catch (e) {
-            log.error('[AutomationRunner] approval lifecycle sweep error:', e.message);
+            log.error('[AutomationRunner] approval lifecycle sweep error:', /** @type {Error} */ (e).message);
         }
     } catch (e) {
-        log.error('[AutomationRunner] reapExpiredApprovals error:', e.message);
+        log.error('[AutomationRunner] reapExpiredApprovals error:', /** @type {Error} */ (e).message);
     }
 
     // Same pass for runs paused on a multi-page form. The visitor closed the
@@ -122,7 +122,7 @@ async function reapStuckAutomations() {
             } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#4', err); /* telemetry must never break the reaper */ }
         }
     } catch (e) {
-        log.error('[AutomationRunner] reapExpiredFormWaits error:', e.message);
+        log.error('[AutomationRunner] reapExpiredFormWaits error:', /** @type {Error} */ (e).message);
     }
 
     // §WS3.3 — reap orphaned run rows stuck in 'running' (worker died). Uses
@@ -140,7 +140,7 @@ async function reapStuckAutomations() {
             } catch (err) { bestEffort('core/automationRunner/scheduler/reapers:reapStuckAutomations#5', err); /* telemetry must never break the reaper */ }
         }
     } catch (e) {
-        log.error('[AutomationRunner] reapStuckRuns error:', e.message);
+        log.error('[AutomationRunner] reapStuckRuns error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -156,13 +156,14 @@ async function reapOrphanFormUploads() {
         const rows = await automationStore.listExpiredFormUploads(200);
         if (!rows.length) return;
         const storageStore = require('../../../stores/storageStore');
+        /** @type {string[]} */
         const reaped = [];
         for (const row of rows) {
             try {
                 await storageStore.deleteFile(row.storageKey);
                 reaped.push(row.id);
             } catch (e) {
-                log.warn(`[AutomationRunner] form-upload blob delete failed (${row.id}): ${e.message}`);
+                log.warn(`[AutomationRunner] form-upload blob delete failed (${row.id}): ${/** @type {Error} */ (e).message}`);
             }
         }
         if (reaped.length) {
@@ -170,7 +171,7 @@ async function reapOrphanFormUploads() {
             log.info(`[AutomationRunner] reaped ${reaped.length} unclaimed form upload(s)`);
         }
     } catch (e) {
-        log.error('[AutomationRunner] form-upload reaper error:', e.message);
+        log.error('[AutomationRunner] form-upload reaper error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -191,13 +192,14 @@ async function reapExpiredGeneratedFiles() {
         const rows = await automationStore.listExpiredGeneratedFiles(200);
         if (!rows.length) return;
         const storageStore = require('../../../stores/storageStore');
+        /** @type {string[]} */
         const reaped = [];
         for (const row of rows) {
             try {
                 await storageStore.deleteFile(row.storageKey);
                 reaped.push(row.id);
             } catch (e) {
-                log.warn(`[AutomationRunner] generated-file blob delete failed (${row.id}): ${e.message}`);
+                log.warn(`[AutomationRunner] generated-file blob delete failed (${row.id}): ${/** @type {Error} */ (e).message}`);
             }
         }
         if (reaped.length) {
@@ -205,7 +207,7 @@ async function reapExpiredGeneratedFiles() {
             log.info(`[AutomationRunner] reaped ${reaped.length} expired generated document(s)`);
         }
     } catch (e) {
-        log.error('[AutomationRunner] generated-file reaper error:', e.message);
+        log.error('[AutomationRunner] generated-file reaper error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -227,7 +229,7 @@ async function reapExpiredRunTables() {
                 await storageStore.deleteFile(row.storageKey);
                 reaped.push(row.id);
             } catch (e) {
-                log.warn(`[AutomationRunner] run-table blob delete failed (${row.id}): ${e.message}`);
+                log.warn(`[AutomationRunner] run-table blob delete failed (${row.id}): ${/** @type {Error} */ (e).message}`);
             }
         }
         if (reaped.length) {
@@ -235,7 +237,7 @@ async function reapExpiredRunTables() {
             log.info(`[AutomationRunner] reaped ${reaped.length} expired run table(s)`);
         }
     } catch (e) {
-        log.error('[AutomationRunner] run-table reaper error:', e.message);
+        log.error('[AutomationRunner] run-table reaper error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -248,7 +250,7 @@ async function reapStuckTranscriptions() {
     try {
         await require('../../../stores/transcriptionStore').timeoutStuckTranscriptions();
     } catch (e) {
-        log.error('[AutomationRunner] transcription-reaper error:', e.message);
+        log.error('[AutomationRunner] transcription-reaper error:', /** @type {Error} */ (e).message);
     }
 }
 

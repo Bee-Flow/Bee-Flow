@@ -1,3 +1,4 @@
+/** @typedef {import('./automationRefs').DefObject} DefObject */
 /**
  * "Which button, in which screen, of which app" — resolved FOR ONE VIEWER.
  *
@@ -53,11 +54,17 @@ const NAMING_PROPS = ['label', 'title', 'text', 'heading'];
 
 const MAX_LABEL = 60;
 
+/**
+ * @param {number} [max]
+ */
 function trimmed(value, max = MAX_LABEL) {
     return typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null;
 }
 
-/** A component's own text, or null when it has none (never a type name). */
+/**
+ * A component's own text, or null when it has none (never a type name).
+ * @param {DefObject} node
+ */
 function nodeOwnText(node) {
     const props = node?.props || {};
     for (const key of NAMING_PROPS) {
@@ -179,6 +186,9 @@ const OWNER_REFUSALS = Object.freeze({
  * @returns {{ok: true, ownerId: string}|{ok: false, code: string, message: string}}
  */
 function appRefOwnerVerdict({ app = null, actorUserId = null } = {}) {
+    /**
+     * @param {string} code
+     */
     const refuse = (code) => ({ ok: false, code, message: OWNER_REFUSALS[code] });
     if (!actorUserId || typeof actorUserId !== 'string') return refuse('actor_unknown');
     if (!app) return refuse('app_unknown');

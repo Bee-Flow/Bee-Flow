@@ -44,6 +44,9 @@ function delimiterOf(raw) {
     return typeof raw === 'string' ? raw : DEFAULTS.delimiter;
 }
 
+/**
+ * @param {string} raw
+ */
 function sheetNamesOf(raw) {
     return (Array.isArray(raw) ? raw : [])
         .filter(n => typeof n === 'string' && n.trim() !== '')
@@ -51,6 +54,9 @@ function sheetNamesOf(raw) {
         .slice(0, MAX_SHEET_NAMES);
 }
 
+/**
+ * @param {string} raw
+ */
 function sheetsOf(raw) {
     if (SHEET_SELECTIONS.includes(raw)) return raw;
     const names = sheetNamesOf(raw);
@@ -62,6 +68,11 @@ function wholeNumber(raw) {
     return typeof n === 'number' && Number.isFinite(n) ? n : null;
 }
 
+/**
+ * @param {number} min
+ * @param {number} max
+ * @param {number} fallback
+ */
 function clampInt(raw, min, max, fallback) {
     const n = wholeNumber(raw);
     return n === null ? fallback : Math.min(max, Math.max(min, Math.round(n)));
@@ -124,7 +135,13 @@ function sourceFindings(source) {
 function validateReadTableStep(step) {
     const s = isObject(step) ? step : {};
     const out = [...sourceFindings(s.source)];
-    /** @type {(code: string, path: string, message: string, hint?: string) => void} */
+    /**
+     * @type {(code: string, path: string, message: string, hint?: string) => void}
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} [hint]
+     */
     const err = (code, path, message, hint) => { out.push({ code: `read_table.${code}`, severity: 'error', path, message, ...(hint ? { hint } : {}) }); };
 
     if (s.headerRow !== undefined && s.headerRow !== null) {

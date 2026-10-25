@@ -160,6 +160,10 @@ async function upgradeSchema() {
     ]);
 }
 
+/**
+ * @param {string} label
+ * @param {string} sql
+ */
 async function _batched(label, sql) {
     for (let i = 0; i < BACKFILL_MAX_BATCHES; i++) {
         const res = await run(sql).catch(err => {
@@ -181,6 +185,8 @@ function locationBackfillDone(columnNote) {
  * located again through the same locatePeer() new rows use. That is what
  * turns "Cloudflare, Canada" (ip-api's registry country for an anycast prefix)
  * into via_network. Unknown in the database is a state too.
+ * @param {number} from
+ * @param {number} to
  */
 async function _locateRange(from, to, geo) {
     const rows = await getAll(`
@@ -277,6 +283,7 @@ async function runLocationBackfill({ batch = BACKFILL_BATCH, geo = require('./se
     return { located, legacy, ranges };
 }
 
+/** @type {Promise<void | { located: number; legacy: number; ranges: number; }> | null} */
 let _backfill = null;
 
 /** Start the location backfill once per process, detached. Never rejects. */

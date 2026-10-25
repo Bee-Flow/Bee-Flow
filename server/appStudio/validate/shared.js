@@ -9,6 +9,9 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
 
 // Data-reference finding — an error normally (publish), demoted to a warning
 // when the caller opted in via opts.dataRefsAsWarnings (human draft saves).
+/**
+ * @param {{ code: string; severity: string; path: string; message: string; hint: string; }} rec
+ */
 function pushDataRef(ctx, rec) {
     if (ctx.dataRefsAsWarnings) ctx.pushW({ ...rec, severity: 'warning' });
     else ctx.pushE(rec);

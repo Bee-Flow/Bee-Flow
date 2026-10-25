@@ -84,6 +84,9 @@ const TEMPLATE_META_FIELDS = ['version', 'title', 'description', 'category', 'ic
 /** How long a claim out of a file may be before it is cut. */
 const MAX_CLAIM_CHARS = { id: 64, name: 200 };
 
+/**
+ * @param {ResolvedTemplate} v
+ */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 function deepClone(value) {
@@ -92,6 +95,10 @@ function deepClone(value) {
     catch { return JSON.parse(JSON.stringify(value)); }
 }
 
+/**
+ * @param {number} max
+ * @param {string | undefined} value
+ */
 function claimText(value, max) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -115,7 +122,10 @@ function readSource(envelope) {
     };
 }
 
-/** A filename a browser will accept, derived from the template's own title. */
+/**
+ * A filename a browser will accept, derived from the template's own title.
+ * @param {ResolvedTemplate} template
+ */
 function exportFilename(template) {
     const title = (template && typeof template.title === 'string') ? template.title : 'app-template';
     const slug = title.toLowerCase().normalize('NFKD')
@@ -139,8 +149,10 @@ function exportFilename(template) {
  * by a path that gains a reference next year. What it clears is reported, not
  * swallowed: the person exporting learns their template referenced an automation
  * that the recipient will have to wire up.
+ * @param {ResolvedTemplate} template
  */
 function buildExport(template, { exportedAt = null, source = null } = {}) {
+    /** @type {string[]} */
     const warnings = [];
     if (!isObject(template)) {
         return { envelope: null, warnings: ['There is no template to export.'] };

@@ -40,7 +40,10 @@ function registerIntegrationClients(map) {
     }
 }
 
-/** The client module, or a thrown Error naming what was not loaded. */
+/**
+ * The client module, or a thrown Error naming what was not loaded.
+ * @param {string} name
+ */
 function integrationClient(name) {
     const get = getters.get(name);
     if (!get) {

@@ -62,6 +62,7 @@ function parseFieldPath(path) {
     if (typeof path !== 'string' || !path || path.length > MAX_FIELD_PATH_CHARS) return null;
     const parts = path.split('.');
     if (parts.length > MAX_FIELD_SEGMENTS) return null;
+    /** @type {{ name: string; each: boolean; }[]} */
     const segments = [];
     for (const part of parts) {
         const each = part.endsWith('[]');

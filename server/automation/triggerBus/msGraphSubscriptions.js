@@ -24,6 +24,7 @@ const { RENEW_FAILURE_THRESHOLD } = require('./escalation');
 // (or, if the eventType has no polling handler, raise it as an activation
 // warning). Throws are converted to return values to keep callers simple.
 
+/** @type {Record<string, { resource: string; changeType: string; }>} */
 const MSGRAPH_RESOURCE_MAP = {
     'mail.new':       { resource: "me/mailFolders('Inbox')/messages", changeType: 'created' },
     'mail.flagged':   { resource: "me/mailFolders('Inbox')/messages", changeType: 'updated' },
@@ -107,7 +108,7 @@ async function provisionSubscription(sub, session) {
         }
         return { externalRef: data.id, expiresAt: data.expirationDateTime || expiresAt, clientState };
     } catch (e) {
-        log.warn(`[TriggerBus] MS Graph subscribe threw for ${sub.id}: ${e.message}`);
+        log.warn(`[TriggerBus] MS Graph subscribe threw for ${sub.id}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -130,7 +131,7 @@ async function revokeSubscription(sub, session) {
         // 404 = already gone, treat as success.
         return r.ok || r.status === 404;
     } catch (e) {
-        log.warn(`[TriggerBus] MS Graph unsubscribe threw for ${sub.id}: ${e.message}`);
+        log.warn(`[TriggerBus] MS Graph unsubscribe threw for ${sub.id}: ${/** @type {Error} */ (e).message}`);
         return false;
     }
 }
@@ -163,12 +164,12 @@ async function renewExpiringSubscriptions(ctx) {
                 await ctx.store().updateSubscription(sub.id, { expiresAt: newExpiry });
                 await ctx.store().resetSubscriptionFailures(sub.id);
             } catch (e) {
-                log.warn(`[TriggerBus] msgraph sub renewal failed: ${e.message}`);
-                await ctx.escalate(sub, RENEW_FAILURE_THRESHOLD, e.message);
+                log.warn(`[TriggerBus] msgraph sub renewal failed: ${/** @type {Error} */ (e).message}`);
+                await ctx.escalate(sub, RENEW_FAILURE_THRESHOLD, /** @type {Error} */ (e).message);
             }
         }
     } catch (e) {
-        log.warn('[TriggerBus] renewal pass error:', e.message);
+        log.warn('[TriggerBus] renewal pass error:', /** @type {Error} */ (e).message);
     }
 }
 

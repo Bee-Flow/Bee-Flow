@@ -107,6 +107,7 @@ async function ping({ userId = null } = {}) {
     const creds = await resolveCredentials({ userId });
     if (!creds) return { configured: false, ok: false, host: /** @type {string | null} */ (null) };
 
+    /** @type {string | null} */
     let host = null;
     try { host = new URL(creds.baseUrl).host; } catch (err) { fallback('integrations/youtrackClient:ping', err); /* malformed URL: reported as not-ok below */ }
 
@@ -121,7 +122,7 @@ async function ping({ userId = null } = {}) {
             projects,
         };
     } catch (err) {
-        return { configured: true, ok: false, host, source: creds.source, error: err.message };
+        return { configured: true, ok: false, host, source: creds.source, error: /** @type {Error} */ (err).message };
     }
 }
 
@@ -168,7 +169,7 @@ async function resolveProjectShortName({ baseUrl, token }, projectId) {
         const project = await youtrackRequest(baseUrl, token, 'GET', `/admin/projects/${encodeURIComponent(projectId)}?${params}`);
         if (project?.shortName) return project.shortName;
     } catch (err) {
-        log.warn(`[YouTrack] Project lookup failed for "${projectId}": ${err.message}`);
+        log.warn(`[YouTrack] Project lookup failed for "${projectId}": ${/** @type {Error} */ (err).message}`);
     }
     return /^[A-Za-z][A-Za-z0-9_]*$/.test(projectId) ? projectId : null;
 }
@@ -198,7 +199,7 @@ async function findRecentIssueBySummary({ baseUrl, token }, shortName, summary, 
             && (createdAfterMs === null || (typeof i.created === 'number' && i.created >= createdAfterMs))
         ) || null;
     } catch (err) {
-        log.warn(`[YouTrack] Duplicate-check search failed (fail-open): ${err.message}`);
+        log.warn(`[YouTrack] Duplicate-check search failed (fail-open): ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }

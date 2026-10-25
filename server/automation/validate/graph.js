@@ -45,10 +45,15 @@ const NODE_SEG_RE = /^(trigger|triggers|steps)(?:\[(.+)\])?$/;
  * the graph, and the DEEPEST addressed node wins — a record about a loop-body
  * step is about that step, not its loop. Null when the path names no node
  * (`edges[2]`, `piiLineColors`, an index that no longer exists).
+ * @param {string} pathPrefix
+ * @param {string} path
  */
 function stepIdFromPath(graph, pathPrefix, path) {
     if (typeof path !== 'string' || !path) return null;
     const local = pathPrefix && path.startsWith(pathPrefix) ? path.slice(pathPrefix.length) : path;
+    /**
+     * @param {string} tok
+     */
     const byToken = (list, tok) => {
         if (!Array.isArray(list)) return null;
         const hit = list.find((s) => isObject(s) && s.id === tok);
@@ -77,7 +82,11 @@ function stepIdFromPath(graph, pathPrefix, path) {
     return found;
 }
 
-/** The Finding targetRef for one record of this graph — see validateGraph. */
+/**
+ * The Finding targetRef for one record of this graph — see validateGraph.
+ * @param {string} pathPrefix
+ * @param {string} path
+ */
 function automationTargetRef(graph, pathPrefix, path, target) {
     const ref = { kind: 'automation', id: target?.id ?? null };
     if (target?.title) ref.title = target.title;
@@ -108,6 +117,7 @@ function automationTargetRef(graph, pathPrefix, path, target) {
  * Mirrors the original single-graph behaviour: stops validating THIS graph
  * at the same phase boundaries the original function early-returned at
  * (shape → ids/edges → DAG → per-step), without aborting sibling graphs.
+ * @param {string} pathPrefix
  */
 function validateGraph(graph, pathPrefix, opts) {
     const { errors, warnings, scope = 'root', layers = {}, availableTools = null, toolRequiredParams = null, deliverableEvents = null, availableBlocks = null, knownConnectionIds = null, knownVarNames = null, availableAgents = null, topicClassifier = null, target = null } = opts;

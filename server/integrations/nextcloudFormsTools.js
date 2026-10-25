@@ -202,6 +202,9 @@ function mapSubmission(sub, questions) {
         const qid = String(a.questionId);
         const text = textById.get(qid);
         // Multiple-choice answers arrive as one row per selected option.
+        /**
+         * @param {string} key
+         */
         const push = (bag, key) => {
             if (bag[key] === undefined) bag[key] = a.text;
             else if (Array.isArray(bag[key])) bag[key].push(a.text);
@@ -225,6 +228,7 @@ function mapSubmission(sub, questions) {
  * The link a respondent opens. In connector mode `baseUrl` is the AppAPI
  * proxy, which a person cannot use; the org's public Nextcloud URL is.
  * Without one there is no honest link, so none is returned.
+ * @param {NcAuth} ctx
  */
 function shareUrlFor(ctx, hash) {
     if (!hash) return null;
@@ -232,6 +236,10 @@ function shareUrlFor(ctx, hash) {
     return root ? `${root}/index.php/apps/forms/s/${hash}` : null;
 }
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeNextcloudFormsTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -352,6 +360,9 @@ async function executeNextcloudFormsTool(toolName, args, userId, session) {
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isNextcloudFormsTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_forms_');
 }

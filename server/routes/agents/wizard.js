@@ -31,9 +31,16 @@ const { fallback } = require('../../utils/bestEffort');
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ */
 const doc = (name) => z.record(z.string(), z.unknown(), { error: typeError({ required: `${name} is a document.`, invalid: `${name} is a document.` }) });
 const PROMPT_TEXT = 'Prompt is required';
 const REFINE_TEXT = 'Refinement is required';
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const opt = (name, what) => worded(`${name} is ${what}.`).nullish();
 
 const DraftBody = bodyOf({
@@ -96,6 +103,9 @@ const INTEGRATION_CATALOG = [
 
 // Compute the integrations actually available to this user — same gating
 // rules as agent-hub/src/components/admin/AgentDesigner/sections/ToolsSection.jsx
+/**
+ * @param {string} userId
+ */
 async function getAvailableIntegrations(userId) {
     const user = await userStore.getUser(userId).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations', e, null));
     const orgId = user?.organizationId || null;
@@ -157,6 +167,7 @@ async function getAvailableIntegrations(userId) {
         } catch (err) { fallback('routes/agents/wizard:getAvailableIntegrations#17', err); /* ignore */ }
     }
 
+    /** @type {Record<string, boolean>} */
     const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
 
     return INTEGRATION_CATALOG.filter(item => {
@@ -213,6 +224,7 @@ const PLAN_SCHEMA = `{
   }
 }`;
 
+/** @type {Record<string, string>} */
 const LOCALE_NAMES = { en: 'English', nl: 'Dutch', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese' };
 
 function planSystemPrompt(locale, availableIntegrations, existingSkills, currentConfig = null) {
@@ -297,6 +309,9 @@ function planPersonaFields(raw) {
     return { who: persona.who, tone: persona.tone, does: persona.does, doesNot: persona.doesNot };
 }
 
+/**
+ * @param {string[]} availableIntegrationIds
+ */
 function normalizePlan(plan, availableIntegrationIds) {
     delete plan.channels;
     delete plan.suggestedSkills; // legacy field
@@ -370,6 +385,13 @@ function normalizePlan(plan, availableIntegrationIds) {
     return plan;
 }
 
+/**
+ * @typedef {Object} GeneratePlanArgs
+ * @property {string} userId
+ */
+/**
+ * @param {GeneratePlanArgs} param0
+ */
 async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, locale, userOrgId, userId, currentConfig = null }) {
     const tier = modelTier || 'fast';
     const modelId = await resolveModelForTier(`tier:${tier}`, { userOrgId, userId, fallbackTier: 'fast' });
@@ -433,6 +455,10 @@ async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, loca
 // output (extractJSON failure) sets `err.raw`; surface it as a retryable 422
 // `plan_parse_failed` rather than a generic 500 so the client can show a
 // "model returned malformed output, please retry" affordance.
+/**
+ * @param {NextFunction} next
+ * @param {string} where
+ */
 function respondPlanError(res, next, err, where) {
     if (err.raw === undefined) return next(err);
     log.error(`Agent wizard ${where} failed:`, err);
@@ -551,6 +577,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
     const orgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
 
     // ── Skills: reuse existing by id, create new ones ──────────────
+    /** @type {string[]} */
     let attachedSkillIds = [];
     const createdSkills = [];
     if (orgId && Array.isArray(plan.skills) && plan.skills.length > 0) {
@@ -560,7 +587,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
         try {
             orgSkills = await skillStore.getAvailableSkills(orgId, userId);
         } catch (lookupErr) {
-            log.warn('Wizard: getAvailableSkills failed, will only create new skills:', lookupErr.message);
+            log.warn('Wizard: getAvailableSkills failed, will only create new skills:', /** @type {Error} */ (lookupErr).message);
         }
         const knownIds = new Set((orgSkills || []).map(s => s.id));
         const byName = new Map((orgSkills || []).map(s => [String(s.name || '').toLowerCase().trim(), s.id]));
@@ -600,7 +627,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
                     log.warn('Wizard: createSkill returned no id for', s.name);
                 }
             } catch (createErr) {
-                log.warn('Wizard: skill create failed for', s.name, ':', createErr.message);
+                log.warn('Wizard: skill create failed for', s.name, ':', /** @type {Error} */ (createErr).message);
             }
         }
     }
@@ -684,7 +711,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
                 });
             }
         } catch (scheduleErr) {
-            log.warn('Wizard: schedule auto-create failed (non-fatal):', scheduleErr.message);
+            log.warn('Wizard: schedule auto-create failed (non-fatal):', /** @type {Error} */ (scheduleErr).message);
         }
     }
 

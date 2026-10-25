@@ -78,11 +78,15 @@ function datatableGrantsOf(toolsConfig) {
     return out;
 }
 
-/** `'*'` (every declared column) or the picked list. See datatableGrantsOf. */
+/**
+ * `'*'` (every declared column) or the picked list. See datatableGrantsOf.
+ * @param {string | null | undefined} raw
+ */
 function _datatableColumns(raw) {
     if (raw === undefined || raw === null || raw === '*') return '*';
     if (!Array.isArray(raw)) return [];      // unreadable ⇒ nothing granted
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const c of raw) {
         if (typeof c !== 'string' || !c || seen.has(c)) continue;

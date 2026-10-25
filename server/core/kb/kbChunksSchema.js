@@ -15,6 +15,9 @@ const { bestEffort } = require('../../utils/bestEffort');
 let schemaInitialized = false;
 let pgvectorAvailable = true;
 
+/**
+ * @param {number} [vectorDim]
+ */
 async function ensureKBChunksTable(vectorDim) {
     // Bootstrap-only call (no specific dim requested) returns once the
     // schema is known to exist. We still run the CREATE EXTENSION + initial
@@ -71,7 +74,7 @@ async function ensureKBChunksTable(vectorDim) {
                 }
             }
         } catch (err) {
-            log.warn(`[LocalKBIngest] dim reconcile check skipped: ${err.message}`);
+            log.warn(`[LocalKBIngest] dim reconcile check skipped: ${/** @type {Error} */ (err).message}`);
         }
         return;
     }

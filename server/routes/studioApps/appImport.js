@@ -126,7 +126,7 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
         if (created) {
             await studioAppStore.deleteStudioApp(created.id, req.session.user.id).catch((e) => bestEffort('routes/studioApps/appImport:anon#2', e));
         }
-        const message = err && err.message ? err.message : 'Failed to import app';
+        const message = err && /** @type {Error} */ (err).message ? /** @type {Error} */ (err).message : 'Failed to import app';
         if (/limit reached|exceeds|quota/i.test(message)) {
             return res.status(409).json({ error: message, code: 'app_limit' });
         }

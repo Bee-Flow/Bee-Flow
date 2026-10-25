@@ -128,6 +128,9 @@ function setSecurityHeaders(res, { allowFraming = false, nonce = '' } = {}) {
     res.setHeader('Cache-Control', 'private, no-store');
 }
 
+/**
+ * @param {string} s
+ */
 function htmlEscape(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -151,6 +154,10 @@ function mountBase(req) {
     return b === SLUG_MOUNT ? SLUG_MOUNT : '/share';
 }
 
+/**
+ * @param {string} shareId
+ * @param {string | null} email
+ */
 function setUnlockCookie(req, res, shareId, email) {
     const token = publicShareToken.issueUnlockCookie({ shareId, email });
     res.cookie(UNLOCK_COOKIE_NAME, token, {
@@ -164,6 +171,9 @@ function setUnlockCookie(req, res, shareId, email) {
     });
 }
 
+/**
+ * @param {string} shareId
+ */
 function getUnlockClaim(req, shareId) {
     const cookieHeader = req.headers.cookie || '';
     const m = cookieHeader.match(new RegExp(`(?:^|;\\s*)${UNLOCK_COOKIE_NAME}=([^;]+)`));
@@ -195,6 +205,14 @@ function viewTokenOf(req) {
     return typeof v === 'string' ? v : '';
 }
 
+/**
+ * @typedef {Object} ComposeViewerChromeArgs
+ * @property {string | number | boolean} addr
+ * @property {string} [viewToken]
+ */
+/**
+ * @param {ComposeViewerChromeArgs} param0
+ */
 function composeViewerChrome({ share, publisher, nonce, base, addr, viewToken }) {
     // Server-rendered HTML page. No client JS bundle is loaded.
     const title = htmlEscape(share.title || 'Shared page');
@@ -252,6 +270,10 @@ function composeViewerChrome({ share, publisher, nonce, base, addr, viewToken })
 // — absolute (scheme, //, /), data:, #fragment, and mailto:/tel: are left
 // alone (they don't hit /extras). React snapshots inline assets as data: URLs
 // and never call /extras, so this only matters for the vanilla path.
+/**
+ * @param {string | number | boolean} viewToken
+ * @param {string} markup
+ */
 function appendViewTokenToRelativeUrls(markup, viewToken) {
     if (!markup || !viewToken) return markup || '';
     const q = encodeURIComponent(viewToken);
@@ -270,6 +292,17 @@ function appendViewTokenToRelativeUrls(markup, viewToken) {
     return out;
 }
 
+/**
+ * @typedef {Object} ComposeIframeContentArgs
+ * @property {string} [html]
+ * @property {string} [css]
+ * @property {string} [base]
+ * @property {string | number | boolean} addr
+ * @property {string} [viewToken]
+ */
+/**
+ * @param {ComposeIframeContentArgs} param0
+ */
 function composeIframeContent({ html, css, base = '/share', addr, viewToken }) {
     // Build a self-contained document. Inline CSS in <style> so we don't have
     // to add another fetch round-trip. No <script> ever, regardless of source.
@@ -298,6 +331,17 @@ ${bodyHtml}
 </body></html>`;
 }
 
+/**
+ * @typedef {Object} ComposeGateArgs
+ * @property {string} csrf
+ * @property {string} [error]
+ * @property {string} mode
+ * @property {string} nonce
+ * @property {string | number | boolean} addr
+ */
+/**
+ * @param {ComposeGateArgs} param0
+ */
 function composeGate({ share: _share, csrf, error, mode, nonce, base, addr }) {
     const isPassword = mode === 'password';
     const isEmail = mode === 'email';
@@ -350,12 +394,26 @@ function composeGate({ share: _share, csrf, error, mode, nonce, base, addr }) {
 </body></html>`;
 }
 
+/**
+ * @typedef {Object} ComposeMagicSentArgs
+ * @property {string} nonce
+ */
+/**
+ * @param {ComposeMagicSentArgs} param0
+ */
 function composeMagicSent({ nonce }) {
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Check your email</title>
 <style nonce="${nonce}">body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#f6f7f9;color:#111827;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}.card{max-width:380px;background:#fff;border-radius:14px;padding:24px;border:1px solid rgba(0,0,0,.08);text-align:center}:root{color-scheme:light}</style>
 </head><body><div class="card"><h2>Check your email</h2><p>If the address is on the allow-list, a one-time link is on its way. The link expires in 24 hours.</p></div></body></html>`;
 }
 
+/**
+ * @typedef {Object} ComposeNotFoundArgs
+ * @property {string} nonce
+ */
+/**
+ * @param {ComposeNotFoundArgs} param0
+ */
 function composeNotFound({ nonce }) {
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Link not available</title>
 <style nonce="${nonce}">body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#f6f7f9;color:#111827;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;padding:24px}.card{max-width:380px;background:#fff;border-radius:14px;padding:24px;border:1px solid rgba(0,0,0,.08);text-align:center}:root{color-scheme:light}</style>
@@ -439,6 +497,9 @@ async function resolveShareOr404(req, res) {
 // before the promise settles. Used so a slow DB query never holds the
 // public-viewer response open for tens of seconds — the chrome can be
 // rendered without publisher metadata if userStore is unreachable.
+/**
+ * @param {number} ms
+ */
 function withTimeout(p, ms, fallback) {
     return new Promise((resolve) => {
         const t = setTimeout(() => resolve(fallback), ms);
@@ -518,6 +579,10 @@ router.get('/:token', async (req, res) => {
     }
 });
 
+/**
+ * @param {string} nonce
+ * @param {string | null} [viewerEmail]
+ */
 async function renderChrome(req, res, share, { addr, base }, nonce, viewerEmail) {
     const publisher = await lookupPublisher(share);
     setSecurityHeaders(res, { nonce });
@@ -586,7 +651,7 @@ router.get('/:token/content', async (req, res) => {
                         doc = doc.replace('</head>', bridge + '</head>');
                     }
                 } catch (err) {
-                    log.warn('[PublicViewer] public bridge injection skipped:', err.message);
+                    log.warn('[PublicViewer] public bridge injection skipped:', /** @type {Error} */ (err).message);
                 }
             }
 

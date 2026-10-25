@@ -44,6 +44,9 @@ const CATALOG_TTL_MS = 5 * 60 * 1000;
 
 // Lazy-require configStore: it self-inits DDL on load, and tests replace it via
 // require.cache before this module reaches out.
+/**
+ * @type {typeof import("../stores/configStore")}
+ */
 let _configStore;
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 
@@ -51,10 +54,17 @@ function isProd() { return process.env.NODE_ENV === 'production'; }
 
 /** Stable-coded error for every Hub failure. */
 class HubError extends Error {
+    /**
+     * @param {string} code
+     * @param {string} message
+     */
     constructor(code, message, { status = null, detail = null } = {}) {
         super(message || code);
         this.name = 'HubError';
         this.code = code;           // not_connected|hub_unavailable|hub_denied|not_entitled|already_entitled|checksum_mismatch|already_connected
+        /**
+         * @type {number | null}
+         */
         this.status = status;       // upstream HTTP status, when there was one
         this.detail = detail;       // upstream error slug, for surfacing
     }
@@ -71,6 +81,9 @@ function _expireCatalogCache() { _catalogCache.clear(); }
 const _catalogCache = createTtlCache({ ttlMs: CATALOG_TTL_MS, max: 100 });
 const _catalogLastGood = new Map(); // key → last successfully-fetched module list
 
+/**
+ * @param {string | undefined} u
+ */
 function _trimUrl(u) { return String(u || '').trim().replace(/\/+$/, ''); }
 
 /**
@@ -101,6 +114,10 @@ async function isConnected() {
 }
 
 // ── Low-level fetch + response handling ───────────────────────────────────
+/**
+ * @param {number} status
+ * @param {string | null} code
+ */
 function _mapHubError(status, code) {
     switch (code) {
         case 'invalid_credentials':
@@ -122,13 +139,21 @@ function _mapHubError(status, code) {
     return new HubError('hub_unavailable', code || `hub_http_${status}`, { status, detail: code });
 }
 
+/**
+ * @param {Response} resp
+ */
 async function _parseBody(resp) {
     const text = await resp.text().catch(() => '');
     if (!text) return null;
     try { return JSON.parse(text); } catch (_) { return null; }
 }
 
+/**
+ * @param {string} method
+ * @param {string} url
+ */
 async function _rawFetch(method, url, { body = null, auth = false, timeoutMs = REQUEST_TIMEOUT_MS, forceToken = false } = {}) {
+    /** @type {{ Accept: string; "Content-Type"?: string; Authorization?: string }} */
     const headers = { Accept: 'application/json' };
     if (body != null) headers['Content-Type'] = 'application/json';
     if (auth) headers.Authorization = `Bearer ${await _accessToken({ force: forceToken })}`;
@@ -140,11 +165,15 @@ async function _rawFetch(method, url, { body = null, auth = false, timeoutMs = R
             signal: AbortSignal.timeout(timeoutMs),
         });
     } catch (e) {
-        throw new HubError('hub_unavailable', `hub request failed: ${e.message}`, { detail: e.message });
+        throw new HubError('hub_unavailable', `hub request failed: ${/** @type {Error} */ (e).message}`, { detail: /** @type {Error} */ (e).message });
     }
 }
 
-/** JSON request with a single silent token-refresh retry on a 401 for authed calls. */
+/**
+ * JSON request with a single silent token-refresh retry on a 401 for authed calls.
+ * @param {string} method
+ * @param {string} url
+ */
 async function _request(method, url, opts = {}) {
     let resp = await _rawFetch(method, url, opts);
     if (opts.auth && resp.status === 401) {
@@ -191,7 +220,7 @@ async function _defaultConnectParams() {
 
 /**
  * Connect this install to the Hub. Persists install_id + secret on success.
- * @param {{ hubUrl?, licenseToken?, productVersion?, hostname?, contactEmail? }} params
+ * @param {{ hubUrl?: string|undefined, licenseToken?: null, productVersion?, hostname?, contactEmail? }} params
  * @returns {Promise<{ install_id, tier, subject }>}
  */
 async function connect(params = {}) {
@@ -304,6 +333,9 @@ async function fetchMeta() {
     }
 }
 
+/**
+ * @param {string} feature
+ */
 async function hubHasFeature(feature) {
     const meta = await fetchMeta();
     return (meta.features || []).includes(feature);
@@ -356,6 +388,9 @@ async function fetchCatalogCached({ q = '', category = '', cursor = '', limit = 
     }
 }
 
+/**
+ * @param {string} moduleId
+ */
 async function fetchCatalogEntry(moduleId) {
     const base = await resolveHubUrl();
     return _request('GET', `${base}/hub/v1/catalog/${encodeURIComponent(moduleId)}`, { auth: false });
@@ -371,6 +406,13 @@ async function fetchEntitlements() {
     };
 }
 
+/**
+ * @typedef {Object} CreatePurchaseArgs
+ * @property {string} [moduleId]
+ */
+/**
+ * @param {CreatePurchaseArgs} [param0]
+ */
 async function createPurchase({ moduleId, priceId, successUrl = null, cancelUrl = null } = {}) {
     const base = await resolveHubUrl();
     const body = { module_id: moduleId, price_id: priceId };
@@ -379,6 +421,9 @@ async function createPurchase({ moduleId, priceId, successUrl = null, cancelUrl 
     return _request('POST', `${base}/hub/v1/purchases`, { body, auth: true });
 }
 
+/**
+ * @param {string | number | boolean} purchaseId
+ */
 async function getPurchase(purchaseId) {
     const base = await resolveHubUrl();
     return _request('GET', `${base}/hub/v1/purchases/${encodeURIComponent(purchaseId)}`, { auth: true });
@@ -394,10 +439,17 @@ async function fetchRevocationList({ since = 0, limit = 500 } = {}) {
 }
 
 // ── Package download (authed, streamed) ───────────────────────────────────
+/**
+ * @param {Response} resp
+ * @param {string} partPath
+ */
 async function _streamToFileAndHash(resp, partPath) {
     const hash = crypto.createHash('sha256');
     const fh = await fsp.open(partPath, 'w');
     let total = 0;
+    /**
+     * @param {number} chunkLen
+     */
     const cap = (chunkLen) => {
         total += chunkLen;
         if (total > MAX_DOWNLOAD_BYTES) throw new Error(`package exceeds ${MAX_DOWNLOAD_BYTES} bytes`);
@@ -426,7 +478,7 @@ async function _streamToFileAndHash(resp, partPath) {
  * Download a `.bfmod` to `destPath`. Streams to `<destPath>.part`, verifies the
  * sha256 (against the caller's `expectedSha256` when given, else the
  * X-BeeFlow-Package-Sha256 header), then atomically renames into place.
- * @returns {Promise<{ path, sha256, signature, kid }>}
+ * @returns {Promise<{ path, sha256: string|null, signature, kid }>}
  */
 async function downloadPackage({ moduleId, version, destPath, expectedSha256 = null, redownloadSha = null } = {}) {
     const base = await resolveHubUrl();
@@ -436,6 +488,7 @@ async function downloadPackage({ moduleId, version, destPath, expectedSha256 = n
     const redl = redownloadSha ? `?redownload=sha256:${encodeURIComponent(String(redownloadSha).toLowerCase())}` : '';
     const url = `${base}/hub/v1/modules/${encodeURIComponent(moduleId)}/versions/${encodeURIComponent(version)}/download${redl}`;
     const token = await _accessToken();
+    /** @type {Response} */
     let resp;
     try {
         resp = await fetch(url, {
@@ -444,7 +497,7 @@ async function downloadPackage({ moduleId, version, destPath, expectedSha256 = n
             signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
         });
     } catch (e) {
-        throw new HubError('hub_unavailable', `package download failed: ${e.message}`, { detail: e.message });
+        throw new HubError('hub_unavailable', `package download failed: ${/** @type {Error} */ (e).message}`, { detail: /** @type {Error} */ (e).message });
     }
     if (!resp.ok) {
         const data = await _parseBody(resp);
@@ -457,12 +510,13 @@ async function downloadPackage({ moduleId, version, destPath, expectedSha256 = n
 
     await fsp.mkdir(path.dirname(destPath), { recursive: true });
     const partPath = `${destPath}.part`;
+    /** @type {string} */
     let digest;
     try {
         digest = await _streamToFileAndHash(resp, partPath);
     } catch (e) {
         await fsp.rm(partPath, { force: true }).catch(() => {});
-        throw new HubError('hub_unavailable', `package write failed: ${e.message}`, { detail: e.message });
+        throw new HubError('hub_unavailable', `package write failed: ${/** @type {Error} */ (e).message}`, { detail: /** @type {Error} */ (e).message });
     }
 
     const expected = expectedSha256 || headerSha;

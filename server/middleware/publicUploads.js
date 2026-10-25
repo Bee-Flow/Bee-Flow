@@ -46,7 +46,10 @@ function isPublicUploadPath(urlPath) {
     return PUBLIC_SUBTREES.some(prefix => rel.startsWith(prefix));
 }
 
-/** Express middleware: 404 anything the allowlist does not cover. */
+/**
+ * Express middleware: 404 anything the allowlist does not cover.
+ * @param {() => void} next
+ */
 function publicUploadsOnly(req, res, next) {
     if (!isPublicUploadPath(req.path)) return res.sendStatus(404);
     next();

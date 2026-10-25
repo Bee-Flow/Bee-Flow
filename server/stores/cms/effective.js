@@ -73,6 +73,8 @@ function resolveLinksInTree(node, pages) {
  * Returns { found, page, header, footer, pages } where `page` is the
  * fully-merged page (block content already locale-merged, links resolved)
  * or null when no match. `pages` is the public sitemap (id+slug+title).
+ * @param {string} siteId
+ * @param {string} locale
  */
 async function getEffective(siteId, slug, locale) {
     return resolveEffective(siteId, slug, locale, {
@@ -88,6 +90,8 @@ async function getEffective(siteId, slug, locale) {
  * (cms_published_{siteId}). Returns null when no snapshot exists yet so
  * the caller can fall back to draft content (preserves the pre-publish
  * behavior for sites that have never been published).
+ * @param {string} siteId
+ * @param {string} locale
  */
 async function getEffectivePublished(siteId, slug, locale) {
     const snap = await getPublishedSnapshot(siteId);
@@ -103,6 +107,10 @@ async function getEffectivePublished(siteId, slug, locale) {
     });
 }
 
+/**
+ * @param {string} siteId
+ * @param {string | undefined} locale
+ */
 async function resolveEffective(siteId, slug, locale, ctx) {
     const site = await ctx.getSite();
     if (!site) return { found: false, page: null, header: null, footer: null, cookieBanner: null, announcement: null, pages: [], design: clone(DESIGN_DEFAULTS), analytics: null };

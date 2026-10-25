@@ -29,6 +29,9 @@ async function scrubSkillFromAllAgents(orgId, skillId) {
     const params = orgId ? [orgId, `%${skillId}%`] : [`%${skillId}%`];
     const rows = await getAll(query, params);
     let scrubbed = 0;
+    /**
+     * @param {string} raw
+     */
     const without = (raw) => {
         let cfg;
         try { cfg = typeof raw === 'string' ? JSON.parse(raw) : (raw || {}); } catch (_) { cfg = {}; }

@@ -22,6 +22,9 @@ const { fallback } = require('../../utils/bestEffort');
 // `required.length === 0` shortcut, which returns a TRUTHY object with a null
 // accessToken — and the Google client then reports a connected account as "not
 // connected". See core/enabledIntegrations.js for the full trap.
+/**
+ * @param {string} userId
+ */
 async function defaultBuildUserSession(userId, fallbackOrgId = null, { include = [], providerHint = null } = {}) {
     const userStore = require('../../stores/userStore');
     const automationAuth = require('../../auth/automationAuth');
@@ -61,7 +64,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
             };
         }
     } catch (err) {
-        log.warn(`[Connectors] buildUserAuth failed for user ${userId}: ${err.message}`);
+        log.warn(`[Connectors] buildUserAuth failed for user ${userId}: ${/** @type {Error} */ (err).message}`);
     }
 
     // Legacy session fallback — the same backstop the runner
@@ -83,7 +86,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
                 if (sess?.accessToken) return sess;
             }
         } catch (err) {
-            log.warn(`[Connectors] legacy session lookup failed for user ${userId}: ${err.message}`);
+            log.warn(`[Connectors] legacy session lookup failed for user ${userId}: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -119,7 +122,7 @@ function defaultDeps() {
         isPrivateTarget: (...a) => require('../../utils/isPrivateTarget').isPrivateTarget(...a),
         buildOwnerSession: defaultBuildOwnerSession,
         buildUserSession: defaultBuildUserSession,
-        getIntegrationTools: (a) => require('../../core/integrations/integrationTools').getIntegrationTools(a),
+        getIntegrationTools: (/** @type {{ userId: string; session: Object; isAdmin?: boolean | undefined; enabledAppsOverride?: string[] | null | undefined; extraEnabledApps?: string[] | null | undefined; }} */ a) => require('../../core/integrations/integrationTools').getIntegrationTools(a),
         resolveConnectionForRun: (...a) => require('../../stores/integrationConnectionStore').resolveConnectionForRun(...a),
     };
 }

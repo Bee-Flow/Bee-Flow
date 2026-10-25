@@ -44,6 +44,10 @@ const MAX_TEXT_CHARS = 8_000;
 const CONFIDENCES = ['high', 'medium', 'low'];
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+/**
+ * @param {string} v
+ * @param {number} [max]
+ */
 function clip(v, max = MAX_FIELD_CHARS) {
     const s = typeof v === 'string' ? v : graph.templateText(v);
     return s ? s.replace(/\s+/g, ' ').trim().slice(0, max) : '';
@@ -60,10 +64,13 @@ const PROMPT_FIELDS = ['prompt', 'systemPrompt', 'system_prompt', 'instructions'
  * @returns {{ text: string, hash: string }}
  */
 function classificationInput({ title = '', description = '', definition, definitions = [] }) {
+    /** @type {string[]} */
     const lines = [];
     if (clip(title, 200)) lines.push(`Name: ${clip(title, 200)}`);
     if (clip(description)) lines.push(`Description: ${clip(description)}`);
+    /** @type {string[]} */
     const steps = [];
+    /** @type {string[]} */
     const instructions = [];
     for (const def of [definition, ...definitions]) {
         for (const { step } of graph.listSteps(isObject(def) ? def : {})) {
@@ -72,7 +79,7 @@ function classificationInput({ title = '', description = '', definition, definit
             steps.push(`- ${label || step.id || '?'} (${step.type || 'step'}${step.tool ? `: ${step.tool}` : ''})`);
             const own = PROMPT_FIELDS.map(f => clip(step[f])).filter(Boolean);
             if (step.type === 'data_extraction' && Array.isArray(step.fields)) {
-                const names = step.fields.filter(isObject).map(f => [clip(f.name, 60), clip(f.description, 160)].filter(Boolean).join(': ')).filter(Boolean);
+                const names = step.fields.filter(isObject).map((/** @type {{ name: string; description: string; }} */ f) => [clip(f.name, 60), clip(f.description, 160)].filter(Boolean).join(': ')).filter(Boolean);
                 if (names.length) own.push(`Fields to extract: ${names.join('; ')}`);
             }
             if (own.length) instructions.push(`[${label || step.id || step.type}] ${own.join(' / ')}`);
@@ -160,6 +167,10 @@ const SYSTEM_PROMPT = [
 /** The verdict as this module hands it on, or null when the model answer is unusable. */
 function parseVerdict(raw) {
     if (!isObject(raw)) return null;
+    /**
+     * @param {string} listKey
+     * @param {readonly string[]} vocabulary
+     */
     const read = (part, listKey, vocabulary) => {
         if (!isObject(part)) return null;
         const answer = part.answer === 'yes' || part.answer === 'no' ? part.answer : null;
@@ -174,12 +185,22 @@ function parseVerdict(raw) {
     return { prohibited, highRisk };
 }
 
+/**
+ * @param {Promise<{ structured: object | null; }>} promise
+ * @param {number} ms
+ */
 function withTimeout(promise, ms) {
+    /** @type {NodeJS.Timeout} */
     let timer;
     const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms); });
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+/**
+ * @typedef {Object} ClassifyArgs
+ * @property {string | null} [orgId]
+ * @property {string | null} [userId]
+ */
 /**
  * @param {{
  *   chat: (modelId: string, messages: object[], tool: object, options: object) => Promise<{ structured: object|null }>,
@@ -192,22 +213,33 @@ function withTimeout(promise, ms) {
  */
 function makeClassifier({ chat, resolveModel, timeoutMs = TIMEOUT_MS, now = () => Date.now() }) {
     const cache = new Map();
+    /**
+     * @param {string} key
+     * @param {number} ttl
+     */
     const remember = (key, value, ttl) => {
         cache.delete(key);
         cache.set(key, { value, until: ttl ? now() + ttl : Infinity });
         while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
         return value;
     };
+    /**
+     * @param {ClassifyArgs} param0
+     */
     const classify = async function classify({ text, hash, orgId = null, userId = null }) {
         const key = `${orgId || ''}|${hash}`;
         const hit = cache.get(key);
         if (hit && hit.until > now()) return hit.value;
+        /**
+         * @param {string} why
+         */
         const unavailable = (why) => {
             log.warn(`[automation/aiActClassify] no verdict (${why}); the questions stay open`);
             return remember(key, { available: false, hash }, FAILURE_TTL_MS);
         };
+        /** @type {string | null} */
         let modelId = null;
-        try { modelId = await resolveModel({ orgId, userId }); } catch (e) { return unavailable(`model lookup failed: ${e.message}`); }
+        try { modelId = await resolveModel({ orgId, userId }); } catch (e) { return unavailable(`model lookup failed: ${/** @type {Error} */ (e).message}`); }
         if (!modelId) return unavailable('no fast model configured');
         let res;
         try {
@@ -216,7 +248,7 @@ function makeClassifier({ chat, resolveModel, timeoutMs = TIMEOUT_MS, now = () =
                 { role: 'user', content: `<automation>\n${text}\n</automation>` },
             ], VERDICT_TOOL, { maxTokens: 400, temperature: 0, reasoningEffort: 'none', budgetTokens: 0 }), timeoutMs);
         } catch (e) {
-            return unavailable(`${modelId}: ${e.message}`);
+            return unavailable(`${modelId}: ${/** @type {Error} */ (e).message}`);
         }
         const verdict = parseVerdict(res && res.structured);
         if (!verdict) return unavailable(`${modelId} gave no usable verdict`);
@@ -226,6 +258,9 @@ function makeClassifier({ chat, resolveModel, timeoutMs = TIMEOUT_MS, now = () =
     return classify;
 }
 
+/**
+ * @type {((input: { text: string; hash: string; orgId?: string | null; userId?: string | null; }) => Promise<{ available: boolean; hash: string; modelId?: string; prohibited?: object | null; highRisk?: object | null; }>) | null}
+ */
 let shared = null;
 
 /**

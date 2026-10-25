@@ -188,7 +188,10 @@ const MISTRAL_FAMILIES = Object.freeze([
     { match: /^voxtral/, name: 'Voxtral', cat: 'Audio', price: null },
 ]);
 
-/** Lookup key: lower-case, vendor prefix (`mistral/`, `mistralai/`) removed. */
+/**
+ * Lookup key: lower-case, vendor prefix (`mistral/`, `mistralai/`) removed.
+ * @param {string} modelId
+ */
 function normalizeMistralModelId(modelId) {
     if (!modelId || typeof modelId !== 'string') return '';
     const id = modelId.trim().toLowerCase();
@@ -196,7 +199,10 @@ function normalizeMistralModelId(modelId) {
     return slash >= 0 ? id.slice(slash + 1) : id;
 }
 
-/** @returns {MistralFamily|null} */
+/**
+ * @returns {MistralFamily|null}
+ * @param {string} modelId
+ */
 function getMistralFamily(modelId) {
     const id = normalizeMistralModelId(modelId);
     if (!id) return null;
@@ -234,6 +240,7 @@ function rememberMistralCapabilities(modelId, caps) {
  * @returns {{ id: string, name: string, cat: string, context: number|null,
  *   vision: boolean, tools: boolean, reasoning: boolean,
  *   efforts: ReadonlyArray<string>|null, legacy: boolean }}
+ * @param {string} modelId
  */
 function describeMistralModel(modelId) {
     const family = getMistralFamily(modelId);
@@ -267,6 +274,8 @@ function describeMistralModel(modelId) {
  *
  * @returns {string|undefined} the value to send, or undefined to omit it — for
  *   a model without a switch, or when nothing was asked (the model's default)
+ * @param {string} modelId
+ * @param {string} requested
  */
 function normalizeMistralEffort(modelId, requested) {
     if (!requested || typeof requested !== 'string') return undefined;
@@ -275,6 +284,7 @@ function normalizeMistralEffort(modelId, requested) {
     if (efforts.includes(requested)) return requested;
     const want = EFFORT_RANK[requested];
     if (want === undefined) return undefined;
+    /** @type {string} */
     let best;
     let bestDistance = Infinity;
     for (const value of efforts) {
@@ -298,6 +308,7 @@ function normalizeMistralEffort(modelId, requested) {
  * reasoning switched off"), but that rule assumes a cheap reasoning level
  * exists. With only `none` and `high` there is none: the cheapest level that
  * still reasons is the most expensive one there is. A speed tier gets `none`.
+ * @param {string} modelId
  */
 function cheapestMistralEffort(modelId) {
     const { efforts } = describeMistralModel(modelId);
@@ -311,6 +322,7 @@ function cheapestMistralEffort(modelId) {
 /**
  * The community pricing database's key (`mistral/<id>`). Looked up EXACTLY,
  * never fuzzily — see the served registry below.
+ * @param {string} modelId
  */
 function mistralPricingKey(modelId) {
     const id = normalizeMistralModelId(modelId);
@@ -321,6 +333,7 @@ function mistralPricingKey(modelId) {
  * Mistral's published list price per 1M tokens (USD), or null for ids billed
  * per page/minute or unknown to this file.
  * @returns {{ input: number, output: number, cacheRead: number }|null}
+ * @param {string} modelId
  */
 function getMistralListPrice(modelId) {
     const price = getMistralFamily(modelId)?.price;
@@ -331,6 +344,7 @@ function getMistralListPrice(modelId) {
 /**
  * Cached-read price as a fraction of the input price, or null when unknown.
  * 0.1 on every current model.
+ * @param {string} modelId
  */
 function mistralCacheReadRatio(modelId) {
     const price = getMistralFamily(modelId)?.price;
@@ -345,6 +359,9 @@ const MAX_REGISTERED = 1000;
 const _servedIds = new Set();
 const _regionalIds = new Set();
 
+/**
+ * @param {string} id
+ */
 function _bounded(set, id) {
     if (set.has(id)) return;
     if (set.size >= MAX_REGISTERED) {
@@ -354,13 +371,19 @@ function _bounded(set, id) {
     set.add(id);
 }
 
-/** Record that `modelId` is served by a Mistral provider. */
+/**
+ * Record that `modelId` is served by a Mistral provider.
+ * @param {string} modelId
+ */
 function registerMistralModel(modelId) {
     if (!modelId || typeof modelId !== 'string') return;
     _bounded(_servedIds, modelId);
 }
 
-/** True when the model is known to be served by a Mistral provider. */
+/**
+ * True when the model is known to be served by a Mistral provider.
+ * @param {string} modelId
+ */
 function isMistralServedModel(modelId) {
     return !!modelId && _servedIds.has(modelId);
 }
@@ -368,6 +391,7 @@ function isMistralServedModel(modelId) {
 /**
  * True for Mistral's regional-processing hosts (api.eu.mistral.ai,
  * api.us.mistral.ai). The default api.mistral.ai is not regional.
+ * @param {string | URL} url
  */
 function isMistralRegionalUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -379,7 +403,11 @@ function isMistralRegionalUrl(url) {
     }
 }
 
-/** Record whether a served model is answered by a regional endpoint. */
+/**
+ * Record whether a served model is answered by a regional endpoint.
+ * @param {string} modelId
+ * @param {boolean} regional
+ */
 function setMistralRegionalModel(modelId, regional) {
     if (!modelId || typeof modelId !== 'string') return;
     if (regional) _bounded(_regionalIds, modelId);

@@ -40,6 +40,9 @@ const log = require('../../telemetry/log');
 const { RELEASE_KINDS, needsApproval } = require('./model');
 const { storesOf } = require('./journal');
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -49,12 +52,18 @@ const HEARTBEAT_MS = 30_000;
 const ELIGIBILITY_CODES = Object.freeze(['release_not_found', 'release_not_pipeline', 'release_blocked',
     'release_not_in_uat', 'rollback_target_invalid', 'redeploy_target_invalid', 'stage_invalid', 'kind_invalid']);
 
-/** What the row stores as its settings patch: the gate change of a `settings` row; for a `remove`, the flag the PLAN carries. */
+/**
+ * What the row stores as its settings patch: the gate change of a `settings` row; for a `remove`, the flag the PLAN carries.
+ * @param {string} kind
+ */
 function storedPatchOf(kind, settingsPatch, plan) {
     if (kind === 'remove') return plan && plan.deleteData === true ? { deleteData: true } : null;
     return kind === 'settings' ? (settingsPatch || null) : null;
 }
 
+/**
+ * @param {string | { id: string; }} actor
+ */
 const actorIdOf = (actor) => (typeof actor === 'string' ? actor : (actor && actor.id) || null);
 
 /** An acknowledgement the requester gave covers a required one with the same code (and ref, when it has one). */
@@ -66,7 +75,10 @@ function missingAcknowledgements(required, given) {
     });
 }
 
-/** What a failed row records: a code, a message we wrote, refs and finding codes; never a stack or content. */
+/**
+ * What a failed row records: a code, a message we wrote, refs and finding codes; never a stack or content.
+ * @param {HttpError} err
+ */
 function errorOf(err) {
     const code = err && typeof err.code === 'string' && err.code ? err.code : 'deployment_failed';
     const exposed = err && err.expose === true && typeof err.message === 'string';
@@ -114,7 +126,11 @@ function makeRunner(deps = {}) {
 
     // ── admission ───────────────────────────────────────────────────────────
 
-    /** The row a request key already made on this stage, or null. */
+    /**
+     * The row a request key already made on this stage, or null.
+     * @param {string} stageProjectId
+     * @param {string} requestKey
+     */
     async function findByRequestKey(stageProjectId, requestKey) {
         const st = s.stageStore;
         if (typeof st.getDeploymentByRequestKey === 'function') return st.getDeploymentByRequestKey(stageProjectId, requestKey);
@@ -188,7 +204,7 @@ function makeRunner(deps = {}) {
                 await phases.approvalGate.request({ deployment: row, stage: stageRow, plan, actor: { id: actorId } }, deps.approvalDeps || {});
             } catch (err) {
                 // The row stays awaiting without an approval; reconcileAwaitingApprovals cancels it after 60 s.
-                log.warn(`[stages/runner] approval request for ${row.id} failed: ${err && err.message}`);
+                log.warn(`[stages/runner] approval request for ${row.id} failed: ${err && /** @type {Error} */ (err).message}`);
             }
         } else {
             kick(row.id);
@@ -221,6 +237,11 @@ function makeRunner(deps = {}) {
         }
     }
 
+    /**
+     * @param {string} from
+     * @param {string} to
+     * @param {{ error: { code: string; message: string; }; }} [patch]
+     */
     async function move(row, from, to, patch = {}) {
         const moved = await s.stageStore.transitionDeployment(row.id, from, to, patch);
         if (!moved) throw new HttpError(409, 'deployment_lost', `This deployment is no longer ${Array.isArray(from) ? from.join('/') : from}.`);
@@ -234,7 +255,10 @@ function makeRunner(deps = {}) {
         return { projectId: row.stageProjectId, solutionId: row.solutionId, stage: row.stage, runAsUserId: row.requestedBy, organizationId: null };
     }
 
-    /** Compensate (the row is moved to `compensating` first) and fail. */
+    /**
+     * Compensate (the row is moved to `compensating` first) and fail.
+     * @param {{ code: string; message: string; }} error
+     */
     async function compensateAndFail(row, stage, error) {
         const current = await s.stageStore.getDeployment(row.id);
         if (!current) return null;
@@ -247,7 +271,7 @@ function makeRunner(deps = {}) {
         try {
             compensated = await phases.compensate({ deployment: current, stage }, deps);
         } catch (err) {
-            log.warn(`[stages/runner] compensation of ${row.id} failed: ${err && err.message}`);
+            log.warn(`[stages/runner] compensation of ${row.id} failed: ${err && /** @type {Error} */ (err).message}`);
         }
         return s.stageStore.transitionDeployment(row.id, ['compensating'], 'failed', {
             error, ...(compensated ? { report: { compensation: compensated } } : {}),
@@ -314,7 +338,7 @@ function makeRunner(deps = {}) {
             }
             return (await convergeRow({ ...row, ...committed }, stage)).deployment;
         } catch (err) {
-            log.warn(`[stages/runner] ${row.id} (${row.kind}) failed: ${err && err.message}`);
+            log.warn(`[stages/runner] ${row.id} (${row.kind}) failed: ${err && /** @type {Error} */ (err).message}`);
             return compensateAndFail(row, stage, errorOf(err));
         }
     }
@@ -338,7 +362,7 @@ function makeRunner(deps = {}) {
             try {
                 return (await convergeRow(row, stage)).deployment;
             } catch (err) {
-                log.warn(`[stages/runner] converge of ${row.id} failed again: ${err && err.message}`);
+                log.warn(`[stages/runner] converge of ${row.id} failed again: ${err && /** @type {Error} */ (err).message}`);
                 return null;
             }
         }
@@ -348,7 +372,7 @@ function makeRunner(deps = {}) {
                 const committed = await phases.removeStage.commitRemove({ deployment: row, stage }, deps);
                 return (await convergeRow({ ...row, ...committed }, stage)).deployment;
             } catch (err) {
-                log.warn(`[stages/runner] resumed removal ${row.id} failed: ${err && err.message}`);
+                log.warn(`[stages/runner] resumed removal ${row.id} failed: ${err && /** @type {Error} */ (err).message}`);
                 return failRemoveForward(row);
             }
         }
@@ -376,14 +400,14 @@ function makeRunner(deps = {}) {
     /** One job tick: reconcile, resume, run what is claimable. Never throws. */
     async function tick() {
         const out = { reconciled: null, resumed: 0, ran: 0 };
-        try { out.reconciled = await reconcile(); } catch (err) { log.warn(`[stages/runner] reconcile failed: ${err && err.message}`); }
-        try { out.resumed = (await resumeStale()).length; } catch (err) { log.warn(`[stages/runner] resume failed: ${err && err.message}`); }
+        try { out.reconciled = await reconcile(); } catch (err) { log.warn(`[stages/runner] reconcile failed: ${err && /** @type {Error} */ (err).message}`); }
+        try { out.resumed = (await resumeStale()).length; } catch (err) { log.warn(`[stages/runner] resume failed: ${err && /** @type {Error} */ (err).message}`); }
         try {
             for (const row of await s.stageStore.listClaimable(now())) {
                 if (await runOne(row.id)) out.ran += 1;
             }
         } catch (err) {
-            log.warn(`[stages/runner] run failed: ${err && err.message}`);
+            log.warn(`[stages/runner] run failed: ${err && /** @type {Error} */ (err).message}`);
         }
         return out;
     }

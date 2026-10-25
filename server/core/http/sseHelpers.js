@@ -77,6 +77,7 @@ function setupSSE(res) {
  */
 function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
     const { onDead = null, frame = ': ping\n\nevent: ping\ndata: {}\n\n', maxFailures = 3 } = opts;
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
     let failures = 0;
     const stop = () => {
@@ -162,10 +163,16 @@ function openSse(res, opts = {}) {
         res.writeHead(200, head);
     }
     if (flush && typeof res.flushHeaders === 'function') res.flushHeaders();
+    /**
+     * @param {string} chunk
+     */
     const sendRaw = (chunk) => {
         if (res.writableEnded || res.destroyed) return;
         try { res.write(chunk); } catch (err) { bestEffort('core/http/sseHelpers:sendRaw', err); /* socket gone */ }
     };
+    /**
+     * @param {string} event
+     */
     const send = (event, data) => sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     const abortController = new AbortController();
     let gone = false;
@@ -253,6 +260,7 @@ async function persistAndTitle({ conversation, messages, encryptionKey, userId, 
  */
 function _buildTitleTranscript(messages) {
     if (!Array.isArray(messages)) return '';
+    /** @type {string[]} */
     const lines = [];
     let users = 0, assistants = 0;
     for (const m of messages) {

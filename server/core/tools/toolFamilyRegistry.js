@@ -44,6 +44,9 @@ function registerToolFamily(family) {
     return entry;
 }
 
+/**
+ * @param {string} name
+ */
 function unregisterToolFamily(name) {
     const at = families.findIndex(f => f.name === name);
     if (at === -1) return false;
@@ -51,6 +54,9 @@ function unregisterToolFamily(name) {
     return true;
 }
 
+/**
+ * @param {string} name
+ */
 function getToolFamily(name) {
     return families.find(f => f.name === name) || null;
 }
@@ -63,6 +69,7 @@ function listToolFamilies() {
 /**
  * Run the first family that claims `toolName` and does not pass it on.
  * Returns { handled: true, result } or { handled: false }.
+ * @param {string} toolName
  */
 async function dispatchToToolFamily(toolName, toolArgs, context) {
     for (const family of families.slice()) {

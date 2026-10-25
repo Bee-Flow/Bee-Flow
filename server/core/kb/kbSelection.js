@@ -92,7 +92,7 @@ async function resolveUsableKbIds(kbIds, {
         // The check could not be run. That is not permission to search
         // anything — the whole selection collapses to nothing, loudly.
         log.error('[KBSelection] check failed — treating as NO knowledge bases:', JSON.stringify({
-            context: logContext, userId: userId || null, requested: ids.length, error: err && err.message,
+            context: logContext, userId: userId || null, requested: ids.length, error: err && /** @type {Error} */ (err).message,
         }));
         return [];
     }

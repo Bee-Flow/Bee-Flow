@@ -123,6 +123,7 @@ async function handleAiToolCall(tc, env) {
         pushToolMessage(messages, tc, { ...synthesizeDryRunOutput(tc.function.name, args), _dryRunSynthesised: true });
         return;
     }
+    /** @type {{ error: string; }} */
     let toolResult;
     try {
         // Guard the AI-chosen tool args + log the egress, just like a
@@ -142,7 +143,7 @@ async function handleAiToolCall(tc, env) {
         }
         toolResult = await dispatchAiToolCall(tc, callArgs, toolAudit, env);
     } catch (e) {
-        toolResult = { error: e.message };
+        toolResult = { error: /** @type {Error} */ (e).message };
     }
     // Guard the RESULT before it goes back to the model. Only the
     // args were guarded before, so a tool that returned personal
@@ -154,7 +155,7 @@ async function handleAiToolCall(tc, env) {
     } catch (e) {
         // A `block` action on a tool result must not silently pass
         // the raw payload to the model.
-        if (e && e.guardrailBlocked) toolResult = { error: e.message };
+        if (e && e.guardrailBlocked) toolResult = { error: /** @type {Error} */ (e).message };
         else throw e;
     }
     messages.push({

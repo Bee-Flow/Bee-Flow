@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
 /**
  * Shared internals for the conversational builder routes
  * (routes/ai/automationBuilder.js and routes/ai/appStudioBuilder.js).
@@ -34,6 +35,9 @@ function isTransientChatError(err) {
 // for these models.
 const GEMINI_3X_RE = /gemini-3(\.\d+)?-(pro|flash)/i;
 
+/**
+ * @param {string} modelId
+ */
 function isGemini3Model(modelId) {
     return GEMINI_3X_RE.test(String(modelId || ''));
 }
@@ -47,6 +51,7 @@ const BUILDER_FLOOR_TIER_ORDER = ['standard', 'thinking', 'deep_thinking', 'writ
  * band. Returns `{ tier, modelId }` — unchanged when `modelId` is already
  * non-small, or when the org has no non-small tier configured (don't break a
  * small-only org).
+ * @param {string} resolvedTier
  */
 function applyBuilderTierFloor(resolvedTier, modelId, tiers) {
     if (classifyModel(modelId) !== 'small') return { tier: resolvedTier, modelId };
@@ -112,6 +117,8 @@ const LOCAL_STREAM_TIMEOUT_MS = 120000;
  * `signal` is the caller's client-disconnect signal and `timeoutMs` a per-chunk
  * stall watchdog; both are applied to every attempt. On a self-hosted runtime
  * they are not optional — see LOCAL_STREAM_TIMEOUT_MS.
+ * @param {string} modelId
+ * @param {BaseProvider} adapter
  */
 async function streamWithRetry(adapter, cfg, modelId, messages, options, {
     send,
@@ -131,12 +138,19 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
         const thinkingParts = [];          // { id, text, signature, redacted, startedAt, endedAt }
         const partById = new Map();
         let emittedAny = false;
+        /** @type {Error | null} */
         let streamErr = null;
         let usage = null;                  // adapter-normalized token usage from the 'done' event
         let finishReason = null;           // 'stop' | 'length' | 'max_tokens' | … from the 'done' event
         const tag = `s${__builderStreamSeq++}`;
+        /**
+         * @param {string} id
+         */
         const tagPart = (id) => `${tag}-${id}`;
 
+        /**
+         * @param {string} id
+         */
         const ensurePart = (id, redacted) => {
             let p = partById.get(id);
             if (!p) {
@@ -268,7 +282,7 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
             lastErr = e;
             if (attempt === retries || !isTransientChatError(e) || emittedAny) throw e;
             const delay = baseDelayMs * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
-            log.warn(`${logPrefix} stream attempt ${attempt + 1} failed (${e.message}); retrying in ${delay}ms`);
+            log.warn(`${logPrefix} stream attempt ${attempt + 1} failed (${/** @type {Error} */ (e).message}); retrying in ${delay}ms`);
             await new Promise(r => setTimeout(r, delay));
         }
     }

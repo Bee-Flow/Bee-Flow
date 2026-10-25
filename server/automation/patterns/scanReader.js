@@ -40,7 +40,11 @@ const depsFor = (overrides) => depsWith(LOADERS, overrides);
  * @typedef {{ ok: boolean, value?: any, error?: any, refusal?: { uiResult: string, modelError: string } }} ReadResult
  */
 
-/** The scan's signal and a caller's (a source's own time limit), as one. */
+/**
+ * The scan's signal and a caller's (a source's own time limit), as one.
+ * @param {AbortSignal | undefined} a
+ * @param {AbortSignal | undefined} b
+ */
 function bothSignals(a, b) {
     const list = [a, b].filter(Boolean);
     return list.length > 1 ? AbortSignal.any(list) : list[0];

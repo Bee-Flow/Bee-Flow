@@ -155,7 +155,10 @@ function mdLine(text) {
     return String(text ?? '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/** A comment's payload: the closing marker cannot appear inside it. */
+/**
+ * A comment's payload: the closing marker cannot appear inside it.
+ * @param {string} kind
+ */
 function mdComment(kind, text) {
     return `<!-- ${kind}: ${String(text ?? '').replace(/-->/g, '- - >').trim()} -->`;
 }
@@ -173,7 +176,7 @@ function mdImageRef(image) {
 /** "a, b, c" — or "; "-separated when a label carries a comma. */
 function mdList(values) {
     const items = values.map((v) => mdLine(v === null || v === undefined ? '' : v));
-    const sep = items.some((x) => x.includes(',')) ? '; ' : ', ';
+    const sep = items.some((/** @type {string | string[]} */ x) => x.includes(',')) ? '; ' : ', ';
     return items.join(sep);
 }
 

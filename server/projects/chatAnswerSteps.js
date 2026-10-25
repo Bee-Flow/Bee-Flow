@@ -72,7 +72,7 @@ async function searchKnowledgeFor(ctx, { project, chat, userId, triggerText, ses
             project, userId, query: triggerText, session, shield: shieldConfig, audienceIds,
         }) || '';
     } catch (err) {
-        log.warn(`[ProjectChat] project knowledge search failed for chat ${chat.id}: ${err && err.message}`);
+        log.warn(`[ProjectChat] project knowledge search failed for chat ${chat.id}: ${err && /** @type {Error} */ (err).message}`);
     }
     return knowledge;
 }
@@ -166,7 +166,7 @@ async function recordUsage(ctx, { result, userId, orgId, persona, model, auto, s
             conversation_id: chat.id,
         });
     } catch (err) {
-        log.warn(`[ProjectChat] usage logging failed: ${err && err.message}`);
+        log.warn(`[ProjectChat] usage logging failed: ${err && /** @type {Error} */ (err).message}`);
     }
 }
 
@@ -265,12 +265,12 @@ async function writeAnswer(ctx, { project, chat, trigger, triggerText, userId, o
     } catch (err) {
         outcome = { status: err?.code === 'PRIVACY_BLOCKED' ? 'blocked' : 'failed' };
         // The reason stays here, in the server log; the feed only says the status.
-        log.warn(`[ProjectChat] answer in chat ${chat.id} (run ${runId}${auto ? ', automatic' : ''}) ${outcome.status}: ${err?.code || err?.name || 'error'}: ${err && err.message}`);
+        log.warn(`[ProjectChat] answer in chat ${chat.id} (run ${runId}${auto ? ', automatic' : ''}) ${outcome.status}: ${err?.code || /** @type {Error} */ (err)?.name || 'error'}: ${err && /** @type {Error} */ (err).message}`);
     } finally {
         try {
             await ctx.locks().releaseTurn({ conversationId: chat.id, runId });
         } catch (err) {
-            log.warn(`[ProjectChat] turn release failed for chat ${chat.id}; it expires on its own: ${err && err.message}`);
+            log.warn(`[ProjectChat] turn release failed for chat ${chat.id}; it expires on its own: ${err && /** @type {Error} */ (err).message}`);
         }
         shield.release(dlpConversationId);
         // Automatic answers are silent: the answer appears, or nothing does.

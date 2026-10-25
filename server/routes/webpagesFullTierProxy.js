@@ -51,6 +51,7 @@ const UPGRADE_URL_RE = /^\/api\/webpages-preview\/([^/?]+)\/full(?:\/|$)/;
  * the proxy's `router` to read. Kept synchronous-for-the-router by design: a
  * failed/slow ensureRuntime() surfaces as a normal Express error response
  * here, not as an ambiguous proxy-layer failure.
+ * @param {(value?: HttpError) => void} next
  */
 async function ensureFullTierTarget(req, res, next) {
     const claims = req.previewClaims;
@@ -111,6 +112,7 @@ function mountFullTierProxy(app, server) {
         if (!match) return; // not a full-tier proxy path — leave it for any other upgrade listener
         const webpageId = decodeURIComponent(match[1]);
 
+        /** @type {string | null} */
         let token = null;
         try { token = new URL(req.url, 'http://internal').searchParams.get('token'); } catch (err) { fallback('routes/webpagesFullTierProxy:mountFullTierProxy', err); /* malformed URL */ }
         const claims = verifyPreviewToken(token);

@@ -276,6 +276,7 @@ function buildSdkParams(provider, model, messages, options = {}) {
  * Per-request headers REPLACE defaultHeaders with the same name, so in
  * OAuth mode the oauth beta must ride along with the context-management
  * beta (comma-separated list is the documented form).
+ * @param {boolean} oauth
  */
 function requestOptionsFor(params, oauth) {
     if (!params.context_management) return undefined;

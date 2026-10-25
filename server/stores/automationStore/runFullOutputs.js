@@ -113,7 +113,7 @@ async function persistableOutput({ value, ref, clean = (v) => v, save = saveRunF
     try {
         await save({ runId: ref.runId, stepId: ref.stepId, attempts, value: clean(value), originalBytes: t.originalBytes });
     } catch (e) {
-        log.warn(`[AutomationStore] full output of step ${ref.stepId} (run ${ref.runId}) was not kept: ${e.message}`);
+        log.warn(`[AutomationStore] full output of step ${ref.stepId} (run ${ref.runId}) was not kept: ${/** @type {Error} */ (e).message}`);
         return t.value;
     }
     return { ...t.value, [FULL_OUTPUT_REF]: { runId: ref.runId, stepId: ref.stepId, attempts } };

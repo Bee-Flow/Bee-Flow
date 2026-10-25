@@ -36,22 +36,34 @@ const { describeOpenAIModel, CACHE_TTL_OPTIONS } = require('./openaiModels');
  */
 const EFFORT_LADDER = Object.freeze(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 
-/** Pro variants (gpt-5-pro, gpt-5.2-pro, …) are locked to a single effort. */
+/**
+ * Pro variants (gpt-5-pro, gpt-5.2-pro, …) are locked to a single effort.
+ * @param {string} model
+ */
 function isProModel(model) {
     return typeof model === 'string' && describeOpenAIModel(model).pro;
 }
 
-/** Does this model take the GPT-5-only `verbosity` / `text.verbosity` knob? */
+/**
+ * Does this model take the GPT-5-only `verbosity` / `text.verbosity` knob?
+ * @param {string} model
+ */
 function supportsVerbosity(model) {
     return typeof model === 'string' && describeOpenAIModel(model).verbosity;
 }
 
-/** Does this model accept a custom `temperature` / `top_p`? */
+/**
+ * Does this model accept a custom `temperature` / `top_p`?
+ * @param {string} model
+ */
 function supportsTemperature(model) {
     return describeOpenAIModel(model).temperature;
 }
 
-/** Is this a reasoning model at all (i.e. does it take a reasoning param)? */
+/**
+ * Is this a reasoning model at all (i.e. does it take a reasoning param)?
+ * @param {string} model
+ */
 function isReasoningModel(model) {
     return describeOpenAIModel(model).reasoning;
 }
@@ -60,6 +72,7 @@ function isReasoningModel(model) {
  * True when the model accepts tool calls ONLY through the Responses API.
  * gpt-6-astra takes plain text on Chat Completions but rejects tools there, so
  * routing a tool-carrying request to the wrong endpoint fails every agent run.
+ * @param {string} model
  */
 function requiresResponsesApi(model, options = {}) {
     const caps = describeOpenAIModel(model);
@@ -67,7 +80,11 @@ function requiresResponsesApi(model, options = {}) {
     return false;
 }
 
-/** Nearest value in `efforts` for a request outside the model's vocabulary. */
+/**
+ * Nearest value in `efforts` for a request outside the model's vocabulary.
+ * @param {string[]} efforts
+ * @param {string} requested
+ */
 function _coerceEffort(efforts, requested) {
     const want = EFFORT_LADDER.indexOf(requested);
     if (want < 0) return null;   // not an effort value at all
@@ -90,6 +107,8 @@ function _coerceEffort(efforts, requested) {
  * Clamp a requested reasoning effort to what the given model actually accepts.
  * Returns null when no effort was requested (caller applies its own default) or
  * when the model takes no reasoning parameter at all.
+ * @param {string} effort
+ * @param {string} model
  */
 function clampEffort(model, effort) {
     if (!effort) return null;
@@ -107,6 +126,7 @@ function clampEffort(model, effort) {
  *
  * Only attaches `summary` when one was requested (`auto` by default,
  * `detailed` when explicitly asked) — never `concise`, which is rejected.
+ * @param {string} model
  */
 function buildReasoningParams(model, options = {}) {
     const caps = describeOpenAIModel(model);
@@ -126,6 +146,7 @@ function buildReasoningParams(model, options = {}) {
 /**
  * Tier-appropriate default verbosity. Returns undefined for models that don't
  * take the parameter so callers can omit it entirely.
+ * @param {string} model
  */
 function defaultVerbosity(model, tierName) {
     if (!supportsVerbosity(model)) return undefined;
@@ -155,6 +176,7 @@ function supportsParallelToolCalls(effort) {
  * A caller can still force a retention explicitly via `promptCacheRetention`.
  *
  * @returns {object} params to merge into the request body (may be empty)
+ * @param {string} model
  */
 function cacheTtlParams(model, options = {}) {
     const caps = describeOpenAIModel(model);
@@ -190,6 +212,9 @@ function _forcedToolName(toolChoice) {
     return toolChoice?.function?.name || toolChoice?.name || null;
 }
 
+/**
+ * @param {string} toolChoice
+ */
 function _mapToolChoiceString(toolChoice) {
     if (toolChoice === 'any' || toolChoice === 'required') return 'required';
     if (toolChoice === 'auto' || toolChoice === 'none') return toolChoice;

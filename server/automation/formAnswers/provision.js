@@ -40,7 +40,10 @@ const log = require('../../telemetry/log');
 const KIND = derive.KIND;
 const TAG = '[form answers]';
 
-/** The datatable scope an automation's tables live in. */
+/**
+ * The datatable scope an automation's tables live in.
+ * @param {AutomationRef} automation
+ */
 function scopeForAutomation(automation) {
     if (!automation) return null;
     if (automation.organizationId) return datatableStore.orgScope(automation.organizationId);
@@ -55,6 +58,7 @@ function sameScope(table, scope) {
 /**
  * The automation's answers table in this scope: the linked one, else the newest
  * one that once was. Null when the automation never collected.
+ * @param {string | undefined} automationId
  */
 async function tableFor(automationId, scope) {
     if (!automationId || !scope) return null;
@@ -64,6 +68,10 @@ async function tableFor(automationId, scope) {
     return all.find(t => t.source.linked !== false) || all[all.length - 1];
 }
 
+/**
+ * @param {AutomationRef} automation
+ * @param {derive.Def} definition
+ */
 function titleOf(automation, definition) {
     const form = definition?.trigger?.form;
     const t = (typeof form?.title === 'string' && form.title.trim()) || (typeof automation?.title === 'string' && automation.title.trim()) || 'form';
@@ -76,6 +84,11 @@ function subjectColumnOf(columnMap) {
     return entry ? entry.key : null;
 }
 
+/**
+ * @param {string} now
+ * @param {AutomationRef} automation
+ * @param {derive.Def} definition
+ */
 async function createTable(automation, definition, scope, derived, now) {
     const spec = managedKindSpec(KIND);
     const title = titleOf(automation, definition);
@@ -131,6 +144,8 @@ async function createTable(automation, definition, scope, derived, now) {
  *   `{ table, created, changed, warnings }` — or `null` when the automation does
  *   not collect (any table it had is unlinked, kept), or `{ table: null,
  *   error: { code, message } }` when the table could not be made.
+ * @param {AutomationRef} automation
+ * @param {derive.Def} definition
  */
 async function ensureAnswersTable(automation, definition, { scope = null } = {}) {
     const sc = scope || scopeForAutomation(automation);
@@ -143,8 +158,8 @@ async function ensureAnswersTable(automation, definition, { scope = null } = {})
     try {
         existing = await tableFor(automation.id, sc);
     } catch (e) {
-        log.warn(`${TAG} lookup failed for ${automation.id}: ${e.message}`);
-        return { table: null, error: { code: 'lookup_failed', message: e.message } };
+        log.warn(`${TAG} lookup failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
+        return { table: null, error: { code: 'lookup_failed', message: /** @type {Error} */ (e).message } };
     }
 
     if (!derive.collectEnabled(definition)) {
@@ -152,7 +167,7 @@ async function ensureAnswersTable(automation, definition, { scope = null } = {})
             try {
                 await datatableStore.setDefinitionSource(existing.id, sc, { ...existing.source, linked: false, unlinkedAt: now });
             } catch (e) {
-                log.warn(`${TAG} unlink failed for ${existing.id}: ${e.message}`);
+                log.warn(`${TAG} unlink failed for ${existing.id}: ${/** @type {Error} */ (e).message}`);
             }
         }
         return null;
@@ -181,8 +196,8 @@ async function ensureAnswersTable(automation, definition, { scope = null } = {})
         });
         return { table, created: false, changed: true, warnings: derived.warnings };
     } catch (e) {
-        log.warn(`${TAG} could not provision the answers table for ${automation.id}: ${e.message}`);
-        return { table: null, error: { code: e.code || (e.status === 409 ? 'quota_exceeded' : 'provision_failed'), message: e.message } };
+        log.warn(`${TAG} could not provision the answers table for ${automation.id}: ${/** @type {Error} */ (e).message}`);
+        return { table: null, error: { code: e.code || (e.status === 409 ? 'quota_exceeded' : 'provision_failed'), message: /** @type {Error} */ (e).message } };
     }
 }
 
@@ -198,7 +213,7 @@ async function releaseAnswersTables(automation) {
     try {
         all = (await datatableStore.listAnswersTablesForAutomation(automation.id)).filter(t => sameScope(t, sc));
     } catch (e) {
-        log.warn(`${TAG} release lookup failed for ${automation.id}: ${e.message}`);
+        log.warn(`${TAG} release lookup failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
         return released;
     }
     for (const t of all) {
@@ -206,7 +221,7 @@ async function releaseAnswersTables(automation) {
             await datatableStore.releaseDefinitionSource(t.id, sc);
             released.push(t.id);
         } catch (e) {
-            log.warn(`${TAG} release failed for ${t.id}: ${e.message}`);
+            log.warn(`${TAG} release failed for ${t.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
     return released;

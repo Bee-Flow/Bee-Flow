@@ -9,6 +9,12 @@ const { parseJSON } = require('./shared');
 const log = require('../../telemetry/log');
 
 // ── Audit Logging ─────────────────────────────
+/**
+ * @param {string} action
+ * @param {string} targetType
+ * @param {string} targetId
+ * @param {string | null} changedBy
+ */
 async function logSubscriptionAudit(action, targetType, targetId, changedBy, oldValues, newValues) {
     try {
         await initDB();
@@ -17,7 +23,7 @@ async function logSubscriptionAudit(action, targetType, targetId, changedBy, old
             [id, action, targetType, targetId, changedBy || 'system',
                 oldValues ? JSON.stringify(oldValues) : null,
                 newValues ? JSON.stringify(newValues) : null]);
-    } catch (e) { log.error('[UserStore] Audit log error:', e.message); }
+    } catch (e) { log.error('[UserStore] Audit log error:', /** @type {Error} */ (e).message); }
 }
 
 // Try to claim a one-shot notification slot. Returns true if this caller
@@ -37,7 +43,7 @@ async function claimNotification(targetType, targetId, kind, recipient = null, p
         );
         return (result?.rowCount ?? 0) > 0;
     } catch (e) {
-        log.error('[UserStore] claimNotification error:', e.message);
+        log.error('[UserStore] claimNotification error:', /** @type {Error} */ (e).message);
         return false;
     }
 }
@@ -46,6 +52,11 @@ async function claimNotification(targetType, targetId, kind, recipient = null, p
 // audit table and never throws on failure (logging must not break the
 // caller's mutation). Pass the organization_id when known so org-scoped
 // queries can find the row; pass null for global super-admin events.
+/**
+ * @param {string} action
+ * @param {string} targetType
+ * @param {string} targetId
+ */
 async function logAccessAudit(action, targetType, targetId, changedBy, oldValues, newValues, organizationId = null) {
     try {
         await initDB();
@@ -64,7 +75,7 @@ async function logAccessAudit(action, targetType, targetId, changedBy, oldValues
                 newValues ? JSON.stringify(newValues) : null,
             ]
         );
-    } catch (e) { log.error('[UserStore] Access audit log error:', e.message); }
+    } catch (e) { log.error('[UserStore] Access audit log error:', /** @type {Error} */ (e).message); }
 }
 
 /**
@@ -83,7 +94,9 @@ async function logAccessAudit(action, targetType, targetId, changedBy, oldValues
  */
 function accessAuditWhere(opts = {}) {
     const { targetType, targetId, organizationId, globalOnly, actions, changedBy, since, until } = opts;
+    /** @type {string[][]} */
     const params = [];
+    /** @type {string[]} */
     const conditions = [];
     let idx = 1;
     if (targetType) { conditions.push(`target_type = $${idx++}`); params.push(targetType); }
@@ -142,6 +155,7 @@ async function getAuditLog(opts = {}) {
     const { targetType, targetId, limit = 50, offset = 0 } = opts;
     let sql = 'SELECT * FROM subscription_audit_log';
     const params = [];
+    /** @type {string[]} */
     const conditions = [];
     let idx = 1;
     if (targetType) { conditions.push(`target_type = $${idx++}`); params.push(targetType); }
@@ -157,6 +171,9 @@ async function getAuditLog(opts = {}) {
 // pair has NO later `license_issuance_succeeded` row. Drives the admin
 // sidebar badge and the audit-view Retry button. Bounded by `limit` for the
 // list view; counters get the row count back from the same query.
+/**
+ * @param {number} [limit]
+ */
 async function getUnresolvedLicenseIssuanceFailures(limit = 50) {
     await initDB();
     const rows = await getAll(

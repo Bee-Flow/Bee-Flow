@@ -82,7 +82,7 @@ async function attributeTestChatTurn({ agent, agentId, userId, userMessage, mess
         // be one.
         if (_attribution) onEvent?.('rule_attribution', _attribution);
     } catch (e) {
-        log.warn('[AgentRuntime] rule attribution skipped:', e.message);
+        log.warn('[AgentRuntime] rule attribution skipped:', /** @type {Error} */ (e).message);
     }
 }
 

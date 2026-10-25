@@ -8,6 +8,11 @@
 
 const { isRecord, str, strList, strListOrNull, intIn, numOrNull } = require('./constants');
 
+/**
+ * @param {string[]} allowed
+ * @param {string} fallback
+ * @param {string} v
+ */
 const pick = (v, allowed, fallback) => (allowed.includes(v) ? v : fallback);
 const objects = (v) => (Array.isArray(v) ? v.filter(isRecord) : []);
 
@@ -61,6 +66,10 @@ function bucket(op) {
 }
 
 const AGG_FNS = ['count', 'sum', 'mean', 'median', 'min', 'max', 'count_distinct', 'share'];
+/**
+ * @param {string} fn
+ * @param {string} column
+ */
 const aggDefaultName = (fn, column) => {
     if (fn === 'count') return 'Count';
     if (fn === 'share') return 'Share (%)';

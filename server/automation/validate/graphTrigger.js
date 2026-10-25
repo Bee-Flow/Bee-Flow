@@ -30,6 +30,7 @@ const { fallback } = require('../../utils/bestEffort');
  * dropped schedule node has no schedule yet, and a cron is typed one character
  * at a time — so they warn while you build and block when you activate. Only
  * the outright shape error blocks at every stage.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
  */
 function checkScheduleTrigger(trigger, base, pushE) {
     const sched = trigger.schedule;
@@ -53,7 +54,7 @@ function checkScheduleTrigger(trigger, base, pushE) {
     try { parseCron(cron); }
     catch (e) {
         parsed = false;
-        pushE({ code: 'trigger.schedule_cron_invalid', severity: 'error', path: `${base}.schedule.cron`, message: `Schedule trigger has an unusable pattern "${cron}" — ${e.message}.`, hint: 'Five space-separated fields: minute hour day-of-month month day-of-week, e.g. "0 9 * * 1-5".' });
+        pushE({ code: 'trigger.schedule_cron_invalid', severity: 'error', path: `${base}.schedule.cron`, message: `Schedule trigger has an unusable pattern "${cron}" — ${/** @type {Error} */ (e).message}.`, hint: 'Five space-separated fields: minute hour day-of-month month day-of-week, e.g. "0 9 * * 1-5".' });
     }
     // Parsing is not enough. parseCron DROPS out-of-range values instead of
     // rejecting them ("99 * * * *" yields an empty minute set) and an
@@ -70,7 +71,7 @@ function checkScheduleTrigger(trigger, base, pushE) {
         // The only thing left that can throw here is the timezone:
         // Intl.DateTimeFormat rejects an unknown IANA name, and the scheduler
         // would hit the same RangeError when it tried to advance the row.
-        pushE({ code: 'trigger.schedule_tz_invalid', severity: 'error', path: `${base}.schedule.tz`, message: `Schedule timezone "${tz}" is not a known timezone — ${e.message}.`, hint: `Use an IANA name like "Europe/Amsterdam" or "UTC", or leave it empty for ${DEFAULT_SCHEDULE_TZ}.` });
+        pushE({ code: 'trigger.schedule_tz_invalid', severity: 'error', path: `${base}.schedule.tz`, message: `Schedule timezone "${tz}" is not a known timezone — ${/** @type {Error} */ (e).message}.`, hint: `Use an IANA name like "Europe/Amsterdam" or "UTC", or leave it empty for ${DEFAULT_SCHEDULE_TZ}.` });
     }
 }
 

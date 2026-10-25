@@ -71,6 +71,9 @@ const FINDING_DDL = [
 
 // ───────────────────────── Finding states ─────────────────────────
 
+/**
+ * @param {string | number | Date} v
+ */
 const _iso = (v) => (v == null ? null : new Date(v).toISOString());
 
 function _stateRow(r) {
@@ -258,6 +261,9 @@ function createFindings({ run, getOne, getAll, initDB }) {
 
     // A table this install never created holds nothing to erase — and erasing a
     // person must not create the compliance schema on the way.
+    /**
+     * @param {string} sql
+     */
     async function _deleteHintRows(sql, params) {
         try {
             const r = await run(sql, params);

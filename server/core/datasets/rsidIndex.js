@@ -19,12 +19,18 @@
 const SHARD_COUNT = 64;
 const RECORD_BYTES = 16;
 
+/**
+ * @param {number} rsNum
+ */
 function shardOf(rsNum) {
     if (!Number.isSafeInteger(rsNum) || rsNum < 0) throw new Error('rsidIndex.shardOf: non-negative integer required');
     return rsNum % SHARD_COUNT;
 }
 
-/** Two-digit shard label — matches the 'rsid/NN.bin' storage artifact names. */
+/**
+ * Two-digit shard label — matches the 'rsid/NN.bin' storage artifact names.
+ * @param {number} shard
+ */
 function shardName(shard) {
     if (!Number.isInteger(shard) || shard < 0 || shard >= SHARD_COUNT) throw new Error(`rsidIndex.shardName: 0..${SHARD_COUNT - 1}`);
     return String(shard).padStart(2, '0');
@@ -49,6 +55,7 @@ function serializeShard(records) {
 
 /**
  * Every record for one rs number. @returns {Array<{contigIdx:number, pos:number}>}
+ * @param {number} rsNum
  */
 function lookupShard(shardBuf, rsNum) {
     if (!Buffer.isBuffer(shardBuf) || shardBuf.length % RECORD_BYTES !== 0) {
@@ -56,6 +63,9 @@ function lookupShard(shardBuf, rsNum) {
     }
     const n = shardBuf.length / RECORD_BYTES;
     const target = BigInt(rsNum);
+    /**
+     * @param {number} i
+     */
     const at = (i) => shardBuf.readBigUInt64LE(i * RECORD_BYTES);
     // Binary search for ANY match, then widen to neighbours with the same rsNum.
     let lo = 0, hi = n - 1, found = -1;
@@ -69,6 +79,7 @@ function lookupShard(shardBuf, rsNum) {
     if (found === -1) return [];
     let first = found;
     while (first > 0 && at(first - 1) === target) first--;
+    /** @type {{ contigIdx: number; pos: number; }[]} */
     const out = [];
     for (let i = first; i < n && at(i) === target; i++) {
         out.push({

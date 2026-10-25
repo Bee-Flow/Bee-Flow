@@ -1,3 +1,4 @@
+/** @typedef {import('../../services/outboundChatNotifier').SupportThread} SupportThread */
 /**
  * Company inbox: the steps of creating a ticket (POST /threads), anonymous
  * or logged in. The spam guard, who the requester is, the SLA due dates, the
@@ -32,6 +33,9 @@ const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Honeypot + minimum-form-age guard for anonymous submissions ──────────
+/**
+ * @param {string} source
+ */
 function _isLikelySpam(body, source) {
     if (source !== 'marketing') return false;
     // Hidden honeypot field — bots fill it; humans don't see it.
@@ -112,7 +116,7 @@ async function applyCreateSla(thread) {
             thread.sla_resolution_due_at = due.resolution;
         }
     } catch (e) {
-        log.warn('[Support] SLA compute on create failed:', e.message);
+        log.warn('[Support] SLA compute on create failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -168,7 +172,16 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
     _emit('thread_updated', { threadId: thread.id });
 }
 
-/** The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket. */
+/**
+ * @typedef {Object} AnnounceCreatedArgs
+ * @property {SupportThread} thread
+ * @property {string} requesterUrl
+ * @property {string} effectiveSource
+ */
+/**
+ * The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket.
+ * @param {AnnounceCreatedArgs} param0
+ */
 function announceCreated({ thread, firstMsg, requesterEmail, requesterName, subject, requesterUrl, effectiveSource, skipOutboundEmail }) {
     // Confirmation email — failures surface to staff via sendOrNotifyStaff.
     if (!skipOutboundEmail) {

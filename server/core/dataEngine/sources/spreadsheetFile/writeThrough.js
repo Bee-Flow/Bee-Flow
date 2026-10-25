@@ -1,3 +1,4 @@
+/** @typedef {import('./providers').FileApi} FileApi */
 /**
  * A row changed IN BEE FLOW → the FILE first, then the copy.
  *
@@ -130,6 +131,7 @@ const READ_ONLY_SENTENCE = Object.freeze({
 function refuseIfReadOnly(ctx) {
     const source = (ctx && ctx.table && ctx.table.source) || {};
     const write = source.write || {};
+    /** @type {string | null} */
     let reason = null;
     if (!write.mode || write.mode === 'none') reason = write.reason || 'not_writable';
     else if (source.owned === false && write.sharedOptIn !== true) reason = 'not_owned';
@@ -161,26 +163,44 @@ const adapter = {
     notFoundCodes: new Set([ROW_MISSING]),
     toWire,
     apiFor: linkerApi,
+    /**
+     * @param {FileApi} api
+     */
     async sourceInsert(api, ctx, wire) {
         const [raw] = await writeFile(api, ctx, [{ kind: 'append', wire }]);
         return raw;
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceUpdate(api, ctx, rowId, wire) {
         const [raw] = await writeFile(api, ctx, [{ kind: 'update', rowId, wire }]);
         scratchOf(ctx).raws.set(rowId, raw);
         return raw;
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceDelete(api, ctx, rowId) {
         await writeFile(api, ctx, [{ kind: 'delete', rowId }]);
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceInsertMany(api, ctx, wires) {
         return writeFile(api, ctx, wires.map(wire => ({ kind: 'append', wire })));
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceUpdateMany(api, ctx, items) {
         const raws = await writeFile(api, ctx, items.map(({ rowId, wire }) => ({ kind: 'update', rowId, wire, tolerateMissing: true })));
         items.forEach(({ rowId }, i) => { if (raws[i]) scratchOf(ctx).raws.set(rowId, raws[i]); });
         return raws;
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceDeleteMany(api, ctx, rowIds) {
         await writeFile(api, ctx, rowIds.map(rowId => ({ kind: 'delete', rowId, tolerateMissing: true })));
     },
@@ -205,6 +225,9 @@ async function insertRow(ctx, values) {
     return shared.insertRow(fresh(ctx), values);
 }
 
+/**
+ * @param {string} rowId
+ */
 async function updateRow(ctx, rowId, values, opts = {}) {
     refuseIfReadOnly(ctx);
     const c = fresh(ctx);
@@ -216,6 +239,9 @@ async function updateRow(ctx, rowId, values, opts = {}) {
     return moveCopy(c, rowId, newId, r);
 }
 
+/**
+ * @param {string} rowId
+ */
 async function deleteRow(ctx, rowId) {
     refuseIfReadOnly(ctx);
     const c = fresh(ctx);
@@ -255,6 +281,9 @@ async function updateRows(ctx, list, opts = {}) {
     return out;
 }
 
+/**
+ * @param {string[]} ids
+ */
 async function deleteRows(ctx, ids, opts = {}) {
     refuseIfReadOnly(ctx);
     const c = fresh(ctx);

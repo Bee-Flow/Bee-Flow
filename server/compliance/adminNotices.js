@@ -36,6 +36,10 @@ const RECIPIENT_SQL = `
       AND (status IS NULL OR status = '' OR status = 'active')
 `;
 
+/**
+ * @param {number} nowMs
+ * @param {string | undefined} window
+ */
 function _windowKey(window, nowMs) {
     const iso = new Date(nowMs).toISOString();
     return window === 'hour' ? iso.slice(0, 13) : iso.slice(0, 10);
@@ -61,7 +65,11 @@ function makeAdminNotices(deps = {}) {
         return (rows || []).map(r => r.id).filter(Boolean);
     }
 
-    /** True when this call won the window for `dedupe.key` (or there is no key). */
+    /**
+     * True when this call won the window for `dedupe.key` (or there is no key).
+     * @param {string} orgId
+     * @param {{ key: string; window?: 'hour' | 'day'; }} dedupe
+     */
     async function _claim(orgId, dedupe) {
         if (!dedupe || !dedupe.key) return true;
         try {
@@ -69,7 +77,7 @@ function makeAdminNotices(deps = {}) {
                 orgId, 'admin_notice', String(dedupe.key), _windowKey(dedupe.window, d.now()),
             );
         } catch (e) {
-            log.warn('[ComplianceNotices] dedupe claim failed, sending anyway:', e?.message || e);
+            log.warn('[ComplianceNotices] dedupe claim failed, sending anyway:', /** @type {Error} */ (e)?.message || e);
             return true;
         }
     }
@@ -96,7 +104,7 @@ function makeAdminNotices(deps = {}) {
             }
             return sent;
         } catch (e) {
-            log.warn('[ComplianceNotices] notify failed:', e?.message || e);
+            log.warn('[ComplianceNotices] notify failed:', /** @type {Error} */ (e)?.message || e);
             return 0;
         }
     }

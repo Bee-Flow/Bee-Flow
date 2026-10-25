@@ -87,9 +87,9 @@ router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge
         });
     } catch (e) {
         if (e.code === 'DUPLICATE') {
-            return res.status(409).json({ error: e.message, documentId: e.documentId });
+            return res.status(409).json({ error: /** @type {Error} */ (e).message, documentId: e.documentId });
         }
-        log.error('[KB] Ingest text error:', e.message);
+        log.error('[KB] Ingest text error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -151,7 +151,7 @@ router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge
         if (e.code === 'DUPLICATE') {
             return res.status(409).json({ error: 'Duplicate content', documentId: e.documentId });
         }
-        log.error('[KB] Ingest file error:', e.message);
+        log.error('[KB] Ingest file error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -200,13 +200,13 @@ router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'
         if (e.code === 'DUPLICATE') {
             return res.status(409).json({ error: 'This URL content already exists', documentId: e.documentId });
         }
-        if (e.message.includes('Invalid URL') || e.message.includes('Only HTTP')) {
-            throw new HttpError(400, 'bad_request', e.message);
+        if (/** @type {Error} */ (e).message.includes('Invalid URL') || /** @type {Error} */ (e).message.includes('Only HTTP')) {
+            throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
         }
-        if (e.message.includes('Fetch failed')) {
-            return next(new HttpError(502, 'fetch_failed', e.message));
+        if (/** @type {Error} */ (e).message.includes('Fetch failed')) {
+            return next(new HttpError(502, 'fetch_failed', /** @type {Error} */ (e).message));
         }
-        log.error('[KB] Ingest URL error:', e.message);
+        log.error('[KB] Ingest URL error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });

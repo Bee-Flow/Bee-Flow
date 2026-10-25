@@ -40,7 +40,10 @@ const { fallback } = require('../../utils/bestEffort');
 const _DRAFT_SKILLS = "NULLIF(config, '')::jsonb->'attachedSkillIds'";
 const _PUBLISHED_SKILLS = "published_config->'attachedSkillIds'";
 
-/** `<expr>` holds skill $1 as an array element. */
+/**
+ * `<expr>` holds skill $1 as an array element.
+ * @param {string} expr
+ */
 const _holdsSkill = (expr) => `(jsonb_typeof(${expr}) = 'array' AND (${expr}) ? $1)`;
 
 /**
@@ -124,6 +127,7 @@ async function _automationStepsUsingSkill(skillId, orgId) {
 async function listSkillUsage(skillId, orgId) {
     await initDB();
     if (!skillId) return { rows: [], unchecked: [] };
+    /** @type {string[]} */
     const unchecked = [];
     const [agents, steps] = await Promise.all([
         _agentsUsingSkill(skillId, orgId),
@@ -183,6 +187,9 @@ async function getUsageSummary(orgId, skillIds) {
     // skill in BOTH its draft and its published copy is one agent, not two.
     // A subline reading "4 agents" for three is a small lie the list would
     // then tell on every load.
+    /**
+     * @param {string} column
+     */
     const agentSkills = (column) => `
         SELECT a.id AS agent_id, s AS skill_id
           FROM agents a,
@@ -217,7 +224,7 @@ async function getUsageSummary(orgId, skillIds) {
         );
         for (const r of autoCounts || []) if (out[r.skill_id]) out[r.skill_id].automations = Number(r.n) || 0;
     } catch (err) {
-        if (!/relation .*automations.* does not exist/i.test(err.message)) throw err;
+        if (!/relation .*automations.* does not exist/i.test(/** @type {Error} */ (err).message)) throw err;
         // No automations table on this install: the automations column of every
         // row in this summary is UNKNOWN, not zero. Say so per row rather than
         // letting the list print "not linked yet" off a count nobody made.

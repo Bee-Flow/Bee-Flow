@@ -66,8 +66,14 @@ const PAGE = 1000;
 /** The release cut and the deploy read and write the whole table. */
 const ALL_ROWS = Object.freeze({ where: 'TRUE', params: [] });
 
+/**
+ * @param {{ ref: string; meta?: object; descriptor?: object; table?: object; scope?: object; } | { id: string; fields: object[]; }} v
+ */
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+/**
+ * @param {{ id: string; values: {}; }[]} value
+ */
 function stableStringify(value) {
     return stableJson.stableStringify(value);
 }
@@ -78,12 +84,16 @@ function writableFields(descriptor) {
         .filter(f => isObj(f) && typeof f.id === 'string' && typeof f.key === 'string' && f.type !== 'computed');
 }
 
+/**
+ * @param {number} n
+ */
 function pad2(n) { return String(n).padStart(2, '0'); }
 
 /**
  * A DATE as 'YYYY-MM-DD', whichever driver parsed it: node-pg makes LOCAL
  * midnight, pglite UTC midnight, and reading the wrong half moves the day on
  * any server not on UTC. Same rule as pgAppEngine's dateOnlyString.
+ * @param {Date} v
  */
 function dateOnly(v) {
     const utcMidnight = v.getUTCHours() === 0 && v.getUTCMinutes() === 0 && v.getUTCSeconds() === 0 && v.getUTCMilliseconds() === 0;
@@ -92,7 +102,10 @@ function dateOnly(v) {
         : `${v.getFullYear()}-${pad2(v.getMonth() + 1)}-${pad2(v.getDate())}`;
 }
 
-/** One cell, in the form the compiler writes back unchanged. */
+/**
+ * One cell, in the form the compiler writes back unchanged.
+ * @param {string} v
+ */
 function canonicalValue(v, field) {
     if (v === null || v === undefined) return undefined;
     if (v instanceof Date) return field.type === 'date' ? dateOnly(v) : v.toISOString();
@@ -115,6 +128,7 @@ function canonicalValue(v, field) {
  */
 function canonicalRows(descriptor, dbRows) {
     const fields = writableFields(descriptor);
+    /** @type {{ id: string; values: {}; }[]} */
     const out = [];
     for (const r of Array.isArray(dbRows) ? dbRows : []) {
         if (!isObj(r) || r.id === null || r.id === undefined) continue;
@@ -128,7 +142,10 @@ function canonicalRows(descriptor, dbRows) {
     return out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
-/** The content hash of a payload's rows (order-independent per row). */
+/**
+ * The content hash of a payload's rows (order-independent per row).
+ * @param {{ id: string; values: {}; }[]} rows
+ */
 function hashReferenceRows(rows) {
     return crypto.createHash('sha256').update(stableStringify(rows || []), 'utf8').digest('hex');
 }
@@ -141,6 +158,10 @@ function hashReferenceRows(rows) {
  * checked again at the cut because the flag is old by then.
  */
 function referenceRefusal(meta) {
+    /**
+     * @param {string} camel
+     * @param {string} snake
+     */
     const pick = (camel, snake) => (meta[camel] !== undefined ? meta[camel] : meta[snake]);
     if (pick('subjectColumn', 'subject_column')) return 'subject_column';
     if (pick('rowScope', 'row_scope') === 'own') return 'row_scope_own';
@@ -152,7 +173,10 @@ function referenceRefusal(meta) {
     return null;
 }
 
-/** The relation fields of a descriptor, with their target table id. */
+/**
+ * The relation fields of a descriptor, with their target table id.
+ * @param {{ id: string; fields: object[]; }} descriptor
+ */
 function relationFields(descriptor) {
     return writableFields(descriptor)
         .filter(f => f.type === 'relation' && isObj(f.relation) && typeof f.relation.table === 'string');
@@ -172,6 +196,7 @@ function stageNotNull(f) {
  * Rows the stage table would refuse: a relation value pointing into a table
  * the release does not carry (its stage table holds other ids, or none), and a
  * NULL in a column the stage table creates NOT NULL. Column keys only.
+ * @param {{ id: string; values: {}; }[]} rows
  */
 function stageConstraintFindings(descriptor, rows, carriedIds, base) {
     const out = [];
@@ -193,6 +218,9 @@ function stageConstraintFindings(descriptor, rows, carriedIds, base) {
     return out;
 }
 
+/**
+ * @param {string | null} ref
+ */
 function optionFor(options, ref) {
     if (!options || !ref) return null;
     const o = options instanceof Map ? options.get(ref) : options[ref];
@@ -210,6 +238,7 @@ function isCarried(meta, opt) {
 
 async function readAllRows(descriptor, scope, deps, cap) {
     const rows = [];
+    /** @type {string | null} */
     let cursor = null;
     for (;;) {
         const compiled = queryCompiler.compileRecordList(descriptor, {
@@ -397,6 +426,9 @@ function planReferenceRows(stageTableRows, payload) {
 
 // ── Apply ───────────────────────────────────────────────────────────
 
+/**
+ * @param {string} name
+ */
 const quoted = (name) => `"${String(name).replace(/"/g, '""')}"`;
 
 /**

@@ -31,7 +31,10 @@ const actorOf = (context) => (typeof context === 'string' ? { userId: context } 
 function makeVersionApi(deps, cleanName) {
     const { initDB, withTransaction, getAll, getOne, run, getDocument, getDocumentVersion, updateDocument, lockForWrite, mapRow, failure } = deps;
 
-    /** One page of the history, newest first; null when the caller may not read the document. */
+    /**
+     * One page of the history, newest first; null when the caller may not read the document.
+     * @param {string} documentId
+     */
     async function listVersions(documentId, context, options = {}) {
         if (!await getDocument(documentId, context)) return null;
         return versions.listRows(getAll, documentId, options);
@@ -61,6 +64,7 @@ function makeVersionApi(deps, cleanName) {
      * exactly this state it is that row that gets the name; otherwise (a page
      * edited live moved on since its last checkpoint) a new 'named' row is
      * written and becomes the current revision.
+     * @param {string} documentId
      */
     async function createNamedVersion(documentId, context, name) {
         await initDB();

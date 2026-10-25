@@ -26,6 +26,7 @@ const configStore = require('../../../stores/configStore');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_NOTICE_DAYS = 60; // "two months" (Art. 25(2)(d))
+/** @type {Record<string, number>} */
 const RANK = { pass: 0, warn: 1, fail: 2 };
 
 function _relevance(settings) {
@@ -50,13 +51,19 @@ function _deploymentMode() {
     return mode === 'private-cloud' ? 'self-hosted' : mode;
 }
 
+/**
+ * @param {string | null | undefined} value
+ */
 function _days(value) {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
 }
 
-/** One contract → { status, days, reason }. */
+/**
+ * One contract → { status, days, reason }.
+ * @param {number | null} days
+ */
 function _judge(days) {
     if (days === null) return { status: 'warn', days, reason: 'not declared' };
     if (days > MAX_NOTICE_DAYS) return { status: 'fail', days, reason: `${days} days exceeds ${MAX_NOTICE_DAYS}` };

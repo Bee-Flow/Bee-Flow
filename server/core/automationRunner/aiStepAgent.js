@@ -148,11 +148,16 @@ function stepAgentPermissions(step) {
     const raw = (step && typeof step.agentPermissions === 'object' && !Array.isArray(step.agentPermissions))
         ? step.agentPermissions
         : null;
+    /** @type {Record<string, boolean>} */
     const out = {};
     for (const key of AGENT_PERMISSION_KEYS) out[key] = raw ? raw[key] === true : false;
     return out;
 }
 
+/**
+ * @param {string} message
+ * @param {string} errorClass
+ */
 function _fail(message, errorClass) {
     const err = new Error(message);
     err.errorClass = errorClass;
@@ -229,7 +234,7 @@ async function resolveStepAgent(step, ctx, { agentStore = null } = {}) {
     } catch (e) {
         // A lookup that fails is not "the agent does not exist": the step should
         // fail and be retryable, not run on without an agent.
-        throw _fail(`Could not load the agent for this step (${e.message}).`, 'agent_unavailable');
+        throw _fail(`Could not load the agent for this step (${/** @type {Error} */ (e).message}).`, 'agent_unavailable');
     }
     // ONE refusal for all three cases: deleted, never published, or not shared
     // with the automation owner. The same rule the save-time check upholds
@@ -271,6 +276,7 @@ function knowledgeBaseIdsForStep(step, binding) {
     const agentIds = (binding && binding.permissions.useKnowledge && Array.isArray(binding.config.knowledge_base_ids))
         ? binding.config.knowledge_base_ids
         : [];
+    /** @type {string[]} */
     const out = [];
     const seen = new Set();
     for (const id of [...stepIds, ...agentIds]) {
@@ -334,6 +340,10 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
     const { configWithSkillAutomations } = require('./aiStepSkills');
     const agentConfig = configWithSkillAutomations(binding.config, skillAutomationIds);
     const gatedBinding = agentConfig === binding.config ? binding : { ...binding, config: agentConfig };
+    /**
+     * @param {string | null} name
+     * @param {string} reason
+     */
     const dropped = (name, reason) => {
         if (!name) return;
         if (!(name in out.reasons)) out.reasons[name] = reason;
@@ -381,7 +391,7 @@ async function agentToolsForStep({ binding, ctx, extraTools = [], extraToolsStar
             // A catalogue that cannot be built yields no tools. For a step that can also
             // give an answer without tools, that is the right failure: narrow, and visible
             // in the run log.
-            out.catalogError = e && e.message ? e.message : 'integration catalog unavailable';
+            out.catalogError = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : 'integration catalog unavailable';
             log.warn(`[AutomationRunner] ai_step agent tool catalog lookup failed: ${out.catalogError}`);
             catalogTools = [];
         }

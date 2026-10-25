@@ -33,6 +33,9 @@ const NC_INTEGRATIONS = [
 const NC_INTEGRATION_IDS = NC_INTEGRATIONS.map(i => i.id);
 const NC_INTEGRATION_ID_SET = new Set(NC_INTEGRATION_IDS);
 
+/**
+ * @param {string} id
+ */
 function isNcIntegrationId(id) {
     return NC_INTEGRATION_ID_SET.has(id);
 }

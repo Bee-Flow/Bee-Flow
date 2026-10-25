@@ -39,7 +39,10 @@ const MAX_ENUM_VALUES = 50;
 
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** The tool name an agent sees: [a-z0-9_], at most 64 characters. */
+/**
+ * The tool name an agent sees: [a-z0-9_], at most 64 characters.
+ * @param {string} name
+ */
 function sanitizeToolName(name) {
     return String(name || '')
         .toLowerCase()
@@ -48,6 +51,9 @@ function sanitizeToolName(name) {
         .slice(0, 64) || 'automation_unnamed';
 }
 
+/**
+ * @param {string} t
+ */
 function coerceType(t) {
     if (t === 'integer') return 'number';
     return PARAM_TYPES.includes(t) ? t : 'string';
@@ -119,6 +125,7 @@ function rowsOf({ parametersSchema, params }, notes) {
  * rather than store an empty one that would read as "this tool takes no input".
  */
 function normalizeParameters(/** @type {{parametersSchema?: any, params?: any}} */ { parametersSchema, params } = {}) {
+    /** @type {string[]} */
     const notes = [];
     const rows = rowsOf({ parametersSchema, params }, notes);
     if (!rows.length) {
@@ -157,6 +164,7 @@ function normalizeParameters(/** @type {{parametersSchema?: any, params?: any}} 
  */
 function agentCallFieldsFrom(args = {}) {
     const fields = {};
+    /** @type {string[]} */
     const notes = [];
     if (args.toolName !== undefined) {
         const name = typeof args.toolName === 'string' ? args.toolName.trim() : '';
@@ -185,7 +193,14 @@ function agentCallFieldsFrom(args = {}) {
 
 /** Issue records `[{ code, path, message, hint }]`, like validateAppTriggerParams; empty = valid. */
 function validateAgentCallTrigger(trigger) {
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} hint
+     */
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
     const t = isPlainObject(trigger) ? trigger : {};
 

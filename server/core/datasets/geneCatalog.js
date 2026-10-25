@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — gene symbol → genomic span, per reference build.
  *
@@ -21,6 +22,9 @@ const BUILDS = ['GRCh37', 'GRCh38'];
 
 const catalogs = new Map(); // build -> Map<SYMBOL, {chrom, start, end}>
 
+/**
+ * @param {string} build
+ */
 function loadBuild(build) {
     const file = path.join(DATA_DIR, `geneCoords.${build}.tsv.gz`);
     const text = zlib.gunzipSync(fs.readFileSync(file)).toString('utf8');
@@ -33,7 +37,10 @@ function loadBuild(build) {
     return map;
 }
 
-/** @returns {'GRCh37'|'GRCh38'|null} normalized build name, or null. */
+/**
+ * @returns {'GRCh37'|'GRCh38'|null} normalized build name, or null.
+ * @param {string} build
+ */
 function normalizeBuild(build) {
     const b = String(build || '').toLowerCase();
     if (b === 'grch38' || b === 'hg38') return 'GRCh38';

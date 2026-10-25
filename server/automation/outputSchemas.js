@@ -23,6 +23,9 @@ const OUTPUT_SCHEMAS = {
     ...OUTPUT_SCHEMAS_PART_2,
 };
 
+/**
+ * @param {string} toolName
+ */
 function getOutputSchema(toolName) {
     return OUTPUT_SCHEMAS[toolName] || null;
 }
@@ -39,6 +42,7 @@ function getOutputSchema(toolName) {
  * from those fields itself (typed samples, `dryRunSynthesised: true`).
  *
  * Returns a deep clone so callers can mutate freely.
+ * @param {string} toolName
  */
 function synthesizeDryRunOutput(toolName, args) {
     const schema = OUTPUT_SCHEMAS[toolName];
@@ -69,6 +73,9 @@ const VERB_SUFFIX_SHAPES = [
     { match: /_attach$/,               sample: () => ({ id: 'sample-id', attached: true }) },
 ];
 
+/**
+ * @param {string} toolName
+ */
 function inferShapeFromName(toolName, args) {
     if (typeof toolName !== 'string') {
         return { _dryRun: true, wouldHaveCalled: toolName, withArgs: args || {} };
@@ -85,6 +92,7 @@ function inferShapeFromName(toolName, args) {
  * Lightweight description of a tool's shape, used in the Builder system
  * prompt so the AI can bind correct paths on the first try. Returns a
  * string like "results: array of { id, subject, ... }, total: integer".
+ * @param {string} toolName
  */
 function describeShape(toolName) {
     const schema = OUTPUT_SCHEMAS[toolName];
@@ -98,6 +106,7 @@ function describeShape(toolName) {
  * can iterate over (overRef = `steps.<id>.output.<field>`). Derived from the
  * declared shape (values described as "array …") plus any array fields in the
  * sample. Returns [] when the tool returns no iterable list / is unknown.
+ * @param {string} toolName
  */
 function iterableFieldsOf(toolName) {
     const schema = OUTPUT_SCHEMAS[toolName];
@@ -118,7 +127,10 @@ function iterableFieldsOf(toolName) {
     return [...out];
 }
 
-/** Whether a tool's output contains (or is) a list the AI can forEach over. */
+/**
+ * Whether a tool's output contains (or is) a list the AI can forEach over.
+ * @param {string} toolName
+ */
 function producesList(toolName) {
     const schema = OUTPUT_SCHEMAS[toolName];
     if (!schema) return false;

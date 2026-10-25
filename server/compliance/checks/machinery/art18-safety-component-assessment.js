@@ -67,6 +67,9 @@ function _manualSubjects(settings) {
     return out;
 }
 
+/**
+ * @param {string} checkId
+ */
 async function _latestAttestation(orgId, checkId, subjectId) {
     let store = null;
     try { store = require('../../../stores/customFrameworkStore'); } catch { store = null; }
@@ -83,6 +86,9 @@ async function _latestAttestation(orgId, checkId, subjectId) {
     `, [orgId, checkId, subjectId]);
 }
 
+/**
+ * @param {{ classification: string; outcome: string; statement: string; }} row
+ */
 function _classification(row) {
     if (!row) return null;
     if (typeof row.classification === 'string' && CLASSIFICATIONS.has(row.classification)) return row.classification;
@@ -91,12 +97,18 @@ function _classification(row) {
     return m ? m[1].toLowerCase() : null;
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
     return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
+/**
+ * @param {string} v
+ */
 function _evidenceRefCount(v) {
     if (Array.isArray(v)) return v.length;
     if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p.length : 0; } catch { return 0; } }
@@ -118,6 +130,9 @@ module.exports = {
     MAX_AGE_DAYS,
     CLASSIFICATIONS: Array.from(CLASSIFICATIONS),
 
+    /**
+     * @param {string} orgId
+     */
     async listSubjects(orgId) {
         const settings = await complianceStore.getSettings(orgId) || {};
         if (_notRelevant(settings)) return [];

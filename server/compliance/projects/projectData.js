@@ -47,19 +47,29 @@ const MAX_OFFENDERS = 50;
 // Rows one project query may return — every query here is bounded.
 const ROW_LIMIT = 5000;
 
-/** SQL: `<col>` resolves to the org asked in parameter `$<n>`. */
+/**
+ * SQL: `<col>` resolves to the org asked in parameter `$<n>`.
+ * @param {string} col
+ * @param {number} [n]
+ */
 function orgMatch(col, n = 1) {
     return `COALESCE(NULLIF(${col}, ''), '${NO_ORG_ORG_ID}') = $${n}`;
 }
 
-/** SQL: the project row `<alias>` is a collaborative workspace (or unclassified). */
+/**
+ * SQL: the project row `<alias>` is a collaborative workspace (or unclassified).
+ * @param {string} [alias]
+ */
 function isWorkspace(alias = 'p') {
     return `(${alias}.kind IS NULL OR ${alias}.kind = 'workspace')`;
 }
 
 const PRESENT_STATUS_SQL = PRESENT_STATUSES.map(s => `'${s}'`).join(', ');
 
-/** SQL: the account status `<col>` says the person has left (NULL is active). */
+/**
+ * SQL: the account status `<col>` says the person has left (NULL is active).
+ * @param {string} col
+ */
 function hasLeft(col) {
     return `(${col} IS NOT NULL AND ${col} NOT IN (${PRESENT_STATUS_SQL}))`;
 }
@@ -68,12 +78,18 @@ function isNotProvisioned(e) {
     return !!e && NOT_PROVISIONED.has(String(e.code || ''));
 }
 
+/**
+ * @param {string} projectId
+ */
 function projectSubject(projectId) {
     const id = String(projectId);
     return { id: `project:${id}`, label: `project:${id.slice(0, 8)}` };
 }
 
-/** The project id inside a subject id ('project:<id>' or a bare id). */
+/**
+ * The project id inside a subject id ('project:<id>' or a bare id).
+ * @param {string | undefined} subjectId
+ */
 function projectIdOf(subjectId) {
     return String(subjectId || '').replace(/^project:/, '');
 }
@@ -83,6 +99,10 @@ function shortRef(projectId) {
     return `project:${String(projectId).slice(0, 8)}`;
 }
 
+/**
+ * @param {string} projectId
+ * @param {string | null} [section]
+ */
 function projectLink(projectId, section = null) {
     return projectPath(projectId, section);
 }
@@ -106,6 +126,9 @@ async function listWorkspaceProjects(orgId, query, { limit = ROW_LIMIT } = {}) {
     `, [orgId]);
 }
 
+/**
+ * @param {string} orgId
+ */
 async function countWorkspaceProjects(orgId, query) {
     const rows = await query(`
         SELECT COUNT(*)::int AS n FROM projects p
@@ -114,7 +137,10 @@ async function countWorkspaceProjects(orgId, query) {
     return Number(rows?.[0]?.n) || 0;
 }
 
-/** "3 projects: project:1a2b3c4d, project:… and 1 more" — ids, never names. */
+/**
+ * "3 projects: project:1a2b3c4d, project:… and 1 more" — ids, never names.
+ * @param {number} [max]
+ */
 function nameOffenders(ids, max = 5) {
     const list = ids.slice(0, max).map(shortRef);
     const more = ids.length > max ? ` and ${ids.length - max} more` : '';

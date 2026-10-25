@@ -37,7 +37,7 @@ async function deleteStudioApp(io, id, ownerId, { managedWrite = null } = {}) {
     try {
         await dep('studioAppDbStore')().reset(ownerId, id);
     } catch (e) {
-        log.error(`[StudioAppStore] delete ${id}: per-app database purge FAILED: ${e.message}`);
+        log.error(`[StudioAppStore] delete ${id}: per-app database purge FAILED: ${/** @type {Error} */ (e).message}`);
     }
 
     // 2. Attachment objects (content-addressed) + their ledger rows.
@@ -54,13 +54,13 @@ async function deleteStudioApp(io, id, ownerId, { managedWrite = null } = {}) {
                 try {
                     await storageStore.deleteFile(storageStore.buildStudioAppAttachmentKey(ownerId, id, sha));
                 } catch (e) {
-                    log.error(`[StudioAppStore] delete ${id}: attachment ${sha} purge failed: ${e.message}`);
+                    log.error(`[StudioAppStore] delete ${id}: attachment ${sha} purge failed: ${/** @type {Error} */ (e).message}`);
                 }
             }
         }
         await io.db.run(`DELETE FROM studio_app_attachments WHERE app_id = $1`, [id]);
     } catch (e) {
-        log.error(`[StudioAppStore] delete ${id}: attachment purge FAILED: ${e.message}`);
+        log.error(`[StudioAppStore] delete ${id}: attachment purge FAILED: ${/** @type {Error} */ (e).message}`);
     }
 
     // 3. The app's own Postgres rows. studio_app_data_meta / _datasets /
@@ -91,7 +91,7 @@ async function deleteStudioApp(io, id, ownerId, { managedWrite = null } = {}) {
         try { await io.db.run(`DELETE FROM ${table} WHERE app_id = $1`, [id]); } catch (e) {
             // A table this deployment doesn't have yet is not a reason to fail
             // the delete; anything else is worth seeing.
-            log.warn(`[StudioAppStore] delete ${id}: cleanup of ${table} skipped: ${e.message}`);
+            log.warn(`[StudioAppStore] delete ${id}: cleanup of ${table} skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
     return mapAppRow(r);

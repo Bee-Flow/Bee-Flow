@@ -42,8 +42,13 @@ const ART5_PRACTICES = Object.freeze([
 const ANNEX_III_CATEGORIES = annexIii.ANNEX_III_IDS;
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+/**
+ * @param {readonly string[]} allowed
+ * @param {number} [max]
+ */
 function _strList(v, allowed, max = 20) {
     if (!Array.isArray(v)) return [];
+    /** @type {string[]} */
     const out = [];
     for (const x of v) {
         if (typeof x !== 'string') continue;
@@ -111,7 +116,11 @@ function outcome(signals, answers) {
     return transparency ? 'transparency' : 'minimal';
 }
 
-/** attested_at + 12 months (UTC month arithmetic, like the store's default). */
+/**
+ * attested_at + 12 months (UTC month arithmetic, like the store's default).
+ * @param {Date} [attestedAt]
+ * @param {number} [months]
+ */
 function expiresAt(attestedAt = new Date(), months = VALID_MONTHS) {
     const d = new Date(attestedAt instanceof Date ? attestedAt.getTime() : new Date(attestedAt).getTime());
     if (Number.isNaN(d.getTime())) throw new Error('attested_at is not a date');
@@ -126,6 +135,7 @@ function expiresAt(attestedAt = new Date(), months = VALID_MONTHS) {
 function openDuties(signals, answers) {
     const s = isObject(signals) ? signals : {};
     const a = normalizeAnswers(answers);
+    /** @type {string[]} */
     const out = [];
     if (!s.contains_ai) return out;
     const interacts = s.customer_facing || a.art50.interacts === 'yes';

@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').Router} Router */
 /**
  * Canned responses: the saved reply snippets staff insert into a thread,
  * plus the server-side render that substitutes the thread variables.
@@ -41,6 +42,9 @@ const RenderBody = z.preprocess((v) => (v === undefined || v === null ? {} : v),
     threadId: worded('threadId must be a thread id.').trim().min(1, 'threadId must be a thread id.').optional(),
 }).strict());
 
+/**
+ * @param {Router} router
+ */
 function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
     // Canned responses CRUD + render (staff)
@@ -64,7 +68,7 @@ function register(router) {
             });
             res.json({ ok: true, response: created });
         } catch (err) {
-            if (/duplicate key/i.test(err.message)) return res.status(409).json({ error: 'shortcut already in use' });
+            if (/duplicate key/i.test(/** @type {Error} */ (err).message)) return res.status(409).json({ error: 'shortcut already in use' });
             throw err;
         }
     });

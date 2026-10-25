@@ -92,6 +92,7 @@ function normaliseCategories(categories) {
  */
 async function setNotebookFiling(userId, notebookId, filing, assertFolder) {
     await ready();
+    /** @type {string[]} */
     const sets = [];
     const params = [notebookId, userId];
     if (filing.folderId !== undefined) {
@@ -120,6 +121,8 @@ async function setNotebookFiling(userId, notebookId, filing, assertFolder) {
  * never created (notebooks not installed) has nothing to move.
  *
  * @param {{ query: (sql: string, params?: unknown[]) => Promise<any> }} client
+ * @param {string} userId
+ * @param {string} folderId
  */
 async function reparentNotebooks(client, userId, folderId, parentId) {
     const { rows } = await client.query(`SELECT to_regclass('public.notebooks') IS NOT NULL AS present,

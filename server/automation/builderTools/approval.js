@@ -17,6 +17,9 @@ const { newId, appendAfter } = require('./draftGraph');
  * honours by returning a null TTL. Default 168 (7 days).
  */
 const APPROVAL_MAX_EXPIRY_HOURS = 720;
+/**
+ * @param {string | null | undefined} v
+ */
 function clampApprovalHours(v) {
     // null / undefined / '' mean "not specified" and must fall through to the
     // default — NOT to 0, which is the meaningful value "no deadline". They
@@ -59,7 +62,7 @@ function normalizeApprovalConfig(raw) {
     // exactly one of userId/groupId per seat — deduped and capped at 10. A
     // panel present means the single assignee is dropped (validation refuses
     // the combination; the normalizer keeps the object self-consistent).
-    const cleanSeat = (s) => {
+    const cleanSeat = (/** @type {{ userId: string; groupId: string; }} */ s) => {
         if (!s || typeof s !== 'object') return null;
         if (typeof s.userId === 'string' && s.userId.trim()) return { userId: s.userId.trim() };
         if (typeof s.groupId === 'string' && s.groupId.trim()) return { groupId: s.groupId.trim() };
@@ -166,7 +169,7 @@ function normalizeApprovalConfig(raw) {
     }
     if (Array.isArray(src.attachments)) {
         const atts = src.attachments
-            .filter(x => x && typeof x === 'object' && typeof x.binding === 'string' && x.binding.trim())
+            .filter((/** @type {{ binding: string; }} */ x) => x && typeof x === 'object' && typeof x.binding === 'string' && x.binding.trim())
             .slice(0, APPROVAL_MAX_ATTACHMENTS)
             .map(x => ({ binding: x.binding, ...(typeof x.label === 'string' && x.label.trim() ? { label: x.label } : {}) }));
         if (atts.length) out.attachments = atts;
@@ -176,7 +179,7 @@ function normalizeApprovalConfig(raw) {
         // only bounds the count and drops the types approvals refuse — an
         // upload and an app picker, neither of which the decision card renders.
         const REFUSED = new Set(['file', 'app_pick']);
-        const fields = src.fields.filter(f => f && typeof f === 'object' && !REFUSED.has(f.type)).slice(0, APPROVAL_MAX_FIELDS);
+        const fields = src.fields.filter((/** @type {{ type: string; }} */ f) => f && typeof f === 'object' && !REFUSED.has(f.type)).slice(0, APPROVAL_MAX_FIELDS);
         if (fields.length) out.fields = fields;
     }
     return out;

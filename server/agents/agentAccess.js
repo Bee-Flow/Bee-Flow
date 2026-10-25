@@ -31,6 +31,9 @@ const { fallback } = require('../utils/bestEffort');
 function makeAgentAccess(deps) {
     // Prefetch the per-request inputs canModifyAgent needs so list endpoints can
     // compute `can_edit` for many agents without N× user/permission lookups.
+    /**
+     * @param {string} userId
+     */
     async function buildCanModifyContext(userId, req) {
         if (!userId) return { hasManage: false, orgIds: new Set(), user: null };
         const [hasManage, orgIds, user] = await Promise.all([
@@ -51,6 +54,9 @@ function makeAgentAccess(deps) {
     //   4. Org-less agents (system/swarm/personal drafts) are owner/super-admin only.
     //   5. Agent Editors cannot modify unpublished drafts from others.
     // `ctx` (optional) is a buildCanModifyContext() result for list endpoints.
+    /**
+     * @param {string} userId
+     */
     async function canModifyAgent(agent, userId, req, ctx = null) {
         if (agent.owner_id === userId) return true;
 

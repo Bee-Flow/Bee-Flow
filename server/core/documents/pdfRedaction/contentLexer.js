@@ -16,10 +16,19 @@
 const WHITESPACE = new Set([0x00, 0x09, 0x0a, 0x0c, 0x0d, 0x20]);
 const DELIMITERS = new Set([0x28, 0x29, 0x3c, 0x3e, 0x5b, 0x5d, 0x7b, 0x7d, 0x2f, 0x25]);
 
+/**
+ * @param {number} c
+ */
 const isWhite = (c) => WHITESPACE.has(c);
+/**
+ * @param {number} c
+ */
 const isRegular = (c) => c !== undefined && !WHITESPACE.has(c) && !DELIMITERS.has(c);
 
 class ContentLexer {
+    /**
+     * @param {Buffer<ArrayBufferLike>} buf
+     */
     constructor(buf) {
         this.buf = buf;
         this.pos = 0;
@@ -71,6 +80,9 @@ class ContentLexer {
         return { type: 'op', value: word, start, end: this.pos };
     }
 
+    /**
+     * @param {number} start
+     */
     readName(start) {
         const b = this.buf;
         this.pos++; // '/'
@@ -90,6 +102,7 @@ class ContentLexer {
     readLiteralString() {
         const b = this.buf;
         this.pos++; // '('
+        /** @type {number[]} */
         const out = [];
         let depth = 1;
         while (this.pos < b.length) {
@@ -150,6 +163,7 @@ class ContentLexer {
 /**
  * Turn a token stream into a nested operand value (arrays and dictionaries recurse).
  * Returns undefined for a closing token, so the caller can finish the container.
+ * @param {ContentLexer} lexer
  */
 function readValue(lexer, tok) {
     if (tok.type === 'value') return tok.value;
@@ -179,6 +193,7 @@ function readValue(lexer, tok) {
  * Split a decoded content stream into operations: `{ op, operands, start, end }` where
  * [start, end) covers the operands and the operator, so cutting that range removes the
  * operation cleanly. `malformed` counts tokens that fit nowhere (junk, dangling operands).
+ * @param {Buffer<ArrayBufferLike>} buf
  */
 function parseOperations(buf) {
     const lexer = new ContentLexer(buf);

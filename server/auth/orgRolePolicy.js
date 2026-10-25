@@ -77,6 +77,9 @@ function isEditablePermission(id) {
 const CACHE_TTL_MS = 30_000;
 const _cache = new Map(); // orgId → { at, overrides }
 
+/**
+ * @param {string} orgId
+ */
 function invalidateOrgRoleCache(orgId) {
     if (orgId === undefined) _cache.clear();
     else _cache.delete(String(orgId || ''));

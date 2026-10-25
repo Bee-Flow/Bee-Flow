@@ -144,6 +144,9 @@ function isCompareTable(node) {
         && (isProse(node.leftLabel) || isProse(node.rightLabel));
 }
 
+/**
+ * @param {string[]} out
+ */
 function emitCompareTable(node, out) {
     const rows = node.rows.filter(r => r && typeof r === 'object'
         && (isProse(r.aspect) || isProse(r.left) || isProse(r.right)));
@@ -156,6 +159,11 @@ function emitCompareTable(node, out) {
     out.push(`<table>\n${cells.join('\n')}\n</table>`);
 }
 
+/**
+ * @param {string[]} out
+ * @param {number} depth
+ * @param {{ h1Used: boolean; blockIndex: number; columns: number; heroImage: { src: string; srcset?: string; sizes: string; } | null; }} state
+ */
 function walk(node, out, depth, state) {
     if (!node || typeof node !== 'object') return;
 
@@ -240,6 +248,12 @@ function collectLinks(tree, found) {
     for (const v of Object.values(node)) if (v && typeof v === 'object') collectLinks(v, found);
 }
 
+/**
+ * @param {string} text
+ * @param {string[]} out
+ * @param {number} depth
+ * @param {{ h1Used: boolean; blockIndex: number; columns: number; heroImage: { src: string; srcset?: string; sizes: string; } | null; }} state
+ */
 function emitHeading(text, out, depth, state) {
     // Exactly one h1 per document. The first heading encountered wins, which
     // is the hero's — two h1s is a real (if mild) SEO defect and an
@@ -277,6 +291,7 @@ function renderBlocks(blocks, opts = {}) {
  * @returns {{ html: string, heroImage: { src: string, srcset?: string, sizes: string } | null, headLinks: string[] }}
  */
 function renderBlocksWithHints(blocks, { fallbackTitle = '', chrome = null } = {}) {
+    /** @type {string[]} */
     const out = [];
     /** @type {{ h1Used: boolean, blockIndex: number, columns: number, heroImage: { src: string, srcset?: string, sizes: string } | null }} */
     const state = { h1Used: false, blockIndex: 0, columns: 1, heroImage: null };

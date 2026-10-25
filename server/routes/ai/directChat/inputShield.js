@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ChatMessage} ChatMessage */
 // @typecheck
 /**
  * Direct Chat input gates, part one: the Unicode-smuggling defense and the
@@ -14,6 +15,8 @@ const { bestEffort } = require('../../../utils/bestEffort');
 /**
  * Must run FIRST, before moderation, PII and regex guardrails: strips hidden
  * payloads encoded via Variation Selectors / Tags block.
+ * @param {(arg0: string, arg1: { strippedCount: number; messageIndices: number[]; }) => void} send
+ * @param {ChatMessage[]} messages
  */
 function stripUnicodeSmuggling(messages, send) {
     const { sanitizeMessagesUnicode } = require('../../../utils/unicodeSanitizer');
@@ -28,7 +31,10 @@ function stripUnicodeSmuggling(messages, send) {
     return unicodeResult;
 }
 
-/** The deferred audit row for stripped smuggling (it needs the org id). */
+/**
+ * The deferred audit row for stripped smuggling (it needs the org id).
+ * @param {{ smugglingDetected: boolean; totalStripped: number; detectedIn: number[]; }} unicodeResult
+ */
 function logUnicodeSmuggling(unicodeResult, { userOrgId, userId, convId, modelId }) {
     if (!unicodeResult.smugglingDetected) return;
     guardrailEventStore.logGuardrailEvent({
@@ -98,6 +104,8 @@ async function resolveTurnShield(req, { userOrgId, userId }) {
  * Inject moderation-violation context into the volatile block so the AI can
  * explain, and strip the violating user message: only a placeholder goes to
  * the model.
+ * @param {(value: string) => void} appendVolatile
+ * @param {ChatMessage[]} messages
  */
 function applyModerationViolation(messages, appendVolatile) {
     appendVolatile(`\n\n[IMPORTANT: The user's message was flagged by our content safety policy. You must briefly explain that their message could not be processed because it was flagged by our content policy, and politely ask them to rephrase. Keep your response short (1-2 sentences). Do not reveal the specific violation category. Do not process or answer the original request.]`);

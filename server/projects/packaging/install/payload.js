@@ -12,7 +12,10 @@
 
 'use strict';
 
-/** What an entity looks like NOW, in the same shape install hashed on arrival. */
+/**
+ * What an entity looks like NOW, in the same shape install hashed on arrival.
+ * @param {string} entityId
+ */
 async function currentPayload(kind, entityId) {
     if (kind === 'automation') {
         const row = await require('../../../stores/automationStore').getAutomation(entityId);

@@ -74,7 +74,7 @@ async function installDocumentTemplates(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'document', entityId: id, payload: fields });
             (report.installed.documents ||= []).push({ ref: entity.ref, id, name: entity.name, ...(versionId ? { versionId } : {}) });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'document', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'document', why: /** @type {Error} */ (err).message });
         }
     }
 }

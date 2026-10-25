@@ -49,6 +49,10 @@ const { fallback } = require('../../utils/bestEffort');
 // client's picker (healthMeta SEVERITY_IDS); a value added on one side
 // without the other is exactly the drift a failing test should catch.
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
 
 const SEVERITIES = ['info', 'warning', 'error', 'critical'];
@@ -78,6 +82,9 @@ const EventsQuery = z.object({
 // session's user object has no orgRole and no organizationId, so the previous
 // session-only comparison denied every SSO org admin. Connector-JWT sessions do
 // populate those fields, which is why this only ever failed from the web UI.
+/**
+ * @param {() => void} next
+ */
 async function _checkOrgAdmin(req, res, next) {
     const orgId = req.params.orgId;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
@@ -104,6 +111,7 @@ const checkOrgAdmin = tagGate(_checkOrgAdmin, {
 // (plan configuration, provider keys, billing state) that must never reach
 // customers — every open problem is rewritten through this map. Unknown codes
 // fall back to DEFAULT_SAFE. Keep wording soft and non-billing.
+/** @type {Record<string, { message: string; remediation: string; }>} */
 const CUSTOMER_SAFE_WORDING = {
     'chat.subscription_blocked': {
         message: 'AI chat is not available for your organisation yet.',

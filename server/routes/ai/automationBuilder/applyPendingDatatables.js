@@ -44,7 +44,7 @@ const APPROVED_CAP = 200;
 function defaultDeps() {
     return {
         automationStore: require('../../../stores/automationStore'),
-        listDatatablesForScope: (scope) => require('../../../stores/datatableStore').listDatatablesForScope(scope),
+        listDatatablesForScope: (/** @type {{ kind: string; id: string; }} */ scope) => require('../../../stores/datatableStore').listDatatablesForScope(scope),
         assertDatatableQuota: (...a) => require('../../../core/dataEngine/datatableLimits').assertDatatableQuota(...a),
         checkDatatableCreate: (...a) => require('../../../automation/builderTools/datatableCreateAccess').checkDatatableCreate(...a),
         createPendingDatatable: (...a) => require('../../../automation/builderTools/datatableCreate').createPendingDatatable(...a),
@@ -84,8 +84,13 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
     // Best effort: a lost claim is released by its lease anyway.
     const release = async () => {
         try { if (snap.proposal) await save(withProposal({ applying: null })); }
-        catch (e) { log.warn(`[AutomationBuilder] apply: releasing the claim failed (automation ${automationId}): ${e.message}`); }
+        catch (e) { log.warn(`[AutomationBuilder] apply: releasing the claim failed (automation ${automationId}): ${/** @type {Error} */ (e).message}`); }
     };
+    /**
+     * @param {number} status
+     * @param {string} code
+     * @param {string} message
+     */
     const fail = async (status, code, message) => {
         await release();
         return new HttpError(status, code, message);
@@ -112,7 +117,7 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
     const toCreate = entries.filter((e) => !e.createdId).length;
     if (toCreate) {
         try { await d.assertDatatableQuota(access.scope, { addTables: toCreate }); }
-        catch (err) { throw await fail(409, 'datatable_quota', err.message); }
+        catch (err) { throw await fail(409, 'datatable_quota', /** @type {Error} */ (err).message); }
     }
 
     // ── 4. create, in order ──
@@ -182,7 +187,7 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
         const cur = await automationStore.getBuilderSession(automationId, userId).catch((e) => fallback('routes/ai/automationBuilder/applyPendingDatatables:applyPendingDatatables', e, null));
         if (cur && cur.proposal && cur.proposal.id === p.id) {
             version = cur.version;
-            try { await save(finalOf(cur)); } catch (e2) { log.warn(`[AutomationBuilder] apply: recording the outcome failed twice (automation ${automationId}): ${e2.message}`); }
+            try { await save(finalOf(cur)); } catch (e2) { log.warn(`[AutomationBuilder] apply: recording the outcome failed twice (automation ${automationId}): ${/** @type {Error} */ (e2).message}`); }
         } else {
             log.warn(`[AutomationBuilder] apply: the session changed while applying (automation ${automationId}); tables exist, outcome not recorded.`);
         }

@@ -15,6 +15,9 @@
  * Timezone: nextRunAt is computed in the supplied IANA timezone, converted
  * back to UTC for storage. We use Intl.DateTimeFormat tricks rather than
  * adding a new dep — accuracy is "to the minute", which is fine for cron.
+ * @param {number} min
+ * @param {number} max
+ * @param {string} field
  */
 
 function parseField(field, min, max) {
@@ -38,6 +41,9 @@ function parseField(field, min, max) {
     return out;
 }
 
+/**
+ * @param {string} cron
+ */
 function parseCron(cron) {
     const f = cron.trim().split(/\s+/);
     if (f.length !== 5) throw new Error(`Cron must have 5 fields, got ${f.length}`);
@@ -59,6 +65,9 @@ function parseCron(cron) {
 // a pathological cron (e.g. "0 0 31 2 *"), a single-request DoS reachable via
 // POST /_schedule/preview. Cache one formatter per timezone instead.
 const _fmtCache = new Map();
+/**
+ * @param {string} tz
+ */
 function formatterForTz(tz) {
     let fmt = _fmtCache.get(tz);
     if (!fmt) {
@@ -75,11 +84,14 @@ function formatterForTz(tz) {
 
 /**
  * Get the calendar parts (Y/M/D/h/m/dow) of a UTC timestamp viewed in `tz`.
+ * @param {number} ts
+ * @param {string} tz
  */
 function partsInTz(ts, tz) {
     const parts = formatterForTz(tz).formatToParts(new Date(ts));
     const o = {};
     for (const p of parts) o[p.type] = p.value;
+    /** @type {Record<string, number>} */
     const dowMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
     return {
         year: parseInt(o.year, 10),
@@ -95,6 +107,12 @@ function partsInTz(ts, tz) {
  * Convert a (year, month, day, hour, minute) wall-clock value in tz into
  * a UTC Date. We invert through UTC by binary-searching offsets — simple
  * and DST-safe to within ±60s, which we tolerate.
+ * @param {number} year
+ * @param {number} day
+ * @param {number} hour
+ * @param {number} minute
+ * @param {string} tz
+ * @param {number} month
  */
 function tzWallClockToUtc(year, month, day, hour, minute, tz) {
     // Initial guess: treat the wall time as UTC.
@@ -116,6 +134,7 @@ function tzWallClockToUtc(year, month, day, hour, minute, tz) {
  * Split out of the old all-fields `matches()` so nextRunAt can decide per DAY
  * whether it is worth descending into that day's minutes at all — see the
  * comment on nextRunAt. The hour/minute fields are checked by the descent.
+ * @param {{ month: number; day: number; dow: number; }} parts
  */
 function dayMatches(fields, parts) {
     return fields.month.has(parts.month) &&
@@ -150,8 +169,17 @@ function dayMatches(fields, parts) {
  *     occurrence. (The repeated hour therefore does not fire twice — the old
  *     code dropped one of the two passes as well, it just dropped the early
  *     one and ran late.)
+ * @param {number} year
+ * @param {number} month
+ * @param {number} day
+ * @param {number} hour
+ * @param {number} minute
+ * @param {string} tz
  */
 function firstWallClockOccurrence(year, month, day, hour, minute, tz) {
+    /**
+     * @param {number} ts
+     */
     const isWallTime = (ts) => {
         const p = partsInTz(ts, tz);
         return p.year === year && p.month === month && p.day === day
@@ -193,6 +221,9 @@ function firstWallClockOccurrence(year, month, day, hour, minute, tz) {
  * the first match on a day it lets through. This is how a schedule skips
  * public holidays (automation/holidays.js) without a second scan. The 366-day
  * horizon is unchanged; a filter that rejects every matching day yields null.
+ * @param {string} [tz]
+ * @param {number} [fromTs]
+ * @param {string} cron
  */
 function nextRunAt(cron, tz = 'Europe/Amsterdam', fromTs = Date.now(), opts = undefined) {
     const fields = parseCron(cron);

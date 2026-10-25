@@ -32,7 +32,7 @@ function findOrderDocument(po, pairs) {
     let poEntry = po;
     let poSource = po ? 'name' : null;
     if (!poEntry) {
-        const orphans = pairs.filter((p) => p.role === PAIR_ROLES.DRAWING_ONLY);
+        const orphans = pairs.filter((/** @type {{ role: string; }} */ p) => p.role === PAIR_ROLES.DRAWING_ONLY);
         const family = pairs.filter((p) => p.cadFile).map((p) => p.baseName);
         const orphan = orphans.length === 1 ? orphans[0] : null;
         // The second half of the rule, and the one that stops it cutting a

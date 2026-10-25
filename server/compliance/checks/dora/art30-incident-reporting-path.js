@@ -114,6 +114,11 @@ async function _openDoraIncidents(orgId) {
 /**
  * The store's own `customer_notice_due_at` (set when the incident was filed)
  * wins; without it the clock is detected_at + the org's current notice window.
+ * @param {string | number | Date} dueAtStored
+ * @param {string | number | Date} detectedAt
+ * @param {string | number | Date} notifiedAt
+ * @param {number} noticeHours
+ * @param {number} now
  */
 function _clock(dueAtStored, detectedAt, notifiedAt, noticeHours, now) {
     const notified = notifiedAt ? new Date(notifiedAt).toISOString() : null;
@@ -221,6 +226,7 @@ module.exports = {
                 details: `${overdue.length} open DORA incident(s) passed the ${noticeHours} h customer-notice window without a recorded customer notification (ids ${overdue.map(i => i.id).join(', ')}). Notify the affected financial entities and stamp it on the incident, or close the incident with an assessment.` + relevanceNote,
             };
         }
+        /** @type {string[]} */
         const warnings = [];
         if (urgent.length) warnings.push(`${urgent.length} open DORA incident(s) reach the ${noticeHours} h customer-notice window within ${URGENT_HOURS} hour.`);
         if (contacts.entities === 0) warnings.push(`${contacts.usable} customer contact(s) configured but none names the financial entity it belongs to — record the entity so the notification can be addressed per customer.`);

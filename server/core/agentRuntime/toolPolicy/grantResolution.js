@@ -35,6 +35,7 @@ const {
  * the path where a config reaches this function WITHOUT having been clamped,
  * which is an invariant nothing enforces. Found in the manual review of this
  * layer before A2 — see .claude/handoff/A1B-RECHTENLAAG-REVIEW.md, finding 2.
+ * @param {string} appId
  */
 function allowedToolsFor(appId, toolsConfig) {
     if (!toolsConfig || !appId || RESERVED_TOOL_KEYS.includes(appId)) return null;
@@ -130,6 +131,8 @@ function isToolAllowed(tool, toolsConfig) {
  * explicit `'*'`. A missing (or unreadable) `actions` means "nothing is there", and
  * nothing is not a yes for these apps: nobody ever got to see them. For every
  * ordinary app the no-migration rule stays untouched.
+ * @param {string} appId
+ * @param {string} name
  */
 function _appAllowsTool(appId, name, toolsConfig) {
     const allowed = allowedToolsFor(appId, toolsConfig);

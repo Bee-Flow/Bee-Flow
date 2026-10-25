@@ -100,14 +100,20 @@ function cadMimeForName(filename) {
     return CAD_EXT_TO_MIME[m[1].toLowerCase()] || null;
 }
 
-/** Fold a declared mime to its canonical CAD mime (canonical → itself) — or null. */
+/**
+ * Fold a declared mime to its canonical CAD mime (canonical → itself) — or null.
+ * @param {string} declared
+ */
 function canonicalCadMime(declared) {
     const mime = String(declared || '').toLowerCase().trim();
     if (CAD_CANONICAL_MIMES.has(mime)) return mime;
     return CAD_MIME_ALIASES[mime] || null;
 }
 
-/** True when the mime is a canonical CAD mime or a known alias of one. */
+/**
+ * True when the mime is a canonical CAD mime or a known alias of one.
+ * @param {string} mime
+ */
 function isCadMime(mime) {
     return canonicalCadMime(mime) !== null;
 }

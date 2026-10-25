@@ -316,6 +316,7 @@ async function publishBlockVersionWith(client, id, { managedWrite = null, savedB
 async function getStepConsumers(blockId, { userId = null, organizationId = null } = {}) {
     await initDB();
     const params = [`%${blockId}%`];
+    /** @type {string[]} */
     const scope = [];
     if (userId) { params.push(userId); scope.push(`user_id = $${params.length}`); }
     if (organizationId) { params.push(organizationId); scope.push(`organization_id = $${params.length}`); }

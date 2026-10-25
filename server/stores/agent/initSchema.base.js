@@ -192,7 +192,7 @@ async function addProjectForeignKeys() {
             END $$;
         `);
     } catch (e) {
-        log.warn('[initSchema] project_id FK migration skipped:', e.message);
+        log.warn('[initSchema] project_id FK migration skipped:', /** @type {Error} */ (e).message);
     }
 }
 

@@ -13,7 +13,10 @@
  */
 'use strict';
 
-/** Milliseconds a transcription request may take; VOXTRAL_TIMEOUT_MS overrides. */
+/**
+ * Milliseconds a transcription request may take; VOXTRAL_TIMEOUT_MS overrides.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function voxtralTimeoutMs(env = process.env) {
     return Number(env.VOXTRAL_TIMEOUT_MS) || 1_800_000;
 }

@@ -145,7 +145,9 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     await assertRowQuota(app, table.key);
     await assertDbByteQuota(app);
 
+    /** @type {({ sql: string; params: (string | null)[]; })[]} */
     const statements = [];
+    /** @type {string[]} */
     const ids = [];
     for (const values of rows) {
         const compiled = queryCompiler.compileInsert(table, values, {
@@ -173,6 +175,7 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
  *
  * Yields `{ id, deleted, changes }`. 0 rows means "gone OR outside the viewer's scope", and the
  * caller makes one uniform "not found" of that, so the existence of a row never leaks.
+ * @param {string} recordId
  */
 async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
@@ -316,6 +319,7 @@ function dtStore() {
  * The rights decision, from a `viewer` alone: the shape the nodes receive. `sourceCtx` above
  * does the same from a step ctx; both end in the same `resolveDatatableWrite`, so that the route
  * and the step cannot each come up with their own answer.
+ * @param {'delete' | 'create' | 'update'} action
  */
 function resolveWrite(app, table, viewer, action) {
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
@@ -352,7 +356,9 @@ async function datatableInsert(bound, rows) {
         return out.inserted.map(r => r.id);
     }
 
+    /** @type {({ sql: string; params: (string | null)[]; })[]} */
     const statements = [];
+    /** @type {string[]} */
     const ids = [];
     for (const values of list) {
         const ins = queryCompiler.compileInsert(bound.tableMeta, values, {
@@ -395,7 +401,11 @@ function mirrorCtx(bound) {
     });
 }
 
-/** Eén rij in de datatabel wijzigen → het aantal geraakte rijen. */
+/**
+ * Eén rij in de datatabel wijzigen → het aantal geraakte rijen.
+ * @param {string} recordId
+ * @param {string | null} [expectedUpdatedAt]
+ */
 async function datatableUpdate(bound, recordId, values, expectedUpdatedAt = null) {
     if (isSourceMirror(bound)) {
         const r = await mirrorWrites(bound).updateRow(mirrorCtx(bound), String(recordId), values, { expectedUpdatedAt });
@@ -414,7 +424,10 @@ async function datatableUpdate(bound, recordId, values, expectedUpdatedAt = null
     return changes;
 }
 
-/** Eén rij uit de datatabel verwijderen → het aantal geraakte rijen. */
+/**
+ * Eén rij uit de datatabel verwijderen → het aantal geraakte rijen.
+ * @param {string} recordId
+ */
 async function datatableDelete(bound, recordId) {
     if (isSourceMirror(bound)) {
         const r = await mirrorWrites(bound).deleteRow(mirrorCtx(bound), String(recordId));
@@ -519,13 +532,14 @@ async function deleteDatatableRecord(app, table, step, ctx) {
  * Best-effort, with the same rationale as `bumpVersion` below: the row is already committed,
  * so failed bookkeeping must not turn the step red after all.
  * `jobs/datatableRetention` recounts `row_count` authoritatively.
+ * @param {number} delta
  */
 async function bumpDatatable(bound, delta) {
     try {
         const datatableStore = require('../../stores/datatableStore');
         await datatableStore.bumpAfterWrite(bound.datatable.id, bound.scope, delta);
     } catch (e) {
-        log.warn(`[ActionExecutor] datatable bookkeeping failed for ${bound.datatable && bound.datatable.id}: ${e.message}`);
+        log.warn(`[ActionExecutor] datatable bookkeeping failed for ${bound.datatable && bound.datatable.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -535,18 +549,21 @@ async function bumpVersion(app, tableKey) {
     } catch (e) {
         // A version-bump miss is a cache-staleness nuisance, not a data error —
         // the write already committed. Don't fail the step over it.
-        log.warn(`[ActionExecutor] data-version bump failed for ${app.id}/${tableKey}: ${e.message}`);
+        log.warn(`[ActionExecutor] data-version bump failed for ${app.id}/${tableKey}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
 // Best-effort row-count delta (feeds the cached quota reads). Same rationale
 // as bumpVersion: the write already committed, never fail over bookkeeping —
 // recountRows (on schema saves) heals any drift authoritatively.
+/**
+ * @param {number} delta
+ */
 async function bumpCount(app, tableKey, delta) {
     try {
         await studioAppDataStore.bumpRowCount(app.id, tableKey, delta, app.userId);
     } catch (e) {
-        log.warn(`[ActionExecutor] row-count bump failed for ${app.id}/${tableKey}: ${e.message}`);
+        log.warn(`[ActionExecutor] row-count bump failed for ${app.id}/${tableKey}: ${/** @type {Error} */ (e).message}`);
     }
 }
 

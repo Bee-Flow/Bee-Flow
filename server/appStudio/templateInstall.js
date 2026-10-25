@@ -93,6 +93,7 @@ function orderTablesByDependency(model) {
  * referenced parent's real rec_ id (or null when the parent was not seeded).
  */
 function resolveSeedRow(row, refMap) {
+    /** @type {string | null} */
     let alias = null;
     const values = {};
     for (const [key, v] of Object.entries(isObject(row) ? row : {})) {
@@ -172,7 +173,10 @@ function applySeedPeople(tpl, members) {
     return seed;
 }
 
-/** The installer first, then everyone else — your own board should have you on it. */
+/**
+ * The installer first, then everyone else — your own board should have you on it.
+ * @param {string} ownerId
+ */
 function orderMembersForSeed(members, ownerId) {
     const list = (Array.isArray(members) ? members : [])
         .filter((m) => m && m.id)
@@ -237,7 +241,7 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                 try {
                     counts = await studioAppDataStore.recountRows(appId, ownerId, model.tables);
                 } catch (e) {
-                    log.warn(`[templateInstall] row recount failed for ${appId} — skipping ALL seeding: ${e && e.message ? e.message : e}`);
+                    log.warn(`[templateInstall] row recount failed for ${appId} — skipping ALL seeding: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
                 }
                 for (const table of (Array.isArray(model.tables) ? model.tables : [])) {
                     const n = counts ? parseInt(counts[table.key], 10) : NaN;
@@ -255,7 +259,7 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                         : [];
                     seedRows = applySeedPeople(tpl, orderMembersForSeed(members, ownerId));
                 } catch (e) {
-                    log.warn(`[templateInstall] org directory unavailable for ${appId} — seeding the authored demo people: ${e && e.message ? e.message : e}`);
+                    log.warn(`[templateInstall] org directory unavailable for ${appId} — seeding the authored demo people: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
                 }
             }
 
@@ -272,7 +276,7 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                     } catch (e) {
                         // One bad/duplicate/over-quota row must not abort the
                         // install — the definition + model are already usable.
-                        log.warn(`[templateInstall] seed row skipped for ${appId} table ${table.key}: ${e && e.message ? e.message : e}`);
+                        log.warn(`[templateInstall] seed row skipped for ${appId} table ${table.key}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
                     }
                 }
             }
@@ -290,7 +294,7 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                     const existing = await studioAppDataStore.listDatasets(appId, ownerId);
                     existingNames = new Set((existing || []).map((d) => d && d.name).filter(Boolean));
                 } catch (e) {
-                    log.warn(`[templateInstall] dataset listing failed for ${appId} — skipping dataset creation: ${e && e.message ? e.message : e}`);
+                    log.warn(`[templateInstall] dataset listing failed for ${appId} — skipping dataset creation: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
                 }
             }
             for (const ds of tpl.datasets) {
@@ -305,14 +309,14 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                         cacheTtlSeconds: ds.cacheTtlSeconds,
                     });
                 } catch (e) {
-                    log.warn(`[templateInstall] dataset skipped for ${appId}: ${e && e.message ? e.message : e}`);
+                    log.warn(`[templateInstall] dataset skipped for ${appId}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
                 }
             }
         }
 
         return { ok: true, appId, dataModelVersion };
     } catch (e) {
-        return { ok: false, error: e && e.message ? e.message : String(e) };
+        return { ok: false, error: e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e) };
     }
 }
 

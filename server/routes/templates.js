@@ -86,6 +86,7 @@ const FillBody = bodyOf({
 /**
  * Refuse a knowledge base the caller may not search — see the header.
  * Returns the list unchanged when every id is usable.
+ * @param {string[]} ids
  */
 async function authorizeKbIds(req, ids) {
     if (!ids || ids.length === 0) return ids;
@@ -118,6 +119,7 @@ router.post('/upload', requireAuth, upload.single('file'), validate({ body: Uplo
     const buffer = req.file.buffer;
 
     // Extract text to detect parameters
+    /** @type {{ name: string; description: string; }[]} */
     let parameters = [];
     let extractedText = '';
     try {
@@ -125,10 +127,11 @@ router.post('/upload', requireAuth, upload.single('file'), validate({ body: Uplo
         extractedText = result.value || '';
         parameters = extractParameters(extractedText);
     } catch (err) {
-        log.warn(`[Templates] Failed to extract text from ${log.nameForLog(fileName)}:`, err.message);
+        log.warn(`[Templates] Failed to extract text from ${log.nameForLog(fileName)}:`, /** @type {Error} */ (err).message);
     }
 
     // Upload to RustFS
+    /** @type {string} */
     let storageKey;
     const storageName = `template_${Date.now()}_${crypto.randomBytes(4).toString('hex')}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
 
@@ -229,7 +232,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
             if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
         }
     } catch (cleanupErr) {
-        log.warn('[Templates] Storage cleanup failed:', cleanupErr.message);
+        log.warn('[Templates] Storage cleanup failed:', /** @type {Error} */ (cleanupErr).message);
     }
 
     res.json({ success: true });
@@ -265,6 +268,7 @@ router.get('/:id/download', requireAuth, async (req, res) => {
  * /fill-and-store, which differ only in where the result goes.
  */
 async function renderTemplate(template, values) {
+    /** @type {Buffer<ArrayBuffer> | NonSharedBuffer} */
     let templateBuffer;
     if (template.storageKey.startsWith('local:')) {
         // localTemplateFile refuses any path outside data/templates.

@@ -37,24 +37,39 @@ const KINDS = {
 };
 const PROBE_IP = '8.8.8.8';
 
-/** 'YYYY-MM' of `date` (UTC). */
+/**
+ * 'YYYY-MM' of `date` (UTC).
+ * @param {Date} date
+ */
 function monthOf(date) {
     return date.toISOString().slice(0, 7);
 }
 
-/** This month, then the previous one: a new edition can lag the 1st by a day. */
+/**
+ * This month, then the previous one: a new edition can lag the 1st by a day.
+ * @param {Date} [now]
+ */
 function monthsToTry(now = new Date()) {
     const cur = monthOf(now);
     const prev = monthOf(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)));
     return [cur, prev];
 }
 
+/**
+ * @param {string} kind
+ * @param {string} month
+ */
 function fileName(kind, month) {
     return `dbip-${kind}-lite-${month}.mmdb`;
 }
 
-/** The newest DB-IP Lite file of `kind` in `dir`: { month, file } or null. */
+/**
+ * The newest DB-IP Lite file of `kind` in `dir`: { month, file } or null.
+ * @param {string} dir
+ * @param {string} kind
+ */
 function newestLocal(dir, kind) {
+    /** @type {string[]} */
     let names = [];
     try { names = fs.readdirSync(dir); } catch { return null; }
     const re = new RegExp(`^dbip-${kind}-lite-(\\d{4}-\\d{2})\\.mmdb$`);
@@ -82,6 +97,9 @@ function validateMmdb(buf, kind) {
 /**
  * Download one edition. Resolves the inflated buffer, or null on a 404 (that
  * month is not published yet). Any other failure throws.
+ * @param {string} kind
+ * @param {number} timeoutMs
+ * @param {string} month
  */
 async function _download(kind, month, fetchImpl, timeoutMs) {
     const url = `${BASE_URL}/dbip-${kind}-lite-${month}.mmdb.gz`;
@@ -108,6 +126,7 @@ async function _download(kind, month, fetchImpl, timeoutMs) {
 async function fetchGeoDb({ dir, kinds = ['city', 'asn'], now = new Date(), force = false, fetchImpl = fetch, timeoutMs = 10 * 60 * 1000 }) {
     fs.mkdirSync(dir, { recursive: true });
     const months = monthsToTry(now);
+    /** @type {({ kind: 'city' | 'asn'; month: string; file: string; downloaded: boolean; })[]} */
     const out = [];
     for (const kind of kinds) {
         const have = newestLocal(dir, kind);
@@ -115,6 +134,7 @@ async function fetchGeoDb({ dir, kinds = ['city', 'asn'], now = new Date(), forc
             out.push({ kind, month: have.month, file: have.file, downloaded: false });
             continue;
         }
+        /** @type {{ kind: 'city' | 'asn'; month: string; file: string; downloaded: boolean; } | null} */
         let done = null;
         for (const month of months) {
             if (have && !force && have.month >= month) break; // nothing newer to get

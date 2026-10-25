@@ -66,7 +66,10 @@ const DB_CLOCK_ISO = `to_char(NOW() AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS
 // applies, which already protects a person's rows.
 const ROW_UNSTAMPED_ISO = `to_char(created_at AT TIME ZONE 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
-/** Een JSON-scalar in een array-kolom telt als leeg — zelfde regel als parseJsonArray. */
+/**
+ * Een JSON-scalar in een array-kolom telt als leeg — zelfde regel als parseJsonArray.
+ * @param {string} expr
+ */
 function jsonbArrayOf(expr) {
     return `CASE WHEN jsonb_typeof(${expr}) = 'array' THEN ${expr} ELSE '[]'::jsonb END`;
 }
@@ -79,6 +82,7 @@ function jsonbArrayOf(expr) {
  * is not an object passes untouched — it cannot handle the `- 'key'` operator, and
  * "unknown" should end here as "changed" (narrowing: the row then counts as touched
  * during the run).
+ * @param {string} expr
  */
 function artifactRowBody(expr) {
     return `(CASE WHEN jsonb_typeof(${expr}) = 'object'
@@ -114,6 +118,9 @@ function artifactRowBody(expr) {
  * cannot be seen here, and losing a fresh timestamp or assignee on one row does not
  * weigh against silently undoing a check or a correction. The next regeneration
  * refreshes it anyway.
+ * @param {string} column
+ * @param {string} valuePh
+ * @param {string | null} sincePh
  */
 function artifactColumnSql(column, valuePh, sincePh) {
     const stored = jsonbArrayOf(column);
@@ -122,6 +129,9 @@ function artifactColumnSql(column, valuePh, sincePh) {
     // "This row was touched after the starting point of the run." Without a starting
     // point there is no window and the answer is always no. A row without a stamp
     // gives NULL and therefore also no — unknown narrows.
+    /**
+     * @param {string} expr
+     */
     const touchedDuringTheRun = (expr) => (sincePh ? `(${expr})->>'touchedAt' > ${sincePh}::text` : 'false');
     const keptFromTheRun = sincePh ? `
                 UNION ALL

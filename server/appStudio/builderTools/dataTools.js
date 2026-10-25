@@ -47,7 +47,7 @@ async function applySeedRecords(draftWrap, args) {
     const studioAppStore = require('../../stores/studioAppStore');
     let app = null;
     try { app = await studioAppStore.getStudioApp(draftWrap.appId); } catch (e) {
-        return { error: `Could not load the app: ${e.message}` };
+        return { error: `Could not load the app: ${/** @type {Error} */ (e).message}` };
     }
     if (!app) return { error: 'This app no longer exists — it may have been deleted in another tab.' };
 
@@ -64,7 +64,7 @@ async function applySeedRecords(draftWrap, args) {
             const { id } = await writeRecord(app, model, table, rec, { viewer });
             ids.push(id);
         } catch (e) {
-            failed.push({ index: i, error: e.message, ...(e.code ? { code: e.code } : {}) });
+            failed.push({ index: i, error: /** @type {Error} */ (e).message, ...(e.code ? { code: e.code } : {}) });
             if (e.code === 'quota_exceeded') {
                 // Every remaining row would hit the same wall — stop here.
                 if (i < records.length - 1) failed.push({ index: i + 1, error: `rows ${i + 1}–${records.length - 1} skipped after the quota error` });
@@ -144,7 +144,7 @@ async function applyUpsertDataset(draftWrap, args) {
             created = true;
         }
     } catch (e) {
-        return { error: `Could not save the dataset: ${e.message}` };
+        return { error: `Could not save the dataset: ${/** @type {Error} */ (e).message}` };
     }
 
     let app = null;
@@ -174,7 +174,7 @@ async function applyUpsertDataset(draftWrap, args) {
             try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (err) { bestEffort('appStudio/builderTools/dataTools:applyUpsertDataset', err); /* best-effort */ }
         }
         return {
-            error: `The dataset descriptor did not compile: ${e.message}`,
+            error: `The dataset descriptor did not compile: ${/** @type {Error} */ (e).message}`,
             _fixHint: `groupBy/aggregate/filter fields must be field keys on "${table.key}" (${(table.fields || []).map((f) => f.key).join(', ')}); fns: ${AGG_FNS.join(', ')}.${created ? ' The dataset was NOT saved — fix the descriptor and call again.' : ' The dataset kept the new descriptor — fix it with another app_upsert_dataset call.'}`,
         };
     }

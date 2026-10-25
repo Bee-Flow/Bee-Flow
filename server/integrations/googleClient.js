@@ -24,6 +24,7 @@ const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
  * Exchange the session's refresh_token for a fresh access_token. Updates the
  * session in place and persists via session.save() so the new token survives
  * across requests. Throws on missing refresh token or non-2xx from Google.
+ * @param {GoogleSession} session
  */
 async function refreshAccessToken(session) {
     const config = await loadConfig();
@@ -73,12 +74,17 @@ async function refreshAccessToken(session) {
 /**
  * Authenticated fetch against a Google REST endpoint. Retries once with a
  * refreshed token on 401. Mirrors `msGraphClient.graphFetch`.
+ * @param {string | URL | Request} url
+ * @param {GoogleSession} session
  */
 async function googleFetch(url, session, options = {}) {
     if (!session?.accessToken) {
         throw new Error('NOT_CONNECTED');
     }
 
+    /**
+     * @param {string} token
+     */
     const doFetch = async (token) => {
         const headers = {
             'Authorization': `Bearer ${token}`,
@@ -97,7 +103,7 @@ async function googleFetch(url, session, options = {}) {
             const newToken = await refreshAccessToken(session);
             response = await doFetch(newToken);
         } catch (refreshErr) {
-            log.error('[Google] Token refresh failed:', refreshErr.message);
+            log.error('[Google] Token refresh failed:', /** @type {Error} */ (refreshErr).message);
             throw new Error('NOT_CONNECTED');
         }
     }
@@ -138,7 +144,7 @@ async function revokeToken(token) {
         });
         return r.ok;
     } catch (e) {
-        log.warn('[Google] revoke failed:', e.message);
+        log.warn('[Google] revoke failed:', /** @type {Error} */ (e).message);
         return false;
     }
 }

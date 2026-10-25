@@ -159,14 +159,17 @@ const { SOLUTION_HOLDS_NO_CHATS } = require('./projects/threads');
  * may no longer even be a member. So the refusal names which chats and whose
  * (`details.chats`: ids only, the member list names the people), so the page
  * can say whom to ask.
+ * @param {string} projectId
+ * @param {number} count
  */
 async function sharedChatsRemain(projectId, count) {
     const n = Math.max(1, Number(count) || 1);
+    /** @type {{ sharedChats: number; chats?: { id: string; type: 'direct' | 'agent'; ownerId: string; }[] }} */
     const details = { sharedChats: n };
     try {
         details.chats = await projectStore.listSharedThreads(projectId, { limit: 20 });
     } catch (err) {
-        log.warn('[Projects] could not list the shared chats blocking a delete:', err.message);
+        log.warn('[Projects] could not list the shared chats blocking a delete:', /** @type {Error} */ (err).message);
     }
     return new HttpError(409, 'SHARED_CHATS_REMAIN',
         n === 1
@@ -295,6 +298,7 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
         // Bounded, and never in the future: a client clock that is ahead would
         // otherwise report every Solution as having run nothing today.
         const now = new Date();
+        /** @type {Date | null} */
         let since = null;
         const asked = req.query.since ? new Date(String(req.query.since)) : null;
         if (asked && !Number.isNaN(asked.getTime())) {
@@ -328,7 +332,7 @@ router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => 
             hasMore: picked.length > projects.length,
         });
     } catch (err) {
-        log.error('[Projects] Summary error:', err.message);
+        log.error('[Projects] Summary error:', /** @type {Error} */ (err).message);
         throw new HttpError(500, 'summary_failed', 'Request failed', {
             projects: [], operatedStages: [], unavailable: ['all'], hasMore: false,
         });
@@ -499,12 +503,13 @@ router.delete('/:id', requireRole('owner', { allowArchived: true }), async (req,
     // deleting it, after folding co-edited state back into its items; the
     // files base goes only once the delete went through. Deleting a project
     // must never destroy the work its members did inside it.
+    /** @type {boolean} */
     let ok;
     try {
         ok = await projectTeardown.deleteProject(projectId);
     } catch (err) {
         // A chat shared between the count above and this statement.
-        if (err?.code === '23514' && /shared_needs_project/.test(String(err.constraint || err.message))) {
+        if (err?.code === '23514' && /shared_needs_project/.test(String(err.constraint || /** @type {Error} */ (err).message))) {
             throw await sharedChatsRemain(projectId, await projectStore.countSharedThreads(projectId).catch(() => 1));
         }
         throw err;

@@ -45,7 +45,10 @@ const APP_PUBLISH_COLUMNS = {
     accentColor: 'accent_color',
 };
 
-/** theme.primary out of a definition (object or JSON string); null if absent. */
+/**
+ * theme.primary out of a definition (object or JSON string); null if absent.
+ * @param {string} definition
+ */
 function readThemePrimary(definition) {
     try {
         const def = typeof definition === 'string' ? JSON.parse(definition) : definition;
@@ -148,6 +151,7 @@ async function setStudioAppAudience(io, id, ownerId, { isPublished, sharedGroups
         if (cur.rows.length === 0) {
             return rollback(false);
         }
+        /** @type {Record<string, string | boolean | string[] | null | undefined>} */
         const write = { isPublished: !!isPublished, sharedGroups, organizationId };
         await guardOf(io).assertManagedWrite({
             kind: 'app', projectId: cur.rows[0].project_id ?? null, managedWrite, client,
@@ -192,6 +196,7 @@ async function publishDefinitionWith(io, client, id, definition, version, { mana
         kind: 'app', projectId: cur.rows[0].project_id ?? null,
         changedKeys: ['publishedDefinition', 'publishedVersion'], managedWrite, client,
     });
+    /** @type {{ publishedDefinition: string; publishedVersion: number | null; accentColor?: string }} */
     const write = { publishedDefinition: payload, publishedVersion: Number.isInteger(version) ? version : null };
     const primary = readThemePrimary(payload);
     if (primary) write.accentColor = primary;

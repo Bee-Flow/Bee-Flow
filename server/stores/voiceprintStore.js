@@ -146,6 +146,7 @@ async function markPending({ userId, organizationId, provider = DEFAULT_PROVIDER
  * to NULL the blob, so anyone with a working profile who tapped "record again"
  * and stopped two seconds early lost it to a plain 400. Only
  * `upsertVoiceprint` may write that column.
+ * @param {string} provider
  */
 async function markFailed(userId, provider, errorCode) {
     await initDB();
@@ -215,6 +216,8 @@ async function upsertVoiceprint({
  * A user's own voiceprint — METADATA ONLY. There is deliberately no variant
  * of this that returns the template; the only reader of the plaintext is
  * `loadVoiceprintBlobs`, which feeds the pyannote request directly.
+ * @param {string} userId
+ * @param {string} [provider]
  */
 async function getVoiceprintForUser(userId, provider = DEFAULT_PROVIDER) {
     await initDB();
@@ -233,6 +236,8 @@ async function getVoiceprintForUser(userId, provider = DEFAULT_PROVIDER) {
  * being matched without any cleanup job.
  *
  * @returns {Promise<Array<{id, userId, displayName, lastMatchedAt, matchCount, createdAt}>>}
+ * @param {string} orgId
+ * @param {string} [provider]
  */
 async function listOrgVoiceprintMeta(orgId, provider = DEFAULT_PROVIDER) {
     await initDB();
@@ -271,6 +276,7 @@ async function listOrgVoiceprintMeta(orgId, provider = DEFAULT_PROVIDER) {
  * cost that person their name, never the whole meeting.
  *
  * @returns {Promise<Array<{id: string, userId: string, voiceprint: string}>>}
+ * @param {string} orgId
  */
 async function loadVoiceprintBlobs(ids, orgId) {
     await initDB();
@@ -292,7 +298,11 @@ async function loadVoiceprintBlobs(ids, orgId) {
     return out;
 }
 
-/** { enrolled, members } for the org coverage panel. */
+/**
+ * { enrolled, members } for the org coverage panel.
+ * @param {string} orgId
+ * @param {string} [provider]
+ */
 async function countOrgCoverage(orgId, provider = DEFAULT_PROVIDER) {
     await initDB();
     if (!orgId) return { enrolled: 0, members: 0 };
@@ -316,10 +326,14 @@ async function recordMatches(ids) {
             [ids]
         );
     } catch (e) {
-        log.warn('[VoiceprintStore] recordMatches failed:', e.message);
+        log.warn('[VoiceprintStore] recordMatches failed:', /** @type {Error} */ (e).message);
     }
 }
 
+/**
+ * @param {string} userId
+ * @param {string} [provider]
+ */
 async function deleteVoiceprintForUser(userId, provider = DEFAULT_PROVIDER) {
     await initDB();
     const { rowCount } = await run(

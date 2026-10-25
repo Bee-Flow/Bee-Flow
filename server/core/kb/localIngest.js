@@ -30,6 +30,9 @@ function wire(deps) {
 // node-search pipeline can share the exact same Azure-aware chain.
 
 // ── Embedding cost tracking (lazy-loaded) ────────────────────────────
+/**
+ * @param {number} totalTokensEstimate
+ */
 function _trackEmbeddingCost(totalTokensEstimate) {
     try {
         const { computeEmbeddingCost } = loadAzureServiceCosts();
@@ -81,7 +84,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
         try {
             require('../documents/pageOffsets').stampChunkPages(chunks, pages);
         } catch (e) {
-            log.warn(`[LocalKBIngest] Page stamping skipped: ${e.message}`);
+            log.warn(`[LocalKBIngest] Page stamping skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
     log.info(`[LocalKBIngest] Chunked into ${chunks.length} pieces`);
@@ -157,7 +160,9 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
             const hasVectors = isPgvectorAvailable() && embeddings.length > 0;
 
+            /** @type {string[]} */
             const values = [];
+            /** @type {(string | number | null | undefined)[]} */
             const params = [];
             let paramIdx = 1;
 
@@ -281,7 +286,7 @@ async function purgeOrphanedChunks() {
             client.release();
         }
     } catch (err) {
-        log.warn('[LocalKBIngest] Orphan purge failed:', err.message);
+        log.warn('[LocalKBIngest] Orphan purge failed:', /** @type {Error} */ (err).message);
         return 0;
     }
 }

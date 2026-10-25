@@ -58,6 +58,9 @@ function scanCategoriesFor(shield, toolClass = null) {
 // Combined matchers per set of types, reused while the types do not change.
 const COMPILED_MAX = 64;
 const _compiled = new Map();
+/**
+ * @param {string} key
+ */
 function _compiledFor(types, key) {
     const hit = _compiled.get(key);
     if (hit) { _compiled.delete(key); _compiled.set(key, hit); return hit; }

@@ -106,6 +106,9 @@ const MEETING_SOURCE_CONFIG_KEY = 'meetingId';
  */
 const FILED_LINE_ORIGIN_SQL = `s.config->'metadata'->>'transcriptionId'`;
 
+/**
+ * @param {string} name
+ */
 async function tableExists(name, client) {
     try {
         const r = await (client || pool).query('SELECT to_regclass($1) AS t', [name]);
@@ -124,6 +127,8 @@ async function tableExists(name, client) {
  * never read. Both a missing table and a missing column answer false, and so
  * does a probe that throws — every one of those is "I could not check", which
  * the caller records as `partial`.
+ * @param {string} table
+ * @param {string} column
  */
 async function columnExists(table, column, client) {
     try {
@@ -179,6 +184,7 @@ async function scanKb(meeting, db) {
     // than fixed so an empty tag list never reaches Postgres as
     // `= ANY('{}'::text[])`, which the sibling stores document as a `pg`
     // version trap.
+    /** @type {string[]} */
     const where = [];
     const params = [];
     if (tags.length > 0) {
@@ -260,6 +266,7 @@ async function scanKb(meeting, db) {
  *
  * A query that fails throws; it must NEVER come back as an empty list, because then "I could not look" would
  * be read as "nothing was there" and the cleanup action would report clean while the claim remains.
+ * @param {Pool} [db]
  */
 async function filedTranscriptSources(meetingId, db = pool) {
     const id = meetingId != null ? String(meetingId) : '';
@@ -282,6 +289,8 @@ async function filedTranscriptSources(meetingId, db = pool) {
  * The later of two timestamps, with anything unparseable losing to a value
  * that IS a time. Never invents one: two unreadable stamps answer the
  * incumbent, which may be null.
+ * @param {string | number | Date} current
+ * @param {string | number | Date} candidate
  */
 function latest(current, candidate) {
     const a = current == null ? NaN : new Date(current).getTime();
@@ -375,7 +384,10 @@ async function scanAutomation(meeting, db) {
     return { rows, undecided };
 }
 
-/** `definition_json` is jsonb on every install, but a text column would parse the same. */
+/**
+ * `definition_json` is jsonb on every install, but a text column would parse the same.
+ * @param {string} value
+ */
 function parseDefinition(value) {
     if (value && typeof value === 'object') return value;
     if (typeof value === 'string') {
@@ -462,6 +474,7 @@ async function scanNotebook(meeting, db) {
 async function usageForMeeting(meeting, { db = pool } = {}) {
     if (!meeting || meeting.id == null || meeting.id === '') return { rows: [], partial: [] };
     const rows = [];
+    /** @type {string[]} */
     const partial = [];
 
     // kb ─────────────────────────────────────────────────────────────
@@ -472,7 +485,7 @@ async function usageForMeeting(meeting, { db = pool } = {}) {
             rows.push(...await scanKb(meeting, db));
         }
     } catch (e) {
-        log.warn(`[MeetingUsage] kb scan failed for ${meeting.id}:`, e.message);
+        log.warn(`[MeetingUsage] kb scan failed for ${meeting.id}:`, /** @type {Error} */ (e).message);
         partial.push('kb');
     }
 
@@ -486,7 +499,7 @@ async function usageForMeeting(meeting, { db = pool } = {}) {
             if (undecided) partial.push('automation');
         }
     } catch (e) {
-        log.warn(`[MeetingUsage] automation scan failed for ${meeting.id}:`, e.message);
+        log.warn(`[MeetingUsage] automation scan failed for ${meeting.id}:`, /** @type {Error} */ (e).message);
         partial.push('automation');
     }
 
@@ -500,7 +513,7 @@ async function usageForMeeting(meeting, { db = pool } = {}) {
             if (undecided) partial.push('notebook');
         }
     } catch (e) {
-        log.warn(`[MeetingUsage] notebook scan failed for ${meeting.id}:`, e.message);
+        log.warn(`[MeetingUsage] notebook scan failed for ${meeting.id}:`, /** @type {Error} */ (e).message);
         partial.push('notebook');
     }
 
@@ -515,6 +528,7 @@ async function usageForMeeting(meeting, { db = pool } = {}) {
  * loses its NAME, so a shared meeting cannot be used to enumerate an
  * organisation's automations and knowledge bases. A row with no owner at all
  * (org-scoped) is nobody's private business and stays whole.
+ * @param {string} userId
  */
 function redactForeign(rows, userId) {
     return (Array.isArray(rows) ? rows : []).map((r) => {

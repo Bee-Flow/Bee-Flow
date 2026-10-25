@@ -64,6 +64,10 @@ const CRA_EVENT = 'cra_vulnerability_reported';
 
 const crypto = require('crypto');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
+/**
+ * @param {number} incidentId
+ * @param {string} [checkId]
+ */
 function _recordIncidentEvidence(orgId, incidentId, payload, checkId = BREACH_CHECK_ID) {
     // The attestation the admin just made stands whatever the ledger does, but
     // a swallowed append leaves the trail claiming the attestation never
@@ -79,6 +83,10 @@ function _recordIncidentEvidence(orgId, incidentId, payload, checkId = BREACH_CH
     return complianceStore.addEvidence(row).catch(onEvidenceWriteFailed(row));
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} checkId
+ */
 function _rerun(orgId, checkId) {
     runner.runOne(orgId, checkId, { runType: 'event' }).catch((e) => bestEffort('routes/compliance/incidents:_rerun', e));
 }
@@ -94,6 +102,9 @@ function _regimesOf(incident) {
 // this an incident registered with a clock already running kept its "no open
 // incident" pass until the next sweep, and a stamp kept the stale fail.
 // _rerun swallows the 409 of a framework that is switched off.
+/**
+ * @param {string} orgId
+ */
 function _rerunRegimeChecks(orgId, incident) {
     const regimes = _regimesOf(incident);
     if (regimes.includes('NIS2')) _rerun(orgId, NIS2_CHECK_ID);
@@ -118,6 +129,10 @@ function _isCra(incident) {
     return regimes.includes('CRA');
 }
 
+/**
+ * @param {number} [max]
+ * @param {number} [len]
+ */
 function _stringList(v, max = 50, len = 200) {
     const list = Array.isArray(v) ? v : (typeof v === 'string' && v.trim() ? v.split(/[,\s]+/) : []);
     return list.map(s => String(s || '').trim()).filter(Boolean).map(s => s.slice(0, len)).slice(0, max);
@@ -126,8 +141,12 @@ function _stringList(v, max = 50, len = 200) {
 // ── What a body may carry ───────────────────────────────────────────
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = (/** @type {{ title?: import("zod").ZodString | import("zod").ZodOptional<import("zod").ZodString>; description?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; severity?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; high_risk?: import("zod").ZodOptional<import("zod").ZodBoolean>; occurred_at?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; detected_at?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; kind?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; regimes?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodArray<import("zod").ZodString>]>>>; exploited_in_wild?: import("zod").ZodOptional<import("zod").ZodBoolean>; actively_exploited?: import("zod").ZodOptional<import("zod").ZodBoolean>; affected_products?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodArray<import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodObject<{ name: import("zod").ZodOptional<import("zod").ZodString>; version_range: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; }, import("zod/v4/core").$loose>]>>]>>>; cve_ids?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodArray<import("zod").ZodString>]>>>; reported_via?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; status?: import("zod").ZodOptional<import("zod").ZodEnum<{ [x: string]: string; }>>; authority_reference?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; note?: import("zod").ZodOptional<import("zod").ZodString>; stage?: import("zod").ZodEnum<{ [x: string]: string; }>; reference?: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodString>>; }} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ * @param {string[]} values
+ */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 // Mirrors incidentStore.VALID_SEVERITIES / VALID_STATUSES. Kept here rather
@@ -136,7 +155,10 @@ const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 const STATUSES = ['open', 'assessing', 'early_warning_sent', 'authority_notified', 'reported', 'subjects_notified', 'closed'];
 const STAGES = ['early_warning', 'full'];
 
-/** Anything `new Date()` can read — the form posts a datetime-local value, not an ISO instant. */
+/**
+ * Anything `new Date()` can read — the form posts a datetime-local value, not an ISO instant.
+ * @param {string} name
+ */
 const moment = (name) => worded(`${name} must be a date.`)
     .refine((v) => !Number.isNaN(new Date(v).getTime()), `${name} must be a date.`);
 
@@ -146,6 +168,9 @@ const moment = (name) => worded(`${name} must be a date.`)
  * breach extra hours. Five minutes cover a browser clock that runs ahead.
  */
 const AWARENESS_SKEW_MS = 5 * 60 * 1000;
+/**
+ * @param {string} name
+ */
 const awareness = (name) => moment(name)
     // An unreadable date is moment()'s refusal; this one only judges a real date.
     .refine((v) => { const ms = new Date(v).getTime(); return Number.isNaN(ms) || ms <= Date.now() + AWARENESS_SKEW_MS; }, `${name} cannot be in the future.`);
@@ -203,7 +228,10 @@ const IncidentQuery = z.object({
 /** The stamp routes read nothing from the body; a key there is a mistake, not a default. */
 const NoBody = bodyOf({});
 
-/** 409 framework_disabled when the org has not enabled the CRA framework. */
+/**
+ * 409 framework_disabled when the org has not enabled the CRA framework.
+ * @param {string} orgId
+ */
 async function _requireCra(req, orgId, res) {
     const active = await frameworkPolicy.activeRegulations(orgId, { req });
     if (active.has('CRA')) return true;
@@ -211,6 +239,9 @@ async function _requireCra(req, orgId, res) {
     return false;
 }
 
+/**
+ * @param {string} raw
+ */
 function _parseId(raw) {
     const id = parseInt(raw, 10);
     return Number.isInteger(id) && id > 0 ? id : null;
@@ -234,11 +265,12 @@ router.post('/incidents', requireAuth, requirePermission('admin_compliance'), va
         if (!incidentStore.VALID_KINDS.includes(kind)) {
             return res.status(400).json({ error: 'invalid_kind', allowed: incidentStore.VALID_KINDS });
         }
+        /** @type {string[]} */
         let regimes;
         try {
             regimes = incidentStore.normalizeRegimes(body.regimes, kind);
         } catch (e) {
-            return res.status(400).json({ error: 'invalid_regime', message: e.message, allowed: incidentStore.VALID_REGIMES });
+            return res.status(400).json({ error: 'invalid_regime', message: /** @type {Error} */ (e).message, allowed: incidentStore.VALID_REGIMES });
         }
         // A CRA vulnerability without the CRA framework would start clocks
         // nobody watches — refuse instead of recording a silent obligation.
@@ -293,7 +325,7 @@ router.post('/incidents', requireAuth, requirePermission('admin_compliance'), va
         _rerunRegimeChecks(orgId, incident);
         res.status(201).json(incident);
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -320,7 +352,7 @@ router.patch('/incidents/:id', requireAuth, requirePermission('admin_compliance'
         _rerunRegimeChecks(orgId, updated);
         res.json(updated);
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -360,7 +392,7 @@ router.post('/incidents/:id/cra-report', requireAuth, requirePermission('admin_c
         _rerunRegimeChecks(orgId, incident);
         res.json(updated);
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -388,7 +420,7 @@ router.post('/incidents/:id/customer-notified', requireAuth, requirePermission('
         _rerunRegimeChecks(orgId, incident);
         res.json(updated);
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -420,7 +452,7 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
         if (!incident) return res.status(404).json({ error: 'not found' });
         const settings = await complianceStore.getSettings(orgId);
         const recipients = (Array.isArray(settings.breach_recipients) ? settings.breach_recipients : [])
-            .filter(r => typeof r === 'string' && r.includes('@'));
+            .filter((/** @type {string | string[]} */ r) => typeof r === 'string' && r.includes('@'));
         if (!recipients.length) {
             return res.status(400).json({ error: 'no_breach_recipients', message: 'Add breach notification recipients under Compliance → Settings first.' });
         }
@@ -441,7 +473,7 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
             // SMTP rejection routinely quotes the address it could not deliver to
             // ("550 5.1.1 <name@example.com>: recipient unknown"), which is
             // exactly the string that must not reach a response body or a log.
-            log.error(`[Compliance] breach notification failed for incident ${id} (${mailErr?.code || mailErr?.name || 'Error'})`);
+            log.error(`[Compliance] breach notification failed for incident ${id} (${mailErr?.code || /** @type {Error} */ (mailErr)?.name || 'Error'})`);
             throw new HttpError(502, 'notification_failed', 'The breach notification could not be sent. Check the mail settings and try again.');
         }
         const updated = await incidentStore.updateIncident(orgId, id, {
@@ -461,7 +493,7 @@ router.post('/incidents/:id/notify-recipients', requireAuth, requirePermission('
         // `e.message` can be a Postgres error quoting the row value that broke
         // it, or a settings read carrying the recipient list — it stays out of
         // the response and out of the log (finding 5's reasoning, same table).
-        log.error(`[Compliance] notify-recipients failed for incident ${id} (${e?.code || e?.name || 'Error'})`);
+        log.error(`[Compliance] notify-recipients failed for incident ${id} (${e?.code || /** @type {Error} */ (e)?.name || 'Error'})`);
         throw new HttpError(500, 'notify_failed', 'Could not send the breach notification.');
     }
 });

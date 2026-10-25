@@ -46,6 +46,7 @@ void childObject;
  * replace_step, `patch` for update_step(s), null for single add tools).
  * type/tool are reported only once their string has closed — half a tool name
  * is not a tool — while a label is shown as it is typed.
+ * @param {string | null} typeOverride
  */
 function stepFrom(primary, nested, typeOverride) {
     const lookup = nested ? [nested, primary] : [primary];
@@ -57,7 +58,10 @@ function stepFrom(primary, nested, typeOverride) {
     return { type, tool, label, partial };
 }
 
-/** Loop bodies: raw engine step objects (`{type, tool?, label?}`), flattened after their loop. */
+/**
+ * Loop bodies: raw engine step objects (`{type, tool?, label?}`), flattened after their loop.
+ * @param {{ capped: boolean; }} [hit]
+ */
 function bodySteps(primary, nested, out, hit = {}) {
     const arr = childArray(primary, 'body') || (nested && childArray(nested, 'body'));
     for (const el of objectElements(arr)) {
@@ -67,7 +71,10 @@ function bodySteps(primary, nested, out, hit = {}) {
     }
 }
 
-/** builder_add_<x> → the engine type the client should draw. */
+/**
+ * builder_add_<x> → the engine type the client should draw.
+ * @param {string} name
+ */
 function inferredType(name) {
     const rest = name.replace(/^builder_add_/, '');
     return rest || null;
@@ -136,11 +143,17 @@ function scanToolDraft(name, partialJson) {
 }
 
 /**
+ * @typedef {Object} DeriveDraftKeyArgs
+ * @property {{ type: string | null; tool: string | null; label: string | null; partial: boolean; }[]} [steps]
+ * @property {string[]} [inspect]
+ */
+/**
  * A short string that changes exactly when a DERIVED field changes: a step
  * appears, a type or tool becomes known, a label finishes, an inspected tool
  * name lands. The text of a label that is still being typed is left out on
  * purpose — it changes on every token, and the 250 ms throttle already carries
  * it to the client; the key is what earns an IMMEDIATE emit.
+ * @param {DeriveDraftKeyArgs} [param0]
  */
 function deriveDraftKey({ steps, inspect } = {}) {
     const s = Array.isArray(steps) ? steps : [];

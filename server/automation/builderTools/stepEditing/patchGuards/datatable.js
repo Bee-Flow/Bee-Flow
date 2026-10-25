@@ -17,7 +17,10 @@ const {
     resolveDatatableColumns, checkExtractionFieldRefs,
 } = require('../../stepBuilders/datatableStep');
 
-/** The datatable translation: { refusal } or { patch } (the translated one). */
+/**
+ * The datatable translation: { refusal } or { patch } (the translated one).
+ * @param {string[]} patchNotes
+ */
 function translateDatatablePatch(step, patch, patchNotes) {
     if (step.type === 'datatable') {
         const tr = translateDatatableVocabulary(patch);
@@ -34,7 +37,10 @@ function translateDatatablePatch(step, patch, patchNotes) {
     return { patch };
 }
 
-/** The fill-only table link: { refusal } or { filledTable } (null when nothing was filled). */
+/**
+ * The fill-only table link: { refusal } or { filledTable } (null when nothing was filled).
+ * @param {string[]} patchNotes
+ */
 function linkDatatablePatch(stepId, step, patch, draftWrap, patchNotes) {
     // FILL-ONLY: a datatable step that already names a table keeps it. The
     // patch exists so an IMPORTED step — whose id export deliberately blanked —
@@ -92,7 +98,7 @@ function patchDatatableBody(graph, step, patch, next, { filledTable, draftWrap, 
         // mean. null = no catalog or no match → the column checks are skipped.
         const tableId = filledTable ? filledTable.id : step.datatableId;
         const table = filledTable || ((Array.isArray(draftWrap?._datatables) && typeof tableId === 'string' && tableId)
-            ? (draftWrap._datatables.find(t => t && t.id === tableId) || null)
+            ? (draftWrap._datatables.find((/** @type {{ id: string; }} */ t) => t && t.id === tableId) || null)
             : null);
         const opAfter = ('op' in patch) ? patch.op : step.op;
         // The add path refuses a write on a table this user can only read; a

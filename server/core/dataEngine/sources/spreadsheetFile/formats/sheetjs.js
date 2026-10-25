@@ -122,6 +122,8 @@ function rangeOf(ws, { full = false } = {}) {
 /**
  * The workbook's tabs, in file order.
  * @returns {Promise<Array<{ name, index, hidden, rows, cols }>>}  rows/cols = the used range (≤ the probe cap)
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} format
  */
 async function listSheets(buffer, format, { probeRows = 10_001 } = {}) {
     const wb = await readWorkbook(buffer, format, {
@@ -219,6 +221,7 @@ async function readSheet(buffer, { format, sheet, headerRow = 1, maxRows, maxCol
     if (!ws || !range || h - 1 > range.e.r) headerMissing(name);
 
     // The header: cells up to the last non-empty one, capped.
+    /** @type {(string | number | boolean | Date | null)[]} */
     const headerCells = [];
     let lastHeader = -1;
     for (let c = 0; c <= range.e.c; c += 1) {
@@ -232,6 +235,7 @@ async function readSheet(buffer, { format, sheet, headerRow = 1, maxRows, maxCol
         warnings.push(`Only the first ${maxCols} of ${span} columns are read.`);
         span = maxCols;
     }
+    /** @type {(string | number | boolean | Date | null)[]} */
     const header = [];
     for (let c = 0; c < span; c += 1) header.push(headerCells[c] === undefined ? null : headerCells[c]);
 

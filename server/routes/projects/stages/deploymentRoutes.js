@@ -1,3 +1,4 @@
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 'use strict';
 /**
  * Deployment routes (design 8, 6): ask for a deployment (202, the runner does
@@ -28,6 +29,9 @@ function stepView(step) {
 }
 
 const encodeCursor = (map) => Buffer.from(JSON.stringify(map), 'utf8').toString('base64url');
+/**
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} text
+ */
 function decodeCursor(text) {
     if (!text) return {};
     try {
@@ -50,14 +54,21 @@ function makeDeploymentRouter(d) {
     const router = express.Router({ mergeParams: true });
     const packaging = gate(d, 'blueprint_packaging');
 
-    /** The deployment a request names, inside this Solution, or 404. */
+    /**
+     * The deployment a request names, inside this Solution, or 404.
+     * @param {StageCtx | undefined} ctx
+     * @param {string} id
+     */
     async function deploymentOf(ctx, id) {
         const row = await d.stageStore.getDeployment(id);
         if (!row || row.solutionId !== ctx.dev.id) throw notFound('deployment_not_found', 'That deployment does not exist.');
         return row;
     }
 
-    /** Requester, or the Solution owner: the only people who steer a deployment that exists. */
+    /**
+     * Requester, or the Solution owner: the only people who steer a deployment that exists.
+     * @param {StageCtx | undefined} ctx
+     */
     function assertSteersDeployment(ctx, row) {
         if (row.requestedBy === ctx.userId || ctx.isSolutionOwner) return;
         // A Dev role (or none) holds nothing on the stage: for them the deployment does not exist.
@@ -99,6 +110,7 @@ function makeDeploymentRouter(d) {
         const merged = fetched.flatMap(f => f.list).sort(byNewest);
         const page = merged.slice(0, limit);
         const more = merged.length > limit || fetched.some(f => f.list.length >= 100);
+        /** @type {string | null} */
         let nextCursor = null;
         if (more && page.length) {
             const next = { ...cursor };

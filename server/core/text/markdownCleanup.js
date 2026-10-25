@@ -32,7 +32,9 @@ function parseHtmlTable(tableHtml) {
 
     // Extract all <tr> blocks
     const trPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    /** @type {string[]} */
     const rawRows = [];
+    /** @type {RegExpExecArray | null} */
     let trMatch;
     while ((trMatch = trPattern.exec(tableHtml)) !== null) {
         rawRows.push(trMatch[1]);
@@ -42,8 +44,10 @@ function parseHtmlTable(tableHtml) {
 
     // Parse cells out of each row, tracking th vs td and colspan/rowspan
     const parsedRows = rawRows.map(rowHtml => {
+        /** @type {{ content: string; colspan: number; rowspan: number; }[]} */
         const cells = [];
         const cellPattern = /<(th|td)([^>]*)>([\s\S]*?)<\/\1>/gi;
+        /** @type {RegExpExecArray | null} */
         let cellMatch;
         while ((cellMatch = cellPattern.exec(rowHtml)) !== null) {
             const attrs = cellMatch[2];
@@ -56,11 +60,13 @@ function parseHtmlTable(tableHtml) {
     });
 
     // Resolve colspan and rowspan into a flat 2D grid
+    /** @type {string[][]} */
     const grid = [];
     const pendingRowspans = {}; // col → { value, remaining }
 
     for (let r = 0; r < parsedRows.length; r++) {
         const row = parsedRows[r];
+        /** @type {string[]} */
         const gridRow = [];
         let colIdx = 0;
         let cellIdx = 0;
@@ -98,6 +104,7 @@ function parseHtmlTable(tableHtml) {
 /**
  * Strip all HTML tags from a string.
  * Also decode common HTML entities.
+ * @param {string} html
  */
 function stripTags(html) {
     return html
@@ -136,6 +143,7 @@ function gridToMarkdown({ caption, rows }) {
         return r;
     });
 
+    /** @type {string[]} */
     const lines = [];
     if (caption) lines.push(`**${caption}**\n`);
 
@@ -203,6 +211,9 @@ function convertAllHtmlTablesToMarkdown(text) {
  */
 const PAGE_JOIN = '\n\n';   // kept in step with core/documents/pageOffsets.js
 
+/**
+ * @param {string} text
+ */
 function cleanAzureDocMarkdown(text, { withPages = false } = {}) {
     if (!text) return withPages ? { text: '', pages: [] } : '';
 

@@ -59,12 +59,17 @@ function allowPrivateKbHosts() {
     return process.env.KB_ALLOW_PRIVATE_HOSTS === '1';
 }
 
+/**
+ * @param {string} targetUrl
+ * @param {boolean} allowPrivate
+ */
 async function screenTarget(targetUrl, allowPrivate) {
     // Default posture: the full screen — host plus every address it resolves to.
     if (!allowPrivate) return assertUrlIsPublic(targetUrl);
 
     // Opted-in posture: private space is what the operator asked for, but the
     // scheme and the metadata endpoints are still not negotiable.
+    /** @type {URL} */
     let parsed;
     try { parsed = new URL(targetUrl); }
     catch (_) { throw new Error('Invalid URL'); }
@@ -77,6 +82,10 @@ async function screenTarget(targetUrl, allowPrivate) {
     return parsed;
 }
 
+/**
+ * @param {string} targetUrl
+ * @param {RequestInit} [opts]
+ */
 async function guardedFetch(targetUrl, opts = {}) {
     // Read once per fetch so a request cannot straddle two policies.
     const allowPrivate = allowPrivateKbHosts();

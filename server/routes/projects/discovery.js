@@ -17,6 +17,9 @@ const query = z.object({ q: z.string().max(200).default(''), type: z.enum(TYPES)
 function makeDiscoveryRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const role = deps.requireProjectRole || lazyProjectRoleGate;
+    /**
+     * @param {string} projectId
+     */
     const changed = async (projectId) => {
         try { await (deps.publish || require('../../core/projectEventBus').publishTransient)(projectId, { kind: 'pins.changed', payload: {} }); } catch (err) { bestEffort('routes/projects/discovery:changed', err); /* next focus refetches */ }
     };

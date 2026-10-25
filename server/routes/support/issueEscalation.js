@@ -56,6 +56,7 @@ async function escalate(req, res) {
         link = linked.link;
     }
 
+    /** @type {{ priority?: string }} */
     const patch = {};
     if (req.body.raisePriority === true && ['low', 'normal'].includes(thread.priority)) {
         patch.priority = 'high';
@@ -114,7 +115,7 @@ async function saveNotifications(req, res) {
         // Filtering the list down to what we recognise turned one misspelled
         // name into an empty list (every notification off, under
         // { ok: true }). An unknown name is named instead.
-        const unknown = events.find(e => !chat.EVENTS.includes(e));
+        const unknown = events.find((/** @type {string} */ e) => !chat.EVENTS.includes(e));
         if (unknown) {
             return res.status(400).json({ error: `unknown event "${unknown}"`, allowed: chat.EVENTS });
         }

@@ -26,6 +26,7 @@ function createBuildToolHint({ lazy }) {
     async function buildToolHint(tools, _userId = null) {
         if (tools.length === 0) return '';
 
+        /** @type {string[]} */
         const integrations = [];
         if (tools.some(t => t.function.name.startsWith('gmail_'))) integrations.push('Gmail (search, read, compose, send, and reply to emails — the user approves before anything is sent)');
         if (tools.some(t => t.function.name.startsWith('calendar_'))) integrations.push('Google Calendar (list, search, create, update, delete events)');

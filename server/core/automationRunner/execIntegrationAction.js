@@ -155,6 +155,7 @@ async function dispatchFailed(step, ctx, mode, { err, inputs, resolvedInputs, pr
         durationMs: Date.now() - t0,
     });
     const message = String(err?.message ?? err);
+    /** @type {string | null} */
     let fallback = null;
     if (mode === 'dry_run') {
         if (deps.isEnvironmentToolError(message)) fallback = 'not_connected';

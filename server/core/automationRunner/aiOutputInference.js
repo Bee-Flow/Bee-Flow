@@ -63,6 +63,7 @@ const SKIP_KEYS = new Set([
 // VERBATIM_FIELDS). Instructions and a system prompt go to the model as
 // written; parse_json's `fields` and `itemsRef` are paths RELATIVE to the
 // parsed value, where `steps` would be a key of that value.
+/** @type {Record<string, Set<string>>} */
 const NEVER_READ = {
     data_extraction: new Set(['instructions']),
     parse_json: new Set(['fields', 'itemsRef']),
@@ -101,7 +102,10 @@ function astPathTokens(node, visitExpr) {
     return out;
 }
 
-/** An expression's paths; false when the text is not an expression. */
+/**
+ * An expression's paths; false when the text is not an expression.
+ * @param {string} text
+ */
 function scanExpr(text, report) {
     let ast = null;
     try { ast = parseExpr(text); } catch { return false; }
@@ -115,6 +119,10 @@ function scanExpr(text, report) {
  * template, a bare reference, a formula or prose). `listHint`: the string
  * sits where a list is expected. `loose`: bare paths inside prose count too
  * (only in LOOSE_KEYS).
+ * @param {string} text
+ * @param {boolean} listHint
+ * @param {string} [as]
+ * @param {boolean} [loose]
  */
 function scanText(text, report, listHint, as = 'text', loose = false) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an alternation of two fixed literals, no repeats: linear
@@ -135,9 +143,13 @@ function scanText(text, report, listHint, as = 'text', loose = false) {
     if ((as === 'expr' || !scanExpr(text, report)) && loose) scanLoose(text, report);
 }
 
-/** Bare `steps.…` / `loop.…` paths inside prose (no braces). */
+/**
+ * Bare `steps.…` / `loop.…` paths inside prose (no braces).
+ * @param {string} text
+ */
 function scanLoose(text, report) {
     const re = /(steps|loop)(?=[.[])/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- two fixed literals and a one-character lookahead, no repeats: linear
     while ((m = re.exec(text)) !== null) {
@@ -151,8 +163,14 @@ function scanLoose(text, report) {
     }
 }
 
+/**
+ * @param {boolean} listCtx
+ */
 function scanAst(node, report, listCtx) {
     if (!node || typeof node !== 'object') return;
+    /**
+     * @param {boolean} l
+     */
     const visit = (n, l) => scanAst(n, report, l);
     if (node.kind === 'path') {
         const tokens = astPathTokens(node, visit);
@@ -162,6 +180,9 @@ function scanAst(node, report, listCtx) {
     if (node.kind === 'call' || node.kind === 'hostcall') {
         // count() of a field: a list, unless the field is also read whole or
         // as a record (count('abc') is 3) — a WEAK hint, settled in toSchema.
+        /**
+         * @param {string} name
+         */
         const hint = (name) => (name === 'count' ? 'weak' : LIST_FUNCTIONS.has(name));
         (node.args || []).forEach((a, i) => visit(a, i === 0 && hint(node.name)));
         return;
@@ -234,6 +255,10 @@ function collectAiStepOutputReads(definition, stepId) {
 
     // `loose`: the step field this value sits under scans prose (LOOSE_KEYS);
     // nested values (a header's value) inherit it.
+    /**
+     * @param {string} key
+     * @param {boolean} loose
+     */
     const walkValue = (value, key, env, loose) => {
         if (value == null) return;
         if (typeof value === 'string') {
@@ -340,6 +365,7 @@ function addRead(root, tokens, list) {
 
 function toSchema(n) {
     if (n.list || n.items || (n.weakList && !n.whole && !n.props.size)) {
+        /** @type {{ type: string; items?: { type: string; } | { type: string; properties: {}; } }} */
         const s = { type: 'array' };
         if (n.items) s.items = toSchema(n.items);
         // A field looped over AND read straight off (`people.name`): the

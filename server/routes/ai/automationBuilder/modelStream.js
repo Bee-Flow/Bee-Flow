@@ -1,3 +1,4 @@
+/** @typedef {import('../../../core/providers').BaseProvider} BaseProvider */
 /**
  * Automation Builder — the model calls: adapter.chat behind a bounded retry,
  * and its streaming counterpart pinned to this route's SSE thinking shapes.
@@ -19,7 +20,7 @@ async function chatWithRetry(adapter, cfg, modelId, messages, options, { retries
             lastErr = e;
             if (attempt === retries || !isTransientChatError(e)) throw e;
             const delay = baseDelayMs * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
-            log.warn(`[AutomationBuilder] chat attempt ${attempt + 1} failed (${e.message}); retrying in ${delay}ms`);
+            log.warn(`[AutomationBuilder] chat attempt ${attempt + 1} failed (${/** @type {Error} */ (e).message}); retrying in ${delay}ms`);
             await new Promise(r => setTimeout(r, delay));
         }
     }
@@ -37,6 +38,10 @@ const AUTOMATION_SSE_THINKING = {
 // Streaming counterpart of chatWithRetry — retry/assembly shell shared with
 // the app-studio builder (builderShared.js); this wrapper pins the route's
 // thinking emitter and log prefix.
+/**
+ * @param {BaseProvider} adapter
+ * @param {string} modelId
+ */
 function streamWithRetry(adapter, cfg, modelId, messages, options, opts = {}) {
     return sharedStreamWithRetry(adapter, cfg, modelId, messages, options, {
         emitThinking: AUTOMATION_SSE_THINKING,

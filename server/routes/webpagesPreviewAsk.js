@@ -167,7 +167,7 @@ async function runAskTool(ask, toolName, toolArgs) {
         if (ask.surface.integrationGrantByTool.has(toolName)) return await runGrantedIntegration(ask, toolName, toolArgs);
         return { error: `Tool not granted: ${toolName}` };
     } catch (err) {
-        return { error: err.message || 'tool dispatch failed' };
+        return { error: /** @type {Error} */ (err).message || 'tool dispatch failed' };
     }
 }
 
@@ -385,8 +385,8 @@ async function ask(req, res) {
         stopHeartbeat();
         try { res.end(); } catch (err) { log.debug('already closed', err); }
     } catch (err) {
-        log.error(`[WebpagesPreview/ai/ask] ${err.message}`);
-        send('error', { error: err.message });
+        log.error(`[WebpagesPreview/ai/ask] ${/** @type {Error} */ (err).message}`);
+        send('error', { error: /** @type {Error} */ (err).message });
         stopHeartbeat();
         try { res.end(); } catch (err) { log.debug('already closed', err); }
     }

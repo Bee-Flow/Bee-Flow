@@ -1,3 +1,4 @@
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 // @typecheck
 /**
  * Special categories of personal data (GDPR Art. 9) in the monitoring views.
@@ -26,7 +27,10 @@ const { kindOfCategory } = require('./personalColumns');
 /** Our kinds that are special categories under Art. 9. */
 const SPECIAL_KINDS = Object.freeze(['health']);
 
-/** Whether one category, in any spelling a producer has used, is a special category. */
+/**
+ * Whether one category, in any spelling a producer has used, is a special category.
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} category
+ */
 function isSpecialCategory(category) {
     if (category === null || category === undefined || String(category).trim() === '') return false;
     return SPECIAL_KINDS.includes(kindOfCategory(String(category).trim()));
@@ -60,6 +64,7 @@ function withoutSpecialCategories(list) {
  * empty list it would stand out (a find without a kind) and so say what was
  * removed. The organisation-wide totals still count it. Rows are copied, never
  * changed in place.
+ * @param {string} field
  */
 function withholdSpecialCategories(rows, field) {
     const out = [];
@@ -71,7 +76,10 @@ function withholdSpecialCategories(rows, field) {
     return out;
 }
 
-/** Rows keyed by a category field, without the rows whose category is special. */
+/**
+ * Rows keyed by a category field, without the rows whose category is special.
+ * @param {string} [field]
+ */
 function dropSpecialCategoryRows(rows, field = 'category') {
     return (Array.isArray(rows) ? rows : []).filter(r => !isSpecialCategory(r?.[field]));
 }

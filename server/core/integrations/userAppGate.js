@@ -92,6 +92,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         } catch (_) { log.warn('integration catalog failed to load', _); }
         // Inputs for the webpages rule, resolved the way getIntegrationTools does.
         let webpageGroupIds = [];
+        /** @type {string | null} */
         let webpageOrgId = null;
         let identityUnknown = false;
         try {
@@ -145,6 +146,9 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
             });
         }
 
+        /**
+         * @param {string} appId
+         */
         const isAppOn = (appId) => {
             if (identityUnknown) return false;
             if (userEnabledApps) {

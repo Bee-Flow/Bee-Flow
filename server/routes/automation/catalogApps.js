@@ -34,6 +34,7 @@ function actionLabel(name, appLabels) {
  * definitions. Best effort: present everything, mark `available: true` if
  * integrationTools.js would expose it.
  * @returns {Promise<{ userToolNames: Set<string>, userToolDefs: any[] }>}
+ * @param {string} userId
  */
 async function loadUserTools(req, userId) {
     const session = req.session;
@@ -61,7 +62,10 @@ async function loadUserTools(req, userId) {
     return { userToolNames, userToolDefs };
 }
 
-/** Is the webpages beta on for this user? */
+/**
+ * Is the webpages beta on for this user?
+ * @param {string} userId
+ */
 async function isWebpagesAvailable(req, userId) {
     // Webpages availability is gated on the beta feature — the same gate
     // getIntegrationTools now uses to actually provision the tools (so the
@@ -136,6 +140,7 @@ function buildApps({ userToolNames, webpagesAvailable }) {
 /**
  * The reusable steps this user may add, each flagged with whether every
  * integration it touches is available.
+ * @param {string} userId
  */
 async function buildSteps(req, userId, apps) {
     // Reusable Steps (kind='block') the user may add to this automation.
@@ -166,7 +171,7 @@ async function buildSteps(req, userId, apps) {
             requiredIntegrations: s.requiredIntegrations,
             available: (s.requiredIntegrations || []).every(i => availableIntegrationIds.has(i)),
         }));
-    } catch (e) { log.warn('[automation/catalog] steps load failed:', e.message); }
+    } catch (e) { log.warn('[automation/catalog] steps load failed:', /** @type {Error} */ (e).message); }
     return steps;
 }
 

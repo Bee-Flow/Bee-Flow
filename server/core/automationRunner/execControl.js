@@ -19,10 +19,11 @@ const {
 
 async function execCondition(step, ctx, runState) {
     let v = false;
+    /** @type {string | null} */
     let evalError = null;
     let ast = null;
     try { ast = parseTopicExpr(step.expr || 'false'); }
-    catch (e) { evalError = e.message || String(e); }
+    catch (e) { evalError = /** @type {Error} */ (e).message || String(e); }
     let topics = null;
     if (ast) {
         // "is about" rules are answered by the classifier before evaluation;
@@ -32,7 +33,7 @@ async function execCondition(step, ctx, runState) {
         try { v = evaluate(ast, runState, prep.host ? { host: prep.host } : undefined); }
         catch (e) {
             if (e.topicFatal) throw e;
-            v = false; evalError = e.message || String(e);
+            v = false; evalError = /** @type {Error} */ (e).message || String(e);
         }
         noteRunMisses([{ ast }], [runState], v ? 1 : 0);
     }
@@ -134,7 +135,12 @@ async function execStopError(step, ctx, runState) {
  */
 async function execReturnToApp(step, ctx, runState) {
     const { interpolateTemplate } = require('../automationModel/bind');
+    /** @type {{ field: string; reason: string; }[]} */
     const ignored = [];
+    /**
+     * @param {string} field
+     * @param {string} reason
+     */
     const drop = (field, reason) => {
         ignored.push({ field, reason });
         const line = `return_to_app ${step.id}: ignored "${field}" — ${reason}`;
@@ -251,6 +257,7 @@ function resolveSwitchCollection(expr, arrayValue, runState) {
  *
  * Returns null for "this case has no rule", so the caller can fall back to
  * value matching. Errors count as "no match" and are reported once.
+ * @param {(value: string) => void} onError
  */
 function switchCaseRule(cc, scope, onError, host) {
     if (!cc.rule) return null;
@@ -258,7 +265,7 @@ function switchCaseRule(cc, scope, onError, host) {
     try { return !!evaluate(cc.ast, scope, host ? { host } : undefined); }
     catch (e) {
         if (e.topicFatal) throw e;
-        onError(e.message || String(e));
+        onError(/** @type {Error} */ (e).message || String(e));
         return false;
     }
 }
@@ -273,7 +280,7 @@ function compileSwitchCases(cases) {
     return cases.map((c) => {
         if (!c || typeof c.expr !== 'string' || !c.expr.trim()) return { c, rule: false, ast: null };
         try { return { c, rule: true, ast: parseTopicExpr(c.expr) }; }
-        catch (e) { return { c, rule: true, ast: null, parseError: e.message || String(e) }; }
+        catch (e) { return { c, rule: true, ast: null, parseError: /** @type {Error} */ (e).message || String(e) }; }
     });
 }
 
@@ -317,6 +324,7 @@ function switchMatchMode(step) {
  * `total` — that is the point of the feature. `total` still reports what came
  * in and the default bucket still holds exactly what matched nothing, so a
  * rejected record stays visible in the counters either way.
+ * @param {(value: string) => void} onError
  */
 function partitionSwitchRows(step, compiled, rows, values, runState, onError, host) {
     const fanOut = switchMatchMode(step) === 'all';
@@ -383,6 +391,7 @@ function partitionSwitchRows(step, compiled, rows, values, runState, onError, ho
  * Falls back to the row itself when there is no expr, or when the expr does not
  * address anything on this row: a list of plain strings matched by value has
  * always worked that way and must keep working.
+ * @param {(value: string) => void} onError
  */
 function switchRowValues(step, rows, runState, onError) {
     const expr = typeof step.expr === 'string' ? step.expr.trim() : '';
@@ -392,7 +401,7 @@ function switchRowValues(step, rows, runState, onError) {
             const v = evaluate(expr, { ...runState, item: row, _index: i });
             return v === undefined ? row : v;
         } catch (e) {
-            onError(e.message || String(e));
+            onError(/** @type {Error} */ (e).message || String(e));
             return row;
         }
     });
@@ -409,7 +418,11 @@ async function execSwitch(step, ctx, runState) {
     const cases = Array.isArray(step.cases) ? step.cases : [];
     const compiled = compileSwitchCases(cases);
     const caseAsts = compiled.map((cc) => cc.ast);
+    /** @type {string | null} */
     let evalError = null;
+    /**
+     * @param {string | null} msg
+     */
     const onError = (msg) => { if (!evalError) evalError = msg; };
 
     // ── List mode: an explicit source list ───────────────────────────────
@@ -429,7 +442,7 @@ async function execSwitch(step, ctx, runState) {
 
     let v;
     try { v = evaluate(step.expr || 'null', runState); }
-    catch (e) { v = null; evalError = e.message || String(e); }
+    catch (e) { v = null; evalError = /** @type {Error} */ (e).message || String(e); }
 
     // ── Collection mode: switching on a table COLUMN ─────────────────────
     // When the expr resolves to an ARRAY (e.g. `steps.g1.output.results[*]
@@ -461,6 +474,7 @@ async function execSwitch(step, ctx, runState) {
         // text operators make: matching a human-entered value never depends
         // on capitalisation.
         const rule = switchCaseRule(cc, runState, onError, host);
+        /** @type {boolean} */
         let hit;
         if (rule !== null) hit = rule === true;
         else if (v == c.value) hit = true;

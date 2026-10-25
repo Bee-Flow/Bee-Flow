@@ -99,7 +99,10 @@ function memoKeyParts({
     ].join('\0');
 }
 
-/** The run-memo key for an already-built identity string. */
+/**
+ * The run-memo key for an already-built identity string.
+ * @param {string} identity
+ */
 function memoKeyFromParts(identity) {
     return crypto.createHash('sha256').update(String(identity || '')).digest('hex');
 }

@@ -21,6 +21,7 @@
 const crypto = require('crypto');
 
 const BLOCK_END = /<\/(?:p|h[1-6]|li|tr|td|th|div|section|article|blockquote|pre|table|ul|ol|figure|header|footer)>|<br\s*\/?>/gi;
+/** @type {Record<string, string>} */
 const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&nbsp;': ' ' };
 
 /**

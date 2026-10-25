@@ -67,7 +67,10 @@ function resolveDeps(deps = {}) {
     };
 }
 
-/** Accept a project row or its id: every caller has one or the other. */
+/**
+ * Accept a project row or its id: every caller has one or the other.
+ * @param {string | { id: string; }} project
+ */
 function projectIdOf(project) {
     if (typeof project === 'string') return project;
     return typeof project?.id === 'string' ? project.id : null;
@@ -88,7 +91,11 @@ async function buildGraphForProject(project, deps = {}) {
 
     // Machine-readable section keys, so the client can name them in the
     // reader's own language instead of rendering a server-side English label.
+    /** @type {string[]} */
     const unavailable = [];
+    /**
+     * @param {string} section
+     */
     const miss = (section) => { if (!unavailable.includes(section)) unavailable.push(section); };
 
     // Each member kind loads INDEPENDENTLY and an unreachable store costs its
@@ -96,9 +103,12 @@ async function buildGraphForProject(project, deps = {}) {
     // A graph drawn from four of six kinds is still true about those four;
     // refusing to draw anything would say nothing at all. What it must NOT do
     // is let those two kinds read as empty.
+    /**
+     * @param {string} section
+     */
     const some = async (section, fn) => {
         try { return await fn(); } catch (err) {
-            log.warn(`[Projects] graph: could not load ${section}:`, err.message);
+            log.warn(`[Projects] graph: could not load ${section}:`, /** @type {Error} */ (err).message);
             miss(section);
             return null;
         }
@@ -136,7 +146,7 @@ async function buildGraphForProject(project, deps = {}) {
     for (const kb of (knowledgeBases || [])) {
         let sources;
         try { sources = await kbSources.listByKb(kb.id); } catch (err) {
-            log.warn('[Projects] graph: could not load knowledge sources:', err.message);
+            log.warn('[Projects] graph: could not load knowledge sources:', /** @type {Error} */ (err).message);
             miss('knowledgeSources');
             continue;
         }
@@ -164,7 +174,7 @@ async function buildGraphForProject(project, deps = {}) {
             try {
                 if (await automationStore.getAutomation(ext.id)) known.add(ext.id);
             } catch (err) {
-                log.warn('[Projects] graph: could not check automation existence:', err.message);
+                log.warn('[Projects] graph: could not check automation existence:', /** @type {Error} */ (err).message);
                 checkedAll = false;
                 break;
             }

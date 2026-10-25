@@ -35,7 +35,10 @@
 const { collectKbSteps } = require('./automationKbCheck');
 const log = require('../../telemetry/log');
 
-/** The config subset that identifies "this automation's source" in a base. */
+/**
+ * The config subset that identifies "this automation's source" in a base.
+ * @param {string} automationId
+ */
 function matchFor(automationId) {
     return { automationId };
 }
@@ -141,7 +144,7 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
             }
         }
     } catch (e) {
-        log.warn(`[KB] Could not sync knowledge sources for automation ${automationId}: ${e.message}`);
+        log.warn(`[KB] Could not sync knowledge sources for automation ${automationId}: ${/** @type {Error} */ (e).message}`);
     }
     return out;
 }

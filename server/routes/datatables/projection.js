@@ -14,7 +14,10 @@ const formAnswersDerive = require('../../automation/formAnswers/derive');
 const sources = require('../../core/dataEngine/sources');
 const { isDefinitionManagedKind } = require('../../core/dataEngine/dataModel/managedTables');
 
-/** Strip anything the caller must not see from a table row. */
+/**
+ * Strip anything the caller must not see from a table row.
+ * @param {string} grade
+ */
 function publicTable(t, grade) {
     return {
         id: t.id, name: t.name, key: t.key, description: t.description,
@@ -52,6 +55,7 @@ function publicTable(t, grade) {
  * engine's own: the column map (source column ids, option ids, header
  * hashes) and the instance id; the relations list goes without the
  * label-column ids for the same reason.
+ * @param {string | null} [managedKind]
  */
 function publicSource(source, managedKind = null) {
     // A form's answers table carries a source block too — the back-reference

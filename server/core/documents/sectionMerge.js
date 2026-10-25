@@ -48,6 +48,7 @@ const LABEL_MAX = 80;
  * @typedef {{ sig: string, content: string, html: string, sectionId: string|null, node: any }} Block
  * @typedef {{ kind: 'clean', html: string } | { kind: 'conflict', key: string, label: string, base: string, mine: string, theirs: string }} MergePart
  * @typedef {{ html: string|null, parts: MergePart[], conflicts: number, fromOthers: string[], othersOutsideSections: boolean }} MergeResult
+ * @param {string} html
  */
 
 const normalise = (html) => String(html ?? '').replace(/\s+/g, ' ').trim();
@@ -91,6 +92,10 @@ function lcsMap(a, b) {
     const n = a.length;
     const m = b.length;
     const dp = new Uint16Array((n + 1) * (m + 1));
+    /**
+     * @param {number} i
+     * @param {number} j
+     */
     const at = (i, j) => i * (m + 1) + j;
     for (let i = n - 1; i >= 0; i--) {
         for (let j = m - 1; j >= 0; j--) {
@@ -166,7 +171,15 @@ function mergeLevel(baseHtml, mineHtml, theirsHtml, depth, path, sectionLabel = 
     let othersOutsideSections = false;
     let conflicts = 0;
     let n = 0;
+    /**
+     * @param {string} html
+     */
     const clean = (html) => { if (html) parts.push({ kind: 'clean', html }); };
+    /**
+     * @param {Block[]} b
+     * @param {Block[]} m
+     * @param {Block[]} t
+     */
     const conflict = (b, m, t) => {
         conflicts++;
         parts.push({
@@ -174,6 +187,9 @@ function mergeLevel(baseHtml, mineHtml, theirsHtml, depth, path, sectionLabel = 
             base: joinHtml(b), mine: joinHtml(m), theirs: joinHtml(t),
         });
     };
+    /**
+     * @param {Block[]} list
+     */
     const tookTheirs = (list) => {
         for (const b of list) {
             if (b.sectionId) fromOthers.push(b.sectionId);
@@ -186,7 +202,12 @@ function mergeLevel(baseHtml, mineHtml, theirsHtml, depth, path, sectionLabel = 
     const bm = tooLong ? new Int32Array(0) : lcsMap(base.blocks, mine.blocks);
     const bt = tooLong ? new Int32Array(0) : lcsMap(base.blocks, theirs.blocks);
 
-    /** A stretch between anchors. */
+    /**
+     * A stretch between anchors.
+     * @param {Block[]} b
+     * @param {Block[]} m
+     * @param {Block[]} t
+     */
     const chunk = (b, m, t) => {
         if (!b.length && !m.length && !t.length) return;
         if (sameSeq(m, b)) { clean(joinHtml(t)); if (!sameSeq(t, b)) tookTheirs(t.length ? t : b); return; }
@@ -194,7 +215,12 @@ function mergeLevel(baseHtml, mineHtml, theirsHtml, depth, path, sectionLabel = 
         conflict(b, m, t);
     };
 
-    /** A block both sides kept in place; only a section can differ inside. */
+    /**
+     * A block both sides kept in place; only a section can differ inside.
+     * @param {Block} b
+     * @param {Block} m
+     * @param {Block} t
+     */
     const anchor = (b, m, t) => {
         if (m.content === b.content) { clean(t.html); if (t.content !== b.content) tookTheirs([t]); return; }
         if (t.content === b.content || m.content === t.content) { clean(m.html); return; }

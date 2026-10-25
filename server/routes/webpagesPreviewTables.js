@@ -183,7 +183,10 @@ async function requireBinding(req, { write = false } = {}) {
     return binding;
 }
 
-/** Every refusal with `safe` may be returned verbatim; the rest becomes a 500. */
+/**
+ * Every refusal with `safe` may be returned verbatim; the rest becomes a 500.
+ * @param {string} fallback
+ */
 function sendError(res, err, fallback) {
     if (err && err.safe === true && typeof err.status === 'number') {
         return res.status(err.status).json({
@@ -202,7 +205,10 @@ function sendError(res, err, fallback) {
     throw Object.assign(new Error(fallback), { cause: err });
 }
 
-/** The viewer + their grade on this table. Throws if either is missing. */
+/**
+ * The viewer + their grade on this table. Throws if either is missing.
+ * @param {string} needed
+ */
 async function resolveFor(req, needed) {
     const principal = await resolveDatatablePrincipalForUser(requireViewer(req));
     return datatableRuntime.resolveForPrincipal(req.params.tid, principal, { needed });

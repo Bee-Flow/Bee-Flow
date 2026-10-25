@@ -51,15 +51,24 @@ function _deploymentMode() {
     try { return require('../../../license').deploymentMode(); } catch { return process.env.DEPLOYMENT_MODE || 'cloud'; }
 }
 
+/**
+ * @param {string} v
+ */
 function _parseSettingsJson(v) {
     if (!v) return {};
     if (typeof v === 'object') return v;
     try { return JSON.parse(v) || {}; } catch { return {}; }
 }
 
+/**
+ * @param {string} s
+ */
 function _sha256(s) { return crypto.createHash('sha256').update(String(s), 'utf8').digest('hex'); }
 
-/** The viewer's own wrap for a body-only html slot (composeWebpageDocument fallback). */
+/**
+ * The viewer's own wrap for a body-only html slot (composeWebpageDocument fallback).
+ * @param {string} html
+ */
 function _wrapFragment(html) {
     return `<!DOCTYPE html><html><head></head><body>${html}</body></html>`;
 }
@@ -69,6 +78,9 @@ const FALLBACK_SHELL = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-
 
 // ── subjects ───────────────────────────────────────────────────────────
 
+/**
+ * @param {number} limit
+ */
 async function _webpageSubjects(orgId, limit) {
     let rows;
     try {
@@ -100,6 +112,9 @@ async function _webpageSubjects(orgId, limit) {
     return { subjects, total: rows.length, skipped: null };
 }
 
+/**
+ * @param {number} limit
+ */
 async function _cmsSubjects(limit) {
     if (limit <= 0) return { subjects: [], total: 0, skipped: 'cap reached' };
     if (_deploymentMode() === 'cloud') return { subjects: [], total: 0, skipped: 'cms is platform-owned on cloud' };
@@ -231,6 +246,7 @@ module.exports = {
             return { status: 'not_applicable', evidence: { subjects: 0 }, details: 'No published pages to lint.' };
         }
 
+        /** @type {string | null} */
         let html = null;
         let lang = null;
         const extra = { subject_label: subject.label };

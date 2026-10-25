@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Author-written SQL is the least portable surface in the product.
  *

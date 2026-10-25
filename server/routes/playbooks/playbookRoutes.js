@@ -115,7 +115,7 @@ function register(router, ctx) {
             const rows = await d.playbookStore.listPlaybooksForUser(userIdOf(req), { limit: 100 });
             res.json({ playbooks: rows.map((pb) => summarise(pb, resolveRecipe(pb))) });
         } catch (e) {
-            log.error('[Playbooks] list failed:', e.message);
+            log.error('[Playbooks] list failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not list playbooks');
         }
     });
@@ -198,7 +198,7 @@ function register(router, ctx) {
             const pb = await d.playbookStore.createPlaybook({ userId, organizationId, recipeId: recipe.RECIPE_ID, recipe: recipeDoc, title, options, phases, currentPhase: phases[0] ? phases[0].key : null });
             res.status(201).json({ playbook: pb });
         } catch (e) {
-            log.error('[Playbooks] create failed:', e.message);
+            log.error('[Playbooks] create failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not create the playbook');
         }
     });
@@ -209,7 +209,7 @@ function register(router, ctx) {
         try {
             let pb = await load(req, res);
             if (!pb) return;
-            const fill = (pb.phases || []).find((p) => kindOf(p) === 'fill' && p.status === 'running') || null;
+            const fill = (pb.phases || []).find((/** @type {lifecycle.Phase | null} */ p) => kindOf(p) === 'fill' && p.status === 'running') || null;
             if (fill) {
                 const change = await refreshFillPhase(fill, d, d.now(), { locale: localeOf(pb) });
                 if (change) {
@@ -234,7 +234,7 @@ function register(router, ctx) {
             }
             res.json({ playbook: pb });
         } catch (e) {
-            log.error('[Playbooks] get failed:', e.message);
+            log.error('[Playbooks] get failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not load the playbook');
         }
     });
@@ -348,9 +348,9 @@ function register(router, ctx) {
             const saved = await persist(res, pb, { phases, currentPhase, status, title }, pb.version);
             if (saved) res.json({ playbook: saved });
         } catch (e) {
-            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', e.message, { from: e.from, to: e.to });
-            if (e.code === 'artifacts_missing') return sendErr(res, 409, 'artifacts_missing', e.message);
-            log.error('[Playbooks] patch failed:', e.message);
+            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', /** @type {Error} */ (e).message, { from: e.from, to: e.to });
+            if (e.code === 'artifacts_missing') return sendErr(res, 409, 'artifacts_missing', /** @type {Error} */ (e).message);
+            log.error('[Playbooks] patch failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not update the playbook');
         }
     });
@@ -370,7 +370,7 @@ function registerDelete(router, ctx) {
             if (!gone) return sendErr(res, 404, 'not_found', 'Not found');
             res.status(204).end();
         } catch (e) {
-            log.error('[Playbooks] delete failed:', e.message);
+            log.error('[Playbooks] delete failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not delete the playbook');
         }
     });

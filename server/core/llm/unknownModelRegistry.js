@@ -41,6 +41,7 @@ let _windowCount = 0;
 /**
  * A model id made safe to store, return from an API and write to a log line:
  * printable characters only, bounded. Empty becomes the visible marker '(none)'.
+ * @param {string} model
  */
 function cleanModel(model) {
     const s = String(model ?? '')
@@ -51,14 +52,23 @@ function cleanModel(model) {
     return s || '(none)';
 }
 
+/**
+ * @param {string | null | undefined} provider
+ */
 function cleanProvider(provider) {
     const p = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
     return PROVIDER.test(p) ? p : null;
 }
 
+/**
+ * @param {{ source?: string; input?: number; output?: number; currency?: string; } | null | undefined} estimate
+ */
 function cleanEstimate(estimate) {
     if (!estimate || typeof estimate !== 'object') return null;
     const source = typeof estimate.source === 'string' ? estimate.source.replace(/[^A-Za-z0-9._:/@+-]/g, '_').slice(0, 120) : null;
+    /**
+     * @param {number | undefined} v
+     */
     const num = (v) => (Number.isFinite(v) ? v : null);
     return {
         source,
@@ -68,6 +78,9 @@ function cleanEstimate(estimate) {
     };
 }
 
+/**
+ * @param {number} now
+ */
 function _mayWarn(entry, now) {
     if (entry.warnedAt && now - entry.warnedAt < WARN_PER_MODEL_MS) return false;
     if (now - _windowStart >= 60_000) { _windowStart = now; _windowCount = 0; }

@@ -38,6 +38,7 @@ const { attachmentToDriveExample } = require('./fewShots/attachmentToDriveExampl
  *
  * The tool_call ids are sentinels (\`ex_*\`); applyToolCall is never called
  * on them — they only exist to teach the protocol.
+ * @param {number} [count]
  */
 function buildFewShotMessages(count = 0, { toolset = 'full' } = {}) {
     if (count <= 0) return [];

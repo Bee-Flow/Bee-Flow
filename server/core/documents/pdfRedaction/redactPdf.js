@@ -22,6 +22,9 @@ const { fallback } = require('../../../utils/bestEffort');
 const MAX_PAGES = 200;
 
 class PdfRedactionError extends Error {
+    /**
+     * @param {string} message
+     */
     constructor(code, message) {
         super(message);
         this.name = 'PdfRedactionError';
@@ -29,15 +32,19 @@ class PdfRedactionError extends Error {
     }
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 async function loadPdf(buffer) {
     if (!Buffer.isBuffer(buffer) || !buffer.subarray(0, 1024).includes('%PDF-')) {
         throw new PdfRedactionError('not_pdf', 'This file is not a PDF.');
     }
+    /** @type {PDFDocument} */
     let doc;
     try {
         doc = await PDFDocument.load(buffer, { updateMetadata: false });
     } catch (err) {
-        if (/encrypt/i.test(String(err && (err.name + err.message)))) {
+        if (/encrypt/i.test(String(err && (/** @type {Error} */ (err).name + /** @type {Error} */ (err).message)))) {
             throw new PdfRedactionError('encrypted', 'This PDF is encrypted or password-protected, so it cannot be cleaned.');
         }
         throw new PdfRedactionError('unreadable', 'This PDF could not be read.');
@@ -51,11 +58,17 @@ async function loadPdf(buffer) {
     return doc;
 }
 
+/**
+ * @param {PDFDocument} doc
+ */
 function analyzeDocument(doc) {
     const fontCache = new Map();
     return doc.getPages().map((p, index) => ({ index, node: p.node, ...analyzePage(doc.context, p.node, fontCache) }));
 }
 
+/**
+ * @param {string[]} userTerms
+ */
 function termsFor(pages, userTerms) {
     const texts = pages.flatMap((p) => p.objects.filter((o) => o.kind === 'text').map((o) => o.text));
     const all = [...(userTerms || []).map(norm), ...deriveTerms(texts).map(norm)].filter((t) => t.length >= 3);
@@ -65,10 +78,12 @@ function termsFor(pages, userTerms) {
 /**
  * The readable text runs of a PDF, for an AI pass that picks the ones naming a person or the
  * customer. `ref` ("p1-12") is what the AI answers with; position is a coarse hint.
+ * @param {Buffer<ArrayBuffer>} buffer
  */
 async function listTextRuns(buffer, { max = 800 } = {}) {
     const doc = await loadPdf(buffer);
     const pages = analyzeDocument(doc);
+    /** @type {({ ref: string; page: number; id: number | undefined; text: string; position: string; })[]} */
     const runs = [];
     for (const p of pages) {
         const [bx0, by0, bx1, by1] = p.box;
@@ -86,9 +101,14 @@ async function listTextRuns(buffer, { max = 800 } = {}) {
     return { runs, truncated: false, pageCount: pages.length };
 }
 
-/** Cut [start, end) ranges out of a content stream; each cut leaves one space so tokens never glue. */
+/**
+ * Cut [start, end) ranges out of a content stream; each cut leaves one space so tokens never glue.
+ * @param {Buffer<ArrayBuffer>} bytes
+ * @param {number[][]} ranges
+ */
 function cutRanges(bytes, ranges) {
     const sorted = [...ranges].sort((a, b) => a[0] - b[0]);
+    /** @type {Buffer<ArrayBuffer>[]} */
     const parts = [];
     let pos = 0;
     for (const [s, e] of sorted) {
@@ -100,6 +120,10 @@ function cutRanges(bytes, ranges) {
     return Buffer.concat(parts);
 }
 
+/**
+ * @param {PDFDict} annot
+ * @param {PDFContext} context
+ */
 function annotationText(context, annot) {
     return ['Contents', 'T', 'Subj', 'RC', 'TU']
         .map((k) => context.lookup(annot.get(PDFName.of(k))))
@@ -108,10 +132,16 @@ function annotationText(context, annot) {
         .join(' ');
 }
 
-/** Drop links (their URIs name the owner) and any annotation whose text identifies someone. */
+/**
+ * Drop links (their URIs name the owner) and any annotation whose text identifies someone.
+ * @param {PDFContext} context
+ * @param {string[]} terms
+ * @param {PDFPageLeaf} pageNode
+ */
 function cleanAnnotations(context, pageNode, terms) {
     const annots = context.lookup(pageNode.get(PDFName.of('Annots')));
     if (!(annots instanceof PDFArray)) return 0;
+    /** @type {PDFObject[]} */
     const keep = [];
     let removed = 0;
     for (const ref of annots.asArray()) {
@@ -125,7 +155,10 @@ function cleanAnnotations(context, pageNode, terms) {
     return removed;
 }
 
-/** Delete every indirect object that is no longer reachable from the catalog. */
+/**
+ * Delete every indirect object that is no longer reachable from the catalog.
+ * @param {PDFContext} context
+ */
 function collectGarbage(context) {
     const seen = new Set();
     const stack = [context.trailerInfo.Root];
@@ -152,6 +185,9 @@ function collectGarbage(context) {
     return deleted;
 }
 
+/**
+ * @param {PDFDocument} doc
+ */
 function scrubDocument(doc) {
     const { context } = doc;
     context.trailerInfo.Info = undefined;
@@ -164,9 +200,13 @@ function scrubDocument(doc) {
     }
 }
 
-/** Every decoded stream and string in a saved PDF, lower-cased, for a last leak search. */
+/**
+ * Every decoded stream and string in a saved PDF, lower-cased, for a last leak search.
+ * @param {string | ArrayBuffer | Uint8Array<ArrayBufferLike>} buffer
+ */
 async function rawText(buffer) {
     const doc = await PDFDocument.load(buffer, { updateMetadata: false });
+    /** @type {string[]} */
     const chunks = [];
     for (const [, obj] of doc.context.enumerateIndirectObjects()) {
         if (obj instanceof PDFStream) {
@@ -177,6 +217,9 @@ async function rawText(buffer) {
     return chunks.join('\n').toLowerCase();
 }
 
+/**
+ * @param {PageObject[]} objects
+ */
 function textMultiset(objects) {
     return objects.filter((o) => o.kind === 'text').map((o) => o.text.trim()).filter(Boolean).sort();
 }
@@ -185,6 +228,9 @@ function textMultiset(objects) {
  * Re-read the output and prove it: the text left is exactly the original minus what we cut,
  * no path or image vanished that we did not cut, nothing the rules flag is left, and no
  * customer term survives anywhere in the file's bytes.
+ * @param {Buffer<ArrayBuffer>} outBuffer
+ * @param {string[]} terms
+ * @param {string[]} removedTexts
  */
 async function verify(outBuffer, before, removedIds, terms, removedTexts) {
     const doc = await loadPdf(outBuffer);
@@ -229,6 +275,7 @@ async function redactPdf(buffer, { terms: userTerms = [], aiMarks = [] } = {}) {
     const terms = termsFor(pages, userTerms);
     const removed = [];
     const removedIds = pages.map(() => new Set());
+    /** @type {string[]} */
     const removedTexts = [];
     const summary = { pages: pages.length, text: 0, graphics: 0, images: 0, annotations: 0 };
     // A scanned page is one big picture with no text to read: nothing on it can be found, so
@@ -257,6 +304,7 @@ async function redactPdf(buffer, { terms: userTerms = [], aiMarks = [] } = {}) {
         for (const key of ['Metadata', 'PieceInfo', 'Thumb']) page.node.delete(PDFName.of(key));
         if (!marks.length) continue;
 
+        /** @type {number[][]} */
         const ranges = [];
         for (const m of marks) {
             const o = page.objects[m.id];

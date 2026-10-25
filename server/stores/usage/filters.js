@@ -27,7 +27,12 @@ function numericAggregates(rows) {
 // Cost-bearing queries pass excludeToolRows=true so per-tool zero-token rows
 // don't inflate call counts or distort cost summaries. The /tools endpoint
 // uses a separate filter (`tool_name IS NOT NULL`) to count those rows.
+/**
+ * @param {number} [startIdx]
+ * @param {boolean} [excludeToolRows]
+ */
 function buildFilters(filters, startIdx = 1, excludeToolRows = false) {
+    /** @type {string[]} */
     const conditions = [];
     const params = [];
     let idx = startIdx;

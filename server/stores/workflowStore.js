@@ -169,6 +169,9 @@ async function getAllWorkflows() {
     }));
 }
 
+/**
+ * @param {string} id
+ */
 async function getWorkflowById(id) {
     await initDB();
     const workflow = await getOne('SELECT * FROM workflows WHERE id = $1', [id]);
@@ -180,6 +183,10 @@ async function getWorkflowById(id) {
     return workflow;
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function getWorkflow(id, userId) {
     await initDB();
     const workflow = await getOne('SELECT * FROM workflows WHERE id = $1', [id]);
@@ -279,7 +286,7 @@ async function migrateFromJson(workflows, defaultOwnerId) {
             `, [wf.id || randomUUID(), wf.name || 'Migrated Workflow', wf.description || '', null, defaultOwnerId,
             JSON.stringify(wf.nodes || []), JSON.stringify(wf.edges || []), JSON.stringify(wf.viewport || {})]);
         } catch (e) {
-            log.error('Migration error for workflow:', wf.id, e.message);
+            log.error('Migration error for workflow:', wf.id, /** @type {Error} */ (e).message);
         }
     }
     return { migrated: workflows.length };
@@ -287,6 +294,11 @@ async function migrateFromJson(workflows, defaultOwnerId) {
 
 // ============ Execution History Functions ============
 
+/**
+ * @param {string} workflowId
+ * @param {string} userId
+ * @param {string} [triggerType]
+ */
 async function createExecution(workflowId, workflowName, userId, triggerType = 'manual', workflow = null) {
     await initDB();
     const id = randomUUID();
@@ -298,6 +310,12 @@ async function createExecution(workflowId, workflowName, userId, triggerType = '
     return { id, startedAt };
 }
 
+/**
+ * @param {string} id
+ * @param {string} status
+ * @param {number} nodesExecuted
+ * @param {string | null} [error]
+ */
 async function completeExecution(id, status, nodesExecuted, result, error = null) {
     await initDB();
     const completedAt = new Date().toISOString();
@@ -312,6 +330,9 @@ async function completeExecution(id, status, nodesExecuted, result, error = null
     return { success: true, durationMs };
 }
 
+/**
+ * @param {number} [limit]
+ */
 async function getExecutionHistory(userId, limit = 50) {
     await initDB();
     const rows = await getAll('SELECT * FROM execution_history WHERE user_id = $1 ORDER BY started_at DESC LIMIT $2', [userId, limit]);
@@ -322,6 +343,9 @@ async function getExecutionHistory(userId, limit = 50) {
     }));
 }
 
+/**
+ * @param {number} [limit]
+ */
 async function getWorkflowExecutionHistory(workflowId, userId, limit = 50) {
     await initDB();
     const rows = await getAll('SELECT * FROM execution_history WHERE workflow_id = $1 AND user_id = $2 ORDER BY started_at DESC LIMIT $3', [workflowId, userId, limit]);
@@ -343,6 +367,9 @@ async function getExecution(id) {
     };
 }
 
+/**
+ * @param {number} [daysToKeep]
+ */
 async function cleanupOldExecutions(userId, daysToKeep = 30) {
     await initDB();
     await run(`DELETE FROM execution_history WHERE user_id = $1 AND started_at < NOW() - ($2 || ' days')::interval`, [userId, daysToKeep]);

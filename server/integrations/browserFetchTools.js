@@ -20,6 +20,7 @@ const MAX_CONCURRENT = parseInt(process.env.BROWSER_FETCH_MAX_CONCURRENT || '4',
 const MAX_QUEUE_WAIT_MS = parseInt(process.env.BROWSER_FETCH_MAX_QUEUE_WAIT_MS || '45000', 10);
 
 let _active = 0;
+/** @type {{ settle(): void; timer: NodeJS.Timeout; }[]} */
 const _queue = [];
 
 function queuePosition() {
@@ -33,6 +34,7 @@ function acquireBrowserSlot() {
             resolve();
             return;
         }
+        /** @type {{ settle?: () => void; timer?: NodeJS.Timeout }} */
         const entry = {};
         entry.settle = () => {
             clearTimeout(entry.timer);
@@ -90,6 +92,9 @@ This drives a shared, capacity-limited browser and takes several seconds (it nav
     },
 ];
 
+/**
+ * @param {string} toolName
+ */
 function isBrowseWebTool(toolName) {
     return toolName === 'browse_web';
 }
@@ -159,8 +164,8 @@ async function executeBrowseWebTool(toolName, args, context = {}) {
             : '';
         return `${result.answer}${sources}${trailer}\n\n> Read live via a headless browser. Only the content above was actually on the page(s).`;
     } catch (err) {
-        log.error(`[BrowseWeb] Failed task (${url || 'no url'}): ${err.message}`);
-        return `Could not complete the browse task: ${err.message}.`;
+        log.error(`[BrowseWeb] Failed task (${url || 'no url'}): ${/** @type {Error} */ (err).message}`);
+        return `Could not complete the browse task: ${/** @type {Error} */ (err).message}.`;
     } finally {
         if (send) send('browser_session_end', { sessionId });
         releaseBrowserSlot();

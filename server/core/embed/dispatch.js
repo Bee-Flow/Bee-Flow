@@ -31,8 +31,14 @@ const { toV1BaseUrl } = require('../../utils/azureUrl');
  */
 const RETRY_DELAYS_MS = [2000, 5000, 15000, 30000];
 const MAX_RETRY_AFTER_MS = 60000;
+/**
+ * @param {number} ms
+ */
 let sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * @param {Response} res
+ */
 function retryAfterMs(res) {
     const raw = res?.headers?.get?.('retry-after');
     if (!raw) return null;
@@ -42,16 +48,21 @@ function retryAfterMs(res) {
     return Number.isFinite(at) ? Math.min(Math.max(at - Date.now(), 0), MAX_RETRY_AFTER_MS) : null;
 }
 
+/**
+ * @param {string} url
+ * @param {string} label
+ */
 async function postEmbedBatch(url, init, label) {
     for (let attempt = 0; ; attempt++) {
         const last = attempt >= RETRY_DELAYS_MS.length;
+        /** @type {Response} */
         let res;
         try {
             res = await fetch(url, { ...init, signal: AbortSignal.timeout(30000) });
         } catch (err) {
             // Timeout or connection reset: temporary by nature.
             if (last) throw err;
-            log.warn(`[Embed] ${label} request failed (${err.message}); retry ${attempt + 1}/${RETRY_DELAYS_MS.length}`);
+            log.warn(`[Embed] ${label} request failed (${/** @type {Error} */ (err).message}); retry ${attempt + 1}/${RETRY_DELAYS_MS.length}`);
             await sleep(RETRY_DELAYS_MS[attempt]);
             continue;
         }
@@ -118,6 +129,8 @@ async function azureEmbed(texts, endpoint, apiKey, model) {
  * multilingual-e5 (the in-process CPU fallback) has the same property with
  * different spellings; cpuEmbed.js applies those itself, so we only pass `kind`
  * down to it.
+ * @param {string[]} texts
+ * @param {string} kind
  */
 function applyModelPrefix(texts, modelId, kind) {
     const model = String(modelId || '').toLowerCase();
@@ -155,6 +168,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
     const strict = options.strict === true;
     // Why the configured provider was passed over, for a caller that cannot
     // use a fallback's vectors and has to say why (core/kb/localKBIngest.js).
+    /** @type {string | null} */
     let providerError = null;
 
     // (1) Configured global provider via resolveEmbedTarget
@@ -201,8 +215,8 @@ async function dispatchEmbedTexts(texts, options = {}) {
         }
     } catch (err) {
         if (strict) throw err;
-        providerError = err.message;
-        log.warn(`[Embed] Configured provider embed failed (${err.message}); falling through to Azure/CPU`);
+        providerError = /** @type {Error} */ (err).message;
+        log.warn(`[Embed] Configured provider embed failed (${/** @type {Error} */ (err).message}); falling through to Azure/CPU`);
     }
     if (strict) throw new Error('No usable embedding provider is configured');
 
@@ -217,7 +231,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
             recordEmbedCall({ source: 'azure', status: 'ok' });
             return { vectors: out, source: 'azure', model: azureModel, providerError };
         } catch (err) {
-            log.warn(`[Embed] Legacy Azure embed failed (${err.message}); falling through to CPU`);
+            log.warn(`[Embed] Legacy Azure embed failed (${/** @type {Error} */ (err).message}); falling through to CPU`);
         }
     }
 
@@ -231,7 +245,7 @@ async function dispatchEmbedTexts(texts, options = {}) {
             return { vectors, source: 'cpu', model: 'multilingual-e5-small', providerError };
         }
     } catch (err) {
-        log.warn(`[Embed] CPU embed failed (${err.message})`);
+        log.warn(`[Embed] CPU embed failed (${/** @type {Error} */ (err).message})`);
     }
 
     recordEmbedCall({ source: 'none', status: 'error' });

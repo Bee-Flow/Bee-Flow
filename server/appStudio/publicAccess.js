@@ -85,12 +85,18 @@ function isObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
+/**
+ * @param {string} v
+ */
 function isThemeValue(spec, v) {
     return spec.type === 'color'
         ? (typeof v === 'string' && HEX_RE.test(v))
         : spec.values.includes(v);
 }
 
+/**
+ * @param {string} v
+ */
 function isDesignValue(spec, v) {
     if (spec.type === 'enum') return spec.values.includes(v);
     if (spec.type === 'url') return typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen;
@@ -102,6 +108,8 @@ function isDesignValue(spec, v) {
  * knobs are kept, everything else is dropped with a repair. A knob set to
  * null means "no override for this one" and is simply absent. Returns null
  * when nothing survives, so the key stays out of the canonical form.
+ * @param {string} path
+ * @param {(arg0: string, path: string, arg2: string) => void} push
  */
 function canonLookOverride(raw, SPEC, path, push, isValid, skip = []) {
     if (raw === undefined || raw === null) return null;
@@ -136,6 +144,7 @@ function canonLookOverride(raw, SPEC, path, push, isValid, skip = []) {
  * Returns null when the block is absent or unusable, so the key stays absent
  * and an app that never opted in canonicalizes byte-identically to before this
  * feature existed.
+ * @param {(arg0: string, path: string, arg2: string) => void} push
  */
 function canonPublicAccess(input, push) {
     if (input === undefined || input === null) return null;
@@ -154,6 +163,7 @@ function canonPublicAccess(input, push) {
     out.entryScreenId = entry;
 
     const raw = Array.isArray(input.screenIds) ? input.screenIds : [];
+    /** @type {string[]} */
     const ids = [];
     for (const id of raw) {
         if (typeof id !== 'string' || !id.trim()) continue;
@@ -200,9 +210,13 @@ function canonPublicAccess(input, push) {
  * @param {{entryScreenId?: any, screenIds: any[]}|null} pa       canonPublicAccess output
  * @param {Map<string,string>} renames  old id → canonical id
  * @param {Set<string>} screenIds       the definition's final screen ids
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
 function resolvePublicScreens(pa, renames, screenIds, push) {
     if (!pa) return null;
+    /**
+     * @param {string} id
+     */
     const remap = (id) => (renames && renames.has(id) ? renames.get(id) : id);
 
     const entry = remap(pa.entryScreenId);
@@ -211,6 +225,7 @@ function resolvePublicScreens(pa, renames, screenIds, push) {
         return null;
     }
 
+    /** @type {(string | undefined)[]} */
     const ids = [];
     for (const id of pa.screenIds) {
         const resolved = remap(id);

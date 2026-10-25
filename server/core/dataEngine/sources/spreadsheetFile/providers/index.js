@@ -61,7 +61,10 @@ function formatOf({ name, mimeType } = {}) {
     return null;
 }
 
-/** Is this a file name the browser should show? (Folders are decided elsewhere.) */
+/**
+ * Is this a file name the browser should show? (Folders are decided elsewhere.)
+ * @param {string} name
+ */
 function isSpreadsheetName(name) {
     return formatOf({ name }) !== null;
 }

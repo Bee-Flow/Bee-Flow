@@ -15,6 +15,9 @@ const { readRowPath, dispatchTool } = require('./dispatch');
 // Run `jobs` with a small fixed concurrency. Deliberately hand-rolled rather
 // than Promise.all over everything: an owner's Gmail account must not receive
 // 500 simultaneous reads because their app has 500 rows.
+/**
+ * @param {number} limit
+ */
 async function mapWithConcurrency(items, limit, fn) {
     const out = new Array(items.length);
     let next = 0;
@@ -48,6 +51,7 @@ async function mapWithConcurrency(items, limit, fn) {
  * A single row's failure is recorded on that row (`_error`) instead of failing
  * the run: one unreadable message must not empty a table of 400 good ones. The
  * BASE step has no such tolerance — it still throws (see runIntegrationChain).
+ * @param {{ remaining: number; }} budget
  */
 async function applyChainStep(step, rows, budget, exec, deps, app, connector, {
     trace = false, grainRows = null, rowGrainIndex = null,
@@ -94,7 +98,7 @@ async function applyChainStep(step, rows, budget, exec, deps, app, connector, {
             // A missing connection is a setup problem, not a bad row — stamping
             // it on 500 rows would hide the one thing the author can fix.
             if (err?.code === 'connection_required') throw err;
-            return { row, result: null, error: String(err?.message || err).slice(0, 200) };
+            return { row, result: null, error: String(/** @type {Error} */ (err)?.message || err).slice(0, 200) };
         }
     });
 
@@ -118,6 +122,9 @@ async function applyChainStep(step, rows, budget, exec, deps, app, connector, {
     // flat row but no grain row, and from there on every later step would bind
     // against the wrong parent.
     const grainIndexOf = trace ? [] : null;
+    /**
+     * @param {number} grainIdx
+     */
     const pushOut = (flatRow, grainIdx) => {
         out.push(flatRow);
         if (grainIndexOf) grainIndexOf.push(grainIdx);
@@ -152,6 +159,9 @@ async function applyChainStep(step, rows, budget, exec, deps, app, connector, {
         //     win and the parent's collisions are preserved as `parent_<key>`.
         //     That is also what makes the next step bindable: `id` is the
         //     attachment, `parent_id` is still the message.
+        /**
+         * @param {boolean} fromExpand
+         */
         const foldOnto = (base, payload, fromExpand) => {
             if (merge === 'nest') return { ...base, [alias]: payload ?? null };
             if (!isPlainObject(payload)) return { ...base, [alias]: payload ?? null };

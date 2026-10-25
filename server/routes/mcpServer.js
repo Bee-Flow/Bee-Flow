@@ -71,6 +71,7 @@ const router = express.Router();
  * Build the caller's tool list. `loadSession` is the same offline-session
  * builder unattended automations use, so a connector-bound user reaches Nextcloud
  * through the ExApp proxy exactly as they would in a scheduled automation.
+ * @param {string} userId
  */
 async function toolsForUser(userId) {
     const { loadSession } = require('../automation/triggerBus');
@@ -129,10 +130,18 @@ function toMcpTool(fn) {
 
 const PROTOCOL_VERSION = '2025-06-18';
 
+/**
+ * @param {string | number | null | undefined} id
+ */
 function rpcResult(id, result) {
     return { jsonrpc: '2.0', id, result };
 }
 
+/**
+ * @param {string | number | null | undefined} id
+ * @param {number} code
+ * @param {string} message
+ */
 function rpcError(id, code, message) {
     return { jsonrpc: '2.0', id, error: { code, message } };
 }
@@ -282,7 +291,7 @@ async function handleRpc(message, userId, deps = {}, access = null) {
                 return rpcResult(id, { content: [{ type: 'text', text }], isError });
             } catch (err) {
                 return rpcResult(id, {
-                    content: [{ type: 'text', text: `Tool execution failed: ${err.message}` }],
+                    content: [{ type: 'text', text: `Tool execution failed: ${/** @type {Error} */ (err).message}` }],
                     isError: true,
                 });
             }
@@ -311,7 +320,7 @@ router.post('/', express.json({ limit: '4mb' }), async (req, res) => {
             const out = await handleRpc(message, userId, {}, access);
             if (out) responses.push(out);
         } catch (err) {
-            log.error('[MCP server] handler error:', err.message);
+            log.error('[MCP server] handler error:', /** @type {Error} */ (err).message);
             // Only a request is answered — not even an error goes back to a notification.
             if (classifyRpc(message).kind === 'request') responses.push(rpcError(message.id, -32603, 'Internal error'));
         }

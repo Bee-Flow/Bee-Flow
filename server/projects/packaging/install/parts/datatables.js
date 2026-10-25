@@ -13,6 +13,10 @@ const MAX_KEY_SUFFIX = 9;
 /** The datatable key grammar allows 63 characters (vocabulary.js KEY_RE). */
 const MAX_TABLE_KEY = 63;
 
+/**
+ * @param {string} key
+ * @param {number} n
+ */
 function suffixedKey(key, n) {
     const tail = `_${n}`;
     return `${key.slice(0, MAX_TABLE_KEY - tail.length)}${tail}`;
@@ -82,6 +86,10 @@ async function installDatatables(entities, ctx, report) {
             const rowScope = entity.rowScope === 'own' ? 'own' : 'all';
             const bundleKey = String(entity.key || '');
             const baseKey = typeof ctx.datatableKeyFor === 'function' ? String(ctx.datatableKeyFor(entity) || '') : bundleKey;
+            /**
+             * @param {string} key
+             * @param {string | null} logicalKey
+             */
             const createWith = (key, logicalKey) => db.withTransaction(async (client) => datatableStore.createDatatable({
                 scope, ownerUserId: ctx.ownerId,
                 key,
@@ -138,7 +146,7 @@ async function installDatatables(entities, ctx, report) {
             // The engine memoises "this scope has a model row" inside the
             // transaction that just rolled back, so the memo goes with it.
             try { datatableDbStore.invalidate(scopeKey); } catch (err) { bestEffort('projects/packaging/install/parts/datatables:installDatatables#2', err); /* best effort */ }
-            report.skipped.push({ ref: entity.ref, kind: 'datatable', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'datatable', why: /** @type {Error} */ (err).message });
         }
     }
 }
@@ -161,7 +169,7 @@ async function installDatatables(entities, ctx, report) {
  *     become resolvable, or a manifest could point at one by guessing the name.
  */
 async function createRequestedTables(ctx, report) {
-    const wanted = (ctx.wiring.resolutions.tables || []).filter(t => t.create === true);
+    const wanted = (ctx.wiring.resolutions.tables || []).filter((/** @type {{ create: boolean; }} */ t) => t.create === true);
     if (!wanted.length) return;
 
     const sub = { installed: { datatables: [] }, skipped: [], warnings: [] };

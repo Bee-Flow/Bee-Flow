@@ -1,3 +1,4 @@
+/** @typedef {import('./learnMediaPin').LearnMediaPin} LearnMediaPin */
 // @typecheck
 'use strict';
 /**
@@ -60,7 +61,10 @@ function defaultDir() {
     return require('./learnMedia').learnMediaDir();
 }
 
-/** Is `rel` (forward slashes) a path a pack may contain? Directories end in '/'. */
+/**
+ * Is `rel` (forward slashes) a path a pack may contain? Directories end in '/'.
+ * @param {string} rel
+ */
 function isSafePackPath(rel) {
     if (typeof rel !== 'string' || !rel || rel.length > 256) return false;
     const trimmed = rel.replace(/^\.\//, '');
@@ -71,6 +75,9 @@ function isSafePackPath(rel) {
     return isDir || ALLOWED_EXTS.includes(path.extname(trimmed).toLowerCase());
 }
 
+/**
+ * @param {string} file
+ */
 async function sha256File(file) {
     const hash = createHash('sha256');
     await pipeline(fs.createReadStream(file), hash);
@@ -90,7 +97,10 @@ async function obtainTarball(source, file, { fetchImpl } = {}) {
     fs.copyFileSync(local, file);
 }
 
-/** Entry list of a .tar.gz, refusing links, special files and unsafe names. */
+/**
+ * Entry list of a .tar.gz, refusing links, special files and unsafe names.
+ * @param {string} tarball
+ */
 function listTarEntries(tarball, { tar = 'tar' } = {}) {
     const verbose = execFileSync(tar, ['-tvzf', tarball], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     const names = execFileSync(tar, ['-tzf', tarball], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
@@ -105,7 +115,11 @@ function listTarEntries(tarball, { tar = 'tar' } = {}) {
     return names;
 }
 
-/** Every regular file under `dir`, as forward-slash relative paths; anything else throws. */
+/**
+ * Every regular file under `dir`, as forward-slash relative paths; anything else throws.
+ * @param {string} dir
+ * @param {string} [prefix]
+ */
 function walkFiles(dir, prefix = '') {
     const out = [];
     for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -119,6 +133,9 @@ function walkFiles(dir, prefix = '') {
     return out;
 }
 
+/**
+ * @param {string} key
+ */
 const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
 
 /** The `videos` and `files` objects of a parsed manifest; throws when they are not there. */
@@ -131,7 +148,10 @@ function manifestMaps(manifest) {
     return listed;
 }
 
-/** One `files` entry: a safe path and a sha256 hex digest. */
+/**
+ * One `files` entry: a safe path and a sha256 hex digest.
+ * @param {string} rel
+ */
 function checkListedEntry(rel, expected) {
     if (!isSafePackPath(rel) || rel === 'manifest.json' || rel.endsWith('/')) throw new Error(`manifest.files lists an invalid path ${JSON.stringify(rel)}`);
     if (typeof expected !== 'string' || !HEX64.test(expected.toLowerCase())) throw new Error(`manifest.files[${rel}] is not a sha256 hex digest`);
@@ -154,7 +174,11 @@ function checkVideoRefs(videos, listed) {
     }
 }
 
-/** One clip's file, caption track (in `lang`) and poster must all be listed in manifest.files. */
+/**
+ * One clip's file, caption track (in `lang`) and poster must all be listed in manifest.files.
+ * @param {string} what
+ * @param {string} lang
+ */
 function checkClipRefs(what, v, lang, listed) {
     if (typeof v.file !== 'string') throw new Error(`${what} has no file`);
     const refs = [v.file, v.captions?.[lang], v.poster].filter((r) => r !== undefined);
@@ -166,12 +190,13 @@ function checkClipRefs(what, v, lang, listed) {
 /**
  * Verify an extracted pack directory against its manifest. Returns the parsed
  * manifest; throws with a precise reason otherwise.
+ * @param {string} dir
  */
 async function verifyPack(dir) {
     const manifestPath = path.join(dir, 'manifest.json');
     if (!fs.existsSync(manifestPath)) throw new Error('pack has no manifest.json');
     let manifest;
-    try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch (e) { throw new Error(`manifest.json is not JSON: ${e.message}`); }
+    try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); } catch (e) { throw new Error(`manifest.json is not JSON: ${/** @type {Error} */ (e).message}`); }
     const listed = manifestMaps(manifest);
 
     const present = walkFiles(dir).filter((f) => f !== 'manifest.json');
@@ -190,7 +215,10 @@ async function verifyPack(dir) {
     return manifest;
 }
 
-/** The pack root inside an extraction directory: itself, or its single top-level directory. */
+/**
+ * The pack root inside an extraction directory: itself, or its single top-level directory.
+ * @param {string} dir
+ */
 function packRoot(dir) {
     if (fs.existsSync(path.join(dir, 'manifest.json'))) return dir;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -204,9 +232,16 @@ function packRoot(dir) {
 // same filesystem (so rename works), never served, never a valid pack path.
 const TEMP_PREFIX = '.learn-media-';
 
+/**
+ * @param {string} dir
+ * @param {string} rel
+ */
 const abs = (dir, rel) => path.join(dir, ...rel.split('/'));
 
-/** The files the installed pack's manifest lists (its `files` keys), or [] when there is none. */
+/**
+ * The files the installed pack's manifest lists (its `files` keys), or [] when there is none.
+ * @param {string} target
+ */
 function installedPackFiles(target) {
     try {
         const files = JSON.parse(fs.readFileSync(path.join(target, 'manifest.json'), 'utf8'))?.files;
@@ -217,7 +252,10 @@ function installedPackFiles(target) {
     }
 }
 
-/** The version of the installed manifest, or '' when there is none. */
+/**
+ * The version of the installed manifest, or '' when there is none.
+ * @param {string} target
+ */
 function installedVersion(target) {
     try {
         const v = JSON.parse(fs.readFileSync(path.join(target, 'manifest.json'), 'utf8'))?.version;
@@ -225,7 +263,11 @@ function installedVersion(target) {
     } catch { return ''; }
 }
 
-/** Remove a pack file and every directory above it (up to `target`) that is left empty. */
+/**
+ * Remove a pack file and every directory above it (up to `target`) that is left empty.
+ * @param {string} target
+ * @param {string} rel
+ */
 function removePackFile(target, rel) {
     fs.rmSync(abs(target, rel), { force: true });
     let dir = path.dirname(abs(target, rel));
@@ -240,9 +282,13 @@ function removePackFile(target, rel) {
  * the files only the previous manifest named. Files in `alreadyInPlace` are
  * verified copies that are already at their final path: they are not moved.
  * See HOW IT IS INSTALLED above.
+ * @param {string} root
+ * @param {string} target
+ * @param {string[]} previous
  */
 function installInPlace(root, target, manifest, previous, alreadyInPlace = new Set()) {
     const incoming = Object.keys(manifest.files).sort();
+    /** @type {string[]} */
     const moved = [];
     try {
         for (const rel of incoming) {
@@ -268,6 +314,9 @@ function installInPlace(root, target, manifest, previous, alreadyInPlace = new S
     return removed;
 }
 
+/**
+ * @param {string} dest
+ */
 function ensureDir(dest) {
     const target = path.resolve(dest);
     fs.mkdirSync(target, { recursive: true });
@@ -307,8 +356,14 @@ async function fetchLearnMediaPack({ source, dest = defaultDir(), expectedSha256
 
 // ── Pin-based sync ──────────────────────────────────────────────────────────
 
-/** Remove temp entries a crashed run left behind (never the lock file). */
+/**
+ * Remove temp entries a crashed run left behind (never the lock file).
+ * @param {string} target
+ * @param {number} [maxAgeMs]
+ * @param {number} [now]
+ */
 function cleanStaleTemp(target, maxAgeMs = STALE_TEMP_MS, now = Date.now()) {
+    /** @type {string[]} */
     let names = [];
     try { names = fs.readdirSync(target); } catch { return; }
     for (const name of names) {
@@ -320,7 +375,10 @@ function cleanStaleTemp(target, maxAgeMs = STALE_TEMP_MS, now = Date.now()) {
     }
 }
 
-/** sha256 of an existing regular file, or '' when it is missing or not a plain file. */
+/**
+ * sha256 of an existing regular file, or '' when it is missing or not a plain file.
+ * @param {string} file
+ */
 async function existingSha(file) {
     try {
         if (!fs.lstatSync(file).isFile()) return '';
@@ -335,6 +393,8 @@ async function existingSha(file) {
  * Downloads the pinned manifest (sha256-checked), then only the files whose
  * hash is not already on disk; the old pack stays live until every file has
  * been verified. Returns { status, version, downloaded, reused, bytes }.
+ * @param {LearnMediaPin} pin
+ * @param {string} dir
  */
 async function syncFromPin(pin, dir, opts = {}) {
     const { fetchImpl, log = () => {}, timeoutMs } = opts;
@@ -346,6 +406,9 @@ async function syncFromPin(pin, dir, opts = {}) {
     cleanStaleTemp(target);
 
     const base = resolveBase(pin, opts);
+    /**
+     * @param {string | undefined} name
+     */
     const assetUrl = (name) => new URL(name, base).toString();
     const tag = `${process.pid}-${Date.now()}`;
     const staging = path.join(target, `${TEMP_PREFIX}staging-${tag}`);
@@ -357,7 +420,7 @@ async function syncFromPin(pin, dir, opts = {}) {
         const got = await streamToFile(mres, manifestFile, MAX_MANIFEST_BYTES, 'manifest too large');
         if (got.sha256 !== pin.manifestSha256.toLowerCase()) throw new Error('manifest sha256 does not match the pin');
         let manifest;
-        try { manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')); } catch (e) { throw new Error(`manifest is not JSON: ${e.message}`); }
+        try { manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')); } catch (e) { throw new Error(`manifest is not JSON: ${/** @type {Error} */ (e).message}`); }
         const listed = manifestMaps(manifest);
         if (manifest.version !== pin.version) throw new Error(`manifest version ${JSON.stringify(manifest.version)} does not match the pin ${JSON.stringify(pin.version)}`);
 

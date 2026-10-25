@@ -65,8 +65,8 @@ async function runMigrations({ log = console, force = false } = {}) {
         report.succeeded.push('user_sessions');
         log.log('  ✅ user_sessions (pre-created)');
     } catch (err) {
-        report.failed.push({ name: 'user_sessions', error: err.message });
-        log.error(`  ❌ user_sessions: ${err.message}`);
+        report.failed.push({ name: 'user_sessions', error: /** @type {Error} */ (err).message });
+        log.error(`  ❌ user_sessions: ${/** @type {Error} */ (err).message}`);
     }
 
     for (const store of collectStoreModules(log)) {
@@ -88,8 +88,8 @@ async function runMigrations({ log = console, force = false } = {}) {
                 log.warn(`  ◌  ${store.name}: geen initDB()/ready — geladen maar NIET geverifieerd`);
             }
         } catch (err) {
-            report.failed.push({ name: store.name, error: err.message });
-            log.error(`  ❌ ${store.name}: ${err.message}`);
+            report.failed.push({ name: store.name, error: /** @type {Error} */ (err).message });
+            log.error(`  ❌ ${store.name}: ${/** @type {Error} */ (err).message}`);
         }
     }
 

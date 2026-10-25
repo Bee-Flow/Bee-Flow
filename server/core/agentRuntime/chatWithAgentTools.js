@@ -93,7 +93,7 @@ async function dispatchChatTool({ toolName, toolArgs, fixedParams, identity, ctx
         });
     } catch (err) {
         log.error(`[Agent] Tool execution failed for ${toolName}:`, err);
-        return { error: err.message };
+        return { error: /** @type {Error} */ (err).message };
     }
 }
 

@@ -44,7 +44,7 @@ async function installAppDataModel(appId, entity, ctx, report) {
             report.warnings.push(`The data model of "${entity.name}" could not be set up (${why}). The app is installed without its own tables.`);
         }
     } catch (err) {
-        report.warnings.push(`The data model of "${entity.name}" could not be set up: ${err.message}`);
+        report.warnings.push(`The data model of "${entity.name}" could not be set up: ${/** @type {Error} */ (err).message}`);
     }
 }
 
@@ -71,7 +71,7 @@ async function installApps(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'app', entityId: created.id, payload: entity.definition });
             report.installed.apps.push({ ref: entity.ref, id: created.id, name: entity.name });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'app', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'app', why: /** @type {Error} */ (err).message });
         }
     }
 }

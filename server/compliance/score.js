@@ -25,6 +25,7 @@
 const registry = require('./registry');
 const frameworks = require('./frameworks');
 
+/** @type {Record<string, number>} */
 const SEVERITY_WEIGHT = { critical: 3, high: 2, medium: 1, low: 0.5 };
 
 // Every regulation the hub scores — GDPR, AIA, ISO27001 first, then the
@@ -66,12 +67,13 @@ function computeScore(results) {
  * check counts via its `frameworks[]` (home + tagged); a row the registry does
  * not know (a custom-framework row, a check retired since) falls back to the
  * row's own `regulation` column.
+ * @param {string} regulation
  */
 function forRegulation(results, regulation) {
-    return results.filter(r => {
+    return results.filter((/** @type {{ check_id: string; regulation: string; }} */ r) => {
         const check = registry.get(r.check_id);
         if (check && Array.isArray(check.frameworks)) {
-            return check.frameworks.some(f => f.regulation === regulation);
+            return check.frameworks.some((/** @type {{ regulation: string; }} */ f) => f.regulation === regulation);
         }
         return r.regulation === regulation;
     });
@@ -108,6 +110,7 @@ function scoreNumbers(byFramework) {
 
 // Custom-framework check rows are attested, not evaluated: their status
 // vocabulary maps onto the check vocabulary before the same weights apply.
+/** @type {Record<string, string>} */
 const CUSTOM_STATUS = { attested: 'pass', todo: 'fail', not_applicable: 'not_applicable' };
 
 /**
@@ -116,7 +119,7 @@ const CUSTOM_STATUS = { attested: 'pass', todo: 'fail', not_applicable: 'not_app
  * status is already in the check vocabulary passes through unchanged.
  */
 function customFrameworkScore(rows) {
-    const mapped = (rows || []).map(r => ({
+    const mapped = (rows || []).map((/** @type {{ status: string | number; }} */ r) => ({
         ...r,
         status: CUSTOM_STATUS[r.status] || r.status,
     }));

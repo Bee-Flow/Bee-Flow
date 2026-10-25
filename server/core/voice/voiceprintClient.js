@@ -54,7 +54,11 @@ const LIMITS = {
     maxSeconds: MAX_ENROLL_SECONDS,
 };
 
-/** Error with a stable machine code the UI turns into a localized message. */
+/**
+ * Error with a stable machine code the UI turns into a localized message.
+ * @param {string} code
+ * @param {string} [message]
+ */
 function enrollError(code, message) {
     const err = new Error(message || code);
     err.code = code;
@@ -135,6 +139,7 @@ function analyseEnrollmentWav(buffer) {
     // then count windows near it — absolute thresholds fail on a quiet mic and
     // a hot mic alike.
     const windowFrames = Math.max(1, Math.round(sampleRate * 0.02));
+    /** @type {number[]} */
     const rms = [];
     let peak = 0;
     for (let f = 0; f < frames; f += windowFrames) {

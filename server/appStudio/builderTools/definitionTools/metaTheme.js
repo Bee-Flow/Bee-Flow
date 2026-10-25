@@ -16,6 +16,7 @@ const ops = require('../../definitionOps');
 const { adoptCanonical } = require('../shared');
 
 function applySetMeta(draftWrap, args) {
+    /** @type {Record<string, string>} */
     const patch = {};
     for (const k of ['name', 'description', 'icon']) {
         if (typeof args?.[k] === 'string') patch[k] = args[k];

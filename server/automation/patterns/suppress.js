@@ -47,12 +47,16 @@ function patternSignature(c) {
 const toolVerbs = (c) => (c.verbs || []).filter((v) => !v.includes('.'));
 
 /** The automation trigger kinds a draft trigger kind can be served by. */
+/** @type {Record<string, Set<string>>} */
 const TRIGGER_COMPAT = {
     schedule: new Set(['schedule']),
     app: new Set(['app_event', 'webhook']),
     manual: new Set(['manual', 'schedule', 'app_event', 'webhook']),
 };
 
+/**
+ * @param {{ title?: string; triggerKind?: string; apps?: string[]; }[] | undefined} automations
+ */
 function coveredByAutomation(c, automations) {
     // Ledger ids (google_drive) and catalogue ids (google-drive) are one app.
     const apps = (c.apps || []).map(normaliseApp);
@@ -102,6 +106,7 @@ function suppressCandidates(input) {
             suppressed.push({ signature, reason: 'existing_automation' });
             continue;
         }
+        /** @type {string | null} */
         let reason = null;
         let downWeight = false;
         for (const f of fb.get(signature) || []) {

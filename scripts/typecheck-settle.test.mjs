@@ -11,6 +11,7 @@ test('parseErrors and requiresOf', () => {
     const r = requiresOf("const { a, b: c } = require('./x');\nconst y = require('../y');\nconst z = require('pg');\n");
     assert.deepEqual([...r.names], [['a', './x'], ['c', './x'], ['y', '../y']]);
     assert.deepEqual(r.specs, ['./x', '../y']);
+    assert.deepEqual(requiresOf("const f = () => require('./lazy').go();\n").specs, ['./lazy'], 'a lazy require is a dependency');
 });
 
 function repo() {

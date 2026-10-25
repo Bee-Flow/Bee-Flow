@@ -28,6 +28,9 @@ const MAX_WALK_DEPTH = 60;
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
+/**
+ * @param {string} id
+ */
 const isPendingDatatableId = (id) => typeof id === 'string' && PENDING_DATATABLE_RE.test(id);
 
 /** n = 1 + the highest n in the list, so a ref is never reused within a proposal. */
@@ -55,9 +58,15 @@ function pendingCatalogEntry(e) {
  * and http_request.cacheInto. A deep walk (not a list of known places) so a
  * container added next year is covered too. `visit(obj, scope)` gets the name
  * of the layer the object sits in (null for the root graph).
+ * @param {WeakKey} def
  */
 function walkDatatableRefs(def, visit) {
     const seen = new WeakSet();
+    /**
+     * @param {string | null} scope
+     * @param {number} depth
+     * @param {WeakKey} node
+     */
     const walk = (node, scope, depth) => {
         if (!node || typeof node !== 'object' || depth > MAX_WALK_DEPTH || seen.has(node)) return;
         seen.add(node);
@@ -73,17 +82,23 @@ function walkDatatableRefs(def, visit) {
     walk(def, null, 0);
 }
 
-/** Every "pending:<n>" the definition points at. */
+/**
+ * Every "pending:<n>" the definition points at.
+ * @param {WeakKey} def
+ */
 function collectPendingRefs(def) {
     const out = new Set();
-    walkDatatableRefs(def, (o) => { if (isPendingDatatableId(o.datatableId)) out.add(o.datatableId); });
+    walkDatatableRefs(def, (/** @type {{ datatableId: string; }} */ o) => { if (isPendingDatatableId(o.datatableId)) out.add(o.datatableId); });
     return out;
 }
 
-/** The REAL table ids the definition points at (what the flow already uses). */
+/**
+ * The REAL table ids the definition points at (what the flow already uses).
+ * @param {WeakKey} def
+ */
 function boundDatatableIds(def) {
     const out = new Set();
-    walkDatatableRefs(def, (o) => { if (o.datatableId && !isPendingDatatableId(o.datatableId)) out.add(o.datatableId); });
+    walkDatatableRefs(def, (/** @type {{ datatableId: string; }} */ o) => { if (o.datatableId && !isPendingDatatableId(o.datatableId)) out.add(o.datatableId); });
     return out;
 }
 
@@ -107,6 +122,9 @@ function rebindPendingDatatables(def, map) {
     return { definition: clone, unknownRefs: [...unknownRefs] };
 }
 
+/**
+ * @param {WeakKey} def
+ */
 function stepsByScope(def) {
     const map = new Map();
     walkDatatableRefs(def, (o, scope) => { if (typeof o.id === 'string') map.set(`${scope || ''}\u0000${o.id}`, o); });
@@ -116,6 +134,8 @@ function stepsByScope(def) {
 /**
  * The tables the proposal's added or changed datatable steps use, for the
  * review card: `newlyBound` = the flow did not reference that table before.
+ * @param {WeakKey} baseDef
+ * @param {WeakKey} def
  */
 function usedDatatables(baseDef, def, catalog, pending = []) {
     const byId = new Map();
@@ -236,6 +256,9 @@ function stagePendingDatatable(draftWrap, args, deps) {
     return stagedResult(entry, notes, false);
 }
 
+/**
+ * @param {boolean} repeated
+ */
 function stagedResult(e, notes, repeated) {
     return {
         datatableId: e.ref, datatableKey: e.key, name: e.name,

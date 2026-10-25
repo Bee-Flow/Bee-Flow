@@ -71,6 +71,7 @@ const stepIn = (graph, id) => (graph.steps || []).find(s => s && s.id === id) ||
  * them hands its outputs to the steps after it. Returns the notes.
  */
 function followAddedSteps(graph, ids) {
+    /** @type {string[]} */
     const notes = [];
     if (!graph || !Array.isArray(graph.steps)) return notes;
     for (const id of ids || []) {

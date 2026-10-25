@@ -57,6 +57,9 @@ function findDanglingRefs(graph, id) {
         return out;
     };
     const hits = new Set();
+    /**
+     * @param {string | null} scope
+     */
     const scan = (steps, scope) => {
         for (const s of (steps || [])) {
             if (!s || s.id === id) continue;
@@ -97,6 +100,7 @@ function applyRemoveStep(graph, args) {
     const dangling = findDanglingRefs(graph, id);
     const incoming = (graph.edges || []).filter(e => e.to === id);
     const outgoing = (graph.edges || []).filter(e => e.from === id);
+    /** @type {string[]} */
     const bridges = [];
 
     if (reconnect && incoming.length && outgoing.length) {
@@ -128,6 +132,7 @@ function applyRemoveStep(graph, args) {
     found.container.splice(found.index, 1);
     graph.edges = graph.edges.filter(e => e.from !== id && e.to !== id);
 
+    /** @type {string[]} */
     const parts = [];
     if (bridges.length) parts.push(`reconnected ${bridges.join(', ')}`);
     if (dangling.length) parts.push(`steps ${dangling.join(', ')} still bind steps.${id}.* — re-point or remove those bindings`);

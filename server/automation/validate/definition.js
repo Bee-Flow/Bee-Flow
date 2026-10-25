@@ -51,9 +51,17 @@ const { validateLayerGraph } = require('./layerGraph');
  * outage never blocks saving or activating (stepRules/topicRules.js).
  */
 function validateDefinitionStrict(def, { availableTools = null, toolRequiredParams = null, deliverableEvents = null, scope = 'root', availableBlocks = null, knownConnectionIds = null, knownVarNames = null, availableAgents = null, topicClassifier = null } = {}) {
+    /** @type {{ code: string; severity: string; path: string; message: string; hint: string; }[]} */
     const errors = [];
+    /** @type {{ code: string; severity: string; path: string; message: string; hint: string; }[]} */
     const warnings = [];
+    /**
+     * @param {{ code: string; severity: string; path: string; message: string; hint: string; }} rec
+     */
     const pushE = (rec) => errors.push(rec);
+    /**
+     * @param {{ code: string; severity: string; path: string; message: string; hint: string; }} rec
+     */
     const pushW = (rec) => warnings.push(rec);
 
     if (!isObject(def)) {
@@ -255,7 +263,9 @@ function validateDefinition(def, opts = {}) {
     if (stage !== 'draft') return validateDefinitionStrict(def, opts);
 
     const result = validateDefinitionStrict(coerceDraftShape(def), opts);
+    /** @type {{ code: string; severity: string; path: string; message: string; hint: string; }[]} */
     const blocking = [];
+    /** @type {{ severity: string; blockedAt: string; code: string; path: string; message: string; hint: string; }[]} */
     const downgraded = [];
     for (const rec of result.errors) {
         if (COMPLETENESS_CODES.has(rec.code)) downgraded.push({ ...rec, severity: 'warning', blockedAt: 'activate' });

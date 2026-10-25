@@ -26,6 +26,8 @@ const liveSideEffects = require('../../automation/liveSideEffects');
  * Knowledge-base findings for a definition, at a stage, for this request: the
  * organisation is the caller's (orgOf). Fail-open — see
  * automation/liveSideEffects.kbFindingsFor.
+ * @param {string} userId
+ * @param {string} stage
  */
 async function kbFindingsFor(definition, req, userId, stage) {
     return liveSideEffects.kbFindingsFor(definition, { orgId: async () => await orgOf(req), userId, stage });

@@ -23,6 +23,12 @@ const { bestEffort, fallback } = require('../../utils/bestEffort');
 // admin(s) per billing period. Idempotency is enforced via the
 // notifications_sent table — the key `(organization, orgId,
 // 'cost_threshold_80:<period>')` is unique. Failures are swallowed.
+/**
+ * @param {string} orgId
+ * @param {number} cap
+ * @param {number} current
+ * @param {string} periodKey
+ */
 async function _notifyCostThreshold(orgId, cap, current, periodKey) {
     try {
         const kind = `cost_threshold_80:${periodKey}`;
@@ -46,7 +52,7 @@ async function _notifyCostThreshold(orgId, cap, current, periodKey) {
         const text = `Your organization has used €${current.toFixed(2)} of the €${cap.toFixed(2)} monthly limit (${pct}%). When usage reaches 100%, AI calls will be blocked until the next billing period.\n\nContact your administrator to raise the cap if needed.`;
         await sendServiceEmail({ to: recipients.join(', '), subject, text }).catch((e) => bestEffort('core/entitlements/limits:_notifyCostThreshold', e));
     } catch (e) {
-        log.warn('[Limits] cost threshold notify failed:', e.message);
+        log.warn('[Limits] cost threshold notify failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -102,6 +108,7 @@ async function checkConsumerLimits(userId, agentType) {
             const byType = await usageStore.getUsageByAgentType({ startDate, endDate, userId });
             const typeUsage = byType.find(t => t.agent_type === agentType);
             if (typeUsage && typeUsage.calls >= typeLimit) {
+                /** @type {Record<string, string>} */
                 const typeLabels = { chat: 'Chat', browser: 'Browser Agent', terminal: 'Terminal Agent', security: 'Security Agent', swarm: 'Swarm' };
                 return `You have reached your monthly ${typeLabels[agentType] || agentType} message limit (${typeLimit.toLocaleString()} messages). Upgrade to an organization plan for higher limits.`;
             }
@@ -134,6 +141,7 @@ async function checkConsumerResourceLimits(userId, resourceType, currentCount) {
 
     const max = consumerPlan[field];
     if (max !== null && max !== undefined && currentCount >= max) {
+        /** @type {Record<string, string>} */
         const labels = { agents: 'agents', knowledge_sources: 'knowledge sources' };
         return `You have reached your limit of ${max} ${labels[/** @type {'agents'|'knowledge_sources'} */ (resourceType)]}. Upgrade to an organization plan for higher limits.`;
     }
@@ -292,6 +300,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
             const byType = await usageStore.getUsageByAgentType({ startDate: period.startDate, endDate: new Date().toISOString(), organizationId: orgId });
             const typeUsage = byType.find(t => t.agent_type === agentType);
             if (typeUsage && typeUsage.calls >= typeLimit) {
+                /** @type {Record<string, string>} */
                 const typeLabels = { chat: 'Chat', browser: 'Browser Agent', terminal: 'Terminal Agent', security: 'Security Agent', swarm: 'Swarm' };
                 orgHealth.problem('chat.budget_exhausted', {
                     orgId, source: 'limits', meta: { agentType, reason: 'per_type_message_limit' },
@@ -323,6 +332,7 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
     }
     const limits = await userStore.getEffectiveLimits(orgId);
 
+    /** @type {Record<string, string>} */
     const fieldMap = {
         users: 'max_users',
         agents: 'max_agents',
@@ -345,7 +355,7 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
             }
         } catch (err) {
             // An unreadable seat cap must not read as "no cap": a seat-licensed org could add users past it.
-            log.warn(`[Limits] seat cap lookup failed: ${err.message}`);
+            log.warn(`[Limits] seat cap lookup failed: ${/** @type {Error} */ (err).message}`);
             throw unavailable('seat_cap_unavailable', 'Seat limit could not be checked');
         }
     }
@@ -354,6 +364,7 @@ async function checkResourceLimits(orgId, resourceType, currentCount, userId = n
     // (N+1)th creation is blocked. Matches the seat-cap enforcement in
     // userStore.createUserWithSeatCheck (FOR UPDATE COUNT ≥ max → block).
     if (max !== null && max !== undefined && currentCount >= max) {
+        /** @type {Record<string, string>} */
         const labels = { users: 'users', agents: 'agents', knowledge_sources: 'knowledge sources' };
         return `Your organization has reached its limit of ${max} ${labels[resourceType]}. Please upgrade your plan or contact your administrator.`;
     }

@@ -20,8 +20,8 @@ function makeToolCall(handlers) {
         try {
             return await handler(userId, args && typeof args === 'object' ? /** @type {Record<string, any>} */ (args) : {});
         } catch (e) {
-            if (e instanceof HttpError) return { error: e.message, code: e.code };
-            log.error(`[automations-mcp] ${name} failed: ${e instanceof Error ? e.message : e}`);
+            if (e instanceof HttpError) return { error: /** @type {Error} */ (e).message, code: e.code };
+            log.error(`[automations-mcp] ${name} failed: ${e instanceof Error ? /** @type {Error} */ (e).message : e}`);
             return { error: `${name} failed.`, code: 'internal_error' };
         }
     };

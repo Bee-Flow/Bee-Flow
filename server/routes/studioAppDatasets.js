@@ -1,3 +1,5 @@
+/** @typedef {import('zod').ZodString} ZodString */
+/** @typedef {import('zod').ZodNumber} ZodNumber */
 /**
  * App Studio v2 — LARGE DATASET upload/status router (multi-GB genome files).
  *
@@ -147,7 +149,10 @@ const MAX_FILES_PER_APP = parseInt(process.env.STUDIO_APP_DATASET_MAX_FILES, 10)
 const largeDatasets = requireFeature('large_datasets');
 
 // ── What a caller may send ────────────────────────────────────────────
-/** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. */
+/**
+ * An object that also accepts nothing at all: no body, or a test's bare req, reads as {}.
+ * @param {{ name: ZodString; bytes: ZodNumber; kind: import('zod').ZodOptional<import('zod').ZodEnum<{ vcf: 'vcf'; }>>; }} shape
+ */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const APP_ID_TEXT = 'The app id is the id in the app\'s address.';
@@ -255,6 +260,7 @@ function publicDataset(ds) {
 }
 
 async function deleteArtifacts(app, ds) {
+    /** @type {string[]} */
     const keys = [];
     if (ds.rawKey) keys.push(ds.rawKey);
     if (ds.dataKey) keys.push(ds.dataKey);

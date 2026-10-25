@@ -28,8 +28,14 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
     const perKey = new Map();
     const queue = [];
 
+    /**
+     * @param {string} key
+     */
     const canStart = (key) => running < maxTotal && (perKey.get(key) || 0) < maxPerKey;
 
+    /**
+     * @param {string} key
+     */
     function start(key) {
         running += 1;
         perKey.set(key, (perKey.get(key) || 0) + 1);

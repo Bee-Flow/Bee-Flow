@@ -9,10 +9,16 @@
  */
 const XML_INVALID = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
 
+/**
+ * @param {string} v
+ */
 function stripInvalidXmlChars(v) {
     return String(v).replace(XML_INVALID, '');
 }
 
+/**
+ * @param {string} v
+ */
 function xmlEscape(v) {
     return stripInvalidXmlChars(v)
         .replace(/&/g, '&amp;')
@@ -22,7 +28,10 @@ function xmlEscape(v) {
         .replace(/'/g, '&apos;');
 }
 
-/** 0-based column index → spreadsheet column letter (0→A, 26→AA). */
+/**
+ * 0-based column index → spreadsheet column letter (0→A, 26→AA).
+ * @param {number} n
+ */
 function colLetter(n) {
     let s = '';
     n += 1;

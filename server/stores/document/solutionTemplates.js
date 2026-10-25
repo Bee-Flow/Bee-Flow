@@ -37,9 +37,18 @@ const PAGE_DOC_TYPE = 'page';
 /** documentStore, required on use: it requires this module at load. */
 const documentStore = () => require('../documentStore');
 
+/**
+ * @param {string} message
+ * @param {number} status
+ * @param {string} code
+ */
 const failure = (message, status, code) => managedParts.storeError(status, code, message);
 
-/** The stage capability check for one template write. */
+/**
+ * The stage capability check for one template write.
+ * @param {string} projectId
+ * @param {string[]} changedKeys
+ */
 function assertManaged(projectId, changedKeys, { managedWrite = null, client = null } = {}) {
     return managedParts.assertManagedWrite({ kind: 'document', projectId, changedKeys, managedWrite, client });
 }
@@ -99,7 +108,7 @@ async function managedOf(documentId) {
             projectId: row.solution_project_id, kind: 'document', entityId: documentId,
         });
     } catch (err) {
-        log.warn(`[SolutionTemplates] managed lookup for ${documentId} failed: ${err.message}`);
+        log.warn(`[SolutionTemplates] managed lookup for ${documentId} failed: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }

@@ -79,6 +79,7 @@ function jsonBytes(value) {
  *
  * Returns { value, coerced } — `coerced` true when the input was not already
  * the canonical form, which is what canonicalize turns into a repair note.
+ * @param {string} value
  */
 export function coerceVariableDefault(type, value) {
     const fallback = Object.prototype.hasOwnProperty.call(VARIABLE_TYPE_DEFAULTS, type)

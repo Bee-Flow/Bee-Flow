@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio catalog — the action and step tables: the top-level action kinds
  * (ACTION_SPECS) and the sequence-step kinds (STEP_SPECS), plus the native AI /

@@ -72,11 +72,11 @@ function createGmailPollers(ctx) {
                     return events;
                 } catch (err) {
                     if (isCursorStaleError(err)) {
-                        log.warn(`[TriggerBus] gmail cursor ${sub.lastCursor} stale for sub ${sub.id} — clearing and re-bootstrapping. (${err.message})`);
+                        log.warn(`[TriggerBus] gmail cursor ${sub.lastCursor} stale for sub ${sub.id} — clearing and re-bootstrapping. (${/** @type {Error} */ (err).message})`);
                         await ctx.store().updateSubscription(sub.id, { lastCursor: null });
                         // Fall through to the bootstrap branch below.
                     } else {
-                        log.warn('[TriggerBus] gmail poll error:', err.message);
+                        log.warn('[TriggerBus] gmail poll error:', /** @type {Error} */ (err).message);
                         return [];
                     }
                 }
@@ -118,7 +118,7 @@ function createGmailPollers(ctx) {
                 }
                 return [];
             } catch (e) {
-                log.warn('[TriggerBus] gmail bootstrap error:', e.message);
+                log.warn('[TriggerBus] gmail bootstrap error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },
@@ -186,7 +186,7 @@ function createGmailPollers(ctx) {
                         log.warn(`[TriggerBus] gmail label cursor ${sub.lastCursor} stale for sub ${sub.id} — clearing.`);
                         await ctx.store().updateSubscription(sub.id, { lastCursor: null });
                     } else {
-                        log.warn('[TriggerBus] gmail label poll error:', err.message);
+                        log.warn('[TriggerBus] gmail label poll error:', /** @type {Error} */ (err).message);
                         return [];
                     }
                 }
@@ -212,7 +212,7 @@ function createGmailPollers(ctx) {
                 }
                 return [];
             } catch (e) {
-                log.warn('[TriggerBus] gmail label bootstrap error:', e.message);
+                log.warn('[TriggerBus] gmail label bootstrap error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },
@@ -241,6 +241,9 @@ async function fetchGmailMessageMetadata(ctx, gmail, messageId) {
         format: 'full',
     });
     const headers = r.data.payload?.headers || [];
+    /**
+     * @param {string} name
+     */
     const get = (name) => headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || null;
     const threadId = r.data.threadId || null;
     const attachments = extractAttachments(r.data.payload, { messageId, threadId }).map(a => ({

@@ -109,7 +109,10 @@ function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-/** A trimmed, capped string — or '' for anything that is not text. */
+/**
+ * A trimmed, capped string — or '' for anything that is not text.
+ * @param {number} max
+ */
 function text(value, max) {
     if (typeof value === 'number' && Number.isFinite(value)) value = String(value);
     if (typeof value !== 'string') return '';
@@ -138,7 +141,10 @@ function actionItemSource(item) {
     return 'user';
 }
 
-/** The same question for a decision or an open question (M4). */
+/**
+ * The same question for a decision or an open question (M4).
+ * @param {string} field
+ */
 function noteSource(note, field) {
     const declared = note && typeof note.source === 'string' ? note.source.trim() : '';
     if (ACTION_SOURCES.includes(declared)) return declared;
@@ -160,7 +166,10 @@ function segmentIndexOf(raw) {
     return Number.isInteger(seg) && seg >= 0 ? seg : undefined;
 }
 
-/** A client clock is not a clock. An unusable `at` is stamped here. */
+/**
+ * A client clock is not a clock. An unusable `at` is stamped here.
+ * @param {number} [now]
+ */
 function isoStamp(raw, now = Date.now()) {
     if (typeof raw === 'string' && raw.trim()) {
         const d = new Date(raw.trim());
@@ -199,6 +208,7 @@ function shapeDestination(raw) {
     }
     const ref = text(raw.ref, MAX_REF);
     if (!ref) return { ok: false, error: 'destination.ref is required' };
+    /** @type {{ kind: string; ref: string; label: string; at: string; itemRef?: string }} */
     const value = { kind, ref, label: text(raw.label, MAX_LABEL), at: isoStamp(raw.at) };
     const itemRef = text(raw.itemRef, MAX_REF);
     if (itemRef) value.itemRef = itemRef;
@@ -212,6 +222,9 @@ function shapeDestination(raw) {
  * strict:false → an unusable item answers {value:null} and the caller drops it.
  */
 function shapeActionItem(raw, { strict = false, index = 0 } = {}) {
+    /**
+     * @param {string} error
+     */
     const reject = (error) => (strict ? { ok: false, error } : { ok: true, value: null });
     if (!isPlainObject(raw)) return reject(`actionItems[${index}] must be an object`);
 
@@ -289,6 +302,9 @@ function shapeActionItem(raw, { strict = false, index = 0 } = {}) {
  * only evidence a row written before M4 leaves behind.
  */
 function shapeNote(raw, { strict = false, index = 0, field = 'decisions', prefix = 'ud' }) {
+    /**
+     * @param {string} error
+     */
     const reject = (error) => (strict ? { ok: false, error } : { ok: true, value: null });
     if (!isPlainObject(raw)) return reject(`${field}[${index}] must be an object`);
     const body = text(raw.text, MAX_TEXT);
@@ -307,6 +323,9 @@ function shapeNote(raw, { strict = false, index = 0, field = 'decisions', prefix
     return { ok: true, value: out };
 }
 
+/**
+ * @param {string} field
+ */
 function collect(raw, field, shape, mint) {
     if (!Array.isArray(raw)) return { ok: false, error: `${field} must be an array` };
     if (raw.length > MAX_ITEMS) return { ok: false, error: `${field}: at most ${MAX_ITEMS} entries` };
@@ -352,7 +371,10 @@ function normalizeActionItems(raw) {
     return result.ok ? result.items : [];
 }
 
-/** The same, for one of the two note lists. `field` picks which. */
+/**
+ * The same, for one of the two note lists. `field` picks which.
+ * @param {string} field
+ */
 function normalizeNotes(raw, field) {
     const prefix = field === 'questions' ? 'uq' : 'ud';
     const result = collect(Array.isArray(raw) ? raw.slice(0, MAX_ITEMS) : [], field,

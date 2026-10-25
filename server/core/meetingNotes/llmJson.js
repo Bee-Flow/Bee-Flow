@@ -69,7 +69,12 @@ function parseJsonObject(content) {
     return null;
 }
 
-/** Text between the first `open` and the last `close`, or null. */
+/**
+ * Text between the first `open` and the last `close`, or null.
+ * @param {string} content
+ * @param {string} open
+ * @param {string} close
+ */
 function sliceBetween(content, open, close) {
     const text = String(content || '');
     const start = text.indexOf(open);
@@ -78,6 +83,9 @@ function sliceBetween(content, open, close) {
     return text.slice(start, end + 1);
 }
 
+/**
+ * @param {string} text
+ */
 function tryParse(text) {
     try { return JSON.parse(text); } catch (_) { return undefined; }
 }
@@ -89,6 +97,8 @@ function isPlainObject(v) {
 /**
  * Candidate cut points for an array of objects, last-complete-first.
  * Yields indices of `closer` characters, scanning backwards.
+ * @param {string} body
+ * @param {string} closer
  */
 function* elementBoundaries(body, closer) {
     for (let i = body.length - 1; i >= 0; i--) {
@@ -99,6 +109,7 @@ function* elementBoundaries(body, closer) {
 /**
  * Candidate cut points for a flat object map, last-complete-first: the closing
  * quote of a string value, or a digit/keyword end, immediately before a comma.
+ * @param {string} body
  */
 function* pairBoundaries(body) {
     for (let i = body.length - 1; i >= 0; i--) {

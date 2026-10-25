@@ -13,6 +13,10 @@ const { cleanBinding } = require('./bindings');
 // same caps as automation approvals (20 questions, no `file` — attachments are
 // the download channel; approver uploads are out of scope by design).
 const APPROVAL_QUESTION_TYPES = new Set(['text', 'textarea', 'number', 'date', 'email', 'select', 'checkbox']);
+/**
+ * @param {string} path
+ * @param {((arg0: string, path: string, arg2: string) => void) | undefined} push
+ */
 function cleanApprovalQuestions(v, path, push) {
     if (!Array.isArray(v)) return [];
     const out = [];
@@ -57,6 +61,10 @@ function cleanApprovalQuestions(v, path, push) {
 // and the executor resolves a binding just before the request goes out.
 const { MAX_APPROVAL_STAGES, MAX_SEATS_PER_STAGE, MAX_TOTAL_SEATS,
     MAX_STAGE_NAME_LEN, MAX_STAGE_DESCRIPTION_LEN, STAGE_RULES } = require('../../core/automationModel/approvalStages');
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanApprovalStages(v, path, push) {
     if (!Array.isArray(v)) return [];
     const out = [];
@@ -104,7 +112,10 @@ function cleanApprovalStages(v, path, push) {
         usedKeys.add(key);
 
         const stage = { key, approvers: seats, rule };
-        const text = (val, max) => {
+        /**
+         * @param {number} max
+         */
+        const text = (/** @type {string} */ val, max) => {
             if (typeof val === 'string' && val.trim()) return val.trim().slice(0, max);
             if (isObject(val)) return cleanBinding(val, `${path}.${key}`, push);
             return undefined;
@@ -135,16 +146,22 @@ function cleanApprovalStages(v, path, push) {
 // ({{answers.<q>}}, {{reason}}, {{decidedByName}}, {{context.<key>}}, …) or a
 // plain literal. Scalar literals pass through unchanged.
 const APPROVAL_HOOK_OUTCOMES = ['approved', 'rejected', 'expired', 'cancelled'];
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanApprovalOnDecided(v, path, push) {
     if (!isObject(v)) return undefined;
     const out = {};
     if (typeof v.tableId === 'string' && v.tableId) out.tableId = v.tableId;
     if (v.recordId !== undefined) out.recordId = cleanBinding(v.recordId, `${path}.recordId`, push);
     if (isObject(v.set)) {
+        /** @type {Record<string, Record<string, string>>} */
         const set = {};
         for (const outcome of APPROVAL_HOOK_OUTCOMES) {
             const m = v.set[outcome];
             if (!isObject(m)) continue;
+            /** @type {Record<string, string>} */
             const cols = {};
             let n = 0;
             for (const [col, val] of Object.entries(m)) {

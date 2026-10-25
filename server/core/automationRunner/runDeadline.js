@@ -31,6 +31,7 @@ async function raceRunDag(deps, {
 
     let runResult;
     let runErrorObj = null;
+    /** @type {string | null} */
     let runErrorMsg = null;
     let runStatus = 'success';
     let wasCancelled = false;
@@ -40,6 +41,7 @@ async function raceRunDag(deps, {
     // Waiting (Wait steps, approvals, form pages) still does not count: the
     // deadline below is extended for those.
     const effectiveTimeoutMs = clampRunTimeout({ runTimeoutMs: runTimeoutMsFor(runPolicy) ?? automation.runTimeoutMs });
+    /** @type {NodeJS.Timeout | null} */
     let timeoutTimer = null;
     // Re-armable deadline (A8): Wait steps EXTEND it by their planned sleep,
     // so "Wait up to 24 hours" (the documented contract, validate.js 1..86400)
@@ -96,8 +98,8 @@ async function raceRunDag(deps, {
         runResult = await Promise.race([dagPromise, guard, cancelGuard]);
     } catch (e) {
         runErrorObj = e;
-        runErrorMsg = e.message || String(e);
-        wasCancelled = cancelSignal.aborted || e.message === 'Run cancelled';
+        runErrorMsg = /** @type {Error} */ (e).message || String(e);
+        wasCancelled = cancelSignal.aborted || /** @type {Error} */ (e).message === 'Run cancelled';
         if (e instanceof ApprovalRequiredError) {
             runStatus = 'awaiting_approval';
         } else if (e instanceof FormInputRequiredError) {

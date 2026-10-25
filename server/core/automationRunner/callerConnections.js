@@ -69,7 +69,10 @@ function callerOnlyUserId(policy, automation, startedByUserId, lockedMode = null
     return startedByUserId;
 }
 
-/** A start that is not the system's but names nobody, under the caller policy. */
+/**
+ * A start that is not the system's but names nobody, under the caller policy.
+ * @param {string} triggerKind
+ */
 function refusesMissingStarter(policy, triggerKind, startedByUserId, lockedMode = null) {
     const wanted = (policy && policy.connections === 'caller') || lockedMode === 'caller';
     return !!wanted && !startedByUserId && !SYSTEM_TRIGGER_KINDS.includes(triggerKind);
@@ -118,6 +121,7 @@ async function collectRequirements(definition, lookups) {
         if (node.type === 'http_request' && node.cacheInto && node.cacheInto.datatableId) destinations.add('tables');
         if (node.type === 'integration_action' && typeof node.tool === 'string') {
             usesTools = true;
+            /** @type {string | null} */
             let provider = null;
             try { provider = lookups.providerForTool(node.tool); } catch (_) { provider = null; }
             if (provider && PERSONAL_PROVIDERS.includes(provider)) providers.add(provider);
@@ -144,7 +148,10 @@ async function collectRequirements(definition, lookups) {
     return { providers: [...providers], httpConnections, usesTools, destinations: [...destinations].sort() };
 }
 
-/** Does this session carry a working connection for the provider? */
+/**
+ * Does this session carry a working connection for the provider?
+ * @param {string} provider
+ */
 function sessionHasProvider(session, provider) {
     if (!session) return false;
     if (session.automationProviders?.[provider]?.accessToken) return true;
@@ -154,6 +161,9 @@ function sessionHasProvider(session, provider) {
     return provider === 'nextcloud' && !!session.connectorNcUid;
 }
 
+/**
+ * @param {string} message
+ */
 function unavailable(message) {
     return Object.assign(new Error(message), { errorClass: UNAVAILABLE_CLASS });
 }
@@ -164,6 +174,8 @@ function unavailable(message) {
  * must be the run's own, or the run fails closed.
  *
  * @returns {Promise<{ userId: string, session: any|null, orgId: string|null, userGroupIds: string[], orgRole: string|null, homeOrgId: string|null, isAdmin: boolean }>}
+ * @param {string} callerUserId
+ * @param {string | null} runOrgId
  */
 async function buildCallerIdentity(deps, callerUserId, runOrgId) {
     const user = await deps.loadUserStore().getUser(callerUserId);
@@ -184,6 +196,7 @@ async function buildCallerIdentity(deps, callerUserId, runOrgId) {
 /**
  * Throws the refusal for the first thing the flow needs that the caller lacks.
  * Nothing here ever consults the owner.
+ * @param {{ providers: string[]; httpConnections: Array<{ stepId: string; connectionId: string; }>; usesTools: boolean; destinations: string[]; }} requirements
  */
 async function assertCallerReady(deps, identity, automation, requirements) {
     if (requirements.usesTools && !identity.session) {
@@ -209,7 +222,10 @@ async function assertCallerReady(deps, identity, automation, requirements) {
     }
 }
 
-/** Throws the 'open it once and confirm' refusal until this person has acknowledged the current notice. */
+/**
+ * Throws the 'open it once and confirm' refusal until this person has acknowledged the current notice.
+ * @param {string} callerUserId
+ */
 async function assertNoticeAcknowledged(deps, automation, callerUserId) {
     const { describeCallerNotice, NOTICE_REQUIRED_CLASS, NOTICE_REQUIRED_MESSAGE } = require('./callerNotice');
     const notice = await describeCallerNotice({ automation, userId: callerUserId, store: deps.automationStore, providerForTool: deps.loadConnectionResolution().providerForTool, loadBlockDefinition: deps.loadBlockDefinition, stepProviders: (s) => deps.loadStepProviders(s, { orgId: automation.organizationId || null, userId: automation.userId }) });
@@ -259,6 +275,9 @@ async function failRunBeforeSteps(deps, { error, run, heartbeatTimer, startedAt,
  *           effectiveMode: string, locked?: boolean, failCtx: any }} args
  */
 async function applyCallerOnly(deps, { callerUserId, missingStarter = false, automation, runOrgId, effectiveMode, locked = false, failCtx }) {
+    /**
+     * @param {Error & { errorClass: string; }} error
+     */
     const fail = async (error) => ({ identity: null, failedRow: await failRunBeforeSteps(deps, { ...failCtx, error }) });
     if (missingStarter) {
         return fail(Object.assign(new Error('This automation runs with the connections of the person who starts it, and this start did not say who that is, so it did not start.'), { errorClass: UNAVAILABLE_CLASS }));
@@ -270,7 +289,7 @@ async function applyCallerOnly(deps, { callerUserId, missingStarter = false, aut
     } catch (e) {
         // Fail closed: never carry on as the owner because the caller's
         // connections could not be read.
-        log.warn(`[AutomationRunner] caller identity unavailable for automation ${automation.id}: ${e.message}`);
+        log.warn(`[AutomationRunner] caller identity unavailable for automation ${automation.id}: ${/** @type {Error} */ (e).message}`);
         return fail(e.errorClass ? e : unavailable('Your connections could not be loaded, so this automation did not start. Try again in a moment.'));
     }
     // A dry run has no side effects: it dispatches as the caller, but a missing
@@ -290,7 +309,7 @@ async function applyCallerOnly(deps, { callerUserId, missingStarter = false, aut
         if (!locked) await assertNoticeAcknowledged(deps, automation, callerUserId);
     } catch (e) {
         if (!e.errorClass) {
-            log.warn(`[AutomationRunner] caller pre-check failed for automation ${automation.id}: ${e.message}`);
+            log.warn(`[AutomationRunner] caller pre-check failed for automation ${automation.id}: ${/** @type {Error} */ (e).message}`);
             return fail(unavailable('Your connections could not be checked, so this automation did not start. Try again in a moment.'));
         }
         return fail(e);

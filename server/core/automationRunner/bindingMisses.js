@@ -23,6 +23,9 @@ const { describeBindingMiss } = require('../automationModel/bind');
 const MAX_RUN_MISSES = 200;
 const SUMMARY_NAMED = 2;
 
+/**
+ * @param {{ stepId: string; }} b
+ */
 const sameMiss = (a, b) => a.stepId === b.stepId && a.kind === b.kind && a.path === b.path
     && a.reason === b.reason && (a.field || null) === (b.field || null);
 

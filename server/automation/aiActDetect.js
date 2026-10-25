@@ -48,6 +48,9 @@ function labelOf(step) {
     return typeof l === 'string' && l.trim() ? l.trim().slice(0, 120) : (step && step.id ? String(step.id) : '');
 }
 function stepRef(step) { return { stepId: step.id ?? null, label: labelOf(step), type: step.type || null }; }
+/**
+ * @param {string} code
+ */
 function ev(code, params) { return { code, params: params || {} }; }
 
 // ── Uses AI ─────────────────────────────────────────────────────────────────
@@ -104,6 +107,9 @@ function detectAiUse(definition, { blocks = null } = {}) {
     const unresolved = [];
     const seenBlocks = new Set();
     const push = (list, ref) => { if (!list.some(x => x.stepId === ref.stepId && x.label === ref.label)) list.push(ref); };
+    /**
+     * @param {number} depth
+     */
     const visit = (def, depth, via) => {
         for (const { step } of graph.listSteps(isObject(def) ? def : {})) {
             const kind = aiKind(step);
@@ -155,6 +161,7 @@ const EMAIL_RE = /^[^\s@{}]+@([^\s@{}]+\.[^\s@{}]+)$/;
  * address: nobody can tell who it will be).
  */
 function recipientClass(value, internalDomains) {
+    /** @type {string[]} */
     const values = [];
     const collect = (v) => {
         if (v == null) return;
@@ -180,7 +187,10 @@ function recipientsReach(value, internalDomains) {
     return c === 'none' || c === 'internal' ? c : 'external';
 }
 
-/** Several recipient fields together; no recipient at all is decided elsewhere, so unclear. */
+/**
+ * Several recipient fields together; no recipient at all is decided elsewhere, so unclear.
+ * @param {string[]} fields
+ */
 function fieldsClass(inputs, fields, internalDomains) {
     const classes = fields.map(f => recipientClass(inputs[f], internalDomains));
     if (classes.includes('dynamic')) return 'dynamic';
@@ -206,6 +216,10 @@ function outwardSteps(definition, { internalDomains = [] } = {}) {
         if (step.type !== 'integration_action' || typeof step.tool !== 'string') continue;
         const tool = step.tool;
         const inputs = isObject(step.inputs) ? step.inputs : (isObject(step.params) ? step.params : {});
+        /**
+         * @param {string} kind
+         * @param {string} reach
+         */
         const add = (kind, reach) => { if (reach !== 'internal' && reach !== 'none') out.push({ step, ref: { ...ref, tool }, kind, reach }); };
         if (MAIL_TOOLS[tool]) add('email', fieldsClass(inputs, MAIL_TOOLS[tool], internalDomains));
         else if (tool === 'nextcloud_share_by_email') add('share_by_email', fieldsClass(inputs, ['shareWith'], internalDomains));
@@ -218,6 +232,9 @@ function outwardSteps(definition, { internalDomains = [] } = {}) {
     return out;
 }
 
+/**
+ * @param {string | undefined} text
+ */
 function refersTo(text, stepId) {
     if (!text || !stepId) return false;
     const esc = String(stepId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -255,6 +272,9 @@ function aiTaint(definition, aiStepIds) {
     return tainted;
 }
 
+/**
+ * @param {boolean} carriesAi
+ */
 function outwardEvidence(o, carriesAi) {
     const params = { ...o.ref, reach: o.reach, carriesAi };
     const kindCode = o.kind === 'email' && o.reach === 'fixed_external' ? 'ai_act.external.email_fixed' : `ai_act.external.${o.kind}`;
@@ -280,7 +300,10 @@ const UNSURE = ev('ai_act.model.unsure');
 
 function tri(v) { return v === 'yes' || v === 'no' ? v : null; }
 
-/** Annex III from the verdict; a keyword hint turns a confident "no" into a question. */
+/**
+ * Annex III from the verdict; a keyword hint turns a confident "no" into a question.
+ * @param {string[]} hints
+ */
 function sensitiveQuestion(verdict, hints) {
     const hintEv = hints.length ? [ev('ai_act.sensitive.hints', { domains: hints })] : [];
     if (!verdict || !verdict.available || !verdict.highRisk) {
@@ -323,7 +346,15 @@ function signatureOf(q) {
     return crypto.createHash('sha256').update(JSON.stringify([q.answer, q.confidence, q.lean ?? null, shape])).digest('hex').slice(0, 16);
 }
 
-/** The text the Annex III keyword hints read: title, description and the AI steps' instructions. */
+/**
+ * @typedef {Object} HintTextArgs
+ * @property {string} [title]
+ * @property {string} [description]
+ */
+/**
+ * The text the Annex III keyword hints read: title, description and the AI steps' instructions.
+ * @param {HintTextArgs} param0
+ */
 function hintText({ definition, title = '', description = '' }) {
     const prompts = graph.listSteps(isObject(definition) ? definition : {})
         .filter(x => aiKind(x.step))

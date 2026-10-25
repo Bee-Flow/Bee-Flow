@@ -181,6 +181,7 @@ async function unlockWithRecoveryKey(userId, recoveryKeyString) {
         if (Date.now() < lockoutEnd) return null;
     }
 
+    /** @type {Buffer<ArrayBufferLike>} */
     let recoveryKeyRaw;
     try {
         recoveryKeyRaw = parseRecoveryKey(recoveryKeyString);

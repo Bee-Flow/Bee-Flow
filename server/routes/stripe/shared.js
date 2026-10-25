@@ -58,6 +58,9 @@ async function resolveOrgIdForUser(req) {
 // keys. Apply this in front of every user-facing route (status, plans,
 // checkout, portal). The webhook stays open: it's signature-verified by
 // Stripe itself and won't fire on a self-hosted install that isn't wired up.
+/**
+ * @param {NextFunction} next
+ */
 function requireCloud(req, res, next) {
     if ((process.env.DEPLOYMENT_MODE || 'cloud') === 'self-hosted') {
         return res.status(404).json({ error: 'not_available_in_self_hosted', message: 'Stripe checkout is a Bee Flow Cloud feature. Self-hosted installs use license keys.' });

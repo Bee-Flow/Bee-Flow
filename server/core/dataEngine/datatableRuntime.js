@@ -192,7 +192,10 @@ async function resolveForPrincipal(datatableId, principal, { needed = 'viewer' }
     };
 }
 
-/** Does this table mirror an external source? (core/dataEngine/sources) */
+/**
+ * Does this table mirror an external source? (core/dataEngine/sources)
+ * @param {ResolvedTable} resolved
+ */
 function isMirror(resolved) {
     return require('./sources').isSourceMirror(resolved?.table);
 }
@@ -260,7 +263,11 @@ function sortFields(sort) {
     return [];
 }
 
-/** Every field that is filtered or sorted on must be bound. */
+/**
+ * Every field that is filtered or sorted on must be bound.
+ * @param {string[] | (string | undefined)[] | (string | null | undefined)[]} fields
+ * @param {string[]} columns
+ */
 function assertFieldsBound(fields, columns) {
     const allowed = new Set(columns);
     for (const f of fields) {
@@ -424,6 +431,7 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
         const r = await mirrorWrites(resolved).insertRow(mirrorCtx(resolved), clean);
         return { id: r.id };
     }
+    /** @type {{ sql: string; params: (string | null)[]; id: string; createdAt: string; }} */
     let compiled;
     try {
         compiled = queryCompiler.compileInsert(resolved.meta, clean, {

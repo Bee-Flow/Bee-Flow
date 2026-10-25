@@ -20,7 +20,11 @@ const { MOVE_KEYS, WIRE_KEYS } = require('../patchFields');
 // here as "not patchable", and the only route left was remove + re-add,
 // which mints a new id and lands at the tail again. `moveStepAfter` keeps
 // the id and re-joins the chain the step leaves; see its header.
+/**
+ * @param {string} stepId
+ */
 function applyPositionPatch(graph, stepId, step, patch) {
+    /** @type {string[]} */
     const moved = [];
     if (MOVE_KEYS.some(k => k in patch) || WIRE_KEYS.some(k => k in patch)) {
         if ('afterStepId' in patch) {

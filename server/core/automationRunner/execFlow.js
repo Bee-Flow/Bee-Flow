@@ -184,6 +184,7 @@ async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
  * `runLeaf` is the dispatch-by-type closure (no iteration) from the
  * enclosing executeAutomation scope, so container steps nested in a
  * forEach still recurse correctly.
+ * @param {string} mode
  */
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
@@ -261,6 +262,9 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // items started at the same moment may both call the model before the
     // first answer is stored for reuse (askOnce).
     const concurrency = forEachConcurrencyFor(step, mode);
+    /**
+     * @param {number} i
+     */
     const runItem = async (i) => {
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.
@@ -294,7 +298,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
                 // Run pauses (approval, form page) and cancellation are not
                 // per-item errors — they must halt the run, not get swallowed
                 // into the results.
-                if (isRunPause(e) || e.message === 'Run cancelled') throw e;
+                if (isRunPause(e) || /** @type {Error} */ (e).message === 'Run cancelled') throw e;
                 lastErr = e;
                 if (attempt < maxAttempts && retry?.backoffMs) {
                     await new Promise(r => setTimeout(r, Number(retry.backoffMs) || 0));
@@ -501,6 +505,7 @@ function callerCanUseBlock(row, ctx) {
 }
 
 /** Resolve the published definition of a Step for a run, memoised per-run.
+ * @param {string} blockId
  *  Throws a typed error if the Step is missing, unpublished, or forbidden. */
 async function loadBlockForRun(ctx, blockId) {
     if (!ctx._blockCache) ctx._blockCache = new Map();

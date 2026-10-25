@@ -33,6 +33,11 @@ function sharedModeFor(provider) {
     return provider === 'outlook' ? 'delegated_mailbox' : 'delivered_alias';
 }
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function identityError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -172,7 +177,7 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
     } catch (e) {
         // Non-fatal: the sync still works for this run, it just will not survive
         // the session without a durable copy.
-        log.warn(`[MailboxIdentity] could not persist ${oauthProvider} token for ${userId}: ${e.message}`);
+        log.warn(`[MailboxIdentity] could not persist ${oauthProvider} token for ${userId}: ${/** @type {Error} */ (e).message}`);
     }
     return fromSession;
 }
@@ -272,7 +277,7 @@ async function resolveMailboxIdentity(connector, { app, viewerId = null, deps: i
                 scope: updated.scope || tokens.scope || null,
             });
         } catch (e) {
-            log.warn(`[MailboxIdentity] token write-back failed for ${effectiveUserId}/${oauthProvider}: ${e.message}`);
+            log.warn(`[MailboxIdentity] token write-back failed for ${effectiveUserId}/${oauthProvider}: ${/** @type {Error} */ (e).message}`);
         }
     };
 

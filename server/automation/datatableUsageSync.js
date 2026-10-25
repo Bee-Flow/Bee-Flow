@@ -40,6 +40,8 @@ const log = require('../telemetry/log');
  * account's PERSONAL ones — so the owner is looked up rather than the index
  * being left empty. That costs one query, on the rare path, and only there:
  * every caller that already knows the org skips it entirely.
+ * @param {string} automationId
+ * @param {string | null} organizationId
  */
 async function scopeForAutomation(automationId, organizationId) {
     const datatableStore = require('../stores/datatableStore');
@@ -82,7 +84,7 @@ async function syncDatatableUsage(automationId, organizationId, definition, { la
         }
         return written;
     } catch (e) {
-        log.warn(`[${label}] datatable usage reconcile failed:`, e.message);
+        log.warn(`[${label}] datatable usage reconcile failed:`, /** @type {Error} */ (e).message);
         return -1;
     }
 }
@@ -93,13 +95,14 @@ async function syncDatatableUsage(automationId, organizationId, definition, { la
  * automation_datatable_usage has an FK to `datatables` but none to
  * `automations`, so nothing reaps these on its own. Same never-throws rule: a
  * delete must not fail over its index.
+ * @param {string} automationId
  */
 async function purgeDatatableUsage(automationId, { label = 'automation' } = {}) {
     if (!automationId) return 0;
     try {
         return await require('../stores/datatableStore').purgeUsageForAutomation(automationId);
     } catch (e) {
-        log.warn(`[${label}] datatable usage purge failed:`, e.message);
+        log.warn(`[${label}] datatable usage purge failed:`, /** @type {Error} */ (e).message);
         return 0;
     }
 }
@@ -133,18 +136,22 @@ async function syncUsageFor(consumerKind, consumerId, scope, entries, { label = 
         }
         return written;
     } catch (e) {
-        log.warn(`[${label}] datatable usage reconcile failed:`, e.message);
+        log.warn(`[${label}] datatable usage reconcile failed:`, /** @type {Error} */ (e).message);
         return -1;
     }
 }
 
-/** Drop the index rows of a deleted consumer of any kind. Never throws. */
+/**
+ * Drop the index rows of a deleted consumer of any kind. Never throws.
+ * @param {string} consumerKind
+ * @param {string} consumerId
+ */
 async function purgeUsageFor(consumerKind, consumerId, { label = consumerKind } = {}) {
     if (!consumerId) return 0;
     try {
         return await require('../stores/datatableStore').purgeUsageFor(consumerKind, consumerId);
     } catch (e) {
-        log.warn(`[${label}] datatable usage purge failed:`, e.message);
+        log.warn(`[${label}] datatable usage purge failed:`, /** @type {Error} */ (e).message);
         return 0;
     }
 }

@@ -90,7 +90,11 @@ async function saveConnection(req, res) {
 
 // ── Search ────────────────────────────────────────────────────────────────
 
-/** A bare issue id is a lookup, not a search: an agent who knows BFSF-441 need not phrase it as a query. */
+/**
+ * A bare issue id is a lookup, not a search: an agent who knows BFSF-441 need not phrase it as a query.
+ * @param {ytc.YoutrackCreds} creds
+ * @param {string} q
+ */
 async function findIssues(creds, q) {
     const project = await ytc.getDefaultProject();
     if (ytc.ISSUE_ID_RE.test(q)) {
@@ -124,7 +128,7 @@ async function search(req, res) {
             })),
         });
     } catch (err) {
-        log.error('[Support] GET /youtrack/search error:', err.message);
+        log.error('[Support] GET /youtrack/search error:', /** @type {Error} */ (err).message);
         throw new HttpError(502, 'youtrack_search_failed', 'YouTrack search failed');
     }
 }
@@ -224,7 +228,10 @@ async function detachIssue(req, res) {
     ok(res, {});
 }
 
-/** Screen what the agent wrote AND what was assembled (the subject, when enabled, rides along). */
+/**
+ * Screen what the agent wrote AND what was assembled (the subject, when enabled, rides along).
+ * @param {{ summary: string; description: string; ticketRef: string; url: string; }} payload
+ */
 async function screenPayload(req, res, thread, payload) {
     const screen = await egress.screenText(`${payload.summary}\n${payload.description}`, { thread });
     if (screen.ok) return screen;
@@ -287,6 +294,7 @@ async function createIssue(req, res) {
         const projectId = (req.body.projectId || '') || await ytc.getDefaultProject();
         if (!projectId) return res.status(400).json({ error: 'no project chosen and no default set' });
 
+        /** @type {{ summary: string; description: string; ticketRef: string; url: string; }} */
         let payload;
         try {
             payload = egress.buildIssuePayload({
@@ -296,7 +304,7 @@ async function createIssue(req, res) {
                 includeSubject: await includeSubjectEnabled(),
             });
         } catch (e) {
-            throw new HttpError(400, 'bad_request', e.message);
+            throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
         }
         const screen = await screenPayload(req, res, thread, payload);
         if (!screen) return undefined;
@@ -315,7 +323,7 @@ async function createIssue(req, res) {
             scanned: screen.scanned,
         });
     } catch (err) {
-        log.error('[Support] POST /threads/:id/issues/create error:', err.message);
+        log.error('[Support] POST /threads/:id/issues/create error:', /** @type {Error} */ (err).message);
         throw new HttpError(502, 'issue_create_failed', 'Creating the issue failed');
     }
 }
@@ -333,7 +341,7 @@ async function refreshIssues(req, res) {
         const links = await syncThread(threadId, { userId: getUserId(req) });
         ok(res, { issues: links.map(publicLink) });
     } catch (err) {
-        log.error('[Support] POST /threads/:id/issues/refresh error:', err.message);
+        log.error('[Support] POST /threads/:id/issues/refresh error:', /** @type {Error} */ (err).message);
         throw new HttpError(502, 'issue_refresh_failed', 'Refresh failed');
     }
 }

@@ -128,6 +128,7 @@ async function rejectUngrantableRoles({ userId, session, requested, existing = [
     const allRoles = await userStore.getAllRoles();
     const roleMap = Object.fromEntries((allRoles || []).map((r) => [r.id, r]));
 
+    /** @type {string[]} */
     const blocked = [];
     for (const rid of added) {
         const role = roleMap[rid];

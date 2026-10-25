@@ -16,6 +16,10 @@ const { cleanRecordValues, cleanSteps } = require('./steps');
 // Actions
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function canonAction(raw, path, push) {
     const spec = ACTION_SPECS[raw.kind];
     if (!spec) {

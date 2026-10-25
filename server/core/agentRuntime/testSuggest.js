@@ -121,7 +121,11 @@ function _list(v, items, chars) {
     return out;
 }
 
-/** Cut a long answer; the tail stays whole, that is where the caveats are. */
+/**
+ * Cut a long answer; the tail stays whole, that is where the caveats are.
+ * @param {string | undefined} answer
+ * @param {number} [max]
+ */
 function _forModel(answer, max = SUGGEST_LIMITS.answer) {
     const s = typeof answer === 'string' ? answer : '';
     if (s.length <= max) return s;

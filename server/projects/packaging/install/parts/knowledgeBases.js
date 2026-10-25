@@ -59,7 +59,7 @@ async function installKnowledgeBases(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'knowledge_base', entityId: created.id, payload: { name: entity.name } });
             report.installed.knowledgeBases.push({ ref: entity.ref, id: created.id, name: entity.name });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'knowledge_base', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'knowledge_base', why: /** @type {Error} */ (err).message });
         }
     }
 }

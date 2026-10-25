@@ -230,6 +230,7 @@ async function googleBatch(session, requests, opts = {}) {
         for (let attempt = 0; pending.length > 0; attempt++) {
             if (signal?.aborted) throw new Error('Run cancelled');
             if (beforePart) for (const r of pending) await beforePart(r);
+            /** @type {Map<string, BatchPart>} */
             let parts;
             try {
                 parts = await send(pending);
@@ -242,6 +243,7 @@ async function googleBatch(session, requests, opts = {}) {
                 for (const r of pending) results.set(r.id, { status: 0, headers: {}, body: { error: { message } } });
                 return;
             }
+            /** @type {BatchRequest[]} */
             const again = [];
             let expired = false;
             let throttled = false;
@@ -291,6 +293,7 @@ async function googleBatch(session, requests, opts = {}) {
     async function send(pending) {
         for (let attempt = 0; ; attempt++) {
             const boundary = `batch_${crypto.randomUUID()}`;
+            /** @type {Response} */
             let response;
             let answer = '';
             try {

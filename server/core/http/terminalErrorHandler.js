@@ -45,6 +45,9 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
     // against the log storage. Count them; emit at most one line per minute.
     let badBodyCount = 0;
     let badBodyLoggedAt = 0;
+    /**
+     * @param {string} kind
+     */
     function noteRejectedBody(kind, req) {
         badBodyCount += 1;
         const t = now();

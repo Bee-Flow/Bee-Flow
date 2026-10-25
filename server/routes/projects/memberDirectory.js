@@ -24,6 +24,7 @@ const { projectOrgOf, belongsToProjectOrg } = require('../../projects/projectOrg
  * is fetched again.
  *
  * @returns {{ avatar: string, avatarType: 'emoji'|'image'|'url' }|null}
+ * @param {string} userId
  */
 function memberAvatar(projectId, userId, user) {
     const avatar = typeof user.avatar === 'string' ? user.avatar : '';
@@ -68,7 +69,7 @@ function makeMemberDirectory({ userStore }) {
         await Promise.all([...userIds].filter(Boolean).map(async (id) => {
             let user = null;
             try { user = await userStore.getUser(id); } catch (err) {
-                log.warn('[Projects] member lookup failed:', err.message);
+                log.warn('[Projects] member lookup failed:', /** @type {Error} */ (err).message);
             }
             if (!user || !await belongsToProjectOrg(id, org).catch(() => false)) return;
             const name = displayNameOf(user);
@@ -84,7 +85,7 @@ function makeMemberDirectory({ userStore }) {
         await Promise.all([...groupIds].filter(Boolean).map(async (id) => {
             let group = null;
             try { group = await userStore.getGroup(id); } catch (err) {
-                log.warn('[Projects] group lookup failed:', err.message);
+                log.warn('[Projects] group lookup failed:', /** @type {Error} */ (err).message);
             }
             if (!group || group.id !== id || (group.organizationId || '') !== org) return;
             groups[id] = typeof group.name === 'string' && group.name ? { name: group.name } : {};

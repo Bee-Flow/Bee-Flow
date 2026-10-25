@@ -141,6 +141,9 @@ function startsTriggerDefinition(cur) {
     return cur.length === 3 && (cur[1] === 'temp' || cur[1] === 'temporary');
 }
 
+/**
+ * @param {string | { quoted: string; }} tok
+ */
 function identName(tok) {
     return typeof tok === 'string' ? tok : tok.quoted;
 }

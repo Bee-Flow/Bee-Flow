@@ -16,6 +16,9 @@ const KEY_MAX = 128;
 const NOTE_MAX = 4000;
 const MAX_JSON_BYTES = 32 * 1024;
 
+/**
+ * @param {string} message
+ */
 const anId = (message) => worded(message).trim().min(1, message).max(ID_MAX, message);
 const requestKey = worded('requestKey is a short text that stays the same when the request is repeated.')
     .trim().min(1, 'requestKey is a short text that stays the same when the request is repeated.').max(KEY_MAX, `requestKey is at most ${KEY_MAX} characters.`);
@@ -24,10 +27,16 @@ const STAGES = ['uat', 'prd'];
 const stageName = choice(STAGES, 'A stage is uat or prd.');
 const DEPLOY_KINDS = ['deploy', 'rollback', 'redeploy'];
 
-/** A JSON document of bounded size: the engine that owns it checks what is inside. */
+/**
+ * A JSON document of bounded size: the engine that owns it checks what is inside.
+ * @param {string} message
+ */
 const boundedJson = (message) => z.unknown().refine((v) => {
     try { return JSON.stringify(v).length <= MAX_JSON_BYTES; } catch { return false; }
 }, message);
+/**
+ * @param {string} message
+ */
 const jsonObject = (message) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: message }) }).refine((v) => {
     try { return JSON.stringify(v).length <= MAX_JSON_BYTES; } catch { return false; }
 }, message);

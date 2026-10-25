@@ -116,7 +116,13 @@ function asLookback(v) {
 async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
     const org = orgId ? await deps.configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings', e, null)) : null;
     const user = userId ? await deps.configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings#2', e, null)) : null;
+    /**
+     * @param {string} k
+     */
     const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
+    /**
+     * @param {string} k
+     */
     const pick = (k) => has(org, k) ? org[k] : has(user, k) ? user[k] : DEFAULTS[k];
     return {
         autoImport: !!pick('autoImport'),

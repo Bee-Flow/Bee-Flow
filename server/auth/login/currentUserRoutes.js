@@ -185,7 +185,7 @@ router.get('/user', async (req, res) => {
                                 expiresAt: row.expiresAt,
                             };
                         }
-                    } catch (e) { log.warn('[auth/user] pendingNcBinding lookup failed:', e.message); }
+                    } catch (e) { log.warn('[auth/user] pendingNcBinding lookup failed:', /** @type {Error} */ (e).message); }
                 }
                 const org = await userStore.getOrganization(freshUser.organizationId);
                 if (!org?.nc_instance_id) {
@@ -339,7 +339,7 @@ router.post('/consents/optional', validate({ body: OptionalConsentBody }), async
             const removed = await require('../../stores/voiceprintStore').deleteVoiceprintForUser(freshUser.id);
             if (removed) log.info(`[consents/optional] Voiceprint deleted for ${freshUser.id} on consent withdrawal`);
         } catch (e) {
-            log.error('[consents/optional] voiceprint deletion on withdrawal failed:', e.message);
+            log.error('[consents/optional] voiceprint deletion on withdrawal failed:', /** @type {Error} */ (e).message);
         }
     }
 

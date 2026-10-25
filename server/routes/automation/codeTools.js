@@ -70,7 +70,10 @@ function makeCodeToolsRouter(overrides = {}) {
     const testLimiter = overrides.limiter
         || require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20 });
 
-    /** The automation the call is about, when it names one; `false` after a 403/404 was sent. */
+    /**
+     * The automation the call is about, when it names one; `false` after a 403/404 was sent.
+     * @param {string} need
+     */
     async function automationFor(req, res, need) {
         const id = req.body.automationId;
         if (!id) return null;

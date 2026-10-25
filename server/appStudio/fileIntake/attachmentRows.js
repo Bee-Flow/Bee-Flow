@@ -9,7 +9,7 @@ const { folderOf } = require('./naming');
 /** The attachments-grain child of a mailbox connector's sync tree. */
 function attachmentsTableFor(model, connector) {
     const children = Array.isArray(connector?.sync?.children) ? connector.sync.children : [];
-    const child = children.find((c) => c && c.level === 2) || children[1] || null;
+    const child = children.find((/** @type {{ level: number; }} */ c) => c && c.level === 2) || children[1] || null;
     if (!child || typeof child.tableId !== 'string') return null;
     const tables = Array.isArray(model?.tables) ? model.tables : [];
     return tables.find((t) => t && (t.id === child.tableId || t.key === child.tableId)) || null;
@@ -17,7 +17,7 @@ function attachmentsTableFor(model, connector) {
 
 /** First `file`-typed column on a table — where the descriptor lives. */
 function fileFieldOf(table) {
-    return (table.fields || []).find((f) => f && f.type === 'file') || null;
+    return (table.fields || []).find((/** @type {{ type: string; }} */ f) => f && f.type === 'file') || null;
 }
 
 /**
@@ -49,8 +49,11 @@ function descriptorIdOf(row, fileField) {
     return d.attachmentId || d.fileId || null;
 }
 
+/**
+ * @param {string} key
+ */
 function hasField(table, key) {
-    return (table.fields || []).some((f) => f && f.key === key);
+    return (table.fields || []).some((/** @type {{ key: string; }} */ f) => f && f.key === key);
 }
 
 /** Bytes a redeemed file reports, or 0 — only ever used to rank candidates. */

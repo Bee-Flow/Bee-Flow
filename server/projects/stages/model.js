@@ -71,9 +71,18 @@ function assertTransition(from, to) {
     throw new HttpError(409, 'invalid_transition', `A deployment cannot go from ${from} to ${to}.`, { from, to });
 }
 
+/**
+ * @param {string} status
+ */
 const isActiveStatus = (status) => ACTIVE_STATUSES.includes(status);
+/**
+ * @param {string} status
+ */
 const isTerminalStatus = (status) => TERMINAL_STATUSES.includes(status);
 
+/**
+ * @param {string} code
+ */
 const refusal = (code) => ({ ok: false, code });
 const OK = Object.freeze({ ok: true, code: null });
 
@@ -149,6 +158,9 @@ function stableStringify(value) {
     return stableJson.stableStringify(value, { undefined: 'drop', toJSON: true });
 }
 
+/**
+ * @param {string} text
+ */
 function sha256(text) {
     return crypto.createHash('sha256').update(String(text), 'utf8').digest('hex');
 }

@@ -55,6 +55,7 @@ const withoutPublicGate = (tables) => (tables || []).map(({ publicColumns, ...re
 
 /** The managed grant slices that differ between two normalised grant sets. */
 function changedManagedGrants(before, after) {
+    /** @type {string[]} */
     const keys = [];
     if (JSON.stringify(before.automations) !== JSON.stringify(after.automations)) keys.push('bridgeGrants.automations');
     if (JSON.stringify(withoutPublicGate(before.tables)) !== JSON.stringify(withoutPublicGate(after.tables))) keys.push('bridgeGrants.tables');
@@ -115,6 +116,7 @@ const TABLE_WRITE_MODE = 'readwrite';
 /** Column keys: only non-empty strings, de-duplicated, order preserved. */
 function normalizeColumnKeys(raw) {
     if (!Array.isArray(raw)) return [];
+    /** @type {string[]} */
     const out = [];
     for (const c of raw) {
         if (typeof c !== 'string') continue;
@@ -208,6 +210,9 @@ function normalizeBridgeGrants(raw) {
     return out;
 }
 
+/**
+ * @param {string} webpageId
+ */
 async function getBridgeGrants(webpageId) {
     await initDB();
     const r = await getOne('SELECT bridge_grants FROM webpages WHERE id = $1', [webpageId]);
@@ -221,6 +226,8 @@ async function getBridgeGrants(webpageId) {
  *
  * `agent: null` is a valid value (clears the agent); only `undefined` leaves the current one in
  * place. Hence the !== undefined check everywhere.
+ * @param {string} webpageId
+ * @param {string} userId
  */
 async function updateBridgeGrants(webpageId, userId, patch, opts = {}) {
     await initDB();
@@ -256,6 +263,7 @@ async function updateBridgeGrants(webpageId, userId, patch, opts = {}) {
 // and `idKey` the field identifying an entry ('tool' | 'automationId' |
 // 'datatableId'). Both are chosen by this module, never by a caller — they are
 // interpolated into SQL.
+/** @type {Record<string, string>} */
 const GRANT_LISTS = {
     integrations: 'tool',
     automations: 'automationId',
@@ -265,6 +273,10 @@ const GRANT_LISTS = {
     tables: 'datatableId',
 };
 
+/**
+ * @param {boolean} withAppend
+ * @param {string} list
+ */
 function _grantListSql(list, withAppend) {
     const idKey = GRANT_LISTS[list];
     // Rebuild the array without the entry being replaced, then optionally append
@@ -289,6 +301,9 @@ function _grantListSql(list, withAppend) {
  * applies by diffing before it refuses: removing an absent id answers the
  * current grants without a write; re-granting an unchanged entry writes unguarded.
  * @returns {Promise<{ result: any }|null>} `{ result }` to answer at once, null to go on and write
+ * @param {string} webpageId
+ * @param {string} list
+ * @param {string} id
  */
 async function guardManagedEntry(webpageId, userId, list, id, clean, opts) {
     if (!MANAGED_GRANT_LISTS.includes(list)) return null;
@@ -307,6 +322,8 @@ async function guardManagedEntry(webpageId, userId, list, id, clean, opts) {
  * Add (or replace) one entry in a bridge-grant list, atomically.
  * @returns the full normalized grants after the write, or null when the page
  *          does not exist / is not owned by `userId`.
+ * @param {string} webpageId
+ * @param {string} list
  */
 async function upsertBridgeGrantEntry(webpageId, userId, list, entry, opts = {}) {
     if (!GRANT_LISTS[list]) throw new Error(`upsertBridgeGrantEntry: unknown list "${list}"`);
@@ -328,6 +345,9 @@ async function upsertBridgeGrantEntry(webpageId, userId, list, entry, opts = {})
 /**
  * Remove one entry from a bridge-grant list, atomically. Same return contract
  * as upsertBridgeGrantEntry; removing something absent is a no-op success.
+ * @param {string} webpageId
+ * @param {string} list
+ * @param {string} id
  */
 async function removeBridgeGrantEntry(webpageId, userId, list, id, opts = {}) {
     if (!GRANT_LISTS[list]) throw new Error(`removeBridgeGrantEntry: unknown list "${list}"`);
@@ -344,6 +364,7 @@ async function removeBridgeGrantEntry(webpageId, userId, list, id, opts = {}) {
  * Check whether `kind` (`ai` / `automation` / `integration`) for `key` is
  * granted on this webpage. Returns the grant entry (or `true` for ai) when
  * allowed, `null` when not.
+ * @param {string} webpageId
  */
 async function checkGrant(webpageId, kind, key) {
     const g = await getBridgeGrants(webpageId);

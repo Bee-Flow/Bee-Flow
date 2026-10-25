@@ -119,9 +119,9 @@ async function applyCreatePage(draftWrap, args) {
     } catch (e) {
         // createPage throws on reserved slugs and unknown templates — surface
         // it as a teachable error, never a crash.
-        const reserved = /reserved/i.test(e.message);
+        const reserved = /reserved/i.test(/** @type {Error} */ (e).message);
         return {
-            error: e.message,
+            error: /** @type {Error} */ (e).message,
             _fixHint: reserved
                 ? 'Pick a different slug — reserved slugs collide with app routes (e.g. app, api, admin, login, pricing, privacy, terms).'
                 : 'Check the arguments and try again (templateId must be an existing tpl_… id).',
@@ -152,9 +152,9 @@ async function applyUpdatePageMeta(draftWrap, args) {
     try {
         entry = await cmsStore.updatePageMeta(draftWrap.siteId, pageId, patch);
     } catch (e) {
-        const reserved = /reserved/i.test(e.message);
+        const reserved = /reserved/i.test(/** @type {Error} */ (e).message);
         return {
-            error: e.message,
+            error: /** @type {Error} */ (e).message,
             _fixHint: reserved
                 ? 'Pick a different slug — reserved slugs collide with app routes (e.g. app, api, admin, login, pricing, privacy, terms).'
                 : pageIdsHint(draftWrap),
@@ -213,7 +213,7 @@ async function applySetHomepage(draftWrap, args) {
     try {
         await cmsStore.setHomepage(draftWrap.siteId, pageId);
     } catch (e) {
-        return { error: e.message, _fixHint: pageIdsHint(draftWrap) };
+        return { error: /** @type {Error} */ (e).message, _fixHint: pageIdsHint(draftWrap) };
     }
     await refreshSite(draftWrap);
     return { homepageId: pageId };
@@ -230,6 +230,7 @@ async function applyReorderPages(draftWrap, args) {
     const missing = current.filter((id) => !orderedSet.has(id));
     const extra = ordered.filter((id) => !currentSet.has(id));
     if (missing.length || extra.length || ordered.length !== current.length) {
+        /** @type {string[]} */
         const bits = [];
         if (missing.length) bits.push(`missing: ${missing.join(', ')}`);
         if (extra.length) bits.push(`unknown/extra: ${extra.join(', ')}`);
@@ -242,7 +243,7 @@ async function applyReorderPages(draftWrap, args) {
     try {
         await cmsStore.reorderPages(draftWrap.siteId, ordered);
     } catch (e) {
-        return { error: e.message, _fixHint: pageIdsHint(draftWrap) };
+        return { error: /** @type {Error} */ (e).message, _fixHint: pageIdsHint(draftWrap) };
     }
     await refreshSite(draftWrap);
     return { order: ordered };
@@ -304,7 +305,7 @@ async function applyToolCall(draftWrap, name, args) {
     try {
         return await impl(draftWrap, args || {});
     } catch (e) {
-        return { error: `Tool ${name} failed: ${e.message}` };
+        return { error: `Tool ${name} failed: ${/** @type {Error} */ (e).message}` };
     }
 }
 

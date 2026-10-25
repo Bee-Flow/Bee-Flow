@@ -249,6 +249,7 @@ const CATALOG_IDS = Object.freeze(Object.keys(SCALEWAY_MODELS));
  * and an admin copying an id out of one of those would otherwise get an
  * unrecognised model. Only the lookup key is normalised — the raw id keeps
  * going over the wire untouched.
+ * @param {string} modelId
  */
 function normalizeScalewayModelId(modelId) {
     if (!modelId || typeof modelId !== 'string') return '';
@@ -257,7 +258,10 @@ function normalizeScalewayModelId(modelId) {
     return (slash >= 0 ? id.slice(slash + 1) : id).toLowerCase();
 }
 
-/** Raw catalog entry for an id, or null when it is not a model we know. */
+/**
+ * Raw catalog entry for an id, or null when it is not a model we know.
+ * @param {string | undefined} modelId
+ */
 function getScalewayModel(modelId) {
     return SCALEWAY_MODELS[normalizeScalewayModelId(modelId)] || null;
 }
@@ -271,6 +275,7 @@ function getScalewayModel(modelId) {
  *
  * @returns {{id, name, cat, desc, context, maxOutput, reasoning, vision, tools,
  *            embedding, audio, status, scaleway: true}}
+ * @param {string | undefined} modelId
  */
 function describeScalewayModel(modelId) {
     const entry = getScalewayModel(modelId);
@@ -333,6 +338,8 @@ function listServerlessModels() {
  * every provider for `none`.
  *
  * @returns {string|null} the value to send, or null to omit the parameter
+ * @param {string | null} requested
+ * @param {string} modelId
  */
 function normalizeReasoningEffort(modelId, requested) {
     if (!requested) return null;
@@ -350,6 +357,7 @@ function normalizeReasoningEffort(modelId, requested) {
  * for more is a 400 rather than a silent truncation.
  *
  * @returns {number|undefined} the value to send, or undefined to omit it
+ * @param {string} modelId
  */
 function clampMaxTokens(modelId, requested) {
     const n = Number(requested);
@@ -363,6 +371,7 @@ function clampMaxTokens(modelId, requested) {
  * null for an id outside the catalog. Cost accounting looks this up EXACTLY —
  * never fuzzily — because every model here is open-weight and also sold by
  * other hosts at other prices.
+ * @param {string} modelId
  */
 function scalewayPricingKey(modelId) {
     const id = normalizeScalewayModelId(modelId);
@@ -376,6 +385,7 @@ function scalewayPricingKey(modelId) {
  * land in the console before they land there).
  *
  * @returns {{input, output, cacheRead}|null}
+ * @param {string} modelId
  */
 function getScalewayListPrice(modelId) {
     const price = getScalewayModel(modelId)?.price;
@@ -393,7 +403,10 @@ function getScalewayListPrice(modelId) {
 const MAX_REGISTERED = 1000;
 const _scalewayModelIds = new Set();
 
-/** Record that `modelId` is currently served by a Scaleway provider. */
+/**
+ * Record that `modelId` is currently served by a Scaleway provider.
+ * @param {string} modelId
+ */
 function registerScalewayModel(modelId) {
     if (!modelId || typeof modelId !== 'string') return;
     if (_scalewayModelIds.has(modelId)) return;
@@ -404,7 +417,10 @@ function registerScalewayModel(modelId) {
     _scalewayModelIds.add(modelId);
 }
 
-/** True when the model is known to be served by a Scaleway provider. */
+/**
+ * True when the model is known to be served by a Scaleway provider.
+ * @param {string} modelId
+ */
 function isScalewayServedModel(modelId) {
     return !!modelId && _scalewayModelIds.has(modelId);
 }

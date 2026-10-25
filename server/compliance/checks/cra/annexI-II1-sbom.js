@@ -39,6 +39,7 @@ const MACHINE_READABLE = new Set(['cyclonedx', 'spdx']);
  * Two build stamps agree when one is a ≥7-char prefix of the other — CI writes
  * the full 40-char sha into the SBOM while an operator may pin a short one in
  * APP_BUILD_SHA (or the other way round). 'dev' is never a match.
+ * @param {string} appSha
  */
 function _shaMatches(sbomSha, appSha) {
     const a = typeof sbomSha === 'string' ? sbomSha.trim().toLowerCase() : '';
@@ -48,12 +49,19 @@ function _shaMatches(sbomSha, appSha) {
     return a.startsWith(b) || b.startsWith(a);
 }
 
+/**
+ * @param {number} [now]
+ */
 function _processStartedAt(now = Date.now()) {
     const uptimeMs = typeof process.uptime === 'function' ? process.uptime() * 1000 : 0;
     return now - (Number.isFinite(uptimeMs) ? uptimeMs : 0);
 }
 
-/** Days between the SBOM's generation and the moment this build started running. */
+/**
+ * Days between the SBOM's generation and the moment this build started running.
+ * @param {string | null} generatedAt
+ * @param {number} referenceMs
+ */
 function _ageDays(generatedAt, referenceMs) {
     const t = generatedAt ? Date.parse(generatedAt) : NaN;
     if (!Number.isFinite(t)) return null;

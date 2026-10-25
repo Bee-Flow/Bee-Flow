@@ -48,6 +48,9 @@ const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;
 
+/**
+ * @param {string} str
+ */
 function sha256(str) {
     return crypto.createHash('sha256').update(str).digest('hex');
 }

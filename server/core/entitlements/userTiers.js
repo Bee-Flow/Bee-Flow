@@ -33,6 +33,7 @@ async function loadMergedCustomTiersForOrg(orgId) {
  * is permitted when the person is in no group, or one of their groups lists
  * no tiers at all, or lists this one. Ids are the names the editor stores.
  * @returns {Promise<{ user: any, tierPermittedByGroups: (tierId: string) => boolean }>}
+ * @param {string} userId
  */
 async function loadGroupTierRule(userId) {
     const user = await userStore.getUser(userId).catch((e) => fallback('core/entitlements/userTiers:loadGroupTierRule', e, null));
@@ -40,6 +41,9 @@ async function loadGroupTierRule(userId) {
     const allGroups = await userStore.getAllGroups().catch((e) => fallback('core/entitlements/userTiers:loadGroupTierRule#2', e, []));
     const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
 
+    /**
+     * @param {string} tierId
+     */
     const tierPermittedByGroups = (tierId) => {
         if (userGroups.length === 0) return true;
         return userGroups.some(g => {
@@ -50,6 +54,15 @@ async function loadGroupTierRule(userId) {
     return { user, tierPermittedByGroups };
 }
 
+/**
+ * @typedef {Object} GetPermittedTierKeysArgs
+ * @property {string | undefined} [userId]
+ * @property {Express.Session} [session]
+ * @property {string} [taskType]
+ */
+/**
+ * @param {GetPermittedTierKeysArgs} param0
+ */
 async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' }) {
     if (!userId) return new Set();
 

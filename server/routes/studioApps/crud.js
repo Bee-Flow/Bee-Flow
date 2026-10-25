@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('../../appStudio/templateRegistry').ResolvedTemplate} ResolvedTemplate */
 /**
  * App CRUD: list, mine, usage, create, read, ref, update, definition, delete
  *
@@ -107,6 +109,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         : '';
 
     let definition;
+    /** @type {ResolvedTemplate | null} */
     let template = null;
     if (templateId !== undefined && templateId !== null && templateId !== '') {
         const { orgIdArr } = await audienceFor(req);
@@ -152,6 +155,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
     // which reads as "the template forgot them". The only trace was a
     // server-side console.warn nobody was watching. The caller now learns
     // what happened and can say so.
+    /** @type {{ ok: boolean; error: string; } | { ok: boolean; dataModelVersion: number | undefined; } | null} */
     let dataInstall = null;
     if (template && (template.dataModel || template.seed || template.datasets)) {
         try {
@@ -164,7 +168,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
                 dataInstall = { ok: true, dataModelVersion: install.dataModelVersion };
             }
         } catch (e) {
-            const reason = e && e.message ? e.message : String(e);
+            const reason = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e);
             log.warn(`[StudioApps] Template data install threw for ${app.id}: ${reason}`);
             dataInstall = { ok: false, error: reason };
         }

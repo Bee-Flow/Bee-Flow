@@ -150,6 +150,9 @@ function register(check) {
     _checks.set(check.id, check);
 }
 
+/**
+ * @param {string} id
+ */
 function get(id) { return _checks.get(id); }
 function getAll() { return Array.from(_checks.values()); }
 

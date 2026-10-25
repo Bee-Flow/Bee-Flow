@@ -18,6 +18,10 @@ const { reachableFrom, createFanInGate, ancestorsOf, descendantsOf, createTakeNe
 const { dispatchLiveStep } = require('./runDagRecord');
 
 /**
+ * @typedef {Object} BuildPartialPlanArgs
+ * @property {string} [fromStepId]
+ */
+/**
  * Resume / partial-execution flags:
  *   - skipUntilStepId: replay all steps up to AND INCLUDING this id,
  *     then dispatch live. Used by approval-resume.
@@ -33,6 +37,7 @@ const { dispatchLiveStep } = require('./runDagRecord');
  *
  * `stillSkipping` is the one mutable field: a purely TEMPORAL flag the walk
  * flips off once it passes the resumption point.
+ * @param {BuildPartialPlanArgs} param0
  */
 function buildPartialPlan({ skipUntilStepId, fromStepId, onlyStepId, untilStepId }, { adj, incoming, reachable }) {
     // Partial runs (Execute-step / retry-from-here) reuse a cached or pinned
@@ -139,6 +144,7 @@ function replayRoute(step, { replayedEntry, hasReplayData }, { adj, replayGaps, 
  * The edges a step that ran (or was replayed) routes along for `nextLabel`,
  * including the collection-mode switch union and the switch default-port
  * rescue.
+ * @param {string | null} nextLabel
  */
 function routeOutEdges(step, adj, nextLabel, branchOutput) {
     const id = step.id;
@@ -149,7 +155,7 @@ function routeOutEdges(step, adj, nextLabel, branchOutput) {
     if (step.type === 'switch' && Array.isArray(branchOutput?.branches) && branchOutput.branches.length) {
         const seenEdge = new Set();
         outEdges = branchOutput.branches
-            .flatMap(label => nextEdgesFor(id, adj, label))
+            .flatMap((/** @type {string | null | undefined} */ label) => nextEdgesFor(id, adj, label))
             .filter(e => {
                 const k = `${e.from}->${e.to}|${e.label || ''}|${e.caseName ?? ''}`;
                 if (seenEdge.has(k)) return false;

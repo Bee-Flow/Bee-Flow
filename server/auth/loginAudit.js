@@ -57,6 +57,7 @@ const LOGIN_ACTIONS = Object.freeze({
 // attempts that merely resembled it.
 const UNKNOWN_TARGET_TYPE = 'login_identifier';
 
+/** @type {NonSharedBuffer | null} */
 let _fingerprintKey = null;
 let _fingerprintVersion = 'v1';
 
@@ -128,6 +129,9 @@ function orgOf(user) {
     return user.organizationId || user.organization_id || user.orgId || null;
 }
 
+/**
+ * @param {string} action
+ */
 async function write(action, { targetType, targetId, organizationId, changedBy, details }) {
     try {
         const userStore = require('../stores/userStore');
@@ -143,7 +147,7 @@ async function write(action, { targetType, targetId, organizationId, changedBy, 
     } catch (e) {
         // logAccessAudit already catches; this is the net for a failure to even
         // reach it (a require that throws during shutdown, a mocked store).
-        log.error('[LoginAudit] could not record', action, '-', e.message);
+        log.error('[LoginAudit] could not record', action, '-', /** @type {Error} */ (e).message);
     }
 }
 

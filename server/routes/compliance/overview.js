@@ -68,7 +68,7 @@ router.get('/overview', requireAuth, requirePermission('admin_compliance'), asyn
             await runner.runAll(orgId, { runType: 'scheduled' });
             firstScanRan = true;
         } catch (e) {
-            log.warn('[Compliance] initial run failed:', e.message);
+            log.warn('[Compliance] initial run failed:', /** @type {Error} */ (e).message);
         }
         latest = await complianceStore.getLatestPerCheck(orgId);
         _autoRunCache.set(orgId, Date.now());
@@ -87,7 +87,7 @@ router.get('/overview', requireAuth, requirePermission('admin_compliance'), asyn
         // emptied `frameworks`/`frameworks_detail` on every request.
         activeRegs = new Set(await require('../../compliance/frameworkPolicy').activeRegulations(orgId, { req }));
     } catch (e) {
-        log.warn('[Compliance] framework policy unavailable, showing every row:', e.message);
+        log.warn('[Compliance] framework policy unavailable, showing every row:', /** @type {Error} */ (e).message);
     }
 
     const lastRunAt = latest.length ? latest.reduce((/** @type {string} */ m, /** @type {Record<string, any>} */ r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;

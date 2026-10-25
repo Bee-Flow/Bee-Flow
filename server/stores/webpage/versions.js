@@ -36,7 +36,10 @@ const DEFAULT_VERSION_SOURCE = 'manual';
 const SEQ_INSERT_ATTEMPTS = 5;
 const UNIQUE_VIOLATION = '23505';
 
-/** Anything outside the vocabulary is stored as 'manual' — never a free-text column. */
+/**
+ * Anything outside the vocabulary is stored as 'manual' — never a free-text column.
+ * @param {string} source
+ */
 function normalizeSource(source) {
     return VERSION_SOURCES.includes(source) ? source : DEFAULT_VERSION_SOURCE;
 }
@@ -220,6 +223,7 @@ async function createVersionSnapshotFromFiles(webpageId, ownerId, files = {}, op
     }
     const id = crypto.randomUUID();
     const f = files && typeof files === 'object' ? files : {};
+    /** @type {Record<string, string>} */
     const shas = {};
     let contentLength = 0;
     for (const slot of SLOTS) {
@@ -327,6 +331,8 @@ async function getVersionMeta(versionId) {
 
 /**
  * Get a single version with full file-trio contents (read from RustFS).
+ * @param {string} userId
+ * @param {string | null} versionId
  */
 async function getVersion(userId, versionId) {
     await initDB();
@@ -360,6 +366,10 @@ async function getVersion(userId, versionId) {
 // to that webpage so a caller can't remove another tenant's version by guessing
 // its id (defense in depth behind the route's ownership check). The RustFS
 // objects are keyed by (userId, webpageId, slot, versionId).
+/**
+ * @param {string} userId
+ * @param {string | null} versionId
+ */
 async function deleteVersion(userId, versionId, webpageId = null, { managedWrite = null } = {}) {
     await initDB();
     const r = webpageId

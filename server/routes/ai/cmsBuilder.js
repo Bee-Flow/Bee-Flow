@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
 /**
  * CMS Builder — conversational SSE endpoint (trimmed clone of
  * routes/ai/appStudioBuilder.js for CMS page building).
@@ -180,10 +181,12 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
 
     // ── Model resolution (pre-SSE — clean JSON errors). ──
     const userOrgForTiers = req.session?.user?.organizationId || limitOrgId || null;
+    /** @type {string} */
     let resolvedTier;
     let modelId;
     let tier = {};
     let cfg;
+    /** @type {BaseProvider} */
     let adapter;
     try {
         {
@@ -202,7 +205,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                         explicitPick = false;
                     }
                 } catch (err) {
-                    log.info(`[CmsBuilder] Tier permission check failed (${err.message}) — falling back to auto`);
+                    log.info(`[CmsBuilder] Tier permission check failed (${/** @type {Error} */ (err).message}) — falling back to auto`);
                     resolvedTier = 'auto';
                     explicitPick = false;
                 }
@@ -217,7 +220,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                     resolvedTier = result.tier;
                     log.info(`[CmsBuilder] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason})`);
                 } catch (err) {
-                    log.info(`[CmsBuilder] Auto classification failed: ${err.message}, using fast`);
+                    log.info(`[CmsBuilder] Auto classification failed: ${/** @type {Error} */ (err).message}, using fast`);
                     resolvedTier = 'fast';
                 }
             }
@@ -246,7 +249,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         }
         adapter = getAdapter(cfg.providerType, cfg.url);
     } catch (e) {
-        return res.status(400).json({ error: e.message, code: 'model_unavailable' });
+        return res.status(400).json({ error: /** @type {Error} */ (e).message, code: 'model_unavailable' });
     }
 
     // ── SSE from here on. flushHeaders + 10s heartbeat are REQUIRED: a
@@ -257,6 +260,10 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
 
     // SSE `error` carries a machine `code` AND leaves a structured stderr
     // line (shipped to OpenObserve via stdout — no monitoring tables).
+    /**
+     * @param {string} code
+     * @param {string} userMessage
+     */
     const sendError = (code, userMessage) => {
         send('error', { message: userMessage, code });
         log.error(`[CmsBuilder] code=${code} siteId=${siteId} session=${draftWrap.builderSessionId || '-'} model=${modelId || '-'}`);
@@ -270,6 +277,9 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
     let mutatingToolCalls = 0;
     let validationErrorCount = 0;
     let usageLogged = false;
+    /**
+     * @param {string} outcome
+     */
     const logTurnUsage = (outcome) => {
         if (usageLogged) return; // one row per turn, even if both paths fire
         usageLogged = true;
@@ -350,6 +360,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         let escalateNextRound = false;
         let streamFailed = false;
         let sawFinalProse = false;
+        /** @type {string[]} */
         const proseParts = [];
 
         for (iter = 0; iter < iterationBudget; iter++) {
@@ -374,12 +385,12 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                     userId: String(userId),
                 }, { send, signal: clientAbort.signal });
             } catch (chatErr) {
-                if (clientGone || chatErr?.name === 'AbortError' || clientAbort.signal.aborted) {
+                if (clientGone || /** @type {Error} */ (chatErr)?.name === 'AbortError' || clientAbort.signal.aborted) {
                     log.info('[CmsBuilder] build cancelled by the client');
                     streamFailed = true;
                     break;
                 }
-                log.error('[CmsBuilder] chat failed after retries:', chatErr.message);
+                log.error('[CmsBuilder] chat failed after retries:', /** @type {Error} */ (chatErr).message);
                 sendError('transient_upstream', 'The AI provider had a temporary problem. Your site is saved — please send your message again.');
                 streamFailed = true;
                 break;
@@ -419,6 +430,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                 toolCallCount += 1;
                 const name = tc.function.name;
                 const { args, truncated } = parseToolArgs(tc.function.arguments, name);
+                /** @type {{ error: string; }} */
                 let toolResult;
                 if (truncated) {
                     // Truncated-JSON self-repair: a machine message, not a crash.
@@ -522,7 +534,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         res.end();
     } catch (e) {
         log.error('[cmsBuilder/stream] error:', e);
-        sendError('internal', e.message);
+        sendError('internal', /** @type {Error} */ (e).message);
         // Still record the turn's usage — a turn that died mid-stream burned
         // tokens too. logTurnUsage is idempotent, so a done-path log that
         // already ran wins; this only fires when we never reached it.
@@ -542,6 +554,10 @@ const CMS_SSE_THINKING = {
 
 // Retry/assembly shell shared with the other builders (builderShared.js);
 // this wrapper pins the route's thinking emitter and log prefix.
+/**
+ * @param {BaseProvider} adapter
+ * @param {string} modelId
+ */
 function streamWithRetry(adapter, cfg, modelId, messages, options, opts = {}) {
     return sharedStreamWithRetry(adapter, cfg, modelId, messages, options, {
         emitThinking: CMS_SSE_THINKING,

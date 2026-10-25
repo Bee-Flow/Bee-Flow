@@ -40,6 +40,9 @@ const _memo = new Map(); // orgId → { at, value: { settings, orgName, locale }
 
 function _now() { return Date.now(); }
 
+/**
+ * @param {string} orgId
+ */
 async function _orgName(orgId) {
     try {
         const userStore = require('../stores/userStore');
@@ -63,6 +66,9 @@ async function _defaultLocale() {
     }
 }
 
+/**
+ * @param {string | number | null} locale
+ */
 async function _dictionaryFooter(locale) {
     try {
         const languageStore = require('../stores/languageStore');
@@ -73,6 +79,9 @@ async function _dictionaryFooter(locale) {
     return FOOTER_DEFAULTS[locale] || FOOTER_DEFAULTS.en;
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _context(orgId) {
     const hit = _memo.get(orgId);
     if (hit && _now() - hit.at < MEMO_MS) return hit.value;
@@ -91,6 +100,9 @@ async function _context(orgId) {
     return value;
 }
 
+/**
+ * @param {string} orgName
+ */
 function _render(template, orgName) {
     const text = String(template || '').replace(/\{\s*org\s*\}/g, orgName || '').replace(/\s+/g, ' ').trim();
     return text.slice(0, MAX_FOOTER);

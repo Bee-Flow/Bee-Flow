@@ -17,6 +17,9 @@ const { clientHost: _clientHost } = require('../utils/appPaths');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
+/**
+ * @param {string} s
+ */
 function _escape(s) {
     if (s == null) return '';
     return String(s)
@@ -27,6 +30,17 @@ function _escape(s) {
         .replace(/'/g, '&#39;');
 }
 
+/**
+ * @typedef {Object} _shellArgs
+ * @property {string} title
+ * @property {string} [intro]
+ * @property {string} body
+ * @property {string} [ctaLabel]
+ * @property {string} [footer]
+ */
+/**
+ * @param {_shellArgs} param0
+ */
 function _shell({ title, intro, body, ctaLabel, ctaUrl, footer }) {
     const clientHost = _clientHost();
     // PNG, not SVG: most mail clients (Gmail/Outlook) strip SVG. Served from agent-hub/public/.
@@ -68,6 +82,9 @@ function _shell({ title, intro, body, ctaLabel, ctaUrl, footer }) {
 </html>`.trim();
 }
 
+/**
+ * @param {string} body
+ */
 function _bodyAsHtml(body) {
     // Treat the AI/staff reply as plain text; preserve paragraphs and line breaks.
     const esc = _escape(body || '');
@@ -76,7 +93,12 @@ function _bodyAsHtml(body) {
 }
 
 /**
+ * @typedef {Object} SendThreadCreatedEmailArgs
+ * @property {string | string[]} to
+ */
+/**
  * Confirmation to the requester right after a thread is created.
+ * @param {SendThreadCreatedEmailArgs} param0
  */
 async function sendThreadCreatedEmail({ to, requesterName, subject, threadUrl }) {
     const title = 'We got your message';
@@ -95,7 +117,13 @@ async function sendThreadCreatedEmail({ to, requesterName, subject, threadUrl })
 }
 
 /**
+ * @typedef {Object} SendAiReplyEmailArgs
+ * @property {string | string[]} to
+ * @property {boolean} [escalated]
+ */
+/**
  * Posted by the AI auto-responder.
+ * @param {SendAiReplyEmailArgs} param0
  */
 async function sendAiReplyEmail({ to, requesterName, subject, replyBody, threadUrl, escalated = false }) {
     const title = escalated ? 'A human is taking a look' : 'A reply from our AI assistant';
@@ -118,7 +146,12 @@ async function sendAiReplyEmail({ to, requesterName, subject, replyBody, threadU
 }
 
 /**
+ * @typedef {Object} SendStaffReplyEmailArgs
+ * @property {string | string[]} to
+ */
+/**
  * Reply posted by Bee Flow staff.
+ * @param {SendStaffReplyEmailArgs} param0
  */
 async function sendStaffReplyEmail({ to, requesterName, subject, staffName, replyBody, threadUrl }) {
     const title = 'A reply from Bee Flow';
@@ -154,8 +187,13 @@ function _csatBlock(csatLinks) {
 }
 
 /**
+ * @typedef {Object} SendThreadResolvedEmailArgs
+ * @property {string | string[]} to
+ */
+/**
  * Resolution notice. When `csatLinks` is supplied, embeds a 1-5 rating row and
  * a "not resolved" dispute link (both HMAC-token URLs built by the route).
+ * @param {SendThreadResolvedEmailArgs} param0
  */
 async function sendThreadResolvedEmail({ to, requesterName, subject, threadUrl, csatLinks = null }) {
     const title = 'Your request was resolved';
@@ -200,6 +238,13 @@ function _redactEmail(addr) {
     return addr.slice(0, Math.min(2, at)) + '***@' + addr.slice(at + 1).split('.')[0].slice(0, 1) + '***';
 }
 
+/**
+ * @typedef {Object} _markMessageEmailStatusArgs
+ * @property {string} [messageId]
+ */
+/**
+ * @param {_markMessageEmailStatusArgs} param0
+ */
 async function _markMessageEmailStatus({ messageId, status }) {
     if (!messageId) return;
     try {
@@ -208,10 +253,18 @@ async function _markMessageEmailStatus({ messageId, status }) {
             await supportStore.setMessageEmailStatus(messageId, status);
         }
     } catch (e) {
-        log.warn('[SupportEmails] mark message status failed:', e.message);
+        log.warn('[SupportEmails] mark message status failed:', /** @type {Error} */ (e).message);
     }
 }
 
+/**
+ * @typedef {Object} _notifyStaffOfFailureArgs
+ * @property {string} kind
+ * @property {string} threadId
+ */
+/**
+ * @param {_notifyStaffOfFailureArgs} param0
+ */
 async function _notifyStaffOfFailure({ kind, threadId, errorMsg }) {
     const dedupeKey = `${threadId}:${kind}`;
     const now = Date.now();
@@ -228,10 +281,18 @@ async function _notifyStaffOfFailure({ kind, threadId, errorMsg }) {
             });
         }
     } catch (e) {
-        log.warn('[SupportEmails] notifyStaff fallback failed:', e.message);
+        log.warn('[SupportEmails] notifyStaff fallback failed:', /** @type {Error} */ (e).message);
     }
 }
 
+/**
+ * @typedef {Object} _recordAuditEventArgs
+ * @property {string} threadId
+ * @property {string} kind
+ */
+/**
+ * @param {_recordAuditEventArgs} param0
+ */
 async function _recordAuditEvent({ threadId, kind, errorMsg }) {
     try {
         const supportStore = require('../stores/supportStore');
@@ -272,7 +333,7 @@ async function sendOrNotifyStaff(sendFn, sendArgs, ctx) {
         }
         return { ok: true };
     } catch (e) {
-        const errorMsg = e?.message || String(e);
+        const errorMsg = /** @type {Error} */ (e)?.message || String(e);
         log.warn(`[SupportEmails] send failed (kind=${ctx?.kind}, to=${_redactEmail(sendArgs?.to)}): ${errorMsg}`);
         if (ctx?.messageId) {
             await _markMessageEmailStatus({

@@ -170,6 +170,7 @@ function agentCallIssueLines(trigger) {
 }
 
 function applyTrigger(draft, args) {
+    /** @type {string[]} */
     const warnings = [];
     draft.trigger = { id: 'trg', type: 'trigger', kind: args.kind, output: {}, ...carriedOver(draft.trigger, args) };
     if (args.kind === 'schedule') draft.trigger.schedule = { cron: args.cron, tz: args.tz || 'Europe/Amsterdam' };

@@ -1,3 +1,5 @@
+/** @typedef {import('../../core/dataEngine/dataModel/migrationShape').ModelShape} ModelShape */
+/** @typedef {import('pg').PoolClient} PoolClient */
 /**
  * COMMIT, the second phase of a release deployment (design 6.4): ONE
  * Postgres transaction that moves every live pointer of the stage at once.
@@ -41,6 +43,9 @@ const { HttpError } = require('../../core/http/errors');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
 const { storesOf, makeJournal, WRITE_ACTIONS } = require('./journal');
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -56,6 +61,9 @@ const UNPUBLISH_SQL = Object.freeze({
 
 // ── Tables (design 3.2) ──────────────────────────────────────────────────────
 
+/**
+ * @param {PoolClient} client
+ */
 async function scopeSchema(client, scope) {
     try {
         return await require('./referenceRows')._resolveScopeSchema(client, scope);
@@ -73,6 +81,8 @@ async function scopeSchema(client, scope) {
  * plan_stale.
  *
  * @returns {Promise<{ model: object, onlyTableIds: string[], retiredFieldIds: Set<string>, retiredMeta: Map<string, object> }>}
+ * @param {ModelShape} model
+ * @param {PoolClient} client
  */
 async function buildStageTables(client, model, tables, { stage, deps = {}, checkFingerprints = true, referenceIds = new Set() } = {}) {
     const { normalizeFields } = dep(deps, 'datatableFields', () => require('../../core/dataEngine/dataModel/datatableFields'));
@@ -80,6 +90,7 @@ async function buildStageTables(client, model, tables, { stage, deps = {}, check
     const s = storesOf(deps);
     const out = { model, onlyTableIds: [], retiredFieldIds: new Set(), retiredMeta: new Map() };
     const list = Array.isArray(model.tables) ? model.tables : (model.tables = []);
+    /** @type {string | null} */
     let schema;
     for (const t of tables) {
         const index = list.findIndex(x => x && x.id === t.id);
@@ -115,7 +126,11 @@ async function buildStageTables(client, model, tables, { stage, deps = {}, check
     return out;
 }
 
-/** The DDL of a stage-table rebuild: only those tables, retired columns kept (never DROP COLUMN). */
+/**
+ * The DDL of a stage-table rebuild: only those tables, retired columns kept (never DROP COLUMN).
+ * @param {ModelShape} before
+ * @param {{ model: object; onlyTableIds: string[]; retiredFieldIds: Set<string>; retiredMeta: Map<string, object>; } | null} built
+ */
 function stageMigrationPlan(before, next, built, deps = {}) {
     const { migrationPlan } = dep(deps, 'migrationPlanModule', () => require('../../core/dataEngine/dataModel/migrationPlan'));
     if (!built.onlyTableIds.length) return [];
@@ -125,6 +140,9 @@ function stageMigrationPlan(before, next, built, deps = {}) {
     });
 }
 
+/**
+ * @param {PoolClient} client
+ */
 async function applyReferenceRowsAll(client, { scope, model, referenceRows, runAsUserId, journal }, deps) {
     if (!referenceRows.length) return;
     const rr = dep(deps, 'referenceRowsModule', () => require('./referenceRows'));
@@ -147,7 +165,10 @@ async function applyReferenceRowsAll(client, { scope, model, referenceRows, runA
     }
 }
 
-/** The org model write, last in the commit: buildNext under the lock, DDL, then the reference rows. */
+/**
+ * The org model write, last in the commit: buildNext under the lock, DDL, then the reference rows.
+ * @param {PoolClient} client
+ */
 async function commitTables(client, { stage, prepared, journal }, deps) {
     const s = storesOf(deps);
     const tables = prepared.tables || [];
@@ -157,6 +178,7 @@ async function commitTables(client, { stage, prepared, journal }, deps) {
     const key = s.datatableDbStore.scopeKey(scope);
     const referenceIds = new Set(referenceRows.map(r => r.tableId));
     const managedWrite = prepared.managedWrite;
+    /** @type {{ model: object; onlyTableIds: string[]; retiredFieldIds: Set<string>; retiredMeta: Map<string, object>; } | null} */
     let built = null;
     const saved = await s.datatableStore.saveModel(scope, null, {
         client, managedWrite,
@@ -183,7 +205,10 @@ async function commitTables(client, { stage, prepared, journal }, deps) {
     }
 }
 
-/** A replaced table's labels and mirror source (applied settings outside the model entry). */
+/**
+ * A replaced table's labels and mirror source (applied settings outside the model entry).
+ * @param {PoolClient} client
+ */
 async function tableSettings(client, { stage, prepared }, deps) {
     const s = storesOf(deps);
     const scope = s.datatableStore.orgScope(stage.organizationId);
@@ -245,6 +270,9 @@ const FLIPS = {
     },
 };
 
+/**
+ * @param {PoolClient} client
+ */
 async function retirePart(client, stamp, ctx) {
     const { s, managedWrite, deps } = ctx;
     if (stamp.kind === 'automation') {
@@ -265,6 +293,9 @@ async function retirePart(client, stamp, ctx) {
 
 // ── commit ───────────────────────────────────────────────────────────────────
 
+/**
+ * @param {PoolClient} client
+ */
 async function lockAndCas(client, { deployment, stage }) {
     await client.query(`SET LOCAL lock_timeout = '5s'`);
     await client.query(`SET LOCAL statement_timeout = '120s'`);
@@ -279,6 +310,9 @@ async function lockAndCas(client, { deployment, stage }) {
     }
 }
 
+/**
+ * @param {PoolClient} client
+ */
 async function toConverging(client, s, deployment) {
     const moved = await s.stageStore.transitionDeployment(deployment.id, ['committing'], 'converging', { committed: true }, { client });
     if (!moved) throw new HttpError(409, 'deployment_lost', 'This deployment is no longer committing.');

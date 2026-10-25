@@ -65,6 +65,10 @@ function tri(v) {
     const s = typeof v === 'string' ? v.toLowerCase() : '';
     return TRI.includes(s) ? s : 'unknown';
 }
+/**
+ * @param {string} code
+ * @param {string} text
+ */
 function reason(code, params, text) { return { code, params: params || {}, text }; }
 
 // ── Q1: AI ──────────────────────────────────────────────────────────────────
@@ -230,6 +234,12 @@ function parseAnswers(body) {
         answers[q] = b[q];
     }
     if (!Object.keys(answers).length) return { ok: false, code: 'ai_act.answers_empty', message: 'Answer at least one question.' };
+    /**
+     * @param {readonly string[]} vocabulary
+     * @param {string} code
+     * @param {string} what
+     * @param {string[]} v
+     */
     const listOf = (v, vocabulary, code, what) => {
         if (v === undefined || v === null) return { ok: true, list: [] };
         if (!Array.isArray(v) || v.some(x => !vocabulary.includes(x))) return { ok: false, code, message: `${what} lists ids from: ${vocabulary.join(', ')}.` };
@@ -256,6 +266,7 @@ function answersFromWizard(wizard, previousAnswers) {
     const w = isObject(wizard) ? wizard : {};
     const sensitive = tri(w.sensitiveUse);
     const chosen = new Set(Array.isArray(w.domains) ? w.domains : []);
+    /** @type {Record<string, string>} */
     const domains = {};
     for (const id of annexIii.ANNEX_III_IDS) {
         domains[id] = sensitive === 'no' ? 'no'
@@ -291,6 +302,9 @@ function assessmentStatus(row, { containsAi = false, now = Date.now() } = {}) {
     return 'valid';
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const iso = (v) => (v ? new Date(v).toISOString() : null);
 
 /**
@@ -309,6 +323,9 @@ const iso = (v) => (v ? new Date(v).toISOString() : null);
  * asked first so an install without it pays no organisation or licence read.
  */
 function makeAiActState(deps) {
+    /**
+     * @param {string | null} orgId
+     */
     const notRequired = (orgId) => ({ required: false, status: 'not_required', expiresAt: null, outcome: null, attestedAt: null, attestedBy: null, source: null, orgId, row: null });
     return async function aiActState(automation, definition) {
         if (deps.enabled && !(await deps.enabled())) return notRequired(null);

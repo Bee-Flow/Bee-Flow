@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 const express = require('express');
 const router = express.Router();
 const usageStore = require('../stores/usageStore');
@@ -19,6 +20,9 @@ const { isPlatformOperator } = require('../auth/platformOperator');
 // if they were the filtered ones. `/recent` had no ceiling on `limit` at all.
 const DATE_TEXT = 'startDate and endDate are dates, like 2026-09-01T00:00:00Z.';
 const aDate = worded(DATE_TEXT).max(64, DATE_TEXT).refine((v) => !Number.isNaN(new Date(v).getTime()), DATE_TEXT);
+/**
+ * @param {string} name
+ */
 const filterText = (name) => worded(`${name} is text.`).max(200, `${name} is at most 200 characters.`);
 const RECENT_MAX = 1000;
 const UsageQuery = queryOf({
@@ -81,6 +85,9 @@ const TOKEN_FIELDS = ['total_calls', 'calls', 'total_tokens', 'tokens', 'prompt_
     'azure_services_total_cost', 'billed_calls', 'avg_duration_ms',
     'unique_models', 'unique_agents'];
 
+/**
+ * @param {number} factor
+ */
 function redactRow(row, factor) {
     if (!row || typeof row !== 'object') return row;
     const out = { ...row };
@@ -93,12 +100,18 @@ function redactRow(row, factor) {
     return out;
 }
 
+/**
+ * @param {number} factor
+ */
 function redactRows(rows, factor) {
     return (rows || []).map(r => redactRow(r, factor));
 }
 
 // Apply customer redaction unless the caller is an admin. Use as the last
 // step before res.json — returns the redacted payload (or the original).
+/**
+ * @param {string} kind
+ */
 async function maybeRedact(req, payload, kind) {
     // Self-hosted: no Stripe markup/reselling exists, so there's nothing to
     // redact — the operator sees raw tokens/cost. Redaction is purely a cloud
@@ -117,6 +130,9 @@ async function maybeRedact(req, payload, kind) {
 }
 
 // Helper to parse days filter
+/**
+ * @param {string} [daysParam]
+ */
 function getDateFilters(daysParam = '30') {
     const days = parseInt(daysParam, 10) || 30;
     const now = new Date();
@@ -151,6 +167,9 @@ function buildRequestFilters(req) {
 }
 
 // Middleware: attach org filter
+/**
+ * @param {NextFunction} next
+ */
 async function attachOrgFilter(req, res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     const orgId = await getOrgFilter(req);
@@ -255,6 +274,9 @@ async function getUserMap() {
 // full-table getUserMap() above was called by FIVE monitoring endpoints per
 // dashboard load — a whole-`users`-table scan (avatars included) each time.
 // Accepts rows or an iterable of ids; returns the same Map shape.
+/**
+ * @param {string} [idField]
+ */
 async function getUserMapFor(rowsOrIds, idField = 'user_id') {
     try {
         const ids = new Set();
@@ -745,6 +767,9 @@ router.get('/prompt-cache', async (req, res) => {
     delete scope.startDate;
     delete scope.endDate;
 
+    /**
+     * @param {number} endMs
+     */
     const window = (endMs) => ({
         ...scope,
         startDate: new Date(endMs - WEEK_MS).toISOString(),

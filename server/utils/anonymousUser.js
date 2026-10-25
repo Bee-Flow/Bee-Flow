@@ -11,6 +11,7 @@
  * Lives in `utils/` rather than next to the memory policy that uses it so both
  * `stores/` (platform) and `core/` can call it without an upward edge — see
  * `server/layering.test.js`.
+ * @param {string | null | undefined} userId
  */
 function isAnonymousUserId(userId) {
     return !userId || typeof userId !== 'string' || userId.startsWith('guest_');

@@ -54,6 +54,7 @@
  * the bot instead — its events are genuinely not webhook-compatible.
  */
 
+/** @type {Record<string, Set<string>>} */
 const POLLER_BACKED = {
     nextcloud: new Set([
         'file.new',
@@ -67,6 +68,7 @@ const POLLER_BACKED = {
 
 // Delivered by nextcloud-connector/src/webhookListeners.js — keep in sync with
 // the EVENTS table there.
+/** @type {Record<string, Set<string>>} */
 const WEBHOOK_BACKED = {
     nextcloud: new Set([
         'file.new',
@@ -100,6 +102,7 @@ const WEBHOOK_BACKED = {
 
 // Delivered by the Talk bot — keep in sync with mapActivity() in
 // nextcloud-connector/src/talkBot.js.
+/** @type {Record<string, Set<string>>} */
 const BOT_BACKED = {
     nextcloud: new Set([
         'talk.message.received',
@@ -111,6 +114,7 @@ const BOT_BACKED = {
 // `ShareDeletedEvent` still `extends Event` with no IWebhookCompatibleEvent on
 // server HEAD, so they cannot be webhooked, and there is no poller for them.
 // This is the last hole in the catalogue and the one clean upstream ask left.
+/** @type {Record<string, Set<string>>} */
 const PUSH_PENDING = {
     nextcloud: new Set([
         'share.created',
@@ -139,22 +143,38 @@ function getDeliverableEvents() {
     };
 }
 
-/** True when an event has no producer — neither a poller nor a webhook. */
+/**
+ * True when an event has no producer — neither a poller nor a webhook.
+ * @param {string} provider
+ * @param {string} event
+ */
 function isPushPending(provider, event) {
     return !!PUSH_PENDING[provider]?.has(event);
 }
 
-/** True when an event fires today via a SaaS poller (no connector needed). */
+/**
+ * True when an event fires today via a SaaS poller (no connector needed).
+ * @param {string} provider
+ * @param {string} event
+ */
 function isPollerBacked(provider, event) {
     return !!POLLER_BACKED[provider]?.has(event);
 }
 
-/** True when Nextcloud pushes this event to the connector. */
+/**
+ * True when Nextcloud pushes this event to the connector.
+ * @param {string} provider
+ * @param {string} event
+ */
 function isWebhookBacked(provider, event) {
     return !!WEBHOOK_BACKED[provider]?.has(event);
 }
 
-/** True when the Talk bot delivers this event. */
+/**
+ * True when the Talk bot delivers this event.
+ * @param {string} provider
+ * @param {string} event
+ */
 function isBotBacked(provider, event) {
     return !!BOT_BACKED[provider]?.has(event);
 }

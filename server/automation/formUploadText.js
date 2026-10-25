@@ -124,6 +124,7 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
     }
 
     const store = storageStore || require('../stores/storageStore');
+    /** @type {Buffer<ArrayBuffer>} */
     let buffer;
     try {
         const streamed = await store.streamFile(claimed.storageKey);
@@ -132,7 +133,7 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
         if (err?.code === 'FORM_UPLOAD_TOO_LARGE') {
             return { textError: `${filename} is too large to read into the run. The file is still attached.` };
         }
-        log.warn(`[formUploadText] could not read bytes for ${log.nameForLog(filename)}: ${err.message}`);
+        log.warn(`[formUploadText] could not read bytes for ${log.nameForLog(filename)}: ${/** @type {Error} */ (err).message}`);
         return { textError: `The content of ${filename} could not be read.` };
     }
 
@@ -148,7 +149,7 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
         // parseDocument already swallows its own per-format failures and returns
         // a "[Document: … — failed to parse]" marker, so reaching here means
         // something upstream of the format branches broke. Still not fatal.
-        log.warn(`[formUploadText] could not parse ${log.nameForLog(filename)}: ${err.message}`);
+        log.warn(`[formUploadText] could not parse ${log.nameForLog(filename)}: ${/** @type {Error} */ (err).message}`);
         return { textError: `${filename} could not be read as a document.` };
     }
 
@@ -192,7 +193,7 @@ async function describeClaimedUpload(claimed, deps = {}) {
         // readUploadText is written not to throw; this is the belt to its
         // braces, because the one thing that must not happen is losing a
         // submission over an attachment.
-        log.warn(`[formUploadText] extraction failed for ${log.nameForLog(claimed?.filename)}: ${err.message}`);
+        log.warn(`[formUploadText] extraction failed for ${log.nameForLog(claimed?.filename)}: ${/** @type {Error} */ (err).message}`);
         extracted = { textError: 'The content of this file could not be read.' };
     }
     return { ...base, ...extracted };

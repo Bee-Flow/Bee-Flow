@@ -236,12 +236,23 @@ function withStageGuard(entry) {
     return out;
 }
 
-/** `projectOf` for a kind whose link is the `project_id` column of `table` (or `column`). */
+/**
+ * `projectOf` for a kind whose link is the `project_id` column of `table` (or `column`).
+ * @param {string} table
+ * @param {string} [column]
+ */
 const projectColumnOf = (table, column = 'project_id') => (id) => stageGuard.projectIdIn(table, id, column);
-/** `ownerOf` for a kind whose owner is the `ownerCol` column of `table`. */
+/**
+ * `ownerOf` for a kind whose owner is the `ownerCol` column of `table`.
+ * @param {string} table
+ * @param {string} ownerCol
+ */
 const ownerColumnOf = (table, ownerCol) => (id) => stageGuard.ownerIdIn(table, ownerCol, id);
 
-/** The organisations a person belongs to, own and through groups, for the stores' filing check. */
+/**
+ * The organisations a person belongs to, own and through groups, for the stores' filing check.
+ * @param {string} userId
+ */
 async function callerOrgIds(userId) {
     const { orgIds } = await require('../auth/orgScope').orgScope({ session: { user: { id: userId } } }, { strict: true });
     return orgIds ? [...orgIds] : [];
@@ -309,6 +320,9 @@ const notebooks = () => {
  * or the PROJECT owner's, and always scoped to the project being edited.
  * Unlike `fileOwnedContent` the filing goes through `solution_project_id`
  * (design D21), so it never reaches `project_id` and grants no member access.
+ * @param {string} id
+ * @param {string} userId
+ * @param {string} projectId
  */
 async function fileTemplate(id, userId, projectId, ctx) {
     const s = require('../stores/document/solutionTemplates');
@@ -514,7 +528,10 @@ const BY_KIND = new Map(KINDS.map(k => [k.kind, k]));
 /** Every kind, in the order the project page shows them. */
 function listKinds() { return KINDS; }
 
-/** One kind by its `kind` string, or undefined. */
+/**
+ * One kind by its `kind` string, or undefined.
+ * @param {string} kind
+ */
 function getKind(kind) { return BY_KIND.get(kind); }
 
 /** The kinds a caller may file in and out — i.e. those with a setProject. */

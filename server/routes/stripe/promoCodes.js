@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Promo Code Admin Routes — list, create, deactivate and re-activate the
  * Stripe promotion codes offered at checkout. Admin-only (session admin flag,
@@ -42,6 +43,9 @@ const CODE_TEXT = 'A promo code needs a code, e.g. LAUNCH20.';
 const TYPE_TEXT = 'discountType must be "percent" or "fixed".';
 const DURATION_TEXT = 'duration is once, repeating or forever.';
 
+/**
+ * @param {string} name
+ */
 const count = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`)
     .min(1, `${name} must be at least 1.`)
@@ -90,6 +94,9 @@ const PromoCodeBody = z.object({
 
 const { hasPermission } = require('../../auth/permissions');
 
+/**
+ * @param {NextFunction} next
+ */
 async function requireAdmin(req, res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     if (req.session.isAdmin || req.session.user?.role === 'admin') return next();
@@ -138,7 +145,7 @@ router.post('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeU
     } catch (err) {
         log.error('[Stripe] Create promo code error:', err);
         // Stripe returns useful error messages for duplicate codes etc.
-        const msg = err.raw?.message || err.message || 'Failed to create promo code';
+        const msg = err.raw?.message || /** @type {Error} */ (err).message || 'Failed to create promo code';
         res.status(err.statusCode || 500).json({ error: msg });
     }
 });

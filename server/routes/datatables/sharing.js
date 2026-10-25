@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who else may see this table, and who else already uses it.
  *
@@ -151,7 +152,7 @@ function register(router) {
             } catch (e) {
                 // e.code carries the machine-readable half (groups_required) so the
                 // surface can say "pick a group" instead of a generic failure.
-                if (e.status) return res.status(e.status).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
+                if (e.status) return res.status(e.status).json({ error: /** @type {Error} */ (e).message, ...(e.code ? { code: e.code } : {}) });
                 throw e;
             }
         });

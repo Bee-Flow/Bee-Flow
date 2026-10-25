@@ -22,6 +22,7 @@ function hasSupportPerms(perms) {
 /**
  * May this requester act as Bee Flow support staff? Super admins always;
  * otherwise the user needs the admin_support (or all) permission.
+ * @param {string} userId
  */
 async function hasAdminSupport(req, userId) {
     if (isSuperAdmin(req)) return true;
@@ -31,7 +32,7 @@ async function hasAdminSupport(req, userId) {
         const perms = await getUserPermissions(userId, req.session || null);
         return hasSupportPerms(perms);
     } catch (e) {
-        log.warn('[Support] _hasAdminSupport check failed:', e.message);
+        log.warn('[Support] _hasAdminSupport check failed:', /** @type {Error} */ (e).message);
         return false;
     }
 }

@@ -36,6 +36,7 @@ const { LOOP_ROOT_ID } = require('./shared');
  * it. The filtered-out note stays in the caller's `steps` array (harmless:
  * with no edge in or out it is never reachable from the sub-DAG's root), so
  * nothing here needs to touch that array too.
+ * @param {string} [rootId]
  */
 function buildLinearEdges(steps, rootId = LOOP_ROOT_ID) {
     const executable = (steps || []).filter(s => s?.type !== 'note');

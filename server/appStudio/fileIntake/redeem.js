@@ -48,7 +48,7 @@ async function redeemAttachments(app, model, { rows, attTable, fileField, viewer
             // else (a dirty scan, a provider 404, an unsupported type) is a
             // named per-file refusal and the batch carries on.
             if (e && e.status === 409 && e.code === 'quota_exceeded') { quotaHit = e; break; }
-            refused.push({ name, reason: e && e.message ? String(e.message).slice(0, 200) : 'failed' });
+            refused.push({ name, reason: e && /** @type {Error} */ (e).message ? String(/** @type {Error} */ (e).message).slice(0, 200) : 'failed' });
         }
     }
     return { files, refused, quotaHit };

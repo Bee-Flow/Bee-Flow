@@ -166,6 +166,7 @@ const SCANS = Object.freeze({
  * it on first use), and a cached "absent" would keep a whole feature invisible
  * to the delete guard until the process restarts. If the probe itself fails
  * every kind is reported absent, which lands in `partial` — the narrow answer.
+ * @param {readonly string[]} kinds
  */
 async function probeTables(kinds, db) {
     const tables = kinds.map(k => SCANS[k].table);
@@ -175,12 +176,16 @@ async function probeTables(kinds, db) {
         const row = r.rows[0] || {};
         return new Map(kinds.map((k, i) => [k, row[`t${i}`] === true]));
     } catch (e) {
-        log.warn('[AgentUsage] table probe failed:', e.message);
+        log.warn('[AgentUsage] table probe failed:', /** @type {Error} */ (e).message);
         return new Map(kinds.map(k => [k, false]));
     }
 }
 
+/**
+ * @param {string[]} ids
+ */
 function chunk(ids) {
+    /** @type {string[][]} */
     const out = [];
     for (let i = 0; i < ids.length; i += ID_CHUNK) out.push(ids.slice(i, i + ID_CHUNK));
     return out;
@@ -190,6 +195,7 @@ function chunk(ids) {
  * Raw scan rows for a set of agent ids.
  *
  * @returns {Promise<{ rows: Array<{agentId,kind,id,title,role,ownerId,lastAt}>, partial: string[] }>}
+ * @param {string[]} agentIds
  */
 async function _scan(agentIds, db) {
     const ids = [...new Set((Array.isArray(agentIds) ? agentIds : []).filter(Boolean).map(String))];
@@ -197,6 +203,7 @@ async function _scan(agentIds, db) {
 
     const present = await probeTables(KINDS, db);
     const rows = [];
+    /** @type {string[]} */
     const partial = [];
 
     for (const kind of KINDS) {
@@ -226,7 +233,7 @@ async function _scan(agentIds, db) {
         } catch (e) {
             // One kind failing must not abandon the other five — but it must
             // not read as zero either.
-            log.warn(`[AgentUsage] ${kind} scan failed:`, e.message);
+            log.warn(`[AgentUsage] ${kind} scan failed:`, /** @type {Error} */ (e).message);
             partial.push(kind);
         }
     }
@@ -308,6 +315,7 @@ function unknownUsage() {
  * If A2 decides an org admin should see these names, that is a widening to
  * make deliberately, against whatever rule governs who may list an
  * organisation's automations — not something to inherit by accident from here.
+ * @param {string} userId
  */
 function redactForeign(rows, userId) {
     return (rows || []).map((r) => {

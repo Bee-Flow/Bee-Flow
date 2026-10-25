@@ -30,6 +30,9 @@ const MATCH_POST_MS = 6 * 3600_000;
 
 const AUTO_RECORDING_MASK = 'config.artifactConfig.recordingConfig.autoRecordingGeneration';
 
+/**
+ * @param {GoogleSession | undefined} session
+ */
 async function createMeetClient(session) {
     return integrationClient('google').createGoogleApiClient(session, { api: 'meet', version: 'v2', notConnectedError: NOT_CONNECTED_ERROR });
 }
@@ -47,6 +50,10 @@ function errStatus(err) {
     return null;
 }
 
+/**
+ * @param {string} message
+ * @param {string} code
+ */
 function codedError(message, code) {
     const e = new Error(message);
     e.code = code;
@@ -57,6 +64,8 @@ function codedError(message, code) {
  * Look up a meeting space by its typeable meeting code (`abc-defg-hij` —
  * spaces.get accepts the code as an alias of the space name). Returns the
  * space (with the immutable `name: 'spaces/{space}'`) or null on 404.
+ * @param {GoogleSession} session
+ * @param {string} meetingCode
  */
 async function getSpaceByMeetingCode(session, meetingCode) {
     const meet = await createMeetClient(session);
@@ -147,6 +156,8 @@ async function findConferenceRecord(session, { spaceName, meetingStart, meetingE
  * → { recordingName, driveFileId }  when a FILE_GENERATED recording exists
  * → { notReady: true }              recordings exist but no file yet
  * → { none: true }                  the conference has no recordings at all
+ * @param {GoogleSession} session
+ * @param {string | null} conferenceRecordName
  */
 async function findGeneratedRecording(session, conferenceRecordName) {
     const meet = await createMeetClient(session);
@@ -164,6 +175,8 @@ async function findGeneratedRecording(session, conferenceRecordName) {
 /**
  * Display names of everyone in a conference (signed-in, anonymous and phone
  * participants), for roster-anchored speaker naming. Best-effort: [] on error.
+ * @param {GoogleSession | undefined} session
+ * @param {string} conferenceRecordName
  */
 async function listParticipantNames(session, conferenceRecordName) {
     try {
@@ -184,7 +197,7 @@ async function listParticipantNames(session, conferenceRecordName) {
         } while (pageToken && names.length < 200);
         return names;
     } catch (err) {
-        log.warn(`[GmeetArtifacts] participants list failed for ${conferenceRecordName}: ${err.message}`);
+        log.warn(`[GmeetArtifacts] participants list failed for ${conferenceRecordName}: ${/** @type {Error} */ (err).message}`);
         return [];
     }
 }
@@ -289,7 +302,7 @@ async function downloadRecordingToFile(session, driveFileId, destPath, { maxByte
         await pipeline(res.data, fs.createWriteStream(destPath));
     } catch (err) {
         try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
-        throw codedError(`Recording download failed: ${err.message}`, 'download_failed');
+        throw codedError(`Recording download failed: ${/** @type {Error} */ (err).message}`, 'download_failed');
     }
     return { size, name: meta.data?.name || null, mimeType: meta.data?.mimeType || null };
 }
@@ -298,6 +311,8 @@ async function downloadRecordingToFile(session, driveFileId, destPath, { maxByte
  * Extract the audio track of a downloaded recording into a mono AAC .m4a
  * (~30 MB/h vs 0.4–1 GB/h for the video). Deletes nothing itself — the caller
  * owns cleanup of both paths. Resolves to `audioPath`.
+ * @param {string} videoPath
+ * @param {string} audioPath
  */
 async function extractAudioTrack(videoPath, audioPath) {
     // Same ffmpeg binary resolution as the Azure STT branch in routes/transcriptions.js.

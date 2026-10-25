@@ -71,6 +71,7 @@ function filterWarnings(provider, event, filter) {
     const known = NEXTCLOUD_FILTER_KEYS[event];
     if (!known) return [];
     const f = /** @type {Record<string, unknown>} */ (filter);
+    /** @type {string[]} */
     const out = [];
     const unknown = Object.keys(f).filter(k => !known.includes(k) && !DSL_KEYS.includes(k));
     if (unknown.length) {
@@ -93,6 +94,7 @@ function appEventWarnings(appEvent) {
     const provider = appEvent?.provider;
     const event = appEvent?.event;
     if (!provider || !event) return [];
+    /** @type {string[]} */
     const out = [];
     let registryLoaded = false;
     /** @type {{ events?: { id: string }[] } | null} */

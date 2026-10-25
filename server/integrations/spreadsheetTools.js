@@ -66,6 +66,9 @@ const SPREADSHEET_TOOLS = [
 
 const SPREADSHEET_TOOL_NAMES = new Set(SPREADSHEET_TOOLS.map((t) => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isSpreadsheetTool(toolName) {
     return SPREADSHEET_TOOL_NAMES.has(toolName);
 }
@@ -73,6 +76,7 @@ function isSpreadsheetTool(toolName) {
 /**
  * A file name that is safe on disk, in a storage key and in a
  * Content-Disposition header. ASCII only, like safeWordFileName.
+ * @param {string} [fallback]
  */
 function safeSpreadsheetFileName(raw, fallback = 'spreadsheet') {
     const base = String(raw || '')

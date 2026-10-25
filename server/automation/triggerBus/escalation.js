@@ -31,6 +31,10 @@ const POLL_FAILURE_THRESHOLD = 5;
 const RENEW_FAILURE_THRESHOLD = 2;
 const FAILURE_NOTIFY_DEBOUNCE_MS = 24 * 60 * 60_000;
 
+/**
+ * @param {number} threshold
+ * @param {string} errorMsg
+ */
 async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
     try {
         const { consecutiveFailures, errorNotifiedAt } = await ctx.store().incrementSubscriptionFailures(sub.id);
@@ -49,11 +53,11 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
                 message: `Automation "${automation.title}" trigger (${sub.provider} ${sub.eventType}) faalt herhaaldelijk: ${errorMsg || 'onbekende fout'}. Controleer je integratie of activeer de automation opnieuw.`,
             });
         } catch (e) {
-            log.warn(`[TriggerBus] notify failure for sub ${sub.id} failed: ${e.message}`);
+            log.warn(`[TriggerBus] notify failure for sub ${sub.id} failed: ${/** @type {Error} */ (e).message}`);
         }
         await ctx.store().updateSubscription(sub.id, { errorNotifiedAt: new Date().toISOString() }).catch((e) => bestEffort('automation/triggerBus/escalation:escalateSubscriptionFailure#2', e));
     } catch (e) {
-        log.warn(`[TriggerBus] escalateSubscriptionFailure error: ${e.message}`);
+        log.warn(`[TriggerBus] escalateSubscriptionFailure error: ${/** @type {Error} */ (e).message}`);
     }
 }
 

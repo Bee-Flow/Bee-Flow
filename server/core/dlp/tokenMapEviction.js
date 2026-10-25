@@ -19,6 +19,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 const SWEEP_MIN_GAP_MS = 30 * 1000;
 const SWEEP_TIMER_MS = 5 * 60 * 1000;
 
+/**
+ * @param {string} name
+ * @param {number} dflt
+ */
 function envInt(name, dflt) {
     const raw = process.env[name];
     if (raw === undefined || raw === '') return dflt;
@@ -32,6 +36,9 @@ const maxConversations = () => envInt('DLP_TOKENMAP_MAX_CONVERSATIONS', 2000);
 // eviction problems. Lazy-required so the common (no-error) path never pulls in
 // the store — that keeps the persistence unit tests (which mock `../../db`)
 // clean, and never lets telemetry break the chat path.
+/**
+ * @param {string} action_taken
+ */
 function emitTokenMapEvent(conversationId, action_taken, extra = {}) {
     try {
         const store = require('../../stores/guardrailEventStore');
@@ -60,10 +67,17 @@ function createTokenMapEviction(state) {
     /** @type {Map<string, number>} conversationId → merge counter while unpersisted */
     const dirty = new Map();
     let lastSweepAt = 0;
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
 
+    /**
+     * @param {string} id
+     */
     const evictable = (id) => !dirty.has(id) && !state.hydrationInFlight().has(id);
 
+    /**
+     * @param {string} id
+     */
     function forget(id) {
         state.conversationTokenMaps.delete(id);
         state.hydrated.delete(id);
@@ -100,6 +114,9 @@ function createTokenMapEviction(state) {
         return evicted;
     }
 
+    /**
+     * @param {string} id
+     */
     function touch(id) {
         if (!id) return;
         const now = Date.now();
@@ -112,12 +129,16 @@ function createTokenMapEviction(state) {
         }
     }
 
-    /** A merge made the in-process map newer than the database copy. */
+    /**
+     * A merge made the in-process map newer than the database copy.
+     * @param {string} id
+     */
     function markDirty(id) { dirty.set(id, (dirty.get(id) || 0) + 1); }
 
     /**
      * Snapshot the dirty version before a write; call the returned function
      * once the write landed. It cleans the entry unless a newer merge arrived.
+     * @param {string} id
      */
     function beginWrite(id) {
         const v = dirty.get(id);

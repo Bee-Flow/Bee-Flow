@@ -17,6 +17,10 @@ const { isObject, deepCopy, truncate, isFormulaObj } = require('./shared');
 // A formula binding/field: { kind:'formula', expr }. Only the length limit is
 // enforced here — the shared expr compiler runs in validate.js (never here, and
 // the expression is NEVER executed).
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanFormula(raw, path, push) {
     let expr = raw.expr;
     if (typeof expr === 'string') expr = truncate(expr, LIMITS.MAX_FORMULA_LEN, path, push);
@@ -25,6 +29,10 @@ function cleanFormula(raw, path, push) {
 }
 
 // Shared filter/sort/limit copy for record + records bindings.
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function copyRecordsQuery(raw, out, path, push) {
     if (raw.filter !== undefined && raw.filter !== null) {
         out.filter = typeof raw.filter === 'string' ? truncate(raw.filter, LIMITS.MAX_FORMULA_LEN, `${path}.filter`, push) : deepCopy(raw.filter);
@@ -38,6 +46,10 @@ function copyRecordsQuery(raw, out, path, push) {
 // Connector binding params — { key: literal | {kind:'formula',expr} }. Known
 // formula params rebuilt to their exact shape (expr truncated); literals kept
 // verbatim; malformed objects passed through for validate.js to flag.
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanConnectorParams(raw, path, push) {
     if (!isObject(raw)) {
         push('binding.params_invalid', path, 'connector params must be an object map — reset to {}.');
@@ -75,6 +87,8 @@ const MAX_AGG_FNS = 16;
  * Clean an aggregate's groupBy list. Entries whose bucket the compiler does not
  * know are dropped rather than kept: a stored descriptor that always throws at
  * query time is worse than a slightly different chart.
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ * @param {string} path
  */
 function cleanAggGroupBy(raw, path, push) {
     if (raw === undefined || raw === null) return undefined;
@@ -97,6 +111,10 @@ function cleanAggGroupBy(raw, path, push) {
     return out.length ? out : undefined;
 }
 
+/**
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ * @param {string} path
+ */
 function cleanAggregates(raw, path, push) {
     if (raw === undefined || raw === null) return undefined;
     if (!Array.isArray(raw)) {
@@ -119,6 +137,10 @@ function cleanAggregates(raw, path, push) {
     return out.length ? out : undefined;
 }
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanBinding(raw, path, push) {
     if (isObject(raw)) {
         if (raw.kind === 'static') return { kind: 'static', value: deepCopy(raw.value) ?? null };

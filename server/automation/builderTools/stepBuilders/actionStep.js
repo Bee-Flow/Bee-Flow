@@ -32,7 +32,7 @@ const { applyAddDatatable } = require('./datatableStep');
 function datatableStepFromActionArgs(args) {
     if (!args || typeof args !== 'object') return null;
     const inputs = (args.inputs && typeof args.inputs === 'object' && !Array.isArray(args.inputs)) ? args.inputs : {};
-    const names = (o) => (typeof o.datatableId === 'string' && o.datatableId.trim()) || (typeof o.datatableKey === 'string' && o.datatableKey.trim());
+    const names = (/** @type {{ datatableId: string; datatableKey: string; }} */ o) => (typeof o.datatableId === 'string' && o.datatableId.trim()) || (typeof o.datatableKey === 'string' && o.datatableKey.trim());
     if (!names(args) && !names(inputs)) return null;
     if (typeof args.tool === 'string' && args.tool.trim()) return null;   // a real action against a table id: leave it alone
     // The step's fields live either beside `inputs` or inside it; the ones
@@ -52,7 +52,9 @@ function applyAddAction(draft, rawArgs, draftWrap) {
         if (r && r.error) return { ...r, _fixHint: `${r._fixHint ? `${r._fixHint} ` : ''}Note: ${note}` };
         return { ...r, _warnings: [...(r._warnings || []), note] };
     }
+    /** @type {string | null} */
     let toolNote = null;
+    /** @type {string | null} */
     let removedNote = null;
     if (!args.tool || typeof args.tool !== 'string' || (draftWrap?._availableToolNames && !draftWrap._availableToolNames.has(args.tool))) {
         const r = resolveToolName(args, draftWrap);

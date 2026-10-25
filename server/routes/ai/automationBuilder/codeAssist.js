@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Automation Builder — the code step's AI assistant.
  *
@@ -59,7 +60,16 @@ const MAX_MESSAGE_CHARS = 20_000;
 const MAX_UPSTREAM_FIELDS = 500;
 
 // ── What a turn may send ────────────────────────────────────────────
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const text = (message, max) => worded(message).max(max, message);
+/**
+ * @param {string} message
+ * @param {number} maxItems
+ * @param {number} maxChars
+ */
 const stringList = (message, maxItems, maxChars) => z.array(text(message, maxChars), { error: typeError({ invalid: message }) }).max(maxItems, message);
 
 const CodeAssistBody = bodyOf({
@@ -129,7 +139,15 @@ async function resolveAssistModel({ userId, session, modelTier }) {
     return { tierName, tier, modelId, cfg, adapter };
 }
 
-/** The Privacy Shield tool gate for this turn, resolved on its first use. */
+/**
+ * @typedef {Object} MakeShieldGateArgs
+ * @property {string} userId
+ * @property {string} [orgId]
+ */
+/**
+ * The Privacy Shield tool gate for this turn, resolved on its first use.
+ * @param {MakeShieldGateArgs} param0
+ */
 function makeShieldGate({ userId, orgId, automationId, modelId }) {
     const toolPiiGate = require('../../../core/privacy/toolPiiGate');
     let lookup = null;
@@ -173,8 +191,8 @@ function defaultDeps() {
     return {
         requireAuth: (req, res, next) => require('../../../auth/permissions').requireAuth(req, res, next),
         rateLimit: codeAssistRateLimit,
-        hasAutomationsBeta: (userId, session) => require('../../../core/entitlements/betaFeatures').userHasBetaFeature(userId, 'automations', session),
-        getAutomation: (id) => require('../../../stores/automationStore').getAutomation(id),
+        hasAutomationsBeta: (/** @type {string} */ userId, /** @type {Express.Session | null | undefined} */ session) => require('../../../core/entitlements/betaFeatures').userHasBetaFeature(userId, 'automations', session),
+        getAutomation: (/** @type {string} */ id) => require('../../../stores/automationStore').getAutomation(id),
         guardEdit: (req, res, automation) => (access ??= makeAutomationAccess()).guard(req, res, automation, 'edit'),
         resolveModel: resolveAssistModel,
         loadAnalyser,
@@ -187,6 +205,12 @@ function defaultDeps() {
 // The route never shows reasoning: the panel has text and edits only.
 const NO_THINKING = { start() {}, delta() {}, stop() {} };
 
+/**
+ * @param {number} status
+ * @param {string} error
+ * @param {string} code
+ * @param {string} [messageKey]
+ */
 function refuse(res, status, error, code, messageKey) {
     return res.status(status).json({ error, code, ...(messageKey ? { messageKey } : {}) });
 }
@@ -199,6 +223,9 @@ function makeCodeAssistRouter(overrides = {}) {
 
     // Ahead of the schema, so a person without the feature gets a 403 and
     // not a lecture about the body (the sibling routes' order).
+    /**
+     * @param {NextFunction} next
+     */
     async function requireAutomationsBeta(req, res, next) {
         if (!await deps.hasAutomationsBeta(req.session.user.id, req.session)) {
             return refuse(res, 403, 'The Automations beta is not enabled for your organisation.', 'automations_beta_off', 'code_step.assist.error.beta_off');
@@ -237,7 +264,7 @@ function makeCodeAssistRouter(overrides = {}) {
         try {
             let toolDocs = [];
             try { toolDocs = deps.lookupToolDocs(allowedTools); }
-            catch (e) { log.warn(`[CodeAssist] tool schemas unavailable: ${e.message}`); }
+            catch (e) { log.warn(`[CodeAssist] tool schemas unavailable: ${/** @type {Error} */ (e).message}`); }
             const surfacesRawReasoning = typeof model.adapter?.surfacesRawReasoning === 'function' && model.adapter.surfacesRawReasoning() === true;
             turn = await runCodeAssistTurn({
                 messages,
@@ -260,14 +287,14 @@ function makeCodeAssistRouter(overrides = {}) {
                     ...(model.tier?.reasoningEffort ? { reasoningEffort: model.tier.reasoningEffort } : {}),
                     userId: String(userId),
                 }, {
-                    send: (event, data) => { if (event === 'message' && data && data.content) onText(data.content); },
+                    send: (/** @type {string} */ event, /** @type {{ content: string; }} */ data) => { if (event === 'message' && data && data.content) onText(data.content); },
                     emitThinking: NO_THINKING,
                     signal: clientSignal,
                     logPrefix: '[CodeAssist]',
                 }),
             });
         } catch (e) {
-            log.error('[CodeAssist] turn failed:', e.message);
+            log.error('[CodeAssist] turn failed:', /** @type {Error} */ (e).message);
             send('error', { message: 'Something went wrong in the code assistant. Your code is unchanged.', messageKey: 'code_step.assist.error.internal' });
             send('code', { code, analysis: null, changed: false, repairRounds: 0 });
         }

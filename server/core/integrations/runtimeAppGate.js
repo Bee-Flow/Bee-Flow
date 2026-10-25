@@ -49,6 +49,7 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         // null = no restriction (used for NC which has its own group path); a
         // Set = only IDs in here pass the org-admin gate.
         let orgActiveSet = null;
+        /** @type {string | null} */
         let userOrgId = null;
         // The user's group ids, hoisted to function scope so gates below the
         // org-resolution block (e.g. the webpages access fallback) can reuse them

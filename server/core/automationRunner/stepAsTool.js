@@ -9,6 +9,9 @@
 const { executeAutomation } = require('./execution');
 const { fallback } = require('../../utils/bestEffort');
 
+/**
+ * @param {string} blockId
+ */
 async function runStepAsTool(blockId, args, ctx, { mode = 'live' } = {}) {
     const automationStore = require('../../stores/automationStore');
     const row = await automationStore.getAutomation(blockId).catch((e) => fallback('core/automationRunner/stepAsTool:runStepAsTool', e, null));

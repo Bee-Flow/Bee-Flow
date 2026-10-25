@@ -32,7 +32,10 @@ const DATATABLE_OPS = [
     { op: 'delete_rows', label: 'Delete rows that match', blurb: 'Removes every row that matches. Needs at least one condition.', writes: true },
 ];
 
-/** The tables THIS caller may use. */
+/**
+ * The tables THIS caller may use.
+ * @param {string} userId
+ */
 async function loadDatatables(req, userId) {
     // The tables THIS caller may use, already filtered by the same grade
     // resolver the runner uses. The canvas has nowhere to hang a permission
@@ -54,12 +57,15 @@ async function loadDatatables(req, userId) {
     } catch (e) {
         // A datatable outage must not take the whole catalog down; the
         // picker renders its empty state and every other node still works.
-        log.warn('[automation/catalog] datatables unavailable:', e.message);
+        log.warn('[automation/catalog] datatables unavailable:', /** @type {Error} */ (e).message);
     }
     return datatables;
 }
 
-/** The knowledge bases this caller may write to. */
+/**
+ * The knowledge bases this caller may write to.
+ * @param {string} userId
+ */
 async function loadKnowledgeBases(req, userId) {
     /**
      * The knowledge bases this caller may WRITE to — the `knowledge_write`
@@ -106,12 +112,15 @@ async function loadKnowledgeBases(req, userId) {
     } catch (e) {
         // Same posture as the datatables above: the picker renders its
         // empty state and every other node still works.
-        log.warn('[automation/catalog] knowledge bases unavailable:', e.message);
+        log.warn('[automation/catalog] knowledge bases unavailable:', /** @type {Error} */ (e).message);
     }
     return knowledgeBases;
 }
 
-/** The agents an ai_step may use, with `agentsError` set when the read failed. */
+/**
+ * The agents an ai_step may use, with `agentsError` set when the read failed.
+ * @param {string} userId
+ */
 async function loadAgents(req, userId) {
     /**
      * The agents an ai_step may hand its thinking to (R2).
@@ -147,8 +156,8 @@ async function loadAgents(req, userId) {
             return await require('../../automation/builderPickerCatalog')
                 .buildAgentPickerForUser(userId, { principal: await resolveDatatablePrincipal(req) });
         } catch (e) {
-            log.warn('[automation/catalog] agents unavailable:', e.message);
-            return { agents: [], agentsError: e.message || 'agent list unavailable' };
+            log.warn('[automation/catalog] agents unavailable:', /** @type {Error} */ (e).message);
+            return { agents: [], agentsError: /** @type {Error} */ (e).message || 'agent list unavailable' };
         }
     })();
     return agentRead;

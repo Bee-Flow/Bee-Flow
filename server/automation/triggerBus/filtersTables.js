@@ -15,13 +15,16 @@ function matchNextcloudTablesRowFilter(payload, filter) {
     // Without a columnId the value filters are not skipped (that fired on every
     // row): they hold when ANY column satisfies them. A null/'' value filter is
     // unset, like an empty columnId.
-    const set = (v) => v !== undefined && v !== null && v !== '';
+    const set = (/** @type {string | null | undefined} */ v) => v !== undefined && v !== null && v !== '';
     const hasCol = set(filter.columnId);
     const wantsEquals = set(filter.valueEquals);
     const wantsContains = set(filter.valueContains);
     if (hasCol || wantsEquals || wantsContains || filter.changedOnly) {
         const values = payload?.values && typeof payload.values === 'object' ? payload.values : {};
         const prevs = payload?.previousValues && typeof payload.previousValues === 'object' ? payload.previousValues : null;
+        /**
+         * @param {string} col
+         */
         const colOk = (col) => {
             const value = values[col];
             if (wantsEquals && String(value ?? '') !== String(filter.valueEquals)) return false;

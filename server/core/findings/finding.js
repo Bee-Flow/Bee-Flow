@@ -59,6 +59,10 @@ function isNonEmptyString(v) { return typeof v === 'string' && v.trim().length >
 
 /** Thrown for a malformed Finding — a TypeError so callers can tell it from a runtime failure. */
 class FindingShapeError extends TypeError {
+    /**
+     * @param {string} message
+     * @param {string} field
+     */
     constructor(message, field) {
         super(`Finding: ${message}`);
         this.name = 'FindingShapeError';
@@ -78,6 +82,7 @@ function normalizeTargetRef(ref, fallbackKind) {
     if (!FINDING_KINDS.includes(kind)) {
         throw new FindingShapeError(`targetRef.kind must be one of ${FINDING_KINDS.join(', ')} (got ${JSON.stringify(kind)})`, 'targetRef.kind');
     }
+    /** @type {string | null} */
     let id = null;
     if (ref.id !== undefined && ref.id !== null) {
         if (typeof ref.id !== 'string' && typeof ref.id !== 'number') {
@@ -85,6 +90,7 @@ function normalizeTargetRef(ref, fallbackKind) {
         }
         id = String(ref.id);
     }
+    /** @type {Record<string, string | null>} */
     const out = { kind, id };
     for (const key of ['title', 'path', 'nodeId', 'stepId']) {
         const v = ref[key];
@@ -180,7 +186,11 @@ function isFinding(value) {
     return true;
 }
 
-/** Comparator: errors first, then warnings, then info; stable within a rank. */
+/**
+ * Comparator: errors first, then warnings, then info; stable within a rank.
+ * @param {{ severity: string | number; }} a
+ * @param {{ severity: string | number; }} b
+ */
 function bySeverity(a, b) {
     return (SEVERITY_RANK[a?.severity] ?? 9) - (SEVERITY_RANK[b?.severity] ?? 9);
 }

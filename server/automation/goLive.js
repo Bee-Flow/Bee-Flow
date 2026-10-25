@@ -31,7 +31,12 @@ const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TZ = 'Europe/Amsterdam';
 
-/** A refusal in the one shape every core answers. */
+/**
+ * A refusal in the one shape every core answers.
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 function refuse(status, code, message, body) {
     return { ok: false, status, code: code || null, message, body: body || { error: message, ...(code ? { code } : {}) } };
 }
@@ -96,7 +101,7 @@ function planGoLive(automation, definition, { now = Date.now(), willBeActive, ve
         // schedule.skipHolidays (handoff 5): the first slot already steps over holidays.
         try { next = nextScheduledRunAt(cron, tz || DEFAULT_TZ, now, { skipHolidays: scheduleSkipsHolidays(def) }); }
         catch (e) {
-            const message = messages.invalid(cron, e.message);
+            const message = messages.invalid(cron, /** @type {Error} */ (e).message);
             // The activate route has always answered this without a code.
             return refuse(400, 'invalid_schedule', message, verb === 'activate' ? { error: message } : undefined);
         }
@@ -139,7 +144,7 @@ async function toolCatalogFor(ownerId, ownSession, deps) {
         }
         return { availableTools, toolRequiredParams };
     } catch (e) {
-        log.warn('[automation/activate] tool catalog build failed; activating without tool checks:', e.message);
+        log.warn('[automation/activate] tool catalog build failed; activating without tool checks:', /** @type {Error} */ (e).message);
         return { availableTools: null, toolRequiredParams: null };
     }
 }
@@ -163,7 +168,7 @@ async function knownConnectionsFor(def, ownerId, deps) {
         });
         return new Set(accessible.map(c => c.id));
     } catch (e) {
-        log.warn('[automation/activate] http credential catalog build failed; activating without credential checks:', e.message);
+        log.warn('[automation/activate] http credential catalog build failed; activating without credential checks:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -305,7 +310,7 @@ function gmailCatchUp(store, automationId, ownerId, deps = {}) {
             const dispatch = deps.dispatch || require('./triggerBus/dispatch');
             const triggerBus = deps.triggerBus || require('./triggerBus');
             const subs = await store.getSubscriptionsForAutomation(automationId);
-            const gmailSubs = (subs || []).filter(s => s.provider === 'gmail' && s.eventType === 'mail.new');
+            const gmailSubs = (subs || []).filter((/** @type {{ provider: string; eventType: string; }} */ s) => s.provider === 'gmail' && s.eventType === 'mail.new');
             for (const sub of gmailSubs) {
                 try {
                     // sub.filter is the normalized copy of the trigger's filter,
@@ -315,11 +320,11 @@ function gmailCatchUp(store, automationId, ownerId, deps = {}) {
                         dispatch.dispatchToSubscription(sub, { provider: 'gmail', event: 'mail.new', payload: latest });
                     }
                 } catch (e) {
-                    log.warn(`[automation/activate] immediate Gmail dispatch failed for ${automationId} sub ${sub.id}: ${e.message}`);
+                    log.warn(`[automation/activate] immediate Gmail dispatch failed for ${automationId} sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
                 }
             }
         } catch (e) {
-            log.warn(`[automation/activate] immediate Gmail catchup failed for ${automationId}: ${e.message}`);
+            log.warn(`[automation/activate] immediate Gmail catchup failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
         }
     })();
 }
@@ -404,6 +409,10 @@ async function activateCore({ automation, actorId, session = null, organizationI
 }
 
 /**
+ * @typedef {Object} DeactivateCoreArgs
+ * @property {string} actorId
+ */
+/**
  * Switch an automation off — POST /:id/deactivate after its access check.
  *
  * Remote subscriptions are revoked BEFORE the local rows are deleted, with the
@@ -412,6 +421,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
  * is one review).
  *
  * @returns {Promise<{ok: true, automation}>}
+ * @param {DeactivateCoreArgs} param0
  */
 async function deactivateCore({ automation, actorId, deps = {} }) {
     const a = automation;
@@ -424,6 +434,12 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
     return { ok: true, automation: u };
 }
 
+/**
+ * @typedef {Object} ConvergeAfterPublishArgs
+ * @property {boolean} [isActive]
+ * @property {string} [reason]
+ * @property {boolean} [saveSyncs]
+ */
 /**
  * The side effects after a definition went live — idempotent, retriable, and
  * never throwing (each failure is logged and returned as a warning).
@@ -441,6 +457,7 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
  *   - compliance is woken (`reason`).
  *
  * @returns {Promise<{warnings: Array<{step: string, message: string}>, answers: object|null}>}
+ * @param {ConvergeAfterPublishArgs} param0
  */
 async function convergeAfterPublish({
     automation, definition, previousLive = null, isActive, ownerId = null, organizationId = null,
@@ -449,13 +466,18 @@ async function convergeAfterPublish({
     const a = automation || {};
     const def = definition || {};
     const owner = ownerId || a.userId || null;
+    /** @type {{ step: string; message: string; }[]} */
     const warnings = [];
     let answers = null;
+    /**
+     * @param {string} step
+     * @param {string} prefix
+     */
     const attempt = async (step, prefix, fn) => {
         try { await fn(); }
         catch (e) {
-            log.warn(`${prefix} ${step} failed for ${a.id}: ${e.message}`);
-            warnings.push({ step, message: e.message });
+            log.warn(`${prefix} ${step} failed for ${a.id}: ${/** @type {Error} */ (e).message}`);
+            warnings.push({ step, message: /** @type {Error} */ (e).message });
         }
     };
 

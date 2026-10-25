@@ -19,6 +19,7 @@ const MIN_MEASURED_SAMPLES = 3;
 const MIN_MEASURED_SPAN_MS = 60_000;
 
 /** Per-verb minutes [lo, hi], by exact verb or by tool-name keyword. */
+/** @type {Record<string, number[]>} */
 const VERB_MINUTES = {
     'mail.received': [1, 2],
     'mail.sent': [3, 6],

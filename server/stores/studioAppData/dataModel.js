@@ -36,7 +36,7 @@ async function getDataModel(appId, ownerId, { reconcile = false } = {}) {
         try {
             await reconcileDataModel(appId, ownerId);
         } catch (e) {
-            log.warn(`[StudioAppDataStore] reconcile failed for ${appId}: ${e.message}`);
+            log.warn(`[StudioAppDataStore] reconcile failed for ${appId}: ${/** @type {Error} */ (e).message}`);
         }
     }
     const r = await getOne(
@@ -74,8 +74,8 @@ async function reconcileDataModel(appId, ownerId) {
     try {
         sqliteVersion = await deps.studioAppDbStore.getSchemaStamp(ownerId, appId);
     } catch (e) {
-        log.warn(`[StudioAppDataStore] reconcile: user_version read failed for ${appId}: ${e.message}`);
-        return { ok: false, error: e.message };
+        log.warn(`[StudioAppDataStore] reconcile: user_version read failed for ${appId}: ${/** @type {Error} */ (e).message}`);
+        return { ok: false, error: /** @type {Error} */ (e).message };
     }
     const modelVersion = meta.modelVersion;
     const drift = sqliteVersion > modelVersion;
@@ -87,7 +87,7 @@ async function reconcileDataModel(appId, ownerId) {
         try {
             await recountRows(appId, ownerId, Array.isArray(meta.model && meta.model.tables) ? meta.model.tables : []);
         } catch (e) {
-            log.warn(`[StudioAppDataStore] reconcile recount failed for ${appId}: ${e.message}`);
+            log.warn(`[StudioAppDataStore] reconcile recount failed for ${appId}: ${/** @type {Error} */ (e).message}`);
         }
     }
     return { ok: true, drift, sqliteVersion, modelVersion };
@@ -141,7 +141,9 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         );
 
         let currentModel;
+        /** @type {number} */
         let currentVersion;
+        /** @type {boolean} */
         let metaExists;
         if (cur.rows.length > 0) {
             if (cur.rows[0].owner_user_id !== ownerId) {

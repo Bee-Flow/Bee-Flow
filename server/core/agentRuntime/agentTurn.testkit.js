@@ -23,6 +23,9 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 
 const noop = () => {};
 
+/**
+ * @param {string} name
+ */
 const fn = (name) => ({
     type: 'function',
     function: { name, description: name, parameters: { type: 'object', properties: {} } },

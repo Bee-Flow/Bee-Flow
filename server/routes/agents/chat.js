@@ -61,8 +61,17 @@ const { fallback } = require('../../utils/bestEffort');
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ */
 const text = (name) => worded(`${name} must be text.`).optional();
+/**
+ * @param {string} name
+ */
 const id = (name) => worded(`${name} must be an id.`).trim().min(1, `${name} must be an id.`).nullish();
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 
 const MESSAGE_TEXT = 'Message is required';
@@ -445,12 +454,13 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             canEdit = await canModifyAgent(agent, userId, req);
         } catch (e) {
             // An edit check that could not run is not permission to simulate.
-            log.error('[AgentChat] test-mode edit check failed:', e.message);
+            log.error('[AgentChat] test-mode edit check failed:', /** @type {Error} */ (e).message);
             // One failed check refuses BOTH affordances when both have been
             // requested. `code` remains the strongest (a test chat serves the draft), but
             // `codes` names every refused affordance — otherwise a client that handles
             // the A1c contract (`test_as_check_failed`) misses precisely the case in which
             // it ALSO sent `test: true`.
+            /** @type {string[]} */
             const _refused = [];
             if (wantsTest) _refused.push(testChatMod.TEST_CHAT_CODES.checkFailed);
             if (req.body?.asGroup) _refused.push('test_as_check_failed');
@@ -563,13 +573,13 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
         markEnded();
         res.end();
     } catch (error) {
-        if (error.name === 'AbortError' || abortController.signal.aborted) {
+        if (/** @type {Error} */ (error).name === 'AbortError' || abortController.signal.aborted) {
             log.info('[agents] Agent execution aborted by client');
         } else {
             log.error('Agent streaming chat error:', error);
             const classified = error._classified || {};
             sendEvent('error', {
-                error: error.message,
+                error: /** @type {Error} */ (error).message,
                 errorType: classified.retryable ? 'transient' : 'permanent'
             });
         }
@@ -606,6 +616,7 @@ router.post('/describe-building', requireAuth, helperLimiter, validate({ body: D
         const config = await getAIConfig();
         // Defence-in-depth: refuse if the configured AI URL isn't a normal http(s)
         // endpoint. Prevents accidental SSRF if the config is ever tenant-influenced.
+        /** @type {URL} */
         let parsedAiUrl;
         try {
             parsedAiUrl = new URL(config.url);

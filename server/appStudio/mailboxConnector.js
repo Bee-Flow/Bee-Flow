@@ -33,6 +33,11 @@ const MAX_MAILBOX_ROWS = 200;
 // provider round-trip, so this is the brake on a busy label.
 const MAX_THREAD_EXPANSIONS = 25;
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function mailboxError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -126,6 +131,7 @@ async function runMailboxConnector(connector, ctx = {}) {
     let since = connector.groupIntoThreads ? lookbackIso : (systemArgs.since || null);
     if (!since) since = lookbackIso;
 
+    /** @type {{ messages: object[]; nextPageToken: string | null; }} */
     let listed;
     try {
         listed = await emailFetch.listMessages({
@@ -348,6 +354,7 @@ async function runMailboxConnector(connector, ctx = {}) {
  * The emitted columns are deliberately only the ones the mailbox owns. An
  * upsert UPDATE writes exactly the columns present in the row, so anything the
  * team owns — status, priority, assignee — survives every re-sync untouched.
+ * @param {object[]} messages
  */
 function groupIntoThreads(messages, partialThreads = null) {
     const byKey = new Map();

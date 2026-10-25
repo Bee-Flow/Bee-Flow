@@ -16,6 +16,10 @@
 
 function asArray(v) { return Array.isArray(v) ? v : []; }
 function asObject(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
+/**
+ * @param {number} n
+ * @param {string} noun
+ */
 function plural(n, noun) { return `${n} ${noun}${n === 1 ? '' : 's'}`; }
 function stableJson(v) {
     // Sorted-key stringify so a reordered-but-equal object isn't "changed".
@@ -52,6 +56,7 @@ const FIELD_LABELS = [
 function summarizeDefinitionDiff(prevDef, nextDef) {
     const prev = asObject(prevDef);
     const next = asObject(nextDef);
+    /** @type {string[]} */
     const phrases = [];
 
     // Steps (keyed by id)
@@ -163,6 +168,7 @@ function planVersionWrite(prevDef, nextDef, { versionMeta = null, forceVersion =
         try { settingsOnly = isSettingsOnlyChange(prevDef, nextDef); }
         catch (_) { settingsOnly = false; }
     }
+    /** @type {string | null} */
     let changeSummary = null;
     try { changeSummary = summarizeDefinitionDiffLine(prevDef, nextDef); }
     catch (err) { fallback('automation/diffSummary:planVersionWrite', err); /* best-effort, like the description */ }

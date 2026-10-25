@@ -36,9 +36,11 @@ function holidaySkipFor(automation, /** @type {{triggerStepId?: string|null, cro
     if (!holidays.scheduleSkipsHolidays(definition, triggerStepId)) return null;
     const zone = tz || 'Europe/Amsterdam';
     const due = scheduledFor ? Date.parse(scheduledFor) : NaN;
+    /** @type {{ date: string; key: string; name: string; } | null} */
     let holiday = null;
     try { holiday = holidays.holidayAt(Number.isFinite(due) ? due : now, zone); } catch { return null; }
     if (!holiday) return null;
+    /** @type {string | null} */
     let nextRunAt = null;
     try { nextRunAt = holidays.nextScheduledRunAt(cron, zone, now, { skipHolidays: true }); } catch { nextRunAt = null; }
     return { holiday, nextRunAt };

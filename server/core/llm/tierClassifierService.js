@@ -44,6 +44,7 @@ const MIN_RATIO = 2;
  * tuning must sort them too. Change them with the script, not by feel. The
  * service takes at most 16 labels in all.
  */
+/** @type {Record<string, string[]>} */
 const TIER_LABELS = {
     fast: ['greeting', 'thanks', 'trivia question', 'translation'],
     thinking: ['code', 'technical explanation', 'pros and cons'],
@@ -96,6 +97,7 @@ async function classifyTierViaService(text, tiers, { heuristic = null, deadlineM
 
     const labels = [...byTier.values()].flat().sort();
     const started = Date.now();
+    /** @type {Record<string, number>} */
     let scores;
     // A plain timer, not AbortSignal.timeout(): that one is unref'd and so
     // cannot be relied on to fire while nothing else holds the event loop.
@@ -110,7 +112,7 @@ async function classifyTierViaService(text, tiers, { heuristic = null, deadlineM
         });
         scores = out.scores[0];
     } catch (err) {
-        const why = err?.name === 'TimeoutError' || err?.name === 'AbortError' ? 'deadline' : (err?.detail || err?.errorClass || err?.name || 'error');
+        const why = /** @type {Error} */ (err)?.name === 'TimeoutError' || /** @type {Error} */ (err)?.name === 'AbortError' ? 'deadline' : (err?.detail || err?.errorClass || /** @type {Error} */ (err)?.name || 'error');
         log.info(`[Classifier] service: no verdict (${why}) after ${Date.now() - started}ms`);
         return null;
     } finally {

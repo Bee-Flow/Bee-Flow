@@ -63,6 +63,7 @@ const MENTION_SQL = `
     WHERE p.id = pc.project_id AND ${ORG} AND pc.id = ANY($2::text[]) AND pc.ai_mode IN ('always', 'auto')
     RETURNING pc.id, pc.project_id`;
 
+/** @type {Record<string, string>} */
 const PREFIX = { chats: 'project_chat:', threads: 'project_comment_thread:' };
 
 function defaultDeps() {
@@ -128,6 +129,9 @@ function _asBuilt(subject) {
     return subject && typeof subject.projectId === 'string' && PREFIX[subject.kind] ? subject : null;
 }
 
+/**
+ * @param {number} now
+ */
 function _isCurrent(row, now) {
     if (!row || !row.approved_at) return false;
     if (!row.expires_at) return true;
@@ -220,11 +224,13 @@ module.exports = {
             return { status: 'warn', evidence: { project_id: s.projectId, truncated: sig.truncated }, details: 'Whether this project holds personal data could not be read in full, so this conversation was not judged.' };
         }
         const kinds = signal?.kinds || [];
+        /** @type {boolean} */
         let shieldOn;
         try { shieldOn = await deps.shieldOn(orgId); } catch { shieldOn = false; }
         // null = not consulted: the DPIA register is only read when the
         // project holds special-category data, and `false` would claim "no
         // current DPIA" where nobody looked.
+        /** @type {boolean | null} */
         let dpiaCurrent = null;
         if (signals.hasSpecialKinds(kinds)) {
             const keys = [ORG_WIDE_DPIA_KEY, `project:${s.projectId}`, ...(s.agentId ? [String(s.agentId)] : [])];

@@ -48,7 +48,10 @@ const QUESTION_IDS = detect.QUESTION_IDS;
 
 function isObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
-/** The per-question record of a row, or {} when there is none or it lapsed. */
+/**
+ * The per-question record of a row, or {} when there is none or it lapsed.
+ * @param {number} now
+ */
 function priorQuestions(row, now) {
     if (!row || !row.attested_at) return {};
     if (row.expires_at && new Date(row.expires_at).getTime() <= now) return {};
@@ -62,10 +65,12 @@ function hasEvidence(row) { return !!row && isObject(row.evidence) && isObject(r
 /**
  * Bee's answers merged with the recorded ones. Pure.
  * @returns {{ final: Record<string, object>, pending: string[] }}
+ * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
  */
 function mergeAnswers(detection, row, { now = Date.now() } = {}) {
     const prev = priorQuestions(row, now);
     const final = {};
+    /** @type {string[]} */
     const pending = [];
     for (const id of QUESTION_IDS) {
         const d = detection.questions[id];
@@ -82,7 +87,11 @@ function mergeAnswers(detection, row, { now = Date.now() } = {}) {
     return settleNoAi(final, pending);
 }
 
-/** Without AI the other questions do not change anything: drop them. */
+/**
+ * Without AI the other questions do not change anything: drop them.
+ * @param {{ [x: string]: object; }} final
+ * @param {string[]} pending
+ */
 function settleNoAi(final, pending) {
     if (final.usesAi && final.usesAi.answer === 'no') {
         for (const id of QUESTION_IDS) if (id !== 'usesAi') delete final[id];
@@ -95,6 +104,8 @@ function settleNoAi(final, pending) {
  * A person's answers laid over the merge. A "no" to "uses AI" where Bee is
  * certain there is AI does not narrow it (the register's rule: widen, never
  * narrow). Answers `{ final, pending }`.
+ * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
+ * @param {{ final: Record<string, object>; pending: string[]; }} merged
  */
 function applyPersonAnswers(detection, merged, answers) {
     const final = { ...merged.final };
@@ -123,7 +134,10 @@ function applyPersonAnswers(detection, merged, answers) {
     return settleNoAi(final, pending);
 }
 
-/** The register answers for the final answers, over the previous row's (Art. 50 details from the hub survive). */
+/**
+ * The register answers for the final answers, over the previous row's (Art. 50 details from the hub survive).
+ * @param {Record<string, object>} final
+ */
 function registerAnswers(final, previousAnswers) {
     const answers = aiActCheck.answersFromWizard({
         usesAi: final.usesAi ? final.usesAi.answer : 'unknown',
@@ -149,7 +163,11 @@ function stripEvidence(list) {
     return (Array.isArray(list) ? list : []).map(e => ({ code: e.code, params: e.params || {} }));
 }
 
-/** What is stored beside the register answers. Allow-listed: no model prose, no addresses. */
+/**
+ * What is stored beside the register answers. Allow-listed: no model prose, no addresses.
+ * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
+ * @param {Record<string, object>} final
+ */
 function evidenceRecord(detection, final) {
     const questions = {};
     for (const [id, q] of Object.entries(final)) {
@@ -171,7 +189,10 @@ function evidenceRecord(detection, final) {
     };
 }
 
-/** One finding for the card: what was answered, how sure Bee was, and why. */
+/**
+ * One finding for the card: what was answered, how sure Bee was, and why.
+ * @param {string} id
+ */
 function publicFinding(id, q) {
     return {
         id, answer: q.answer, confidence: q.confidence, by: q.by,
@@ -181,7 +202,11 @@ function publicFinding(id, q) {
     };
 }
 
-/** One open question: Bee's suggestion (preselected only when 'likely'), its evidence and, for Annex III, all ten areas. */
+/**
+ * One open question: Bee's suggestion (preselected only when 'likely'), its evidence and, for Annex III, all ten areas.
+ * @param {string} id
+ * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
+ */
 function publicQuestion(id, d, detection) {
     const suggested = d.confidence === 'likely' ? d.answer : (d.lean || null);
     const q = { id, confidence: d.confidence, suggested: suggested === 'yes' || suggested === 'no' ? suggested : null, evidence: texts.withText(d.evidence) };
@@ -257,6 +282,7 @@ function makeAiActAuto(deps) {
         // what the register said ('open', so the next check asks it again).
         if (manual && pending.length) {
             const was = assess.normalizeAnswers(row ? row.answers : {});
+            /** @type {Record<string, string>} */
             const recorded = { externalOutput: was.art50.interacts, sensitiveUse: was.annex_iii.answer, prohibitedUse: was.art5.answer };
             for (const id of pending) final[id] = { ...detection.questions[id], answer: recorded[id] || 'unknown', by: 'open' };
             pending = [];

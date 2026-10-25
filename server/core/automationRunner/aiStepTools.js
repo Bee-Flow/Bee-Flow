@@ -75,7 +75,7 @@ async function catalogStepTools({ step, ctx, skillCtx }) {
             toolsWithheldReasons: gate.reasons || {},
         };
     } catch (e) {
-        log.warn(`[AutomationRunner] ai_step tool catalog lookup failed: ${e.message}`);
+        log.warn(`[AutomationRunner] ai_step tool catalog lookup failed: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }

@@ -35,12 +35,17 @@ function makeItemFiling(deps) {
     const lifecycle = () => deps.lifecycle || require('../core/projectContent/itemLifecycle');
     const tasks = () => deps.tasks || require('../stores/projectTaskStore');
 
-    /** The item left `projectId`: its tasks stop pointing at it. The move is done, so a failure only logs. */
+    /**
+     * The item left `projectId`: its tasks stop pointing at it. The move is done, so a failure only logs.
+     * @param {string} kind
+     * @param {string} id
+     * @param {string} projectId
+     */
     async function dropTaskLinks(kind, id, projectId) {
         try {
             await tasks().dropLinksTo(projectId, kind, id);
         } catch (err) {
-            require('../telemetry/log').warn(`[ItemFiling] task links to ${kind} ${id} not dropped: ${err && err.message}`);
+            require('../telemetry/log').warn(`[ItemFiling] task links to ${kind} ${id} not dropped: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 

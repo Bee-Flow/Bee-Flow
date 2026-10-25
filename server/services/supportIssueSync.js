@@ -25,6 +25,7 @@ const supportBus = require('../support/events');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 function emitThreadUpdated(threadId) {
@@ -54,6 +55,7 @@ function newestComment(comments) {
  * "latest" for as long as that was the call. The issue's `commentsCount`
  * says where the end is: skip to it and read one. No count on the issue
  * (a caller that shaped it without one) reads a window and picks by date.
+ * @param {ytc.YoutrackCreds} creds
  */
 async function latestComment(creds, issue) {
     const count = issue?.commentsCount;
@@ -79,6 +81,7 @@ async function latestComment(creds, issue) {
  * state through the same stateLabel the tick uses, makes that first tick
  * compare like with like. When the comment read fails the link stays
  * unseeded, and the first tick takes the baseline quietly instead.
+ * @param {ytc.YoutrackCreds} creds
  */
 async function linkBaseline(creds, issue) {
     if (!issue) return { issueSummary: null, issueState: null, issueResolved: false, commentsSeeded: false };
@@ -88,7 +91,7 @@ async function linkBaseline(creds, issue) {
         comment = await latestComment(creds, issue);
     } catch (err) {
         seeded = false;
-        log.warn(`[SupportIssueSync] baseline comment for ${issue.id}: ${err.message}`);
+        log.warn(`[SupportIssueSync] baseline comment for ${issue.id}: ${/** @type {Error} */ (err).message}`);
     }
     return {
         issueSummary: issue.summary || null,
@@ -104,6 +107,7 @@ async function linkBaseline(creds, issue) {
 /**
  * Refresh one issue everywhere it is linked, and flag the tickets that care.
  * Returns the number of tickets flagged.
+ * @param {ytc.YoutrackCreds} creds
  */
 async function syncIssue(creds, issue, { fetchComments = true } = {}) {
     let lastComment = null;
@@ -115,7 +119,7 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
         } catch (err) {
             // A missing comment is not worth failing the state update over.
             // The stored comment stays: a blank would read as new next tick.
-            log.warn(`[SupportIssueSync] comments for ${issue.id}: ${err.message}`);
+            log.warn(`[SupportIssueSync] comments for ${issue.id}: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -179,11 +183,16 @@ async function syncIssue(creds, issue, { fetchComments = true } = {}) {
 }
 
 /**
+ * @typedef {Object} SyncTickArgs
+ * @property {number} [chunkSize]
+ */
+/**
  * One pass over every linked issue.
  *
  * `serviceOnly` credentials on purpose: a background job has no user, and
  * quietly borrowing one agent's personal token would make the whole hub stop
  * working the day they leave.
+ * @param {SyncTickArgs} [param0]
  */
 async function syncTick({ chunkSize = 50 } = {}) {
     const creds = await ytc.resolveCredentials({ serviceOnly: true });
@@ -204,9 +213,9 @@ async function syncTick({ chunkSize = 50 } = {}) {
             // "couldn't reach YouTrack, showing the state from 14:05" instead
             // of showing a stale row as if it were current.
             for (const id of chunk) {
-                await supportStore.updateLinkSnapshot(id, { syncError: err.message }).catch((e) => bestEffort('services/supportIssueSync:syncTick', e));
+                await supportStore.updateLinkSnapshot(id, { syncError: /** @type {Error} */ (err).message }).catch((e) => bestEffort('services/supportIssueSync:syncTick', e));
             }
-            log.warn(`[SupportIssueSync] batch failed: ${err.message}`);
+            log.warn(`[SupportIssueSync] batch failed: ${/** @type {Error} */ (err).message}`);
             continue;
         }
 
@@ -248,10 +257,15 @@ async function syncThread(threadId, { userId = null } = {}) {
 }
 
 /**
+ * @typedef {Object} StartArgs
+ * @property {number} [intervalMs]
+ */
+/**
  * Mount the issue-sync tick behind the runtime module gate, so removing
  * Support in the admin Modules panel stops the YouTrack polling on a running
  * pod (BFSF-438). `gate` is a test seam; syncTick and syncThread (the manual
  * route) stay ungated.
+ * @param {StartArgs} [param0]
  */
 function start({ intervalMs = 5 * 60_000, gate } = {}) {
     if (_timer) return;

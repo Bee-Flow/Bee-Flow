@@ -14,13 +14,21 @@
 
 const { readableOn, mix: mixHex } = require('./deckThemeOptions');
 
+/**
+ * @param {string} v
+ */
 function esc(v) {
     return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/**
+ * @param {number} n
+ * @param {string} [unit]
+ */
 function fmt(n, unit = '') {
     if (typeof n !== 'number' || !Number.isFinite(n)) return '';
     const abs = Math.abs(n);
+    /** @type {string} */
     let s;
     if (abs >= 1e6) s = `${(n / 1e6).toFixed(abs >= 1e7 ? 0 : 1).replace(/\.0$/, '')}M`;
     else if (abs >= 1e4) s = `${(n / 1e3).toFixed(0)}k`;
@@ -28,7 +36,11 @@ function fmt(n, unit = '') {
     return unit ? `${s}${unit === '%' ? '%' : ` ${unit}`}` : s;
 }
 
-/** A "nice" axis maximum (and minimum when negatives exist) with ~5 ticks. */
+/**
+ * A "nice" axis maximum (and minimum when negatives exist) with ~5 ticks.
+ * @param {number} min
+ * @param {number} max
+ */
 function niceScale(min, max) {
     const lo = Math.min(0, min);
     const hi = Math.max(0, max);
@@ -39,6 +51,7 @@ function niceScale(min, max) {
     const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
     const niceLo = Math.floor(lo / step) * step;
     const niceHi = Math.ceil(hi / step) * step || step;
+    /** @type {number[]} */
     const ticks = [];
     for (let v = niceLo; v <= niceHi + step / 2; v += step) ticks.push(Number(v.toFixed(10)));
     return { min: niceLo, max: niceHi, ticks };
@@ -58,8 +71,14 @@ function seriesExtent(chart) {
     return { min, max };
 }
 
+/**
+ * @param {number} x
+ * @param {number} y
+ * @param {number} width
+ */
 function legendSvg(chart, th, x, y, width) {
     if (chart.series.length < 2) return '';
+    /** @type {string[]} */
     const items = [];
     let cx = x;
     chart.series.forEach((s, i) => {
@@ -72,7 +91,13 @@ function legendSvg(chart, th, x, y, width) {
     return items.join('');
 }
 
+/**
+ * @param {{ min: number; max: number; ticks: number[]; }} scale
+ * @param {{ x: number; y: number; w: number; h: number; }} plot
+ * @param {boolean} horizontal
+ */
 function axesSvg(scale, plot, th, horizontal) {
+    /** @type {string[]} */
     const parts = [];
     for (const t of scale.ticks) {
         if (horizontal) {
@@ -88,9 +113,15 @@ function axesSvg(scale, plot, th, horizontal) {
     return parts.join('');
 }
 
+/**
+ * @param {{ x: number; y: number; w: number; h: number; }} plot
+ * @param {{ min: number; max: number; ticks: number[]; }} scale
+ * @param {boolean} horizontal
+ */
 function columnSvg(chart, th, plot, scale, horizontal) {
     const n = chart.labels.length;
     const k = chart.stacked ? 1 : chart.series.length;
+    /** @type {string[]} */
     const parts = [];
     const range = scale.max - scale.min || 1;
     const slot = (horizontal ? plot.h : plot.w) / n;
@@ -98,10 +129,20 @@ function columnSvg(chart, th, plot, scale, horizontal) {
     const gap = 3;
     const barW = Math.min(44, Math.max(6, (slot * 0.6 - gap * (k - 1)) / k));
     const groupW = barW * k + gap * (k - 1);
+    /**
+     * @param {number} v
+     */
     const posOf = (v) => (v - scale.min) / range;
     const sparse = n * chart.series.length <= 12;
     const showValues = chart.showValues && sparse;
     // A bar with a 4px rounded data end and a square baseline end.
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} bw
+     * @param {number} bh
+     * @param {boolean} up
+     */
     const barPath = (x, y, bw, bh, up) => {
         const r = Math.min(4, bw / 2, bh);
         if (horizontal) {
@@ -120,7 +161,8 @@ function columnSvg(chart, th, plot, scale, horizontal) {
             const v = s.values[i];
             if (typeof v !== 'number') return;
             const colour = th.chartColors[si % th.chartColors.length];
-            let from; let to;
+            /** @type {number} */
+            let from; let /** @type {number} */ to;
             if (chart.stacked) {
                 if (v >= 0) { from = stackPos; stackPos += v; to = stackPos; } else { to = stackNeg; stackNeg += v; from = stackNeg; }
             } else { from = Math.min(0, v); to = Math.max(0, v); }
@@ -155,13 +197,22 @@ function columnSvg(chart, th, plot, scale, horizontal) {
     return parts.join('');
 }
 
+/**
+ * @param {{ x: number; y: number; w: number; h: number; }} plot
+ * @param {{ min: number; max: number; ticks: number[]; }} scale
+ * @param {boolean} area
+ */
 function lineSvg(chart, th, plot, scale, area) {
     const n = chart.labels.length;
     const range = scale.max - scale.min || 1;
     const stepX = n > 1 ? plot.w / (n - 1) : 0;
     const xAt = (i) => plot.x + (n > 1 ? i * stepX : plot.w / 2);
+    /**
+     * @param {number} v
+     */
     const yAt = (v) => plot.y + plot.h - ((v - scale.min) / range) * plot.h;
     const zeroY = yAt(0);
+    /** @type {string[]} */
     const parts = [];
     const stackBase = new Array(n).fill(0);
     // Unstacked areas: the biggest series goes to the back so none is hidden.
@@ -171,6 +222,7 @@ function lineSvg(chart, th, plot, scale, area) {
     order.forEach((si) => {
         const s = chart.series[si];
         const colour = th.chartColors[si % th.chartColors.length];
+        /** @type {{ x: number; y: number; v: number; base: number; }[]} */
         const pts = [];
         s.values.forEach((v, i) => {
             if (typeof v !== 'number') return;
@@ -199,9 +251,14 @@ function lineSvg(chart, th, plot, scale, area) {
     return parts.join('');
 }
 
+/**
+ * @param {{ x: number; y: number; w: number; h: number; }} box
+ * @param {boolean} donut
+ */
 function pieSvg(chart, th, box, donut) {
     const values = chart.series[0].values.map((v) => (typeof v === 'number' && v > 0 ? v : 0));
     const total = values.reduce((a, b) => a + b, 0);
+    /** @type {string[]} */
     const parts = [];
     if (!total) return `<text x="${box.x + box.w / 2}" y="${box.y + box.h / 2}" text-anchor="middle" font-size="13" fill="${th.muted}">—</text>`;
     const r = Math.min(box.w, box.h) / 2 - 8;
@@ -215,7 +272,12 @@ function pieSvg(chart, th, box, donut) {
         angle = a2;
         const large = frac > 0.5 ? 1 : 0;
         const colour = th.chartColors[i % th.chartColors.length];
+        /**
+         * @param {number} a
+         * @param {number} rad
+         */
         const p = (a, rad) => `${(cx + rad * Math.cos(a)).toFixed(2)} ${(cy + rad * Math.sin(a)).toFixed(2)}`;
+        /** @type {string} */
         let d;
         if (frac >= 0.9999) {
             d = donut
@@ -263,6 +325,7 @@ function chartSvg(chart, th, { width = 900, height = 480 } = {}) {
         grid: th.tableLine ? mixHex(th.background || '#FFFFFF', th.text || '#1A1D21', 0.1) : '#ECEDEE',
         onAccent: th.onAccent || '#FFFFFF', fontStack: th.fontStack || 'Calibri, Carlito, Helvetica, Arial, sans-serif',
     };
+    /** @type {string[]} */
     const parts = [];
     const titleH = chart.title ? 26 : 0;
     const legendH = chart.series.length > 1 ? 24 : 0;

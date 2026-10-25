@@ -60,17 +60,34 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
 const SIGNREQUEST_SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
 const LEARNING_PATHS = ['everyday', 'builder', 'admin', 'skipped', ''];
 
-/** Text, trimmed; '' or null disconnects. */
+/**
+ * Text, trimmed; '' or null disconnects.
+ * @param {string} label
+ */
 const credential = (label) => z.string({ error: typeError({ invalid: `${label} must be text.` }) })
     .trim().max(4096, `${label} is at most 4096 characters.`).nullable();
-/** Text that must match `re` unless it is '' (disconnect). */
+/**
+ * Text that must match `re` unless it is '' (disconnect).
+ * @param {RegExp} re
+ * @param {string} message
+ */
 const shaped = (re, message) => z.string({ error: typeError({ invalid: message }) })
     .trim().refine((v) => v === '' || re.test(v), message).nullable();
-/** One of `values`, case-insensitive; '' clears it. */
+/**
+ * One of `values`, case-insensitive; '' clears it.
+ * @param {string[]} values
+ * @param {string} message
+ */
 const oneOf = (values, message) => z.string({ error: typeError({ invalid: message }) })
     .trim().toLowerCase().pipe(z.enum(values, { error: () => message })).nullable();
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
+/**
+ * @param {string} value
+ */
 function isHttpUrl(value) {
     try {
         const { protocol } = new URL(value);
@@ -347,6 +364,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
 
     // The last refusal, and it too runs before anything is written: the
     // Learning Center blob is size-checked by its own sanitizer.
+    /** @type {{ map: ProgressMap | null; dropped: string[]; error: string | null; }} */
     let learning = null;
     if (learningProgressReset !== true && learningProgress) {
         learning = sanitizeLearningProgress(learningProgress);

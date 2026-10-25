@@ -82,9 +82,11 @@ async function composeScan({ units, orgShield, conversationId, scope } = /** @ty
     const categories = _categories(orgShield);
     const threshold = _threshold(orgShield);
 
+    /** @type {{ offset: number; length: number; category: string; label?: string; confidence?: number; alsoCategories?: string[]; }[]} */
     const findings = [];
     const stats = { segments: 0, hits: 0, fresh: 0 };
     let degraded = false;
+    /** @type {string | null} */
     let degradedReason = null;
 
     let cursor = 0;

@@ -38,6 +38,7 @@ const MAX_DISABLED_AGENT_SKILL_IDS = 50;
 function _ids(list) {
     if (!Array.isArray(list)) return [];
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const raw of list) {
         if (typeof raw !== 'string') continue;
@@ -112,6 +113,9 @@ function effectiveOutputSchema({ stepSchema = null, skillSchema = null, inferred
     // One JSON Schema per inferred field: the nested one when the reads gave
     // one, else text (the shape every inferred field had before).
     const inferredProps = _plainObject(inferredSchema) && _plainObject(inferredSchema.properties) ? inferredSchema.properties : {};
+    /**
+     * @param {string} f
+     */
     const propFor = (f) => (_plainObject(inferredProps[f]) ? inferredProps[f] : { type: 'string' });
     const names = [...new Set([...inferred, ...Object.keys(inferredProps)])];
     if (skillSchema && _plainObject(skillSchema.properties)) {
@@ -133,6 +137,7 @@ function effectiveOutputSchema({ stepSchema = null, skillSchema = null, inferred
  * The fields of a JSON-schema object as the step editor lists them:
  * `[{ key, type, title }]` with type one of string, number, boolean,
  * datetime, array, object. A date or date-time string reads as `datetime`.
+ * @param {{ type: string; properties: {}; } | null} schema
  */
 function outputFieldsOf(schema) {
     if (!_plainObject(schema) || !_plainObject(schema.properties)) return [];
@@ -282,7 +287,7 @@ async function loadStepSkillContext({ step, ctx, binding = null, deps = {} }) {
         loaded = await injection.loadSkillsForIds({ ...ids, orgId: ctx.orgId, userId: ctx.userId });
     } catch (e) {
         const log = deps.log || require('../../telemetry/log');
-        log.warn(`[AutomationRunner] ai_step ${step && step.id}: skills could not be read (${e && e.message}), continuing without them`);
+        log.warn(`[AutomationRunner] ai_step ${step && step.id}: skills could not be read (${e && /** @type {Error} */ (e).message}), continuing without them`);
         return empty;
     }
     const skills = orderSkills(loaded && loaded.skills, loaded && loaded.mergedIds);

@@ -56,7 +56,10 @@ function cleanBackgroundSize(v) {
     return n >= BG_SIZE_PX_MIN && n <= BG_SIZE_PX_MAX ? `${n}px` : null;
 }
 
-/** The pixel width of a clean "<n>px" size, or null for the enum sizes. */
+/**
+ * The pixel width of a clean "<n>px" size, or null for the enum sizes.
+ * @param {string} clean
+ */
 function backgroundSizePx(clean) {
     const m = typeof clean === 'string' ? /^(\d+)px$/.exec(clean) : null;
     return m ? Number(m[1]) : null;

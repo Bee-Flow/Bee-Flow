@@ -1,3 +1,4 @@
+/** @typedef {import('stream').Readable} Readable */
 /**
  * The Approvals section's API — list, facets, detail, decide, attachment.
  *
@@ -53,6 +54,10 @@ const { worded } = require('../../core/http/schemaParts');
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
 
 // The store's own vocabulary (stores/automationStore/approvals.js). Copied
@@ -194,7 +199,7 @@ async function backfillOwnPending(userId) {
             await approvalService.ensureApprovalForRun(leg, automation);
         }
     } catch (e) {
-        log.warn(`[automation/approvals] backfill probe failed for ${userId}: ${e.message}`);
+        log.warn(`[automation/approvals] backfill probe failed for ${userId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -421,12 +426,13 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
             .catch((e) => fallback('routes/automation/approvals:anon#6', e, null));
         if (!att || att.quarantined) return res.status(404).json({ error: 'Not found' });
         const storageStore = require('../../stores/storageStore');
+        /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
         let streamed;
         try {
             streamed = await storageStore.streamFile(
                 storageStore.buildStudioAppAttachmentKey(approval.ownerId, approval.studioAppId, att.sha256));
         } catch (e) {
-            log.warn(`[automation/approvals] app attachment ${att.id} has no bytes: ${e.message}`);
+            log.warn(`[automation/approvals] app attachment ${att.id} has no bytes: ${/** @type {Error} */ (e).message}`);
             return res.status(404).json({ error: 'Not found' });
         }
         res.setHeader('Content-Type', snap.mimeType || att.mimeType || 'application/octet-stream');
@@ -447,13 +453,14 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     if (!file) return res.status(404).json({ error: 'Not found' });
 
     const storageStore = require('../../stores/storageStore');
+    /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
     let streamed;
     try {
         streamed = await storageStore.streamFile(file.storageKey);
     } catch (e) {
         // The reaper deletes blobs before rows — a live row with no bytes
         // is a normal race, not a server fault.
-        log.warn(`[automation/approvals] file ${file.id} has no bytes: ${e.message}`);
+        log.warn(`[automation/approvals] file ${file.id} has no bytes: ${/** @type {Error} */ (e).message}`);
         return res.status(404).json({ error: 'Not found' });
     }
     res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');

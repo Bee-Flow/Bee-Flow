@@ -9,6 +9,11 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 // PG has no COALESCE(?, col) trick so we build SET clauses dynamically.
 // The eight user-store modules call this by its own name; the building itself
 // is stores/lib/sqlBuilder.js, which this signature was the blueprint for.
+/**
+ * @param {string} table
+ * @param {string} [whereCol]
+ * @param {string} id
+ */
 function dynamicUpdate(table, id, updates, columnMapping, whereCol = 'id') {
     return buildUpdate({
         table,

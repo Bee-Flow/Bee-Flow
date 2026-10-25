@@ -61,7 +61,7 @@ function walkSteps(steps, fn) {
  */
 function collectAgentIds(definition) {
     const ids = new Set();
-    const take = (step) => {
+    const take = (/** @type {{ type: string; agentId: string; }} */ step) => {
         if (step.type !== 'ai_step') return;
         const id = typeof step.agentId === 'string' ? step.agentId.trim() : '';
         if (id) ids.add(id);
@@ -140,7 +140,7 @@ async function agentCatalogFor(definition, { userId = null, orgId = null, groups
     } catch (e) {
         // See the heading: a failure must not become a refusal. Without a catalogue `stepRules.js` skips the
         // identity rule and the run check remains the gate.
-        log.warn('[automation/agentCatalog] agent lookup unavailable — saving without the agent check:', e.message);
+        log.warn('[automation/agentCatalog] agent lookup unavailable — saving without the agent check:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -182,7 +182,7 @@ async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
         orgId = (owner && owner.organizationId) || null;
         groups = Array.isArray(gs) ? gs : [];
     } catch (e) {
-        log.warn('[automation/agentCatalog] owner identity unavailable — saving without the agent check:', e.message);
+        log.warn('[automation/agentCatalog] owner identity unavailable — saving without the agent check:', /** @type {Error} */ (e).message);
         return null;
     }
     return agentCatalogFor(definition, { userId: ownerId, orgId, groups, deps });

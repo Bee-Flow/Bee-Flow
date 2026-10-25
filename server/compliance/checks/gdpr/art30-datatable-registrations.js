@@ -41,7 +41,7 @@ const DEFAULT_REVIEW_DAYS = 180;
 function defaultDeps() {
     return {
         getAll: (sql, params) => require('../../../db').getAll(sql, params),
-        getTableMeta: (a, b) => require('../../../stores/datatableStore').getTableMeta(a, b),
+        getTableMeta: (/** @type {{ kind: string; id: string; }} */ a, /** @type {string} */ b) => require('../../../stores/datatableStore').getTableMeta(a, b),
         countOutside: async (row, meta) => {
             // The SAME query the retention job runs before it deletes
             // (jobs/datatableRetention.js) — `compileSelectOlderThan` with the

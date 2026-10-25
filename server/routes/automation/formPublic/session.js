@@ -145,6 +145,7 @@ function progressTrail(definition, steps) {
  * about the automation's history: how many seconds a stretch usually takes.
  * Only ever on `working`; a page, an ending or an error never gets it.
  * @param {string} automationId
+ * @param {{ progressNote?: string | undefined; progress?: string[] | undefined; }} [extra]
  */
 async function workingResponse(automationId, extra = {}) {
     const typical = await typicalSeconds(automationId);

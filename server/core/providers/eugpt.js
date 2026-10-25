@@ -162,6 +162,7 @@ class EuGptProvider extends BaseProvider {
      * between is a transcript placed ahead of it in the same user message.
      */
     toEuGptInput(messages = []) {
+        /** @type {string[]} */
         const system = [];
         const turns = [];
         for (const m of messages) {
@@ -260,7 +261,10 @@ class EuGptProvider extends BaseProvider {
             .join('');
     }
 
-    /** A forced tool's answer as a tool call, or null when it is not a JSON object. */
+    /**
+     * A forced tool's answer as a tool call, or null when it is not a JSON object.
+     * @param {string} text
+     */
     _forcedCall(forced, text, responseId) {
         let parsed;
         try { parsed = JSON.parse(text); } catch { return null; }
@@ -311,6 +315,7 @@ class EuGptProvider extends BaseProvider {
         let responseId = null;
         let servedModel = null;
         let usage = null;
+        /** @type {string | null} */
         let stopReason = null;
         let failed = false;
 
@@ -396,6 +401,9 @@ class EuGptProvider extends BaseProvider {
             }
         };
 
+        /**
+         * @param {string} line
+         */
         const readLine = (line) => {
             if (!line.startsWith('data:')) return;
             const data = line.slice(5).trim();
@@ -468,7 +476,7 @@ class EuGptProvider extends BaseProvider {
                 clearTimeout(timer);
             }
         } catch (e) {
-            log.warn(`[${this.name}] key check failed: ${e.message}`);
+            log.warn(`[${this.name}] key check failed: ${/** @type {Error} */ (e).message}`);
             return [];
         }
         return [describeEuGptModel()];

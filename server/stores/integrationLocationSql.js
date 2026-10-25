@@ -99,7 +99,10 @@ const SUPPLIER_ROW = `COALESCE(is_local, false) = false
  */
 const LEDGER_ORG_SQL = "(organization_id = $1 OR ($1::text = 'default' AND (organization_id IS NULL OR organization_id = '')))";
 
-/** `COUNT(*) FILTER (WHERE <state>)` for each state, named <state>_count. */
+/**
+ * `COUNT(*) FILTER (WHERE <state>)` for each state, named <state>_count.
+ * @param {string} [prefix]
+ */
 function stateCounts(prefix = '') {
     return ['local', 'eu', 'via_network', 'unknown']
         .map(s => `COUNT(*) FILTER (WHERE ${LOC_STATE} = '${s}') AS ${prefix}${s}_count`)

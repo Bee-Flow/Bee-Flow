@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Capability Registry — the single "what can exist" catalogue.
  *
@@ -466,6 +467,9 @@ function listByKind(kind) {
     return listCapabilities().filter(c => c.kind === kind);
 }
 
+/**
+ * @param {string} id
+ */
 function getCapability(id) {
     const hit = build().byId.get(id) || _mcpById.get(id) || _remoteModuleById.get(id) || _customById.get(id);
     if (hit) return hit;
@@ -498,7 +502,10 @@ function getCapability(id) {
     return null;
 }
 
-/** True when `id` is the nextcloud-* family (special group/exempt semantics). */
+/**
+ * True when `id` is the nextcloud-* family (special group/exempt semantics).
+ * @param {string} id
+ */
 function isNcCapability(id) {
     return NC_INTEGRATION_ID_SET.has(id);
 }

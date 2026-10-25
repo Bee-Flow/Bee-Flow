@@ -109,6 +109,7 @@ class AzureProvider extends OpenAIProvider {
      * logs and prices the call as this model (modelCosts.resolveBilledModel), and
      * a deployment that is NOT mapped (and not a model id we can price) is flagged
      * as an unknown model instead of being billed at a guessed rate.
+     * @param {string} deployment
      */
     _modelFor(deployment) {
         return azureModelFor(deployment);
@@ -124,8 +125,17 @@ class AzureProvider extends OpenAIProvider {
         return normalised;
     }
 
+    /**
+     * @param {string} model
+     */
     supportsReasoning(model) { return super.supportsReasoning(this._modelFor(model)); }
+    /**
+     * @param {string} model
+     */
     supportsVision(model) { return super.supportsVision(this._modelFor(model)); }
+    /**
+     * @param {string} model
+     */
     isRestrictedModel(model) { return super.isRestrictedModel(this._modelFor(model)); }
 
     /** prompt_cache_options: see the header — never sent on Azure. */
@@ -133,6 +143,9 @@ class AzureProvider extends OpenAIProvider {
         return false;
     }
 
+    /**
+     * @param {string} model
+     */
     shouldUseResponsesApi(model, options = {}) {
         if (this._completionsOnly.has(model)) return false;
         return super.shouldUseResponsesApi(this._modelFor(model), options);
@@ -158,6 +171,9 @@ class AzureProvider extends OpenAIProvider {
     // ─── Request building ────────────────────────────────────────
     // Capabilities are decided on the model; the wire carries the deployment.
 
+    /**
+     * @param {string} deployment
+     */
     _buildResponsesParams(deployment, messages, options = {}) {
         const params = super._buildResponsesParams(this._modelFor(deployment), messages, options);
         params.model = deployment;
@@ -168,6 +184,9 @@ class AzureProvider extends OpenAIProvider {
         return params;
     }
 
+    /**
+     * @param {string} deployment
+     */
     _buildCompletionsParams(deployment, messages, options = {}) {
         const params = super._buildCompletionsParams(this._modelFor(deployment), messages, options);
         params.model = deployment;
@@ -176,8 +195,8 @@ class AzureProvider extends OpenAIProvider {
         // its extracted text (core/documents/nativePdf.js), so dropping the part
         // loses nothing — it matters on the first request of a deployment that
         // just fell back from Responses with the PDF already in the turn.
-        params.messages = params.messages.map(m => (Array.isArray(m.content) && m.content.some(p => p?.type === 'file')
-            ? { ...m, content: m.content.filter(p => p?.type !== 'file') }
+        params.messages = params.messages.map((/** @type {{ content: { type: string; }[]; }} */ m) => (Array.isArray(m.content) && m.content.some((/** @type {{ type: string; }} */ p) => p?.type === 'file')
+            ? { ...m, content: m.content.filter((/** @type {{ type: string; }} */ p) => p?.type !== 'file') }
             : m));
         return params;
     }
@@ -203,6 +222,12 @@ class AzureProvider extends OpenAIProvider {
 
     // ─── High-level API ──────────────────────────────────────────
 
+    /**
+     * @param {string} model
+     * @param {string} apiKey
+     * @param {string | undefined} baseUrl
+     * @param {{ role: string; content: string; }[]} messages
+     */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         await this._loadDeployments();
         const opts = this._azureOptions(options);
@@ -214,6 +239,9 @@ class AzureProvider extends OpenAIProvider {
         }
     }
 
+    /**
+     * @param {string} model
+     */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         await this._loadDeployments();
         const opts = this._azureOptions(options);
@@ -229,7 +257,10 @@ class AzureProvider extends OpenAIProvider {
         }
     }
 
-    /** True when `err` is a known Azure capability 400 that was just worked around for `deployment`. */
+    /**
+     * True when `err` is a known Azure capability 400 that was just worked around for `deployment`.
+     * @param {string} deployment
+     */
     _recoverable(deployment, options, err) {
         if (isCacheRetentionRejected(err)) {
             const model = this._modelFor(deployment);
@@ -245,6 +276,7 @@ class AzureProvider extends OpenAIProvider {
      * Route this deployment to Chat Completions from now on, if `err` says it
      * cannot do the Responses API. A model that needs Responses for tools
      * (gpt-6) is not moved: Chat Completions would refuse it anyway.
+     * @param {string} deployment
      */
     _fallBackToCompletions(deployment, options, err) {
         if (this._completionsOnly.has(deployment) || !isResponsesUnsupported(err)) return false;

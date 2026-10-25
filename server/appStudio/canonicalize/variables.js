@@ -34,6 +34,7 @@ function slugVariableName(raw) {
  * with no variables key canonicalizes byte-identically to before this feature
  * existed, which is what keeps every shipped template's "no structural repairs"
  * contract and every frozen published definition intact.
+ * @param {(arg0: string, path: string, arg2: string) => void} push
  */
 function cleanVariables(raw, push) {
     if (!Array.isArray(raw)) {

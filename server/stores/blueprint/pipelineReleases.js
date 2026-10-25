@@ -48,6 +48,8 @@ const {
  * them could delete what a stage runs, so this then prunes nothing.
  *
  * The pruned rows' payloads go in the same handle, before the rows.
+ * @param {QueryHandle} h
+ * @param {string | undefined} projectId
  */
 async function _prunePipelineReleases(h, projectId) {
     const tables = await h.one(
@@ -199,6 +201,7 @@ function makePipelineReleasesStore({ ready, handle, inTransaction }) {
     /**
      * A Solution's pipeline releases, newest first, without manifests.
      * Authorises nothing (same contract as `listReleases`).
+     * @param {string} projectId
      */
     async function listPipelineReleases(projectId, { limit = MAX_PIPELINE_RELEASES_PER_PROJECT, client = null } = {}) {
         await ready();
@@ -222,6 +225,7 @@ function makePipelineReleasesStore({ ready, handle, inTransaction }) {
      * The payloads stored with one release (reference rows, KB listings),
      * optionally of one kind, ordered by ref. Authorises nothing: the caller has
      * read the release through `getRelease(projectId, releaseId)` first.
+     * @param {string} releaseId
      */
     async function getReleasePayloads(releaseId, { kind = null, client = null } = {}) {
         await ready();

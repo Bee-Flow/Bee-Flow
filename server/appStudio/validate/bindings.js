@@ -28,6 +28,9 @@ const {
 // `rows[*].title`, `headers[name="Subject"].value`. A dotted-identifier regex
 // here used to refuse what the live preview had just resolved (a 422 on save),
 // and left keys like `@odata.nextLink` unbindable.
+/**
+ * @param {string} at
+ */
 function checkBindingPath(p, at, ctx) {
     if (p === undefined || p === null || p === '') return;
     if (typeof p === 'string' && relativePathTokens(p) !== null) return;
@@ -50,6 +53,9 @@ function checkBindingPath(p, at, ctx) {
 // filter is treated as one formula expression. Sort is [{ field, dir }].
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ */
 function validateFilterValue(v, path, ctx) {
     const { pushE } = ctx;
     if (v === undefined || v === null) return;
@@ -67,6 +73,10 @@ function validateFilterValue(v, path, ctx) {
     pushE({ code: 'binding.filter_invalid', severity: 'error', path, message: 'Unsupported filter value.', hint: 'Use a string/number/boolean/null literal, an array of literals, or {kind:"formula", expr}.' });
 }
 
+/**
+ * @param {string} path
+ * @param {string} label
+ */
 function validateBindingFilter(filter, path, ctx, tableId, label) {
     const { pushE } = ctx;
     if (typeof filter === 'string') {
@@ -123,6 +133,8 @@ function aggregateAliases(binding) {
  * aliases the descriptor declares (count, median, hour), not columns on the
  * table. The compiler already sorts by those, so rejecting them here would be
  * stricter than the query that actually runs.
+ * @param {string} path
+ * @param {string} label
  */
 function validateBindingSort(sort, path, ctx, tableId, label, allowedAliases = null) {
     const { pushE } = ctx;
@@ -145,6 +157,10 @@ function validateBindingSort(sort, path, ctx, tableId, label, allowedAliases = n
     });
 }
 
+/**
+ * @param {string} key
+ * @param {string} path
+ */
 function validateBinding(key, value, path, ctx) {
     const { pushE, actionIds } = ctx;
     if (!isObject(value)) {

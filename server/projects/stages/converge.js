@@ -32,12 +32,18 @@
 const log = require('../../telemetry/log');
 const { storesOf } = require('./journal');
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 
 const MAX_ATTEMPTS = 5;
 const BACKOFF_MS = Object.freeze([0, 1000, 2000, 4000, 8000]);
 const PAGE_SLOTS = Object.freeze(['html', 'css', 'js']);
 
+/**
+ * @param {number} ms
+ */
 const defaultSleep = (ms) => new Promise((resolve) => { const t = setTimeout(resolve, ms); if (t.unref) t.unref(); });
 
 /** The previous live definition of a flipped automation, from the version the journal recorded. */
@@ -62,7 +68,7 @@ async function tasksFor({ deployment, stage }, deps) {
     const managedWrite = { deploymentId: deployment.id };
     const tasks = [];
 
-    for (const st of commitSteps.filter(x => x.action === 'flip')) {
+    for (const st of commitSteps.filter((/** @type {{ action: string; }} */ x) => x.action === 'flip')) {
         if (st.kind === 'automation') {
             tasks.push({ name: 'automation', ref: st.ref, run: async () => {
                 const a = await s.automationStore.getAutomation(st.entityId);
@@ -92,19 +98,19 @@ async function tasksFor({ deployment, stage }, deps) {
             } });
         }
     }
-    for (const st of commitSteps.filter(x => x.action === 'retire' && x.kind === 'automation')) {
+    for (const st of commitSteps.filter((/** @type {{ action: string; kind: string; }} */ x) => x.action === 'retire' && x.kind === 'automation')) {
         tasks.push({ name: 'automation_off', ref: st.ref, run: async () => {
             const revoke = dep(deps, 'revokeRemoteSubscriptions', () => require('../../automation/subscriptionSync').revokeRemoteSubscriptions);
             await revoke(st.entityId, stage.runAsUserId);
             await s.automationStore.deleteSubscriptionsForAutomation(st.entityId);
         } });
     }
-    if (commitSteps.some(x => x.action === 'schema' || x.action === 'reference_rows') && stage.organizationId) {
+    if (commitSteps.some((/** @type {{ action: string; }} */ x) => x.action === 'schema' || x.action === 'reference_rows') && stage.organizationId) {
         tasks.push({ name: 'table_cache', ref: null, run: async () => {
             s.datatableDbStore.invalidate(s.datatableDbStore.scopeKey(s.datatableStore.orgScope(stage.organizationId)));
         } });
     }
-    for (const st of commitSteps.filter(x => x.action === 'knowledge')) {
+    for (const st of commitSteps.filter((/** @type {{ action: string; }} */ x) => x.action === 'knowledge')) {
         tasks.push({ name: 'kb_version', ref: st.ref, run: () => s.kbStore.bumpKBVersion(st.entityId) });
     }
     return tasks;
@@ -122,7 +128,7 @@ async function feedEvent({ deployment, stage }, report, deps) {
     };
     for (const projectId of [stage.projectId, stage.solutionId]) {
         try { await emit(projectId, event, { label: 'Solution stages' }); } catch (err) {
-            log.warn(`[stages/converge] feed event for ${deployment.id} failed: ${err && err.message}`);
+            log.warn(`[stages/converge] feed event for ${deployment.id} failed: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 }
@@ -154,7 +160,7 @@ async function converge({ deployment, stage }, deps = {}) {
             } catch (err) {
                 failed.push(task);
                 failures.set(task, err && err.code ? String(err.code) : 'failed');
-                log.warn(`[stages/converge] ${deployment.id} ${task.name}${task.ref ? ` ${task.ref}` : ''} failed (attempt ${attempts}): ${err && err.message}`);
+                log.warn(`[stages/converge] ${deployment.id} ${task.name}${task.ref ? ` ${task.ref}` : ''} failed (attempt ${attempts}): ${err && /** @type {Error} */ (err).message}`);
             }
         }
         pending = failed;

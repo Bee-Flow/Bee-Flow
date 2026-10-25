@@ -104,7 +104,7 @@ async function resolveBestTierForRequest(req) {
     try {
         userTier = u.id ? await license.resolveTier({ userId: u.id }) : tiers.TIER_HIERARCHY[0];
     } catch (e) {
-        log.warn(`[license/middleware] license.tier.user_lookup_failed user=${u.id} error=${e.message}`);
+        log.warn(`[license/middleware] license.tier.user_lookup_failed user=${u.id} error=${/** @type {Error} */ (e).message}`);
     }
 
     let best = userTier;
@@ -129,7 +129,7 @@ async function resolveBestTierForRequest(req) {
         }
     } catch (e) {
         groupResolveFailed = true;
-        log.warn(`[license/middleware] license.tier.org_resolve_failed user=${u.id} error=${e.message}`);
+        log.warn(`[license/middleware] license.tier.org_resolve_failed user=${u.id} error=${/** @type {Error} */ (e).message}`);
     }
 
     // If we couldn't resolve ANY orgs (no direct org id AND group lookup
@@ -160,13 +160,14 @@ async function resolveBestTierForRequest(req) {
         }
     }
 
+    /** @type {string | null} */
     let spread = null;
     if (orgIdsArray.length > 0) {
         try {
             spread = await license.getBestTierForOrgs(orgIdsArray);
             if (tiers.tierRank(spread) > tiers.tierRank(best)) best = spread;
         } catch (e) {
-            log.warn(`[license/middleware] license.tier.spread_lookup_failed error=${e.message}`);
+            log.warn(`[license/middleware] license.tier.spread_lookup_failed error=${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -181,6 +182,9 @@ async function resolveBestTierForRequest(req) {
     return value;
 }
 
+/**
+ * @param {string} requiredTier
+ */
 function requireTier(requiredTier) {
     if (!tiers.isValidTier(requiredTier)) {
         throw new Error(`requireTier: invalid tier ${requiredTier}`);
@@ -218,6 +222,7 @@ function requireTier(requiredTier) {
  *
  * Returns { allowed, resolution } rather than a boolean so the caller can also
  * report WHICH tier the org is on without resolving twice.
+ * @param {string} featureName
  */
 async function featureAllowedForRequest(req, featureName) {
     const resolution = await resolveBestTierForRequest(req);
@@ -230,6 +235,9 @@ async function featureAllowedForRequest(req, featureName) {
     return { allowed, resolution };
 }
 
+/**
+ * @param {string} featureName
+ */
 function requireFeature(featureName) {
     return tagGate(async function featureGate(req, res, next) {
         if (!req.session?.isAuthenticated) return next();
@@ -254,6 +262,9 @@ function requireFeature(featureName) {
     }, { axis: 'license', feature: featureName });
 }
 
+/**
+ * @param {string} feature
+ */
 function findRequiredTierForFeature(feature) {
     if (_featureRequiredTier.has(feature)) return _featureRequiredTier.get(feature);
     for (const tier of license.tiers.TIER_HIERARCHY) {

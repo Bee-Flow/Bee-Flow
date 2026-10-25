@@ -27,6 +27,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 async function advanceSecondarySchedule(deps, { automation, schedule, rootStepId, runStatus, finishedAt }) {
     const { automationStore, notifyRunEvent } = deps;
     if (!schedule?.id || typeof automationStore.advanceSchedule !== 'function') return;
+    /** @type {string | null} */
     let next = null;
     // schedule.skipHolidays (handoff 5) is read from the definition this run executed.
     try { next = holidays.nextScheduledRunAt(schedule.cron, schedule.tz || 'Europe/Amsterdam', Date.now(), { skipHolidays: holidays.scheduleSkipsHolidays(automation.definition, rootStepId) }); } catch (_) { next = null; }
@@ -64,7 +65,7 @@ async function releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus
             await automationStore.resetAttempts(automation.id);
         }
     } catch (e) {
-        log.warn(`[AutomationRunner] release/update failed for ${automation.id}: ${e.message}`);
+        log.warn(`[AutomationRunner] release/update failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -175,7 +176,7 @@ async function advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, 
             });
         } catch (err) { bestEffort('core/automationRunner/runFinalizeEffects:advancePrimarySchedule', err); /* notification failure is non-fatal */ }
     } catch (e) {
-        log.warn(`[AutomationRunner] Cron advance failed for ${automation.id}: ${e.message}`);
+        log.warn(`[AutomationRunner] Cron advance failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 

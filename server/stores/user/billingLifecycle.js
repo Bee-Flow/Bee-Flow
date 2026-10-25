@@ -9,6 +9,9 @@ const { logSubscriptionAudit } = require('./audit');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 // Lazy require: usage/payg loads this store.
+/**
+ * @param {string | null} orgId
+ */
 const invalidatePayg = (orgId, userId) => { try { require('../usage/payg').invalidatePaygCache(orgId, userId); } catch (err) { bestEffort('billingLifecycle:invalidatePaygCache', err); } };
 // ── Notification idempotency ─────────────────────────────
 // Returns true when we have NOT yet sent this kind to this target — caller
@@ -25,7 +28,7 @@ async function claimNotificationSlot(targetId, notifKind) {
         );
         return (result.rowCount || 0) > 0;
     } catch (e) {
-        log.error('[UserStore] claimNotificationSlot error:', e.message);
+        log.error('[UserStore] claimNotificationSlot error:', /** @type {Error} */ (e).message);
         return false;
     }
 }
@@ -88,6 +91,9 @@ async function releaseStripeEventProcessed(eventId) {
 // ── Dunning counters ─────────────────────────────
 // Increment payment_attempt_count and stamp past_due_since on the first
 // failure. Used by the Stripe invoice.payment_failed handler.
+/**
+ * @param {string | null} orgId
+ */
 async function recordPaymentFailureForOrg(orgId) {
     await initDB();
     await run(
@@ -124,6 +130,9 @@ async function recordPaymentFailureForConsumer(userId) {
     )) || null;
 }
 
+/**
+ * @param {string | null} orgId
+ */
 async function resetPaymentFailureForOrg(orgId) {
     await initDB();
     await run(
@@ -153,6 +162,9 @@ async function resetPaymentFailureForConsumer(userId) {
 // Run a sweep that suspends any org/consumer sub whose past_due_since is
 // older than graceDays. Returns counts so the caller (scheduler) can log
 // activity. Idempotent: re-running flips nothing once the sub is suspended.
+/**
+ * @param {number} [graceDays]
+ */
 async function suspendPastDueSubscriptions(graceDays = 7) {
     await initDB();
     const graceMs = Math.max(0, Number(graceDays)) * 86400 * 1000;
@@ -180,7 +192,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
                 { reason: 'past_due_grace_exceeded', attempt_count: row.payment_attempt_count, past_due_since: row.past_due_since, grace_days: graceDays }
             );
         } catch (e) {
-            log.error('[UserStore] suspendPastDueSubscriptions org error:', row.organization_id, e.message);
+            log.error('[UserStore] suspendPastDueSubscriptions org error:', row.organization_id, /** @type {Error} */ (e).message);
         }
     }
 
@@ -206,7 +218,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
                 { reason: 'past_due_grace_exceeded', attempt_count: row.payment_attempt_count, past_due_since: row.past_due_since, grace_days: graceDays }
             );
         } catch (e) {
-            log.error('[UserStore] suspendPastDueSubscriptions consumer error:', row.user_id, e.message);
+            log.error('[UserStore] suspendPastDueSubscriptions consumer error:', row.user_id, /** @type {Error} */ (e).message);
         }
     }
 
@@ -253,7 +265,7 @@ async function expireOverdueTrials() {
                 { trial_end_date: row.trial_end_date, transitioned_to: downgraded ? 'free' : 'suspended' }
             );
         } catch (e) {
-            log.error('[UserStore] expireOverdueTrials org error:', row.organization_id, e.message);
+            log.error('[UserStore] expireOverdueTrials org error:', row.organization_id, /** @type {Error} */ (e).message);
         }
     }
 
@@ -280,7 +292,7 @@ async function expireOverdueTrials() {
                 { trial_end_date: row.trial_end_date, transitioned_to: 'suspended' }
             );
         } catch (e) {
-            log.error('[UserStore] expireOverdueTrials consumer error:', row.user_id, e.message);
+            log.error('[UserStore] expireOverdueTrials consumer error:', row.user_id, /** @type {Error} */ (e).message);
         }
     }
 
@@ -325,6 +337,7 @@ async function getDefaultOrgPlanId() {
  * plan-change path clears stale per-org limit overrides so the Free plan caps
  * govern (BFSF-245). Best-effort: returns the resolved subscription, or null
  * if no default plan exists (logged) so callers can fall back.
+ * @param {string} orgId
  */
 async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'downgrade_to_free' } = {}) {
     await initDB();
@@ -362,7 +375,7 @@ async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'd
         return null;
     }
     try { await require('../../services/planEntitlements').applyPlanToOrg(orgId, freeId, { mode: 'reset' }); }
-    catch (e) { log.warn(`[UserStore] downgradeOrgToFreePlan applyPlanToOrg failed for ${orgId}:`, e.message); }
+    catch (e) { log.warn(`[UserStore] downgradeOrgToFreePlan applyPlanToOrg failed for ${orgId}:`, /** @type {Error} */ (e).message); }
     invalidatePayg(orgId, null);
     await logSubscriptionAudit('downgrade_to_free', 'organization', orgId, changedBy, before, { plan_id: freeId, reason });
     return await getOrgSubscription(orgId);
@@ -373,6 +386,9 @@ async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'd
 // (Stripe outage, misconfig), the local row stays `incomplete` forever and
 // admins see a stuck subscription. Sweep + flip to `cancelled` matches
 // Stripe's own expiry semantics. Idempotent and safe to call from a tick.
+/**
+ * @param {number} [thresholdDays]
+ */
 async function cancelStaleIncompleteSubscriptions(thresholdDays = 14) {
     await initDB();
     const cutoffIso = new Date(Date.now() - Math.max(0, Number(thresholdDays)) * 86400 * 1000).toISOString();
@@ -392,7 +408,7 @@ async function cancelStaleIncompleteSubscriptions(thresholdDays = 14) {
                 { threshold_days: thresholdDays }
             );
         } catch (e) {
-            log.error('[UserStore] cancelStaleIncompleteSubscriptions org error:', r.organization_id, e.message);
+            log.error('[UserStore] cancelStaleIncompleteSubscriptions org error:', r.organization_id, /** @type {Error} */ (e).message);
         }
     }
 
@@ -409,7 +425,7 @@ async function cancelStaleIncompleteSubscriptions(thresholdDays = 14) {
                 { threshold_days: thresholdDays }
             );
         } catch (e) {
-            log.error('[UserStore] cancelStaleIncompleteSubscriptions consumer error:', r.user_id, e.message);
+            log.error('[UserStore] cancelStaleIncompleteSubscriptions consumer error:', r.user_id, /** @type {Error} */ (e).message);
         }
     }
 

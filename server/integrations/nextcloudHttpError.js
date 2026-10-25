@@ -18,14 +18,21 @@ const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_DETAIL = 200;
 
-/** Control characters out, whitespace collapsed, cut to a fixed length. */
+/**
+ * Control characters out, whitespace collapsed, cut to a fixed length.
+ * @param {string} text
+ */
 function clean(text) {
     return String(text || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_DETAIL);
 }
 
+/** @type {Record<string, string>} */
 const XML_ENTITIES = { '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'", '&amp;': '&' };
 
-/** The five basic XML entities (a Sabre message is XML text). */
+/**
+ * The five basic XML entities (a Sabre message is XML text).
+ * @param {string} text
+ */
 function decodeXml(text) {
     return text.replace(/&(lt|gt|quot|apos|amp);/g, (m) => XML_ENTITIES[m]);
 }

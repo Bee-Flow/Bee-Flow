@@ -50,8 +50,12 @@ function isActive(user) {
  * @returns {Promise<string[]>} distinct user ids, in recipient order, capped
  */
 async function resolveRecipientIds(eventSettings, { automation, orgId = null, approverIds = null }, deps = {}) {
+    /** @type {string[]} */
     const out = [];
     const seen = new Set();
+    /**
+     * @param {string | undefined} id
+     */
     const add = (id) => {
         if (!id || seen.has(String(id)) || out.length >= MAX_RECIPIENT_IDS) return;
         seen.add(String(id));

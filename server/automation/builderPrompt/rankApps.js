@@ -124,7 +124,7 @@ async function rankAppsForMessage(catalog, userMessage, draft) {
             }
         } catch (err) {
             // Ordering is a nicety; never fail a build over it.
-            log.warn(`[BuilderCatalog] app ranking unavailable (${err.message}); using registry order`);
+            log.warn(`[BuilderCatalog] app ranking unavailable (${/** @type {Error} */ (err).message}); using registry order`);
         }
     }
 
@@ -170,6 +170,7 @@ function catalogOrderOf(catalog) {
  *   - apps the user has since gained (not in `order`) follow in registry order;
  *   - ids in `order` that no longer exist are simply skipped;
  *   - `available:false` is the only thing that removes an app, as everywhere.
+ * @param {string[]} order
  */
 function applyCatalogOrder(catalog, order) {
     if (!catalog || !Array.isArray(catalog.apps)) return catalog;

@@ -50,6 +50,7 @@ const ALLOWED_DEPENDENCIES = new Set([
  * Which of a component's declared dependencies are not allowed.
  * Returns [] when the component declares none, which is the common case and
  * skips npm entirely.
+ * @param {string} componentPath
  */
 function disallowedDependencies(componentPath) {
     let pkg;
@@ -71,6 +72,8 @@ function disallowedDependencies(componentPath) {
  * Never throws: a component that cannot install is skipped and reported, the
  * same posture the original code had for an npm failure. The component's
  * definition still loads, so it does not silently vanish.
+ * @param {string} componentPath
+ * @param {string} id
  */
 async function installDependencies(componentPath, id) {
     const blocked = disallowedDependencies(componentPath);
@@ -111,6 +114,7 @@ async function initialize() {
     }
 
     const entries = fs.readdirSync(COMPONENTS_DIR, { withFileTypes: true });
+    /** @type {Promise<{ installed: boolean; blocked: string[]; }>[]} */
     const installPromises = [];
 
     // First pass: load all component definitions
@@ -158,6 +162,9 @@ function getComponentPath(id) {
 }
 
 // Reload a single component's definition (no reinstall of deps)
+/**
+ * @param {string} id
+ */
 async function reloadComponent(id) {
     const componentPath = path.join(COMPONENTS_DIR, id);
     const componentJsonPath = path.join(componentPath, 'component.json');

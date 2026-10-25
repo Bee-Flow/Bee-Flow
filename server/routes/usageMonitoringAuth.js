@@ -34,6 +34,9 @@ const { resolveUserOrgIds, isOrgAdminRole } = require('../auth');
 const userStore = require('../stores/userStore');
 const { fallback } = require('../utils/bestEffort');
 
+/**
+ * @param {NextFunction} next
+ */
 async function requireMonitoringScope(req, res, next) {
     if (!req.session?.isAuthenticated || !req.session?.user) {
         return res.status(401).json({ error: 'Not authenticated' });

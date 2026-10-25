@@ -8,6 +8,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 // ── GitHub Sync hook (fire-and-forget) ───────────────────────────
 
+/**
+ * @param {string} agentId
+ * @param {string} [action]
+ */
 async function _notifySync(orgId, agentId, action = 'pending') {
     if (!orgId) return;
     try {

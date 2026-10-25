@@ -51,6 +51,9 @@ function mergeEnabled(userList, orgList) {
     return userList.filter((id) => orgList.includes(id));
 }
 
+/**
+ * @param {string} value
+ */
 function parseList(value) {
     if (Array.isArray(value)) return value;
     if (typeof value === 'string' && value) {
@@ -65,6 +68,7 @@ function parseList(value) {
 /**
  * The org's integration grants: the current column UNIONED with the legacy one,
  * falling back to the deployment-wide default when the org declares neither.
+ * @param {string | null} organizationId
  */
 async function resolveOrgIntegrations(organizationId) {
     if (!organizationId) return null;
@@ -129,10 +133,16 @@ async function resolveEnabledIntegrations(userId, organizationId, { include = []
 // configStore/userStore are required lazily so a test that swaps them in
 // require.cache after this module loaded still reaches its stub.
 
+/**
+ * @param {string} value
+ */
 function parseStrict(value) {
     return typeof value === 'string' ? JSON.parse(value) : value;
 }
 
+/**
+ * @param {string} raw
+ */
 function parseLenient(raw) {
     if (raw === null || raw === undefined) return [];
     if (Array.isArray(raw)) return raw;
@@ -159,7 +169,10 @@ async function resolveOrgAllowListWithSource(org, { overrideWhen = 'truthy', par
     return { list: whenUnset, source: 'all_enabled' };
 }
 
-/** The org's super-admin allow-list; see resolveOrgAllowListWithSource for opts. */
+/**
+ * The org's super-admin allow-list; see resolveOrgAllowListWithSource for opts.
+ * @param {Readonly<{ overrideWhen: 'present'; parse: 'lenient'; readonly whenUnset: string[]; }>} [opts]
+ */
 async function resolveOrgAllowList(org, opts) {
     return (await resolveOrgAllowListWithSource(org, opts)).list;
 }

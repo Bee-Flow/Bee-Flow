@@ -157,6 +157,9 @@ function listTemplates() {
     return TEMPLATES.map(({ definition, dataModel, seed, datasets, ...meta }) => ({ ...meta, version: templateVersion(meta) }));
 }
 
+/**
+ * @param {string} id
+ */
 function getTemplate(id) {
     const t = TEMPLATES.find((x) => x.id === id) || null;
     // Shallow copy so the normalized version never mutates the shared

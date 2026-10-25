@@ -19,7 +19,7 @@ async function applyListDocuments(draftWrap) {
     try {
         templates = await documentStore.listTemplates(draftWrap.userId, { limit: DOCUMENT_LIST_LIMIT });
     } catch (e) {
-        log.warn('app_list_documents failed', { error: e.message });
+        log.warn('app_list_documents failed', { error: /** @type {Error} */ (e).message });
         // An outage is not "the owner has no documents": saying so would send
         // the model off to build a text export instead of asking again.
         return { error: 'The documents could not be read right now.', _fixHint: 'Try again; do not build a substitute document out of text.' };

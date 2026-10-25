@@ -192,6 +192,7 @@ function toSeedRow(row, table, capturedIds) {
  * `rowsByTable` is { [tableId]: liveRow[] }. Aliases are positional and stable
  * (`<tableKey>_1`), which keeps a captured template readable when someone opens
  * it — an opaque id tells a reader nothing about which row it is.
+ * @param {number} maxRows
  */
 function buildSeed(model, rowsByTable, maxRows) {
     const tables = Array.isArray(model && model.tables) ? model.tables : [];
@@ -257,6 +258,7 @@ function buildSeed(model, rowsByTable, maxRows) {
  * row-rebuilder keeps ONE list of what a value may be per field type: the two
  * formats disagree about files and about nothing else, so that is the only
  * place they are allowed to differ.
+ * @param {number} maxRows
  */
 function normalizeSeed(model, rawSeed, maxRows, { fileRefs = null } = {}) {
     const tables = Array.isArray(model && model.tables) ? model.tables : [];
@@ -360,8 +362,13 @@ function normalizeSeedPeople(spec, model) {
     if (!isObject(spec)) return { seedPeople: null, dropped: [] };
     const tables = Array.isArray(model && model.tables) ? model.tables : [];
     const byId = new Map(tables.map((t) => [t.id, t]));
+    /** @type {string[]} */
     const dropped = [];
 
+    /**
+     * @param {string} name
+     * @param {{ nameField: boolean; emailField: boolean; } | { idField: boolean; nameField: boolean; emailField: boolean; }} fields
+     */
     const half = (name, value, fields) => {
         if (!isObject(value)) return null;
         const table = byId.get(value.tableId);
@@ -392,7 +399,10 @@ function normalizeSeedPeople(spec, model) {
     };
 }
 
-/** Trim + cap a string field, returning null when nothing is left. */
+/**
+ * Trim + cap a string field, returning null when nothing is left.
+ * @param {number} max
+ */
 function cleanStr(value, max) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -402,6 +412,7 @@ function cleanStr(value, max) {
 /** Tag list: strings only, deduped, capped. */
 function cleanTags(value) {
     if (!Array.isArray(value)) return [];
+    /** @type {string[]} */
     const out = [];
     for (const tag of value) {
         const clean = cleanStr(tag, 40);
@@ -560,6 +571,7 @@ function captureTemplate({
     if (knowledgeBaseIds.length) requires.push({ kind: 'knowledge_base', count: knowledgeBaseIds.length });
     if (approverSeatsRemoved) requires.push({ kind: 'approver', count: approverSeatsRemoved });
 
+    /** @type {string[]} */
     const warnings = [];
     // The canonicaliser drops a stage with no approvers, so a staged approval
     // does not survive the seat scrub on this path (unlike a Blueprint or an
@@ -673,7 +685,7 @@ async function captureFromApp({
                 const out = await studioAppDbStore.query(userId, appId, sql, params);
                 rowsByTable[table.id] = (Array.isArray(out.rows) ? out.rows : []).slice(0, MAX_SEED_ROWS_PER_TABLE);
             } catch (e) {
-                return { ok: false, errors: [`Could not read rows from ${table.key}: ${e.message}`] };
+                return { ok: false, errors: [`Could not read rows from ${table.key}: ${/** @type {Error} */ (e).message}`] };
             }
         }
     }
@@ -685,7 +697,7 @@ async function captureFromApp({
     } catch (e) {
         // A dataset listing that will not answer must not sink the capture —
         // the definition and model are the substance.
-        log.warn(`[templateCapture] dataset listing failed for ${appId}: ${e && e.message ? e.message : e}`);
+        log.warn(`[templateCapture] dataset listing failed for ${appId}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
     }
 
     return captureTemplate({

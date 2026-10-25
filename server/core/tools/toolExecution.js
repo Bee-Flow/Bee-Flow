@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 function componentToTool(component, fixedParams = null) {
     const rawInputs = component.definition?.inputs || {};
     const properties = {};
+    /** @type {string[]} */
     const required = [];
 
     const isJsonSchemaFormat = rawInputs.type === 'object' && rawInputs.properties;
@@ -90,6 +91,9 @@ const SYSTEM_TOOLS = [
 ];
 
 // Execute System Tools
+/**
+ * @param {string} name
+ */
 async function executeSystemTool(name, args) {
     log.info(`[AgentRuntime] Executing system tool: ${name}`);
 
@@ -98,7 +102,7 @@ async function executeSystemTool(name, args) {
             const result = await executeComponentTool(args.componentId.replace(/-/g, '_'), args.inputs || {});
             return result;
         } catch (e) {
-            return { error: e.message };
+            return { error: /** @type {Error} */ (e).message };
         }
     }
 
@@ -107,6 +111,10 @@ async function executeSystemTool(name, args) {
 
 // Execute a component as a tool
 // fixedParams are merged on top of AI-chosen args (fixed params override)
+/**
+ * @param {string} toolName
+ * @param {string | undefined | null} [agentId]
+ */
 async function executeComponentTool(toolName, args, userAuth = {}, fixedParams = null, agentId = null) {
     // Check for System Tools first
     if (SYSTEM_TOOLS.some(t => t.function.name === toolName)) {
@@ -125,8 +133,8 @@ async function executeComponentTool(toolName, args, userAuth = {}, fixedParams =
             const result = await mcpManager.callToolByPrefixedName(toolName, args || {}, userId);
             return { result: typeof result === 'string' ? result : JSON.stringify(result) };
         } catch (err) {
-            log.error(`[MCP] Tool call failed for ${toolName}:`, err.message);
-            return { error: `MCP tool error: ${err.message}` };
+            log.error(`[MCP] Tool call failed for ${toolName}:`, /** @type {Error} */ (err).message);
+            return { error: `MCP tool error: ${/** @type {Error} */ (err).message}` };
         }
     }
 
@@ -163,7 +171,7 @@ async function executeComponentTool(toolName, args, userAuth = {}, fixedParams =
             const result = await executionEngine.executeWorkflow(workflowCopy, userAuth);
             return { success: true, result };
         } catch (error) {
-            return { error: error.message };
+            return { error: /** @type {Error} */ (error).message };
         }
     }
 
@@ -207,7 +215,7 @@ async function executeComponentTool(toolName, args, userAuth = {}, fixedParams =
         const result = await executionEngine.executeWorkflow(workflow, userAuth);
         return result['tool-node'] || { success: true };
     } catch (error) {
-        return { error: error.message };
+        return { error: /** @type {Error} */ (error).message };
     }
 }
 

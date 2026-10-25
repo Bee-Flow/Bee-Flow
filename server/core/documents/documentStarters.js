@@ -8,6 +8,7 @@ const TYPES = [
     ['letter', 'Letter', 'letter', 'Use a clear salutation, concise purpose, body and closing.'],
     ['report', 'General report', 'report', 'Start with an executive summary, then findings, evidence and recommendations.'],
 ];
+/** @type {Record<string, string>} */
 const DUTCH = {
     'Security policy / report':'Beveiligingsbeleid / rapport', Proposal:'Voorstel', Invoice:'Factuur', Letter:'Brief', 'General report':'Algemeen rapport',
     'Customer name':'Klantnaam', 'Document date':'Documentdatum', Summary:'Samenvatting', Overview:'Overzicht',
@@ -16,6 +17,7 @@ const DUTCH = {
     'Verified cloud controls':'Geverifieerde cloudmaatregelen', 'Remote access':'Externe toegang', 'Cloud services':'Clouddiensten',
     'Line items':'Factuurregels', Description:'Omschrijving', Amount:'Bedrag', 'Verified total':'Geverifieerd totaal', Total:'Totaal',
 };
+/** @type {Record<string, string>} */
 const DUTCH_INSTRUCTIONS = {
     security:'Beschrijf de klantomgeving, toepasselijke maatregelen, verantwoordelijkheden en open acties. Claim geen certificering of geïmplementeerde maatregelen zonder aangeleverd bewijs.',
     proposal:'Beschrijf de klantbehoefte, voorgestelde scope, resultaten, uitsluitingen, prijs en vervolgstappen.',
@@ -23,12 +25,27 @@ const DUTCH_INSTRUCTIONS = {
     letter:'Gebruik een duidelijke aanhef, een beknopt doel, de inhoud en een afsluiting.',
     report:'Begin met een managementsamenvatting, gevolgd door bevindingen, bewijs en aanbevelingen.',
 };
+/**
+ * @param {string} [locale]
+ */
 function starters(locale = 'en') {
     return [...pageStarters(locale), ...deckStarters(locale)];
 }
+/**
+ * @param {string} [locale]
+ */
 function pageStarters(locale = 'en') {
     const nl = String(locale).startsWith('nl');
+    /**
+     * @param {string} text
+     */
     const t = text => nl ? DUTCH[text] || text : text;
+    /**
+     * @param {string} key
+     * @param {string} label
+     * @param {string} [type]
+     * @param {boolean} [required]
+     */
     const p = (key, label, type = 'text', required = true) => ({ key, label:t(label), type, required, summary:t(label),
         instructions:nl ? `Geef de geverifieerde waarde voor ${t(label).toLowerCase()}. Verzin geen klantgegevens.` : `Supply the verified ${label.toLowerCase()}. Do not invent customer facts.` });
     return TYPES.map(([id, englishName, docType, englishInstructions]) => {
@@ -58,6 +75,7 @@ function pageStarters(locale = 'en') {
 // with the same {{placeholders}} a document has, so an automation can fill it per
 // run. The look is left to the house style: `settings.deck` stays empty.
 
+/** @type {Record<string, string>} */
 const DECK_DUTCH = {
     'Pitch deck':'Pitchpresentatie', 'Quarterly review':'Kwartaalrapportage', 'Project kick-off':'Projectkick-off',
     'Presentation title':'Titel van de presentatie', Subtitle:'Ondertitel', Customer:'Klant', Date:'Datum',
@@ -71,6 +89,7 @@ const DECK_DUTCH = {
     'Discover — interviews and data':'Ontdekken — interviews en data', 'Design — prototype and review':'Ontwerpen — prototype en review', 'Deliver — build, test, go live':'Opleveren — bouwen, testen, live',
     'Questions?':'Vragen?', 'Scope':'Scope', 'Timeline':'Planning', 'Risks':'Risico\u2019s',
 };
+/** @type {Record<string, string[]>} */
 const DECK_INSTRUCTIONS = {
     pitch: ['Sell the outcome, not the feature list: one problem, one answer, proof, next steps. Keep the customer\u2019s own words.',
         'Verkoop het resultaat, niet de functielijst: \u00e9\u00e9n probleem, \u00e9\u00e9n antwoord, bewijs, vervolgstappen. Gebruik de woorden van de klant.'],
@@ -80,9 +99,21 @@ const DECK_INSTRUCTIONS = {
         'Zet iedereen op \u00e9\u00e9n lijn: waarom, doelen, wie, hoe, wanneer en de risico\u2019s die je al ziet. Korte slides; het gesprek is het doel.'],
 };
 
+/**
+ * @param {string} [locale]
+ */
 function deckStarters(locale = 'en') {
     const nl = String(locale).startsWith('nl');
+    /**
+     * @param {string} text
+     */
     const t = (text) => (nl ? DECK_DUTCH[text] || text : text);
+    /**
+     * @param {string} key
+     * @param {string} label
+     * @param {string} [type]
+     * @param {boolean} [required]
+     */
     const p = (key, label, type = 'text', required = true) => ({ key, label: t(label), type, required, summary: t(label),
         instructions: nl ? `Geef de geverifieerde waarde voor ${t(label).toLowerCase()}. Verzin geen klantgegevens.` : `Supply the verified ${label.toLowerCase()}. Do not invent customer facts.` });
     const cover = `# {{title}}\n\n{{subtitle}}\n\n`;

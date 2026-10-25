@@ -17,6 +17,7 @@ function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
  * builder, ignored by the runner. We reject only malformed shapes so a
  * typo on the UI side surfaces fast instead of silently round-tripping
  * garbage through the JSONB blob.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} push
  */
 function validatePosition(pos, at, push) {
     if (pos === undefined || pos === null) return;
@@ -67,6 +68,7 @@ function topoOrder(nodes, edges) {
  * value, `''` for the value itself) so a finding can name the field:
  *   { kind: 'ref', path, where, template? }   { kind: 'expr', src, where, binding }
  * Callers that only read `kind`/`path`/`src` see the same shape as before.
+ * @param {string} [where]
  */
 function collectRefPaths(value, out, where = '') {
     if (value == null) return;
@@ -105,11 +107,18 @@ function collectLiteralBraces(value, out) {
     for (const k of Object.keys(value)) collectLiteralBraces(value[k], out);
 }
 
-/** The root of a reference path (`steps`, `trigger`, …), read by the runner's grammar. */
+/**
+ * The root of a reference path (`steps`, `trigger`, …), read by the runner's grammar.
+ * @param {string} path
+ */
 function rootOf(path) {
     return refHead(String(path)).root;
 }
 
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function levenshtein(a, b) {
     if (a === b) return 0;
     const al = a.length, bl = b.length;
@@ -133,6 +142,7 @@ function levenshtein(a, b) {
  * Pick the closest candidate id to `target` by Levenshtein distance —
  * used to suggest "did you mean" in validation errors when an LLM
  * fabricates a step id like "step_1" that doesn't exist.
+ * @param {string} target
  */
 function pickClosestId(target, candidates) {
     if (!Array.isArray(candidates) || candidates.length === 0) return null;

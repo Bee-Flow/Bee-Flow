@@ -85,6 +85,10 @@ function decodeBase64(content) {
 }
 
 // ─── Azure helpers ──────────────────────────────────────────
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} filename
+ */
 async function tryAzure(buffer, filename) {
     try {
         const useAzure = !!(await configStore.getConfig('use_azure_doc_processing'));
@@ -97,18 +101,23 @@ async function tryAzure(buffer, filename) {
         // Wrap every path (config read, Azure client, timeout) so a failure
         // here falls through to the next extractor instead of crashing the
         // whole attachment flow.
-        log.warn(`[AttachmentExtractor] Azure Document Intelligence step failed for ${log.nameForLog(filename)}: ${err.message}`);
+        log.warn(`[AttachmentExtractor] Azure Document Intelligence step failed for ${log.nameForLog(filename)}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
 
+/**
+ * @param {string} base64
+ * @param {string} mimeType
+ * @param {string} filename
+ */
 async function tryMistralOcr(base64, mimeType, filename) {
     try {
         const { mistralOCR } = require('./ocr');
         const text = await mistralOCR(base64, mimeType, filename);
         return text || null;
     } catch (err) {
-        log.warn(`[AttachmentExtractor] Mistral OCR failed for ${log.nameForLog(filename)}: ${err.message}`);
+        log.warn(`[AttachmentExtractor] Mistral OCR failed for ${log.nameForLog(filename)}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -117,6 +126,10 @@ async function tryMistralOcr(base64, mimeType, filename) {
 // A scanned PDF's pdfjs text layer is usually empty, but some OCR-processed
 // or hybrid PDFs have a sprinkle of glyphs that isn't enough to understand
 // the content. Treat any PDF with an avg of <100 chars/page as "needs OCR".
+/**
+ * @param {string} text
+ * @param {number} numPages
+ */
 function isTextInsufficient(text, numPages) {
     const totalChars = (text || '').trim().length;
     if (totalChars === 0) return true;
@@ -130,6 +143,9 @@ function isTextInsufficient(text, numPages) {
 // — enough characters to pass `isTextInsufficient` but visually unreadable.
 // Detect that case so we fall through to Azure/Mistral OCR instead of shipping
 // junk to the LLM.
+/**
+ * @param {string} text
+ */
 function isTextLikelyGarbage(text) {
     const trimmed = (text || '').trim();
     if (trimmed.length < 200) return false; // not enough sample to judge — let other checks decide
@@ -156,6 +172,9 @@ function isTextLikelyGarbage(text) {
 // long edge, so asking pdfToImages for exactly that is the readable maximum.
 const VISION_TARGET_LONG_EDGE = 1568;
 
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ */
 async function extractPdf(buffer, att, opts) {
     const documentMode = (opts.documentMode === 'text' || opts.documentMode === 'images') ? opts.documentMode : 'auto';
     const { text, numPages, pageCharCounts, pages } = await extractTextFromPDFWithStats(buffer, att.name);
@@ -221,6 +240,9 @@ async function extractPdf(buffer, att, opts) {
 }
 
 // ─── Office-doc pipeline ────────────────────────────────────
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ */
 async function extractOfficeDoc(buffer, att) {
     // Prefer Azure for tables/headings quality.
     const azureText = await tryAzure(buffer, att.name);
@@ -235,7 +257,7 @@ async function extractOfficeDoc(buffer, att) {
             return { kind: 'text', text, source: 'documentParser', meta: { extractedChars: text.length } };
         }
     } catch (err) {
-        log.warn(`[AttachmentExtractor] documentParser failed for ${att.name}: ${err.message}`);
+        log.warn(`[AttachmentExtractor] documentParser failed for ${att.name}: ${/** @type {Error} */ (err).message}`);
     }
     return { kind: 'failed', reason: 'Office document extraction failed', meta: {} };
 }
@@ -260,6 +282,9 @@ async function extractOfficeDoc(buffer, att) {
 // path sends both — but never INSTEAD of it. `documentMode: 'images'` is the
 // caller stating that the picture is the point, so OCR is skipped entirely
 // there and the photo is not held up by a round-trip that cannot help it.
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ */
 async function extractImage(buffer, att, opts = {}) {
     const wantsPicture = !!opts.modelSupportsVision && opts.documentMode !== 'text';
     const base64 = att.content.includes(',') ? att.content.split(',')[1] : att.content;
@@ -295,6 +320,9 @@ async function extractImage(buffer, att, opts = {}) {
 }
 
 // ─── Plain-text pipeline ────────────────────────────────────
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ */
 function extractPlainText(buffer, _att) {
     const text = buffer.toString('utf-8');
     return { kind: 'text', text, source: 'utf8', meta: { extractedChars: text.length } };
@@ -305,6 +333,9 @@ function extractPlainText(buffer, _att) {
 // columns ("unsupported Unicode escape sequence"), so a single CID-font NUL
 // in a PDF would otherwise blow up run-step persistence. Keep tab / newline /
 // carriage-return; drop the rest of the C0 range.
+/**
+ * @param {string} s
+ */
 function stripControlChars(s) {
     if (typeof s !== 'string') return s;
     return s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
@@ -336,6 +367,7 @@ function stripControlChars(s) {
  * Rendering is best-effort by design: a file the kernel refuses falls back to
  * exactly the text-only result this used to return, so nothing that worked
  * before can start failing because a picture could not be drawn.
+ * @param {Buffer<ArrayBuffer>} buffer
  */
 async function extractCadWithViews(buffer, att, opts = {}) {
     const base = extractCad(buffer, att.name);
@@ -358,7 +390,7 @@ async function extractCadWithViews(buffer, att, opts = {}) {
             meta: { ...(base.meta || {}), rendered: true, ...meta },
         };
     } catch (err) {
-        log.warn(`[attachmentExtractor/cad] ${att.name}: ${err.message}`);
+        log.warn(`[attachmentExtractor/cad] ${att.name}: ${/** @type {Error} */ (err).message}`);
         return base;
     }
 }
@@ -375,7 +407,11 @@ function cadRenderFamily(att) {
     return null;
 }
 
-/** STEP / IGES: four shaded views of the solid. */
+/**
+ * STEP / IGES: four shaded views of the solid.
+ * @param {Buffer<ArrayBuffer>} buffer
+ * @param {string} format
+ */
 async function renderSolidSheet(buffer, format) {
     const { png, stats } = await renderCadSheet(buffer, { format });
     return {
@@ -394,6 +430,7 @@ async function renderSolidSheet(buffer, format) {
  * lines. The 2D renderer draws what the machine will actually cut, and states
  * the sheet size in millimetres because that is the number an estimator checks
  * first.
+ * @param {Buffer<ArrayBuffer>} buffer
  */
 async function renderFlatSheet(buffer, att) {
     const { png, stats } = await renderDxfSheet(buffer, { name: att.name || '' });

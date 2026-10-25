@@ -108,6 +108,7 @@ async function clear() {
  *
  * Reads through configStore's cache (60s TTL, invalidated cross-replica on
  * write), so this is cheap enough to call on every client poll.
+ * @param {number} [now]
  */
 async function getActiveWindow(now = Date.now()) {
     let raw;
@@ -115,7 +116,7 @@ async function getActiveWindow(now = Date.now()) {
         raw = await configStore.getConfig(CONFIG_KEY);
     } catch (e) {
         // A banner is a courtesy. Never let its lookup fail a request.
-        log.warn('[Maintenance] read failed:', e.message);
+        log.warn('[Maintenance] read failed:', /** @type {Error} */ (e).message);
         return null;
     }
     if (!raw) return null;

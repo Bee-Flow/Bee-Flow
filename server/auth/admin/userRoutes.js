@@ -182,7 +182,7 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
             }
         }
     } catch (e) {
-        log.warn('[Auth] Failed to merge default groups:', e.message);
+        log.warn('[Auth] Failed to merge default groups:', /** @type {Error} */ (e).message);
     }
 
     const passwordHash = await passwords.hash(password);
@@ -312,6 +312,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     // orgRole, move them to another org, or park them in a non-active status.
     // The platform `role` is deliberately not one of them — that is super-admin,
     // a platform axis, and it has no bearing on who can administer a tenant.
+    /** @type {string[]} */
     let guardedOrgIds = [];
     if (prevUser && isOrgAdminRole(prevUser.orgRole)) {
         const orgId = prevUser.organizationId;
@@ -376,7 +377,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
                     return res.status(400).json({ error: 'Failed to verify old password' });
                 }
             } catch (err) {
-                log.error('[Auth] DEK rewrap failed:', err.message);
+                log.error('[Auth] DEK rewrap failed:', /** @type {Error} */ (err).message);
                 return res.status(400).json({ error: 'Failed to verify old password' });
             }
         } else {

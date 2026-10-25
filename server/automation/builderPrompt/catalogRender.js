@@ -1,3 +1,6 @@
+// @typecheck
+/** @typedef {import('../builderTools/draftGraph').GraphStep} GraphStep */
+/** @typedef {import('../builderTools/draftGraph').DraftGraph} DraftGraph */
 /**
  * Catalog renderers for the builder system prompt (§WS5, extracted verbatim
  * from builderPrompt.js). Pure functions; lazy-require outputSchemas.
@@ -34,6 +37,9 @@ function emptyCatalogLine(catalog) {
 const ACTIONS_PER_APP_FULL = 30;
 const ACTIONS_PER_APP_LEAN = 20;
 
+/**
+ * @param {number} omitted
+ */
 function omittedLine(label, omitted) {
     return omitted > 0
         ? `\n  …and ${omitted} more ${label} action${omitted === 1 ? '' : 's'} not listed — call builder_inspect_tool with an exact name if you need one.`
@@ -127,11 +133,16 @@ function renderCatalogSlim(catalog) {
  * always rank first (edits need them), then token matches on the action
  * name, then description/app matches, then the trigger's provider app.
  * Only `available` apps are considered — permission gating stays fail-closed.
+ * @param {string | null} userMessage
+ * @param {DraftGraph} draft
  */
 function scoreRelevantTools(catalog, userMessage, draft, { max = 10 } = {}) {
     const text = String(userMessage || '').toLowerCase();
     const tokens = [...new Set(text.split(/[^a-z0-9]+/).filter(t => t.length > 2))];
     const usedTools = new Set();
+    /**
+     * @param {GraphStep[] | undefined} steps
+     */
     const walk = (steps) => {
         for (const s of (steps || [])) {
             if (s && typeof s.tool === 'string') usedTools.add(s.tool);
@@ -168,6 +179,8 @@ function scoreRelevantTools(catalog, userMessage, draft, { max = 10 } = {}) {
  * builder_inspect_tool rounds in the common case. Returns
  * `{ text, tools }` — `tools` are the names to auto-mark as inspected —
  * or null when nothing scored.
+ * @param {string | null} userMessage
+ * @param {DraftGraph} draft
  */
 function renderRelevantToolSchemas(catalog, userMessage, draft, { max = 10 } = {}) {
     const { describeShape, producesList } = require('../outputSchemas');
@@ -327,6 +340,9 @@ const KNOWLEDGE_BASES_CAP = 30;
 const PROVIDER_EVENTS_CAP = 40;
 const DESCRIPTION_CHARS = 100;
 
+/**
+ * @param {number} max
+ */
 const oneLine = (v, max) => {
     const t = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
     return t.length > max ? `${t.slice(0, max - 1)}…` : t;

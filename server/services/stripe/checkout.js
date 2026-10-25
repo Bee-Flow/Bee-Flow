@@ -24,6 +24,9 @@ function computeBillingCycleAnchor() {
 // pay button on the hosted Stripe Checkout page. Interval-aware so a yearly
 // plan never claims to be a "maandabonnement". Must stay well under Stripe's
 // 1200-char custom_text limit; plain text only (no HTML).
+/**
+ * @param {string} billingInterval
+ */
 function buildRecurringDisclosure(billingInterval) {
     const yearly = billingInterval === 'yearly';
     const nl = yearly
@@ -80,7 +83,7 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
             const userStore = deps.userStore();
             quantity = Math.max(1, await userStore.getActiveSeatCount(orgId));
         } catch (e) {
-            log.warn('[Stripe] per-seat checkout: seat count lookup failed, defaulting to 1:', e.message);
+            log.warn('[Stripe] per-seat checkout: seat count lookup failed, defaulting to 1:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -140,10 +143,10 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
             if (taxId && effectiveCustomerId) {
                 try {
                     const existing = await stripe.customers.listTaxIds(effectiveCustomerId, { limit: 25 });
-                    const already = (existing?.data || []).some(t => t.value === taxId.value && t.type === taxId.type);
+                    const already = (existing?.data || []).some((/** @type {{ value: string; type: string; }} */ t) => t.value === taxId.value && t.type === taxId.type);
                     if (!already) await stripe.customers.createTaxId(effectiveCustomerId, taxId);
                 } catch (e) {
-                    log.warn(`[Stripe] attaching VAT for org ${orgId} failed: ${e.message}`);
+                    log.warn(`[Stripe] attaching VAT for org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
                 }
             }
 
@@ -162,11 +165,11 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
                         await stripe.customers.update(effectiveCustomerId, billingUpdates);
                     }
                 } catch (e) {
-                    log.warn(`[Stripe] syncing billing address for org ${orgId} failed: ${e.message}`);
+                    log.warn(`[Stripe] syncing billing address for org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
                 }
             }
         } catch (e) {
-            log.warn(`[Stripe] org customer resolution skipped: ${e.message}`);
+            log.warn(`[Stripe] org customer resolution skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
 

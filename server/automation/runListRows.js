@@ -171,6 +171,9 @@ function makeRunRowDecorator(deps = {}) {
 /** The four counts of the Runs tab's filter segment, from a status facet map. */
 function segmentCounts(byStatus) {
     const s = byStatus || {};
+    /**
+     * @param {string[]} keys
+     */
     const sum = (keys) => keys.reduce((n, k) => n + (Number(s[k]) || 0), 0);
     return {
         all: Object.values(s).reduce((n, v) => n + (Number(v) || 0), 0),

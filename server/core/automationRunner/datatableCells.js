@@ -19,6 +19,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/;
 const YES = new Set(['true', 't', 'yes', 'y', 'on', '1']);
 const NO = new Set(['false', 'f', 'no', 'n', 'off', '0']);
 
+/**
+ * @param {string} wanted
+ */
 const err = (key, wanted) => {
     /** @type {import('./runnerError.types').RunnerError} */
     const e = new Error(`The value for the column "${key}" is not ${wanted}, so the row was not written.`);
@@ -26,7 +29,10 @@ const err = (key, wanted) => {
     return e;
 };
 
-/** The calendar date really exists (2026-02-30 does not). */
+/**
+ * The calendar date really exists (2026-02-30 does not).
+ * @param {string} text
+ */
 function realDate(text) {
     const [y, m, d] = text.slice(0, 10).split('-').map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d));

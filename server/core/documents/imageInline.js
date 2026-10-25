@@ -40,6 +40,7 @@ const MAX_INLINE_BYTES = 25 * 1024 * 1024;
 
 // The four types every vision provider we support accepts.
 const SUPPORTED_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+/** @type {Record<string, string>} */
 const MEDIA_TYPE_BY_EXT = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
@@ -56,6 +57,9 @@ function urlOf(part) {
     return (img && typeof img.url === 'string') ? img.url : '';
 }
 
+/**
+ * @param {string | string[]} url
+ */
 function isInternalImageUrl(url) {
     return typeof url === 'string' && url.includes('/api/storage/tmp/');
 }
@@ -69,6 +73,8 @@ const GENERIC_CONTENT_TYPES = new Set(['', 'application/octet-stream', 'binary/o
  * says nothing. A concrete non-image type (application/pdf, image/svg+xml, …)
  * is a rejection, never something the extension can talk us out of.
  * null → not an image we can ship.
+ * @param {string} contentType
+ * @param {string} key
  */
 function pickMediaType(contentType, key) {
     const ct = (contentType || '').split(';')[0].trim().toLowerCase();
@@ -80,7 +86,10 @@ function pickMediaType(contentType, key) {
     return MEDIA_TYPE_BY_EXT[key.slice(dot).toLowerCase()] || null;
 }
 
-/** Read one storage object into a data: URL, or null if it can't be shipped. */
+/**
+ * Read one storage object into a data: URL, or null if it can't be shipped.
+ * @param {string} key
+ */
 async function readAsDataUrl(key) {
     const storageStore = require('../../stores/storageStore');
     if (!storageStore.isAvailable()) return null;
@@ -128,7 +137,7 @@ async function inlineInternalImages(messages) {
     if (!Array.isArray(messages)) return messages;
 
     const hasInternal = messages.some(m => Array.isArray(m?.content)
-        && m.content.some(p => p?.type === 'image_url' && isInternalImageUrl(urlOf(p))));
+        && m.content.some((/** @type {{ type: string; }} */ p) => p?.type === 'image_url' && isInternalImageUrl(urlOf(p))));
     if (!hasInternal) return messages;
 
     const { resolveTempDownloadKey } = require('../../utils/tempDownloadUrl');
@@ -137,6 +146,9 @@ async function inlineInternalImages(messages) {
     let inlined = 0;
     let failed = 0;
 
+    /**
+     * @param {string | URL} url
+     */
     const resolve = async (url) => {
         const key = resolveTempDownloadKey(url);
         if (!key) {
@@ -144,11 +156,12 @@ async function inlineInternalImages(messages) {
             return null;
         }
         if (cache.has(key)) return cache.get(key);
+        /** @type {string | null} */
         let dataUrl = null;
         try {
             dataUrl = await readAsDataUrl(key);
         } catch (err) {
-            log.warn(`[ImageInline] failed to read ${key}: ${err.message}`);
+            log.warn(`[ImageInline] failed to read ${key}: ${/** @type {Error} */ (err).message}`);
         }
         cache.set(key, dataUrl);
         return dataUrl;
@@ -157,10 +170,11 @@ async function inlineInternalImages(messages) {
     const out = [];
     for (const msg of messages) {
         if (!Array.isArray(msg?.content)
-            || !msg.content.some(p => p?.type === 'image_url' && isInternalImageUrl(urlOf(p)))) {
+            || !msg.content.some((/** @type {{ type: string; }} */ p) => p?.type === 'image_url' && isInternalImageUrl(urlOf(p)))) {
             out.push(msg);
             continue;
         }
+        /** @type {{ type: string; text: string; }[]} */
         const content = [];
         for (const part of msg.content) {
             if (part?.type !== 'image_url' || !isInternalImageUrl(urlOf(part))) {

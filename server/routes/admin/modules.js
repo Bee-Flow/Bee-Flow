@@ -65,10 +65,20 @@ const { worded } = require('../../core/http/schemaParts');
 // .bfgrant document that packageLoader verifies by signature.
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = (/** @type {{ hubUrl?: import("zod").ZodOptional<import("zod").ZodString>; priceId?: import("zod").ZodOptional<import("zod").ZodString>; price_id?: import("zod").ZodOptional<import("zod").ZodString>; successUrl?: import("zod").ZodOptional<import("zod").ZodString>; cancelUrl?: import("zod").ZodOptional<import("zod").ZodString>; version?: import("zod").ZodOptional<import("zod").ZodString>; acceptedPermissions?: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodString>>; force?: import("zod").ZodOptional<import("zod").ZodBoolean>; channel?: import("zod").ZodDefault<import("zod").ZodEnum<{ stable: "stable"; beta: "beta"; }>>; pin?: import("zod").ZodDefault<import("zod").ZodEnum<{ none: "none"; major: "major"; minor: "minor"; }>>; }} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().optional();
+/**
+ * @param {string} name
+ */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
+/**
+ * @param {string} name
+ */
 const idList = (name) => z.array(
     worded(`${name} is a list of permission ids.`).trim().min(1, `${name} is a list of permission ids.`),
     { error: typeError({ invalid: `${name} is a list of permission ids.` }) },
@@ -113,6 +123,9 @@ const UpdatePolicyBody = bodyOf({
     pin: z.enum(['none', 'major', 'minor'], { error: () => PIN_TEXT }).default('none'),
 });
 
+/**
+ * @param {string} detail
+ */
 const hubUnavailable = (detail) => new HttpError(502, 'hub_unavailable', 'hub_unavailable', { detail });
 
 // Map a HubError onto the PRODUCT ADMIN API's HTTP vocabulary. What the caller
@@ -143,10 +156,13 @@ router.get('/', requireSuperAdmin, async (req, res) => {
 });
 
 // ── Runtime operations (M1) — fixed paths first ─────────────────────────────
+/**
+ * @param {string} moduleId
+ */
 async function moduleHealthRow(moduleId, runtimeHealth, ledgerRows, stateRow) {
-    const ledger = (ledgerRows || []).find(r => r.status === 'active')
+    const ledger = (ledgerRows || []).find((/** @type {{ status: string; }} */ r) => r.status === 'active')
         || (ledgerRows || [])[0] || null;
-    const staged = (ledgerRows || []).find(r => r.status === 'staged') || null;
+    const staged = (ledgerRows || []).find((/** @type {{ status: string; }} */ r) => r.status === 'staged') || null;
     const h = (runtimeHealth.modules && runtimeHealth.modules[moduleId]) || {};
     const ent = remoteCatalog.entitlementState(stateRow || null);
     return {
@@ -228,7 +244,7 @@ router.post('/:id/reactivate', requireSuperAdmin, async (req, res, next) => {
     } catch (e) {
         if (e && e.code === 'not_quarantined') return res.status(409).json({ error: 'not_quarantined' });
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] reactivate error:', e.message);
+        log.error('[Modules] reactivate error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -245,7 +261,7 @@ router.get('/marketplace', requireSuperAdmin, validate({ query: MarketplaceQuery
         res.json({ connected: conn.connected, hubUrl: conn.hubUrl, stale, modules: rows, nextCursor });
     } catch (e) {
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] marketplace error:', e.message);
+        log.error('[Modules] marketplace error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -279,7 +295,7 @@ router.get('/marketplace/:id', requireSuperAdmin, async (req, res, next) => {
         });
     } catch (e) {
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] marketplace detail error:', e.message);
+        log.error('[Modules] marketplace detail error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -307,7 +323,7 @@ router.post('/connect', requireSuperAdmin, validate({ body: ConnectBody }), asyn
         res.json({ ok: true, connection });
     } catch (e) {
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] connect error:', e.message);
+        log.error('[Modules] connect error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -328,7 +344,7 @@ router.post('/entitlements/refresh', requireSuperAdmin, async (req, res, next) =
         res.json({ ok: true, entitledModuleIds });
     } catch (e) {
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] entitlements refresh error:', e.message);
+        log.error('[Modules] entitlements refresh error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -377,7 +393,7 @@ router.post('/:id/purchase', requireSuperAdmin, validate({ body: PurchaseBody })
         return res.json({ ok: true, checkoutUrl: result.checkout_url || null, purchaseId: result.purchase_id || null });
     } catch (e) {
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] purchase error:', e.message);
+        log.error('[Modules] purchase error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -420,7 +436,7 @@ router.post('/:id/update', requireSuperAdmin, validate({ body: UpdateBody }), as
             return res.status(409).json({ error: 'consent_required', missingPermissions: e.missingPermissions || [] });
         }
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] update error:', e.message);
+        log.error('[Modules] update error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -452,7 +468,7 @@ router.post('/sideload', requireSuperAdmin,
             const r = await packageLoader.sideloadFromBuffer(req.body, {
                 actorId: req.session.user?.id || null,
                 acceptedPermissions: req.query.acceptedPermissions
-                    ? req.query.acceptedPermissions.split(',').map((x) => x.trim()).filter(Boolean)
+                    ? req.query.acceptedPermissions.split(',').map((/** @type {string} */ x) => x.trim()).filter(Boolean)
                     : null,
             });
             res.json({ ok: true, version: r.version, requiresRestart: !!r.requiresRestart });
@@ -462,9 +478,9 @@ router.post('/sideload', requireSuperAdmin,
             if (e && e.code === 'module_id_conflict') return res.status(409).json({ error: 'module_id_conflict' });
             if (e && e.code === 'install_in_progress') return res.status(409).json({ error: 'install_in_progress' });
             if (e && e.code === 'package_verify_failed') return res.status(400).json({ error: 'package_verify_failed', detail: e.detail || null });
-            if (e && e.compat) return res.status(409).json({ error: 'incompatible', detail: e.message });
+            if (e && e.compat) return res.status(409).json({ error: 'incompatible', detail: /** @type {Error} */ (e).message });
             if (e && e.code) return mapHubError(e, res);
-            log.error('[Modules] sideload error:', e.message);
+            log.error('[Modules] sideload error:', /** @type {Error} */ (e).message);
             next(e);
         }
     });
@@ -481,7 +497,7 @@ router.post('/:id/offline-grant', requireSuperAdmin, async (req, res, next) => {
         if (slug && slug.startsWith('bad_grant')) return res.status(400).json({ error: slug });
         if (slug === 'grant_module_mismatch') return res.status(400).json({ error: slug });
         if (slug === 'grant_invalid') return res.status(422).json({ error: slug, detail: e.detail || null });
-        log.error('[Modules] offline-grant error:', e.message);
+        log.error('[Modules] offline-grant error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -497,7 +513,7 @@ router.post('/:id/activate-staged', requireSuperAdmin, validate({ body: VersionB
         if (e && e.code === 'offline_grant_required') return res.status(402).json({ error: 'offline_grant_required' });
         if (e && e.code === 'permissions_not_granted') return res.status(409).json({ error: 'permissions_not_granted', missingPermissions: e.missingPermissions || [] });
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] activate-staged error:', e.message);
+        log.error('[Modules] activate-staged error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });
@@ -521,7 +537,7 @@ router.post('/:id/rollback', requireSuperAdmin, validate({ body: RollbackBody })
         if (e && e.code === 'install_in_progress') return res.status(409).json({ error: 'install_in_progress' });
         if (e && e.code === 'permissions_not_granted') return res.status(409).json({ error: 'permissions_not_granted', missingPermissions: e.missingPermissions || [] });
         if (e && e.code) return mapHubError(e, res);
-        log.error('[Modules] rollback error:', e.message);
+        log.error('[Modules] rollback error:', /** @type {Error} */ (e).message);
         next(e);
     }
 });

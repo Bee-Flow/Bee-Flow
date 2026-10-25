@@ -88,6 +88,9 @@ async function getUsageByOrg(filters = {}) {
 // buildFilters (excludes zero-token tool rows). `interval` is the bucket size
 // ('hour' for prod, 'minute' for responsive local testing, 'day' also allowed).
 // `bucket` comes back as a Date.
+/**
+ * @param {string} [interval]
+ */
 async function getUsageRollup(filters = {}, interval = 'hour') {
     await initDB();
     const unit = ['minute', 'hour', 'day'].includes(interval) ? interval : 'hour';

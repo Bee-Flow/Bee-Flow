@@ -85,6 +85,7 @@ async function providers(session, principal, scope) {
     for (const provider of PROVIDERS) {
         let mod;
         try { mod = d.providers.providerFor(provider); } catch (_) { continue; }
+        /** @type {{ connected: boolean; reason: string; }} */
         let status;
         try {
             status = await mod.isConnected({ userId, session });
@@ -175,8 +176,12 @@ async function linkSpreadsheets({ scope, principal, session, tables, relations =
     await spendStorageBudget(principal);
     const spec = managedKindSpec(KIND);
     const siblings = await sync.siblingsOf(scope);
+    /** @type {string[]} */
     const warnings = [];
     const apis = new Map();
+    /**
+     * @param {string} provider
+     */
     const apiFor = async (provider) => {
         if (!apis.has(provider)) apis.set(provider, await callerApi(session, principal, provider));
         return apis.get(provider);

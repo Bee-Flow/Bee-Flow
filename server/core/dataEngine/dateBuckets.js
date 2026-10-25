@@ -6,6 +6,9 @@
  */
 'use strict';
 
+/**
+ * @param {string} col
+ */
 function dateBucketSql(col, bucket, dialect) {
     if (dialect === 'pg') {
         // ::timestamptz because the column may be DATE or TIMESTAMPTZ; both

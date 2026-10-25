@@ -71,6 +71,7 @@ const ALLOWED = new Set(ALLOWED_ENV);
  * @returns {object} a fresh object — never a reference into process.env
  */
 function buildMcpChildEnv(extra = {}, source = process.env) {
+    /** @type {Record<string, string>} */
     const env = {};
     for (const name of ALLOWED_ENV) {
         const value = source[name];

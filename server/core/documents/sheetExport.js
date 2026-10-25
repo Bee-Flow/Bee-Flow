@@ -21,15 +21,20 @@ const { chartProblem } = require('./sheetChartSpec');
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MAX_COLS = 26;
 
-/** The A1-keyed map as a matrix: columns A-Z, rows up to the highest used row. */
+/**
+ * The A1-keyed map as a matrix: columns A-Z, rows up to the highest used row.
+ * @param {Record<string, string | { formula: string; }>} cells
+ */
 function cellsToMatrix(cells) {
     let lastRow = 0;
     for (const name of Object.keys(cells || {})) {
         const m = /^([A-Z])(\d+)$/.exec(name);
         if (m && cells[name] !== '' && cells[name] != null) lastRow = Math.max(lastRow, Number(m[2]));
     }
+    /** @type {((string | { formula: string; })[])[]} */
     const matrix = [];
     for (let r = 1; r <= lastRow; r++) {
+        /** @type {(string | { formula: string; })[]} */
         const row = [];
         for (let c = 0; c < MAX_COLS; c++) row.push(cells[`${String.fromCharCode(65 + c)}${r}`] ?? '');
         while (row.length && row[row.length - 1] === '') row.pop();
@@ -38,11 +43,16 @@ function cellsToMatrix(cells) {
     return matrix;
 }
 
+/**
+ * @param {string} s
+ */
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * Quote the sheet names of `names` in a formula: `Totals!A1` becomes
  * `'Totals'!A1`. String literals ("...") are left alone.
+ * @param {string} formula
+ * @param {string[]} names
  */
 function quoteSheetRefs(formula, names) {
     if (!formula.startsWith('=') || !names.length) return formula;
@@ -54,7 +64,10 @@ function quoteSheetRefs(formula, names) {
     }).join('');
 }
 
-/** One CSV field: quoted when it has to be, quotes doubled. */
+/**
+ * One CSV field: quoted when it has to be, quotes doubled.
+ * @param {string} text
+ */
 function csvField(text) {
     const s = String(text ?? '');
     return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -77,8 +90,10 @@ function sheetCsv(cells, evaluate) {
         lastRow = Math.max(lastRow, Number(m[2]));
         lastCol = Math.max(lastCol, m[1].charCodeAt(0) - 65);
     }
+    /** @type {string[]} */
     const lines = [];
     for (let r = 1; r <= lastRow; r++) {
+        /** @type {string[]} */
         const fields = [];
         for (let c = 0; c <= lastCol; c++) fields.push(csvField(shown[`${String.fromCharCode(65 + c)}${r}`]?.display ?? ''));
         lines.push(fields.join(','));
@@ -86,7 +101,11 @@ function sheetCsv(cells, evaluate) {
     return lines.join('\r\n') + (lines.length ? '\r\n' : '');
 }
 
-/** A safe ASCII download name ending in .xlsx. */
+/**
+ * A safe ASCII download name ending in .xlsx.
+ * @param {string | undefined} raw
+ * @param {string} [fallback]
+ */
 function xlsxFileName(raw, fallback = 'spreadsheet') {
     const base = String(raw || '')
         .normalize('NFKD').replace(/[̀-ͯ]/g, '')
@@ -99,7 +118,12 @@ function xlsxFileName(raw, fallback = 'spreadsheet') {
     return `${base || fallback}.xlsx`;
 }
 
-/** The computed cells of tab `i`, other tabs readable by name (the editor's view of it). */
+/**
+ * The computed cells of tab `i`, other tabs readable by name (the editor's view of it).
+ * @param {string[]} names
+ * @param {number} i
+ * @param {Record<string, string>[]} raws
+ */
 function computedFor(raws, names, i, deps) {
     const evaluate = deps.evaluate || require('../../shared/expr/sheet.mjs').evaluateSheet;
     return evaluate(raws[i], { workbook: Object.fromEntries(names.map((n, k) => [n, raws[k]])), activeSheet: names[i] });
@@ -118,9 +142,11 @@ async function buildSheetWorkbook(doc, deps = {}) {
     const tabs = sheetTabsOf(doc);
     const names = tabs.map((t) => sanitizeSheetName(t.name));
     const charts = (Array.isArray(doc.settings?.sheet?.charts) ? doc.settings.sheet.charts : []).filter((c) => !chartProblem(c));
+    /** @type {Record<string, string>[]} */
     const raws = [];
     for (let i = 0; i < tabs.length; i++) raws.push((await sheetCells.readSheet(doc.userId, tabs[i].datatableId)).cells || {});
     const sheets = raws.map((cells, i) => {
+        /** @type {Record<string, string | { formula: string; }>} */
         const quoted = {};
         for (const [k, v] of Object.entries(cells)) {
             // The document sheet's own convention: "=…" text is a formula.

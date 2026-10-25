@@ -51,7 +51,7 @@ async function toPptxImage(dataUrl, { maxEdge = MAX_IMAGE_EDGE_PX, width = null 
         const png = await sharp(input, isSvg ? { density: 288 } : {}).resize(resize).png().toBuffer();
         return `data:image/png;base64,${png.toString('base64')}`;
     } catch (e) {
-        log.warn(`[presentationRenderer] image could not be rasterised: ${e.message}`);
+        log.warn(`[presentationRenderer] image could not be rasterised: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -60,6 +60,7 @@ async function toPptxImage(dataUrl, { maxEdge = MAX_IMAGE_EDGE_PX, width = null 
  * The resolver a chat/Nextcloud caller injects: reads a user's own storage
  * objects (by key or by the proxy URL the chat hands out) and passes data:
  * URLs through. Anything else is null — never a fetch.
+ * @param {string} userId
  */
 function makeUserImageResolver(userId) {
     const own = `users/${String(userId || '')}/`;
@@ -72,7 +73,7 @@ function makeUserImageResolver(userId) {
         if (!key.startsWith(own)) return null;
         const { readAsDataUrl } = require('../core/documents/imageInline');
         try { return await readAsDataUrl(key); } catch (e) {
-            log.warn(`[presentationRenderer] storage image ${key} unreadable: ${e.message}`);
+            log.warn(`[presentationRenderer] storage image ${key} unreadable: ${/** @type {Error} */ (e).message}`);
             return null;
         }
     };
@@ -85,6 +86,7 @@ function makeUserImageResolver(userId) {
  * white inside the mark (a letter's counter, a highlight) is kept. Images
  * that already carry transparency, or whose corners are not white, are
  * returned untouched.
+ * @param {string} dataUrl
  */
 async function knockoutWhiteBackground(dataUrl, { tolerance = 18 } = {}) {
     let sharp;
@@ -96,7 +98,14 @@ async function knockoutWhiteBackground(dataUrl, { tolerance = 18 } = {}) {
         const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
         const { width: w, height: h, channels } = info;
         if (channels !== 4 || w < 2 || h < 2) return dataUrl;
+        /**
+         * @param {number} x
+         * @param {number} y
+         */
         const at = (x, y) => (y * w + x) * 4;
+        /**
+         * @param {number} i
+         */
         const white = (i) => data[i] >= 255 - tolerance && data[i + 1] >= 255 - tolerance && data[i + 2] >= 255 - tolerance && data[i + 3] > 200;
         // Only a card: all four corners white, and no real transparency yet.
         const corners = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)];
@@ -105,6 +114,7 @@ async function knockoutWhiteBackground(dataUrl, { tolerance = 18 } = {}) {
         for (let i = 3; i < data.length; i += 4) if (data[i] > 200) opaque += 1;
         if (opaque < data.length / 4 * 0.98) return dataUrl;
         const seen = new Uint8Array(w * h);
+        /** @type {(number | undefined)[]} */
         const stack = [];
         for (let x = 0; x < w; x += 1) { stack.push(x, 0, x, h - 1); }
         for (let y = 0; y < h; y += 1) { stack.push(0, y, w - 1, y); }
@@ -125,7 +135,7 @@ async function knockoutWhiteBackground(dataUrl, { tolerance = 18 } = {}) {
         const png = await sharp(data, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
         return `data:image/png;base64,${png.toString('base64')}`;
     } catch (e) {
-        log.warn(`[presentationRenderer] logo knockout skipped: ${e.message}`);
+        log.warn(`[presentationRenderer] logo knockout skipped: ${/** @type {Error} */ (e).message}`);
         return dataUrl;
     }
 }
@@ -135,6 +145,7 @@ async function knockoutWhiteBackground(dataUrl, { tolerance = 18 } = {}) {
  * `sizing:'contain'` fits an image with a NEGATIVE srcRect crop, which
  * Collabora/LibreOffice ignore and then stretch the picture to its box. So
  * the renderer measures, and officegen sizes every box from the ratio.
+ * @param {string} dataUrl
  */
 async function imageAspect(dataUrl) {
     try {
@@ -168,7 +179,7 @@ async function resolveDeckImages(deck, resolveImage, warnings, theme = null) {
         if (!s.image) continue;
         let dataUrl = s.image.dataUrl || null;
         if (!dataUrl && typeof resolveImage === 'function') {
-            try { dataUrl = await resolveImage(s.image); } catch (e) { dataUrl = null; warnings.push(`slide ${i + 1}: image could not be read (${e.message})`); }
+            try { dataUrl = await resolveImage(s.image); } catch (e) { dataUrl = null; warnings.push(`slide ${i + 1}: image could not be read (${/** @type {Error} */ (e).message})`); }
         }
         const ready = dataUrl ? await toPptxImage(dataUrl) : null;
         if (ready) {
@@ -195,7 +206,7 @@ async function prepareTheme(theme, resolveImage = null, warnings = []) {
         const ref = classifyImageRef(t.logoRef);
         let dataUrl = null;
         if (ref && !ref.rejected && typeof resolveImage === 'function') {
-            try { dataUrl = await resolveImage(ref); } catch (e) { warnings.push(`the deck logo could not be read (${e.message})`); }
+            try { dataUrl = await resolveImage(ref); } catch (e) { warnings.push(`the deck logo could not be read (${/** @type {Error} */ (e).message})`); }
         } else if (ref && ref.rejected) {
             warnings.push('the deck logo must be a Bee Flow storage URL or a data: URL — it was left out');
         }
@@ -260,7 +271,7 @@ async function renderPresentation({
     try {
         normalized = input && typeof input === 'object' && input.normalized ? input : normalizeDeck(input);
     } catch (e) {
-        if (e instanceof DeckError) throw Object.assign(new Error(e.message), { errorClass: e.errorClass === 'deck_empty' ? 'document_empty' : e.errorClass, cause: e });
+        if (e instanceof DeckError) throw Object.assign(new Error(/** @type {Error} */ (e).message), { errorClass: e.errorClass === 'deck_empty' ? 'document_empty' : e.errorClass, cause: e });
         throw e;
     }
     const warnings = [...(normalized.warnings || [])];

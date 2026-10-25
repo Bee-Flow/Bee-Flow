@@ -109,6 +109,8 @@ async function getBuilderSession(automationId, userId) {
  * An automation of a Solution stage has no AI builder session: it is changed in
  * Dev and deployed, so the write throws 409 managed_part (stores/lib/managedParts.js)
  * unless `managedWrite` names an active deployment of that stage.
+ * @param {string} automationId
+ * @param {string | null} userId
  */
 async function setBuilderSession(automationId, userId, snapshot, { expectedVersion = null, trimBlock = 1, managedWrite = null } = {}) {
     await initDB();

@@ -77,7 +77,7 @@ async function runCodeOnce(args, deps = {}) {
             durationMs: now() - started,
         };
     } catch (e) {
-        return { ok: false, error: (e && e.message) || String(e), logs: [], calls: [], durationMs: now() - started };
+        return { ok: false, error: (e && /** @type {Error} */ (e).message) || String(e), logs: [], calls: [], durationMs: now() - started };
     }
 }
 

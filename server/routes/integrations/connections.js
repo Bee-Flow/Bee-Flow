@@ -101,9 +101,15 @@ const OAUTH2_TOKEN_AUTH_METHODS = new Set(['client_secret_post', 'client_secret_
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-/** A query flag. Present and readable → boolean; present and unreadable → 400. */
+/**
+ * A query flag. Present and readable → boolean; present and unreadable → 400.
+ * @param {string} name
+ */
 const flag = (name) => z.enum(['1', '0', 'true', 'false'], { error: () => `${name} is 1 or 0.` }).transform((v) => v === '1' || v === 'true').optional();
 
+/**
+ * @param {string} name
+ */
 const anyObject = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} must be an object of fields.` }) });
 
 const PROVIDER_TEXT = 'Invalid provider';
@@ -222,6 +228,7 @@ function sanitizeHttpMeta(kind, secretMeta) {
         out.username = src.username; // display convenience only
     }
     if (kind === 'oauth2_cc') {
+        /** @type {URL | null} */
         let parsed = null;
         try { parsed = new URL(String(src.tokenUrl || '')); } catch (err) { fallback('routes/integrations/connections:sanitizeHttpMeta', err); /* handled below */ }
         if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
@@ -243,6 +250,10 @@ function sanitizeHttpMeta(kind, secretMeta) {
 
 // Best-effort credential audit — mirrors configStore._auditCredentialChange:
 // lazy require, swallow errors, record provider/label/kind — NEVER values.
+/**
+ * @param {string} action
+ * @param {string} userId
+ */
 async function auditConnectionChange(action, conn, userId) {
     try {
         const { logAccessAudit } = require('../../stores/userStore');
@@ -331,6 +342,7 @@ router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (
         .split(',').map(s => s.trim()).filter(Boolean);
     const resourceType = req.query.resourceType ? String(req.query.resourceType) : null;
     const resourceId = req.query.resourceId ? String(req.query.resourceId) : null;
+    /** @type {{ provider: string; }[]} */
     const requiresConnection = [];
     const lent = [];
     for (const provider of providers) {
@@ -505,7 +517,7 @@ router.delete('/:id', requireAuth, writeLimit, validate({ query: DeleteQuery }),
         } catch (e) {
             // A provider-side failure must not strand the row: log and
             // continue so the user can still remove the connection.
-            log.warn(`[ConnectionsAPI] provider revoke failed for ${conn.provider}: ${e.message}`);
+            log.warn(`[ConnectionsAPI] provider revoke failed for ${conn.provider}: ${/** @type {Error} */ (e).message}`);
         }
         if (req.session.oauthProvider === conn.provider) {
             delete req.session.accessToken;

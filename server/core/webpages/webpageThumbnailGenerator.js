@@ -115,7 +115,7 @@ async function renderThumbnail({ userId, webpageId }) {
                 .toBuffer();
         } catch (sharpErr) {
             // No sharp available — store the raw PNG. Bigger but still works.
-            log.warn('[Thumbnail] sharp resize skipped:', sharpErr.message);
+            log.warn('[Thumbnail] sharp resize skipped:', /** @type {Error} */ (sharpErr).message);
         }
 
         const sha = crypto.createHash('sha256').update(resized).digest('hex');
@@ -126,7 +126,7 @@ async function renderThumbnail({ userId, webpageId }) {
         });
         log.info(`[Thumbnail] rendered ${webpageId} (${resized.length} bytes, sha ${sha.slice(0, 8)})`);
     } catch (err) {
-        log.warn(`[Thumbnail] render failed for ${webpageId}: ${err.message}`);
+        log.warn(`[Thumbnail] render failed for ${webpageId}: ${/** @type {Error} */ (err).message}`);
     }
 }
 

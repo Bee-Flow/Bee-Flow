@@ -132,6 +132,7 @@ const REASONS = Object.freeze({
  * installation has no Solutions", and that sentence is untrue about an installation
  * that does have them. Both states block the deletion (both `unavailable`), but they
  * tell the reader something different.
+ * @param {string} name
  */
 async function tableExists(name, client) {
     try {
@@ -282,6 +283,7 @@ const SCANS = Object.freeze({
  */
 async function usageForWebpage(webpage, { db = pool } = {}) {
     const rows = [];
+    /** @type {string[]} */
     const partial = [];
     const sources = {};
 
@@ -312,7 +314,7 @@ async function usageForWebpage(webpage, { db = pool } = {}) {
                 sources[kind] = { status: 'checked', found: found.length };
             }
         } catch (e) {
-            log.warn(`[WebpageUsage] ${kind} scan failed for ${webpage.id}:`, e.message);
+            log.warn(`[WebpageUsage] ${kind} scan failed for ${webpage.id}:`, /** @type {Error} */ (e).message);
             sources[kind] = { status: 'unavailable', found: null, reason: REASONS.SCAN_FAILED };
             partial.push(kind);
         }
@@ -329,6 +331,7 @@ async function usageForWebpage(webpage, { db = pool } = {}) {
  * NAME. The route below is already owner-scoped, so in practice this touches one row: a
  * Solution of a colleague in which the owner has stored his page. Without an owner
  * (org-wide) the row belongs to nobody privately and stays whole.
+ * @param {string} userId
  */
 function redactForeign(rows, userId) {
     return (Array.isArray(rows) ? rows : []).map((r) => {

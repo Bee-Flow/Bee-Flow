@@ -1,3 +1,4 @@
+/** @typedef {import('./turnSetup').BuilderDraftWrap} BuilderDraftWrap */
 // @typecheck
 /**
  * Automation Builder — the in-progress draft: load-or-create for a
@@ -17,6 +18,7 @@ const { UNTITLED_AUTOMATION, MAX_TITLE } = require('../../../automation/builderT
  * to the title cap; anything else is ignored rather than refused, and the
  * seed is NEVER applied to an existing draft — a name the person or the
  * model chose is not overwritten by a host re-sending its brief.
+ * @param {{ title?: string; description?: string; } | null} seedMetadata
  */
 function seedFor(seedMetadata) {
     const seed = seedMetadata && typeof seedMetadata === 'object' && !Array.isArray(seedMetadata) ? seedMetadata : {};
@@ -25,6 +27,16 @@ function seedFor(seedMetadata) {
     return { title: title || UNTITLED_AUTOMATION, description };
 }
 
+/**
+ * @typedef {Object} LoadOrCreateDraftArgs
+ * @property {string} userId
+ * @property {string | null} [builderSessionId]
+ * @property {string | null} [automationId]
+ * @property {{ title?: string; description?: string; } | null} [seedMetadata]
+ */
+/**
+ * @param {LoadOrCreateDraftArgs} param0
+ */
 async function loadOrCreateDraft({ userId, builderSessionId, automationId, seedMetadata = null }) {
     if (automationId) {
         const a = await automationStore.getAutomation(automationId);
@@ -53,6 +65,9 @@ async function loadOrCreateDraft({ userId, builderSessionId, automationId, seedM
     };
 }
 
+/**
+ * @param {BuilderDraftWrap} draftWrap
+ */
 async function persistDraftWrap(draftWrap) {
     // Always-on persistence: every mutation writes through to the
     // automations table. The draft row is also returned by /api/automation

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — the component tree: per-prop values, style knobs and
  * advanced sizing, node logic (visibility/computed/validations/roles), the
@@ -36,6 +37,10 @@ const PANE_CLIP_CHILDREN = 6;
 // Per-prop value checks driven by COMPONENT_SPECS
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} key
+ * @param {string} path
+ */
 function validatePropValue(key, fs, value, path, ctx) {
     const { pushE, pushW } = ctx;
 
@@ -183,6 +188,9 @@ const VALIDATION_TYPES = ['required', 'format', 'minLength', 'formula'];
 // unknown role the author is invited to "add".
 const NOBODY_ROLE_REF = '__nobody__';
 
+/**
+ * @param {string} path
+ */
 function validateRoleRefs(refs, path, ctx) {
     const { pushE, pushW, roleIds } = ctx;
     if (!Array.isArray(refs)) {
@@ -202,6 +210,9 @@ function validateRoleRefs(refs, path, ctx) {
     }
 }
 
+/**
+ * @param {string} path
+ */
 function validateFieldValidations(node, path, ctx, spec) {
     const { pushE, pushW } = ctx;
     const arr = node.validations;
@@ -238,6 +249,9 @@ function validateFieldValidations(node, path, ctx, spec) {
     });
 }
 
+/**
+ * @param {string} path
+ */
 function validateNodeLogic(node, path, ctx, spec) {
     const { pushE, pushW } = ctx;
     // visible: boolean | { kind:'formula', expr }
@@ -287,7 +301,11 @@ function effectiveSizeMode(style, knob) {
     return modeSpec.values.includes(v) ? v : modeSpec.default;
 }
 
-/** Range check for one unitInt knob, against the range its current mode names. */
+/**
+ * Range check for one unitInt knob, against the range its current mode names.
+ * @param {string} name
+ * @param {string} path
+ */
 function validateUnitKnob(name, knob, style, path, ctx) {
     const v = style[name];
     if (v === null || v === undefined) return;         // "not set" — legal
@@ -309,6 +327,7 @@ function validateUnitKnob(name, knob, style, path, ctx) {
  *
  * `allowedKnobs` gates which pairs even apply — a section has no `span`, so it
  * has no width pair, and asking about widthMode there would be noise.
+ * @param {string} path
  */
 function validateAdvancedSizing(style, path, ctx, {
     what, allowedKnobs, parentHeightDefinite, parentLabel, parentHeightRoute = null, isSection = false,
@@ -408,6 +427,10 @@ function validateAdvancedSizing(style, path, ctx, {
 // name the right repair instead of a generic "give it a height".
 const ROOT_PARENT = /** @type {{label: string, heightDefinite: boolean, heightRoute: string|null}} */ (Object.freeze({ label: 'section', heightDefinite: false, heightRoute: 'always' }));
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ */
 function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     const { pushE, pushW, actionIds } = ctx;
 

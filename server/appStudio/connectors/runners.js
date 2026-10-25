@@ -149,6 +149,7 @@ async function runAutomationConnector(connector, { app, viewerId, params, deps }
  * in-flight request (`ac`) so the socket is torn down instead of drained.
  * Responses without a web stream (stubs, older shims) fall back to a buffered
  * read that is still byte-capped.
+ * @param {AbortController} ac
  */
 async function readCappedBody(resp, ac) {
     const body = resp.body;
@@ -210,6 +211,7 @@ async function runRestConnector(connector, { app, params, deps }) {
         return (v === undefined || v === null) ? '' : encodeURIComponent(String(v));
     });
 
+    /** @type {URL} */
     let parsed;
     try { parsed = new URL(urlStr); } catch { throw connectorError(400, 'connector produced an invalid URL', 'bad_connector'); }
     if (parsed.protocol !== 'https:') throw connectorError(400, 'connector URL must be https', 'insecure_url');
@@ -222,6 +224,7 @@ async function runRestConnector(connector, { app, params, deps }) {
     }
 
     // Owner static headers + owner credential (from the credential store).
+    /** @type {Record<string, string>} */
     const headers = { Accept: 'application/json' };
     if (isPlainObject(connector.headers)) {
         for (const [k, v] of Object.entries(connector.headers)) {
@@ -251,7 +254,7 @@ async function runRestConnector(connector, { app, params, deps }) {
         text = await readCappedBody(resp, ac);
     } catch (err) {
         if (Number.isInteger(err?.status)) throw err;
-        throw connectorError(502, `connector fetch failed (${err?.name === 'AbortError' ? 'timeout' : 'unreachable'})`, 'connector_failed');
+        throw connectorError(502, `connector fetch failed (${/** @type {Error} */ (err)?.name === 'AbortError' ? 'timeout' : 'unreachable'})`, 'connector_failed');
     } finally {
         clearTimeout(timer);
     }

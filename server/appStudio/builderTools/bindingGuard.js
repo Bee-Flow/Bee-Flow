@@ -32,6 +32,9 @@ const NO_TABLE_ADVICE = 'Create it first with app_upsert_table {name, fields:[{k
 const DATA_BINDING_KINDS = new Set(['record', 'records', 'aggregate']);
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+/**
+ * @param {object | null} model
+ */
 function tableIndex(model) {
     const tables = (model && Array.isArray(model.tables)) ? model.tables : [];
     const byRef = new Map();
@@ -53,11 +56,18 @@ function tableIndex(model) {
  */
 function checkComponentDataRefs(entries, model) {
     const errors = [];
+    /** @type {string[]} */
     const repairs = [];
     if (model === undefined || !Array.isArray(entries)) return { errors, repairs };
     const { tables, byRef } = tableIndex(model);
     const tableList = tables.length ? tables.map((t) => `${t.id} (${t.key})`).join(', ') : '(none — the app has no tables)';
 
+    /**
+     * @param {string} path
+     * @param {string} key
+     * @param {string} what
+     * @param {number} index
+     */
     const fieldCheck = (index, path, table, key, what) => {
         if (typeof key !== 'string' || !key) return;
         const keys = (table.fields || []).map((f) => f && f.key).filter(Boolean);
@@ -73,6 +83,10 @@ function checkComponentDataRefs(entries, model) {
         });
     };
 
+    /**
+     * @param {string} path
+     * @param {number} index
+     */
     const checkBinding = (index, path, b) => {
         const table = byRef.get(b.tableId);
         if (!table) {
@@ -122,6 +136,10 @@ function checkComponentDataRefs(entries, model) {
         sorts.forEach((s, i) => { if (isObject(s) && !aliases.has(s.field)) fieldCheck(index, `${path}.sort[${i}].field`, table, s.field, `${b.kind} sort`); });
     };
 
+    /**
+     * @param {string} path
+     * @param {number} index
+     */
     const visit = (index, path, value, tableForColumns) => {
         if (!value || typeof value !== 'object') return;
         if (Array.isArray(value)) { value.forEach((v, i) => visit(index, `${path}[${i}]`, v, tableForColumns)); return; }
@@ -130,6 +148,10 @@ function checkComponentDataRefs(entries, model) {
         for (const [k, v] of Object.entries(value)) visit(index, `${path}.${k}`, v, tableForColumns);
     };
 
+    /**
+     * @param {number} index
+     * @param {string} path
+     */
     const walk = (entry, index, path) => {
         if (!isObject(entry)) return;
         const props = isObject(entry.props) ? entry.props : {};
@@ -183,6 +205,8 @@ function checkComponentDataRefs(entries, model) {
  * small local model cannot edit one field of a call it already sent; it
  * resends it byte-identical, and the ladder in builderTools.js then applies
  * this patch itself.
+ * @param {{ errors: Array<{ index: number; path: string; message: string; hint: string; }>; repairs: string[]; }} check
+ * @param {string} [at]
  */
 function guardResult(check, at = 'components') {
     if (!check || !check.errors.length) return null;

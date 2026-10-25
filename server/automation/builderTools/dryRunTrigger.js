@@ -23,6 +23,7 @@ function prepareDryRunPayload(trigger, givenPayload) {
     let payload = given;
     /** @type {'declared_sample' | 'given' | 'none'} */
     let source = given && Object.keys(given).length ? 'given' : 'none';
+    /** @type {string[]} */
     const warnings = [];
     if (!payload || Object.keys(payload).length === 0) {
         /** @type {{ sample?: Record<string, unknown> } | null} */

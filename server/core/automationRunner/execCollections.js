@@ -41,6 +41,10 @@ function collectionCap(step) {
     return Math.min(stepMax || COLLECTION_OP_MAX_ITEMS, COLLECTION_OP_MAX_ITEMS);
 }
 
+/**
+ * @param {number} length
+ * @param {number} cap
+ */
 function tooLargeError(length, cap) {
     /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`Collection op input has ${length} items (max ${cap}). Add a Limit step upstream to cut the list down first (Limit is exempt from this cap), or raise AUTOMATION_COLLECTION_MAX_ITEMS.`);
@@ -64,6 +68,7 @@ function tooLargeError(length, cap) {
  * commonest cause by far is an upstream step that has not been re-run, so that
  * is the advice; `skippedReason` (the stable code tests and run-history facets
  * match on) is deliberately untouched by the rewording.
+ * @param {string} label
  */
 function unresolvedListMessage(label, ref, resolved) {
     const found = resolved === undefined ? 'nothing'
@@ -104,14 +109,18 @@ async function execFilter(step, ctx, runState) {
     try {
         ast = parseTopicExpr(step.expr || 'false');
     } catch (e) {
-        return { output: { items: [], count: 0, _evalError: e.message || String(e) } };
+        return { output: { items: [], count: 0, _evalError: /** @type {Error} */ (e).message || String(e) } };
     }
+    /**
+     * @param {number} i
+     */
     const scope = (i) => ({ ...runState, item: arr[i], _index: i });
     const { host, summary } = await prepareTopics([ast], function* scopes() {
         for (let i = 0; i < arr.length; i++) yield scope(i);
     }, ctx);
     const opts = host ? { host } : undefined;
     const out = [];
+    /** @type {string | null} */
     let evalError = null;
     // A rule path that finds nothing on any item goes to the binding log
     // (ruleMisses.js), so a typo is named instead of keeping nothing silently.
@@ -121,7 +130,7 @@ async function execFilter(step, ctx, runState) {
         const itemScope = scope(i);
         try { keep = !!evaluate(ast, itemScope, opts); } catch (e) {
             if (e.topicFatal) throw e;
-            keep = false; if (!evalError) evalError = e.message || String(e);
+            keep = false; if (!evalError) evalError = /** @type {Error} */ (e).message || String(e);
         }
         misses.observe(itemScope);
         if (keep) out.push(arr[i]);
@@ -228,6 +237,7 @@ async function execSummarize(step, ctx, runState) {
         };
     }
     const values = arr.map(item => Number(item?.[step.field])).filter(v => Number.isFinite(v));
+    /** @type {number | null} */
     let result = null;
     switch (step.op) {
         case 'count': result = arr.length; break;

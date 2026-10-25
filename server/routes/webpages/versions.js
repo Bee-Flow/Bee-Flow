@@ -112,7 +112,7 @@ function register(router) {
         // Flush any pending DB writes before snapshotting so the version
         // contains everything the user's done up to this moment.
         try { await webpageDbStore.flush(userId, req.params.id); } catch (e) {
-            log.warn('[Webpages] Pre-snapshot DB flush failed:', e.message);
+            log.warn('[Webpages] Pre-snapshot DB flush failed:', /** @type {Error} */ (e).message);
         }
 
         const version = await webpageStore.createVersion(userId, req.params.id, summary);
@@ -149,7 +149,7 @@ function register(router) {
         // Snapshot the *current* state first so the restore is itself reversible.
         // Flush the DB first so the pre-restore snapshot captures pending writes too.
         try { await webpageDbStore.flush(userId, req.params.id); } catch (e) {
-            log.warn('[Webpages] Pre-restore DB flush failed:', e.message);
+            log.warn('[Webpages] Pre-restore DB flush failed:', /** @type {Error} */ (e).message);
         }
         const hadContent = wp.htmlSize + wp.cssSize + wp.jsSize + (wp.dbSize || 0) > 0;
         if (hadContent) {
@@ -157,6 +157,7 @@ function register(router) {
                 // The line difference of THIS event: from what stands now to what is restored. The current
                 // bytes must be read for that — that is allowed here, restoring is rare and the route
                 // already does a full RustFS round anyway.
+                /** @type {number | null} */
                 let lineDelta = null;
                 try {
                     if (!webpageStore.slotsAreReadable()) throw new Error('object storage unavailable');
@@ -165,7 +166,7 @@ function register(router) {
                 } catch (e) {
                     // Not being able to measure is not a 0 — the row then says nothing about the
                     // number of lines, instead of "nothing changed".
-                    log.warn('[Webpages] Restore line delta unavailable:', e.message);
+                    log.warn('[Webpages] Restore line delta unavailable:', /** @type {Error} */ (e).message);
                 }
                 await webpageStore.createVersion(userId, req.params.id,
                     versionFacts.restoreSummary(version.seq), {
@@ -175,7 +176,7 @@ function register(router) {
                         contentLength: wp.htmlSize + wp.cssSize + wp.jsSize,
                     }, 'restore', { actorUserId: userId, lineDelta });
             } catch (e) {
-                log.warn('[Webpages] Pre-restore snapshot failed:', e.message);
+                log.warn('[Webpages] Pre-restore snapshot failed:', /** @type {Error} */ (e).message);
             }
         }
 

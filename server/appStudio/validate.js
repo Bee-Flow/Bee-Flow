@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — validate an app definition before save / publish.
  *
@@ -214,6 +215,9 @@ function buildMailboxConnectorIds(dataModel) {
 }
 
 // def.roles → a Set of role ids, validating the { id, name } shape.
+/**
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
+ */
 function validateRolesAndCollect(def, pushE) {
     const ids = new Set();
     if (def.roles === undefined) return ids;
@@ -245,6 +249,7 @@ function validateRolesAndCollect(def, pushE) {
  * This is the defensive gate for canonical bytes handed in directly (the same
  * role the design/nav checks play): canonicalize repairs or drops anything
  * malformed, so in the normal save path none of these fire.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
  */
 function validateVariablesAndCollect(def, pushE) {
     const declared = new Map();
@@ -444,9 +449,12 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
 }
 
 function validateAppDefinition(def, opts = {}) {
+    /**
+     * @type {{ code: string; severity: string; path: string; message: string; hint: string; }[]}
+     */
     const errors = [];
     const warnings = [];
-    const pushE = (rec) => errors.push(rec);
+    const pushE = (/** @type {{ code: string; severity: string; path: string; message: string; hint: string; }} */ rec) => errors.push(rec);
     const pushW = (rec) => warnings.push(rec);
 
     if (!isObject(def)) {
@@ -508,6 +516,11 @@ function validateAppDefinition(def, opts = {}) {
 
     // ── Id collection: format + GLOBAL uniqueness ─────────────────────────
     const idSeen = new Map(); // id → path of first occurrence
+    /**
+     * @param {string} id
+     * @param {string} path
+     * @param {string} what
+     */
     const checkId = (id, path, what) => {
         if (typeof id !== 'string' || !ID_RE.test(id)) {
             pushE({ code: 'id.format', severity: 'error', path, message: `${what} id ${JSON.stringify(id)} is invalid.`, hint: ID_HINT });
@@ -527,6 +540,10 @@ function validateAppDefinition(def, opts = {}) {
             if (typeof key === 'string') actionIds.add(key);
         }
     }
+    /**
+     * @param {string} path
+     * @param {number} depth
+     */
     const collectNodeIds = (node, path, depth) => {
         if (!isObject(node) || depth > LIMITS.MAX_DEPTH + 1) return;
         checkId(node.id, `${path}.id`, 'Component');

@@ -204,6 +204,7 @@ const TOPOLOGY_TOOLS = new Set([
  * Apply a tool call, mutating the in-memory draft. Returns a small JSON
  * report describing what changed (becomes the `tool` message back to the
  * LLM and feeds the SSE update to the frontend).
+ * @param {string} name
  */
 async function applyToolCall(name, args, draftWrap) {
     if (['builder_search_documents','builder_read_document'].includes(name)) return require('../core/documents/documentDiscovery').execute(name,args || {},draftWrap);
@@ -356,7 +357,10 @@ function followAdded(result, callArgs, draftWrap) {
 // a title or a canvas note — leave it standing). The App Studio builder
 // keeps the simpler shared counter (core/llm/toolCallHygiene).
 
-/** The signatures a rejection is remembered by. */
+/**
+ * The signatures a rejection is remembered by.
+ * @param {string} name
+ */
 function rejectionSignature(name, args, result) {
     const sig = `${name}\n${canonicalJson(args === undefined ? null : args)}`;
     const steps = Array.isArray(args?.steps) ? args.steps : null;
@@ -370,7 +374,10 @@ function rejectionSignature(name, args, result) {
     return { sig, entrySig, resendSig };
 }
 
-/** Is this call the one `prev` remembers? */
+/**
+ * Is this call the one `prev` remembers?
+ * @param {string} name
+ */
 function isRepeat(prev, name, args) {
     if (!prev || typeof prev !== 'object') return false;
     if (prev.sig === rejectionSignature(name, args, null).sig) return true;
@@ -379,7 +386,10 @@ function isRepeat(prev, name, args) {
     return sigs.length > 0 && args.steps.some(e => sigs.includes(canonicalJson(e)));
 }
 
-/** What to call the step that keeps failing: its label, its tool, its type. */
+/**
+ * What to call the step that keeps failing: its label, its tool, its type.
+ * @param {string} name
+ */
 function failingLabel(name, args, result) {
     const steps = Array.isArray(args?.steps) ? args.steps : null;
     const entry = name === 'builder_add_steps' && steps && result && Number.isInteger(result.failedIndex) ? steps[result.failedIndex] : null;
@@ -406,12 +416,16 @@ function isNoOpMutation(result) {
         && Array.isArray(result.unchanged) && result.unchanged.length > 0;
 }
 
+/**
+ * @param {string} name
+ */
 function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}) {
     if (!draftWrap || typeof draftWrap !== 'object') return result;
     if (isNoOpMutation(result)) {
         // Climbs the same ladder, keyed on the arguments: rung 2 says so
         // plainly, rung 3 ends the turn. `_hint` already carries the tool's
         // own wording; the ladder appends the escalation to it.
+        /** @type {{ sig: string; entrySig: string | null; resendSig: string | null; }} */
         let sigs;
         try { sigs = rejectionSignature(name, args, null); } catch (_) { return result; }
         const prev = draftWrap._lastRejected;
@@ -431,6 +445,7 @@ function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}
         if (MUTATING_TOOLS.has(name) && !GRAPH_NEUTRAL_MUTATORS.has(name)) draftWrap._lastRejected = null;
         return result;
     }
+    /** @type {{ sig: string; entrySig: string | null; resendSig: string | null; }} */
     let sigs;
     try { sigs = rejectionSignature(name, args, result); } catch (_) { return result; }
     const prev = draftWrap._lastRejected;
@@ -493,6 +508,7 @@ function rejectionLadder(name, args, result, draftWrap, { patched = false } = {}
  */
 async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
     let out = s.output;
+    /** @type {string | null} */
     let note = null;
     let partial = false;
     const { isTruncatedOutput, fullOutputRefOf } = require('./payloadTruncation');
@@ -533,6 +549,9 @@ async function dryRunHint(s, draftWrap, { readFullOutput = null } = {}) {
     };
 }
 
+/**
+ * @param {string} name
+ */
 async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
     const draft = draftWrap.def;
     // Central scope resolution (inline flowlets): scoped tools may pass

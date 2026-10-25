@@ -79,6 +79,7 @@ function scoreCandidate(c, opts = {}) {
     // A floor so an early candidate with two weeks of history still ranks.
     const score = value * automatability * ease * Math.max(0.15, stability);
 
+    /** @type {string[]} */
     const reasons = [];
     if (perMonth >= 4) reasons.push('frequent');
     // Weekends are part of a weekday habit's rhythm, not scatter in its gaps.

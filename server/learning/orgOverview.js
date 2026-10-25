@@ -46,6 +46,7 @@ async function orgMembers(orgId) {
 
 /** @param {import('./completion').ProgressMap | null | undefined} progress */
 function lastActivity(progress) {
+    /** @type {string | null} */
     let latest = null;
     for (const entry of Object.values(progress || {})) {
         const at = entry?.completedAt;

@@ -17,6 +17,10 @@ function cleanStringList(v) {
     return v.filter((x) => typeof x === 'string' && x).slice(0, 50);
 }
 
+/**
+ * @param {string} path
+ * @param {((arg0: string, arg1: string, arg2: string) => void) | undefined} push
+ */
 function cleanAiSchema(v, path, push) {
     if (!Array.isArray(v)) return [];
     const out = [];
@@ -43,10 +47,15 @@ function cleanAiSchema(v, path, push) {
     return out;
 }
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanAiWriteTo(v, path, push) {
     if (!isObject(v)) return undefined;
     const out = {};
     if (typeof v.tableId === 'string' && v.tableId) out.tableId = v.tableId;
+    /** @type {Record<string, string>} */
     const mapping = {};
     if (isObject(v.mapping)) {
         for (const [col, field] of Object.entries(v.mapping)) {
@@ -95,6 +104,10 @@ function cleanAiWriteTo(v, path, push) {
  */
 const MAX_CONTEXT_SOURCES = 4;
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanContextSources(v, path, push) {
     if (!Array.isArray(v)) return [];
     const out = [];

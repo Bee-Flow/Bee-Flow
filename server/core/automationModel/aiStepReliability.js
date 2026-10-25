@@ -71,6 +71,9 @@ const CHECK_DEFAULTS = {
     items: {},
 };
 
+/**
+ * @param {Problem[]} problems
+ */
 const hasError = (problems) => problems.some((p) => p.severity === 'error');
 
 /** @returns {Record<string, any> | null} */

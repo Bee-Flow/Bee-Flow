@@ -162,7 +162,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         if (e && e.code === 'definition_too_large') {
             return { error: `The app definition exceeds the ${LIMITS.MAX_DEFINITION_BYTES}-byte limit — trim large static values (bind data from automations instead of inlining it).` };
         }
-        return { error: `Could not save the draft: ${e.message}` };
+        return { error: `Could not save the draft: ${/** @type {Error} */ (e).message}` };
     }
 }
 

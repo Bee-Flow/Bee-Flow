@@ -34,7 +34,9 @@ const BUNDLED_KEY_PATH = path.join(__dirname, 'bundled-public-key.pem');
 const JWKS_URL = process.env.LICENSE_JWKS_URL || '';
 const JWKS_CACHE_MS = parseInt(process.env.LICENSE_JWKS_CACHE_SECONDS || '300', 10) * 1000;
 
+/** @type {string | null} */
 let _cachedKey = null;
+/** @type {string | null} */
 let _cachedKeySource = null;
 let _jwksCache = { fetchedAt: 0, keysByKid: new Map(), revokedKids: [] };
 
@@ -48,6 +50,9 @@ const KNOWN_KEYS_CONFIG_KEY = 'beeflow_hub_known_signing_keys';
 const KNOWN_KEYS_MAX = 16;
 const KNOWN_KEYS_STALE_MS = 90 * 24 * 60 * 60 * 1000;
 
+/**
+ * @type {typeof import("../stores/configStore")}
+ */
 let _configStore;
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 
@@ -124,7 +129,7 @@ function loadPublicKey() {
             _cachedKeySource = 'file';
             return { key: _cachedKey, source: _cachedKeySource };
         } catch (e) {
-            log.error('[License Verify] Could not read LICENSE_PUBLIC_KEY_FILE:', e.message);
+            log.error('[License Verify] Could not read LICENSE_PUBLIC_KEY_FILE:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -147,12 +152,18 @@ function loadPublicKey() {
     return { key: null, source: null };
 }
 
+/**
+ * @param {string} str
+ */
 function base64UrlDecode(str) {
     str = str.replace(/-/g, '+').replace(/_/g, '/');
     while (str.length % 4) str += '=';
     return Buffer.from(str, 'base64');
 }
 
+/**
+ * @param {string} token
+ */
 function decodeJwtUnverified(token) {
     if (typeof token !== 'string') throw new Error('Token must be a string');
     const parts = token.split('.');
@@ -188,7 +199,7 @@ async function getJwksKeys() {
                 const ko = crypto.createPublicKey({ key: jwk, format: 'jwk' });
                 keysByKid.set(jwk.kid, ko);
             } catch (e) {
-                log.warn('[License Verify] could not import JWK', jwk.kid, e.message);
+                log.warn('[License Verify] could not import JWK', jwk.kid, /** @type {Error} */ (e).message);
             }
         }
         const revokedKids = Array.isArray(body.revoked_kids) ? body.revoked_kids : [];
@@ -196,7 +207,7 @@ async function getJwksKeys() {
         // Fire-and-forget: remember every good kid for rotation resilience.
         _persistKnownKeys(keysByKid, revokedKids).catch((e) => bestEffort('license/verify:persistKnownKeys', e));
     } catch (e) {
-        const reason = e.name === 'AbortError' ? `timeout_${timeoutMs}ms` : e.message;
+        const reason = /** @type {Error} */ (e).name === 'AbortError' ? `timeout_${timeoutMs}ms` : /** @type {Error} */ (e).message;
         log.warn(`[License Verify] license.jwks.fetch_failed reason=${reason}`);
     } finally {
         clearTimeout(timer);
@@ -204,6 +215,9 @@ async function getJwksKeys() {
     return _jwksCache.keysByKid;
 }
 
+/**
+ * @param {crypto.BinaryLike} pem
+ */
 function kidForPem(pem) {
     if (!pem) return null;
     return crypto.createHash('sha256').update(pem).digest('hex').slice(0, 16);
@@ -216,13 +230,14 @@ function kidForPem(pem) {
  * Key resolution: if the JWT header carries a `kid`, prefer the matching key
  * from the configured JWKS endpoint, then fall back to the bundled key when
  * its kid matches (or when no kid is present at all).
+ * @param {string | undefined} token
  */
 async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicKeyOverride = null } = {}) {
     let decoded;
     try {
         decoded = decodeJwtUnverified(token);
     } catch (e) {
-        return { valid: false, error: `decode_failed: ${e.message}` };
+        return { valid: false, error: `decode_failed: ${/** @type {Error} */ (e).message}` };
     }
 
     const { header, payload, parts } = decoded;
@@ -263,7 +278,7 @@ async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicK
             signature
         );
     } catch (e) {
-        return { valid: false, error: `signature_check_failed: ${e.message}` };
+        return { valid: false, error: `signature_check_failed: ${/** @type {Error} */ (e).message}` };
     }
     if (!sigOk) return { valid: false, error: 'invalid_signature' };
 
@@ -290,16 +305,23 @@ async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicK
     return { valid: true, payload };
 }
 
+/**
+ * @param {string} iss
+ */
 function isExpectedIssuer(iss) {
     return iss === EXPECTED_ISSUER || iss === FULL_TIER_ISSUER;
 }
 
+/**
+ * @param {string} iss
+ */
 function isFullTierIssuer(iss) {
     return iss === FULL_TIER_ISSUER;
 }
 
 /**
  * For tests: replace the cached public key. Pass null to clear.
+ * @param {string | null} pem
  */
 function _setPublicKeyForTesting(pem) {
     _cachedKey = pem;
@@ -317,7 +339,8 @@ function _setPublicKeyForTesting(pem) {
  * longer serves but that we verified against before), then the bundled/env key
  * as a best-effort fallback (signature verification fails later if it
  * mismatches).
- * @returns {Promise<crypto.KeyObject|string|null>}
+ * @returns {Promise<crypto.KeyObject | string | null>}
+ * @param {string | number} kid
  */
 async function resolvePublicKeyByKid(kid) {
     const bundled = loadPublicKey().key;
@@ -346,6 +369,9 @@ async function resolvePublicKeyByKid(kid) {
  * public key. Reuses this module's base64UrlDecode + RSA-PKCS1 check so the
  * crypto lives in exactly one place. Never throws.
  * @returns {boolean}
+ * @param {string} signingInput
+ * @param {string} signatureB64url
+ * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike> | crypto.JsonWebKey} publicKey
  */
 function verifyCompactRs256(signingInput, signatureB64url, publicKey) {
     if (!publicKey) return false;

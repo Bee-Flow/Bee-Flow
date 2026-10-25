@@ -35,6 +35,7 @@ const SUMMARY_MAX_TOKENS = 8192;
 // before another pod can re-claim it.
 const MEETING_LLM_TIMEOUT_MS = Number(process.env.MEETING_LLM_TIMEOUT_MS) || 540_000;
 
+/** @type {Record<string, string>} */
 const LANG_NAMES = { nl: 'Dutch', en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese' };
 
 /**
@@ -46,6 +47,7 @@ const LANG_NAMES = { nl: 'Dutch', en: 'English', de: 'German', fr: 'French', es:
  * `tiers[name] || tiers[fallbackTier]` chain to the FAST tier — meaning meeting
  * summaries and action items were silently produced by the fast model.
  * A hand-written `smart` key still wins, for anyone who set one deliberately.
+ * @param {string | null} [userOrgId]
  */
 async function resolveSmartModel(userOrgId = null) {
     try {
@@ -82,6 +84,7 @@ async function resolveFastModel(userOrgId = null) {
  * template), it drives the output using the same construction the Regenerate
  * route uses, so a saved default styles new meetings too. Without one, the
  * built-in localized prompt below runs — no behaviour change.
+ * @param {string | null} [userOrgId]
  */
 async function generateMeetingSummary(transcript, language, userOrgId = null, opts = {}) {
     const { templatePrompt = null } = opts || {};
@@ -102,6 +105,7 @@ async function generateMeetingSummary(transcript, language, userOrgId = null, op
         // Native-language section headers for the most-used locales. For
         // unknown languages we fall back to English headers and let the LLM
         // translate the body into `langName`.
+        /** @type {Record<string, { summary: string; topics: string; decisions: string; actions: string; insights: string; }>} */
         const HEADERS = {
             nl: { summary: '📋 Samenvatting', topics: '🔑 Belangrijkste onderwerpen', decisions: '✅ Besluiten', actions: '📌 Actiepunten', insights: '💡 Inzichten' },
             en: { summary: '📋 Summary',      topics: '🔑 Key Topics',                decisions: '✅ Decisions Made', actions: '📌 Action Items', insights: '💡 Key Insights' },
@@ -144,7 +148,7 @@ Keep it concise and actionable. Skip empty sections rather than writing "none".`
         log.info(`[Transcriptions] Meeting summary generated (${summary.length} chars) via ${modelId}`);
         return summary;
     } catch (err) {
-        log.error('[Transcriptions] Summary generation failed:', err.message);
+        log.error('[Transcriptions] Summary generation failed:', /** @type {Error} */ (err).message);
         return '';
     }
 }
@@ -168,7 +172,7 @@ async function generateMeetingTitle(summary, language, userOrgId = null) {
             return title;
         }
     } catch (err) {
-        log.error('[Transcriptions] Title generation failed:', err.message);
+        log.error('[Transcriptions] Title generation failed:', /** @type {Error} */ (err).message);
     }
     return null;
 }
@@ -181,6 +185,7 @@ async function generateMeetingTitle(summary, language, userOrgId = null) {
  * calendar date within [meeting date − 1 month, meeting date + 2 years]
  * (deadlines discussed in a meeting are occasionally just past, never years
  * away).
+ * @param {string | null} [meetingDateIso]
  */
 function sanitizeDueDate(raw, meetingDateIso = null) {
     const value = String(raw || '').trim();
@@ -222,6 +227,7 @@ function sanitizeTags(raw, personNames = []) {
         if (first.length >= 2) people.add(first);
     }
     const seen = new Set();
+    /** @type {string[]} */
     const tags = [];
     for (const t of Array.isArray(raw) ? raw : []) {
         // Strings only. The model sometimes answers [{name:'planning'}], and
@@ -379,7 +385,7 @@ Use an empty array for a list with no entries. Return ONLY valid JSON, no other 
 
         return { actionItems, decisions, questions, tags: sanitizeTags(doc.tags, personNames), ok: true };
     } catch (err) {
-        log.error('[Transcriptions] Artifact extraction failed:', err.message);
+        log.error('[Transcriptions] Artifact extraction failed:', /** @type {Error} */ (err).message);
         return ARTIFACTS_FAILED;
     }
 }
@@ -391,6 +397,9 @@ Use an empty array for a list with no entries. Return ONLY valid JSON, no other 
  * NOTE: this form cannot tell the three outcomes apart: an empty list here means both "nothing was agreed"
  * and "the pass fell over". That is precisely why new code must not use it: whoever overwrites on the strength
  * of it wipes a stored list as soon as the smart tier falls over once.
+ * @param {string} transcript
+ * @param {string} language
+ * @param {string | null} [userOrgId]
  */
 async function extractActionItems(transcript, language, userOrgId = null) {
     const artifacts = await extractMeetingArtifacts(transcript, language, userOrgId);
@@ -406,6 +415,8 @@ async function extractActionItems(transcript, language, userOrgId = null) {
  * stamps — the client validates and drops anything unreadable rather than
  * trusting this output (same principle as the timeline markers: a bad
  * timestamp must disappear, not masquerade as a moment at 0:00).
+ * @param {string} transcript
+ * @param {string | null} [userOrgId]
  */
 async function generateChapters(transcript, language, userOrgId = null) {
     try {
@@ -450,6 +461,7 @@ Chapters must be in chronological order and cover the whole meeting; the first s
             let chapters = parsed.value
                 .filter(c => c && typeof c === 'object')
                 .map(c => {
+                    /** @type {{ title: string; start: string; summary?: string }} */
                     const chapter = { title: String(c.title || '').trim(), start: sanitizeTimestamp(c.start, clocks) };
                     const summary = String(c.summary || '').trim();
                     if (summary) chapter.summary = summary;
@@ -467,6 +479,7 @@ Chapters must be in chronological order and cover the whole meeting; the first s
                 const titled = parsed.value.filter(c => c && typeof c === 'object' && String(c.title || '').trim());
                 if (titled.length >= 2 && clocks.lastEnd > 0) {
                     chapters = titled.map((c, i) => {
+                        /** @type {{ title: string; start: string; summary?: string }} */
                         const chapter = { title: String(c.title).trim(), start: formatTime(Math.round((i / titled.length) * clocks.lastEnd)) };
                         const summary = String(c.summary || '').trim();
                         if (summary) chapter.summary = summary;
@@ -479,7 +492,7 @@ Chapters must be in chronological order and cover the whole meeting; the first s
             return chapters;
         }
     } catch (err) {
-        log.error('[Transcriptions] Chapter generation failed:', err.message);
+        log.error('[Transcriptions] Chapter generation failed:', /** @type {Error} */ (err).message);
     }
     return [];
 }
@@ -556,7 +569,7 @@ Return ONLY a JSON object mapping each participant name — copied EXACTLY as th
         log.info(`[Transcriptions] Speaker summaries: ${Object.keys(summaries).join(', ') || 'none'}`);
         return summaries;
     } catch (err) {
-        log.error('[Transcriptions] Speaker summary generation failed:', err.message);
+        log.error('[Transcriptions] Speaker summary generation failed:', /** @type {Error} */ (err).message);
         return {};
     }
 }

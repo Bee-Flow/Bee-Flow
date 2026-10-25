@@ -90,6 +90,9 @@ const { MAX_CELL_CHARS, ORDERABLE_SYSTEM_COLUMNS, readDescriptor, projectRow, ro
 /** Rows always live in Postgres — see stores/datatableDbStore.js. */
 const PG = Object.freeze({ dialect: 'pg' });
 
+/**
+ * @param {string} toolName
+ */
 function isDatatableTool(toolName) {
     return toolName === DATATABLE_QUERY_TOOL;
 }
@@ -102,7 +105,10 @@ function isDatatableTool(toolName) {
 
 // ── Running one query ───────────────────────────────────────────────
 
-/** A refusal the model relays. Never `{rows: []}` — see the module header. */
+/**
+ * A refusal the model relays. Never `{rows: []}` — see the module header.
+ * @param {string} message
+ */
 function refuse(message) {
     return { error: message };
 }
@@ -139,7 +145,7 @@ async function executeDatatableTool(toolName, toolArgs, context = {}) {
     try {
         agent = await deps.agentStore.getForRuntime(agentId);
     } catch (e) {
-        return refuse(`Could not check which tables this assistant may read (${e.message}). Nothing was read.`);
+        return refuse(`Could not check which tables this assistant may read (${/** @type {Error} */ (e).message}). Nothing was read.`);
     }
     const grants = grantsOf(agent && agent.config, deps);
     const grantedIds = Object.keys(grants);
@@ -167,7 +173,7 @@ async function executeDatatableTool(toolName, toolArgs, context = {}) {
     } catch (e) {
         // A refusal, an outage and a deleted table are three different
         // sentences, and every one of them beats "no rows found".
-        return refuse(e && e.message ? e.message : 'That table could not be read.');
+        return refuse(e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : 'That table could not be read.');
     }
 
     const { table, tableMeta, grade, scopeKey, orgId } = resolved;
@@ -185,7 +191,7 @@ async function executeDatatableTool(toolName, toolArgs, context = {}) {
     try {
         filter = deps.accessFilter.compileAccessFilter(tableMeta, grade, { id: userId }, 'read', PG);
     } catch (e) {
-        return refuse(`Could not work out which rows you may see (${e.message}). Nothing was read.`);
+        return refuse(`Could not work out which rows you may see (${/** @type {Error} */ (e).message}). Nothing was read.`);
     }
     if (grant.scope === 'own') {
         // ANDed OUTSIDE the table's own predicate, never instead of it: the
@@ -216,7 +222,7 @@ async function executeDatatableTool(toolName, toolArgs, context = {}) {
         rows = all.slice(0, compiled.limit);
         hasMore = all.length > compiled.limit;
     } catch (e) {
-        return refuse(`That query could not be run (${e.message}).`);
+        return refuse(`That query could not be run (${/** @type {Error} */ (e).message}).`);
     }
 
     // ── THE PRIVACY SHIELD, ON THIS PATH TOO ────────────────────────

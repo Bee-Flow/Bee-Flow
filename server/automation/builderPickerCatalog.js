@@ -36,17 +36,17 @@ const { fallback } = require('../utils/bestEffort');
 function defaultDeps() {
     return {
         agentStore: () => require('../stores/agentStore'),
-        resolveUserGroups: (userId) => require('../auth/audience').resolveUserGroups(userId),
+        resolveUserGroups: (/** @type {string} */ userId) => require('../auth/audience').resolveUserGroups(userId),
         resolvePrincipal: (userId) => require('../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
         kbStore: () => require('../stores/knowledgeBases'),
         askerContext: (userId) => require('../core/kb/askerContext').askerContext(userId),
-        hasPermission: (userId, perm) => require('../auth/permissions').hasPermission(userId, perm),
+        hasPermission: (/** @type {string} */ userId, /** @type {string} */ perm) => require('../auth/permissions').hasPermission(userId, perm),
         isOrgAdmin: async (userId) => {
             const user = await require('../stores/userStore').getUser(userId);
             return !!(user && require('../auth/permissions').isOrgAdminRole(user.orgRole));
         },
         hasFeature: (userId, feature, session) => require('../core/entitlements/betaFeatures').userHasBetaFeature(userId, feature, session),
-        listInboxes: (orgId) => require('../stores/supportInboxStore').listInboxes(orgId),
+        listInboxes: (/** @type {string} */ orgId) => require('../stores/supportInboxStore').listInboxes(orgId),
         publicBaseUrl: () => require('./triggerBus').getPublicBaseUrl(),
         availableMcpServerIds: (names, userId) => require('../core/integrations/integrationTools').availableMcpServerIds(names, userId),
     };
@@ -86,7 +86,7 @@ async function buildAgentPickerForUser(userId, { principal = null, deps = null }
         });
         return { agents, agentsError: null };
     } catch (e) {
-        const agentsError = e.message || 'agent list unavailable';
+        const agentsError = /** @type {Error} */ (e).message || 'agent list unavailable';
         log.warn('[automation/pickerCatalog] agents unavailable:', agentsError);
         return { agents: [], agentsError };
     }
@@ -125,7 +125,10 @@ async function listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, 
     return out;
 }
 
-/** The builder's version: resolves the person's context itself, off-request. */
+/**
+ * The builder's version: resolves the person's context itself, off-request.
+ * @param {string} userId
+ */
 async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
     const d = depsOf(deps);
     try {
@@ -136,7 +139,7 @@ async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
         const knowledgeBases = await listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin }, { deps });
         return { knowledgeBases, knowledgeBasesError: null };
     } catch (e) {
-        const knowledgeBasesError = e.message || 'knowledge base list unavailable';
+        const knowledgeBasesError = /** @type {Error} */ (e).message || 'knowledge base list unavailable';
         log.warn('[automation/pickerCatalog] knowledge bases unavailable:', knowledgeBasesError);
         return { knowledgeBases: [], knowledgeBasesError };
     }
@@ -235,8 +238,8 @@ async function buildPickerCatalogsForUser(userId, session, catalog, { providers:
                 appEventProvidersError: null,
             };
         } catch (e) {
-            log.warn('[automation/pickerCatalog] app-event providers unavailable:', e.message);
-            return { appEventProviders: [], appEventProvidersError: e.message || 'providers unavailable' };
+            log.warn('[automation/pickerCatalog] app-event providers unavailable:', /** @type {Error} */ (e).message);
+            return { appEventProviders: [], appEventProvidersError: /** @type {Error} */ (e).message || 'providers unavailable' };
         }
     })();
     const [agents, kbs, prov] = await Promise.all([

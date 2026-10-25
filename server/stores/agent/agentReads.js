@@ -20,6 +20,9 @@ async function getAgents(ownerId) {
 // every agent-by-id read goes through this so a caller that needs BOTH views
 // (GET /agents/:id) does not pay for the row twice, and both views are
 // guaranteed to describe the SAME snapshot.
+/**
+ * @param {string} id
+ */
 async function _loadAgentRow(id) {
     await initDB();
     const row = await getOne('SELECT * FROM agents WHERE id = $1', [id]);
@@ -45,7 +48,7 @@ function _withPersona(base, row) {
     try {
         return { ...base, persona: require('../../core/agentRuntime/personaPrompt').personaOf(row) };
     } catch (e) {
-        log.warn(`[AgentCrud] persona projection unavailable for agent ${row?.id}:`, e.message);
+        log.warn(`[AgentCrud] persona projection unavailable for agent ${row?.id}:`, /** @type {Error} */ (e).message);
         return base;
     }
 }
@@ -54,6 +57,7 @@ function _withPersona(base, row) {
  * The CONCEPT view of one agent — what the editor edits and what every write
  * path reads before it writes. Carries `persona` (the structured role); the
  * runtime views deliberately do not. See `_stripPersona` and `personaOf`.
+ * @param {string} id
  */
 async function getAgent(id) {
     const loaded = await _loadAgentRow(id);
