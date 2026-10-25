@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The AI in a comment thread: when it answers, what it reads, and how its
  * answer gets back into the thread.

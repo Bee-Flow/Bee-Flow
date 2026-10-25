@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Dutch translations for the personal-account Privacy
  * Shield surfaces added for BFSF-289 — the privacy step in the consumer signup

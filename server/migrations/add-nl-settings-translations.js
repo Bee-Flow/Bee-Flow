@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Add Dutch translations for newly i18n'd settings,
  * integration, agent store, and organisation keys.

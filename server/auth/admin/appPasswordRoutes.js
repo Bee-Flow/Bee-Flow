@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — Nextcloud app-password management for the caller's own
  * account. Split out of auth/adminRoutes.js; mounted there in the original

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The JSON helpers every store row mapper shares.
  *

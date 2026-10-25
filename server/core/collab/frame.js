@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * How co-editing bytes are stored: every Yjs update, snapshot and checkpoint
  * state is a FRAME — one header byte, then the payload — sealed with a key

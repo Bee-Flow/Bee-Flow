@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /api/studio-documents/:id/stream — a live channel per Studio document.
  * Mounted by routes/studioDocuments.js.

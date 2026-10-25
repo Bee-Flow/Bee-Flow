@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio data model — id minting: the stable tbl_/fld_/conn_ identities the
  * migration diff relies on, and the runtime rec_ record id.

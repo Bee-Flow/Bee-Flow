@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * YouTrack service client — the plain-function surface that server code calls.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Observed operators — which third parties this organisation's workspace
  * actually talks to.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GDPR Art. 32 — Access / guardrail logging is active.
  * Passes if at least one guardrail_events row exists in the last 7 days.

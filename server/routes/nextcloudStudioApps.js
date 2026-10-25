@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Studio-app listing for the Nextcloud connector.
  *

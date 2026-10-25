@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * @typedef {object} WriteOpts  The options of the record-writing compilers.
  * @property {string | null} [createdBy]

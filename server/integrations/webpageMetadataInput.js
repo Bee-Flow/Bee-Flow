@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pure input handling for the webpage builder tools: what webpage_set_metadata
  * accepts (and says it rejected), what webpage_file_read reports, and the size

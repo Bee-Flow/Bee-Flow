@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const { safeIconAsset } = require('../stores/cms/localeMedia');

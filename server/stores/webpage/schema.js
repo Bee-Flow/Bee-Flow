@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Webpage-store schema: the DDL for `webpages`, `webpage_sources`,
 // `webpage_versions` and `webpage_extra_files`, the lazy column migrations
 // bolted on after the original schema, and the one-shot init state every

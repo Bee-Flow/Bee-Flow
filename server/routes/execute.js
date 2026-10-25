@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Workflow execution over HTTP: run a workflow graph, run a workflow as a
  * subworkflow.

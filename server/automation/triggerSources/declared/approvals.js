@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Approvals. Dispatched in-process from the approval lifecycle (request /
  * decide / withdraw / reaper expiry), org-scoped like Support — an approval

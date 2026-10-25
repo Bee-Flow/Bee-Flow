@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Recording mock for `../db` — shared test harness (H2).
  *

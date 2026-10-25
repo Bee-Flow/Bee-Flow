@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The rollback marker of db.withTransaction, in a module of its own so a test
  * fake of db.js can honour `return rollback(v)` without loading the real pool.

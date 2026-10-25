@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GitHub. Hidden: the inbound webhook uses a single global secret with no
  * installation-to-organisation mapping, so it cannot be offered without a

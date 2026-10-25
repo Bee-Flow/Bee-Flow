@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One budget for the external link check, shared by the admin route and the
  * CMS MCP tool: a user gets EXTERNAL_MAX_PER_WINDOW runs per window in total,

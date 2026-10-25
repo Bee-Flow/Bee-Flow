@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Per-id counts read from ai_usage_log: test chats per agent and App Studio
  * action runs per app, each under its own literal source name.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the spreadsheet-file half of the Datatables section (2026-09) —
  * and for the kind-agnostic `src_*` sentences both mirror kinds share.

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Pre-flight check, template upgrade and the run-view payload (routes/studioApps/).
  */

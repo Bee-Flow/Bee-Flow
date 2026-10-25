@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Part 4 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { PICK_SOURCES, FORM_FIELD_TYPES, FORM_OPTIONS_HINT, FORM_WIZARD_FIELD_PROPS, FORM_PAGE_FIELD_PROPS, SPLICE_DESCRIPTION } = require('./schemaFragments');

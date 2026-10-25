@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * approvalReminders.js — the "send reminder" button's rate limit (handoff 5).
  *

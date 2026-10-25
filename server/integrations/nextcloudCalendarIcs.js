@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * ICS building and in-place editing for the Nextcloud calendar tools.

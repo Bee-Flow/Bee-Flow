@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Gmail. Produced by the hand-written pollers in triggerBus.js (Gmail
  * history.list with a historyId cursor); delivery is per-user, so an inbound

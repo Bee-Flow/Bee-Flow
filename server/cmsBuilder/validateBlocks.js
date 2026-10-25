@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CMS builder validation of single block types (called from ./validate.js).
  * Warnings only: every renderer copes with what these report.

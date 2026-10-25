@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * schema.org JSON-LD for marketing pages.
  *

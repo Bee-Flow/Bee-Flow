@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Upload a file from disk without holding it whole in memory (issue #286).
  * Lives next to storageStore.js, which wires it with its own primitives so the

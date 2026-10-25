@@ -1,5 +1,5 @@
 /** @typedef {import('pg').Pool} Pool */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 const { exec, pool, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');

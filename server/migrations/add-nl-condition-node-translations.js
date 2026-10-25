@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: Dutch translations for the Condition node (condition_node.*):
  * operators and quantifiers of the rule rows, File type, the field groups,

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: Add pii_summary column to automation_run_steps (2026-08).
  *

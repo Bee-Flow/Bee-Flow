@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * teams_add_members, apart from nextcloudTeamsTools.js (which only dispatches):

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reading and writing a co-edited resource from the server side
  * (./lifecycle.js): the live document of a resource, its freshly rendered

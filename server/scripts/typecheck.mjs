@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * `npm run typecheck` — type-check every server file that opted in with a
  * `// @typecheck` line in its header, and report errors for those files only.

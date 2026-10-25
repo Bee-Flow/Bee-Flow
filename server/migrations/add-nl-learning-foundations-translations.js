@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the lesson CONTENT of the Bee Flow Foundations course (BFSF-474) —
  * the course the Learning Center opens with ("Getting started" and its seven

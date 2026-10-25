@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A PAGE (doc_type 'page') on paper.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/project/schema.js — the projects schema (DDL) and the memoised
  * init that applies it over db.js. Split out of stores/projectStore.js,

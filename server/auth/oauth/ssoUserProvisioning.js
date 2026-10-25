@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The account half of the OAuth callback (./providerCallbackRoutes.js): find
  * the local user for a provider identity, or create one (signup wizard or

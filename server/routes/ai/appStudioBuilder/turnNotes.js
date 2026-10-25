@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder — the machine notes folded into the single user message
  * each turn: the live draft state, the approved plan, the planMode directive,

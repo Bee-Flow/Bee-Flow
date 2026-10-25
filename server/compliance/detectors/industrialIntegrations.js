@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Industrial-integration detector — the automated half of the Machinery
  * Regulation checks (MACHINERY-Art3-industrial-detection feeds on it,

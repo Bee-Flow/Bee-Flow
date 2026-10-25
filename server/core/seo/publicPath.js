@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which public URLs are marketing pages, and what locale + slug they mean.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The rows in bulk: the handler bodies of the spreadsheet import and the CSV
  * export. The route table and the request schemas stay in rows.js. Split out

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The two optional neighbours a document route talks to, reached defensively:
  *

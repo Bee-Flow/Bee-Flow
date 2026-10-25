@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Where the topic classifier (classify-service) lives: endpoint + api key,
  * resolved at request time and held briefly, the same way the PII guard's

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Dutch for the routines builder's NODE CATALOG — every
  * standard node's name, palette description and "what does this node do?"

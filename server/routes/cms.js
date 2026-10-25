@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CMS Routes — public read endpoints + admin CRUD for the multi-site CMS.
  *

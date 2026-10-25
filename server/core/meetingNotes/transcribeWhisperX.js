@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Transport to the self-hosted WhisperX service (transcription + diarization).
  *

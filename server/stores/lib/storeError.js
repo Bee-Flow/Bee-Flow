@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/lib/storeError.js: the error a store throws for the client to see.
  *

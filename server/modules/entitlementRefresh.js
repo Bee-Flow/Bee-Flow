@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Hub Entitlement Refresh Scheduler.
  *

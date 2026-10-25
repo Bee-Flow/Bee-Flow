@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One implementation of the "signing secret with a durable fallback" pattern.
  *

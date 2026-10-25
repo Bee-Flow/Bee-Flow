@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.5 — Secure authentication mechanisms are in place.
  *

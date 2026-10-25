@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 // runDdl statement lists for the user store's accounts, organisations and
 // Nextcloud connector binding, in the order ./schema.js runs them. Each list

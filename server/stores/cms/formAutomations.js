@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // The allow-list of automations a website form may start, and which form
 // blocks may target each.
 //

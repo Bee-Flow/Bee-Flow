@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Strict date reading and timezone-aware fields for the datetime step.
  *

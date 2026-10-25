@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the Studio shared patterns (Track 0 of the 2026-09 Studio redesign).
  *

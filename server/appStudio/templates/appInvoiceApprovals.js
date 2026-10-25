@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio template — Invoice approvals (PDF in, approved and paid out).
  *

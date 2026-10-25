@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One cell, both ways: what Nextcloud stores ↔ what the mirror stores.
  *

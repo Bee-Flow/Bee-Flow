@@ -1,5 +1,5 @@
 /** @typedef {import('../events').WorkEvent} WorkEvent */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Pattern source: the tool calls the user made by hand in chat, from the

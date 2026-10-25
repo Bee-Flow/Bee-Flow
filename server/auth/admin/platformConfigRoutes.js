@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — deployment-wide configuration (super-admin only): default
  * org integrations, connector provisioning mode and the free-email-domain

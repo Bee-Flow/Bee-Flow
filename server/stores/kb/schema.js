@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/kb/schema.js — the knowledge-base tables (knowledge_bases,
  * documents, kb_versions, kb_document_versions, kb_categories, kb_favorites),

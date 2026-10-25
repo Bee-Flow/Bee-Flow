@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What kind of column is this? — decided ONCE, in the wizard.
  *

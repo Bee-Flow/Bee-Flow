@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat end-of-turn: building the rows and meta that persist a turn.
  * The user row (privacy metadata, token map), the assistant tokenisation

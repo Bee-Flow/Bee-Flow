@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Platform Module Package Store — one row per (module_id, version) of a
  * DOWNLOADED remote module package, tracking its on-disk staging outcome.

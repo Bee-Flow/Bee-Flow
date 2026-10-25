@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: the Component Designer is gone (2026-10).
  *

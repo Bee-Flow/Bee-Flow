@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Playbooks — a phased AI build the user watches and consents to phase by
  * phase (Studio → Playbooks). One row per playbook; the phases (status,

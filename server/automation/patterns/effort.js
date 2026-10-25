@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Effort: how many minutes one occurrence of a pattern costs the user.

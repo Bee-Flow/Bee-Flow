@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Native PDF alongside extracted text: the ONE place that decides whether a
  * chat turn may ship the original PDF bytes to the model as a `document`

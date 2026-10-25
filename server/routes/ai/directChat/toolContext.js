@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the context ./toolExec runs a tool call with.
  *

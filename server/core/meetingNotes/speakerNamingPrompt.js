@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The prompt of the speaker-naming call (./speakerNaming.js): the per-ID
  * speaking list, the voiceprint facts and exclusions, the speaker count, the

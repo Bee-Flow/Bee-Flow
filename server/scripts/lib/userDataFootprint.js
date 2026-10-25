@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How much data does a user own, across EVERY table that can hold it?
  *

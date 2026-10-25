@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The shared pieces of custom-integration definition validation
  * (./validateCustomIntegration.js): limits, patterns, the header deny-list,

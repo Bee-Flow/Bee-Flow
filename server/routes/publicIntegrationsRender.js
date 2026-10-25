@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Public integrations directory (/integrations/directory) and one page per
  * integration (/integrations/<id>), rendered from the published site's chrome

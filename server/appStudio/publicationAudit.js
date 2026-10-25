@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * publicationAudit.js — the record of an app's AUDIENCE changing.
  *

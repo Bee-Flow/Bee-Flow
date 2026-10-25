@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Everything a turn does ONCE, before its first round, in pipeline order:
  * ./turnSetup, the project context, ./turnHistory, ./turnPreflight and the

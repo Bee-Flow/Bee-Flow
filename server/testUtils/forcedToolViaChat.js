@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * A stand-in for llmClient.chatForcedTool in tests that already fake an

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Knowledge Bases Store — Multi-KB management
  * 

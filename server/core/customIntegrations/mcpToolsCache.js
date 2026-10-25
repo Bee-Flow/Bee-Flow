@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The activation tools_cache of a remote-MCP custom integration
  * (kind 'mcp_remote'), shared by the AI Integration Builder's activate route

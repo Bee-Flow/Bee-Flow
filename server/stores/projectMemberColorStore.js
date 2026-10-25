@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The colour a project gives one of its people, so they can be told apart at
  * a glance in the chat and on the tasks. One row per (project, person); no

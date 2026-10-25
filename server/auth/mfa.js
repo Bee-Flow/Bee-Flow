@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * MFA (TOTP) helpers — shared by mfaRoutes.js (enroll/manage) and the login
  * flow in loginRoutes.js (verify the second factor before a session is

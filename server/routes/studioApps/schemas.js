@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What the App Studio management routes accept (routes/studioApps/).
  *

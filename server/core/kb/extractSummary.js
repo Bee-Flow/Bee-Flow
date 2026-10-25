@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "What the AI took from it" — one line per document (Knowledge artboard 1b).
  *

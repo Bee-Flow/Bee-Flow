@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The team chat as a participation surface (see engine.js for the contract).
  *

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Data migration: move the agent-linked rows of `ai_tasks` ("agent routines")
  * into Cowork, the last step of prompt-tasks-to-cowork-2026-08.

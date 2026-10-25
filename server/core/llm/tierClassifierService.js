@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Auto-tier selection through classify-service (the zero-shot GLiClass model
  * behind the Condition node's "is about" rule), instead of an LLM call.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The ADDRESS of a public page, and which share serves that address.
  *

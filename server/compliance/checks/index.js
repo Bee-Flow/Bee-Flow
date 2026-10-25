@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Check auto-registration — requires every check file under one directory per
  * built-in framework (frameworks.js `checks_dir`: gdpr/, aia/, iso27001/,

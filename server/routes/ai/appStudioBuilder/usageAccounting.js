@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder — the ONE usage row a turn writes (Wave 6c).
  *

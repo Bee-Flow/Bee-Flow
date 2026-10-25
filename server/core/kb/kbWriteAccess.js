@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "May this person WRITE into this knowledge base?" — asked when an automation
  * ingests, not only when somebody clicks.

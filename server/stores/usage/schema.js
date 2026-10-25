@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The ai_usage_log and payg_meter_outbox tables: their boot DDL, the additive
  * column/index ladder and the REAL -> DOUBLE PRECISION widening of the cost

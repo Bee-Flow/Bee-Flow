@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * isPrivateTarget — a sync, DNS-less literal-host SSRF pre-filter.
  *

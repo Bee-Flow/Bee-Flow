@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/studioApp/schema.js — the studio_apps / studio_app_versions schema
  * and the store's memoised init (one instance: every module awaits this one).

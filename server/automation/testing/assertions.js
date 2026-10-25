@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Assertions on the result of a test case: a CLOSED vocabulary evaluated in
  * plain JS. Nothing here evaluates text: a path is read with the shared

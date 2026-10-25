@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Backfill: link the agent_call automations that already have an explicit
  * agent to that agent (2026-10).

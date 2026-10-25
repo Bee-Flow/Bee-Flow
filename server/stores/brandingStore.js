@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Branding Store — thin façade over configStore for the theming system.
  *

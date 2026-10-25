@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * System Agents — Registry-driven seeding and single getter
  *

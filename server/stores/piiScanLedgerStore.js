@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * PII scan ledger — a durable memo of the guard's verdict for one segment.
  *

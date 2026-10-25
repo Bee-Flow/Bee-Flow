@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Org Custom Integration Store — AI Integration Builder persistence.
  *

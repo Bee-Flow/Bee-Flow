@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * SLA policies per priority — the first-response and resolution clocks the
  * enforcer measures threads against. Staff read; the acting org decides

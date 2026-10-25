@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Rate limiters for the anonymous public-share AI bridge
  * (server/routes/publicShareBridge.js).

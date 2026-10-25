@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Memory telemetry: every MEMORY_TELEMETRY_INTERVAL_MS (default 5 min) log the
  * process memory in MB, so a slowly growing server shows up in the logs before

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The table handle: what a step output carries instead of the rows.
  *

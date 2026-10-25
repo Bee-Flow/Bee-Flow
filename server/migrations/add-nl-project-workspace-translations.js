@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the collaborative project workspace (2026-09): the projects list,
  * the workspace shell (overview, members, activity, settings), team and AI

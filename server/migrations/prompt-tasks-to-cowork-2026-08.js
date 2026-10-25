@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Data migration: move plain prompt tasks out of `ai_tasks` into Cowork.
  *

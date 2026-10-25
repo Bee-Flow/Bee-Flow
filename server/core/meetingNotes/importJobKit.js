@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The job plumbing the meeting-note engines share: gmeetAutoImport and
  * teamsAutoImport (discover -> seed jobs -> claim -> ingest), and the

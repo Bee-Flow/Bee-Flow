@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio builder — function-calling tool schemas (OpenAI format).
  *

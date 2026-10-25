@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Support audit emission — the single front-door for writing to the unified
  * support_audit_log. Wraps supportStore.recordAuditEvent so emission is always

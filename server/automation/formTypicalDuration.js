@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * formTypicalDuration.js — "this usually takes about N seconds".
  *

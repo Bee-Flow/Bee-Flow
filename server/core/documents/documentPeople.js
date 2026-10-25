@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Display names for the people a documents answer mentions: the owner and
  * last editor on a library row, the authors of versions, the peers present.

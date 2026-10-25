@@ -1,5 +1,5 @@
 /** @typedef {import('url').URL} URL */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which relying party a WebAuthn ceremony is for: the origin the browser is on
  * and the RP ID the key is bound to.

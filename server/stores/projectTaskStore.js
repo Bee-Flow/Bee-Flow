@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tasks inside a collaborative project: something to do, with an optional
  * description, people it is given to, a due date and links to what it is

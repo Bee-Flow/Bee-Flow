@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Website forms: the public endpoint behind the CMS `form` block. The
  * admin side that decides which automations it may start is cmsFormsAdmin.js.

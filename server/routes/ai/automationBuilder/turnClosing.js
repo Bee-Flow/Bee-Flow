@@ -1,5 +1,5 @@
 /** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — closing a turn after its rounds: the auto-finalize
  * net, naming an untitled draft, the proposal (approve mode, a buffered

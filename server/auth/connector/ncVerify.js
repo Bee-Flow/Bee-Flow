@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Connector: proof that the caller's Nextcloud is the instance it
  * claims to be (the capabilities round-trip every bootstrap and diagnose call

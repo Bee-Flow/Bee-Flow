@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The project items a chat message tags, as the assistant reads them:
  * loaded as the asking member (so their access rules apply), cut to a size the

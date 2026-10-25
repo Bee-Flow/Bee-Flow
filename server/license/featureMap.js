@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Route → feature gating registry.
  *

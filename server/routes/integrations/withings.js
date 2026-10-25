@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Withings connector routes — mounted at /api/integrations/withings.
  *

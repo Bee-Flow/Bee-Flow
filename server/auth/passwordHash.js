@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login password hashing — the one place that turns a password into a stored
  * `passwordHash` and checks a password against one.

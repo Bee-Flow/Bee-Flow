@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What the server checks in the bytes a client sends: Yjs updates, state
  * vectors and awareness updates. All of it is untrusted input.

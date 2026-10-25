@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the project chat composers (2026-10, golf 4): the accessible
  * names of the shared composer box in the team chat and in "start a conversation".

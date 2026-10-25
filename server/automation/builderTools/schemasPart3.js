@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Part 3 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { BINDING_HINT, SPLICE_DESCRIPTION } = require('./schemaFragments');

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * flowletAgent.js — a focused sub-agent that builds (or refines) ONE inline
  * flowlet (a reusable sub-flow in definition.layers).

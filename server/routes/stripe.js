@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Stripe API Routes — Checkout, Portal, Webhooks, and public plan listing
  *

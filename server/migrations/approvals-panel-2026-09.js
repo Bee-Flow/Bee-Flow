@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: approval PANELS — multiple approvers, decision rules, and an
  * optional final sign-off stage (2026-09).

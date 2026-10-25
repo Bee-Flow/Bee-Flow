@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Blueprint store limits and vocabularies: the ceilings every writer checks,
  * the release channels and payload kinds, the deployment statuses the

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * File comments over the DAV comments endpoint — read the thread on a file id
  * and post a new comment.

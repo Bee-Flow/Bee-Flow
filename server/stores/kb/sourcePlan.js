@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/kb/sourcePlan.js: which sources a knowledge base's unassigned
  * documents (documents.source_id IS NULL, i.e. rows that predate the source

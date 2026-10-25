@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which pyannoteAI models to use, and why.
  *

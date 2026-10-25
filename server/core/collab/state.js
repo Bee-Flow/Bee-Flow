@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Rebuilding a document's current Yjs state from storage: the compacted
  * snapshot plus every update after it, opened with the document key.

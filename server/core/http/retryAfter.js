@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Waiting out a throttled API, the one way every client here does it.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * memoryScoring — pure ranking maths for memory retrieval.
  *

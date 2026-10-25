@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Gmeet Import Store — PostgreSQL-backed Google Meet ingest job queue.
  *

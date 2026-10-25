@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Drive. Hand-written poller in triggerBus.js (changes.list against a
  * start page token).

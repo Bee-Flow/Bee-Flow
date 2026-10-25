@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Explicit "record" marks as a signal for background import engines: which
  * users have a live opt-in. Split from meetingPrefsStore.js (file budget).

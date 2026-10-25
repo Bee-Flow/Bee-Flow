@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * notebookCascade — erase everything a notebook owns, not just its rows.
  *

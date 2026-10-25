@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The real core/http/sseHelpers for a route test, minus the keep-alive timer.
  *

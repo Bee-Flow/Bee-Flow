@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Calendar API routes — execute calendar actions after user approval
  * Handles both Google Calendar and Microsoft Calendar (via _provider field).

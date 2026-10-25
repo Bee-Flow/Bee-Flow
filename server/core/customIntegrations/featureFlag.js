@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Custom-integrations kill switch (dark-ship gate).
  *

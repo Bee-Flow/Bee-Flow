@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: teach the seeded memory-extractor prompt that a reply language is
  * not a preference (BFSF-387).

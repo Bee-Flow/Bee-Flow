@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project team chats: storing one human message, announcing it, and asking
  * the assistant when the chat's rule says so. Shared by "start a chat with a

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "Frequently used" in the builder (Studio → Automations handoff 5).
  *

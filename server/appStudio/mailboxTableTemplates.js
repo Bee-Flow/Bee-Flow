@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The fixed table shapes a mailbox connector writes (see mailboxConnector.js).
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/cards.js — the notebook card listing's query and card shape
  * (overview grid and project listing); no database access. Split out of stores/notebookStore.js.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Stripe configuration status + the public plan catalogue.
  *

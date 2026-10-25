@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "Reuse the answer" for the ai_step: the run memo (step.askOnce) and the
  * durable cross-run tier (step.askOnce.acrossRuns), which key, when a model

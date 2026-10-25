@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The trash bin — list deleted items, restore one to its original location, or
  * remove it permanently.

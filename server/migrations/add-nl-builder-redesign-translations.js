@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the automation BUILDER redesign (Track R of the 2026-09 Studio
  * programme) — the canvas, the step drawer and the mapping surfaces.

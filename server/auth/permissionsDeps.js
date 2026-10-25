@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Permissions — the collaborators that sit in the server's big import cycle
  * (stores/userStore, auth/orgScope, auth/orgRolePolicy, auth/microsoftSession,

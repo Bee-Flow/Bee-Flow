@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage chat: the end of one turn (routes/ai/webpageChat.js). The
  * tool-driven slot edits persisted with one AI version per turn, the

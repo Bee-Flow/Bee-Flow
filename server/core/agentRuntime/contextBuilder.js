@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const { processSystemPrompt } = require('../llm/promptUtils');
 const { nowLine } = require('../llm/clock');
 const { buildSkillInjection } = require('../tools/skillInjection');

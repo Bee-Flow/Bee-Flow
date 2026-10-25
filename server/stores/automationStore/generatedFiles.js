@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * generatedFiles.js — the ledger for documents a RUN produced.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Learning Center server routes — AI coach (grade + hint).
 //
 // Mounted at /ai/learning (see server/routes/ai.js). Authenticated, rate-limited,

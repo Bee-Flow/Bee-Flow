@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Solution stage deployments: the 15-second tick of the deploy runner
  * (projects/stages/runner.js, design 6.4).

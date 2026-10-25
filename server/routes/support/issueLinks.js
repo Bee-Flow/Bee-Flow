@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').Router} Router */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Ticket ↔ YouTrack issue links, for the admin support inbox.
  *

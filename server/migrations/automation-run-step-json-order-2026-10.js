@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: automation_run_steps.input_json / output_json and
  * automation_runs.trigger_payload from JSONB to JSON.

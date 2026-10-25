@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage DB Store — per-webpage SQLite database engine. Config wrapper over
  * stores/lib/sqliteBlobEngine (the studio-app store was forked from this file;

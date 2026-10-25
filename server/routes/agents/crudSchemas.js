@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent CRUD: what a caller may send to the category, transfer and tool-param
  * routes and to the agent save (PUT /:id). Split out of crud.js; behaviour

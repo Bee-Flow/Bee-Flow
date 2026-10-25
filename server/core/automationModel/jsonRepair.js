@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Rescue JSON that a language model very nearly wrote correctly.
  *

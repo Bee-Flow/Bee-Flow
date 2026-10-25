@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * WHAT THIS ROUTER REACHES FOR — one lazy entry per module, so requiring the
  * router costs nothing and a test can hand the whole graph in instead

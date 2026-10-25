@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Slides. Same shape as the Sheets declaration: poll_diff over
  * slides_list, which already reports each presentation's modifiedTime.

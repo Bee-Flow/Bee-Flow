@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /** select: keep, drop and rename columns. Lazy. */
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The serial full-menu examples (2-5): inspect-then-bind, update-in-place,

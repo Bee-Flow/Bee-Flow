@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * approvalDeliveries.js — the ledger of approval cards sent OUT of the app.
  *

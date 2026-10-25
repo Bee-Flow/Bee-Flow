@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GitHub Sync Routes — Configure and trigger sync of agent/skill configs to GitHub
  *

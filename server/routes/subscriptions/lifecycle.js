@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Subscription lifecycle — the in-app plan change (upgrade / scheduled
  * downgrade), its cost preview, and cancel / reactivate, for orgs and for

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — shared org-admin authorization guards.
  *

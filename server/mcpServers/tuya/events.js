@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Trigger events the bundled Tuya MCP server can back.
  *

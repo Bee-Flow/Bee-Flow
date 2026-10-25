@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — per-user favorites (DB-backed).
  */

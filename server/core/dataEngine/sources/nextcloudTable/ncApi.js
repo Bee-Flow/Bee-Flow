@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The Nextcloud Tables REST calls a mirror makes, bound to one authenticated
  * `fetch`.

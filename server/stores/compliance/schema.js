@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The boot DDL of the compliance store: every table, index and additive
  * column, in the order the store has always created them. The barrel

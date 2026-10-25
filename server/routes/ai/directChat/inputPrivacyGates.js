@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat input gates, part two: the PII detection gate (block or
  * tokenize, fail-closed when protection is unavailable) and the interactive

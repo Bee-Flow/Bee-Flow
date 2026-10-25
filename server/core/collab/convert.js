@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The bridge between a co-edited Yjs document and everything else that reads
  * or writes the content: the legacy HTML/Markdown columns, the AI, exports,

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project comment threads: the pure pieces of routes/projects/comments.js.
  * The feed event shape, how a thread and a comment are presented (sealed

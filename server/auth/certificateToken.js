@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // HMAC-based identifiers for Learning Center certificates.
 //
 // Two derived values, both HMAC-SHA256 over the canonical issuance tuple so they

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // User store schema — creates the users/organizations/groups/roles/subscription
 // tables, applies the incremental column migrations on boot, and runs the
 // one-time users/groups/roles JSON→DB migration.

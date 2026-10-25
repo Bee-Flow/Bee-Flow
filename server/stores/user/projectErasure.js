@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Account erasure, the collaborative-project half.
  *

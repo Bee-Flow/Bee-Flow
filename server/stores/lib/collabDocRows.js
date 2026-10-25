@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The vocabulary and row shapes of the co-editing store (../collabDocStore.js,

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the check-registry endpoint: every check definition the UI
  * needs to label and link a row, plus the static framework catalogue and the

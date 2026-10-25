@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Real-time co-editing routes — the HTTP half of the Yjs sync protocol. The
  * other half (server → client) rides on the project stream

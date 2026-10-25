@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tick the App Studio builder's plan checklist from what the tool calls did.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A small constant evaluator: what a string (or number, or array of them)
  * expression is, when the code alone decides it.

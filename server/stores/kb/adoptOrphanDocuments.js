@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Adopting source-less documents into kb_sources (a sibling of stores/kbSources.js;
  * routes/knowledgeBases/sources.js builds it with KbSourcesStore.initDB).

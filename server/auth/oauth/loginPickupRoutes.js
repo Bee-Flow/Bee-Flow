@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OAuth pickup claim — the one-time session-token handoff for embedded
  * iframes that cannot see the popup's session cookie.

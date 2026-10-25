@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Dutch translations for the production subscription work —
  * in-app plan change (upgrade/downgrade with cost preview), the scheduled-

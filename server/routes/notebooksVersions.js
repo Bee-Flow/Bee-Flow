@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook versions — the uniform version API (the same shape Studio
  * documents answer), mounted under /api/notebooks by routes/notebooks.js.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Music Generation Tool — Lyria RealTime via Google GenAI
  * 

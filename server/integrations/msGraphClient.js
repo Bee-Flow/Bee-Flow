@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft Graph API Client — Shared helper for Microsoft integrations
  * 

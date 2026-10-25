@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The two multi-call Forms writes, apart from nextcloudFormsTools.js (which

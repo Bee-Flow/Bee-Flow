@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: structured skill fields (Bee Flow Builder redesign, Sep 2026, S1).
  *

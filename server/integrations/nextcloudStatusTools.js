@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud User Status Tools — get / set / clear the current user's status.
  *

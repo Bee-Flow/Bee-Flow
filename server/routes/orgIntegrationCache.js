@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Organisation policy for keeping integration answers BETWEEN runs.
  *

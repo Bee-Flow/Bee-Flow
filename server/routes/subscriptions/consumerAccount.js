@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Consumer (individual) accounts — the signed-in user's own limits, usage and
  * subscription status, plus starting their one-time trial.

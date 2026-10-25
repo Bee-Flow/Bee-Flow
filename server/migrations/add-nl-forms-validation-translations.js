@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the checks a filled-in form shows: "required", the choice
  * placeholders and limits, the per-question rule messages (minimum, maximum,

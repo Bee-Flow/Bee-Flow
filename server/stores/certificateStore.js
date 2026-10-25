@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Issued-certificate storage over configStore (no new DB table).
 //
 //   learning_certificate_user_${userId}        → { [certId]: IssuedCertRecord }

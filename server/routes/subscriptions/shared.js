@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Shared access gates for the subscriptions routers — the super-admin check,
  * the org-admin/org-member checks and the audit actor id.

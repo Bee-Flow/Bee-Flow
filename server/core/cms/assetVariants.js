@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Resized WebP variants of uploaded CMS images, for `srcset` on the public

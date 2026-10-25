@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * /search-index.json and /<locale>/search-index.json: the client-side search
  * index (see core/seo/searchIndex). Like the sitemap and the feed it never

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * "Your own data" in the Privacy Shield document: what the GET shows and

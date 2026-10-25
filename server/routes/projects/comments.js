@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Comment threads on the notebooks, pages and designed documents filed in a
  * project. Mounted under /api/projects (the mount carries requireAuthedUser

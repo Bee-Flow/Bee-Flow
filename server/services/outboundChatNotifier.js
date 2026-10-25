@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tells the team, in chat, that something arrived in the support inbox.
  *

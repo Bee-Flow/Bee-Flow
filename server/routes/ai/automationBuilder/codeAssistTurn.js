@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One turn of the code assistant: the model loop behind
  * POST /api/automation/builder/code/assist.

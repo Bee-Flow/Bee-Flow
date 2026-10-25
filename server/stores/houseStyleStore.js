@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * House Style Store — per-organization Word/DOCX templates that drive the
  * styling of Notebook exports (font, headings, margins, header/footer logo).

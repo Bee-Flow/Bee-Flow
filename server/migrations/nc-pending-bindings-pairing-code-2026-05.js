@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: pending_nc_bindings pairing-code columns (2026-05).
  *

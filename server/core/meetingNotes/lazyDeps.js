@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A module's collaborators, loaded on first use and swappable in tests.
  *

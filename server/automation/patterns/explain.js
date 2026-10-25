@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Explain: the ONE model call of a pattern scan. The miner decided what

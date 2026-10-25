@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Reject regex patterns with the classic catastrophic-backtracking shape: a

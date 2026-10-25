@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Platform-module catalog — PURE DATA.
  *

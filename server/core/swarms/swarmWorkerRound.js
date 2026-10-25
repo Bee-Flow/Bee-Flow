@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One tool-call round of a swarm worker (runWorker in ./swarmRuntime.js):
  * the stream callback that forwards text, collects tool calls and logs

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Filling a formula across cells, as a spreadsheet's fill-down and
  * fill-right do: the relative references shift with the cell, `$`-anchored

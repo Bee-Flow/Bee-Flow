@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Store — Thin re-export facade
  *

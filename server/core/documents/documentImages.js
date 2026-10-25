@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Whose stored pictures a presentation shows, for the person looking at it.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent schema init, part 1: core tables, listing/search indexes and the
  * conversation column migrations. The steps are run in this order by

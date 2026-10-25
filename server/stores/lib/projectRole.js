@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "What role does this person hold on that project?", for the stores whose
  * rows can be filed into a project (documents, meeting notes).

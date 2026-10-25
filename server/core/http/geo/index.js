@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * core/http/geo — local IP location for the outbound-call ledger.
  *

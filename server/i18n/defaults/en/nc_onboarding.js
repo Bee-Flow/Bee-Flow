@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // English GUI defaults — namespace "nc_onboarding": every key whose part before the first "." is "nc_onboarding".
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `npm run i18n:gen`.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Opening a customer's archive — what kind is it, and what is inside.
  *

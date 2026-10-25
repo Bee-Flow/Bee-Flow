@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Keyed, shape-preserving look-alikes of an admin's real examples.

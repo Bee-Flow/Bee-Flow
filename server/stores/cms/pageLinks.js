@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Internal page links (`{kind:'page', pageId}`) in a CMS content tree.
 
 const { isPlainObject } = require('./shared');

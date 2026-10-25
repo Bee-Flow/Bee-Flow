@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the Records of Processing Activities: the synthesis, its PDF
  * rendition and the mark-as-reviewed stamp.

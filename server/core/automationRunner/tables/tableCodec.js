@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The stored shape of a table: a gzip stream of lines. Line 1 is
  * `{"v":1,"columns":[...]}`, every following line one JSON ARRAY of cell values

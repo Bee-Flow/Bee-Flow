@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Moved to utils/nextcloudTarget.js: core/kb/fetchGuard.js shares its metadata
  * host list, and core may not require a feature. This re-export keeps the old

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — platform signup policy: the instance-wide signup/waitlist/MFA
  * and geo toggles, plus the waitlist queue itself. Platform scope, never org

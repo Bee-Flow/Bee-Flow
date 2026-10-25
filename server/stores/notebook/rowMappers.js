@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/rowMappers.js — notebook and source rows to API shape.
  * Split out of stores/notebookStore.js.

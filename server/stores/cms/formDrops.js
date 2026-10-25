@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // How many submissions a website form dropped silently, per form block and
 // reason. The honeypot and minimum-age drops answer 200 on purpose (a probe
 // must not learn which signal caught it), so without a count an admin could

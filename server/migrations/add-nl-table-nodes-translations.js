@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: Dutch names for the two table steps in the node catalog
  * (automations.node.read_table.* and automations.node.table.*).

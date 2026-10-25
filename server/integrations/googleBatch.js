@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google API batch requests: many API calls in ONE HTTP request.
  *

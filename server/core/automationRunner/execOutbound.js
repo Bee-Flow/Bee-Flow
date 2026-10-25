@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Guarded outbound steps that are not catalog tools: notification delivery
  * (./execNotification.js), the declarative http_request step

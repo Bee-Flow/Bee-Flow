@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * What the co-editing routes (routes/projects/collab.js) and the project

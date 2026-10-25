@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO evidence connector registry — auto-loads every module in this directory.
  *

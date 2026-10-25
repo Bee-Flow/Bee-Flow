@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Shared text helpers for notebook word counts and excerpts.
  *

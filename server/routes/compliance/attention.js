@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /api/compliance/attention?limit=5 — the "Needs attention" list.
  *

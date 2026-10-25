@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The resources a co-edited document belongs to, and the hooks co-editing
  * calls on their owners.

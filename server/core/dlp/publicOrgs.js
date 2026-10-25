@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Organisations that are public knowledge, not personal data.
  *

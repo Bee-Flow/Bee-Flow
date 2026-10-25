@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/versionModel.js — the notebook version model: sources,
  * limits, normalisers and row mappers (no database access).

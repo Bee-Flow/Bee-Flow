@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Static HTML accessibility lint — the cheap half of the EAA Art. 4 check.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * What the chat reports about the memories a turn used: the `memory_used` SSE

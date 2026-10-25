@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google session hydration from the automation-credential vault (BFSF-255).
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Public-share viewer auth — three signed tokens, all HMAC-SHA256:
  *

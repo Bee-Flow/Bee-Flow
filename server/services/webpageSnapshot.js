@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Snapshot Service — capture an immutable, sanitized copy of a
  * webpage for external/public sharing.

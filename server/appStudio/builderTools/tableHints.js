@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A table id the model wrote that is not a table — but names one.
  *

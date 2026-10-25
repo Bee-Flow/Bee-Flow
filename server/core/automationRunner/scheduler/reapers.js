@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The runner's reapers (extracted verbatim from automationRunner.js).
  *

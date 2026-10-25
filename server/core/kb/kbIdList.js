@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A list of knowledge-base ids, normalised. Nothing else.
  *

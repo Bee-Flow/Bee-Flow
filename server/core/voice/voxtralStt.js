@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Voxtral STT — Speech-to-Text via Mistral's audio transcription endpoint.
  *

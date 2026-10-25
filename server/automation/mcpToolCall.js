@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The call wrapper every MCP tool surface of the automations shares: look the

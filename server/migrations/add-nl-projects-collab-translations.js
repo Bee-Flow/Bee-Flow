@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Dutch translations for the Projects collaboration work —
  * the project list entry point, shared conversations, and the live feed.

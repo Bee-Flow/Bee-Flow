@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(a)–(j) — every risk-management measure is backed by a
  * published, current security policy.

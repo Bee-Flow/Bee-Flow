@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * runListing.js — the reads behind the Runs tab's rows (handoff 5).
  *

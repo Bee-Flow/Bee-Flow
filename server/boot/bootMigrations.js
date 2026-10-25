@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The boot migration ladder — ONE list, two callers.
  *

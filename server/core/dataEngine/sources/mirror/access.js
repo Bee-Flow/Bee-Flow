@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The access filter the mirror engine writes the COPY with: OWNER grade, no
  * viewer. A refresh, an event patch and the second half of a write-through

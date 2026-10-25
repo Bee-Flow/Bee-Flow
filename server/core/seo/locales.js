@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which languages a given page may be ADVERTISED in.
  *

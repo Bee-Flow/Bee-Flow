@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Reader for the CI accessibility-conformance artefact.
  *

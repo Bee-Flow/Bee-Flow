@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.5.9 — Inventory of information and associated assets.
  *

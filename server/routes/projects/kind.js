@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * PUT /api/projects/:id/kind — which side of the split a project is on.
  *

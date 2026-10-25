@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Download names that cannot break out of a header or a directory.
  *

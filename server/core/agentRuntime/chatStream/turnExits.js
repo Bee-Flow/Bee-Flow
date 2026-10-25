@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The ways a turn of ./turnLoop ends other than through ../finalizeTurn, and
  * the words it says when it has to speak for the model.

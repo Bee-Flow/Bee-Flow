@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A row changed IN BEE FLOW → the source first, then the copy — the same
  * contract for every kind, with the adapter supplying only what its source

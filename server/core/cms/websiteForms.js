@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Website forms: the pure half of the CMS `form` block (routes/cmsForms.js is
  * the HTTP half).

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Learning Center weekly review nudge (daily tick).
  *

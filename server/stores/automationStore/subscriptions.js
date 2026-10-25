@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * subscriptions.js — automationStore aggregate (§WS5, extracted verbatim).
  */

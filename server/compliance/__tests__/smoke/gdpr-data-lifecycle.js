@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Smoke scenarios — GDPR data lifecycle and accountability:
  * Art. 5(1)(e) storage limitation, Art. 15/17 DSR SLAs, Art. 30 RoPA,

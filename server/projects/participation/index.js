@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The AI that decides by itself when to take part — the public face.
  *

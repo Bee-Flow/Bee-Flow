@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Security keys (WebAuthn / FIDO2 — YubiKey and the like) as a second factor.
  * Wires the real dependencies into the two routers:

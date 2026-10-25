@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Pure payload builders for the direct-chat tool call (toolExec.js): the
 // dispatcher options, guardrail audit rows, usage row and egress-log
 // arguments. No I/O and no SSE; toolExec.js keeps every await and send.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Trigger-filter primitives that aren't tied to a specific provider.
  *

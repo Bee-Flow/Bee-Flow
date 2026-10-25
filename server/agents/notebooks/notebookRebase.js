@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Carry an edit made against an older copy of a notebook onto its current,
  * co-edited state, block by block.

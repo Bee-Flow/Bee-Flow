@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Test cases on a code step or a custom node: the domain logic behind
  * routes/automation/testCases.js, with its dependencies injected.

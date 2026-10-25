@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Teams WebVTT transcript parsing. Pure, no I/O: split out of teamsArtifacts.js
  * so it can be tested and reused without loading the Graph client.

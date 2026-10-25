@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The pieces ./finalizeTurn puts on (or takes off) the final assistant message
  * of a streaming agent turn: the stray tool-call / think markup stripped from

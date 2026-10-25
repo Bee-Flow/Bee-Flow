@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A capability gate with an org-admin escape hatch for ORG-level endpoints.
  *

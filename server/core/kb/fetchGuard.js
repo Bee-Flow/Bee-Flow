@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { assertUrlIsPublic } = require('./kbIngestionHelpers');
 const { safeFetch } = require('../../utils/ssrfGuard');
 

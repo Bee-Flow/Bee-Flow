@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Server-side rubric catalog for Learning Center exercises.
 //
 // The rubric for each exercise lives HERE, never on the client — so it can't leak

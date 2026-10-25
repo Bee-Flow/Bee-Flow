@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "Which of these knowledge bases may this person actually search, here?"
  *

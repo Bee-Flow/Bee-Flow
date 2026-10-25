@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: runs that use the caller's own connections (runPolicy.connections
  * = 'caller', Refs #201).

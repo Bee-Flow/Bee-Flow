@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the bell notifications of project collaboration (2026-10): a
  * mention in a team chat or a comment, being added, a role change, removal,

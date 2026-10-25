@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Encryption for comment threads: the anchor of every thread (the quoted
  * passage with its context) and the body of every comment are sealed with the

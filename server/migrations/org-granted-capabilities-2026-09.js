@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: grant-grandfather for growth of USER_FACING_CORE (U10).
  *

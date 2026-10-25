@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: teach the seeded memory-extractor prompt about sensitivity, what
  * never to save, and absolute dates (memory write pipeline, 2026-10).

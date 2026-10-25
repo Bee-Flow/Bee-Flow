@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pipeline LLM Helpers
  * Shared LLM call utilities and JSON extraction for the component pipeline.

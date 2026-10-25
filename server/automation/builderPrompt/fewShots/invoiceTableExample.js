@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Fan-out example: list, read per file, extract per result, add_row per result.

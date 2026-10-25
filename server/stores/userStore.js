@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // User store for app passwords, user management, and groups
 // PostgreSQL-backed with envelope encryption
 //

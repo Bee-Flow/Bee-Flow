@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * NC onboarding-incomplete reminder (daily tick).
  *

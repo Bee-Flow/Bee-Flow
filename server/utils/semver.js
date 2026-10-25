@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dependency-free, total semver comparison for module compatibility gates.
  *

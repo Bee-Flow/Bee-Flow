@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which encryption tier a BRAND-NEW organisation starts on.
  *

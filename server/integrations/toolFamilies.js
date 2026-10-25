@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The integration tool families, registered with core's tool dispatcher.
  *

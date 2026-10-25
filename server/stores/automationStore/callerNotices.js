@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automation_caller_notices: which people have acknowledged the one-time notice
  * that an automation runs with THEIR OWN connections (runPolicy.connections =

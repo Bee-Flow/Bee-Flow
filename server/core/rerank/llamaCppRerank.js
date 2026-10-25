@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reranking via the local llama.cpp router (bge-reranker-v2-m3 on the GPU).
  *

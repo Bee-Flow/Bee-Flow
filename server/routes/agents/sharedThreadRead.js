@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /agents/:id/conversations/:convId — who may open an agent conversation.
  *

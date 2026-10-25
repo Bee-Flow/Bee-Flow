@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Boot probes, warmups and the licence/module runtime.
  *

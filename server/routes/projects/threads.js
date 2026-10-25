@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * AI chats shared into a project, and taking one's own chat back out.
  *

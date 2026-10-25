@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Provider Adapters — Thin wrapper providing OpenAI-style createChatCompletion
  *

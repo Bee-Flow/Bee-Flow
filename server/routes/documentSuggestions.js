@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Suggestions on a document, mounted under /api/studio-documents by
  * routes/studioDocuments.js:

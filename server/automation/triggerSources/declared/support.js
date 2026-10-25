@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Support Inbox. Dispatched in-process by the inbox sync engine, org-scoped.
  *

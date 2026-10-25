@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Platform Module Install Store — durable, cross-replica install progress.
  *

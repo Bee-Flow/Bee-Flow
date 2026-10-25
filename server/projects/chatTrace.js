@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "How I got this answer" for a team chat, as a normal chat shows it: what the
  * Privacy Shield replaced before the message went to the model, and what came

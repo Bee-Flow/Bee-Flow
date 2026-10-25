@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The consolidated Activity overview of the outbound-call ledger: everything
  * the Privacy Shield "Activity" tab needs in one response. Reached through

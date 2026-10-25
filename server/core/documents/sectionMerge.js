@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Three-way merge of a designed document's body, block by block.
  *

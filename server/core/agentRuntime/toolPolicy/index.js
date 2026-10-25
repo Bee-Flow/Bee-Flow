@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent tool policy: what an agent may call, and whether a person has to say
  * yes first.

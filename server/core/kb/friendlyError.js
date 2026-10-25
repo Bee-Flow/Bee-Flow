@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * friendlyError — map raw extraction / ingestion errors to short, actionable
  * product language. The raw message is still logged by the caller; only the

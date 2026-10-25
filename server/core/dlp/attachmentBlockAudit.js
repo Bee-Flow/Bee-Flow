@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * How a blocked attachment is written to the guardrail ledger.
  *

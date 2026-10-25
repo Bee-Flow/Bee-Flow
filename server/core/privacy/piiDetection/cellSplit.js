@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * No PII span may cross a line or a table cell (BFSF-299), Node side.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * THE TWO WAYS PAST A PHASE THAT DID NOT WORK.
  *

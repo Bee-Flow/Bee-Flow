@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: the accepted-but-not-yet-started form work, on the visitor's
  * session row (2026-10).

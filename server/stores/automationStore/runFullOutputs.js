@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * runFullOutputs.js — the full copy of a step output the run history had to
  * truncate (BFSF-435, BFSF-402).

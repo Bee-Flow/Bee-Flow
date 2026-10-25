@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: inline layers (n8n-style sub-flows) + run-step nesting columns.
  *

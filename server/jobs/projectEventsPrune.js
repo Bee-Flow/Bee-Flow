@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project live-feed retention: drop `project_events` rows older than a week.
  *

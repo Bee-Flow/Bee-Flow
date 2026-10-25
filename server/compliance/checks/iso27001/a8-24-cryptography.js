@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.24 — Cryptography: the envelope-encryption architecture is
  * intact and its platform keys are configured.

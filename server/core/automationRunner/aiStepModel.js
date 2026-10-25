@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * TEMPORARY override for the model an automation's `ai_step` runs on.
  *

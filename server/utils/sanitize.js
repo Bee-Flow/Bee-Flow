@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Sanitization Utility
  * Redacts sensitive fields from objects before sending to client

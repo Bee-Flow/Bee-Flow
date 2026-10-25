@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.32 — changes demonstrably run through tickets. Reads the
  * YouTrack connector snapshot: issue activity in the designated operations

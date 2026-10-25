@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Proof of a second factor the account ALREADY has, asked before any change
  * to its second factors while two-factor authentication is on: adding a

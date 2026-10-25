@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // The design values a CMS block's `style` may carry for its background image
 // and the built-in brand motif, and the one function that cleans them. This
 // file is the source of record: agent-hub gets a byte-for-byte GENERATED copy

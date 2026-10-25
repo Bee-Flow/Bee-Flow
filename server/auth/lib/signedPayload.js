@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The HMAC-SHA256 "payload.signature" envelope shared by the signed-token
  * modules (publicShareToken, webpagePreviewToken).

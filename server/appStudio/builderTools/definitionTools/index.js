@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio builder tools — the DEFINITION side: meta/theme, screens &
  * sections, components (incl. the batch forms), actions, variables and the

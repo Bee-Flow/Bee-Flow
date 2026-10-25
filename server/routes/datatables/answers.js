@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A form's answers (managed_kind = 'form_answers').
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * "Your own data": org-defined kinds of sensitive data for the Privacy Shield.

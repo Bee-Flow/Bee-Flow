@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio template — Lookup console — search form → automation result in a table + stat.
  *

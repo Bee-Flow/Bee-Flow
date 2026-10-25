@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Turn a 3D CAD file into a picture — one PNG holding four labelled views.
  *

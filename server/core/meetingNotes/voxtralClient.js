@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Mistral client for Voxtral transcription, built in one place.
  *

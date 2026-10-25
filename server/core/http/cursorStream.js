@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A cursor-based Server-Sent Events stream: the skeleton of
  * GET /api/projects/:id/stream, shared so the co-editing frames that ride on

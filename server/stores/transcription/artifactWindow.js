@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The SQL for the three artifact columns (action_items / decisions /
  * questions) of a regeneration: the database clock and the windowed merge

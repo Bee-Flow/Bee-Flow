@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation trash purge (Studio → Automations handoff 5).
  *

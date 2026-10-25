@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Data Act Art. 30(5) — exports come in a structured, commonly used,
  * machine-readable format.

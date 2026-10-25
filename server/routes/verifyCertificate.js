@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Public certificate verification — unauthenticated /verify/:token.
 //
 // Mounted before the SPA catch-all in index.js. Resolves a Bee Flow AI certificate

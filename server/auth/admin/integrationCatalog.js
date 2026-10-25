@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — the built-in integration id catalogue, shared by the
  * default-integrations config routes and the org active-integrations routes.

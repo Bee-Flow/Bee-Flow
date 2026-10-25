@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Turning an ai_step's raw reply into its output (moved verbatim out of
  * execAi.js): when the step has a schema, the JSON is pulled out of the

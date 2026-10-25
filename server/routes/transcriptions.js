@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions API — REST endpoints for meeting transcription history.
  *

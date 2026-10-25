@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tell the Compliance Center that something its project checks read has
  * changed, so the project is re-judged within seconds instead of at the next

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Caps for table data. Every one is an environment variable with a generous
  * default, and 0 means unlimited (the one exception is `minGroupFloor`, a

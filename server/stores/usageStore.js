@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Usage Store - Tracks AI API usage (tokens, models, agents, tools)
  * PostgreSQL-backed logging for monitoring dashboard.

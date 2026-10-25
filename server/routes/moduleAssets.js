@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Module frontend assets — serves the static frontend bundle of an ACTIVE
  * remote module, and ONLY of its currently-active version.

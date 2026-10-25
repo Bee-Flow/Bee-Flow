@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * SQL fragments for the outbound-call ledger (integration_activity_log).
  *

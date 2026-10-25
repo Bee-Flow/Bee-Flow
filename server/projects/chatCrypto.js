@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Encryption for team chats: every title and message body is sealed with the
  * PROJECT key before it reaches the database, and opened after it leaves.

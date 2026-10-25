@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Finding a co-edited document for the service (./service.js): the project
  * behind an authorised request, the document found only through that project

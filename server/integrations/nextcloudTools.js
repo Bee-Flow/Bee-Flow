@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Tools — AI tools for files via WebDAV + OCS.
  *

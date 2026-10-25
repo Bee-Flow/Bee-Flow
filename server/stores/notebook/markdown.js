@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/markdown.js — the one place the notebook store reaches the
  * HTML/Markdown converter in core/markdown (a stores -> core edge the layer

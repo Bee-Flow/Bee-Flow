@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Abuse limits for the publicly reachable support endpoints: the anonymous
  * submit limiter, the thread-read limiter that blunts UUID brute-force, and

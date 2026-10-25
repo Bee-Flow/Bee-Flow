@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A curated subset of the Lucide icon set (https://lucide.dev) as SVG element
  * data on a 24×24 grid — ISC licence, © Lucide Contributors; copied from

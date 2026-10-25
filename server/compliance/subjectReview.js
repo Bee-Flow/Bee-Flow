@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance subject review — re-judge ONE thing the moment it changes,
  * instead of waiting for the next sweep.

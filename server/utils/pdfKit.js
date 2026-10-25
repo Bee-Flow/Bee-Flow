@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The pdfkit conventions this codebase already had, in one place.
  *

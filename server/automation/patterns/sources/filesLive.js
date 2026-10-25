@@ -1,5 +1,5 @@
 /** @typedef {import('../events').WorkEvent} WorkEvent */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Pattern source: files the user created or changed, read live at scan time.

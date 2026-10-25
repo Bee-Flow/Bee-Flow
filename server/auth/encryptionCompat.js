@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Zero-knowledge envelope encryption: backward-compatible wrappers.
  *

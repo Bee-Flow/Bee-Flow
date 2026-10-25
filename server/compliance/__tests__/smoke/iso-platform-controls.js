@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Smoke scenarios — ISO 27001 controls proven by the platform itself:
  * A.5.15 access control, A.8.5 secure authentication, A.8.24 cryptography,

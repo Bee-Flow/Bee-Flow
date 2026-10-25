@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Studio App Routes — CRUD, publish, versions and runtime-read for App Studio.
  *

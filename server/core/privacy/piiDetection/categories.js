@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Category registry — the categories the PII Guard can emit, the legacy ids
  * old shield configs still reference, the default confidence threshold, and

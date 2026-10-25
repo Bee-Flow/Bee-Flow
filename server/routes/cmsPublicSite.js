@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The PUBLIC read of the live CMS site: GET /api/cms/site (page, blog index or
  * post, legacy or v2 shape) with the analytics envelope (Umami + Google

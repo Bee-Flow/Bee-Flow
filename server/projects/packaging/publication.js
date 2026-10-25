@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Publishing a Solution: the server-side gate, the release note and the
  * announcement.

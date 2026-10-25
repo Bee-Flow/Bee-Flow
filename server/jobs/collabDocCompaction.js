@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Co-editing upkeep — materialise, checkpoint and compact the documents
  * people are (or were just) editing together (core/collab).

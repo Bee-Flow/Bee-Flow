@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The plain-language lines for the two table steps, read by summarise.js: the
  * sentence in the automation's summary, and the compact detail on the builder

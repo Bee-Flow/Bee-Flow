@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The builder prompt's section on uploaded tables (the `read_table` and `table`

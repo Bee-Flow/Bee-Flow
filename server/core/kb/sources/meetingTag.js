@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Meetings carrying a tag, as a knowledge source ("after every meeting").
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Presence and streams for the co-editing service (./service.js): stamping,
  * checking and relaying awareness updates, the presence endpoint (update,

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // ESLint flat config for server/ — a correctness floor, not a style guide.
 //
 // Scope: only rules that catch real defects (undefined variables, duplicate

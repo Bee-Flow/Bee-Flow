@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Shares over the files_sharing OCS API — public links, user/group/email
  * shares, listing, updating and revoking — plus the group lookup a group share

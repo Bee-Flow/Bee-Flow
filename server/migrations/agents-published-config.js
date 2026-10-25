@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: agents concept/live split (A1, 2026-09) — in TWO parts.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Field checks per operation. Each checker gets the raw op `r` (what was

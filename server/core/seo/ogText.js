@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Text as SVG outlines, for the generated share image (core/seo/ogCard.js).

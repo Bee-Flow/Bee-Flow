@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memorySimilarity.js — dedupe: the memories most similar to a text
  * (lexical and vector score) and the one that says the same thing. Split out

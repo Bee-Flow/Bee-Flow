@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The writes of the document lifecycle (./lifecycle.js) that keep a
  * co-edited document's surroundings current: the mirror (materialise), the

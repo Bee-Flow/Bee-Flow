@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * English GUI String Defaults — the canonical catalogue of every translatable

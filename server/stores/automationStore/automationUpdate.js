@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The column write of automationStore.updateAutomation (split out of
  * automations.js): which fields map to which columns, and the definition

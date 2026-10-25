@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The two timers of a periodic job: one pass `bootDelayMs` after start (a
  * short-lived replica may never see its first interval, and a pod that just

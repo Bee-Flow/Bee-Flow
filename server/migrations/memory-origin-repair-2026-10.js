@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: undo a wrong `origin = 'explicit'` from an earlier build's backfill.
  *

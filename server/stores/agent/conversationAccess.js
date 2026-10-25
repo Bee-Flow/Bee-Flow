@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Who may read or write a conversation, and which key opens it.
  *

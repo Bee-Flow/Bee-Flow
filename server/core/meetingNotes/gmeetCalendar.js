@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Meet calendar helper — mirror of `talkCalendar.js` for Google.
  *

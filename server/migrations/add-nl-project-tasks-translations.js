@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for project tasks (2026-10): the Tasks tab (list and board, filters,
  * priority, labels, checklist), the task form, making tasks from a meeting's

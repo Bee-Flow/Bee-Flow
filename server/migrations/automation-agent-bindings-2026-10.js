@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: automation_agent_bindings (2026-10), which agents may call an
  * `agent_call` automation.

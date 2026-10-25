@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Sprints inside a collaborative project: a named time box with a goal, a
  * status (planned, active, closed) and an optional capacity in story points.

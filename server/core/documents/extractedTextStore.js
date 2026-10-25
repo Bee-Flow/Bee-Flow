@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Extracted-text tiering — keep small file extractions inline on the message
  * sidecar, offload large ones to RustFS so meta_json rows don't bloat.

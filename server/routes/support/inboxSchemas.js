@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * What the tenant support inbox accepts (routes/supportInbox.js).

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Browser Provider — a thin Playwright client over a REMOTE Chromium.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 // The user store's base tables (users, organizations, groups, roles,
 // subscriptions, audit and consent ledgers) as one exec batch, plus the

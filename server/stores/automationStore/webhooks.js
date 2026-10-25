@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * webhooks.js — automationStore aggregate (§WS5, extracted verbatim).
  */

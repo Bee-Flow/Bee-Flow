@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * System tags — list and create tags, attach or detach them from a file, and
  * find every file carrying one.

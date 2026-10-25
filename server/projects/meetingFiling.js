@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Filing a NEW meeting note into a project, at upload time.
  *

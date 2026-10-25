@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Filing an item into a project, or taking it out (PUT /api/projects/:id/resources),
  * with what has to happen around the membership registry's `setProject`:

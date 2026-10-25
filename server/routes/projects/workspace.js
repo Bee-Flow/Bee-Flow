@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project workspace routes — files, "my chats" and presence.
  *

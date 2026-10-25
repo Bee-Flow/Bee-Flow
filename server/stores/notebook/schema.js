@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/schema.js — DDL and migrations of the notebook store
  * (notebooks, notebook_sources, notebook_versions). The one initDB memo every

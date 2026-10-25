@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The building blocks of the KB chunker: the token estimate, the atomic-block
  * extraction (tables, code) and the section / long-section / table-row

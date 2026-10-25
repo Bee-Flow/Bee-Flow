@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * WorkEvent: the one normalised record every pattern source emits and the

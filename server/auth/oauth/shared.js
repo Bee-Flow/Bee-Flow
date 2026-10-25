@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OAuth shared helpers — automation-vault upsert, return-URL resolution, the
  * constant-time CSRF-state comparison and the popup redirect page.

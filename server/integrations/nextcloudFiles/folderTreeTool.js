@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /** Schema of nextcloud_folder_tree (own file: toolDefinitions.js is at its size ceiling). */
 
 const FOLDER_TREE_TOOL = {

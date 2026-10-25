@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * R3: cheap, deterministic topic extraction from a schedule result, for the
  * schedule's coverage memory (core/aiTaskRunner.js writes it, the agent's

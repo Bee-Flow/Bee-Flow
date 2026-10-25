@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memoryDeps.js — the dependencies of the split memory modules that sit
  * in the server's large import cycle: memoryCrypto, memoryIndex, the embed

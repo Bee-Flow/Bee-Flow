@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Voxtral TTS — Text-to-Speech with Mistral Voxtral-TTS, falling back to ElevenLabs.
  *

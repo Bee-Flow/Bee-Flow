@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for chat signals (namespace chat_monitoring): checking whether the
  * Privacy Shield works in chat. The admin card in Compliance → Settings, the

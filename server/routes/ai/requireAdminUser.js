@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The admin gate of the AI admin routes: a middleware that answers
  * 403 'Admin access required' unless `isAdminUser(req)` says yes.

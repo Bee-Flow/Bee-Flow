@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Per-turn guard against a model calling the same read-only tool with the
  * same arguments again, and against re-showing passages it already has.

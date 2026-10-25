@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Confidence → category band for the interactive DLP preview.
  *

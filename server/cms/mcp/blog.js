@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Blog tools of the CMS MCP server: list, read, write and delete posts, edit a
  * post's Markdown body in place, translate it, and set the blog index heading.

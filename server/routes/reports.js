@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Reports API Routes
  * Generates JSON-structured reports for the frontend PageRenderer

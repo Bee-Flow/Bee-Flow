@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Operator kill-switch for a feature: `feature_<name>_enabled === false` in
  * the config store turns its routes off with a 403. Fails closed: when the

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A form whose automation runs on the submitter's OWN connections
  * (runPolicy.connections = 'caller') cannot show the one-time notice to a

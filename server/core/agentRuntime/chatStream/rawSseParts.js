@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The pieces of ./rawSseStream: the request body, the fetch (retried, with
  * the client-disconnect signal combined with a 120 s ceiling), one parsed

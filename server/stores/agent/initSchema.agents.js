@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent schema init, part 2: categories, concept/live split, persona, labels,
  * favorites, test sets and the enabledIntegrations backfill. Run by

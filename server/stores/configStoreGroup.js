@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Several config reads/writes as ONE transaction (see withConfigGroup). Split out
 // of configStore.js; the store injects its own init, transaction and cache hooks.
 

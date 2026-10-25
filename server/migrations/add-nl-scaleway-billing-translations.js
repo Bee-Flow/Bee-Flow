@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the Scaleway Billing integration (2026-10-06): the connect card in
  * Settings → Integrations (what it does, the four setup steps, the two fields)

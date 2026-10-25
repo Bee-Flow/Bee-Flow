@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-shot boot checks, backfills and data migrations.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Named MCP access tokens: the `mcp_tokens` table.
  *

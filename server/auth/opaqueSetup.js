@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Can the OPAQUE library this server runs actually read OPAQUE_SERVER_SETUP?

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: alert rules + alert event log (§11 scaffolding).
  *

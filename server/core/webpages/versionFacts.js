@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * versionFacts — what happened in ONE edit of a web page, mechanically
  * derived, plus who made it.

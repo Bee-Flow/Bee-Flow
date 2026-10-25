@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The jobs/webpages side of stores/datatableStore/liveChanges.js: the two
  * consumers that must hear a table's rows moved, registered here so the storage

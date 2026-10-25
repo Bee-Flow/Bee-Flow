@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * FAIR FAILURE at every place where a BRIDGE runs — one mechanism, two bridges.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Studio Playbooks — phased AI builds the user watches and consents to.
  *

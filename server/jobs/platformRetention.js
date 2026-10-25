@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Platform retention — the retention passes that belong to no module.
  *

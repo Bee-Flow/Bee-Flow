@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio template — Quote intake (a cutting shop's inbox-to-quote loop).
  *

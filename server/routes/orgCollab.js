@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The organisation switch for real-time co-editing of project notebooks and
  * pages (core/collab/settings.js holds the rule and the storage; this router

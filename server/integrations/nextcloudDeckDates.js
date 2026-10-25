@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /** Due-date handling for the Deck tools. */
 
 /**

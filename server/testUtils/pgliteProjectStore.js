@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A projectStore on a fresh pglite with the project schema applied, for store tests that need a
  * real Postgres. Close `pg` in an `after` hook.

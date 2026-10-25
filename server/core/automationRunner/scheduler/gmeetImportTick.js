@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Google Meet auto-import tick (mounted by ticks.js, which re-exports it).
  *

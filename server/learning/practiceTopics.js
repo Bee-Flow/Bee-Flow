@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Practice topic registry — what the AI practice generator may write questions
 // about, and the ground truth it is grounded in.
 //

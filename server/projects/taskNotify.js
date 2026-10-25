@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The bell notifications of project tasks: "a task was given to you" and, from
  * jobs/projectTaskDueNotifier.js, "a task is due". A notification names the

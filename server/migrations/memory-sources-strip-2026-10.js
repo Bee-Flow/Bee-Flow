@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: drop the plaintext copy of chat messages from memory_sources.
  *

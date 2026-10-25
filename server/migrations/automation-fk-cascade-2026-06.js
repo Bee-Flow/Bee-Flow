@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: add the missing FK + ON DELETE CASCADE to automation child tables (§WS3.2).
  *

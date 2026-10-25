@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CMS Store — multi-project website builder.
  *

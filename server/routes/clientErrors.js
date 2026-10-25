@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Client Errors API — receives error reports from the browser ErrorBoundary.
  *

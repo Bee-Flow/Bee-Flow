@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Smoke scenarios — ISO 27001 governance registers:
  * A.5.24 incident management, A.5.9 asset inventory, A.5.20 supplier

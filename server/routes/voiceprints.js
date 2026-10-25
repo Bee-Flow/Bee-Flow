@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Voiceprints API — self-enrollment for pyannoteAI speaker identification.
  *

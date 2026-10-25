@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Server-side translation of one catalogue key: the English defaults
  * (i18n/defaults/en) overlaid with the stored translations of the locale

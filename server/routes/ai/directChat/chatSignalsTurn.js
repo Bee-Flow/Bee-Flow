@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Direct chat → chat signals (core/privacy/chatSignals.js).

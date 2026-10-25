@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One link check of a site draft: the internal links always, the external URLs
  * only when `external` is true. Used by the admin route, the CMS MCP tool and

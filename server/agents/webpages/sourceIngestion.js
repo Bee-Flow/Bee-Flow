@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Webpage Source Ingestion — mirror of agents/notebooks/sourceIngestion.js
  * but talks to webpageStore so each webpage owns its own KB and source rows.

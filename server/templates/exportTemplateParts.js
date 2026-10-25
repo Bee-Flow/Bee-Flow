@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The static parts of the PDF export document (exportTemplate.js): the print
  * stylesheet and the fallback script for diagrams that arrive un-rendered.

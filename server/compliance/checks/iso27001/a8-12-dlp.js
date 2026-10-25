@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.11 / A.8.12 — Data masking and data leakage prevention.
  *

@@ -1,5 +1,5 @@
 /** @typedef {import('url').URL} URL */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * EAA Art. 13(2) / Annex V (indicative) — an accessibility statement is
  * published.

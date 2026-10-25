@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Machinery Regulation (EU) 2023/1230 Art. 3(3) / Annex III B §1.1.9
  * (indicative) — are there industrial control integrations?

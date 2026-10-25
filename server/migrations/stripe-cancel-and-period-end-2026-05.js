@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: Stripe subscription cancel-at-period-end + period tracking (2026-05).
  *

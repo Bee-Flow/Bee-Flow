@@ -1,5 +1,5 @@
 /** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Microsoft-specific steps of the OAuth callback (providerCallbackRoutes.js):

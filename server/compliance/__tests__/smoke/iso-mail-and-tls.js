@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Smoke scenarios — ISO 27001 checks on the public edge:
  * A.5.14 mail spoofing protection and A.8.24 TLS on public endpoints.

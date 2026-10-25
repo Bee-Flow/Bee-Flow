@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Turn a source binding into the bytes of a file, for the `read_table` step.
  *

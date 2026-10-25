@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * POST /api/studio/ai/route — "Describe it, AI picks the building blocks".
  * (Bee Flow Builder redesign, Sep 2026, Track H4.)

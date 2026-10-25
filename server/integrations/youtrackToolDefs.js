@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * YouTrack tool definitions (OpenAI function-calling format), kept apart from
  * the executor in youtrackTools.js: pure data, no requires.

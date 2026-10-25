@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What the two table steps output, as shapes for the builder's reference
  * check (refCheck.js): `steps.<id>.output.<key>` is checked against these, so a

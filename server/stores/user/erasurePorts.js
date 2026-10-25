@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Account-erasure ports: what the storage layer needs from the features to
  * erase a user completely, injected so stores/user/ does not require

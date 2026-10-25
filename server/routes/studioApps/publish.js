@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Publish, the Nextcloud app menu, and the publish-version history (routes/studioApps/).
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — well-known upstream failures, said in words the user can act
  * on instead of a transport error. Anything unrecognised is passed through

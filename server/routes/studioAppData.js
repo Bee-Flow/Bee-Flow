@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio v2 — DATA API (record CRUD + aggregation query).
  *

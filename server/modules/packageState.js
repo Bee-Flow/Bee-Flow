@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Package loader: the shared state of the remote-module lifecycle.
  *

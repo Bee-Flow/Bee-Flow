@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * document_download: the chat hands the user a download button for a
  * SPREADSHEET document. The file is built here from the stored cells, so the

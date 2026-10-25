@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Entrypoint for the throwaway Playwright runner container.
  *

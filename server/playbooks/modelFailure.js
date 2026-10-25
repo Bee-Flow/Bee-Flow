@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * WHEN A PLAYBOOK'S MODEL CALL FAILS: what the person sees, and what the
  * operator's log keeps.

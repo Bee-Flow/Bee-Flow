@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Memory API Routes
  * Manage user memories for AI agents

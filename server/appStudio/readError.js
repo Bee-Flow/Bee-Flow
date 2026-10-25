@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio — a CLIENT-SAFE refusal on the READ path.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Connector: the emailed one-time code of the email-verification
  * branch (generation, masking the address it goes to, and the caps around it).

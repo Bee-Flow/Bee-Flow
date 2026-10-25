@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The remaining usage reports: the filter value lists, the per-source, user,
  * organisation, conversation, agent-type and swarm-run breakdowns, and the

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GDPR Art. 32 — Encryption at rest.
  *

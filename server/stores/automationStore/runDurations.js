@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * runDurations.js — how long the recent legs of an automation took.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Self-service OAuth credential management — list and revoke the long-lived
  * provider credentials the automation vault holds for the signed-in user.

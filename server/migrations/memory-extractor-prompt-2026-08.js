@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: correct two stale lines in the seeded memory-extractor prompt.
  *

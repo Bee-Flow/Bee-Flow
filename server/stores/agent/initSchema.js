@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Schema Init - Shared PostgreSQL table creation for all agent sub-modules
  * Uses a promise singleton to prevent concurrent CREATE TABLE races.

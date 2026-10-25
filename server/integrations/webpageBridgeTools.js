@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Bridge Tools — studio-AI tools that let the author manage which
  * platform capabilities are exposed to the running page via

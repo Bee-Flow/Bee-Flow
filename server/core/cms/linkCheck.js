@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Link check of a CMS site draft: pure, no network and no store.
  *

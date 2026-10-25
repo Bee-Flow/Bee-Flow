@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * License Tier Definitions
  *

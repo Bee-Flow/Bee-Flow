@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Cell references for the spreadsheet assistant: a range as a list of cells,
  * and a formula FILLED over a range (shared/expr/sheetFill.mjs shifts it per

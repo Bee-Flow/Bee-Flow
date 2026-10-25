@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Team chats inside a project — people talking to each other, with the AI
  * answering when asked, or joining on its own in `auto` mode. Mounted under

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Display-name helpers for auto-provisioned Nextcloud organisations.
  *

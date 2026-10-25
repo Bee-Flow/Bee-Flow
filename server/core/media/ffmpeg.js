@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The one place that finds and runs the ffmpeg binary.
  *

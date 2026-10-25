@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Legal Store — runtime overrides for the optional-consent catalog.
  *

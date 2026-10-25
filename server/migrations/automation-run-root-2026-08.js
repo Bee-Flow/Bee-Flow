@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: root_run_id on automation_runs — the JOURNEY identity (2026-08).
  *

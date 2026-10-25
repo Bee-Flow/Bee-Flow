@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: address a datatable by a SCOPE, not by an organisation (2026-09).
  *

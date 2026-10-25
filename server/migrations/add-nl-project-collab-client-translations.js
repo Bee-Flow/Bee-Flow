@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the collaboration client (2026-10): invite by typing a name,
  * transferring ownership, archiving and restoring a project, notification

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The integration tool arrays and helpers getIntegrationTools hands to its tool
  * groups (core/integrations/integrationTools.js). Core may not require a

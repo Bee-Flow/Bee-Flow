@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — the binding kinds and the formula scope: which value
  * shapes a prop or step field may carry, and which roots an expression may read.

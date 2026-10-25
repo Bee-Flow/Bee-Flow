@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Re-export: the implementation lives in core/automationModel/notificationRecipients.js, below the
  * features, so core can use it (core may not require a feature,

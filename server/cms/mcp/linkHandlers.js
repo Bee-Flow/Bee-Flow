@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The link-check tool of the CMS MCP server: cms_check_links. Internal links
  * are resolved against the site's own pages, posts and redirects (no network).

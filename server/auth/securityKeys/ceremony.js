@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The two WebAuthn ceremonies a security key (a YubiKey, or any FIDO2 key)
  * goes through: registration, once, from Settings → Security; and

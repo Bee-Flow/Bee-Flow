@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Moved to core/documents/render/documentRenderer.js, next to the deck and
  * house-style modules it renders with. This re-export keeps the old require

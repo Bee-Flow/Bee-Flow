@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Is this caller an anonymous visitor rather than a real account?
  *

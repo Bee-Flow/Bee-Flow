@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The schedule tick's holiday check: should this claimed schedule stay quiet
  * because its slot falls on a public holiday?

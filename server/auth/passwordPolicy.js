@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Password policy — one source of truth for what counts as an acceptable password.
  *

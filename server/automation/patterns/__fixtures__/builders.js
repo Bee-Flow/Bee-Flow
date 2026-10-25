@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Building blocks for the golden event streams: a seeded PRNG, a clock, event

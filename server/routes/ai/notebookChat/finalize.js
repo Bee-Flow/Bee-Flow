@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Notebook chat: the end of one turn (routes/ai/notebookChat.js), in the
  * order the route runs it: the answer restored for display, the "Privacy

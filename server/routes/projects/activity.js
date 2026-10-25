@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What happens in a project, as it happens, and the caller's own quiet switch.
  *

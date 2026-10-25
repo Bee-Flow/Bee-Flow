@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Package loader: the runtime plumbing an activation wires and unwires.
  *

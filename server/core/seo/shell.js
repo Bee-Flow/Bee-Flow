@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The SPA shell (agent-hub's built index.html), fetched and cached.
  *

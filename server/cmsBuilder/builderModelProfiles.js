@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CMS builder — model capability profiles.
  *

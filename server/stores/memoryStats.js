@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memoryStats.js — counts (per user, per org, the Memory panel's
  * distribution) and the schedule-coverage bookkeeping rows. Split out of

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the org member directory behind the DPO / breach-recipient
  * pickers.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * tableSources.js - the upload lookup a `read_table` step needs.
  *

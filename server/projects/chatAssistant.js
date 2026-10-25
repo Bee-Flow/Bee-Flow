@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The AI member of a team chat: when it answers, what it reads, and how its
  * answer gets back into the chat.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/deps.js — the dependencies of the notebook modules that sit
  * in the server's large import cycle: documentCrypto and the db handle it

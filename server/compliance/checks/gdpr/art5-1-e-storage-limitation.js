@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GDPR Art. 5(1)(e) — Storage limitation.
  *

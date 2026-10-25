@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Render the marketing site's og:image cards to PNG.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The cheap rules in front of the relevance gate: no model call, no I/O, just
  * the facts the caller already holds. They run twice:

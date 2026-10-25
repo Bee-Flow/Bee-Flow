@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Document Builder Tools — the chat's way to author a rendered document.
  *

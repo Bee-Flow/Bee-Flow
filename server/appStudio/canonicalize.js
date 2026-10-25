@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio — canonicalize a (possibly sloppy) app definition.
  *

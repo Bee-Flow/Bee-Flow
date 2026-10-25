@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The team chat answer when the AI may use its project tools
  * (projects/chatTools.js): the bounded tool loop around the model call, with

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Template Store — PostgreSQL-backed Word template management.
  *

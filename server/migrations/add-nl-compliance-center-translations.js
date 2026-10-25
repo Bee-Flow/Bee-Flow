@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the Compliance Center redesign (2026-09-14): the 300 px rail, the
  * section headers and their tabs, the overview cards, the check table, the

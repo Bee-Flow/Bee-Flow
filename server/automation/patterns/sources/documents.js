@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Pattern source: documents the user uploaded into a knowledge base by hand.

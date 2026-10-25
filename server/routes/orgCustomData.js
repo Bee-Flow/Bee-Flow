@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The "Your own data" test bench: /api/org-privacy-shield/:orgId/custom-data/*
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tenant-key HMAC verification for machine-to-machine calls FROM the Nextcloud
  * connector — no user session is involved; the caller identifies the org by

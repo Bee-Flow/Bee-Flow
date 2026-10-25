@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Notebook Routes — CRUD for notebooks, the in-notebook chat history, editor
  * images and file import.

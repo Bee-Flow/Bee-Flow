@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * IP → operator (cloud / hosting company) — small static table.
  *

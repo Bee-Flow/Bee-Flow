@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Manual license re-issue for an existing org or consumer subscription — the
  * Retry behind a `license_issuance_failed` audit row.

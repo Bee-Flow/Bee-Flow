@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A DATATABLE THAT MIRRORS A NEXTCLOUD TABLE — the engine behind
  * `managed_kind = 'nextcloud_table'`.

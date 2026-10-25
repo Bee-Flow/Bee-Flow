@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Is a resource being co-edited? Asked by a store's single-writer content
  * write INSIDE its transaction, after it locked the resource's row.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for spreadsheets in Documents (2026-10): the Spreadsheet document type
  * in the library and the gallery (`documents.sheet.*`,

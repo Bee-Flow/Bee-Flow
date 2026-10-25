@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Add Dutch translations for the AI-usage sharing
  * toggle, the Change-plan picker, and the customer-view monitoring

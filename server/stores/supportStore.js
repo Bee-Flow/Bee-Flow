@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Support Store — PostgreSQL-backed customer-support threads + messages.
  *

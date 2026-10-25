@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One mapping from a failed Nextcloud HTTP answer to a tool error.
  *

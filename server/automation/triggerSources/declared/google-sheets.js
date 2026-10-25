@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Sheets. No hand-written poller and no Google push channel — both
  * events come from the generic poll_diff runtime, which is the point of

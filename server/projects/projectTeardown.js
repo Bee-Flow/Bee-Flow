@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Deleting a project without losing what its members did in it, whoever asks
  * for the delete: the owner through `DELETE /api/projects/:id`, or account

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Versioning helpers shared by every item with a version history (notebooks,
  * Studio documents) and by the project change feed that reports on them.

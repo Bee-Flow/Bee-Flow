@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Saved answers for ONE form page, turned into the values the run carries on.
  *

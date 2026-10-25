@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — the turn's prompt: the catalogue in the profile's
  * order, the pre-inspected tool schemas, the web-research decision and the

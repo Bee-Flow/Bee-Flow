@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The legacy keyed `content` shape the public marketing renderer expects.
  *

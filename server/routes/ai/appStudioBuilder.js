@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder — conversational SSE endpoint (trimmed clone of
  * routes/ai/automationBuilder.js for App Studio component trees).

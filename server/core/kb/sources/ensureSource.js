@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Find — or create — the `kb_sources` row an ingest hangs its document off.
  *

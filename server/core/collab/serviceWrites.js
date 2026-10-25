@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A client's writes for the co-editing service (./service.js): append a
  * batch of updates within both size caps, announce it, and pass along any

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: "Find repeating work" scans and feedback become PER USER.
  *

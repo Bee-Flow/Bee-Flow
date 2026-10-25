@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — self-service leave-org for the caller's own account.
  * Split out of auth/adminRoutes.js; mounted there in the original

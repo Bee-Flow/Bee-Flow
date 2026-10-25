@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Redirect tools of the CMS MCP server: list, set and delete the 301/302
  * redirects of a site. Same access model as every other CMS tool (dispatch.js

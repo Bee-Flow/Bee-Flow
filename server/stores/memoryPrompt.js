@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memoryPrompt.js — the <memories> block of the system prompt; pure, no
  * database. Split out of stores/memoryStore.js.

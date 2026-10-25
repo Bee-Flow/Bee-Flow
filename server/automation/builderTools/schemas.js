@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Builder-agent tool schemas (§WS5, extracted verbatim from builderTools.js).
  * NOTE: applyToolCall mutates this array in place (scope/forEach/error-branch

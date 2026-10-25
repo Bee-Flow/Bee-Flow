@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Teams Import Store — PostgreSQL-backed Microsoft Teams ingest job queue.
  *

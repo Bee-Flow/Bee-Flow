@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — email confirmation: the path-style verification link that
  * activates an account, and the throttled resend. Split out of

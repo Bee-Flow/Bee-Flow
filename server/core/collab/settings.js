@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Whether real-time co-editing is on for an organisation.
  *

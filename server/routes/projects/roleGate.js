@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The shared project role gate (auth/projectAccess.requireProjectRole), bound
  * on first use, for the factory routers under routes/projects/.

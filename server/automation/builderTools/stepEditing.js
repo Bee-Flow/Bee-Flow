@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Builder tools — §A in-place editing: builder_update_step(s) patching with
  * the per-type field allow-list, builder_replace_step type swaps and

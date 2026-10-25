@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Data migration: Learning Center progress follows the lessons that were
  * renamed from "routine" to "automation" (2026-10).

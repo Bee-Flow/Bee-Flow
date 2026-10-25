@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /** Small readers for parsed WebDAV properties shared by the calendar and tasks tools. */
 
 /**

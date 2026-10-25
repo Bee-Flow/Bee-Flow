@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio template — CRM pipeline — companies/contacts/deals; kanban by stage + a
  * record-detail screen reached via navigate params.

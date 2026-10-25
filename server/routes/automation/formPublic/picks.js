@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * `app_pick` questions on a hosted form: who is searching (always the
  * signed-in FILLER, never the automation's owner), which declared question a

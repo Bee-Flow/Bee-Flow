@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio data routes (routes/studioAppData.js): what every handler
  * shares. The rate limits and the batch and body budgets, the app

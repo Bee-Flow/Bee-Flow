@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * builder_update_step — which fields a patch may name, per step type, and the
  * key lists the update path treats specially (position/wiring keys, text

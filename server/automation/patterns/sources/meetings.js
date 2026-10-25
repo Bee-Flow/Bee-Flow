@@ -1,5 +1,5 @@
 /** @typedef {import('../events').WorkEvent} WorkEvent */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Pattern source: the user's recurring meetings, from what Bee Flow already

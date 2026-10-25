@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').Express} Express */
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The HTTP front of the middleware chain, moved verbatim out of server/index.js.

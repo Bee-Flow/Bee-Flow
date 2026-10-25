@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const MAX_TOKENS_SHOWN = 30;
 
 /** @param {Map<string, string> | Record<string, string> | null | undefined} tokenMap */

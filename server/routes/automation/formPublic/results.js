@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Keeping what a finished journey produced: a generated document opened in a
  * new notebook, and the closing page's own text saved as a notebook, exported

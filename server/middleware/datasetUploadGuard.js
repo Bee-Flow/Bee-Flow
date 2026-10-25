@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dataset upload guard — the intake policy for LARGE dataset parts.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Column logic for the workbook reader: the keys a header row becomes, the
  * storage type of a column from the values in it, and the number reading of

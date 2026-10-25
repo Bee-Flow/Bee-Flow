@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: seed org_health_problems for ALREADY-broken Nextcloud orgs.
  *

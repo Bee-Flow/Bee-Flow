@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Feedback Store — Tracks user feedback (thumbs up/down) on AI responses
  * PostgreSQL-backed for admin monitoring dashboard.

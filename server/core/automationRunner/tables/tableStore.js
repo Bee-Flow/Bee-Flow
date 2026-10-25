@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The table store: write a table to storage, open one by handle, read a page,
  * export CSV. The writer and the reader live in their own files; this one is

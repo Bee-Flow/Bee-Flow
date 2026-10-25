@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One line on the run's warnings (`runState._templateWarnings`), once.
  * Loop bodies and layers share the parent's array by reference, so the same

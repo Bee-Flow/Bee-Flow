@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The lease/claim/heartbeat half of a Postgres job queue, shared by
  * gmeetImportStore and teamsImportStore (same table shape: `id UUID`,

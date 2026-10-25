@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * read_table step: open an uploaded or generated spreadsheet / CSV as tables,
  * one per sheet, kept in the run's table store.

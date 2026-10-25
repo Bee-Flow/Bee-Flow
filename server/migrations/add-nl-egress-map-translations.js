@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the rebuilt "Where your data went" map in Privacy Shield (2026-09):
  * the tooltip with its "How we know" line, the legend, the zoom controls, the

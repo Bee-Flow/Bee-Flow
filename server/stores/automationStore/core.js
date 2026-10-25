@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared store core (§WS5): DB handles + the self-applied migration runner.
  * Leaf module — aggregates require this; it requires nothing in automationStore/.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Render a Bee Flow certificate to PNG (LinkedIn og:image, 1200×630) or a print
 // PDF (A4 landscape), reusing the shared Playwright pool (browserProvider) and the
 // inline HTML template. Mirrors the webpageExport.js / webpageRender.js patterns.

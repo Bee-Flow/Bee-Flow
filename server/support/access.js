@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Per-inbox access control for the tenant Support studio.
  *

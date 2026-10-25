@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Outlook Routes — REST API for Outlook Mail integration UI
  *

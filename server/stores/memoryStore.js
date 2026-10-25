@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Memory Store - PostgreSQL management for user memories
  * Stores facts, preferences, and instructions extracted from conversations.

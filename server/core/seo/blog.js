@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The server-rendered side of the blog: <head> (title, description, canonical,
  * Open Graph article tags, BlogPosting JSON-LD, the RSS alternate), the body

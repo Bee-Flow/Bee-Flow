@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Invitation Store — PostgreSQL-backed invitation token management
  * 

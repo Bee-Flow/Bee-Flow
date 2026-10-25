@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * appAudience.js — who an app reaches: publish, unpublish and the groups,
  * with the publication audit and the Nextcloud menu nudge. Extracted from the

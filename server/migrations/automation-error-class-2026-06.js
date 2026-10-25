@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: Add error_class column to automation_runs +
  * automation_run_steps (2026-06).

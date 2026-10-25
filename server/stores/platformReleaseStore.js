@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Platform Release Store — which builds of Bee Flow this installation has
  * run (CRA Art. 13 / Annex I part II: a record of releases and their SBOM).

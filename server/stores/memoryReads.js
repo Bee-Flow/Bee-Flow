@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memoryReads.js — reading memories: the lists (personal, project pool,
  * agent bucket), the paginated search (in SQL, or in JS over decrypted rows

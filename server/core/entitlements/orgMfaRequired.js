@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Org-scoped MFA duty (A3) — the READ side only.
  *

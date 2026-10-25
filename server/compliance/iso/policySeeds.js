@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISMS policy seeds — starting points, not finished policies. First publish
  * copies the seed into the org's own document row; the UI nudges until the

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The App Studio data-engine metadata tables: their boot DDL and the additive
  * migration ladder, behind one memoised init that every part of the store

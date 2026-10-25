@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The notebooks gates in front of a notebook made inside a project
  * (POST /api/projects/:id/notebooks, routes/projects/content.js), and in

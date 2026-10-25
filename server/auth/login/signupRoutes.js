@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — public password signup: bot gate, password policy, invite
  * redemption, account placement and the auto-login that follows. The OAuth

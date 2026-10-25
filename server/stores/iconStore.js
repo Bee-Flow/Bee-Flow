@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Icon Store
  * Manages user-defined icon packs for customizing the app UI.

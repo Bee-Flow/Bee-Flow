@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The blog's entries of sitemap.xml: the index and every post visitors can see
  * now, each in the languages it is translated into. Split out of

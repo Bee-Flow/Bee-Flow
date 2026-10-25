@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — sources (K1): what a caller may send to create or change
  * a source. Split out of sources.js (the documents query stays there, next

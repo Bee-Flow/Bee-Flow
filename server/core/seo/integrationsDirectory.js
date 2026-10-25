@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The public integrations directory: a searchable list of what Bee Flow can
  * connect to, and one server-rendered page per integration ("Bee Flow +

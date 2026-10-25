@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Who may do what with a notebook: the one role gate every `/:id…` notebook
  * route puts first.

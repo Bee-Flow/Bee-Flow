@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — what the signed-in session reports about itself: the /user
  * payload (identity, encryption state, MFA enrolment, NC onboarding, feature

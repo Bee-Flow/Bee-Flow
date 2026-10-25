@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * EU AI Act Art. 50(2) — AI-generated content is marked in a machine-readable
  * format and detectable as artificially generated.

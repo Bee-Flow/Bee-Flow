@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Calendar. Hand-written pollers in triggerBus.js (events.list with a
  * syncToken cursor; the upcoming-event poller keeps a fired-id set in its

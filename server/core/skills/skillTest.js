@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Skill test — the prompt a Test-tab run builds, and the grading of what
  * came back. (Bee Flow Builder redesign, Sep 2026, Track S3.)

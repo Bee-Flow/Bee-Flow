@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: stamp the CW-10 cowork-shield flag explicitly OFF for existing
  * orgs (U10).

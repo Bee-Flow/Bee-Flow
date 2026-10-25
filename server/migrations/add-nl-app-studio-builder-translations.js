@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the App Studio AI builder FILM (2026-09-13): the typed activity
  * rows in the chat column, the canvas build banner, the ghost cell of the

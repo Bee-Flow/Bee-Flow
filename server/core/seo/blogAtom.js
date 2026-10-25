@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Atom 1.0 twin of the blog's RSS feed (core/seo/blog.buildFeed): same posts,
  * same escaping, for readers and tools that prefer Atom. Every string goes

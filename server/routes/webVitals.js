@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Web Vitals API — receives Core Web Vitals beacons from the browser.
  *

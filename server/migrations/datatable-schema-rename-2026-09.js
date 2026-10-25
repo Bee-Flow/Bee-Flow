@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: rename every per-tenant datatable schema from `dtorg_<orgId>` to
  * the fixed-length hashed name `dt_<sha256(scopeKind\0scopeId)[0:40]>` (2026-09).

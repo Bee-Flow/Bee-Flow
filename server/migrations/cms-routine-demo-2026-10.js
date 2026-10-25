@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Data migration: product-website pages follow the demo that was renamed from
  * "routines" to "automations" (2026-10).

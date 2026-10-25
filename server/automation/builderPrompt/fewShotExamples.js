@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Few-shot worked dialogues for the builder agent (§WS5, extracted verbatim
  * from builderPrompt.js).

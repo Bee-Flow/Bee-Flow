@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: add last_heartbeat_at column to automation_runs (2026-06).
  *

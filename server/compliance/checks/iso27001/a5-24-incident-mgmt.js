@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.5.24 / A.5.25 / A.5.26 — Incident management: preparation,
  * assessment and response.

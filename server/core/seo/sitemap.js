@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * sitemap.xml, generated from the live CMS site.
  *

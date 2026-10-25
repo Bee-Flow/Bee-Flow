@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Preview Tokens — short-lived HMAC-signed bearer tokens that let
  * the sandboxed preview iframe call back to the host API across origins.

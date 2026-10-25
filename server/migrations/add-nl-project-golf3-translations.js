@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the project workspace dialogs, undo and connection status (2026-10,
  * golf 3): the Undo toasts (task, message, document, notebook, meeting, knowledge

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which org-scoped custom integrations may run right now.
  *

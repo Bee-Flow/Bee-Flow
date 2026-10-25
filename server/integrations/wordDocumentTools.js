@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Word Document Tools — the chat's way to hand the user a real, editable .docx.
  *

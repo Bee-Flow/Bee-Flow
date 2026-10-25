@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Deck Tools — kanban boards / stacks / cards / labels / comments.
  *

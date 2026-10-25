@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * GET /learn-media/* — the Learning Center's video pack, served from disk.

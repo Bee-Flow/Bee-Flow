@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project team chats: the pure pieces of routes/projects/chats.js. Constants,
  * title and excerpt derivation, the effective AI mode, the feed event shape,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Zero-knowledge envelope encryption: the primitives.
  *

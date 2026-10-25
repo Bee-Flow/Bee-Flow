@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * PII Detection — detect personally identifiable information in text
  *

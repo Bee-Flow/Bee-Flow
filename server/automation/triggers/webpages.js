@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage row-insert / row-update triggers (§20 scaffolding).
  *

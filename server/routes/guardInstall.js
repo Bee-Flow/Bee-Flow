@@ -1,6 +1,6 @@
 /** @typedef {import('zod').ZodString} ZodString */
 /** @typedef {import('zod').ZodBoolean} ZodBoolean */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin routes for installing / uninstalling the optional PII guard service.
  * Mounted at /api/admin/guard.

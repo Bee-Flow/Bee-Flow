@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Customer Support Routes — AI-first inbox for Bee Flow B.V. customers.
  *

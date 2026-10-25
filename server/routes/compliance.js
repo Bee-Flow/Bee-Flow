@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance API — AI Act & GDPR monitoring endpoints.
  *

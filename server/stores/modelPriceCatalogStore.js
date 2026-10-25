@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Model price catalogue store — table `model_price_catalog`.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio template — Event planner — a calendar over your own events + an add-event
  * form (create_record sequence).

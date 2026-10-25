@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(j) — multi-factor authentication on privileged access.
  *

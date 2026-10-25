@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for Settings → Memory (2026-09-17): the master switch, the two lines
  * that say what on and off mean, the statistics error state and its retry,

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * memoryIndex — the search indexes on `user_memories`: the weighted tsvector
  * (`search_vector`), the pgvector columns (`embedding_<dim>`) and the

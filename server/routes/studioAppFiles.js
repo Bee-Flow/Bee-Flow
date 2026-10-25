@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio v2 — ATTACHMENT upload/stream router.
  *

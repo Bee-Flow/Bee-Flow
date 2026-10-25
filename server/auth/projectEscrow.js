@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Project key derivation — the key a SHARED project conversation is encrypted
  * under.

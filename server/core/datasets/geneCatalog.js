@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * core/datasets — gene symbol → genomic span, per reference build.
  *

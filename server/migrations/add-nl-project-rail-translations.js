@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Dutch for the project rail (2026-10): the project switcher in the rail head
  * (with the current project's name for screen readers), its "Recent projects"

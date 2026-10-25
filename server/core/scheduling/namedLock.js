@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One pass of a periodic job under a session advisory lock keyed by NAME
  * (`pg_try_advisory_lock(hashtext(name))`), so the pass runs on one replica

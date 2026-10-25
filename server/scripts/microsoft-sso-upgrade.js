@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 'use strict';
 
 // Read-only unless --apply is explicitly supplied. Output contains opaque IDs

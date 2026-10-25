@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Files and folders over WebDAV — listing, reading, uploading, creating,
  * deleting and server-side move/copy — plus the OCS endpoints that act on a

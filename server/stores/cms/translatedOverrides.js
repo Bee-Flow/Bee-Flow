@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Saving the result of an AI translation. The model call takes seconds and works
 // on a snapshot of the content and of the stored override; meanwhile the editor may
 // have reordered a list (which re-aligned the stored override). So the result is

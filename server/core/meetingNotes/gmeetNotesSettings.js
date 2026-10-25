@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Meet → Meeting Notes settings (org + user dual scope).
  *

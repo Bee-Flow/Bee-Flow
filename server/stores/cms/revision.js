@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Optimistic concurrency for CMS documents (PageDoc, SiteDoc): every stored
 // document carries an integer `rev`. A write that names the rev it was based on
 // is refused with 409 when somebody else saved in between, instead of silently

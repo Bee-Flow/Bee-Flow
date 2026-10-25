@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook Conversation Store — persistent, encrypted chat history for the
  * in-notebook AI chat.

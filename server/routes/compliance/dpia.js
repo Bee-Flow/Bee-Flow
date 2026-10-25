@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the per-agent Data Protection Impact Assessments: the org
  * listing, one agent's assessment, its PDF and the upsert.

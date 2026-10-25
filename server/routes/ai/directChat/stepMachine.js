@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the session-skill step machine that walks a Flow pipeline.
  *

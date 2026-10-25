@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook chat: the Privacy Shield scan helpers one turn shares between the
  * knowledge-base, document and attachment scans (routes/ai/notebookChat.js).

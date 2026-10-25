@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation evolution tools — an automation looks at its own run history, proposes a
  * change to its own definition, and (after a human approved it) applies it.

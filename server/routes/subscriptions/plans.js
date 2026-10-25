@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Subscription plan CRUD — the admin Plans editor plus the manual Stripe sync.
  * Super-admin only; the gate sits on the parent router in routes/subscriptions.js.

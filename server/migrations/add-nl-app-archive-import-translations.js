@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time migration: Dutch for the import panel inside the App Studio
  * "New app" modal (2026-09), where a person brings a `.apptemplate` or

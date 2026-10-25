@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Azure AI Document Intelligence — extract structured content from documents.
  *

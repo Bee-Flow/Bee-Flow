@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio data routes: the tables and their records (list, read, create,
  * update, delete), every statement through the viewer's access filter.

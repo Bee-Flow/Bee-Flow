@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: Compliance Hub becomes a subscription-togglable feature flag.
  *

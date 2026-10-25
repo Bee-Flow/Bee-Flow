@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Skill drafting — the forced-tool schema and the clamps behind
  * `POST /api/skills/ai/draft` and `POST /api/skills/:id/ai/improve`.

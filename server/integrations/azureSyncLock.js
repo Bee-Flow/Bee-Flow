@@ -1,5 +1,5 @@
 /** @typedef {import('pg').Pool} Pool */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 // Graph reads can exceed PostgreSQL's idle-in-transaction timeout. Hold a

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One sheet (or one CSV) into a table: header row, columns, rows. The parsers
  * (SheetJS, the CSV reader) have already run; this reads what they produced

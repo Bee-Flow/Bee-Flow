@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GDPR Art. 15 — Right of access by the data subject.
  *

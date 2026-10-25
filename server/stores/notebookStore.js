@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Notebook Store — PostgreSQL-backed notebook management.
  *

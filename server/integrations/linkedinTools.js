@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * LinkedIn Tools — AI tool for posting to LinkedIn
  * 

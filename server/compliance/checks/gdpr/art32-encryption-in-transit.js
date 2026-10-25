@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GDPR Art. 32 — Encryption in transit (TLS).
  * Best-effort: if NODE_ENV=production and TRUST_PROXY is set (reverse-proxy
