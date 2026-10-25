@@ -6,7 +6,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
 import { AMBER_NOTE, hintTextClass, inputClass, sectionHeaderClass, FormRow } from './formPrimitives';
 import type { FilterFieldsProps } from './triggerFilters.types';
-function GmailFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function GmailFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <div className="rounded-md border border-[var(--border-subtle)] p-3 space-y-3">
@@ -111,7 +111,7 @@ export function GmailLabelFilterFields({ filter, setFilter }: FilterFieldsProps)
     );
 }
 
-function CalendarChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function CalendarChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.calendar_event_changed_filter_all_optional', 'Calendar event.changed filter (all optional)')}>
@@ -139,7 +139,7 @@ function CalendarChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     );
 }
 
-function CalendarUpcomingFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function CalendarUpcomingFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.calendar_event_upcoming_filter', 'Calendar event.upcoming filter')}>
@@ -179,7 +179,7 @@ function CalendarUpcomingFilterFields({ filter, setFilter }: FilterFieldsProps) 
  * of every spreadsheet you can reach. The hint says so in the field, because
  * the two modes read identically otherwise.
  */
-function SheetsChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function SheetsChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.google_sheets_filter_all_optional', 'Google Sheets filter (all optional)')}>
@@ -204,7 +204,7 @@ function SheetsChangedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     );
 }
 
-function DriveFileNewFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function DriveFileNewFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.drive_file_new_filter_all_optional', 'Drive file.new filter (all optional)')}>
@@ -230,7 +230,7 @@ function DriveFileNewFilterFields({ filter, setFilter }: FilterFieldsProps) {
     );
 }
 
-function NextcloudFileFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudFileFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_file_filter_all_optional', 'Nextcloud file filter (all optional)')}>
@@ -259,7 +259,7 @@ function NextcloudFileFilterFields({ filter, setFilter }: FilterFieldsProps) {
     );
 }
 
-function NextcloudShareFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudShareFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_share_received_filter', 'Nextcloud share.received filter')}>
@@ -286,7 +286,7 @@ function NextcloudShareFilterFields({ filter, setFilter }: FilterFieldsProps) {
     );
 }
 
-function NextcloudActivityFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudActivityFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_activity_filter_advanced', 'Nextcloud activity filter (advanced)')}>
@@ -306,7 +306,7 @@ function NextcloudActivityFilterFields({ filter, setFilter }: FilterFieldsProps)
     );
 }
 
-function NextcloudNotificationFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudNotificationFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_notification_filter', 'Nextcloud notification filter')}>
@@ -322,7 +322,7 @@ function NextcloudNotificationFilterFields({ filter, setFilter }: FilterFieldsPr
     );
 }
 
-function SupportTicketResolvedFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function SupportTicketResolvedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.support_inbox_ticket_resolved_filter_all', 'Support Inbox ticket.resolved filter (all optional)')}>
@@ -386,7 +386,7 @@ function SupportTicketResolvedFilterFields({ filter, setFilter }: FilterFieldsPr
 }
 
 // Lookup used by AppEventFields — `<provider>.<event>` → filter sub-form.
-function NextcloudFormsSubmittedFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudFormsSubmittedFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_form_filter_all_optional', 'Nextcloud form filter (all optional)')}>
@@ -415,7 +415,7 @@ function NextcloudFormsSubmittedFilterFields({ filter, setFilter }: FilterFields
     );
 }
 
-function NextcloudTablesRowFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudTablesRowFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_tables_row_filter_all_optional', 'Nextcloud Tables row filter (all optional)')}>
@@ -449,7 +449,7 @@ function NextcloudTablesRowFilterFields({ filter, setFilter }: FilterFieldsProps
     );
 }
 
-function NextcloudTagFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudTagFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_tag_filter_all_optional', 'Nextcloud tag filter (all optional)')}>
@@ -465,7 +465,7 @@ function NextcloudTagFilterFields({ filter, setFilter }: FilterFieldsProps) {
     );
 }
 
-function NextcloudCalendarMutationFilterFields({ filter, setFilter }: FilterFieldsProps) {
+export function NextcloudCalendarMutationFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
         <FilterShell title={t('automations.trigger_filters.nextcloud_calendar_filter_all_optional', 'Nextcloud calendar filter (all optional)')}>

@@ -49,7 +49,7 @@ function isRuleCase(c: RouteRule) {
     return !!c && typeof c.expr === 'string' && c.expr.trim().length > 0;
 }
 
-function emptyRule(name?: string) {
+export function emptyRule(name?: string) {
     return { name: name || 'rule1', expr: '', value: '' };
 }
 

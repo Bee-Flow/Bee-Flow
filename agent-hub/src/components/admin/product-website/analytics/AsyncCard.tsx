@@ -69,7 +69,7 @@ export function Skeleton({ height = 80, style }: SkeletonProps) {
  * Wraps a section body in the three states every panel needs. Keeps each
  * section from re-implementing loading/error/empty inconsistently.
  */
-function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, emptyText, children, right, height = 120 }: AsyncCardProps) {
+export function AsyncCard({ title, icon, loading, error, onRetry, isEmpty, emptyText, children, right, height = 120 }: AsyncCardProps) {
     const { t } = useTranslation();
     let body;
     if (loading) body = <Skeleton height={height} />;

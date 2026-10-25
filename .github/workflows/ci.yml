@@ -315,7 +315,7 @@ jobs:
             mobile:
               # mobile/** (minus Markdown) is the mobile_src step above.
               - '.nvmrc'
-              - 'agent-hub/src/components/shared/statusTokens.ts'
+              - 'agent-hub/src/components/shared/statusTokens/**'
               # required by agent-hub/src/hooks/useAutomationApi.ts (managed parts of a Solution stage)
               - 'agent-hub/src/utils/managedPart.ts'
               # required by agent-hub/src/hooks/useTranslation.tsx (catch blocks log at debug)
@@ -360,7 +360,7 @@ jobs:
               - 'agent-hub/src/components/forms/fields/*'
               - 'agent-hub/src/utils/lazyWithReload.*'
               - 'agent-hub/src/components/shared/{AnchoredMenu.tsx,illustrations.tsx}'
-              - 'agent-hub/src/hooks/{useAutomationApi.ts,useAutomationApi.types.ts,useTranslation.tsx}'
+              - 'agent-hub/src/hooks/{useAutomationApi.ts,useAutomationApi.types.ts,useAutomationApi.types2.ts,useAutomationApi.helpers.ts,useTranslation.tsx}'
               # required by useTranslation.tsx, and what those require in turn
               - 'agent-hub/src/hooks/demoLang.ts'
               - 'agent-hub/src/i18n/{loadEnglishDefaults,enNamespaces}.ts'

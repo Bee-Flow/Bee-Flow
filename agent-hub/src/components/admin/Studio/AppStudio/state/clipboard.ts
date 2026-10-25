@@ -21,7 +21,7 @@
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import { collectIds, deepClone, findNode, insertNode, reIdSubtree, subtreeIds } from './definitionOps';
 
-const CLIPBOARD_KIND = 'appstudio/nodes';
+export const CLIPBOARD_KIND = 'appstudio/nodes';
 
 // ---------------------------------------------------------------------------
 // In-memory clipboard buffer
@@ -135,3 +135,4 @@ export function pasteNodes<D extends AppDefinition | null | undefined>(def: D, p
     return { def: out, newIds };
 }
 
+export default { serializeNodes, pasteNodes, setClipboard, getClipboard, hasClipboard, CLIPBOARD_KIND };

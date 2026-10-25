@@ -37,8 +37,8 @@ import { queryClient } from '../api/queryClient';
  * unreachable is worse than no lock, and only a masking action may be worded
  * as "replaced".
  */
-export { SHIELD_STATUS_POLL_MS,  parseShieldStatus };
-export type {     ShieldStatus };
+export { SHIELD_STATUS_POLL_MS, SHIELD_STATUS_TTL_MS, parseShieldStatus };
+export type { ShieldAction, ShieldError, ShieldFailMode, ShieldSource, ShieldStatus };
 
 export interface ShieldClaims {
     shieldActive: boolean;

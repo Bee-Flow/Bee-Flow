@@ -24,7 +24,7 @@ export { parseWhen, meetingDurationMinutes, dateBlockParts, timeRange };
  * An EMPTY participant list yields NULL: that is "the calendar told us nothing".
  * A 0 from the payload is unknown for the same reason, not zero people.
  */
-interface Attendee {
+export interface Attendee {
     email?: string;
     cn?: string;
     displayName?: string;
@@ -65,7 +65,7 @@ export interface AttendeeNotice {
     en: string;
 }
 
-interface NoticeRow {
+export interface NoticeRow {
     provider: string;
     m?: UpcomingMeeting;
     status?: string;
@@ -246,7 +246,7 @@ export const NOTICE_TEAMS_AUTORECORD = Object.freeze({
 /** The states in which a note will really come out of this row. */
 const PRODUCES_NOTE = new Set<string | undefined>(['will_record', 'recording_now', 'will_import', 'manual_record', 'manual_record_teams']);
 
-function producesNote(row: NoticeRow | null | undefined): boolean {
+export function producesNote(row: NoticeRow | null | undefined): boolean {
     return PRODUCES_NOTE.has(row?.status);
 }
 

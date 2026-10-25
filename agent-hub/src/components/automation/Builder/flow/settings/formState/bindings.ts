@@ -6,7 +6,7 @@ import type { FormRecord } from './types';
 
 /** Move the previous binding's value into the new shape so the user
  *  doesn't lose what they typed when toggling kind. */
-function convertValue(binding: FormRecord | null | undefined, fromKind: string, toKind: string): FormRecord {
+export function convertValue(binding: FormRecord | null | undefined, fromKind: string, toKind: string): FormRecord {
     if (!binding) return {};
     if (fromKind === toKind) return {};
     const carry = binding.value ?? binding.path ?? '';

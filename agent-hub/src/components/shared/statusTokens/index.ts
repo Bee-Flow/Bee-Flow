@@ -17,9 +17,9 @@ import {
 import { STATUS_KEYS, type StatusKey, type StatusToken, type SkipGroup, type RunStepLike } from './statusTokens.types';
 import { NEUTRAL_SOLID, NEUTRAL_SUBTLE, NEUTRAL_BADGE, ALIASES } from './statusTokens.constants';
 import { own, skipGroupOfStep } from './statusTokens.helpers';
-;
-;
-export {  type StatusKey, type StatusToken, type SkipGroup, type RunStepLike } from './statusTokens.types';
+export { skipGroupOfStep } from './statusTokens.helpers';
+export { SKIP_REASONS } from './statusTokens.constants';
+export { STATUS_KEYS, type StatusKey, type StatusToken, type SkipGroup, type RunStepLike } from './statusTokens.types';
 
 /**
  * Status token table — single source of truth for the colours, icons, and

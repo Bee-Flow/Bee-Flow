@@ -37,8 +37,11 @@ async function errorText(res: Response): Promise<{ message: string; body: unknow
  * What mutate() throws for a refused request: an ApiError whose `status` is always set, so a catch
  * that narrows with `instanceof RefusedError` reads `err.status` as a number, like `res.status`.
  */
-export class RefusedError extends ApiError {
-    declare status: number;
+export class RefusedError extends ApiError {}
+// The type of `status` only, as an interface merge: a `declare` field is a syntax the mobile package's
+// Babel (which loads this file in its lockstep tests) does not accept.
+export interface RefusedError {
+    status: number;
 }
 
 export async function mutate(url: string, init?: AuthFetchOptions): Promise<Response> {

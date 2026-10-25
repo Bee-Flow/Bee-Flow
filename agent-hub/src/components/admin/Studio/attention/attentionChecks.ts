@@ -63,7 +63,7 @@ import { request, RefusedError } from '../../../../api/mutate';
 import { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTION } from './attentionChecks.constants';
 import { runCheck } from './attentionChecks.helpers';
 export { checkAvailability, runCheck } from './attentionChecks.helpers';
-export {  SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY,  } from './attentionChecks.constants';
+export { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTION } from './attentionChecks.constants';
 export type { AttentionFinding, AttentionRun, AttentionItem } from './attentionChecks.types';
 
 /** The same helper actionChecks.js keeps private; the Studio chunk gets its own. */
@@ -355,3 +355,4 @@ export function summarizeAttention(state: Readonly<AttentionRun> | null | undefi
     };
 }
 
+export default ATTENTION_CHECKS;

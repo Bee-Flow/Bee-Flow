@@ -26,8 +26,8 @@
 export { collectUpstream } from './graphWalk';
 export { computeUpstreamGroups, computeLoopBodyGroups, buildToolOutputMap } from './groups';
 export { describeNode } from './describeNode';
-export { sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths,   } from './sampleFields';
-;
+export { sampleToFields, resolveElementSample, elementFieldOptions, collectArrayPaths, realFieldsOf, schemaToSample } from './sampleFields';
+export { eachField, fieldFor, mergeElements, outputFields, recordFields } from './fieldTree';
 export { overlayGroupWithReal } from './realOverlay';
-;
+export { triggerMetaSample, describeTriggerMeta } from './triggers';
 export { inferLoopItemSample, suggestItemVar } from './loops';

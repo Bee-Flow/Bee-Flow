@@ -17,7 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { AiActSignals } from '@/features/flow-editor/api';
-import { loadWebFunctions } from '@/shared/testing/webModule';
+import { loadWebFunctions, webSourceText } from '@/shared/testing/webModule';
 
 import { disclosureCard, markingCard } from './ladderCards';
 import { answerDomain, art5FromDenied, canRecord, orderByHints, prefill, step2State, toggleDenied } from './ladderModel';
@@ -26,13 +26,13 @@ import { ANNEX_QUESTIONS, ART5_CHIPS, containsAiWords, outcomeText, step2Verdict
 
 const LADDER = 'components/admin/compliance/ladder';
 const WEB_DIR = path.resolve(__dirname, `../../../../../../agent-hub/src/${LADDER}`);
-const MODAL = fs.readFileSync(`${WEB_DIR}/AiActLadderModal.tsx`, 'utf8');
-const BLOCK = fs.readFileSync(`${WEB_DIR}/ComplianceBlock.tsx`, 'utf8');
+const MODAL = webSourceText(`${WEB_DIR}/AiActLadderModal.tsx`);
+const BLOCK = webSourceText(`${WEB_DIR}/ComplianceBlock.tsx`);
 
-const web = loadWebFunctions<{
-    outcomeText: (v: Verdict, containsAi: boolean, t: unknown) => string;
-    step2State: (s: Verdict['step2']) => string;
-}>(`${LADDER}/AiActLadderModal.tsx`, ['outcomeText', 'step2State']);
+const web = {
+    ...loadWebFunctions<{ outcomeText: (v: Verdict, containsAi: boolean, t: unknown) => string }>(`${LADDER}/AiActLadderModal/StandaloneLadder.tsx`, ['outcomeText']),
+    ...loadWebFunctions<{ step2State: (s: Verdict['step2']) => string }>(`${LADDER}/AiActLadderModal/LadderModalViewStep2.tsx`, ['step2State']),
+};
 
 const english = (_key: string, fallback: string, params?: Record<string, unknown>) =>
     fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params?.[k] ?? ''));

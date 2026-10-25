@@ -12,7 +12,7 @@ export const list = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? 
  *
  * "… is finished" is the sentence of `meeting.processed`, and that appears only when THAT is the event. `meetingTriggersOf` deliberately filters on the PROVIDER and not on the event, so that a later `meeting.scheduled` automatically lands in the list — but then this sentence would tell the story of `meeting.processed` about every future event. Also reachable today: an unknown app_event event is a WARNING for the validator, not an error, so such a definition is saved, appears here, and never fires.
  */
-function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
+export function conditionSentence(condition: TriggerCondition, t: TranslateFn): string | null {
     if (!condition) return null;
     const tags = list(condition.tags);
     if (!condition.onlyProcessed) {

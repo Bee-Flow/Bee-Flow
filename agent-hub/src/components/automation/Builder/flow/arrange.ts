@@ -37,7 +37,7 @@ type HeightById = Map<string, number>;
 type Dims = { width: number; height: number };
 type ArrangeOpts = { dims: Dims; viewportWidth: number; viewportHeight: number };
 
-const ARRANGE_MODES = Object.freeze(['compact', 'roomy', 'serpentine']);
+export const ARRANGE_MODES = Object.freeze(['compact', 'roomy', 'serpentine']);
 
 export const DEFAULT_DIMS = Object.freeze({ width: 240, height: 96 });
 

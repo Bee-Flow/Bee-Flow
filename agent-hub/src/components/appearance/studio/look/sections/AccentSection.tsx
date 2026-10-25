@@ -5,7 +5,7 @@ import type { LookForm, LookSectionProps } from '../useLookForm';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
 // Accent presets — deliberately avoid purple/violet (banned brand-wide).
-const ACCENT_PRESETS: string[] = [
+export const ACCENT_PRESETS: string[] = [
     '#9ca3af', // neutral gray (default)
     '#3b82f6', // blue
     '#06b6d4', // cyan

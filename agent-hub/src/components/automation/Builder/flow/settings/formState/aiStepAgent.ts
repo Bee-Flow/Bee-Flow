@@ -10,7 +10,7 @@ import type { FormRecord, JsonValue } from './types';
  * object from its own list, and mergeSkillIds truncates at the same cap), so a
  * client that drifts loses a checkbox, never a rule.
  */
-const AI_STEP_AGENT_PERMISSION_KEYS = ['startAutomations', 'useKnowledge', 'useTools'];
+export const AI_STEP_AGENT_PERMISSION_KEYS = ['startAutomations', 'useKnowledge', 'useTools'];
 export const MAX_AI_STEP_SKILL_IDS = 5;
 
 /** One real boolean per name in AI_STEP_AGENT_PERMISSION_KEYS. */

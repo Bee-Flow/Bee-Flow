@@ -265,7 +265,7 @@ export function studioLockHint(reason: string | null | undefined, t: Translate):
  * the rule only reaches the New menu and the create buttons. Folding it into
  * the gate would blank the very screens the course is about.
  */
-function studioTrainingArea(app: Pick<StudioNavDescriptor, 'trainingArea'> | null | undefined): string | null {
+export function studioTrainingArea(app: Pick<StudioNavDescriptor, 'trainingArea'> | null | undefined): string | null {
     return app?.trainingArea || null;
 }
 

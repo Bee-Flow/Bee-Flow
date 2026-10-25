@@ -20,11 +20,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
 import type { FlowCatalog } from '@/features/flow-editor/api';
 import type { FlowNode } from '@/features/flow-editor/bindings';
 import type { FormDraft } from '@/features/flow-editor/formState';
 import { nodeDef } from '@/features/flow-editor/model';
+import { webSourceText } from '@/shared/testing/webModule';
 
 import { fieldId, resolveOptions, specDraft, writeField } from './runtime';
 import type { EditorSpec, FieldSpec, Msg, SpecContext, Words } from './spec';
@@ -44,7 +46,7 @@ import { specContext } from './testing';
 
 const REPO = path.resolve(__dirname, '../../../../../../..');
 const BUILDER = path.join(REPO, 'agent-hub/src/components/automation/Builder');
-const read = (rel: string) => fs.readFileSync(path.join(BUILDER, rel), 'utf8');
+const read = (rel: string) => webSourceText(path.join(BUILDER, rel));
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const webPrivacy = require(path.join(BUILDER, 'flow/privacyModel.ts'));
 

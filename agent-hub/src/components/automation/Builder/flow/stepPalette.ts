@@ -81,7 +81,7 @@ export const SECONDARY_TRIGGERS = TRIGGERS
  * so, because a search result should never quietly throw away someone's
  * trigger. BuildTab.addStepAt asks before it does.
  */
-function additionalTriggerItems() {
+export function additionalTriggerItems() {
     return TRIGGERS.map(t => (CAN_BE_SECONDARY.has(t.payload.triggerKind)
         ? { ...t, desc: 'Adds another way to start this automation', payload: { ...t.payload, asSecondaryTrigger: true } }
         : { ...t, desc: 'Replaces the current trigger' }));
@@ -251,7 +251,7 @@ export const NOT_INSIDE_A_LAYER = new Set(['approval', 'form_page', 'return_to_a
 // behind it unknowable (BFSF-348). The reason travels with the item, so every
 // surface that renders one can say it.
 const NEEDS_FORM_TRIGGER = new Set<string | undefined>(['form_page']);
-const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the automation\'s own form link — switch the trigger to "Form" to use this.';
+export const NEEDS_FORM_TRIGGER_REASON = 'Form steps run on the automation\'s own form link — switch the trigger to "Form" to use this.';
 
 /**
  * Stamp `disabled` + `disabledReason` on the items whose preconditions the
@@ -282,7 +282,7 @@ export function gated<T extends GateItem>(item: T, hasFormTrigger?: boolean | nu
  * plain-language phrases people actually type: consolidating a feature must not
  * make it unfindable for anyone who searches by what they want to do.
  */
-const PRIVACY_SHIELD_ITEM = {
+export const PRIVACY_SHIELD_ITEM = {
     ...stepItem('guard', 'privacy_shield', ShieldAlert,
         'guard pii privacy personal data find personal data gdpr avg bsn shield detect scan check find sensitive redact mask compliance '
         + 'tokenize tokenise hide anonymise anonymize pseudonymise placeholder protect before ai '
@@ -294,7 +294,7 @@ const PRIVACY_SHIELD_ITEM = {
 // A free-floating canvas annotation (BFSF-411) — never runs, never wired to
 // anything. Keywords lean on the words people reach for ("comment",
 // "explain", "todo") rather than the runtime type name.
-const NOTE_ITEM = {
+export const NOTE_ITEM = {
     ...stepItem('note', 'note', StickyNote,
         'note sticky note annotation comment memo remark todo explain documentation label text why context'),
 };
@@ -430,19 +430,19 @@ export function codeItemFor(catalog?: PaletteCatalog | null): (typeof CODE_ITEM 
     return { ...CODE_ITEM, disabled: true, disabledReason: CODE_OFF_REASONS[reason] || CODE_OFF_REASONS.unknown };
 }
 
-const CREATE_LAYER_ITEM = {
+export const CREATE_LAYER_ITEM = {
     id: '__create_layer', icon: Layers, label: 'Create flowlet', desc: 'Group steps into a reusable sub-flow',
     keywords: 'flowlet create new subflow sub-automation group reusable', payload: { kind: 'create_layer' },
 };
 
-const LAYER_OUTPUT_ITEM = {
+export const LAYER_OUTPUT_ITEM = {
     ...stepItem('layer_output', '__layer_output', LogOut, 'flowlet output return result respond finish end'),
 };
 
-const CATEGORY_ORDER = [...INTEGRATION_CATEGORY_ORDER, OTHER_CATEGORY];
+export const CATEGORY_ORDER = [...INTEGRATION_CATEGORY_ORDER, OTHER_CATEGORY];
 
 // ─── Dynamic item builders ──────────────────────────────────────────────
-function inlineLayerItem(l: PaletteLayer) {
+export function inlineLayerItem(l: PaletteLayer) {
     const nParams = (l.params || []).length;
     return {
         id: l.key, icon: Layers, label: l.title || l.key,
@@ -485,7 +485,7 @@ export function blockItem(b: CatalogStep) {
     };
 }
 
-function prettifyToolName(name?: string | null) {
+export function prettifyToolName(name?: string | null) {
     return name ? String(name).replace(/_/g, ' ') : '';
 }
 
@@ -542,7 +542,7 @@ const UNRANKED = 1000;
  * by the SHORT label, so the visible order is the alphabetical order of the
  * text actually on screen.
  */
-function groupAppsByCategory(catalog?: PaletteCatalog | null) {
+export function groupAppsByCategory(catalog?: PaletteCatalog | null) {
     if (!catalog?.apps) return {};
     const catMap = buildCategoryMap();
     const out: Record<string, AppEntry[]> = {};

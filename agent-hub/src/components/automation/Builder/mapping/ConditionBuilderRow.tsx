@@ -32,7 +32,7 @@ const FieldPicker = FieldPickerJs as unknown as ComponentType<Record<string, unk
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 
 /** A row as ConditionBuilder holds it (conditionModel's ConditionRow): saved rows may lack any member. */
-interface RuleRow {
+export interface RuleRow {
     field?: Binding;
     op?: string;
     value?: Binding;
@@ -76,7 +76,7 @@ function lastKey(path: string): string {
 }
 
 /** One entry of the list a quantified row checks, lower case: "attachment". */
-function entryName(listPath: string): string {
+export function entryName(listPath: string): string {
     const key = lastKey(listPath) || 'items';
     return String(humanizeFieldKey(singularKey(key)) || key).toLowerCase();
 }
@@ -95,7 +95,7 @@ function fieldLabel(path: string, options: FieldOption[] | null): string {
  * field itself (R12): the parent object exists, or, for a column, the list
  * holds records none of which carries it. Null when there is no sample to tell.
  */
-function missingFieldName(path: string, sample: unknown): string | null {
+export function missingFieldName(path: string, sample: unknown): string | null {
     const shape = sample == null ? null : fieldShape(path) as { kind: string; path: string; list: string } | null;
     if (shape?.kind === 'column') return missingColumn(shape, sample);
     if (shape?.kind !== 'plain') return null;

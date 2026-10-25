@@ -13,7 +13,7 @@ import StatusPill from '../shared/StatusPill';
 import useDrawerMode from '../shared/useDrawerMode';
 import type { ObligationDraft, Person, Obligation, TrainingState, TrainingPageArgs } from './TrainingPage.types';
 import { OBLIGATION_KINDS, TrainingPageSection2 } from './TrainingPageSection2';
-;
+export { OBLIGATION_KINDS } from './TrainingPageSection2';
 
 /**
  * TrainingPage — personnel training (ISO 27001 cl. 7.2/7.3, AI Act Art. 4) and

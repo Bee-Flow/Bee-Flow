@@ -84,7 +84,7 @@ const ARG1_CALL = new RegExp(`^([A-Za-z_$][A-Za-z0-9_$]*)\\(\\s*([^,()]+?)\\s*,\
 const ARG2_CALL = new RegExp(`^([A-Za-z_$][A-Za-z0-9_$]*)\\(\\s*([^,()]+?)\\s*,\\s*${STR}\\s*,\\s*${STR}\\s*\\)$`);
 
 /** The date notations 2c names, plus the two an author reaches for next. */
-const NL_DATE_LONG = 'D MMMM YYYY';
+export const NL_DATE_LONG = 'D MMMM YYYY';
 export const DATE_FORMATS = [
     { value: NL_DATE_LONG, label: '2 september 2026' },
     { value: 'DD-MM-YYYY', label: '02-09-2026' },
@@ -367,7 +367,7 @@ export function describeDataPath(path: unknown, stepLabelById: Pick<Map<string, 
 }
 
 /** Label for a transform id (for the chip). */
-function transformLabel(id: string) {
+export function transformLabel(id: string) {
     return VALUE_TRANSFORMS.find(t => t.id === id)?.label || id;
 }
 

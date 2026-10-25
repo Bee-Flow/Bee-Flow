@@ -25,9 +25,9 @@ import type { AutoMapDefinition } from '../mapping/autoMapInputs.types';
 import type { Position } from '../build/addStepModel';
 import type { ScopeStep, ScopeGraph } from './flowletScope.types';
 import { walkSteps } from './flowletScope.helpers';
-;
+export { layerCallScopes } from './flowletScope.helpers';
 export type { ScopeStep, ScopeGraph } from './flowletScope.types';
-const LAYER_KEY_RE = /^[a-z][a-z0-9_]*$/;
+export const LAYER_KEY_RE = /^[a-z][a-z0-9_]*$/;
 /**
  * Resolve the graph for a scope. `scopeKey == null` means the root
  * document itself; otherwise the flowlet's mini-definition (or null when

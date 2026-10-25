@@ -101,6 +101,282 @@
     "src/components/renderers/markdownRules.ts": [
       "exports",
       "types"
+    ],
+    "src/components/admin/Studio/AppStudio/editor/PublishModal.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/AppStudio/editor/logicRows.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/AppStudio/flow/stepCatalog.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/AppStudio/flow/stepGraph.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/AppStudio/runtime/appVariables.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/AppStudio/runtime/styleResolver.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/AppStudio/state/clipboard.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/KnowledgeStudio/SettingsTab.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/Playbooks/phaseMachine.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/Playbooks/recipes.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/Playbooks/stages/complianceView.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/SkillsStudio/SkillStepEditor.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/SkillsStudio/StepCard.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/SkillsStudio/skillModel.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/Solutions/upgradeClient.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/attention/attentionChecks.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/studioApps.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/Studio/studioGates.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/data/registers.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/ladder/AiActLadderModal/StandaloneLadder.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/ladder/AiActLadderModal/index.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/ladder/ComplianceBlock.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/pages/TrainingPage.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/pages/overview/AttentionList.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/compliance/pages/settings/settingsFields.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/product-website/analytics/AsyncCard.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/admin/product-website/analytics/ui.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/appearance/studio/look/sections/AccentSection.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/aiToolNodes.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/appLabels.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/arrange.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/flowletScope.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/inlineFlowlets.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/routeModel.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/scheduleBuilderUtils.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/sectionForIssue.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/FieldRow.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/FormTriggerFields.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/fieldDesigner.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/formState/aiStepAgent.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/formState/bindings.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/formState/extractionFields.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/formState/index.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/tablesRowValues.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/settings/triggerFilters.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/stepDisplayName.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/stepIcons.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/stepPalette.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/flow/triggerLabels.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/ConditionBuilderRow.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/autoMapInputs.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/refEditorDom.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/upstream/index.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/mapping/valueParts.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/notificationDefaults.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/automation/Builder/utils/conditionModel.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/chat/composerClaims.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/shared/UsedByTab.constants.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/shared/UsedByTab.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/shared/VisibilityCapsule.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/shared/illustrations.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/components/shared/statusTokens/index.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/theme/applyTheme.ts": [
+      "exports",
+      "types"
+    ],
+    "src/hooks/useShieldStatus.ts": [
+      "exports",
+      "types"
+    ],
+    "src/pages/apps/AppsHomePage/index.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/pages/meeting-notes/lib/insightsMetrics.ts": [
+      "exports",
+      "types"
+    ],
+    "src/pages/meeting-notes/lib/upcomingMeta.ts": [
+      "exports",
+      "types"
+    ],
+    "src/pages/meeting-notes/library/RuleCard.tsx": [
+      "exports",
+      "types"
+    ],
+    "src/pages/meeting-notes/library/RulesPanel.tsx": [
+      "exports",
+      "types"
     ]
   }
 }

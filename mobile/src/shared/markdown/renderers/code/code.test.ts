@@ -8,14 +8,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webSourceText } from '@/shared/testing/webModule';
 
 import { CODE_PANEL, GITHUB_DARK, paintedScope } from './codeTheme';
 import { htmlToRuns, scopeKey } from './hljsHtml';
 import { GRAMMAR_OF, isCompactSnippet, languageLabel } from './languages';
 import { highlightDelay, highlightRuns } from './useHighlight';
 
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
+const WEB = webSourceText('components/renderers/MarkdownRenderer.tsx') + webSourceText('components/renderers/CollapsibleCodeBlock.tsx');
 const MOBILE = path.resolve(__dirname, '../../../../..');
 const GITHUB_DARK_CSS = fs.readFileSync(path.join(MOBILE, 'node_modules/highlight.js/styles/github-dark.css'), 'utf8');
 

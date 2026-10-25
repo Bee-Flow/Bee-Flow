@@ -18,7 +18,7 @@ import type { FieldRowProps, RenameArgs, RowNameBoxArgs } from './fieldDesigner.
  * leave a parameter called `input1` and renames it gets no caution — which is
  * an advisory line missing, not a rename going wrong.
  */
-const PLACEHOLDER_NAME_RE = /^(?:input|arg)\d+$/;
+export const PLACEHOLDER_NAME_RE = /^(?:input|arg)\d+$/;
 
 /**
  * What is wrong with a name that is ALREADY STORED, or null.

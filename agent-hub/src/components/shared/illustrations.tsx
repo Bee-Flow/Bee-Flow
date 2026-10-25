@@ -53,7 +53,7 @@ function Frame({ className = '', children }: ArtProps & { children: React.ReactN
 }
 
 /** A tray with the lid open and nothing in it. */
-function EmptyInbox(props: ArtProps) {
+export function EmptyInbox(props: ArtProps) {
     return (
         <Frame {...props}>
             <path d="M20 34h14l4 8h20l4-8h14v20a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4z" opacity={0.55} />
@@ -64,7 +64,7 @@ function EmptyInbox(props: ArtProps) {
 }
 
 /** A magnifier over an empty field. */
-function NoResults(props: ArtProps) {
+export function NoResults(props: ArtProps) {
     return (
         <Frame {...props}>
             <circle cx={44} cy={32} r={14} opacity={0.55} />
@@ -76,7 +76,7 @@ function NoResults(props: ArtProps) {
 }
 
 /** A folder standing open. */
-function NoFiles(props: ArtProps) {
+export function NoFiles(props: ArtProps) {
     return (
         <Frame {...props}>
             <path d="M22 24h16l5 6h31v26a3 3 0 0 1-3 3H25a3 3 0 0 1-3-3z" opacity={0.55} />
@@ -87,7 +87,7 @@ function NoFiles(props: ArtProps) {
 }
 
 /** A checked circle — the good empty. */
-function AllDone(props: ArtProps) {
+export function AllDone(props: ArtProps) {
     return (
         <Frame {...props}>
             <circle cx={48} cy={36} r={18} opacity={0.4} />
@@ -97,7 +97,7 @@ function AllDone(props: ArtProps) {
 }
 
 /** Two plug halves that do not meet. */
-function NotConnected(props: ArtProps) {
+export function NotConnected(props: ArtProps) {
     return (
         <Frame {...props}>
             <path d="M26 36h12v-6a4 4 0 0 1 4-4h2v20h-2a4 4 0 0 1-4-4v-6" opacity={0.55} />
@@ -109,7 +109,7 @@ function NotConnected(props: ArtProps) {
 }
 
 /** A page with a break through it. */
-function Broken(props: ArtProps) {
+export function Broken(props: ArtProps) {
     return (
         <Frame {...props}>
             <path d="M32 16h20l12 12v28a3 3 0 0 1-3 3H32a3 3 0 0 1-3-3V19a3 3 0 0 1 3-3z" opacity={0.5} />
@@ -119,7 +119,7 @@ function Broken(props: ArtProps) {
     );
 }
 
-const ILLUSTRATIONS: Record<IllustrationName, (p: ArtProps) => React.ReactElement> = {
+export const ILLUSTRATIONS: Record<IllustrationName, (p: ArtProps) => React.ReactElement> = {
     'empty-inbox': EmptyInbox,
     'no-results': NoResults,
     'no-files': NoFiles,

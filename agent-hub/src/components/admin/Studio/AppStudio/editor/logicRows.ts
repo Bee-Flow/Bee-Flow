@@ -9,7 +9,7 @@ import type { SaveNotice } from './saveNotices';
 import type { NodeEntry, RowCommon, LogicRow, LogicRowsOptions, DerivedAutomationRowsArgs } from './logicRows.types';
 import { actionsOf, whatOf, baseRow, makeEmitter, type Emitter } from './logicRows.types2';
 import { triggerWhen, nodesOfScreen, emitSurfaceRows, asSet, triggerKindOf, matchNotice } from './logicRows.helpers';
-;
+export type { LogicRow } from './logicRows.types';
 
 /**
  * The rows of the Logic tab: one table across ALL screens of "when" × "what then happens".
@@ -61,7 +61,7 @@ export function eventsForType(type: string|number) {
  *
  * The order stays that of the type; whatever is extra comes after it.
  */
-function eventSlotsOf(node: AppNode | null | undefined) {
+export function eventSlotsOf(node: AppNode | null | undefined) {
     const slots = eventsForType(node?.type ?? '').slice();
     for (const event of NODE_EVENTS) {
         if (slots.includes(event)) continue;

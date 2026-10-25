@@ -19,10 +19,10 @@ import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
 import type { BreakdownRow, BreakdownTableProps, CompareKind, CompareResult, RenderStatTileArgs, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';
 import { ACCENT, ShareBar } from './BarList';
 import { Skeleton } from './AsyncCard';
-;
-;
+export { Card, ErrorNote, Skeleton, AsyncCard } from './AsyncCard';
+export { ACCENT, maxOf, ShareBar, BarList } from './BarList';
 
-const PALETTE = ['#3b82f6', '#14b8a6', '#10b981', '#f59e0b', '#f97316', '#06b6d4', '#f43f5e', '#0ea5e9'];
+export const PALETTE = ['#3b82f6', '#14b8a6', '#10b981', '#f59e0b', '#f97316', '#06b6d4', '#f43f5e', '#0ea5e9'];
 export const paletteAt = (i: number) => PALETTE[i % PALETTE.length];
 
 /**
@@ -86,7 +86,7 @@ export function mapToRows(map: unknown): { x: string; y: number }[] {
 }
 
 /** Umami /pageviews → rows for SvgAreaChart (`period` x-label, `value` yKey). */
-function toTimeseries(series: unknown): { period: string; value: number }[] {
+export function toTimeseries(series: unknown): { period: string; value: number }[] {
     const arr: XYRow[] = Array.isArray(series) ? series : [];
     return arr.map((p: XYRow) => ({ period: String(p.x || '').slice(0, 16).replace('T', ' '), value: p.y || 0 }));
 }
@@ -99,7 +99,7 @@ function toTimeseries(series: unknown): { period: string; value: number }[] {
  * ("Direct" for a referrer, "Unknown" for a country), and — the actual bug —
  * a dimension whose real value happens to BE "(none)" stays drillable.
  */
-function toRows(arr: unknown) {
+export function toRows(arr: unknown) {
     // `label` is null exactly when `isBlank`: the narrowing BreakdownRow states.
     return (Array.isArray(arr) ? arr : []).map((d: XYRow, i: number) => ({
         label: d.x || null,
@@ -109,7 +109,7 @@ function toRows(arr: unknown) {
     })) as BreakdownRow[];
 }
 
-function toDonut(arr: unknown) {
+export function toDonut(arr: unknown) {
     return (Array.isArray(arr) ? arr : [])
         .filter((d: XYRow) => (d.y || 0) > 0)
         .map((d: XYRow, i: number) => ({ label: d.x || '(none)', value: d.y || 0, color: paletteAt(i) }));
@@ -119,7 +119,7 @@ function toDonut(arr: unknown) {
  * Percentage delta vs the previous period. Umami's `stats` returns a
  * `comparison` block that the old dashboard threw away.
  */
-function deltaPct(current: unknown, previous: unknown): number | null {
+export function deltaPct(current: unknown, previous: unknown): number | null {
     const c = Number(current) || 0;
     const p = Number(previous) || 0;
     if (!p) return null;

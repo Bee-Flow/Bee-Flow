@@ -14,15 +14,17 @@
  * When this fails, the web side changed: update attention.ts to match.
  */
 
-import fs from 'node:fs';
+
 import path from 'node:path';
+
+import { webSourceText } from '@/shared/testing/webModule';
 
 import { attentionLine, attentionSections, SOURCE_LABELS, SOURCE_SECTION } from './attention';
 import { STUDIO_SECTIONS } from './registry';
 
 const DIR = path.resolve(__dirname, '../../../../../agent-hub/src/components/admin/Studio/attention');
-const CHECKS = fs.readFileSync(path.join(DIR, 'attentionChecks.ts'), 'utf8');
-const LIST = fs.readFileSync(path.join(DIR, 'AttentionList.tsx'), 'utf8');
+const CHECKS = webSourceText(path.join(DIR, 'attentionChecks.ts'));
+const LIST = webSourceText(path.join(DIR, 'AttentionList.tsx'));
 
 /** `source: { kind: 'x', … }` inside `export const SOURCE_LABELS = Object.freeze({ … });`. */
 function webSourceKinds(): Record<string, string> {

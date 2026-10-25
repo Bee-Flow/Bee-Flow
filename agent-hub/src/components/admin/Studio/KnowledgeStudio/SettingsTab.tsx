@@ -8,7 +8,7 @@ import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { SettingsTabProps, NameFieldsProps } from './SettingsTab.types';
 import { SURFACE_CARDS, SettingsTabSection2 } from './SettingsTabSection2';
 import { SettingsTabSection } from './SettingsTabSection';
-;
+export { SURFACE_CARDS, attachedCount } from './SettingsTabSection2';
 
 /**
  * Instellingen (Knowledge artboard 1c-left): name, description, where the

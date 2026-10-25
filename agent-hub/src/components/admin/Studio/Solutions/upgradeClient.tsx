@@ -7,7 +7,7 @@ import Modal from '../../../shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
 import type { IsNewerArgs, UpdateAvailabilityArgs, PlanItem, PlanManifest, PlanRow, PlanRows, UpgradeBody, UpgradeReport, ReadReport, PlanOutcome, UpgradeOutcome, FetchUpgradePlanArgs, RunUpgradeArgs, UpdateBannerProps, PlanState, DialogFooterProps, UpgradeDialogProps } from './upgradeClient.types';
 import { DialogBody } from './DialogBody';
-;
+export { PlanBody } from './DialogBody';
 export type { PlanRows, ReadReport } from './upgradeClient.types';
 
 /**

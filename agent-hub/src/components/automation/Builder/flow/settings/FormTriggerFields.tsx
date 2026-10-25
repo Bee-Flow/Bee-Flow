@@ -22,7 +22,7 @@ import { errorMessage } from '../../../../../utils/caughtError';
  */
 
 // Re-exported so existing importers (DiagramPane, tests) keep one entry point.
-export { defaultFormDeclaration,   } from './FormBuilderFields';
+export { defaultFormDeclaration, slugifyFieldName, THEME_PRESETS } from './FormBuilderFields';
 
 /** See the note in FormTriggerFields: Forms owns the public link for now. */
 export const SHOW_PUBLIC_LINK_IN_BUILDER = false;

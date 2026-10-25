@@ -4,14 +4,13 @@
  * the same thing with `language === '…'` tests.
  */
 
-import fs from 'node:fs';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webSourceText } from '@/shared/testing/webModule';
 
 import { FENCE_LANGUAGES, fenceKind, fenceLanguage, isClosedFence } from './fences';
 import { lexBlock } from './lexer';
 
-const WEB = fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/MarkdownRenderer.tsx`, 'utf8');
+const WEB = webSourceText('components/renderers/CodeRenderer.tsx');
 
 describe('fence languages, in lockstep with the web', () => {
     const webNames = [...WEB.matchAll(/language === '([\w-]+)'/g)].map((m) => m[1]);

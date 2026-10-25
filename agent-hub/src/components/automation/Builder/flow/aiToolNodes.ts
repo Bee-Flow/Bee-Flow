@@ -58,7 +58,7 @@ const PARENT_W = 240;         // StepNodeBase's fixed card width
  * the AI step's box is tall enough to contain its tools is what keeps a
  * branchy flow from drawing the arms on top of the chips.
  */
-const TOOL_ROW_EXTRA_H = 76;
+export const TOOL_ROW_EXTRA_H = 76;
 
 export function toolNodeId(stepId: string, tool: string) {
     return `${stepId}${TOOL_ID_SEP}${tool}`;
@@ -313,7 +313,7 @@ export function allCatalogToolNames(catalog: unknown) {
 }
 
 /** `gmail_search` → `Gmail search`, for tools the catalog can no longer name. */
-function prettyToolName(name: string) {
+export function prettyToolName(name: string) {
     return String(name || '')
         .replace(/_/g, ' ')
         .trim()

@@ -4,8 +4,9 @@
  * the two closed lists, the default, the long-wait line and the row cap.
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
+
+import { webSourceText } from '@/shared/testing/webModule';
 
 import {
     activeRetry,
@@ -21,7 +22,7 @@ import {
 } from './retry';
 
 const REPO = path.resolve(__dirname, '../../../../../../../..');
-const SRC = fs.readFileSync(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/collectionEditors.tsx'), 'utf8');
+const SRC = webSourceText(path.join(REPO, 'agent-hub/src/components/automation/Builder/flow/settings/collectionEditors.tsx'));
 const numbers = (name: string) =>
     (new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(SRC)?.[1] ?? '').split(',').map((n) => Number(n.trim().replace(/_/g, '')));
 

@@ -34,7 +34,7 @@ import { suggestItemVar } from '@/features/flow-editor/bindings/upstream/loops';
 import { lastPathKey } from './upstream/fieldTree';
 import { describeDataPath, escapeExprString } from '@/features/flow-editor/bindings/valueParts';
 import { walkPath } from '@/features/flow-editor/bindings/walkPath';
-import { walkRelativePath } from '../../../../utils/bindingHelpers.helpers';
+import { walkRelativePath } from '@/features/flow-editor/bindings/walkPath';
 import { summariseData } from '@/features/flow-editor/bindings/flowDeps/dataSummary';
 import type { TranslateFn, TranslateParams } from '@/features/flow-editor/bindings/webTypes';
 import type { Binding } from './itemRefs';

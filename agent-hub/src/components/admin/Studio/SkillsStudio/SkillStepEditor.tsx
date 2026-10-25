@@ -6,7 +6,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { moveItem, newLocalId } from './skillModel';
 import type { SkillStepEditorProps, Step, StepRef } from './SkillStepEditor.types';
 import { StepCard } from './StepCard';
-;
+export { refLabel } from './StepCard';
 /**
  * "Steps" — the ordered instructions of a skill, as cards you can reorder
  * (Skills artboard 1a, centre column; plan S2).

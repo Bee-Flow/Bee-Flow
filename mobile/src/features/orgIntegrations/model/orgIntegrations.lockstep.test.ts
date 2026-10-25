@@ -8,14 +8,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { AGENT_HUB_SRC, loadWebModule } from '@/shared/testing/webModule';
+import { loadWebModule, webSourceText } from '@/shared/testing/webModule';
 
 import { AZURE_SECTIONS, AZURE_TIERS, isClaudeReasoning, isReasoningCapable, PANEL_TIER_LABELS, SYNC_INTERVALS, TIER_DEFAULTS } from './azure';
 import { BRANCH_RE, REPO_NAME_RE } from './github';
 import { FRESH_MS } from './nextcloud';
 
 const SERVER = path.resolve(__dirname, '../../../../../server');
-const readWeb = (rel: string) => fs.readFileSync(`${AGENT_HUB_SRC}/${rel}`, 'utf8');
+const readWeb = (rel: string) => webSourceText(rel);
 const readServer = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
 interface WebAzure {
@@ -47,7 +47,7 @@ describe('Azure lockstep', () => {
         const server = readServer('routes/orgAzureConfig.js');
         const labels = Object.entries(PANEL_TIER_LABELS).map(([k, v]) => `${k}: '${v}'`).join(', ');
         expect(server).toContain(`const PANEL_TIERS = { ${labels} };`);
-        const sso = readWeb('components/integrations/azure/SSOSection.tsx');
+        const sso = readWeb('components/integrations/azure/SSOSection.tsx') + readWeb('components/integrations/azure/SSOSectionSection.tsx');
         const offered = [...sso.matchAll(/<option value=\{(\d+)\}>/g)].map((m) => Number(m[1]));
         expect(offered).toEqual([...SYNC_INTERVALS]);
     });

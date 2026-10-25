@@ -20,7 +20,7 @@ import { NODE_DEFS } from './nodeDefs';
  * fields" on the canvas.
  */
 export const SET_STEP_NAME = NODE_DEFS.set.defaultLabel;
-const SET_STEP_DESC = NODE_DEFS.set.desc;
+export const SET_STEP_DESC = NODE_DEFS.set.desc;
 
 /**
  * The unified deciding step (runtime types `condition` / `switch` / `filter` —
@@ -29,7 +29,7 @@ const SET_STEP_DESC = NODE_DEFS.set.desc;
  * the Lists group, which is full of genuine filtering.
  */
 export const ROUTE_STEP_NAME = NODE_DEFS.condition.defaultLabel;
-const ROUTE_STEP_DESC = NODE_DEFS.condition.desc;
+export const ROUTE_STEP_DESC = NODE_DEFS.condition.desc;
 
 // Search terms. Each list keeps the words the node was ONCE called, so a user
 // who knows the old name — or the n8n one — still lands on it: the palette's

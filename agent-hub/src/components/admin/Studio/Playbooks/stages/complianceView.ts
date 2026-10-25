@@ -35,7 +35,7 @@ export interface FactsTable {
 }
 
 /** What the organisation configured that the register panel opens with. */
-interface FactsOrg {
+export interface FactsOrg {
     defaultRetentionDays?: number;
     legalBases?: string[];
 }
@@ -70,7 +70,7 @@ export interface RetentionPreview {
 }
 
 /** Where a finding sends you. `target` is the thing; `link` is the old category. */
-const ROPA_PATH = 'settings/organisation/compliance/ropa';
+export const ROPA_PATH = 'settings/organisation/compliance/ropa';
 export const CENTER_PATH = 'settings/organisation/compliance';
 
 export function linkFor(finding: Finding, facts: ComplianceFacts | null | undefined) {
@@ -109,7 +109,7 @@ export function targetWords(finding: Finding, t: TranslateFn) {
  * this is a build someone just made and is about to share, so the question is
  * what it blocks, not how heavy it is on a score.
  */
-const SEVERITY_WORDS: Readonly<Record<string, { key: string; en: string }>> = Object.freeze({
+export const SEVERITY_WORDS: Readonly<Record<string, { key: string; en: string }>> = Object.freeze({
     high: { key: 'playbooks.compliance.sev_high', en: 'Fix before you share' },
     medium: { key: 'playbooks.compliance.sev_medium', en: 'Worth doing' },
     low: { key: 'playbooks.compliance.sev_low', en: 'Good to know' },
@@ -231,7 +231,7 @@ export function isResolvable(finding: Finding) {
  * the automation extracted it, which is the answer people reach for anyway
  * (owner, 2026-09-17).
  */
-const SYSTEM_DATES = Object.freeze([
+export const SYSTEM_DATES = Object.freeze([
     { key: 'created_at', system: true, labelKey: 'playbooks.compliance.date_created', labelEn: 'When the row was added' },
     { key: 'updated_at', system: true, labelKey: 'playbooks.compliance.date_updated', labelEn: 'When the row last changed' },
 ]);

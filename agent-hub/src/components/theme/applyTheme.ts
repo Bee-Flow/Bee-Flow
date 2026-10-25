@@ -22,7 +22,7 @@ import type { GlassTier, ThemeSettings } from '../appearance/ThemeContext.types'
 
 type ThemeInput = Partial<ThemeSettings>;
 
-const FONT_STACKS: Record<string, string> = {
+export const FONT_STACKS: Record<string, string> = {
     system: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     inter: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     plex: "'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif",

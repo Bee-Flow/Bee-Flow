@@ -11,11 +11,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
+import { webSourceText } from '@/shared/testing/webModule';
+
 import { addParam, APP_TRIGGER_TYPES, applyBindingRename, CONTRACT_TYPES, nameProblem, PLACEHOLDER_NAME_RE } from './paramsModel';
 import type { Msg } from '../declarative/spec';
 
 const FLOW = path.resolve(__dirname, '../../../../../../../agent-hub/src/components/automation/Builder/flow');
-const src = fs.readFileSync(path.join(FLOW, 'settings/fieldDesigner.tsx'), 'utf8');
+const src = webSourceText(path.join(FLOW, 'settings/FieldRow.tsx'));
 const editors = fs.readFileSync(path.join(FLOW, 'settings/triggerEditors.tsx'), 'utf8');
 /* eslint-disable-next-line @typescript-eslint/no-require-imports */
 const renameHelpers = require(path.join(FLOW, 'renameFormField.ts'));
