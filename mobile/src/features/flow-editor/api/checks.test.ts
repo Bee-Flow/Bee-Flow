@@ -126,7 +126,7 @@ describe('the AI Act assessment', () => {
         expect(src).toContain("router.put('/ai-act/assessments/:kind/:id'");
         expect(src).toContain('answers: z.record(z.string(), z.unknown()');
         expect(src).toContain('}).strict());');
-        expect(src).toContain('res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: result.open_duties });');
+        expect(src).toContain('res.json({ ...(_publicRow(row) || {}), title: _titleOf(t.kind, target), open_duties: /** @type {{ open_duties?: unknown }} */ (result).open_duties });');
     });
 
     it('matches the signals the checks compute', () => {

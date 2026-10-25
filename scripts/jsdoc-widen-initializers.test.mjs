@@ -4,6 +4,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { run, unionText, wrapEdits, writableType } from './jsdoc-widen-initializers.mjs';
+import { createRequire } from 'node:module';
+
+// The run() tests drive the TypeScript language service from agent-hub's
+// node_modules; a job without them (the policy job) skips those tests only.
+let hasTs = false;
+try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+const tsTest = hasTs ? test : test.skip;
 
 test('writableType refuses any, never, empty objects and long types', () => {
     assert.equal(writableType('string'), true);
@@ -31,7 +38,7 @@ function sandbox(files) {
     return dir;
 }
 
-test('a null property and an empty array take the type of what the file puts in them later', () => {
+tsTest('a null property and an empty array take the type of what the file puts in them later', () => {
     const dir = sandbox({
         'a.js': [
             'const state = { when: null, rows: [] };',
@@ -54,7 +61,7 @@ test('a null property and an empty array take the type of what the file puts in 
     }
 });
 
-test('nothing is written when the later values do not settle on a type', () => {
+tsTest('nothing is written when the later values do not settle on a type', () => {
     const dir = sandbox({ 'b.js': 'const s = { v: null };\nfunction f(x) { s.v = x; }\nmodule.exports = { s, f };\n' });
     try {
         const report = run({ files: [path.join(dir, 'b.js')], write: true, serverDir: dir });
@@ -65,7 +72,7 @@ test('nothing is written when the later values do not settle on a type', () => {
     }
 });
 
-test('an array property filled by assignment takes the element type of what is assigned', () => {
+tsTest('an array property filled by assignment takes the element type of what is assigned', () => {
     const dir = sandbox({
         'c.js': [
             'const state = { label: null, items: [] };',

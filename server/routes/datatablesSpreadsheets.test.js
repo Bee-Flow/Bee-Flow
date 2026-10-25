@@ -65,7 +65,7 @@ test('browse and describe mount the engine\'s ONE storage bucket; link spends it
     // One bucket for browse, describe, link AND relink: the engine's
     // (link.js), so a relink — whose route lives in datatables.js — shares
     // it. A second `perUserRateLimit(…)` in this file would be a second budget.
-    assert.match(SRC, /const storageLimiter = \(req, res, next\) => adapter\(\)\.link\.storageLimiter\(req, res, next\)/);
+    assert.match(SRC, /const storageLimiter = \(\s*req,\s*res,\s*next\) => adapter\(\)\.link\.storageLimiter\(req, res, next\)/);
     assert.doesNotMatch(SRC, /perUserRateLimit/, 'the bucket is the engine\'s, not a second one');
     assert.match(SRC, /router\.get\('\/browse', storageLimiter,/);
     assert.match(SRC, /router\.get\('\/describe', storageLimiter,/);

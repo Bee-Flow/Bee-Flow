@@ -58,10 +58,24 @@ function git(args, cwd = ROOT) {
     return r.stdout.split('\n').filter(Boolean);
 }
 
+/**
+ * Added since `base`: from the merge base where git can find one. A CI checkout
+ * is shallow (the PR's merge commit plus the fetched base), so there is no merge
+ * base; HEAD is then the merge of the PR into `base`, and a plain `base HEAD`
+ * diff is the same set of files.
+ */
+function addedSince(base, cwd) {
+    try {
+        return git(['diff', '--name-only', '--diff-filter=A', `${base}...HEAD`], cwd);
+    } catch {
+        return git(['diff', '--name-only', '--diff-filter=A', base, 'HEAD'], cwd);
+    }
+}
+
 /** Files added since `base`, plus untracked ones. */
 export function addedFiles(base, cwd = ROOT) {
     return [...new Set([
-        ...git(['diff', '--name-only', '--diff-filter=A', `${base}...HEAD`], cwd),
+        ...addedSince(base, cwd),
         ...git(['diff', '--name-only', '--diff-filter=A', 'HEAD'], cwd),
         ...git(['ls-files', '--others', '--exclude-standard'], cwd),
     ])];

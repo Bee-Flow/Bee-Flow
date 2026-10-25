@@ -4,6 +4,13 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { concrete, run, typeInFix, withoutTag } from './jsdoc-loose-types.mjs';
+import { createRequire } from 'node:module';
+
+// The run() tests drive the TypeScript language service from agent-hub's
+// node_modules; a job without them (the policy job) skips those tests only.
+let hasTs = false;
+try { createRequire(new URL('../agent-hub/package.json', import.meta.url))('typescript'); hasTs = true; } catch { /* not installed */ }
+const tsTest = hasTs ? test : test.skip;
 
 test('concrete refuses what says nothing', () => {
     assert.equal(concrete('string'), true);
@@ -35,7 +42,7 @@ function sandbox(files) {
     return dir;
 }
 
-test('a loose parameter takes the type its use and its callers give it; an unusable one stays', () => {
+tsTest('a loose parameter takes the type its use and its callers give it; an unusable one stays', () => {
     const dir = sandbox({
         'a.js': [
             '/**',

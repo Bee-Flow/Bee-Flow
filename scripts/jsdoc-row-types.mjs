@@ -110,6 +110,7 @@ export function planFile(project, file, tables) {
     return edits;
 }
 
+/** @param {{ files?: string[], write?: boolean, serverDir?: string, rowTypes?: string }} [opts] rowTypes is the text of a rows.d.ts */
 export function run({ files, write = false, serverDir, rowTypes } = {}) {
     const tables = parseRowTypes(rowTypes ?? fs.readFileSync(path.join(serverDir ?? path.join(ROOT, 'server'), 'types', 'rows.d.ts'), 'utf8'));
     const abs = files.map((f) => path.resolve(ROOT, f)).filter((f) => !/\.(?:test|spec)\.[cm]?js$|\.testkit\./.test(f));

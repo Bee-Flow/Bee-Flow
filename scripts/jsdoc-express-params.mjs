@@ -71,6 +71,7 @@ export function planFile(project, file) {
     return edits;
 }
 
+/** @param {{ files?: string[], write?: boolean, serverDir?: string }} [opts] */
 export function run({ files, write = false, serverDir } = {}) {
     const abs = files.map((f) => path.resolve(ROOT, f)).filter((f) => !TEST_FILE.test(f));
     const project = openServer(abs, { serverDir });

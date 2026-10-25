@@ -25,15 +25,30 @@
  * `bestEffortCounts()` is the snapshot for a health or metrics endpoint.
  */
 
-const { metrics } = require('@opentelemetry/api');
 const log = require('../telemetry/log');
 
 const LOG_INTERVAL_MS = 60_000;
 const MAX_LABELS = 2000;
 
-const failures = metrics
-    .getMeter('beeflow-server', process.env.APP_BUILD_SHA || 'dev')
-    .createCounter('best_effort.failures', { description: 'Failures a caller chose to carry on from', unit: '{failure}' });
+/**
+ * The OTel counter, made on first use. A repo script that loads a server module
+ * runs without the server's node_modules; there the counter is skipped and the
+ * per-label counts and warns below still work.
+ * @type {{ add(n: number, attrs: Record<string, string>): void } | null | undefined}
+ */
+let failures;
+function counter() {
+    if (failures !== undefined) return failures;
+    try {
+        const { metrics } = require('@opentelemetry/api');
+        failures = metrics
+            .getMeter('beeflow-server', process.env.APP_BUILD_SHA || 'dev')
+            .createCounter('best_effort.failures', { description: 'Failures a caller chose to carry on from', unit: '{failure}' });
+    } catch {
+        failures = null;
+    }
+    return failures;
+}
 
 /** @type {Map<string, { count: number, kind: string, lastLogAt: number, held: number }>} */
 const labels = new Map();
@@ -55,7 +70,7 @@ function note(kind, label, err) {
         labels.set(label, entry);
     }
     entry.count++;
-    failures.add(1, { site: label, kind });
+    counter()?.add(1, { site: label, kind });
     const now = Date.now();
     if (now - entry.lastLogAt < LOG_INTERVAL_MS) {
         entry.held++;

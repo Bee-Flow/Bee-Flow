@@ -44,8 +44,18 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER = path.join(ROOT, 'server');
 
 let tsCache;
+/**
+ * The TypeScript 6 compiler API: the root's `typescript-api` alias (the fast-gates
+ * job installs only the root), else agent-hub's own copy.
+ */
 function loadTs() {
-    tsCache ??= createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
+    if (tsCache) return tsCache;
+    const fromRoot = createRequire(path.join(ROOT, 'package.json'));
+    try {
+        tsCache = fromRoot('typescript-api');
+    } catch {
+        tsCache = createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
+    }
     return tsCache;
 }
 
@@ -217,7 +227,7 @@ function messageOf(ts, call) {
 
 /**
  * Every swallowed-error site in one file.
- * @returns {Array<{ file: string, line: number, kind: string, bucket: string, reason: string, fn: string, start: number, end: number, ... }>}
+ * @returns {Array<{ file: string, line: number, kind: string, bucket: string, reason: string, fn: string, start: number, end: number, [more: string]: any }>}
  */
 export function scanText(text, file) {
     // A generated bundle is rebuilt, not edited.
@@ -316,6 +326,10 @@ export function countSwallowed(text, file) {
     return scanText(text, file).length;
 }
 
+/**
+ * @param {string} [dir]
+ * @param {(relPath: string) => boolean} [filter]
+ */
 export function scanAll(dir = SERVER, filter = () => true) {
     const sites = [];
     for (const file of listServerFiles(dir)) {

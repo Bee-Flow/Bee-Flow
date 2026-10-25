@@ -39,7 +39,7 @@ function block(src: string, start: string, end: string): string {
 }
 
 /** ROUTE_KINDS' keys, in order: the vocabulary the model is given. */
-const routeKinds = [...block(ROUTE, 'const ROUTE_KINDS = Object.freeze([', '\n]);').matchAll(/\n {8}key: '(\w+)'/g)].map((m) => m[1] as string);
+const routeKinds = [...block(ROUTE, 'const ROUTE_KINDS = Object.freeze(', '\n]));').matchAll(/\n {8}key: '(\w+)'/g)].map((m) => m[1] as string);
 
 describe('the route (server/routes/studio/aiRoute.js)', () => {
     it('is POST /api/studio/ai/route', () => {

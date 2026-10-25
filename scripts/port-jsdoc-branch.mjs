@@ -159,7 +159,7 @@ function mergeRaw(ours, base, theirs) {
 const DOC_BLOCK = /\/\*\*(?:(?!\*\/)[\s\S])*\*\//g;
 const TYPEDEF_NAME = /@(?:typedef|callback)\s+(?:\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}\s+)?([A-Za-z_$][\w$]*)/g;
 
-/** The names a JSDoc block declares with @typedef or @callback. */
+/** The names a JSDoc block declares with a typedef or callback tag. */
 export function typedefNames(block) {
     return [...block.matchAll(TYPEDEF_NAME)].map((m) => m[1]);
 }

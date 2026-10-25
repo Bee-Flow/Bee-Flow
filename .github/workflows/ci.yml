@@ -163,7 +163,7 @@ jobs:
               - 'server/stores/notebook/{rowMappers,notebooks}.js'
               - 'server/stores/usage/{queries,breakdowns}.js'
               - 'server/services/stripe/invoicesPromos.js'
-              - 'server/utils/stableJson.js'
+              - 'server/utils/{bestEffort,stableJson}.js'
               # the logger every server file mobile reads may require (catch blocks log at debug)
               - 'server/telemetry/log.js'
               # required by server/telemetry/log.js (log-safe stand-ins for user content)

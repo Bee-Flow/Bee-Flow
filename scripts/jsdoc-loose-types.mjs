@@ -72,6 +72,7 @@ export function withoutTag(text, tag) {
     return text.slice(0, tag.tagStart) + text.slice(tag.tagEnd);
 }
 
+/** @param {{ files?: string[], write?: boolean, serverDir?: string }} [opts] */
 export function run({ files, write = false, serverDir } = {}) {
     const abs = files.map((f) => path.resolve(ROOT, f)).filter((f) => !/\.(?:test|spec)\.[cm]?js$|\.testkit\./.test(f));
     const byLevel = new Map();

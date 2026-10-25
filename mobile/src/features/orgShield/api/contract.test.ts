@@ -70,7 +70,7 @@ describe('routes/orgPrivacyShield.js', () => {
         expectAll(orgShieldCore, ["stalenessWarnings.push({ collectionId: colId, reason: 'collection_not_found' })"]);
         // The old "Always hide these" list is validated with the data types now,
         // and still answered per term (kept for one release).
-        expectAll(shieldDoc, ['termErrors.push({ id: term.id || null, label: term.label, error: err.message })']);
+        expectAll(shieldDoc, ['termErrors.push({ id: term.id || null, label: term.label, error: /** @type {Error} */ (err).message })']);
     });
 });
 
