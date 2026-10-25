@@ -78,7 +78,7 @@ async function resolveTurnOrgId(req) {
  * silently no-op for the highest-privilege user. Fall back to the single org
  * shield when exactly one exists; with several orgs there is no guessing.
  */
-async function resolveTurnShield(req, { userOrgId, userId }) {
+async function resolveTurnShield(/** @type {import('express').Request} */ req, { userOrgId, userId }) {
     const { resolveShieldFor } = require('../../../core/privacy/orgShield');
     let orgShield = await resolveShieldFor({ orgId: userOrgId, userId });
     let shieldSource = orgShield ? (userOrgId ? `org ${userOrgId}` : `user ${userId}`) : 'none';

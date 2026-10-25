@@ -62,7 +62,7 @@ function isVideoGenTool(name) {
 /**
  * @param {(arg0: string, arg1: { name: string; message: string; } | { url: string; mimeType: string; }) => void} send
  */
-async function executeVideoGenTool(args, send, req, nanoBananaSettings) {
+async function executeVideoGenTool(args, send, /** @type {import('express').Request} */ req, nanoBananaSettings) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' };

@@ -130,7 +130,7 @@ async function breakingColumnUsage(datatableId, storedFields, nextFields) {
 }
 
 /** Refuse any attempt to smuggle SQL through a descriptor. */
-function rejectSqlKeys(req, res, next) {
+function rejectSqlKeys(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     const body = req.body || {};
     for (const k of ['sql', 'query', 'rawSql', 'rawQuery']) {
         if (Object.hasOwn(body, k)) {

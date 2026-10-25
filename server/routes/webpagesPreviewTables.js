@@ -209,7 +209,7 @@ function sendError(res, err, fallback) {
  * The viewer + their grade on this table. Throws if either is missing.
  * @param {string} needed
  */
-async function resolveFor(req, needed) {
+async function resolveFor(/** @type {import('express').Request} */ req, needed) {
     const principal = await resolveDatatablePrincipalForUser(requireViewer(req));
     return datatableRuntime.resolveForPrincipal(req.params.tid, principal, { needed });
 }

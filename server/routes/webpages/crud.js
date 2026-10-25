@@ -73,7 +73,7 @@ const UpdateBody = bodyOf({
 });
 
 function register(router) {
-    router.post('/', requireAuth, validate({ body: CreateBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/', requireAuth, validate({ body: CreateBody, query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const { name, description, instructions, framework, runtime } = req.body;
         const prompt = (req.body.prompt || '').trim().slice(0, MAX_PROMPT_CHARS);
@@ -148,7 +148,7 @@ function register(router) {
         });
     });
 
-    router.get('/', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
         // resolveUserOrgIds returns null for super-admin (sees everything in scope);
         // collapse to [] so the SQL ANY($orgIds) doesn't blow up — super-admins fall
@@ -170,7 +170,7 @@ function register(router) {
         res.json({ webpages });
     });
 
-    router.get('/:id', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/:id', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         // Try owner-scoped read first (preserves owner-only RustFS path).
         let webpage = await webpageStore.getWebpage(req.params.id, userId);
@@ -236,7 +236,7 @@ function register(router) {
         });
     });
 
-    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (req, res) => {
+    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const id = req.params.id;
         const {

@@ -7,7 +7,7 @@ const { buildEnvelope, openEnvelope, isEnvelope } = require('./fieldEnvelope');
 const { HttpError } = require('../../shared/httpErrors');
 
 const sessions = new AsyncLocalStorage();
-function withDocumentEncryptionSession(req, _res, next) { sessions.run(req, next); }
+function withDocumentEncryptionSession(/** @type {import('express').Request} */ req, _res, next) { sessions.run(req, next); }
 
 const keySources = {
     policy: async (orgId) => {

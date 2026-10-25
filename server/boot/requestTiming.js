@@ -33,7 +33,7 @@ function mountRequestTiming(app) {
     // Long-lived SSE streams are skipped — their duration is the stream length, not
     // request-handling latency, and would swamp the histogram.
     const httpMetrics = require('../telemetry/httpMetrics');
-    app.use((req, res, next) => {
+    app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         const start = process.hrtime.bigint();
         res.on('finish', () => {
             try {

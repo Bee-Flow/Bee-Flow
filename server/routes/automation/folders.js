@@ -41,11 +41,11 @@ const duplicateFolder = () => new HttpError(409, 'folder_name_taken', 'A folder 
 // organisation. The automations INSIDE them stay per-user — the list endpoint
 // filters on user_id — so a folder is a shared label, not a shared inbox.
 function registerFolderRoutes(router) {
-    router.get('/folders', async (req, res) => {
+    router.get('/folders', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         res.json({ folders: await automationStore.listFolders(await orgOf(req), req.session.user.id) });
     });
 
-    router.post('/folders', validate({ body: FolderBody }), async (req, res, next) => {
+    router.post('/folders', validate({ body: FolderBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         try {
             const folder = await automationStore.createFolder({
                 organizationId: await orgOf(req),
@@ -60,7 +60,7 @@ function registerFolderRoutes(router) {
         }
     });
 
-    router.put('/folders/:folderId', validate({ body: FolderPatch }), async (req, res, next) => {
+    router.put('/folders/:folderId', validate({ body: FolderPatch }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         try {
             const existing = await automationStore.getFolder(req.params.folderId);
             if (!existing) return res.status(404).json({ error: 'Not found' });
@@ -72,7 +72,7 @@ function registerFolderRoutes(router) {
         }
     });
 
-    router.delete('/folders/:folderId', async (req, res) => {
+    router.delete('/folders/:folderId', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const existing = await automationStore.getFolder(req.params.folderId);
         if (!existing) return res.status(404).json({ error: 'Not found' });
         // Detaches, never deletes: the folder may hold automations belonging to

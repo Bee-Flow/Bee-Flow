@@ -189,7 +189,7 @@ function _logUsage(source, model, promptLen) {
 
 // ─── Executor ───────────────────────────────────────────────────
 
-async function executeElevenLabsTool(toolName, toolArgs, send, req, nanoBananaSettings) {
+async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import('express').Request} */ req, nanoBananaSettings) {
     const apiKey = await configStore.getSecret('elevenlabs_api_key');
     if (!apiKey) {
         return { error: 'ElevenLabs API key not configured. Add it in Admin → AI Config → API Keys.' };

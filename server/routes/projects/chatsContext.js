@@ -62,7 +62,7 @@ function resolveChatsDeps(deps) {
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
         // One budget for starting chats and posting, per member: generous for
         // a conversation, a wall for a runaway client.
-        postLimiter: deps.postLimiter || function rateLimitMiddleware(req, res, next) {
+        postLimiter: deps.postLimiter || function rateLimitMiddleware(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
             if (!defaultLimiter) {
                 defaultLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 120, name: 'project-chat-post' });
             }

@@ -34,7 +34,7 @@ function makeAgentAccess(deps) {
     /**
      * @param {string} userId
      */
-    async function buildCanModifyContext(userId, req) {
+    async function buildCanModifyContext(userId, /** @type {import('express').Request} */ req) {
         if (!userId) return { hasManage: false, orgIds: new Set(), user: null };
         const [hasManage, orgIds, user] = await Promise.all([
             deps.hasPermission(userId, 'manage_agents', req.session),
@@ -57,7 +57,7 @@ function makeAgentAccess(deps) {
     /**
      * @param {string} userId
      */
-    async function canModifyAgent(agent, userId, req, ctx = null) {
+    async function canModifyAgent(agent, userId, /** @type {import('express').Request} */ req, ctx = null) {
         if (agent.owner_id === userId) return true;
 
         const { SystemRoles, OrgRoles } = deps.roles();

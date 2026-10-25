@@ -16,14 +16,14 @@ const {
     checkedAssignees, checkedLinks, checkedHierarchy, prepareTask, announceAssigned, announceCreated, meetingTexts, alreadyATask,
 } = require('./tasksRules');
 
-async function board(ctx, req, res) {
+async function board(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const box = await ctx.boxFor(project);
     const { tasks, truncated } = await ctx.store().listBoard(project.id);
     res.json({ tasks: tasks.map((t) => presentTask(box, t)), truncated, role: req.projectRole });
 }
 
-async function createTask(ctx, req, res) {
+async function createTask(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
     const box = await ctx.boxFor(project);
@@ -42,7 +42,7 @@ async function createTask(ctx, req, res) {
 // Everything is checked before anything is stored, so a refusal leaves no half a list. A task whose
 // `source` already became a task here is skipped: the same meeting item is never made twice (the
 // unique index on the source settles two requests that race; the one that loses skips it).
-async function createBatch(ctx, req, res) {
+async function createBatch(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
     const box = await ctx.boxFor(project);
@@ -76,7 +76,7 @@ async function createBatch(ctx, req, res) {
 }
 
 /** The meeting note when it is filed in this project, else a 404. */
-async function filedMeeting(ctx, req, project) {
+async function filedMeeting(ctx, /** @type {import('express').Request} */ req, project) {
     if (!(await ctx.filedIds(project.id, 'meeting', [req.params.meetingId])).has(req.params.meetingId)) {
         throw notFound('meeting_not_found', 'This meeting is not filed in this project.');
     }
@@ -85,7 +85,7 @@ async function filedMeeting(ctx, req, project) {
     return note;
 }
 
-async function meetingSuggestions(ctx, req, res) {
+async function meetingSuggestions(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const note = await filedMeeting(ctx, req, project);
     const { suggestionsFromNote } = require('../../projects/taskFromMeeting');
@@ -97,7 +97,7 @@ async function meetingSuggestions(ctx, req, res) {
 }
 
 // The AI reads the notes as the asker and only suggests: nothing is made here.
-async function improveMeetingSuggestions(ctx, req, res) {
+async function improveMeetingSuggestions(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const note = await filedMeeting(ctx, req, project);
     // Items that already became a task are expanded too: the person can let the AI improve the task that exists.
@@ -110,7 +110,7 @@ async function improveMeetingSuggestions(ctx, req, res) {
     res.json({ items: improved.map((i) => ({ ...i, createdTaskId: createdTaskFor(created, i.itemId, textOf.get(i.itemId)) })) });
 }
 
-async function improveTask(ctx, req, res) {
+async function improveTask(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const task = await ctx.loadTask(project, req.params.taskId);
     const box = await ctx.boxFor(project);
@@ -138,7 +138,7 @@ function fieldPatch(box, task, body, itemType, parentTaskId) {
     return patch;
 }
 
-async function updateTask(ctx, req, res) {
+async function updateTask(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
     const task = await ctx.loadTask(project, req.params.taskId);
@@ -179,7 +179,7 @@ async function updateTask(ctx, req, res) {
     res.json({ task: presentTask(box, updated) });
 }
 
-async function deleteTask(ctx, req, res) {
+async function deleteTask(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
     const task = await ctx.loadTask(project, req.params.taskId);

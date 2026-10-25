@@ -59,7 +59,7 @@ const GroupIntegrationsBody = bodyOf({ disabledIntegrations: idList('disabledInt
 // Augment requireOrgAdmin with a "must be NC-bound" check so this whole
 // surface is unreachable for standalone orgs even if a malicious caller
 // guesses the URL.
-async function requireNcOrg(req, res, next) {
+async function requireNcOrg(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     const orgId = req.params.orgId;
     const org = await userStore.getOrganization(orgId);
     if (!org) return res.status(404).json({ error: 'Organization not found' });

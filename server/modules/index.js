@@ -219,7 +219,7 @@ function requireModule(moduleId, { remote = false } = {}) {
     // Tagged so auth/routeWalk.cli.js can attribute the mount to its module
     // instead of recording another anonymous chain slot — the same contract
     // every other gate axis follows (see auth/gateMeta.js).
-    return tagGate(async function moduleGate(req, res, next) {
+    return tagGate(async function moduleGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         try {
             if (await isModuleActive(moduleId)) return next();
         } catch (err) { bestEffort('modules/index:requireModule', err); /* fall through to concealment */ }

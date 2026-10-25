@@ -24,7 +24,7 @@ function register(router) {
     // Accepts nothing but the page in the path: the token is scoped to the OWNER and to
     // the viewer, both taken from the session. A body key that looks as if it could shift
     // that (`userId`, `scope`) should get a 400 and not be ignored.
-    router.post('/:id/preview-token', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/preview-token', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         // Owner OR org/group-published reader — same visibility as GET /:id, so
         // shared-page viewers get a token and their React preview can call the

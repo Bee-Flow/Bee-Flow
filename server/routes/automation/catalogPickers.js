@@ -36,7 +36,7 @@ const DATATABLE_OPS = [
  * The tables THIS caller may use.
  * @param {string} userId
  */
-async function loadDatatables(req, userId) {
+async function loadDatatables(/** @type {import('express').Request} */ req, userId) {
     // The tables THIS caller may use, already filtered by the same grade
     // resolver the runner uses. The canvas has nowhere to hang a permission
     // check, so availability has to arrive pre-filtered — exactly as `apps`
@@ -66,7 +66,7 @@ async function loadDatatables(req, userId) {
  * The knowledge bases this caller may write to.
  * @param {string} userId
  */
-async function loadKnowledgeBases(req, userId) {
+async function loadKnowledgeBases(/** @type {import('express').Request} */ req, userId) {
     /**
      * The knowledge bases this caller may WRITE to — the `knowledge_write`
      * node's picker (K10).
@@ -121,7 +121,7 @@ async function loadKnowledgeBases(req, userId) {
  * The agents an ai_step may use, with `agentsError` set when the read failed.
  * @param {string} userId
  */
-async function loadAgents(req, userId) {
+async function loadAgents(/** @type {import('express').Request} */ req, userId) {
     /**
      * The agents an ai_step may hand its thinking to (R2).
      *

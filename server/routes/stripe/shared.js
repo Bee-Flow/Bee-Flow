@@ -61,7 +61,7 @@ async function resolveOrgIdForUser(req) {
 /**
  * @param {NextFunction} next
  */
-function requireCloud(req, res, next) {
+function requireCloud(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if ((process.env.DEPLOYMENT_MODE || 'cloud') === 'self-hosted') {
         return res.status(404).json({ error: 'not_available_in_self_hosted', message: 'Stripe checkout is a Bee Flow Cloud feature. Self-hosted installs use license keys.' });
     }

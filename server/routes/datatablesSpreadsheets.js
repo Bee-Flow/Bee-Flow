@@ -160,7 +160,7 @@ function adapter() {
 /**
  * @param {NextFunction} next
  */
-const storageLimiter = (req, res, next) => adapter().link.storageLimiter(req, res, next);
+const storageLimiter = (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) => adapter().link.storageLimiter(req, res, next);
 
 function answer(res, e) {
     if (e && e.code === PG_UNIQUE_VIOLATION && String(e.constraint || '') === 'uq_datatables_scope_key') {
@@ -190,7 +190,7 @@ function answer(res, e) {
  * Returns the scope, or answers the refusal itself and returns null.
  * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} wanted
  */
-async function resolveScope(req, res, principal, wanted) {
+async function resolveScope(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, principal, wanted) {
     if (wanted !== undefined && wanted !== 'organisation' && wanted !== 'personal') {
         res.status(400).json({ error: 'A table belongs either to your organisation or to this account', code: 'bad_scope' });
         return null;

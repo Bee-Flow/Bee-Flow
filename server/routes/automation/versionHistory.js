@@ -78,7 +78,7 @@ function makeVersionHistoryHandlers(deps) {
     const resolveNames = deps.resolveNames || defaultResolveNames;
     const log = deps.log || require('../../telemetry/log');
 
-    async function load(req, res, need) {
+    async function load(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, need) {
         const a = await store.getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
         if (!await access.guard(req, res, a, need)) return null;
@@ -128,7 +128,7 @@ function makeVersionHistoryHandlers(deps) {
         return { version: n, row, definition: effectiveDefinition(a, n, row) };
     }
 
-    async function list(req, res) {
+    async function list(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const a = await load(req, res, 'view');
         if (!a) return;
         const rows = await store.listVersions(a.id);
@@ -149,7 +149,7 @@ function makeVersionHistoryHandlers(deps) {
         });
     }
 
-    async function getOne(req, res) {
+    async function getOne(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const a = await load(req, res, 'view');
         if (!a) return;
         const { version, row, definition } = await resolveRef(a, req.params.versionId);
@@ -164,7 +164,7 @@ function makeVersionHistoryHandlers(deps) {
         });
     }
 
-    async function diff(req, res) {
+    async function diff(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
         const a = await load(req, res, 'view');
         if (!a) return;
         const target = await resolveRef(a, req.params.versionId);
@@ -190,7 +190,7 @@ function makeVersionHistoryHandlers(deps) {
         });
     }
 
-    async function rename(req, res) {
+    async function rename(req, /** @type {import('express').Response} */ res) {
         const a = await load(req, res, 'edit');
         if (!a) return;
         const ref = req.params.versionId;

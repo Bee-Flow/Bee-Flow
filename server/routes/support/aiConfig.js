@@ -31,7 +31,7 @@ const log = require('../../telemetry/log');
 const SUPPORT_AGENT_ID = 'system-bee-flow-support';
 
 /** The super-admin gate as middleware, so a schema never answers ahead of the 403. */
-function requireSuperAdmin(req, res, next) {
+function requireSuperAdmin(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     if (!isSuperAdmin(req)) return res.status(403).json({ error: 'Super-admin required' });
     return next();
 }
@@ -74,7 +74,7 @@ function register(router) {
     // GET /config — staff: read AI agent + KB ids
     // PUT /config — super-admin: update them
     // ──────────────────────────────────────────────────────────────────────────
-    router.get('/config', requireStaffSupport, async (req, res) => {
+    router.get('/config', requireStaffSupport, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const agentId = await configStore.getConfig('support_ai_agent_id');
         const kbRaw = await configStore.getConfig('support_ai_kb_ids');
         let kbIds = [];
@@ -86,7 +86,7 @@ function register(router) {
         res.json({ agentId: agentId || null, kbIds, v2Enabled, autoResolveThreshold });
     });
 
-    router.put('/config', requireSuperAdmin, validate({ body: ConfigBody }), async (req, res) => {
+    router.put('/config', requireSuperAdmin, validate({ body: ConfigBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { agentId, kbIds, v2Enabled, autoResolveThreshold } = req.body;
         if (agentId !== undefined) {
             await configStore.setConfig('support_ai_agent_id', agentId || '');
@@ -114,7 +114,7 @@ function register(router) {
     //                 support_threads / support_messages / email.
     // ──────────────────────────────────────────────────────────────────────────
 
-    router.get('/agent', requireStaffSupport, async (req, res) => {
+    router.get('/agent', requireStaffSupport, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const agentStore = require('../../stores/agentStore');
         const agent = await agentStore.getAgent(SUPPORT_AGENT_ID);
         if (!agent) {
@@ -125,7 +125,7 @@ function register(router) {
         res.json({ agent });
     });
 
-    router.put('/agent', requireSuperAdmin, validate({ body: AgentBody }), async (req, res) => {
+    router.put('/agent', requireSuperAdmin, validate({ body: AgentBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const agentStore = require('../../stores/agentStore');
         const existing = await agentStore.getAgent(SUPPORT_AGENT_ID);
         if (!existing) {
@@ -189,7 +189,7 @@ function register(router) {
         res.json({ ok: true, agent: updated });
     });
 
-    router.post('/preview', requireStaffSupport, validate({ body: PreviewBody }), async (req, res) => {
+    router.post('/preview', requireStaffSupport, validate({ body: PreviewBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { message } = req.body;
 
         const { chatWithAgent } = require('../../core/agentRuntime');

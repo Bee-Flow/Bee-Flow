@@ -110,7 +110,7 @@ function register(router, ctx) {
     const { d, flow, requireManageApps } = ctx;
     const { resolveRecipe, approvalsAllowed, resolveOwnerOrgId, load, prepareNext, persist } = flow;
 
-    router.get('/', async (req, res) => {
+    router.get('/', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const rows = await d.playbookStore.listPlaybooksForUser(userIdOf(req), { limit: 100 });
             res.json({ playbooks: rows.map((pb) => summarise(pb, resolveRecipe(pb))) });
@@ -120,7 +120,7 @@ function register(router, ctx) {
         }
     });
 
-    router.post('/', requireManageApps, async (req, res) => {
+    router.post('/', requireManageApps, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const parsed = check(res, CreateBody, req.body, 'bad_options');
             if (!parsed.ok) return;
@@ -205,7 +205,7 @@ function register(router, ctx) {
 
     // ── read (refreshes a running fill, fails a server phase whose run died) ──
 
-    router.get('/:id', async (req, res) => {
+    router.get('/:id', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             let pb = await load(req, res);
             if (!pb) return;
@@ -249,7 +249,7 @@ function register(router, ctx) {
      * SERVER runs. Those checks are below, each with its own 409 and its own
      * code, and a value schema in front of them would answer first and say less.
      */
-    router.patch('/:id', requireManageApps, async (req, res) => {
+    router.patch('/:id', requireManageApps, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -364,7 +364,7 @@ function register(router, ctx) {
 function registerDelete(router, ctx) {
     const { d, requireManageApps } = ctx;
 
-    router.delete('/:id', requireManageApps, async (req, res) => {
+    router.delete('/:id', requireManageApps, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const gone = await d.playbookStore.deletePlaybook(req.params.id, userIdOf(req));
             if (!gone) return sendErr(res, 404, 'not_found', 'Not found');

@@ -116,7 +116,7 @@ function _startTick(moduleId, tickFn, intervalMs) {
 function _composeHandler(entry) {
     const gate = entry.gateCapability ? hostApiFactory().requireCapability(entry.gateCapability) : null;
     const streaming = Array.isArray(entry.streamingRoutes) ? entry.streamingRoutes : [];
-    return function moduleHandle(req, res, next) {
+    return function moduleHandle(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         const url = req.url || '/';
         // In-flight accounting drives the hot-swap drain: a request completes
         // on socket close — which a deadline 503 also produces (review F24).

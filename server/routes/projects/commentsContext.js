@@ -46,7 +46,7 @@ function resolveCommentsDeps(deps) {
             || ((/** @type {string} */ projectId, /** @type {{ kind?: string; actorId?: string | null; targetType?: string | null; targetId?: string | null; payload?: object; }} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' })),
         logActivity: deps.logActivity
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
-        postLimiter: deps.postLimiter || function rateLimitMiddleware(req, res, next) {
+        postLimiter: deps.postLimiter || function rateLimitMiddleware(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
             if (!defaultLimiter) {
                 defaultLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 90, name: 'project-comment-post' });
             }
@@ -176,7 +176,7 @@ function makeCommentsContext(deps = {}) {
      * question being answered by a person), or nothing happens. Returns what
      * the poster sees; the engine's own decision comes later, quietly.
      */
-    async function afterHumanComment(req, { project, thread, comment, content, askAi }) {
+    async function afterHumanComment(/** @type {import('express').Request} */ req, { project, thread, comment, content, askAi }) {
         const userId = ctx.userIdOf(req);
         const decision = decideCommentAi({ aiMode: thread.aiMode, status: thread.status, content, askAi });
         const orgs = decision.trigger || thread.aiMode === 'auto' ? await ctx.resolveOrgs(req) : null;

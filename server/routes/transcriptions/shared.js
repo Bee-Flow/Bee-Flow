@@ -103,7 +103,7 @@ const VOXTRAL_TIMEOUT_MS = Number(process.env.VOXTRAL_TIMEOUT_MS) || 1_800_000;
  * the five built-in templates: there is thus nothing true to report, and the screen
  * stays silent.
  */
-async function resolveDefaultTemplateForReq(req, userId, userOrgId) {
+async function resolveDefaultTemplateForReq(/** @type {import('express').Request} */ req, userId, userOrgId) {
     try {
         const groupIds = await resolveUserGroupIds(req);
         return await summaryTemplateStore.resolveDefaultTemplate({

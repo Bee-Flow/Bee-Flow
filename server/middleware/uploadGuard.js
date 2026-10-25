@@ -292,7 +292,7 @@ function uploadGuard({ maxBytes = DEFAULT_MAX_BYTES, allow = DEFAULT_ALLOW, fiel
     /**
      * @param {() => void} next
      */
-    return function uploadGuardMiddleware(req, res, next) {
+    return function uploadGuardMiddleware(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
         parseOne(req, res, (err) => {
             if (err) {
                 if (err.code === 'LIMIT_FILE_SIZE') {

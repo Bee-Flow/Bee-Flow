@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * OAuth/SSO configuration API (admin only) — the instance-wide Nextcloud OAuth
  * settings, the per-provider client credentials, and the sso_saml gate that
@@ -165,7 +165,7 @@ let _ssoSamlGate = null;
 // OAuth is Community and passes, everything else needs the sso_saml capability.
 // The Access Map renders this as "Depends on what is opened" rather than
 // guessing one answer for every provider.
-const requireSsoProvider = tagGate((req, res, next) => {
+const requireSsoProvider = tagGate((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const provider = (/** @type {string} */ (req.params.provider) || '').toLowerCase();
     // `ssoLogin: false` marks an OAUTH_PROVIDERS entry that only exists so an
     // integration connector can share its endpoints (Withings). It is not an

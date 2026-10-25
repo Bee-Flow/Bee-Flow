@@ -500,7 +500,7 @@ function requireBetaFeature(featureId) {
     // semantics and response shapes via the unchanged getUserBetaFeatures.
     // (The registry path above delegates to requireCapability, which is already
     // tagged; only this arm needs its own tag.)
-    return tagGate(async (req, res, next) => {
+    return tagGate(async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (!req.session?.user) {
             return res.status(401).json({ error: 'Not authenticated' });
         }

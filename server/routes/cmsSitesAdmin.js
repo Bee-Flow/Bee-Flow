@@ -40,7 +40,7 @@ const importUpload = multer({
 
 // Only engages for multipart requests; a JSON body falls through untouched
 // so pre-zip .json exports keep importing exactly as before.
-function importSiteUpload(req, res, next) {
+function importSiteUpload(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     if (!String(req.headers['content-type'] || '').includes('multipart/form-data')) {
         return next();
     }
@@ -68,7 +68,7 @@ function importSiteUpload(req, res, next) {
 //
 // Assets that can't be read are reported in the bundle rather than silently
 // omitted — an archive that quietly lost three images looks complete.
-async function exportSiteHandler(req, res) {
+async function exportSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const format = String(req.query.format || 'zip').toLowerCase();
     if (format !== 'zip' && format !== 'json') {
         return res.status(400).json({ error: "format must be 'zip' or 'json'" });
@@ -116,7 +116,7 @@ async function exportSiteHandler(req, res) {
 // pre-zip format, still produced by ?format=json and by every export
 // downloaded before this shipped). `req.file` is set by importUpload only
 // for the multipart branch.
-async function importSiteHandler(req, res) {
+async function importSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         let exportData = null;
         let assets = [];
@@ -162,7 +162,7 @@ async function importSiteHandler(req, res) {
     }
 }
 
-async function listSitesHandler(req, res) {
+async function listSitesHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const [sites, liveSiteId] = await Promise.all([
         cmsStore.listProjects(),
         getLiveSiteId(),
@@ -170,7 +170,7 @@ async function listSitesHandler(req, res) {
     res.json({ sites, liveSiteId });
 }
 
-async function createSiteHandler(req, res) {
+async function createSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         const { name } = req.body || {};
         const created = await cmsStore.createProject({ name });
@@ -178,7 +178,7 @@ async function createSiteHandler(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
-async function renameSiteHandler(req, res) {
+async function renameSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         const { name } = req.body || {};
         if (typeof name !== 'string' || !name.trim()) {
@@ -192,14 +192,14 @@ async function renameSiteHandler(req, res) {
 // Duplicate a site into a new version of the same version group. Deep-
 // copies the SiteDoc + every PageDoc + every block with fresh ids. The
 // copy is never live — live stays on whatever cms_live_site_id points at.
-async function duplicateSiteHandler(req, res) {
+async function duplicateSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         const created = await cmsStore.duplicateProject(req.siteId);
         res.status(201).json(created);
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
-async function deleteSiteHandler(req, res) {
+async function deleteSiteHandler(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     try {
         await cmsStore.deleteProject(req.siteId);
         // If the deleted project was the live one, take the public site

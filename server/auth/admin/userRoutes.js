@@ -537,20 +537,20 @@ router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
 // Upload user avatar image
 const userAvatarUpload = multer({
     storage: multer.diskStorage({
-        destination: (req, file, cb) => {
+        destination: (/** @type {import('express').Request} */ req, file, cb) => {
             const uploadDir = path.join(__dirname, '..', '..', 'data', 'uploads');
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
             cb(null, uploadDir);
         },
-        filename: (req, file, cb) => {
+        filename: (/** @type {import('express').Request} */ req, file, cb) => {
             const ext = path.extname(file.originalname);
             cb(null, `user-avatar-${req.params.id}-${Date.now()}${ext}`);
         }
     }),
     limits: { fileSize: 2 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, file, cb) => {
         if (/^image\/(png|jpeg|jpg|svg\+xml|webp|gif)$/.test(file.mimetype)) {
             cb(null, true);
         } else {

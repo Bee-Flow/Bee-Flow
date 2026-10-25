@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Authorization for the monitoring read endpoints (/api/usage/guardrails/*,
  * /api/usage/integrations/*).
@@ -37,7 +37,7 @@ const { fallback } = require('../utils/bestEffort');
 /**
  * @param {NextFunction} next
  */
-async function requireMonitoringScope(req, res, next) {
+async function requireMonitoringScope(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if (!req.session?.isAuthenticated || !req.session?.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }

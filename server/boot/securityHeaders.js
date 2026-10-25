@@ -30,7 +30,7 @@ function applySecurityHeaders(app) {
     // Allow clipboard access so users can paste screenshots in the conversation area.
     // navigator.clipboard.read() requires this header — without it the browser blocks
     // the API before even showing a permission prompt.
-    app.use((req, res, next) => {
+    app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         res.setHeader('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)');
         next();
     });
@@ -49,7 +49,7 @@ function applySecurityHeaders(app) {
     // until the cache was cleared — one account saw a change while another did not.
     // Mark them non-cacheable. Image-ish endpoints (icons, branding) are excluded
     // so they keep their own long-lived caching.
-    app.use((req, res, next) => {
+    app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if ((req.path.startsWith('/auth/') || req.path.startsWith('/api/')
                 || req.path.startsWith('/ai/') || req.path.startsWith('/agents/'))
             && !req.path.startsWith('/api/icons')

@@ -151,7 +151,7 @@ async function announceCreated(ctx, project, userId, task, assigneeIds) {
  * task's `source` to its item: ids are positions and shift when the summary is regenerated. A meeting that
  * cannot be read gives no texts, and its tasks are keyed by id alone.
  */
-function meetingTexts(ctx, req, project) {
+function meetingTexts(ctx, /** @type {import('express').Request} */ req, project) {
     const seen = new Map();
     return async (meetingId) => {
         if (!seen.has(meetingId)) {

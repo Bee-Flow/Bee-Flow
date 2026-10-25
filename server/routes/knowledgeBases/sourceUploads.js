@@ -24,7 +24,7 @@ const uploadFiles = multer({
  * client may post `files` (the new multi-file form) or `file` (one file, the
  * shape the old upload modal used) without a second endpoint.
  */
-function acceptUploads(req, res, next) {
+function acceptUploads(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     uploadFiles(req, res, (err) => {
         if (!err) return next();
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -138,7 +138,7 @@ function acceptFile(kb, source, file, userId) {
 }
 
 /** POST /:id/sources/:sid/files — add files to an upload source (202). */
-async function addFiles(req, res, next) {
+async function addFiles(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     try {
         const kb = await resolveKb(req, res, { manage: true });
         if (!kb) return;

@@ -40,7 +40,7 @@ function isImageGenTool(name) {
 /**
  * @param {(arg0: string, arg1: { data: string; mimeType: string | null; }) => void} send
  */
-async function executeImageGenTool(args, imageGenSettings, send, req) {
+async function executeImageGenTool(args, imageGenSettings, send, /** @type {import('express').Request} */ req) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Image generation is not available — the API key is not configured. Tell the user that image generation is currently unavailable and ask them to contact an administrator. Do NOT attempt to generate images using code, HTML, Canvas, WebGL, SVG, or any other workaround.' };

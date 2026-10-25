@@ -94,7 +94,7 @@ const isOrgAdminPerms = (perms) => Array.isArray(perms) && (perms.includes('all'
  *
  * Any failure resolves to "nothing enforced": see the fail-open rule.
  */
-async function evaluateForRequest(req, { extraCourses = [] } = {}) {
+async function evaluateForRequest(/** @type {import('express').Request} */ req, { extraCourses = [] } = {}) {
     const userId = req.session?.user?.id;
     const orgId = req.session?.user?.organizationId || null;
     if (!userId || !orgId) return {};
@@ -127,7 +127,7 @@ async function evaluateForRequest(req, { extraCourses = [] } = {}) {
 
 function requireTraining(areaId) {
     if (!AREA_BY_ID.has(areaId)) throw new Error(`requireTraining: unknown area '${areaId}'`);
-    return async function trainingGate(req, res, next) {
+    return async function trainingGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         if (SAFE_METHODS.has(req.method)) return next();
         if (!pathIsGated(areaId, req.path)) return next();
         let state;

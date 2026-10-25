@@ -46,14 +46,14 @@ async function presentPokerSession(ctx, box, project, session, userId) {
     return out;
 }
 
-async function getSession(ctx, req, res) {
+async function getSession(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const session = await ctx.store().getPokerSession(project.id);
     const box = await ctx.boxFor(project);
     res.json({ session: await presentPokerSession(ctx, box, project, session, ctx.userIdOf(req)) });
 }
 
-async function startSession(ctx, req, res) {
+async function startSession(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const ids = [...new Set(req.body.taskIds && req.body.taskIds.length ? req.body.taskIds : [req.body.taskId])];
     const tasks = [];
@@ -65,7 +65,7 @@ async function startSession(ctx, req, res) {
     res.status(201).json({ session: await presentPokerSession(ctx, box, project, session, ctx.userIdOf(req)) });
 }
 
-async function vote(ctx, req, res) {
+async function vote(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const session = await ctx.store().castPokerVote(project.id, req.body.sessionId, ctx.userIdOf(req), req.body.vote);
     if (!session) throw conflict('poker_session_closed', 'This planning poker session is no longer accepting votes.');
@@ -73,7 +73,7 @@ async function vote(ctx, req, res) {
     res.json({ session: visiblePokerSession(session, ctx.userIdOf(req)) });
 }
 
-async function reveal(ctx, req, res) {
+async function reveal(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const session = await ctx.store().revealPokerVotes(project.id, req.body.sessionId);
     if (!session) throw conflict('poker_session_closed', 'This planning poker session is no longer accepting votes.');
@@ -81,7 +81,7 @@ async function reveal(ctx, req, res) {
     res.json({ session: visiblePokerSession(session, ctx.userIdOf(req)) });
 }
 
-async function finish(ctx, req, res) {
+async function finish(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const task = await ctx.store().finishPokerSession(project.id, req.body.sessionId, req.body.storyPoints);
     if (!task) throw conflict('poker_session_not_revealed', 'Reveal the votes before saving the agreed estimate.');
@@ -92,7 +92,7 @@ async function finish(ctx, req, res) {
     res.json({ task: presentTask(box, task) });
 }
 
-async function cancel(ctx, req, res) {
+async function cancel(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const session = await ctx.store().cancelPokerSession(project.id, req.body.sessionId);
     if (!session) throw conflict('poker_session_closed', 'This planning poker session is already closed.');
@@ -102,7 +102,7 @@ async function cancel(ctx, req, res) {
 
 // Like finish, but for a queued session: the agreed estimate lands on the current task and
 // the next queued one opens for voting (the session completes at the end of the queue).
-async function next(ctx, req, res) {
+async function next(ctx, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const project = await ctx.loadProject(req);
     const advanced = await ctx.store().advancePokerSession(project.id, req.body.sessionId, req.body.storyPoints);
     if (!advanced) throw conflict('poker_session_not_revealed', 'Reveal the votes before saving the agreed estimate.');

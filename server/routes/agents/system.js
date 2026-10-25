@@ -70,7 +70,7 @@ const DesignerBody = bodyOf({ message: worded('Message is required').min(1, 'Mes
  * route now (`validate({ body: … })`), so a refusal names the field.
  */
 function createHandler({ agentId, tier, maxTokens, buildPrompt, parseResult }) {
-    return async (req, res, next) => {
+    return async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         try {
             // Load agent config from DB
             const agent = await agentStore.getSystemAgent(agentId);

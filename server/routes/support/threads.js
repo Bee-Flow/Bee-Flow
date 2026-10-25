@@ -136,7 +136,7 @@ const TokenQuery = z.object({
 // threadCreate.js and threadHandlers.js.
 
 /** POST /threads — create thread (anon or authenticated). */
-async function createThread(req, res) {
+async function createThread(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const body = req.body;
     const source = body.source === 'in_app' ? 'in_app' : 'marketing';
     if (_isLikelySpam(body, source)) {
@@ -193,7 +193,7 @@ async function createThread(req, res) {
  * later linked to a user (via email match): marketing-form requesters come
  * back via the email link without ever logging in.
  */
-async function checkThreadAccess(req, res, thread) {
+async function checkThreadAccess(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, thread) {
     const userId = getUserId(req);
     const staff = await _hasAdminSupport(req);
     const isOwner = userId && thread.requester_user_id === userId;
@@ -210,7 +210,7 @@ async function checkThreadAccess(req, res, thread) {
 }
 
 /** GET /threads/:id — view a thread (requester, staff, or anon w/ token). */
-async function getThread(req, res) {
+async function getThread(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const thread = await supportStore.getThread(req.params.id);
     // Mix "not found" and "no access" into a single 404 so an attacker can't
     // tell "thread exists but I can't read it" from "thread doesn't exist at
@@ -224,7 +224,7 @@ async function getThread(req, res) {
 }
 
 /** GET /t/:id/open — see registerThreadRoutes. Same 404 for every miss. */
-async function openFromMail(req, res) {
+async function openFromMail(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     requesterSession.setNoLeakHeaders(res);
     const thread = await supportStore.getThread(req.params.id); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- target is the configured client host plus a URI-encoded id
     const token = req.query.token;
@@ -237,7 +237,7 @@ async function openFromMail(req, res) {
 }
 
 /** POST /threads/:id/messages — append a reply (same access as reading). */
-async function postReply(req, res) {
+async function postReply(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const thread = await supportStore.getThread(req.params.id);
     const NOT_FOUND = () => res.status(404).json({ error: 'Not found' });
     if (!thread) return NOT_FOUND();
@@ -247,7 +247,7 @@ async function postReply(req, res) {
 }
 
 /** GET /stream — SSE of thread_updated / thread_created for live inbox refresh (staff). */
-async function stream(req, res) {
+async function stream(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     let listener = null;
     let heartbeat = null;
     let markEnded = () => {};
@@ -302,7 +302,7 @@ function registerThreadRoutes(router) {
     router.get('/threads', requireStaffSupport, validate({ query: InboxQuery }), H.listInbox);
 
     // GET /threads/mine — logged-in user's own threads
-    router.get('/threads/mine', async (req, res) => {
+    router.get('/threads/mine', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
         const threads = await supportStore.listThreads({ requesterUserId: userId, limit: 50 });

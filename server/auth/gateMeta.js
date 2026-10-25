@@ -61,7 +61,7 @@ function readGate(fn) {
  *   app.use('/x', lazyGate(() => require('./y').requireCapability('z'), { axis: 'capability', id: 'z' }))
  */
 function lazyGate(thunk, meta) {
-    const mw = (req, res, next) => thunk()(req, res, next);
+    const mw = (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => thunk()(req, res, next);
     return tagGate(mw, meta);
 }
 

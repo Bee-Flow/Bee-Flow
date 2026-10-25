@@ -81,7 +81,7 @@ function makeProjectTasksRouter(deps = {}) {
     const ctx = makeTasksContext(deps);
     const { requireRole, improveLimiter } = ctx;
     /** @param {(ctx: any, req: any, res: any) => any} handler */
-    const h = (handler) => (req, res) => handler(ctx, req, res);
+    const h = (handler) => (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => handler(ctx, req, res);
 
     router.get('/:id/tasks', requireRole('viewer'), h(T.board));
 
@@ -106,7 +106,7 @@ function makeProjectTasksRouter(deps = {}) {
     router.delete('/:id/tasks/:taskId', requireRole('editor'), h(T.deleteTask));
 
     // The database also checks ranges atomically when two editors change different endpoints.
-    router.use((err, req, res, next) => {
+    router.use((err, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (err.code === '23514' && err.constraint === 'project_tasks_date_range') return next(badRequest('invalid_date_range', 'The start date must be on or before the due date.'));
         // A queued poker task deleted mid-session cannot become the one being voted on.
         if (err.code === '23503' && err.constraint === 'project_task_poker_task_id_fkey') return next(conflict('poker_queue_task_gone', 'A task in the planning poker queue no longer exists. Cancel the session and start it again.'));
