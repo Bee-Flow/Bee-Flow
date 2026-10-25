@@ -240,7 +240,7 @@ function freeNames(nodes) {
     return refs;
 }
 
-function refsOf(root, name, filter = () => true) {
+function refsOf(root, name, filter = (/** @type {any} */ _n) => true) {
     const out = [];
     walk(root, (n) => {
         if (ts.isIdentifier(n) && n.text === name && !isDeclarationName(n) && filter(n)) out.push(n);

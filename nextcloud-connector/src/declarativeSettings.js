@@ -19,6 +19,7 @@ const setupConfig = require('./setupConfig');
 const { withWarmupRetry } = require('./appApiClient');
 const { ocsSucceeded } = require('./ocs');
 const { parseAllowedUrl } = require('./remoteHost');
+const log = require('./log');
 
 const FORM_ID = 'beeflow_admin';
 const FIELD_MODE = 'deployment_mode';
@@ -90,7 +91,7 @@ async function registerSettingsForm() {
     if (!ok) {
         throw new Error(`Settings form register HTTP ${res.status}${code === null ? '' : ` / OCS ${code}`}: ${body.slice(0, 200)}`);
     }
-    console.log(`[Init] Declarative settings form registered (${FORM_ID})`);
+    log.info(`[Init] Declarative settings form registered (${FORM_ID})`);
 }
 
 async function _readStoredValues() {
@@ -104,7 +105,7 @@ async function _readStoredValues() {
     if (!res.ok) {
         throw new Error(`Read settings HTTP ${res.status}`);
     }
-    const body = await res.json();
+    const body = /** @type {any} */ (await res.json());
     // OCS wraps payloads as `{ ocs: { meta: {...}, data: [...] } }`. NC's
     // get-values returns an array of `{ configkey, configvalue }` pairs;
     // missing keys are simply absent rather than null.
@@ -132,7 +133,7 @@ function _resolveTargetUrl(values) {
     try {
         parseAllowedUrl(url, { label: 'Self-hosted API URL' });
     } catch (err) {
-        console.warn(`[Settings] ignoring the configured Bee Flow server URL: ${err.message}`);
+        log.warn(`[Settings] ignoring the configured Bee Flow server URL: ${err.message}`);
         return null;
     }
     return url;
@@ -154,7 +155,7 @@ async function applyStoredValuesIfChanged() {
     // for the width of every retry.
     if (process.env.BEEFLOW_API_BASE_URL) {
         if (!_envPinLogged) {
-            console.log(`[Settings] BEEFLOW_API_BASE_URL is set (${process.env.BEEFLOW_API_BASE_URL}) — the admin picker is informational and will not repoint the connector.`);
+            log.info(`[Settings] BEEFLOW_API_BASE_URL is set (${process.env.BEEFLOW_API_BASE_URL}) — the admin picker is informational and will not repoint the connector.`);
             _envPinLogged = true;
         }
         return;
@@ -163,7 +164,7 @@ async function applyStoredValuesIfChanged() {
     try {
         values = await _readStoredValues();
     } catch (err) {
-        console.warn(`[Settings] poll failed (non-fatal): ${err.message}`);
+        log.warn(`[Settings] poll failed (non-fatal): ${err.message}`);
         return;
     }
     const target = _resolveTargetUrl(values);
@@ -178,7 +179,7 @@ async function applyStoredValuesIfChanged() {
         return;
     }
 
-    console.log(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl} → ${target}`);
+    log.info(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl} → ${target}`);
     const previousUrl = config.apiBaseUrl;
     config.apiBaseUrl = target;
 
@@ -197,7 +198,7 @@ async function applyStoredValuesIfChanged() {
     } catch (err) {
         rebootstrapOk = false;
         config.apiBaseUrl = previousUrl;
-        console.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${previousUrl}. Detail: ${err.message}`);
+        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${previousUrl}. Detail: ${err.message}`);
     }
 
     if (rebootstrapOk) {
@@ -207,7 +208,7 @@ async function applyStoredValuesIfChanged() {
                 apiBaseUrl: target,
             });
         } catch (err) {
-            console.warn(`[Settings] persistence skipped: ${err.message}`);
+            log.warn(`[Settings] persistence skipped: ${err.message}`);
         }
         _lastApplied = fingerprint;
     }

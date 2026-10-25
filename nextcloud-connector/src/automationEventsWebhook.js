@@ -37,6 +37,7 @@ const crypto = require('crypto');
 const config = require('./config');
 const { hookSecret, EVENT_BY_CLASS, HOOK_PATH } = require('./webhookListeners');
 const rateLimit = require('./rateLimit');
+const log = require('./log');
 
 // Brute-force gate on the hook secret. Nextcloud's background job always sends
 // the right one, so only failures are billed and real deliveries never throttle.
@@ -333,12 +334,12 @@ router.post(HOOK_PATH, express.json({ limit: '512kb' }), async (req, res) => {
             });
             if (!r.ok) {
                 const t = await r.text().catch(() => '');
-                console.warn(`[AutomationEvents] SaaS returned ${r.status} for ${name}: ${t.slice(0, 200)}`);
+                log.warn(`[AutomationEvents] SaaS returned ${r.status} for ${name}: ${t.slice(0, 200)}`);
             }
         } catch (err) {
             // Keep going: a failure forwarding `changed` must not swallow the
             // `completed` the author actually subscribed to.
-            console.warn(`[AutomationEvents] forward failed for ${name}: ${err.message}`);
+            log.warn(`[AutomationEvents] forward failed for ${name}: ${err.message}`);
         }
     }
     // Always 200 to Nextcloud so the background job doesn't enter a retry
@@ -346,9 +347,10 @@ router.post(HOOK_PATH, express.json({ limit: '512kb' }), async (req, res) => {
     res.json({ ok: true, event, events });
 });
 
-module.exports = router;
-module.exports.mapEvent = mapEvent;
-module.exports.normalisePayload = normalisePayload;
-module.exports.toUserRelativePath = toUserRelativePath;
-module.exports.deckTransitions = deckTransitions;
-module.exports._resetCardState = () => CARD_STATE.clear();
+module.exports = Object.assign(router, {
+    mapEvent,
+    normalisePayload,
+    toUserRelativePath,
+    deckTransitions,
+    _resetCardState: () => CARD_STATE.clear(),
+});

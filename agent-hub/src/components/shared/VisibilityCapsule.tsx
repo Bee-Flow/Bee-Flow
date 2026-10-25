@@ -82,7 +82,7 @@ export function makeGroupNamer({ groupNames, orgGroups }: { groupNames?: GroupNa
 }
 
 /** ["a","b","c"] → "a, b and c" — the "and" goes through i18n. */
-function joinAudienceNames(t: TranslateFn, names?: (string | null | undefined)[] | null): string {
+export function joinAudienceNames(t: TranslateFn, names?: (string | null | undefined)[] | null): string {
     const list = (names || []).filter(Boolean);
     if (list.length <= 1) return list[0] || '';
     return tx(t, 'visibility.names_and', '{head} and {last}', {

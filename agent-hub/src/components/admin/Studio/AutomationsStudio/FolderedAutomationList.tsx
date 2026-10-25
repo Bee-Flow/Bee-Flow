@@ -1,18 +1,20 @@
-import { ChevronDown, ChevronRight, FolderPlus, Pencil, Trash2, X } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import RecentlyDeletedSection from './RecentlyDeletedSection';
 import AutomationRow, { type AutomationRowProps } from './AutomationRow';
 import { isSharedWithMe } from './automationStatus';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import scopedStorage from '../../../../utils/scopedStorage';
-import Modal from '../../../shared/Modal';
-import type { AutomationListRow, AutomationFolder } from '../../../automation/useAutomationLibrary.types';
+import { ConfirmRemoveFolder, MoveFolderDialog } from './FolderDialogs';
+import FolderHeader, { NewFolderInput } from './FolderHeader';
+import type { AutomationListRow, AutomationFolder } from '../../../automation/useAutomationLibrary';
+import { buildFolderTree, type FolderTreeNode } from '../../../automation/folderTree';
 
 /**
  * The automations sidebar, grouped into folders.
  *
- * One flat level, shared across the organisation. Three decisions worth
- * stating, because each one is a trap avoided:
+ * Folders nest (a folder can hold subfolders) and are shared across the
+ * organisation. Four decisions worth stating, because each one is a trap avoided:
  *
  *  1. **Loose automations come FIRST, not last.** Everything is loose on day one;
  *     burying the whole list under a row of empty folders would make the
@@ -30,7 +32,10 @@ import type { AutomationListRow, AutomationFolder } from '../../../automation/us
  * is drawn between the folders and the trash: the automations page puts its
  * "Building blocks" group there.
  *
- * Dropping a row on a folder header moves it. That uses the browser's own
+ * Dropping a row on a folder header moves it, and dropping a folder header on
+ * another folder (or on the loose list: the top level) moves the folder with
+ * everything in it; the "Move folder" button is the keyboard route to the same
+ * move. That uses the browser's own
  * drag-and-drop rather than @dnd-kit: this is a plain move between containers,
  * with no reordering and no sortable list, so it needs no context provider
  * wrapped around the sidebar.
@@ -38,13 +43,15 @@ import type { AutomationListRow, AutomationFolder } from '../../../automation/us
 
 const OPEN_KEY = 'automationFoldersOpen';
 const DRAG_TYPE = 'text/x-beeflow-automation';
+const DRAG_FOLDER_TYPE = 'text/x-beeflow-folder';
 
 interface FolderedAutomationListProps {
     automations: AutomationListRow[];
     folders: AutomationFolder[];
     filtering?: boolean;
     rowProps: (a: AutomationListRow) => AutomationRowProps;
-    onCreateFolder: (name: string) => Promise<void>;
+    onCreateFolder: (name: string, parentId?: string | null) => Promise<void>;
+    onMoveFolder?: ((id: string, parentId: string | null) => Promise<void>) | null;
     onRenameFolder: (id: string, name: string) => Promise<void>;
     onDeleteFolder: (folder: AutomationFolder) => Promise<void>;
     onMoveToFolder: (automationId: string, folderId: string | null) => Promise<void>;
@@ -58,6 +65,7 @@ export default function FolderedAutomationList({
     filtering = false,
     rowProps,
     onCreateFolder,
+    onMoveFolder = null,
     onRenameFolder,
     onDeleteFolder,
     onMoveToFolder,
@@ -79,6 +87,10 @@ export default function FolderedAutomationList({
     const [creating, setCreating] = useState(false);
     const [newName, setNewName] = useState('');
     const [pendingDelete, setPendingDelete] = useState<AutomationFolder | null>(null);
+    // A subfolder being named (the id of the folder it goes into), and a folder being moved by the dialog.
+    const [creatingIn, setCreatingIn] = useState<string | null>(null);
+    const [newSubName, setNewSubName] = useState('');
+    const [movingFolder, setMovingFolder] = useState<AutomationFolder | null>(null);
 
     const toggle = (id: string) => {
         setOpen((prev) => {
@@ -105,6 +117,19 @@ export default function FolderedAutomationList({
         return { loose: rest, byFolder: groups, shared: sharedRows };
     }, [automations, folders]);
 
+    const tree = useMemo(() => buildFolderTree(folders || []), [folders]);
+    // Automations in a folder and everything below it: what a closed folder shows, and what a search keeps.
+    const totals = useMemo(() => {
+        const out = new Map<string, number>();
+        const count = (node: FolderTreeNode<AutomationFolder>): number => {
+            const n = (byFolder.get(node.folder.id) || []).length + node.children.reduce((sum, c) => sum + count(c), 0);
+            out.set(node.folder.id, n);
+            return n;
+        };
+        tree.forEach(count);
+        return out;
+    }, [tree, byFolder]);
+
     const dropHandlers = (folderId: string | null) => ({
         onDragOver: (e: React.DragEvent) => {
             e.preventDefault();
@@ -114,9 +139,13 @@ export default function FolderedAutomationList({
         onDragLeave: () => setDragOver(cur => (cur === folderId ? undefined : cur)),
         onDrop: (e: React.DragEvent) => {
             e.preventDefault();
+            e.stopPropagation();
             setDragOver(undefined);
             const id = e.dataTransfer.getData(DRAG_TYPE);
-            if (id) onMoveToFolder?.(id, folderId);
+            if (id) { onMoveToFolder?.(id, folderId); return; }
+            // A folder dropped on a folder (or on the loose list: the top level). The server refuses a loop.
+            const dragged = e.dataTransfer.getData(DRAG_FOLDER_TYPE);
+            if (dragged && dragged !== folderId) onMoveFolder?.(dragged, folderId);
         },
     });
 
@@ -140,10 +169,82 @@ export default function FolderedAutomationList({
         setNewName('');
         if (name) onCreateFolder?.(name);
     };
+    const commitCreateSub = () => {
+        const name = newSubName.trim();
+        const parentId = creatingIn;
+        setCreatingIn(null);
+        setNewSubName('');
+        if (name && parentId) onCreateFolder?.(name, parentId);
+    };
+    const startSub = (f: AutomationFolder) => {
+        // The new folder must be visible where it lands.
+        setOpen((prev) => {
+            if (prev.has(f.id)) return prev;
+            const next = new Set(prev).add(f.id);
+            scopedStorage.setJSON(OPEN_KEY, [...next]);
+            return next;
+        });
+        setNewSubName('');
+        setCreatingIn(f.id);
+    };
     const commitRename = () => {
         const name = draftName.trim();
         if (renaming && name) onRenameFolder?.(renaming, name);
         setRenaming(null);
+    };
+
+    const renderFolder = (node: FolderTreeNode<AutomationFolder>): React.JSX.Element | null => {
+        const f = node.folder;
+        const rows = byFolder.get(f.id) || [];
+        const total = totals.get(f.id) ?? rows.length;
+        if (filtering && total === 0) return null;
+        const isOpen = open.has(f.id);
+        const isTarget = dragOver === f.id;
+        return (
+            <div key={f.id} className="mt-1" data-testid={`folder-${f.id}`}>
+                <FolderHeader
+                    folder={f}
+                    total={total}
+                    isOpen={isOpen}
+                    isTarget={isTarget}
+                    filtering={filtering}
+                    canMove={onMoveFolder != null}
+                    renaming={renaming === f.id}
+                    draftName={draftName}
+                    dropProps={dropHandlers(f.id)}
+                    onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.setData(DRAG_FOLDER_TYPE, f.id);
+                        e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onToggle={() => toggle(f.id)}
+                    onDraftChange={setDraftName}
+                    onCommitRename={commitRename}
+                    onCancelRename={() => setRenaming(null)}
+                    onStartSub={() => startSub(f)}
+                    onMove={() => setMovingFolder(f)}
+                    onRename={() => startRename(f)}
+                    onDelete={() => setPendingDelete(f)}
+                />
+                {isOpen && (
+                    <div className="ml-3 border-l border-[var(--border-default)] pl-1">
+                        {creatingIn === f.id && (
+                            <NewFolderInput
+                                value={newSubName}
+                                label={t('studio_misc.folders.subfolder_name', 'Subfolder name')}
+                                onChange={setNewSubName}
+                                onCommit={commitCreateSub}
+                                onCancel={() => { setCreatingIn(null); setNewSubName(''); }}
+                            />
+                        )}
+                        {node.children.map((child) => renderFolder(child))}
+                        {rows.length === 0 && node.children.length === 0 && creatingIn !== f.id
+                            ? <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">{t('studio_misc.folders.empty', 'Empty — drag an automation here.')}</div>
+                            : rows.map(renderRow)}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const looseTarget = dragOver === null;
@@ -163,80 +264,7 @@ export default function FolderedAutomationList({
                 )}
             </div>
 
-            {(folders || []).map((f) => {
-                const rows = byFolder.get(f.id) || [];
-                if (filtering && rows.length === 0) return null;
-                const isOpen = open.has(f.id);
-                const isTarget = dragOver === f.id;
-                return (
-                    <div key={f.id} className="mt-1" data-testid={`folder-${f.id}`}>
-                        <div
-                            {...dropHandlers(f.id)}
-                            className={`group flex items-center gap-1 px-1.5 py-1 rounded-md transition ${
-                                isTarget
-                                    ? 'bg-[var(--accent)]/15 ring-1 ring-[var(--accent)]'
-                                    : 'hover:bg-[var(--bg-secondary)]'
-                            }`}
-                        >
-                            <button
-                                type="button"
-                                onClick={() => toggle(f.id)}
-                                aria-expanded={isOpen}
-                                aria-label={isOpen
-                                    ? t('studio_misc.folders.collapse_named', 'Collapse {name}', { name: f.name })
-                                    : t('studio_misc.folders.expand_named', 'Expand {name}', { name: f.name })}
-                                className="flex items-center gap-1 flex-1 min-w-0 text-left text-[var(--text-secondary)]"
-                            >
-                                {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                                <span aria-hidden="true">{String(f.icon || '📁')}</span>
-                                {renaming === f.id ? (
-                                    <input
-                                        autoFocus
-                                        value={draftName}
-                                        aria-label={t('studio_misc.folders.folder_name', 'Folder name')}
-                                        onChange={(e) => setDraftName(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') commitRename();
-                                            if (e.key === 'Escape') setRenaming(null);
-                                        }}
-                                        onBlur={commitRename}
-                                        className="flex-1 min-w-0 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded px-1 py-0.5 text-xs outline-none"
-                                    />
-                                ) : (
-                                    <span className="truncate text-xs font-medium" title={f.name}>{f.name}</span>
-                                )}
-                                <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{rows.length}</span>
-                            </button>
-                            <button
-                                type="button"
-                                title={t('studio_misc.folders.rename_title', 'Rename this folder')}
-                                aria-label={t('studio_misc.folders.rename_named', 'Rename {name}', { name: f.name })}
-                                onClick={() => startRename(f)}
-                                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                            >
-                                <Pencil size={11} />
-                            </button>
-                            <button
-                                type="button"
-                                title={t('studio_misc.folders.remove_title', 'Remove this folder — the automations in it stay')}
-                                aria-label={t('studio_misc.folders.delete_named', 'Delete {name}', { name: f.name })}
-                                onClick={() => setPendingDelete(f)}
-                                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-[var(--text-tertiary)] hover:text-red-500"
-                            >
-                                <Trash2 size={11} />
-                            </button>
-                        </div>
-                        {isOpen && (
-                            <div className="ml-3 border-l border-[var(--border-default)] pl-1">
-                                {rows.length === 0
-                                    ? <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">{t('studio_misc.folders.empty', 'Empty — drag an automation here.')}</div>
-                                    : rows.map(renderRow)}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
+            {tree.map((node) => renderFolder(node))}
 
             {shared.length > 0 && (
                 <div className="mt-2" data-testid="folder-shared">
@@ -249,22 +277,13 @@ export default function FolderedAutomationList({
             )}
 
             {!filtering && (creating ? (
-                <div className="mt-1 flex items-center gap-1 px-1.5 py-1">
-                    <span aria-hidden="true">📁</span>
-                    <input
-                        autoFocus
-                        value={newName}
-                        aria-label={t('studio_misc.folders.new_folder_name', 'New folder name')}
-                        placeholder={t('studio_misc.folders.folder_name', 'Folder name')}
-                        onChange={(e) => setNewName(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') commitCreate();
-                            if (e.key === 'Escape') { setCreating(false); setNewName(''); }
-                        }}
-                        onBlur={commitCreate}
-                        className="flex-1 min-w-0 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded px-1 py-0.5 text-xs outline-none"
-                    />
-                </div>
+                <NewFolderInput
+                    value={newName}
+                    label={t('studio_misc.folders.new_folder_name', 'New folder name')}
+                    onChange={setNewName}
+                    onCommit={commitCreate}
+                    onCancel={() => { setCreating(false); setNewName(''); }}
+                />
             ) : (
                 <button
                     type="button"
@@ -279,10 +298,18 @@ export default function FolderedAutomationList({
 
             {!filtering && onRestored && <RecentlyDeletedSection onRestored={onRestored} />}
 
+            <MoveFolderDialog
+                folder={movingFolder}
+                folders={folders}
+                onPick={(parentId) => { const id = movingFolder?.id; setMovingFolder(null); if (id) onMoveFolder?.(id, parentId); }}
+                onClose={() => setMovingFolder(null)}
+            />
+
             {pendingDelete && (
                 <ConfirmRemoveFolder
                     folder={pendingDelete}
                     count={(byFolder.get(pendingDelete.id) || []).length}
+                    subfolders={folders.filter(x => x.parentId === pendingDelete.id).length}
                     onCancel={() => setPendingDelete(null)}
                     onConfirm={() => { onDeleteFolder?.(pendingDelete); setPendingDelete(null); }}
                 />
@@ -291,110 +318,5 @@ export default function FolderedAutomationList({
     );
 }
 
-/**
- * Removing a folder needs one sentence, and it is a reassuring one: the
- * automations inside are not going anywhere. Said plainly here so nobody has to
- * find out by trying it.
- */
-interface ConfirmRemoveFolderProps {
-    folder: AutomationFolder;
-    count: number;
-    onConfirm: () => void;
-    onCancel: () => void;
-}
-
-function ConfirmRemoveFolder({ folder, count, onConfirm, onCancel }: ConfirmRemoveFolderProps) {
-    const { t } = useTranslation();
-    return (
-        <Modal
-            open
-            onClose={onCancel}
-            size="sm"
-            label={t('studio_misc.folders.remove_folder', 'Remove folder')}
-            // A removal confirm must not vanish on a click beside it.
-            disableBackdropClose
-            footer={
-                <>
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        className="px-3 py-1.5 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition"
-                    >
-                        {t('studio_misc.folders.cancel', 'Cancel')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onConfirm}
-                        className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition"
-                    >
-                        {t('studio_misc.folders.remove_folder', 'Remove folder')}
-                    </button>
-                </>
-            }
-        >
-            <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">
-                {t('studio_misc.folders.remove_named', 'Remove “{name}”?', { name: folder.name })}
-            </p>
-            <p className="text-xs text-[var(--text-secondary)]">
-                {count > 0
-                    ? (count === 1
-                        ? t('studio_misc.folders.stay_one', 'The 1 automation in it will stay — they move back to the top of the list.')
-                        : t('studio_misc.folders.stay_many', 'The {n} automations in it will stay — they move back to the top of the list.', { n: count }))
-                    : t('studio_misc.folders.folder_empty', 'The folder is empty.')}
-            </p>
-        </Modal>
-    );
-}
-
-/**
- * "Move to folder…" — the keyboard route to the same move.
- *
- * A small dialog rather than a nested submenu: the context menu is dismissed by
- * the very click that opens this, so a submenu would have to outlive its own
- * parent closing.
- */
-interface MoveToFolderDialogProps {
-    automation: AutomationListRow | null;
-    folders: AutomationFolder[];
-    onPick: (folderId: string | null) => void;
-    onClose: () => void;
-}
-
-export function MoveToFolderDialog({ automation, folders, onPick, onClose }: MoveToFolderDialogProps) {
-    const { t } = useTranslation();
-    if (!automation) return null;
-    const itemClass = (active: boolean) => `w-full text-left px-2 py-1.5 rounded text-xs transition hover:bg-[var(--bg-secondary)] ${
-        active ? 'text-[var(--accent)] font-medium' : 'text-[var(--text-primary)]'
-    }`;
-    return (
-        <Modal
-            open
-            onClose={onClose}
-            size="sm"
-            label={t('studio_misc.folders.move_to_folder', 'Move to folder')}
-            className="max-h-[60vh]"
-        >
-            <div className="p-1.5">
-                <div className="flex items-center justify-between px-1.5 py-1">
-                    <span className="text-xs font-semibold text-[var(--text-primary)]">{t('studio_misc.folders.move_to_folder', 'Move to folder')}</span>
-                    <button type="button" aria-label={t('studio_misc.folders.close', 'Close')} onClick={onClose} className="p-0.5 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-                        <X size={12} />
-                    </button>
-                </div>
-                <button type="button" onClick={() => onPick(null)} className={itemClass(!automation.folderId)}>
-                    {t('studio_misc.folders.no_folder', 'No folder')}
-                </button>
-                {(folders || []).map(f => (
-                    <button key={f.id} type="button" onClick={() => onPick(f.id)} className={itemClass(automation.folderId === f.id)}>
-                        <span aria-hidden="true" className="mr-1.5">{String(f.icon || '📁')}</span>{f.name}
-                    </button>
-                ))}
-                {(folders || []).length === 0 && (
-                    <div className="text-[11px] text-[var(--text-tertiary)] italic px-2 py-2">
-                        {t('studio_misc.folders.none_yet', 'No folders yet — make one in the sidebar.')}
-                    </div>
-                )}
-            </div>
-        </Modal>
-    );
-}
+// The dialogs live in FolderDialogs.tsx; this is where the rest of the app imports the move dialog from.
+export { MoveToFolderDialog } from './FolderDialogs';

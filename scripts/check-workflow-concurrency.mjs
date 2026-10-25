@@ -63,6 +63,7 @@ const NO_POLICY = {
     'workflow-policy.yml': 'the gate itself; ~15 s',
 };
 
+/** @type {[string, Record<string, string>][]} */
 const BUCKETS = [
     ['MUST_NOT_CANCEL', MUST_NOT_CANCEL],
     ['CONDITIONAL_CANCEL', CONDITIONAL_CANCEL],

@@ -98,3 +98,53 @@ test('a missing or unreadable report is a usage error, never a pass', () => {
     `], { encoding: 'utf8' });
     assert.strictEqual(noPkg, '2');
 });
+
+const full = (lines, branches, functions) => ({ total: {
+    lines: { pct: lines }, branches: { pct: branches }, functions: { pct: functions },
+} });
+const floorJson = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'pkg/.coverage-ratchet.json'), 'utf8'));
+
+function withFloor(summary, floor) {
+    const dir = sandbox({ summary });
+    fs.writeFileSync(path.join(dir, 'pkg/.coverage-ratchet.json'), JSON.stringify(floor));
+    return dir;
+}
+
+test('a branches floor in the floor file gates branch coverage', () => {
+    const r = run(withFloor(full(80, 60, 80), { lines: 70, branches: 70 }));
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /branches coverage 60\.00% is under the floor of 70%/);
+    assert.strictEqual(run(withFloor(full(80, 75, 80), { lines: 70, branches: 70 })).code, 0);
+});
+
+test('a functions floor gates function coverage, lines alone do not hide it', () => {
+    const r = run(withFloor(full(90, 90, 30), { lines: 70, functions: 40 }));
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /functions coverage 30\.00% is under the floor of 40%/);
+    assert.doesNotMatch(r.stderr, /line coverage/);
+});
+
+test('without the keys only lines are gated', () => {
+    assert.strictEqual(run(withFloor(full(80, 1, 1), { lines: 70 })).code, 0);
+});
+
+test('--update --also starts tracking branches and functions, and only raises them', () => {
+    const dir = withFloor(full(80, 61.5, 55.2), { lines: 70 });
+    assert.strictEqual(run(dir, ['--update', '--also', 'branches,functions']).code, 0);
+    assert.deepStrictEqual([floorJson(dir).lines, floorJson(dir).branches, floorJson(dir).functions], [79, 60, 54]);
+    // later update with lower measurements keeps the floors
+    fs.writeFileSync(path.join(dir, 'pkg/coverage/coverage-summary.json'), JSON.stringify(full(70, 50, 40)));
+    assert.strictEqual(run(dir, ['--update']).code, 0);
+    assert.deepStrictEqual([floorJson(dir).lines, floorJson(dir).branches, floorJson(dir).functions], [79, 60, 54]);
+});
+
+test('a tracked metric missing from the report is a usage error', () => {
+    const r = run(withFloor(istanbul(80), { lines: 70, branches: 50 }));
+    assert.strictEqual(r.code, 2);
+    assert.match(r.stderr, /no branches total/);
+});
+
+test('--also rejects an unknown metric', () => {
+    const r = run(sandbox({ summary: full(80, 80, 80), floor: 70 }), ['--update', '--also', 'statements']);
+    assert.strictEqual(r.code, 2);
+});

@@ -374,14 +374,14 @@ def validate(category: str, text: str) -> bool | None:
         return None
     try:
         return fn(text)
-    except Exception:
+    except Exception:  # noqa: BLE001 - a validator must never break a detection response
         # A validator must never break a detection response. No opinion.
         return None
 
 
 __all__ = [
-    "validate",
+    "REFUTED_CONFIDENCE_FACTOR",
     "VALIDATED_CATEGORIES",
     "VALIDATED_CONFIDENCE",
-    "REFUTED_CONFIDENCE_FACTOR",
+    "validate",
 ]

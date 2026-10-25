@@ -102,6 +102,7 @@ jobs:
       components: ${{ steps.filter.outputs.components || steps.all.outputs.all }}
       e2e: ${{ steps.filter.outputs.e2e || steps.all.outputs.all }}
       desktop: ${{ steps.filter.outputs.desktop || steps.all.outputs.all }}
+      docs: ${{ steps.filter.outputs.docs || steps.all.outputs.all }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The tree this PR run tests (the merge ref: the PR on top of its base).
@@ -238,7 +239,7 @@ jobs:
               - 'server/shared/expr/*'
               - 'server/stores/*'
               - 'server/stores/agent/sharedConversations.js'
-              - 'server/stores/automationStore/{folders.js,forms.js,lifecycle.js,orgRunRow.js,runs.js,runsStats.js,versions.js,webhooks.js}'
+              - 'server/stores/automationStore/{folderStore.mts,forms.js,lifecycle.js,orgRunRow.js,runs.js,runsStats.js,versions.js,webhooks.js}'
               - 'server/stores/datatableStore/{rowMappers.js,usage.js}'
               - 'server/stores/user/{groups.js,users.js}'
               - 'server/stores/webpage/{sources.js,versions.js}'
@@ -375,7 +376,9 @@ jobs:
             python:
               - 'guard-service/**'
               - 'classify-service/**'
+              - 'python-shared/**'
               - 'ruff.toml'
+              - 'mypy.ini'
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
             # Two filters for the guard service. `guard` drives guard-model-eval
@@ -389,6 +392,7 @@ jobs:
               - 'guard-service/**'
             guard-unit:
               - 'guard-service/**'
+              - 'python-shared/**'
               - 'scripts/coverage-ratchet.mjs'
               - '.github/workflows/ci.yml'
             # The four small Node services share one lint config
@@ -396,6 +400,7 @@ jobs:
             nextcloud:
               - 'nextcloud-connector/**'
               - '.nvmrc'
+              - 'tsconfig.base.json'
               - 'server/routes/nextcloudTaskProcessing*'
               - 'server/integrations/nextcloud*'
               - 'server/automation/triggerSources/**'
@@ -408,15 +413,26 @@ jobs:
               - 'server/utils/ncIntegrationCatalog.js'
               - 'server/core/integrations/ncIntegrationCatalog.js'
               - 'server/core/integrations/integrationToolMap.js'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point,tsc-error-ratchet}.mjs'
               - 'scripts/eslint-service-config.cjs'
               - 'scripts/eslint/**'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/npm-install/**'
+            # The Docusaurus site: its build fails on a broken link or anchor.
+            docs:
+              - 'docs/**'
+              - '.nvmrc'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
             hub-module-sdk:
               - 'hub-module-sdk/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,coverage-ratchet,entry-point}.mjs'
+              - 'tsconfig.base.json'
+              # test/signContract.test.mjs checks sign.mjs against the server's verifier.
+              - 'server/modules/packageVerify.js'
+              - 'server/license/{verify,tiers}.js'
+              - 'server/telemetry/log.js'
+              - 'scripts/{eslint-budget,coverage-ratchet,entry-point,tsc-error-ratchet}.mjs'
               - 'scripts/eslint-service-config.cjs'
               - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
@@ -1058,6 +1074,16 @@ jobs:
         run: ruff check guard-service classify-service --output-format=github
       - name: ruff format --check
         run: ruff format --check guard-service classify-service
+      # The gate: mypy over each service's own app/ (config: mypy.ini), with the
+      # service's dev requirements installed so fastapi and pydantic are typed.
+      # The model stack (torch, gliner, redis) is not installed and stays untyped.
+      - name: mypy app/ (gate)
+        run: |
+          pip install --no-cache-dir mypy==2.4.0 -r guard-service/requirements-dev.txt
+          (cd guard-service && mypy --config-file ../mypy.ini app)
+          (cd python-shared && mypy --config-file ../mypy.ini beeflow_service)
+          pip install --no-cache-dir -r classify-service/requirements-dev.txt
+          (cd classify-service && mypy --config-file ../mypy.ini app)
       # NOT a gate yet: pyright on app/ still reports findings (guard-service:
       # ~50, mostly attributes the PiiService mixins read from the class they
       # are mixed into; classify-service: the model-only imports and the
@@ -1096,6 +1122,11 @@ jobs:
           cache-dependency-path: |
             classify-service/requirements.txt
             classify-service/requirements-dev.txt
+      # The code both sidecars share (python-shared/, copied into each app/shared).
+      - name: python-shared unit tests
+        run: |
+          pip install -r guard-service/requirements-dev.txt
+          python -m unittest discover -s python-shared/tests -t python-shared -v
       # FakeClassifier only: no torch, no gliclass, no model (tests/conftest.py).
       - name: classify-service unit tests
         run: |
@@ -1228,6 +1259,31 @@ jobs:
       - name: Duplicated lines may only fall
         run: node scripts/duplication-ratchet.mjs
 
+  # ── Docs site ──────────────────────────────────────────────────────────
+  # onBrokenLinks / onBrokenAnchors / onBrokenMarkdownLinks are 'throw' in
+  # docusaurus.config.ts (docs/config.test.mjs pins that), so the build is the
+  # link checker.
+  docs:
+    name: Docs (build)
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/npm-install
+        with:
+          directory: docs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Config and sidebar tests
+        run: node --test config.test.mjs sidebars.test.mjs
+      - name: Build (a broken link or anchor fails it)
+        run: npm run build
+
   # ── Nextcloud integration ──────────────────────────────────────────────
   # The connector tree plus a fast, infra-free server subset, so a
   # connector-only change still exercises both halves of the contract.
@@ -1247,6 +1303,10 @@ jobs:
           directory: nextcloud-connector
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs nextcloud-connector
+      - name: Typecheck (checkJs, loose) and the strict error budget
+        run: |
+          npm run typecheck
+          node ../scripts/tsc-error-ratchet.mjs nextcloud-connector
       - name: Unit tests (with coverage)
         # Read at import time; throwaway values, every test that needs a real
         # secret sets its own.
@@ -1336,6 +1396,10 @@ jobs:
         run: for m in modules/*/; do (cd "$m" && npm ci); done
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs hub-module-sdk
+      - name: Typecheck (checkJs, loose) and the strict error budget
+        run: |
+          npm run typecheck
+          node ../scripts/tsc-error-ratchet.mjs hub-module-sdk
       - name: Unit tests (with coverage)
         run: npm run test:coverage
       - name: Coverage floor
@@ -1475,6 +1539,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
+      # typescript for `lint:scripts-types` (scripts/tsconfig.json), plus jscpd.
+      - name: Install the root packages
+        run: npm ci --no-audit --no-fund
       - name: Ratchets and repo guards (check:fast)
         run: node scripts/check-fast.mjs
       - name: Repo-script unit tests
@@ -1495,7 +1562,7 @@ jobs:
     # condition picks only the name; the job still runs always(). This exact
     # form is what scripts/check-required-checks.mjs reads (TWO-WAY NAMES).
     name: ${{ github.event.pull_request.draft == true && 'checks-passed (draft)' || 'checks-passed' }}
-    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
+    needs: [changes, server, server-checks, server-shard, server-coverage, frontend, frontend-typecheck, frontend-build, mobile, python-lint, python-tests, guard, guard-model-eval, nextcloud-connector, nextcloud-server, hub-module-sdk, components, desktop, docs, duplication, frontend-tests, frontend-tests-server-deps, frontend-coverage, e2e-specs, fast-gates]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -143,7 +143,7 @@ async function pullImage(docker, image, onLine) {
             let lastReport = 0;
             docker.modem.followProgress(
                 stream,
-                (progressErr) => progressErr ? reject(progressErr) : resolve(),
+                (progressErr) => progressErr ? reject(progressErr) : resolve(undefined),
                 (evt) => {
                     if (!evt || !onLine) return;
                     const now = Date.now();
@@ -562,7 +562,7 @@ async function startToolsSandbox({ scanId, onLine }) {
         try { await container.remove({ force: true }); } catch (_) {}
     };
 
-    const exec = async (command, { onChunk, timeoutMs = 30000 } = {}) => {
+    const exec = async (command, { onChunk, timeoutMs = 30000 } = /** @type {any} */ ({})) => {
         const { Writable } = require('stream');
         const ex = await container.exec({
             Cmd: ['sh', '-lc', command],
@@ -581,7 +581,7 @@ async function startToolsSandbox({ scanId, onLine }) {
         const done = new Promise((resolve) => { stream.on('end', resolve); stream.on('close', resolve); });
         let timer = null;
         const to = new Promise((resolve) => {
-            timer = setTimeout(() => { timedOut = true; try { stream.destroy(); } catch (_) {} resolve(); }, Math.max(1000, timeoutMs));
+            timer = setTimeout(() => { timedOut = true; try { stream.destroy(); } catch (_) {} resolve(undefined); }, Math.max(1000, timeoutMs));
             timer.unref?.();
         });
         await Promise.race([done, to]);
@@ -628,6 +628,7 @@ const toolboxNetRaw = () => process.env.SECURITY_TOOLBOX_NET_RAW !== 'false';
 const ZAP_PORT = 8080;
 
 function toolboxHostConfig(extra = {}) {
+    /** @type {Record<string, any>} */
     const cfg = {
         Memory: Math.max(512, TOOLBOX_MEMORY_MB) * 1024 * 1024,
         NanoCpus: Math.round(Math.max(0.5, TOOLBOX_CPUS) * 1e9),
@@ -654,7 +655,7 @@ function toolboxHostConfig(extra = {}) {
  * /etc/profile.
  */
 function makeContainerExec(container) {
-    return async (command, { onChunk, timeoutMs = 30000 } = {}) => {
+    return async (command, { onChunk, timeoutMs = 30000 } = /** @type {any} */ ({})) => {
         const { Writable } = require('stream');
         const ex = await container.exec({
             Cmd: ['bash', '-c', command],
@@ -673,7 +674,7 @@ function makeContainerExec(container) {
         const done = new Promise((resolve) => { stream.on('end', resolve); stream.on('close', resolve); });
         let timer = null;
         const to = new Promise((resolve) => {
-            timer = setTimeout(() => { timedOut = true; try { stream.destroy(); } catch (_) {} resolve(); }, Math.max(1000, timeoutMs));
+            timer = setTimeout(() => { timedOut = true; try { stream.destroy(); } catch (_) {} resolve(undefined); }, Math.max(1000, timeoutMs));
             timer.unref?.();
         });
         await Promise.race([done, to]);
@@ -951,7 +952,7 @@ function _buildContextTar(assetsDir) {
  *   • build — docker.buildImage over a tar of assets/terminal-runner, tag TOOLS_IMAGE
  *   • pull  — docker.pull(SECURITY_TOOLS_PULL_REF), then retag to TOOLS_IMAGE
  */
-async function provisionToolbox({ mode, assetsDir = null, onEvent = null } = {}) {
+async function provisionToolbox({ mode, assetsDir = null, onEvent = null } = /** @type {any} */ ({})) {
     if (!(await dockerAvailable())) throw new Error('docker_unavailable');
     const docker = getDocker();
 
@@ -970,7 +971,7 @@ async function provisionToolbox({ mode, assetsDir = null, onEvent = null } = {})
                     // stream rather than a rejected stream — surface it as a failure.
                     const last = Array.isArray(output) ? output[output.length - 1] : null;
                     if (last && last.error) return reject(new Error(String(last.error).slice(0, 500)));
-                    resolve();
+                    resolve(undefined);
                 },
                 (evt) => { if (onEvent) { try { onEvent(evt); } catch (_) {} } },
             );

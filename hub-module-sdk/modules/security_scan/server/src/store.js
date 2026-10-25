@@ -31,7 +31,7 @@ const TERMINAL_STATUSES = new Set(['completed', 'error', 'cancelled']);
  * @param {object} deps
  * @param {{ run:Function, getOne:Function, getAll:Function, exec:Function, getClient:Function }} deps.db
  */
-function makeSecurityScanStore({ db } = {}) {
+function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
     if (!db) throw new Error('makeSecurityScanStore: db required');
     const { run, getOne, getAll, exec, getClient } = db;
 

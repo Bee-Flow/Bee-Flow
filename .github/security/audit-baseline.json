@@ -1,6 +1,6 @@
 {
   "_comment": "Highest counts this repository is allowed to carry, and the critical/high advisory ids it carries per target. Lower both by fixing advisories and re-running `node scripts/audit-ratchet.mjs --update`; raising a count or adding an id is a deliberate edit that belongs in a commit message with a reason. A new advisory that cannot be fixed yet goes in `accepted` as { id } or { package, range } with a reason and an expires date (YYYY-MM-DD).",
-  "_generated": "2026-10-21",
+  "_generated": "2026-10-24",
   "targets": {
     "server": {
       "why": "the API — every request goes through it",
@@ -74,7 +74,7 @@
   "counts": {
     "server": {
       "critical": 0,
-      "high": 3
+      "high": 0
     },
     "agent-hub": {
       "critical": 0,
@@ -82,7 +82,7 @@
     },
     "nextcloud-connector": {
       "critical": 0,
-      "high": 3
+      "high": 0
     },
     "desktop": {
       "critical": 0,
@@ -90,7 +90,7 @@
     },
     "mobile": {
       "critical": 0,
-      "high": 28
+      "high": 5
     },
     ".": {
       "critical": 0,
@@ -137,8 +137,8 @@
       "high": 0
     },
     "docs": {
-      "critical": 19,
-      "high": 29
+      "critical": 0,
+      "high": 0
     }
   },
   "advisories": {
@@ -147,8 +147,7 @@
     "nextcloud-connector": [],
     "desktop": [],
     "mobile": [
-      "GHSA-86w9-cpqp-85rv",
-      "GHSA-vfj7-8cjw-p6xm"
+      "GHSA-86w9-cpqp-85rv"
     ],
     ".": [],
     "components/afas-customer-data": [],
@@ -161,46 +160,7 @@
     "components/youtrack-read-items": [],
     "hub-module-sdk/modules/security_scan": [],
     "hub-module-sdk/modules/security_scan/frontend": [],
-    "docs": [
-      "GHSA-2883-xcg3-v3hh",
-      "GHSA-28wg-ghj8-5hjv",
-      "GHSA-2p49-hgcm-8545",
-      "GHSA-2v37-7h3g-55p8",
-      "GHSA-395f-4hp3-45gv",
-      "GHSA-3jxr-9vmj-r5cp",
-      "GHSA-4c8g-83qw-93j6",
-      "GHSA-52cp-r559-cp3m",
-      "GHSA-587h-7wmj-h5pm",
-      "GHSA-5c6j-r48x-rmvq",
-      "GHSA-5gmw-xhrv-c9v3",
-      "GHSA-5p2g-fcmc-qvqq",
-      "GHSA-5p4m-2wfm-xmqj",
-      "GHSA-68fv-2mgg-jv7q",
-      "GHSA-6h2x-m376-mqjq",
-      "GHSA-6j4f-fj2g-mc7p",
-      "GHSA-7p8r-x3mc-p8w7",
-      "GHSA-85c8-ppgw-ccpr",
-      "GHSA-8r9p-f939-6h3c",
-      "GHSA-96hv-2xvq-fx4p",
-      "GHSA-ch52-4w7c-c8xp",
-      "GHSA-f65p-4m7j-42xc",
-      "GHSA-fph4-wmhf-6fwf",
-      "GHSA-jqcg-44mw-7w3h",
-      "GHSA-jqff-g426-hqxp",
-      "GHSA-mh99-v99m-4gvg",
-      "GHSA-q3jh-wrc6-jgq8",
-      "GHSA-qhr7-859c-m2p7",
-      "GHSA-qw65-cvwx-89v3",
-      "GHSA-r28c-9q8g-f849",
-      "GHSA-rgw5-rvv9-x895",
-      "GHSA-v2hh-gcrm-f6hx",
-      "GHSA-vc2v-76pw-4v95",
-      "GHSA-vfj7-8cjw-p6xm",
-      "GHSA-w27v-7q3p-w38r",
-      "GHSA-w3rx-r6r6-pgpr",
-      "GHSA-w7jw-789q-3m8p",
-      "GHSA-xv26-6w52-cph6"
-    ]
+    "docs": []
   },
   "accepted": [
     {

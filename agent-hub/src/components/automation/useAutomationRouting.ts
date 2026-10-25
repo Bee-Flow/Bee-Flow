@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 import type { RefObject } from 'react';
 import type { BuilderUrlState } from './Builder/useBuilderTabUrl';
-import type { AutomationListRow } from './useAutomationLibrary.types';
+import type { AutomationListRow } from './useAutomationLibrary';
 import { buildStudioSearch } from '../admin/Studio/studioRoutes';
 
 // studioRoutes.js is still JavaScript, and its `= null` defaults are all

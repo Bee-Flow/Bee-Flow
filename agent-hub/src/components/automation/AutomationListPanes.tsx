@@ -4,7 +4,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import CreateMenuButton from '../admin/Studio/AutomationsStudio/CreateMenuButton';
 import Modal from '../shared/Modal';
 import type { ReactNode, RefObject } from 'react';
-import type { AutomationLibrary } from './useAutomationLibrary.types';
+import type { AutomationLibrary } from './useAutomationLibrary';
 
 interface SidebarProps {
     importAutomationFile: AutomationLibrary['importAutomationFile'];

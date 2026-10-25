@@ -117,7 +117,7 @@ async function main() {
     const publicPem = pubPath ? fs.readFileSync(path.resolve(pubPath), 'utf8') : undefined;
     const bfmodBuf = fs.readFileSync(path.resolve(bfmodPath));
 
-    const { buf, kid } = await signBuffer(bfmodBuf, privatePem, publicPem, { licenseClass });
+    const { buf, kid } = await signBuffer(bfmodBuf, privatePem, publicPem, { licenseClass: /** @type {any} */ (licenseClass) });
     fs.writeFileSync(path.resolve(bfmodPath), buf);
     console.log(`Signed ${bfmodPath}`);
     console.log(`  kid: ${kid}`);

@@ -62,6 +62,6 @@ Drop a new file in. If the folder ends up with two images, the alphabetically-fi
 
 ## How the hook works
 
-[`hooks/screenshots.py`](../../../hooks/screenshots.py) registers an `on_page_markdown` handler. It scans Markdown for image references whose path ends in `/`, looks inside the resolved folder, and rewrites the path to the first image found. The regex is conservative — explicit file references like `../img/foo.png` are untouched.
+[`hooks/screenshots.py`](https://github.com/Bee-Flow/docs/blob/main/hooks/screenshots.py) registers an `on_page_markdown` handler. It scans Markdown for image references whose path ends in `/`, looks inside the resolved folder, and rewrites the path to the first image found. The regex is conservative — explicit file references like `../img/foo.png` are untouched.
 
 Hidden files and `README.md` files are ignored when picking images, so per-folder docs don't collide with the screenshot.

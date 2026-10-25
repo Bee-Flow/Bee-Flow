@@ -299,6 +299,19 @@ ensure_browser_ws_path() {
     fi
 }
 
+# The guard and classify sidecars refuse to start without SERVICES_API_KEY
+# (they fail closed), and the server sends the same key to them. A .env from
+# before that, one written by hand, or one still holding the template's
+# CHANGE_ME would leave them down, so the gap is filled like the secrets above:
+# a key nobody picks by hand; a real value is never overwritten.
+ensure_services_api_key() {
+    local current; current="$(env_get SERVICES_API_KEY)"
+    if [ -z "$current" ] || [ "$current" = "CHANGE_ME" ]; then
+        set_env SERVICES_API_KEY "$(gen_hex 24)"
+        log "Generated SERVICES_API_KEY in .env (the guard and classify sidecars require it)"
+    fi
+}
+
 # Template keys missing from .env are REPORTED, never written: .env belongs to
 # the operator (it holds their secrets), and every new key ships with a working
 # default in the compose file — so silence would be wrong but so is writing.
@@ -395,6 +408,7 @@ install() {
     persist_profiles
     ensure_analytics_secret
     ensure_browser_ws_path
+    ensure_services_api_key
     wire_guard
     wire_classify
     log "Pulling images from ghcr.io/bee-flow (public, no login needed)…"
@@ -436,6 +450,7 @@ upgrade() {
     persist_profiles
     ensure_analytics_secret
     ensure_browser_ws_path
+    ensure_services_api_key
 
     # Pull FIRST and pull LOUDLY: when the pull fails nothing has been touched
     # and the running stack simply stays on its current version. (Unlike the

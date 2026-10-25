@@ -51,6 +51,7 @@
 
 const config = require('./config');
 const { withWarmupRetry } = require('./appApiClient');
+const log = require('./log');
 
 const UI_API = '/ocs/v2.php/apps/app_api/api/v2/ui/files-actions-menu';
 const UI_API_V1 = '/ocs/v2.php/apps/app_api/api/v1/ui/files-actions-menu';
@@ -146,7 +147,7 @@ async function registerFilesActions() {
     if (registered > 0) _registered = true;
     await retireFilesActions();
     const failed = results.length - registered;
-    console.log(`[FilesActions] ${registered}/${ACTIONS.length} menu entries registered`
+    log.info(`[FilesActions] ${registered}/${ACTIONS.length} menu entries registered`
         + (failed ? ` (${failed} failed — Nextcloud may predate the v2 UI API)` : ''));
     return { ok: failed === 0, registered, failed };
 }

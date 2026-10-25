@@ -15,7 +15,8 @@ const config: Config = {
   projectName: 'docs',
   trailingSlash: false,
 
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
+  onBrokenAnchors: 'throw',
 
   i18n: {
     defaultLocale: 'en',
@@ -25,7 +26,7 @@ const config: Config = {
   markdown: {
     mermaid: true,
     hooks: {
-      onBrokenMarkdownLinks: 'warn',
+      onBrokenMarkdownLinks: 'throw',
     },
   },
 
@@ -154,7 +155,7 @@ const config: Config = {
             {label: 'Bee Flow Cloud', href: 'https://beeflow.nl/app'},
             {label: 'Licensing', to: '/licensing/'},
             {label: 'Edit this site', to: '/contributing/editing'},
-            {label: 'CMS admin', href: '/cms/'},
+            {label: 'CMS admin', href: 'https://docs.beeflow.ai/cms/'},
           ],
         },
       ],

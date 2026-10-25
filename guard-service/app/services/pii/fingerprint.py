@@ -9,6 +9,8 @@ stale verdict after such a change is a silent under-redaction.
 
 from __future__ import annotations
 
+from typing import Any
+
 from .label_groups import _label_group_digest
 from .scan_policy import _effective_regions, resolve_tier_mode
 
@@ -86,7 +88,9 @@ def reset_engine_fingerprint() -> None:
     _ENGINE_FP_STATIC = None
 
 
-def engine_fingerprint_digest(enabled_regions=None, custom_digest=None) -> str:
+def engine_fingerprint_digest(
+    enabled_regions: Any = None, custom_digest: Any = None
+) -> str:
     """Short, opaque digest of _engine_fingerprint(), safe to publish.
 
     Callers OUTSIDE the guard need to know "did the thing that produces

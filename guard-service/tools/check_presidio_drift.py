@@ -50,7 +50,7 @@ def _current_sha(
             return json.load(resp).get("sha"), None
     except urllib.error.HTTPError as exc:
         return None, f"HTTP {exc.code}"
-    except Exception as exc:  # noqa: BLE001 - reporting only
+    except Exception as exc:
         return None, type(exc).__name__
 
 

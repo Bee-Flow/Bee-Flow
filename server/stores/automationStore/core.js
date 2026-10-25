@@ -133,6 +133,8 @@ const MIGRATIONS = [
     // 'caller'): the run's fixed mode, the identity a step ran as, and the
     // one-time notice a caller has seen. Additive.
     'automation-caller-connections-2026-10',
+    // parent_id on automation_folders: folders nest; names unique per parent.
+    'automation-folder-parent-2026-10',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

@@ -303,6 +303,9 @@ export function countFolders(rows: AutomationRecord[], folders: ProjectContextPi
     return counts;
 }
 
+/** A folder's name in the filter: its path ("Finance / Invoices"), so two folders called "2026" can be told apart. */
+export { folderPath as folderLabel } from '../../../automation/folderTree';
+
 const ts = (v: DateLike) => {
     if (!v) return null;
     const n = new Date(v).getTime();

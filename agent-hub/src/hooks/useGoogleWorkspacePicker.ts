@@ -30,7 +30,7 @@ import { API_BASE, authFetch } from '../utils/helpers';
 const SEARCH_DEBOUNCE_MS = 300;
 const PAGE_SIZE = '20';
 
-interface WorkspaceConnectionStatus {
+export interface WorkspaceConnectionStatus {
     connected: boolean;
     configured: boolean;
     /** The session user the status route echoes back. */

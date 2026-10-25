@@ -45,6 +45,7 @@ const config = require('./config');
 const { withWarmupRetry } = require('./appApiClient');
 const { secretMatches, decodeAuthHeader } = require('./auth');
 const rateLimit = require('./rateLimit');
+const log = require('./log');
 
 // Brute-force gate on the inbound AppAPI shared-secret check. AppAPI itself
 // never presents a bad one, so only failures are billed and real deliveries are
@@ -84,7 +85,7 @@ function saveSecret(secret) {
     } catch (err) {
         // Non-fatal: the bot works until the container restarts, at which point
         // re-registration mints a fresh secret anyway.
-        console.warn(`[TalkBot] could not persist the bot secret: ${err.message}`);
+        log.warn(`[TalkBot] could not persist the bot secret: ${err.message}`);
     }
 }
 
@@ -115,32 +116,32 @@ async function registerTalkBot() {
             signal: AbortSignal.timeout(5_000),
         }), { label: 'talk-bot', budgetMs: 30_000 });
     } catch (err) {
-        console.warn(`[TalkBot] registration request failed: ${err.message}`);
+        log.warn(`[TalkBot] registration request failed: ${err.message}`);
         return { ok: false, reason: 'request-failed' };
     }
 
     if (res.status === 404 || res.status === 501) {
         // Talk not installed. Perfectly normal — chat triggers are simply
         // unavailable on this instance.
-        console.log('[TalkBot] Talk is not installed on this Nextcloud — chat triggers unavailable.');
+        log.info('[TalkBot] Talk is not installed on this Nextcloud — chat triggers unavailable.');
         return { ok: false, reason: 'talk-missing' };
     }
     if (!res.ok) {
         const body = await res.text().catch(() => '');
-        console.warn(`[TalkBot] registration failed (HTTP ${res.status}): ${body.slice(0, 160)}`);
+        log.warn(`[TalkBot] registration failed (HTTP ${res.status}): ${body.slice(0, 160)}`);
         return { ok: false, reason: `http-${res.status}` };
     }
 
-    const body = await res.json().catch(() => null);
+    const body = /** @type {any} */ (await res.json().catch(() => null));
     const secret = body?.ocs?.data?.secret;
     if (!secret) {
         // Without the secret we cannot verify a single delivery, so treat this
         // as a failure rather than reporting a bot that can never be trusted.
-        console.warn('[TalkBot] Nextcloud did not return a bot secret — chat triggers will not work.');
+        log.warn('[TalkBot] Nextcloud did not return a bot secret — chat triggers will not work.');
         return { ok: false, reason: 'no-secret' };
     }
     saveSecret(secret);
-    console.log('[TalkBot] registered — add "Bee Flow" to a conversation to enable chat triggers there.');
+    log.info('[TalkBot] registered — add "Bee Flow" to a conversation to enable chat triggers there.');
     return { ok: true };
 }
 
@@ -316,7 +317,7 @@ async function askSaaSAgent({ question, ncUid, roomToken }) {
     if (!res.ok) {
         throw new Error(`SaaS ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
     }
-    const data = await res.json().catch(() => null);
+    const data = /** @type {any} */ (await res.json().catch(() => null));
     const out = data?.output;
     if (out && typeof out === 'object') return String(out.output || '').trim();
     return typeof out === 'string' ? out.trim() : '';
@@ -372,15 +373,15 @@ async function handleMention(payload) {
     if (!question) {
         await postBotMessage(roomToken,
             'Hi! Mention me with a question — e.g. "@Bee Flow what changed in my calendar today?"',
-            payload.messageId).catch(e => console.warn(`[TalkBot] reply failed: ${e.message}`));
+            payload.messageId).catch(e => log.warn(`[TalkBot] reply failed: ${e.message}`));
         return;
     }
     try {
         const answer = await askSaaSAgent({ question, ncUid: payload.actor, roomToken });
         await postBotMessage(roomToken, answer || 'I could not find an answer to that.', payload.messageId);
-        console.log(`[TalkBot] answered @mention in room ${roomToken} (uid=${payload.actor})`);
+        log.info(`[TalkBot] answered @mention in room ${roomToken} (uid=${log.ref(payload.actor)})`);
     } catch (err) {
-        console.warn(`[TalkBot] @mention answer failed for room ${roomToken}: ${err.message}`);
+        log.warn(`[TalkBot] @mention answer failed for room ${roomToken}: ${err.message}`);
         await postBotMessage(roomToken,
             'Sorry — I could not answer that just now. Please try again in a moment.',
             payload.messageId).catch(() => {});
@@ -426,7 +427,7 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
         && mapped.payload.actorType === 'users'
         && mentionsBot(mapped.payload)) {
         handleMention(mapped.payload)
-            .catch(err => console.warn(`[TalkBot] handleMention crashed: ${err.message}`));
+            .catch(err => log.warn(`[TalkBot] handleMention crashed: ${err.message}`));
     }
 
     const payloadBody = JSON.stringify({
@@ -453,22 +454,23 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
         });
         if (!r.ok) {
             const t = await r.text().catch(() => '');
-            console.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
+            log.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
         }
     } catch (err) {
-        console.warn(`[TalkBot] forward failed: ${err.message}`);
+        log.warn(`[TalkBot] forward failed: ${err.message}`);
     }
     res.json({ ok: true, event: mapped.event });
 });
 
-module.exports = router;
-module.exports.registerTalkBot = registerTalkBot;
-module.exports.unregisterTalkBot = unregisterTalkBot;
-module.exports.verifyInboundAppApi = verifyInboundAppApi;
-module.exports.mapActivity = mapActivity;
-module.exports.loadSecret = loadSecret;
-module.exports.saveSecret = saveSecret;
-module.exports.mentionsBot = mentionsBot;
-module.exports.extractQuestion = extractQuestion;
-module.exports.BOT_ROUTE = BOT_ROUTE;
-module.exports.BOT_NAME = BOT_NAME;
+module.exports = Object.assign(router, {
+    registerTalkBot,
+    unregisterTalkBot,
+    verifyInboundAppApi,
+    mapActivity,
+    loadSecret,
+    saveSecret,
+    mentionsBot,
+    extractQuestion,
+    BOT_ROUTE,
+    BOT_NAME,
+});

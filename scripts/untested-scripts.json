@@ -1,0 +1,9 @@
+{
+  "_comment": "scripts/*.mjs that have no sibling <name>.test.mjs yet. This list may only SHRINK: write the test, then delete the entry (scripts/every-script-has-a-test.test.mjs fails on a stale entry). A new script comes with its test, never with an entry here.",
+  "allowed": [
+    "build-editor-bundles.mjs",
+    "container-release-gate.mjs",
+    "ts-remove-unused-imports.mjs",
+    "ts-runtime-recorder.mjs"
+  ]
+}

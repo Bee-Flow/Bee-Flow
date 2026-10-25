@@ -30,7 +30,7 @@ export interface LadderSignals extends Partial<Omit<AiActSignals, 'surface' | 's
 }
 
 /** The stored self-declaration, as far as the modal reads it. */
-interface LadderAssessment {
+export interface LadderAssessment {
     outcome?: string;
     current?: boolean;
     signals?: LadderSignals | null;

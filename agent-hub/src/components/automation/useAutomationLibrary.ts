@@ -1,15 +1,89 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import type { AutomationApiError } from '../../hooks/useAutomationApi';
 import { toast } from '../shared/Toast';
+import useAutomationFolders from './useAutomationFolders';
 import {
     duplicateAutomationOnServer,
     invalidateAutomationTrash,
 } from '../../api/queries/automation/library';
 import { errorStatus } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
-import { type AutomationListRow, type AutomationFolder, type StepRow, type AutomationLibrary, type UseAutomationLibraryOptions } from './useAutomationLibrary.types';
-export { type AutomationListRow, type AutomationFolder, type StepRow, type AutomationLibrary, type UseAutomationLibraryOptions } from './useAutomationLibrary.types';
+/** One row of the sidebar's automation list. */
+export interface AutomationListRow {
+    id: string;
+    title?: string;
+    description?: string | null;
+    /** null = at the top level, outside every folder. */
+    folderId?: string | null;
+    isActive?: boolean;
+    isDraft?: boolean;
+    definition?: unknown;
+    [key: string]: unknown;
+}
+
+/** One sidebar folder. */
+export interface AutomationFolder {
+    id: string;
+    name?: string;
+    /** The folder it sits in; null = at the top level. */
+    parentId?: string | null;
+    [key: string]: unknown;
+}
+
+/** One reusable Step (an automation of kind 'block'). */
+export interface StepRow {
+    id: string;
+    title?: string;
+    [key: string]: unknown;
+}
+
+export interface AutomationLibrary {
+    automationApi: ReturnType<typeof useAutomationApi>;
+    automations: AutomationListRow[];
+    setAutomations: Dispatch<SetStateAction<AutomationListRow[]>>;
+    folders: AutomationFolder[];
+    automationsLoading: boolean;
+    pendingDeleteAutomation: AutomationListRow | null;
+    setPendingDeleteAutomation: Dispatch<SetStateAction<AutomationListRow | null>>;
+    steps: StepRow[];
+    stepsLoading: boolean;
+    /** Ids of the automations executing right now — the sidebar's live dot. */
+    activeRunIds: Set<string>;
+    fetchAutomations: () => Promise<void>;
+    fetchFolders: () => Promise<void>;
+    createFolder: (name: string, parentId?: string | null) => Promise<void>;
+    moveFolder: (id: string, parentId: string | null) => Promise<void>;
+    renameFolder: (id: string, name: string) => Promise<void>;
+    deleteFolder: (folder: AutomationFolder) => Promise<void>;
+    moveToFolder: (automationId: string, folderId: string | null) => Promise<void>;
+    fetchSteps: () => Promise<void>;
+    onDeleteStep: (step: StepRow) => Promise<void>;
+    toggleAutomation: (a: AutomationListRow) => Promise<void>;
+    requestDeleteAutomation: (a: AutomationListRow) => void;
+    confirmDeleteAutomation: () => Promise<void>;
+    duplicateAutomation: (a: AutomationListRow) => Promise<void>;
+    exportAutomationJson: (a: AutomationListRow) => Promise<void>;
+    importAutomationFile: (file: File | null) => Promise<void>;
+    copyAutomationId: (a: AutomationListRow) => Promise<void>;
+}
+
+export interface UseAutomationLibraryOptions {
+    confirm: (opts: {
+        title: string;
+        description?: string;
+        confirmLabel?: string;
+        destructive?: boolean;
+    }) => Promise<boolean>;
+    builderAutomationId: string | null;
+    openingBuilder: boolean;
+    builderStepId: string | null;
+    setBuilderAutomationId: (id: string | null) => void;
+    setBuilderInitialTab: (tab: string | null) => void;
+    setBuilderStepId: (id: string | null) => void;
+    setOpeningBuilder: (opening: boolean) => void;
+}
 
 /** What a failed request said, for a toast the user can act on. */
 const failureText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -30,7 +104,6 @@ export default function useAutomationLibrary({
 }: UseAutomationLibraryOptions): AutomationLibrary {
     const automationApi = useAutomationApi();
     const [automations, setAutomations] = useState<AutomationListRow[]>([]);
-    const [folders, setFolders] = useState<AutomationFolder[]>([]);
     const [automationsLoading, setAutomationsLoading] = useState(false);
     const [pendingDeleteAutomation, setPendingDeleteAutomation] = useState<AutomationListRow | null>(null);
     const [steps, setSteps] = useState<StepRow[]>([]);
@@ -47,69 +120,9 @@ export default function useAutomationLibrary({
         setAutomationsLoading(false);
     }, [automationApi]);
 
-    const fetchFolders = useCallback(async () => {
-        try {
-            const r = await automationApi.listFolders<{ folders?: AutomationFolder[] }>();
-            setFolders(r.folders || []);
-        } catch (err) {
-            // A sidebar without folders is still a usable sidebar — never let
-            // this take the automation list down with it.
-            console.warn('[AITasksDesigner] fetchFolders failed:', failureText(err));
-        }
-    }, [automationApi]);
-
-    useEffect(() => { fetchAutomations(); }, [fetchAutomations]);
-    useEffect(() => { fetchFolders(); }, [fetchFolders]);
-
-    // The sidebar owns the naming input and the removal confirmation — both are
-    // in-app, so nothing here reaches for window.prompt/confirm. Failures land
-    // in the same toast host as every other error in this view.
-    const createFolder = useCallback(async (name: string) => {
-        if (!name || !name.trim()) return;
-        try {
-            await automationApi.createFolder({ name: name.trim() });
-            await fetchFolders();
-        } catch (err) {
-            toast.error(failureText(err) || 'Could not create that folder.');
-        }
-    }, [automationApi, fetchFolders]);
-
-    const renameFolder = useCallback(async (id: string, name: string) => {
-        try {
-            await automationApi.updateFolder(id, { name });
-            await fetchFolders();
-        } catch (err) {
-            toast.error(failureText(err) || 'Could not rename that folder.');
-            await fetchFolders();
-        }
-    }, [automationApi, fetchFolders]);
-
-    const deleteFolder = useCallback(async (folder: AutomationFolder) => {
-        try {
-            const r = await automationApi.deleteFolder<{ detached?: number }>(folder.id);
-            await Promise.all([fetchFolders(), fetchAutomations()]);
-            if (r?.detached) {
-                toast.success(`Folder removed — ${r.detached} automation${r.detached === 1 ? '' : 's'} moved back to the top.`);
-            }
-        } catch (err) {
-            toast.error(failureText(err) || 'Could not remove that folder.');
-        }
-    }, [automationApi, fetchFolders, fetchAutomations]);
-
-    const moveToFolder = useCallback(async (automationId: string, folderId: string | null) => {
-        const current = automations.find(a => a.id === automationId);
-        if (!current || (current.folderId || null) === (folderId || null)) return;
-        // Optimistic: the row jumps immediately, then the server confirms.
-        setAutomations(list => list.map(a => (a.id === automationId ? { ...a, folderId: folderId || null } : a)));
-        try {
-            await automationApi.moveAutomationToFolder(automationId, folderId);
-            await fetchFolders();
-        } catch (err) {
-            console.warn('[AITasksDesigner] moveToFolder failed:', failureText(err));
-            await fetchAutomations();
-        }
-    }, [automationApi, automations, fetchFolders, fetchAutomations]);
-
+    const { folders, fetchFolders, createFolder, renameFolder, moveFolder, deleteFolder, moveToFolder } = useAutomationFolders({
+        automationApi, automations, setAutomations, fetchAutomations,
+    });
 
     // Refresh the automation list whenever the builder closes — covers the
     // case where the user finalised a draft, renamed via the inline title,
@@ -323,6 +336,7 @@ export default function useAutomationLibrary({
         fetchAutomations,
         fetchFolders,
         createFolder,
+        moveFolder,
         renameFolder,
         deleteFolder,
         moveToFolder,

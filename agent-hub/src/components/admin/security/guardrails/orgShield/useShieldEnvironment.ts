@@ -9,7 +9,7 @@ export interface ShieldOrg {
 }
 
 /** Is the PII Guard installed and answering? */
-interface GuardStatus {
+export interface GuardStatus {
     configured: boolean;
     reachable: boolean;
 }
