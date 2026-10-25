@@ -43,6 +43,11 @@ stub('stores/automationStore', {
     getFolder: async () => existing,
     getFolderInOrg: async (id, org) => { calls.orgChecks.push({ id, org }); return existing; },
     moveFolder: async (id, parentId, org) => { calls.move.push({ id, parentId, org }); return moveImpl(id, parentId, org); },
+    requireFolderForAutomation: async (id, org) => {
+        calls.orgChecks.push({ require: id, org });
+        if (id === 'foreign') { const { FolderError } = require('../../stores/automationStore/folders'); throw new FolderError(404, 'folder_not_found', 'Folder not found.'); }
+        return { id };
+    },
     deleteFolder: async (id) => { calls.del.push(id); return { detached: 2, reparented: 1 }; },
     listFolders: async () => [],
     getAutomation: async () => null,
@@ -161,30 +166,32 @@ describe('what reaches the store', () => {
         assert.deepEqual(calls.create[0], { organizationId: 'org-1', name: 'Sub', parentId: 'f1' });
     });
 
-    test('a rename cannot carry a parentId: moving has its own route', async () => {
-        const { status } = await send('PUT', '/folders/f1', { parentId: 'f2' });
-        assert.equal(status, 400);
-        assert.equal(calls.update.length, 0);
+    test('a rename sends parentId nowhere: it is not part of the patch', async () => {
+        await send('PUT', '/folders/f1', { name: 'Paid' });
+        assert.deepEqual(calls.update[0].patch, { name: 'Paid' });
+        assert.equal(calls.move.length, 0);
     });
 
     test('a move passes the caller organisation, and null means the top level', async () => {
-        const a = await send('PUT', '/folders/f1/parent', { parentId: 'f2' });
-        const b = await send('PUT', '/folders/f1/parent', { parentId: null });
+        const a = await send('PUT', '/folders/f1', { parentId: 'f2' });
+        const b = await send('PUT', '/folders/f1', { parentId: null });
         assert.equal(a.status, 200);
         assert.equal(b.status, 200);
         assert.deepEqual(calls.move, [{ id: 'f1', parentId: 'f2', org: 'org-1' }, { id: 'f1', parentId: null, org: 'org-1' }]);
+        assert.equal(calls.update.length, 0, 'nothing else to change');
     });
 
-    test('a move without parentId is a 400', async () => {
-        const { status } = await send('PUT', '/folders/f1/parent', {});
-        assert.equal(status, 400);
+    test('a move of a folder outside the organisation is a 404 and moves nothing', async () => {
+        existing = null;
+        const { status } = await send('PUT', '/folders/f1', { parentId: 'f2' });
+        assert.equal(status, 404);
         assert.equal(calls.move.length, 0);
     });
 
     test('a refused move (loop, depth, other organisation) is the store code and status', async () => {
         const { FolderError } = require('../../stores/automationStore/folders');
         moveImpl = async () => { throw new FolderError(409, 'folder_cycle', 'A folder cannot be moved into itself or into one of its own subfolders.'); };
-        const { status, body } = await send('PUT', '/folders/f1/parent', { parentId: 'f2' });
+        const { status, body } = await send('PUT', '/folders/f1', { parentId: 'f2' });
         assert.equal(status, 409);
         assert.equal(body.code, 'folder_cycle');
     });
@@ -213,5 +220,24 @@ describe('what a failing store says', () => {
         assert.equal(status, 500);
         assert.equal(body.error, 'Internal server error');
         assert.ok(!JSON.stringify(body).includes('10.42.0.7'));
+    });
+});
+
+describe('filing an automation (the folderId of its update)', () => {
+    const { folderIdForUpdate } = require('./folders');
+
+    test('null and empty mean the top level and never ask the store', async () => {
+        assert.equal(await folderIdForUpdate(null, 'org-1'), null);
+        assert.equal(await folderIdForUpdate('', 'org-1'), null);
+        assert.equal(calls.orgChecks.length, 0);
+    });
+
+    test('a folder is checked in the caller organisation', async () => {
+        assert.equal(await folderIdForUpdate('f1', 'org-1'), 'f1');
+        assert.deepEqual(calls.orgChecks, [{ require: 'f1', org: 'org-1' }]);
+    });
+
+    test('a folder of another organisation is a 404 for the caller', async () => {
+        await assert.rejects(folderIdForUpdate('foreign', 'org-1'), (e) => e.status === 404 && e.code === 'folder_not_found');
     });
 });

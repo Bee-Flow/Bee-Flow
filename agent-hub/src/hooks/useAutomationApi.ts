@@ -356,7 +356,7 @@ export default function useAutomationApi() {
         // Curated template gallery shown in the EmptyState. listTemplates
         // returns metadata only; getTemplate fetches the full definition
         // so the builder can pre-fill via createAutomation.
-        // ── Sidebar folders (org-wide, one level) ─────────────────────
+        // ── Sidebar folders (org-wide, nested; parentId moves one) ────
         // Deleting a folder DETACHES its automations; it never deletes them,
         // which matters because a folder is shared across the organisation.
         listFolders: <T = unknown>() => get<T>('/folders'),

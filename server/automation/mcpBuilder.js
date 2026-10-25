@@ -124,7 +124,7 @@ function toMcpTool(fn) {
     // kind of call a client should be able to confirm.
     const writes = MUTATING_TOOLS.has(fn.name)
         || fn.name === 'builder_finalize'
-        || fn.name === 'automations_create';
+        || fn.name === 'automations_create' || runTools.WRITE_TOOL_NAMES.has(fn.name);
 
     const inputSchema = { ...params, type: 'object', properties };
     if (required.length) inputSchema.required = required;

@@ -27,12 +27,12 @@ const FolderBody = z.object({
     parentId: z.string().trim().min(1).max(64).nullish(),
 }).strict();
 
-/** Every field optional: a rename must not have to resend icon and colour. A move has its own route. */
-const FolderPatch = FolderBody.omit({ parentId: true }).partial();
-
-const FolderMove = z.object({
-    parentId: z.string({ error: 'parentId is a folder id, or null for the top level.' }).trim().min(1).max(64).nullable(),
-}).strict();
+/**
+ * Every field optional: a rename must not have to resend icon and colour.
+ * `parentId` moves the folder (with everything in it) under another folder, or
+ * to the top level with null.
+ */
+const FolderPatch = FolderBody.partial();
 
 /** A refusal of the folder rules is the caller's to read; anything else stays a 500. */
 const asHttp = (e) => (e instanceof FolderError ? new HttpError(e.status, e.code, e.message) : e);
@@ -74,20 +74,13 @@ function registerFolderRoutes(router) {
 
     router.put('/folders/:folderId', validate({ body: FolderPatch }), async (req, res, next) => {
         try {
-            const existing = await automationStore.getFolderInOrg(req.params.folderId, await orgOf(req));
+            const orgId = await orgOf(req);
+            const existing = await automationStore.getFolderInOrg(req.params.folderId, orgId);
             if (!existing) return res.status(404).json({ error: 'Not found' });
-            const folder = await automationStore.updateFolder(req.params.folderId, req.body);
-            return res.json({ folder });
-        } catch (e) {
-            if (isDuplicateFolder(e)) return next(duplicateFolder());
-            return next(asHttp(e));
-        }
-    });
-
-    // Move a folder, with everything in it, under another folder (parentId) or to the top level (null).
-    router.put('/folders/:folderId/parent', validate({ body: FolderMove }), async (req, res, next) => {
-        try {
-            const folder = await automationStore.moveFolder(req.params.folderId, req.body.parentId, await orgOf(req));
+            const { parentId, ...patch } = req.body;
+            // The server refuses a loop, a tree that is too deep and a name taken in the new parent.
+            if (parentId !== undefined) await automationStore.moveFolder(existing.id, parentId, orgId);
+            const folder = Object.keys(patch).length ? await automationStore.updateFolder(existing.id, patch) : await automationStore.getFolder(existing.id);
             return res.json({ folder });
         } catch (e) {
             if (isDuplicateFolder(e)) return next(duplicateFolder());
@@ -105,4 +98,17 @@ function registerFolderRoutes(router) {
     });
 }
 
-module.exports = { registerFolderRoutes };
+/**
+ * The folder an automation is filed in, for its update: the folder must exist in
+ * the caller's organisation (an id from the client is not trusted). Null = the top level.
+ */
+async function folderIdForUpdate(folderId, organizationId) {
+    if (!folderId) return null;
+    try {
+        return (await automationStore.requireFolderForAutomation(folderId || null, organizationId))?.id ?? null;
+    } catch (e) {
+        throw asHttp(e);
+    }
+}
+
+module.exports = { registerFolderRoutes, folderIdForUpdate };

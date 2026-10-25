@@ -499,9 +499,6 @@ async function deleteOrganization(orgId) {
         await run('DELETE FROM group_chats WHERE organization_id = $1', [orgId]);
         step = 'tasks';
         await run('DELETE FROM tasks WHERE organization_id = $1', [orgId]);
-        // The automations sidebar's folder tree (no user ids in it, but nothing should outlive its organisation).
-        step = 'automation_folders';
-        try { await run('DELETE FROM automation_folders WHERE organization_id = $1', [orgId]); } catch (e) { log.debug('table may not exist', e); }
 
         // Datatables: rows first, metadata second. The rows live in a schema of
         // their own that no foreign key reaches, so this is the only code that

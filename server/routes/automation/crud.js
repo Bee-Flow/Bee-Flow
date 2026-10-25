@@ -9,7 +9,7 @@ const router = express.Router();
 // The caller's organisation (see crudContext.js for why it is async and read
 // fresh), the knowledge-base findings and the one access answer.
 const { orgOf, kbFindingsFor, automationAccess, worded } = require('./crudContext');
-const { registerFolderRoutes } = require('./folders');
+const { registerFolderRoutes, folderIdForUpdate } = require('./folders');
 const { registerFormRoutes } = require('./forms');
 const { registerTemplateAndImportRoutes, registerExportRoute } = require('./importExport');
 
@@ -19,7 +19,6 @@ const { registerTemplateAndImportRoutes, registerExportRoute } = require('./impo
 const { agentsFor, knownVarNamesFor, wakeComplianceReview, ensureFormPages, ensureAnswersTable } = require('../../automation/liveSideEffects');
 const { deactivateCore, editedPinRefusal, capturedPinWarnings } = require('../../automation/goLive');
 const automationStore = require('../../stores/automationStore');
-const { FolderError } = require('../../stores/automationStore/folders');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
@@ -471,15 +470,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
     // Which sidebar folder this automation sits in. `null` puts it back at the
     // top level, so the value is copied on `!== undefined` rather than on
     // truthiness — otherwise an automation could be filed but never unfiled.
-    if (req.body.folderId !== undefined) {
-        // The folder must exist in the caller's organisation: an id from the client is not trusted.
-        try {
-            updates.folderId = (await automationStore.requireFolderForAutomation(req.body.folderId || null, await orgOf(req)))?.id ?? null;
-        } catch (e) {
-            if (e instanceof FolderError) return res.status(e.status).json({ error: e.message, code: e.code });
-            throw e;
-        }
-    }
+    if (req.body.folderId !== undefined) updates.folderId = await folderIdForUpdate(req.body.folderId, await orgOf(req));
 
     // Test on `!== undefined`, NOT truthiness: line 199 already copied the
     // field in on `!== undefined`, so a null/falsy definition used to skip

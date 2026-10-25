@@ -276,13 +276,18 @@ what clicking it will show. The sidebar's filter box applies here too. The
 view, sort and grouping are remembered per person; every row, card and lane
 tile carries the same actions menu as the sidebar (⋮ or right-click).
 
-The sidebar groups automations into **folders** — one level, shared across the
-organisation, so everyone sees the same names. Drag an automation onto a folder to
-file it, or use **Move to folder…** in its right-click menu. Which folders are
-open is remembered per person; nothing about your own view leaks to colleagues.
+The sidebar groups automations into **folders**, shared across the organisation,
+so everyone sees the same names. A folder can hold **subfolders**: use the folder
+icon on a folder row to make one, drag a folder onto another folder (or onto the
+loose list, for the top level) to move it, or use its **Move** button. Drag an
+automation onto a folder to file it, or use **Move to folder…** in its right-click
+menu. Which folders are open is remembered per person; nothing about your own view
+leaks to colleagues. A folder cannot go into itself or one of its own subfolders,
+and folders nest at most eight levels deep by default (`AUTOMATION_FOLDER_MAX_DEPTH`,
+0 for no limit).
 
 Removing a folder **never deletes the automations in it** — they move back to
-the top of the list. That is deliberate: a folder is org-wide, so it can easily
+the top of the list, and its subfolders move up one level. That is deliberate: a folder is org-wide, so it can easily
 hold automations belonging to people you cannot see, and "tidy up the sidebar"
 must never be a way to destroy someone else's work.
 
